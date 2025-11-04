@@ -1,0 +1,788 @@
+@page "/profile"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
+@using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
+@using RTUB.Shared
+@using RTUB.Application.Services
+@using RTUB.Application.Interfaces
+@using Microsoft.JSInterop
+@attribute [Authorize]
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IImageService ImageService
+@inject IJSRuntime JSRuntime
+
+<h1 class="text-center mb-4">Meu Perfil</h1>
+
+@if (user == null)
+{
+    <p class="text-white-full">A carregar...</p>
+}
+else
+{
+    @* Display password change warning if required *@
+    @if (user.RequirePasswordChange)
+    {
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <h5 class="alert-heading">
+                <i class="bi bi-exclamation-triangle-fill"></i> Ação Necessária
+            </h5>
+            <p class="mb-2">
+                Por favor, altere a sua palavra-passe assim que possível. Está a usar uma palavra-passe temporária.
+            </p>
+            <button class="btn btn-sm btn-warning" @onclick="OpenChangePasswordModal">
+                <i class="bi bi-key-fill"></i> Alterar Palavra-passe Agora
+            </button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    
+    <!-- Avatar Section -->
+    <div class="text-center mb-4">
+        <div class="avatar-container mx-auto">
+            <img src="@GetProfilePictureUrl()" alt="Foto de Perfil" class="avatar" />
+        </div>
+        <div class="mt-3">
+            <button class="btn btn-primary btn-primary-purple" @onclick="OpenUploadModal">
+                <i class="bi bi-upload"></i> Carregar Foto
+            </button>
+        </div>
+    </div>
+
+    <!-- Profile Information -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0 text-white-full">Informações Pessoais</h5>
+                        <button class="btn btn-sm btn-outline-light" @onclick="OpenEditModal">
+                            <i class="bi bi-pencil"></i> Editar
+                        </button>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong class="text-white-full">Nome Completo:</strong></div>
+                        <div class="col-sm-8 text-white-full">@($"{user.FirstName} {user.LastName}")</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong class="text-white-full">Nome de Tuna:</strong></div>
+                        <div class="col-sm-8 text-white-full">@(user.Nickname ?? "N/D")</div>
+                    </div>
+
+                    @if (user.DateOfBirth != null)
+                    {
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong class="text-white-full">Data de Nascimento:</strong></div>
+                            <div class="col-sm-8 text-white-full">@user.DateOfBirth.Value.ToString("dd/MM/yyyy")</div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong class="text-white-full">Idade:</strong></div>
+                            <div class="col-sm-8 text-white-full">@user.Age anos</div>
+                        </div>
+                    }
+
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong class="text-white-full">Contacto:</strong></div>
+                        <div class="col-sm-8 text-white-full">@(user.PhoneContact ?? "N/D")</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong class="text-white-full">Email:</strong></div>
+                        <div class="col-sm-8 text-white-full">@user.Email</div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(user.Degree))
+                    {
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong class="text-white-full">Curso:</strong></div>
+                            <div class="col-sm-8 text-white-full">@user.Degree</div>
+                        </div>
+                    }
+
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong class="text-white-full">Instrumento Principal:</strong></div>
+                        <div class="col-sm-8 text-white-full">@(user.MainInstrument.HasValue? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : "N/D")</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong class="text-white-full">Padrinho:</strong></div>
+                        <div class="col-sm-8 text-white-full">@(mentor != null ? $"{mentor.FirstName} {mentor.LastName}" + (!string.IsNullOrEmpty(mentor.Nickname) ? $" \"{mentor.Nickname}\"" : "") : "N/D")</div>
+                    </div>
+
+                    @if (user.YearLeitao != null)
+                    {
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong class="text-white-full">Ano de entrada LEITÃO:</strong></div>
+                            <div class="col-sm-8 text-white-full">@user.YearLeitao</div>
+                        </div>
+                    }
+
+                    @if (user.YearCaloiro != null)
+                    {
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong class="text-white-full">Ano de entrada CALOIRO:</strong></div>
+                            <div class="col-sm-8 text-white-full">@user.YearCaloiro</div>
+                        </div>
+                    }
+
+                    @if (user.YearTuno != null)
+                    {
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong class="text-white-full">Ano de entrada TUNO:</strong></div>
+                            <div class="col-sm-8 text-white-full">@user.YearTuno</div>
+                        </div>
+                    }
+
+                    @if (user.Positions.Any())
+                    {
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong class="text-white-full">Cargos:</strong></div>
+                            <div class="col-sm-8">
+                                @foreach (var position in user.Positions)
+                                {
+                                    <PositionBadge Position="position" AdditionalClasses="me-1 mt-1" />
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @{
+                        var displayCategories = StatusHelper.GetDisplayCategories(user.Categories, user.YearTuno);
+                    }
+                    @if (displayCategories.Any())
+                    {
+                        <div class="row mb-3">
+                            <div class="col-sm-4"><strong class="text-white-full">Categorias:</strong></div>
+                            <div class="col-sm-8">
+                                @foreach (var category in displayCategories)
+                                {
+                                    <CategoryBadge Category="category" AdditionalClasses="me-1 mt-1" />
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Manage Account Section -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3 text-white-full">Gerir Conta</h5>
+                    <p class="mb-3 text-light-theme">
+                        Gerir as definições da sua conta e segurança.
+                    </p>
+                    <button class="btn btn-primary btn-primary-purple" @onclick="OpenChangePasswordModal">
+                        <i class="bi bi-key"></i> Alterar Palavra-passe
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Upload Photo Modal -->
+<Modal Show="@showUploadModal" 
+       ShowChanged="@((bool show) => showUploadModal = show)"
+       Title="Carregar Foto de Perfil" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        <InputFile class="form-control file-input-dark" OnChange="HandleImageUpload" accept="image/*" />
+        @if (!string.IsNullOrEmpty(uploadMessage))
+        {
+            <div class="alert alert-success mt-3">@uploadMessage</div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseUploadModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
+<!-- Image Cropper Component -->
+<ImageCropper @ref="imageCropper"
+              ShowModal="showCropperModal"
+              ShowModalChanged="OnCropperModalChanged"
+              OnImageCropped="OnImageCropped"
+              AspectRatio="1"
+              AspectRatioHelp="As fotos de perfil são exibidas como avatares circulares (proporção 1:1 recomendada)"
+              ImageFormat="image/jpeg"
+              ImageQuality="0.9" />
+
+<!-- Edit Profile Modal -->
+@if (editUser != null)
+{
+    <Modal Show="@showEditModal" 
+           ShowChanged="@((bool show) => showEditModal = show)"
+           Title="Editar Perfil" 
+           Size="Modal.ModalSize.Large"
+           Centered="true">
+        <BodyContent>
+            <EditForm Model="editUser" OnValidSubmit="SaveProfile">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-white-full">Primeiro Nome</label>
+                        <InputText class="form-control" @bind-Value="editUser.FirstName" placeholder="Inserir primeiro nome..." />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-white-full">Último Nome</label>
+                        <InputText class="form-control" @bind-Value="editUser.LastName" placeholder="Inserir último nome..." />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Nome de Tuna (Alcunha)</label>
+                    <InputText class="form-control" @bind-Value="editUser.Nickname" placeholder="Inserir nome de tuna..." />
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-white-full">Data de Nascimento</label>
+                        <InputDate class="form-control" @bind-Value="editUser.DateOfBirth" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-white-full">Contacto</label>
+                        <InputText class="form-control" @bind-Value="editUser.PhoneContact" placeholder="Inserir contacto..." />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Curso</label>
+                    <InputText class="form-control" @bind-Value="editUser.Degree" placeholder="Inserir curso..." />
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-white-full">Ano LEITÃO</label>
+                        <InputNumber class="form-control" @bind-Value="editUser.YearLeitao" placeholder="Inserir ano..." />
+                    </div>
+                    @* Only show Ano CALOIRO if user is not just Leitão *@
+                    @if (user != null && !user.IsOnlyLeitao())
+                    {
+                        <div class="col-md-4">
+                            <label class="form-label text-white-full">Ano CALOIRO</label>
+                            <InputNumber class="form-control" @bind-Value="editUser.YearCaloiro" placeholder="Inserir ano..." />
+                        </div>
+                    }
+                    @* Only show Ano TUNO if user is Tuno or higher *@
+                    @if (user != null && user.IsTunoOrHigher())
+                    {
+                        <div class="col-md-4">
+                            <label class="form-label text-white-full">Ano TUNO</label>
+                            <InputNumber class="form-control" @bind-Value="editUser.YearTuno" placeholder="Inserir ano..." />
+                        </div>
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Instrumento Principal</label>
+                    <select class="form-select" @bind="editUser.MainInstrument">
+                        <option value="">Sem instrumento</option>
+                        @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                        {
+                            <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Padrinho</label>
+                    <div class="mentor-search-container">
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" 
+                                   class="form-control" 
+                                   placeholder="Pesquisar padrinho por nome, email ou alcunha..."
+                                   @bind="mentorSearchTerm" 
+                                   @bind:event="oninput" 
+                                   @onkeyup="FilterMentors" />
+                            @if (!string.IsNullOrEmpty(mentorSearchTerm))
+                            {
+                                <button class="btn btn-outline-secondary" type="button" @onclick="ClearMentorSelection" title="Limpar seleção">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    
+                    @if (filteredMentors.Any())
+                    {
+                        <div class="member-list member-list-scrollable">
+                            @foreach (var mentor in filteredMentors.Take(20))
+                            {
+                                <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                     @onclick="() => SelectMentor(mentor)">
+                                    <div class="d-flex align-items-center">
+                                        <img src="@mentor.ProfilePictureSrc" alt="@mentor.GetDisplayName()"
+                                             class="member-avatar-small me-2" />
+                                        <div>
+                                            @if (!string.IsNullOrEmpty(mentor.Nickname))
+                                            {
+                                                <div><strong>@mentor.Nickname</strong></div>
+                                                <div class="text-muted small">@mentor.FirstName @mentor.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div><strong>@mentor.FirstName @mentor.LastName</strong></div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(mentorSearchTerm) && string.IsNullOrEmpty(editUser.MentorId))
+                    {
+                        <div class="alert alert-purple mt-2">Nenhum padrinho encontrado.</div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(editUser.MentorId))
+                    {
+                        // Use cached mentor to avoid repeated lookups on every render
+                        var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editUser.MentorId);
+                        if (displayMentor != null)
+                        {
+                            <div class="alert alert-success mt-2">
+                                <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
+                            </div>
+                        }
+                    }
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-primary-purple">Guardar Alterações</button>
+                </div>
+            </EditForm>
+        </BodyContent>
+    </Modal>
+}
+
+<!-- Change Password Modal -->
+<Modal Show="@showPasswordModal" 
+       ShowChanged="@((bool show) => showPasswordModal = show)"
+       Title="Alterar Palavra-passe" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        @if (!string.IsNullOrEmpty(ChangePasswordMessage))
+        {
+            <div class="alert @(ChangePasswordSucceeded ? "alert-success" : "alert-danger")">@ChangePasswordMessage</div>
+        }
+        <EditForm Model="passwordModel" OnValidSubmit="ChangePassword">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <label class="form-label text-white-full">Palavra-passe Atual</label>
+                <InputText type="password" class="form-control" @bind-Value="passwordModel.OldPassword" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-white-full">Nova Palavra-passe</label>
+                <InputText type="password" class="form-control" @bind-Value="passwordModel.NewPassword" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-white-full">Confirmar Nova Palavra-passe</label>
+                <InputText type="password" class="form-control" @bind-Value="passwordModel.ConfirmPassword" />
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="ClosePasswordModal">Cancelar</button>
+                <button type="submit" class="btn btn-primary btn-primary-purple">Alterar Palavra-passe</button>
+            </div>
+        </EditForm>
+    </BodyContent>
+</Modal>
+
+@code {
+    private ApplicationUser? user;
+    private ApplicationUser? editUser;
+    private ApplicationUser? mentor;
+    private List<ApplicationUser> eligibleMentors = new();
+    private bool showUploadModal = false;
+    private bool showEditModal = false;
+    private bool showCropperModal = false;
+    private bool showPasswordModal = false;
+    private string? uploadMessage;
+    private ImageCropper? imageCropper;
+    private IBrowserFile? selectedFile;
+    private ChangePasswordModel passwordModel = new();
+    private string? ChangePasswordMessage;
+    private bool ChangePasswordSucceeded;
+    private long profilePictureVersion = DateTime.UtcNow.Ticks;
+    
+    // Mentor search variables
+    private string mentorSearchTerm = "";
+    private List<ApplicationUser> filteredMentors = new();
+    private SearchHelper<ApplicationUser> mentorSearchHelper = new();
+    private ApplicationUser? selectedMentorCache = null;
+
+    public class ChangePasswordModel
+    {
+        [Required(ErrorMessage = "A palavra-passe atual é obrigatória")]
+        [DataType(DataType.Password)]
+        public string OldPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "A nova palavra-passe é obrigatória")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "A palavra-passe deve ter pelo menos 8 caracteres")]
+        [DataType(DataType.Password)]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "A confirmação da palavra-passe é obrigatória")]
+        [DataType(DataType.Password)]
+        [Compare("NewPassword", ErrorMessage = "A nova palavra-passe e a confirmação não coincidem.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claimsPrincipal = authState.User;
+
+        if (claimsPrincipal?.Identity?.IsAuthenticated == true)
+        {
+            // Try multiple ways to get the user identifier
+            var userName = claimsPrincipal.Identity.Name;
+            var nameIdentifierClaim = claimsPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var nameClaim = claimsPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+            
+            // Try to find by username first
+            if (!string.IsNullOrEmpty(userName))
+            {
+                user = await UserManager.FindByNameAsync(userName);
+            }
+            
+            // Try by name claim
+            if (user == null && !string.IsNullOrEmpty(nameClaim))
+            {
+                user = await UserManager.FindByNameAsync(nameClaim);
+                if (user == null)
+                {
+                    user = await UserManager.FindByEmailAsync(nameClaim);
+                }
+            }
+            
+            // Try by user ID from NameIdentifier claim
+            if (user == null && !string.IsNullOrEmpty(nameIdentifierClaim))
+            {
+                user = await UserManager.FindByIdAsync(nameIdentifierClaim);
+            }
+            
+            if (user != null)
+            {
+                // Load mentor if exists
+                if (!string.IsNullOrEmpty(user.MentorId))
+                {
+                    mentor = await UserManager.FindByIdAsync(user.MentorId);
+                }
+                
+                // Load eligible mentors (Caloiro and Tuno, excluding Leitões and self)
+                eligibleMentors = UserManager.Users
+                    .Where(u => u.Id != user.Id && 
+                           (u.Categories.Contains(MemberCategory.Caloiro) || 
+                            u.Categories.Contains(MemberCategory.Tuno) ||
+                            u.Categories.Contains(MemberCategory.Veterano) ||
+                            u.Categories.Contains(MemberCategory.Tunossauro)))
+                    .OrderBy(u => u.FirstName)
+                    .ThenBy(u => u.LastName)
+                    .ToList();
+            }
+        }
+    }
+
+    private void OpenUploadModal()
+    {
+        uploadMessage = null;
+        showUploadModal = true;
+    }
+
+    private void CloseUploadModal()
+    {
+        showUploadModal = false;
+        uploadMessage = null;
+    }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var imageFile = e.File;
+            if (imageFile != null && user != null)
+            {
+                var maxFileSize = 10 * 1024 * 1024;
+                if (imageFile.Size > maxFileSize)
+                {
+                    uploadMessage = "O tamanho do ficheiro deve ser inferior a 10MB.";
+                    return;
+                }
+
+                selectedFile = imageFile;
+
+                // Close upload modal and open cropper
+                CloseUploadModal();
+
+                if (imageCropper != null)
+                {
+                    await imageCropper.LoadImageAsync(selectedFile);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            uploadMessage = "Erro ao carregar imagem. Por favor tente novamente.";
+        }
+    }
+
+    private async Task OnImageCropped(byte[] croppedImageData)
+    {
+        try
+        {
+            if (user != null && croppedImageData != null && croppedImageData.Length > 0)
+            {
+                user.ProfilePictureData = croppedImageData;
+                user.ProfilePictureContentType = "image/jpeg";
+
+                await UserManager.UpdateAsync(user);
+                
+                // CRITICAL: Clear server-side image cache to ensure fresh image is served
+                ImageService.InvalidateProfileImageCache(user.Id);
+                
+                // Update cache-bust parameter to force image reload
+                profilePictureVersion = DateTime.UtcNow.Ticks;
+                
+                uploadMessage = "Foto de perfil atualizada com sucesso!";
+                StateHasChanged();
+                
+                // Wait for Blazor to update the DOM with new ?v= parameter.
+                // The @key attribute should force element recreation, but we wait
+                // to ensure DOM updates are complete before JS manipulation.
+                // Using 150ms to account for varying server load and rendering time.
+                await Task.Delay(150);
+                
+                // Force browser to reload images by updating cache-bust parameter
+                // This is a safety measure in case the @key recreation doesn't
+                // trigger a proper image reload in all browsers.
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("imageRefresh.forceRefresh", ".avatar, .navbar-avatar");
+                }
+                catch { /* Ignore JS errors */ }
+
+                await Task.Delay(1500);
+                uploadMessage = null;
+            }
+        }
+        catch (Exception)
+        {
+            uploadMessage = "Erro ao guardar imagem. Por favor tente novamente.";
+        }
+    }
+
+    private string GetProfilePictureUrl()
+    {
+        if (user == null) return "/images/default-avatar.png";
+        
+        // Add cache-busting parameter to force reload after image update
+        if (!string.IsNullOrEmpty(user.ProfilePictureSrc) && user.ProfilePictureSrc.StartsWith("/api/images/"))
+        {
+            return $"{user.ProfilePictureSrc}?v={profilePictureVersion}";
+        }
+        return user.ProfilePictureSrc ?? "/images/default-avatar.png";
+    }
+
+    private void OnCropperModalChanged(bool isOpen)
+    {
+        showCropperModal = isOpen;
+        StateHasChanged();
+    }
+
+    private void OpenEditModal()
+    {
+        if (user == null) return;
+
+        editUser = new ApplicationUser
+        {
+            Id = user.Id,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Nickname = user.Nickname,
+            PhoneContact = user.PhoneContact,
+            DateOfBirth = user.DateOfBirth,
+            Degree = user.Degree,
+            YearLeitao = user.YearLeitao,
+            YearCaloiro = user.YearCaloiro,
+            YearTuno = user.YearTuno,
+            MainInstrument = user.MainInstrument,
+            MentorId = user.MentorId
+        };
+        
+        // Initialize mentor search term if user has a mentor
+        if (!string.IsNullOrEmpty(user.MentorId))
+        {
+            var existingMentor = eligibleMentors.FirstOrDefault(m => m.Id == user.MentorId);
+            if (existingMentor != null)
+            {
+                selectedMentorCache = existingMentor;
+                mentorSearchTerm = $"{existingMentor.FirstName} {existingMentor.LastName}";
+            }
+        }
+        else
+        {
+            selectedMentorCache = null;
+            mentorSearchTerm = "";
+        }
+        
+        filteredMentors.Clear();
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editUser = null;
+        mentorSearchTerm = "";
+        filteredMentors.Clear();
+        selectedMentorCache = null;
+    }
+
+    private async Task SaveProfile()
+    {
+        if (editUser == null || user == null) return;
+
+        user.FirstName = editUser.FirstName;
+        user.LastName = editUser.LastName;
+        user.Nickname = editUser.Nickname;
+        user.PhoneContact = editUser.PhoneContact;
+        user.DateOfBirth = editUser.DateOfBirth;
+        user.Degree = editUser.Degree;
+        user.YearLeitao = editUser.YearLeitao;
+        user.YearCaloiro = editUser.YearCaloiro;
+        user.YearTuno = editUser.YearTuno;
+        user.MainInstrument = editUser.MainInstrument;
+        user.MentorId = editUser.MentorId;
+
+        await UserManager.UpdateAsync(user);
+        
+        // Reload mentor if changed
+        if (!string.IsNullOrEmpty(user.MentorId))
+        {
+            mentor = await UserManager.FindByIdAsync(user.MentorId);
+        }
+        else
+        {
+            mentor = null;
+        }
+        
+        CloseEditModal();
+        StateHasChanged();
+    }
+
+    private void OpenChangePasswordModal()
+    {
+        ChangePasswordMessage = null;
+        ChangePasswordSucceeded = false;
+        passwordModel = new ChangePasswordModel();
+        showPasswordModal = true;
+    }
+
+    private void ClosePasswordModal()
+    {
+        showPasswordModal = false;
+        ChangePasswordMessage = null;
+        ChangePasswordSucceeded = false;
+        passwordModel = new ChangePasswordModel();
+    }
+
+    private async Task ChangePassword()
+    {
+        ChangePasswordMessage = null;
+        ChangePasswordSucceeded = false;
+        if (user == null)
+        {
+            ChangePasswordMessage = "Utilizador não encontrado.";
+            return;
+        }
+        var result = await UserManager.ChangePasswordAsync(user, passwordModel.OldPassword, passwordModel.NewPassword);
+        if (result.Succeeded)
+        {
+            ChangePasswordSucceeded = true;
+            ChangePasswordMessage = "A sua palavra-passe foi alterada com sucesso.";
+            passwordModel = new ChangePasswordModel();
+
+            // Clear the password change requirement flag
+            if (user.RequirePasswordChange)
+            {
+                user.RequirePasswordChange = false;
+                await UserManager.UpdateAsync(user);
+            }
+
+            // Close modal after delay if successful
+            await Task.Delay(1500);
+            ClosePasswordModal();
+        }
+        else
+        {
+            ChangePasswordMessage = string.Join("; ", result.Errors.Select(e => e.Description));
+        }
+    }
+
+    private void FilterMentors()
+    {
+        if (string.IsNullOrEmpty(mentorSearchTerm))
+        {
+            filteredMentors.Clear();
+            return;
+        }
+
+        // Use SearchHelper for multi-word search support
+        mentorSearchHelper.SearchTerm = mentorSearchTerm;
+        filteredMentors = mentorSearchHelper.FilterMultiple(eligibleMentors, new List<Func<ApplicationUser, string>>
+        {
+            u => u.FirstName ?? "",
+            u => u.LastName ?? "",
+            u => u.Nickname ?? "",
+            u => u.Email ?? ""
+        });
+    }
+
+    private void SelectMentor(ApplicationUser mentor)
+    {
+        if (editUser != null)
+        {
+            editUser.MentorId = mentor.Id;
+        }
+        selectedMentorCache = mentor;
+        mentorSearchTerm = $"{mentor.FirstName} {mentor.LastName}";
+        filteredMentors.Clear();
+    }
+
+    private void ClearMentorSelection()
+    {
+        if (editUser != null)
+        {
+            editUser.MentorId = null;
+        }
+        selectedMentorCache = null;
+        mentorSearchTerm = "";
+        filteredMentors.Clear();
+    }
+
+
+}
+
+

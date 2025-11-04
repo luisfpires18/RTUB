@@ -1,0 +1,119 @@
+@namespace RTUB.Shared
+@using Microsoft.AspNetCore.Components.Forms
+
+<div class="mb-3">
+    <label class="form-label">@Label</label>
+    <InputFile class="form-control file-input-dark" OnChange="HandleImageUpload" accept="image/*" />
+    
+    @if (ShowCurrentImage && !string.IsNullOrEmpty(CurrentImageUrl))
+    {
+        <div class="mt-2">
+            <small class="text-muted">Imagem atual</small>
+            <br />
+            <img src="@CurrentImageUrl" alt="Preview" class="img-thumbnail mt-1 @PreviewCssClass" />
+        </div>
+    }
+    
+    @if (HasNewImage)
+    {
+        <div class="mt-2">
+            <small class="text-success">Nova imagem carregada!</small>
+        </div>
+    }
+    
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger mt-2">@ErrorMessage</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "Imagem";
+    [Parameter] public string? CurrentImageUrl { get; set; }
+    [Parameter] public bool ShowCurrentImage { get; set; } = true;
+    [Parameter] public string PreviewCssClass { get; set; } = "music-album-preview";
+    
+    // Event callbacks
+    [Parameter] public EventCallback<IBrowserFile> OnFileSelected { get; set; }
+    [Parameter] public EventCallback<ImageUploadResult> OnImageProcessed { get; set; }
+    
+    private IBrowserFile? selectedFile;
+    private bool HasNewImage { get; set; }
+    private string? ErrorMessage { get; set; }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            ErrorMessage = null;
+            HasNewImage = false;
+            
+            var imageFile = e.File;
+            if (imageFile != null)
+            {
+                var maxFileSize = 10 * 1024 * 1024; // 10MB
+                if (imageFile.Size > maxFileSize)
+                {
+                    ErrorMessage = "O tamanho do ficheiro deve ser inferior a 10MB.";
+                    return;
+                }
+
+                selectedFile = imageFile;
+                await OnFileSelected.InvokeAsync(selectedFile);
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Erro ao carregar imagem: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Marks that a new image has been uploaded and triggers the callback
+    /// </summary>
+    public async Task SetImageDataAsync(byte[] imageData, string contentType)
+    {
+        try
+        {
+            if (imageData != null && imageData.Length > 0)
+            {
+                HasNewImage = true;
+                ErrorMessage = null;
+                
+                var result = new ImageUploadResult
+                {
+                    ImageData = imageData,
+                    ContentType = contentType,
+                    FileName = selectedFile?.Name ?? "image.jpg"
+                };
+                
+                await OnImageProcessed.InvokeAsync(result);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Erro ao processar imagem: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Resets the component state
+    /// </summary>
+    public void Reset()
+    {
+        HasNewImage = false;
+        ErrorMessage = null;
+        selectedFile = null;
+    }
+
+    /// <summary>
+    /// Result of an image upload operation
+    /// </summary>
+    public class ImageUploadResult
+    {
+        public byte[] ImageData { get; set; } = Array.Empty<byte>();
+        public string ContentType { get; set; } = "image/jpeg";
+        public string FileName { get; set; } = string.Empty;
+    }
+}

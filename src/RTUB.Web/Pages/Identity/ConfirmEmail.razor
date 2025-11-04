@@ -1,0 +1,49 @@
+@page "/confirm-email"
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+@using Microsoft.AspNetCore.WebUtilities
+
+<h1>Confirmação de Email</h1>
+
+@if (isProcessing)
+{
+    <p>A processar confirmação...</p>
+}
+else if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert @(Succeeded ? "alert-success" : "alert-danger")">@Message</div>
+    @if (Succeeded)
+    {
+        <p>Pode agora <a href="/login">entrar</a>.</p>
+    }
+}
+
+@code {
+    private bool isProcessing = true;
+    private bool Succeeded = false;
+    private string? Message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        if (!query.TryGetValue("userId", out var userId) || !query.TryGetValue("code", out var code))
+        {
+            Message = "Link de confirmação inválido.";
+            isProcessing = false;
+            return;
+        }
+        var user = await UserManager.FindByIdAsync(userId!);
+        if (user == null)
+        {
+            Message = "Utilizador não encontrado.";
+            isProcessing = false;
+            return;
+        }
+        var decodedCode = System.Net.WebUtility.UrlDecode(code);
+        var result = await UserManager.ConfirmEmailAsync(user, decodedCode);
+        Succeeded = result.Succeeded;
+        Message = result.Succeeded ? "Obrigado por confirmar o seu email." : "Erro ao confirmar o seu email.";
+        isProcessing = false;
+    }
+}

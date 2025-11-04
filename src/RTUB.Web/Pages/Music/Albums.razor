@@ -1,0 +1,367 @@
+@page "/music"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using RTUB.Application.Interfaces
+@using RTUB.Shared
+@inject IAlbumService AlbumService
+@inject ISongService SongService
+@inject NavigationManager NavigationManager
+@inject IWebHostEnvironment Environment
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h1>Música</h1>
+<p class="lead mb-4">Discografia da RTUB</p>
+
+<AuthorizeView Roles="Owner">
+    <Authorized>
+        <div class="mb-3">
+            <button class="btn btn-success" @onclick="OpenCreateModal" title="Criar Novo Álbum">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@if (albums == null)
+{
+    <p>A carregar álbuns...</p>
+}
+else if (!albums.Any())
+{
+    <div class="card shadow-sm card-purple-no-border">
+        <h5 class="card-title text-white"><i class="bi bi-info-circle"></i> Nenhum album criado ainda</h5>
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var album in albums.OrderBy(a => a.Id))
+        {
+            <div class="col-md-4 col-lg-2 mb-4">
+                <div class="card album-card h-100">
+                    <div class="position-relative music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
+                        @if (!string.IsNullOrEmpty(album.CoverImageSrc))
+                        {
+                            <img src="@GetAlbumImageUrl(album.CoverImageSrc)" class="card-img-top music-square-image" alt="@album.Title">
+                        }
+                        else
+                        {
+                            <div class="card-img-top music-square-placeholder">
+                                <i class="bi bi-disc music-icon-large"></i>
+                            </div>
+                        }
+                        <AuthorizeView Roles="Owner">
+                            <Authorized>
+                                <div class="admin-overlay">
+                                    <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(album)" title="Editar">
+                                        <i class="bi bi-pencil music-icon-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(album)" title="Eliminar">
+                                        <i class="bi bi-trash music-icon-delete"></i>
+                                    </button>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
+                    <div class="card-body d-flex flex-column music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
+                        <h5 class="card-title music-text-light">@album.Title</h5>
+                        @if (album.Year.HasValue)
+                        {
+                            <p class="card-text music-text-secondary">@album.Year.Value</p>
+                        }
+                        @if (!string.IsNullOrEmpty(album.Description))
+                        {
+                            <p class="card-text small flex-grow-1 music-text-secondary">@album.Description</p>
+                        }
+                        <div class="mt-auto">
+                            <small class="music-text-secondary">
+                                <i class="bi bi-music-note-list"></i> @GetSongCount(album.Id) músicas
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- CRUD Modals -->
+<CrudModalManager TEntity="Album"
+                  ShowEditModal="@showEditModal"
+                  ShowEditModalChanged="@((value) => showEditModal = value)"
+                  IsCreateMode="@isCreateMode"
+                  EditingEntity="@editingAlbum"
+                  CreateTitle="Criar Novo Álbum"
+                  EditTitle="Editar Álbum"
+                  ModalSize="Modal.ModalSize.Default"
+                  OnSave="SaveAlbum"
+                  OnEditModalClosed="CloseEditModal"
+                  ShowDeleteModal="@showDeleteModal"
+                  ShowDeleteModalChanged="@((value) => showDeleteModal = value)"
+                  DeletingEntity="@deletingAlbum"
+                  DeleteTitle="Confirmar Eliminação"
+                  OnDelete="DeleteAlbum"
+                  OnDeleteModalClosed="CloseDeleteModal">
+    <EditFormContent Context="album">
+        <EditForm Model="album" OnValidSubmit="SaveAlbum">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <label class="form-label">Título</label>
+                <InputText class="form-control" @bind-Value="album!.Title" placeholder="Inserir título do álbum..." />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Ano (opcional)</label>
+                <InputNumber class="form-control" @bind-Value="album!.Year" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Descrição (opcional)</label>
+                <InputTextArea class="form-control" rows="3" @bind-Value="album!.Description" placeholder="Inserir descrição..." />
+            </div>
+
+            <ImageUploadManager @ref="imageUploadManager"
+                               Label="Imagem de Capa"
+                               CurrentImageUrl="@(uploadedImagePath == null && !string.IsNullOrEmpty(album!.CoverImageSrc) ? GetAlbumImageUrl(album.CoverImageSrc) : null)"
+                               ShowCurrentImage="@(uploadedImagePath == null)"
+                               PreviewCssClass="music-album-preview"
+                               OnFileSelected="HandleImageUpload" />
+        </EditForm>
+    </EditFormContent>
+    <DeleteConfirmationContent Context="album">
+        <p>Tem certeza que deseja eliminar o álbum <strong>@album?.Title</strong>?</p>
+        <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> Esta ação também eliminará todas as músicas associadas a este álbum.</p>
+    </DeleteConfirmationContent>
+</CrudModalManager>
+
+<!-- Image Cropper Component -->
+<ImageCropper @ref="imageCropper"
+              ShowModal="showCropperModal"
+              ShowModalChanged="OnCropperModalChanged"
+              OnImageCropped="OnImageCropped"
+              AspectRatio="1.0"
+              AspectRatioHelp="Album covers are displayed in 1:1 aspect ratio (square) for consistent presentation"
+              ImageFormat="image/jpeg"
+              ImageQuality="0.85" />
+
+@code {
+    private List<Album>? albums;
+    private List<Song>? allSongs;
+
+    private bool showEditModal = false;
+    private bool showDeleteModal = false;
+    private bool showCropperModal = false;
+    private bool isCreateMode = false;
+    private Album? editingAlbum;
+    private Album? deletingAlbum;
+    private string? uploadedImagePath;
+    private ImageCropper? imageCropper;
+    private IBrowserFile? selectedFile;
+    private ImageUploadManager? imageUploadManager;
+    private long albumImageVersion = DateTime.UtcNow.Ticks;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAlbums();
+    }
+
+    private async Task LoadAlbums()
+    {
+        albums = (await AlbumService.GetAllAlbumsAsync()).OrderBy(a => a.Year).ToList();
+        allSongs = (await SongService.GetAllSongsAsync()).ToList();
+        albumImageVersion = DateTime.UtcNow.Ticks; // Refresh cache-bust parameter
+    }
+
+    private int GetSongCount(int albumId)
+    {
+        return allSongs?.Count(s => s.AlbumId == albumId) ?? 0;
+    }
+
+    private void NavigateToAlbum(int albumId)
+    {
+        NavigationManager.NavigateTo($"/music/songs/{albumId}");
+    }
+
+    private void OpenCreateModal()
+    {
+        isCreateMode = true;
+        editingAlbum = new Album
+        {
+            Year = DateTime.Now.Year
+        };
+        uploadedImagePath = null;
+        showEditModal = true;
+    }
+
+    private void OpenEditModal(Album album)
+    {
+        isCreateMode = false;
+        editingAlbum = new Album
+        {
+            Id = album.Id,
+            Title = album.Title,
+            Description = album.Description,
+            Year = album.Year,
+            CoverImageData = album.CoverImageData,
+            CoverImageContentType = album.CoverImageContentType,
+            CoverImageUrl = album.CoverImageUrl
+        };
+        uploadedImagePath = null;
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingAlbum = null;
+        uploadedImagePath = null;
+        imageUploadManager?.Reset();
+    }
+
+    private async Task HandleImageUpload(IBrowserFile file)
+    {
+        try
+        {
+            if (file != null)
+            {
+                selectedFile = file;
+
+                if (imageCropper != null)
+                {
+                    await imageCropper.LoadImageAsync(selectedFile);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Handle error silently or show message
+        }
+    }
+
+    private void OnImageCropped(byte[] croppedImageData)
+    {
+        try
+        {
+            if (editingAlbum != null && croppedImageData != null && croppedImageData.Length > 0)
+            {
+                editingAlbum.CoverImageData = croppedImageData;
+                editingAlbum.CoverImageContentType = "image/jpeg";
+                uploadedImagePath = "uploaded";
+                
+                // Update cache-bust parameter to force image reload after save
+                albumImageVersion = DateTime.UtcNow.Ticks;
+                
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    private void OnCropperModalChanged(bool isOpen)
+    {
+        showCropperModal = isOpen;
+        StateHasChanged();
+    }
+
+    private async Task SaveAlbum()
+    {
+        if (editingAlbum == null) return;
+
+        // Check if user has Owner role
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (!user.IsInRole("Owner"))
+        {
+            return; // Unauthorized
+        }
+
+        if (isCreateMode)
+        {
+            var newAlbum = await AlbumService.CreateAlbumAsync(
+                editingAlbum.Title,
+                editingAlbum.Year,
+                editingAlbum.Description ?? string.Empty
+            );
+
+            if (editingAlbum.CoverImageData != null)
+            {
+                await AlbumService.SetAlbumCoverAsync(
+                    newAlbum.Id,
+                    editingAlbum.CoverImageData,
+                    editingAlbum.CoverImageContentType
+                );
+            }
+        }
+        else
+        {
+            await AlbumService.UpdateAlbumAsync(
+                editingAlbum.Id,
+                editingAlbum.Title,
+                editingAlbum.Year,
+                editingAlbum.Description ?? string.Empty
+            );
+
+            // Only update image if a new one was uploaded
+            if (editingAlbum.CoverImageData != null && uploadedImagePath != null)
+            {
+                await AlbumService.SetAlbumCoverAsync(
+                    editingAlbum.Id,
+                    editingAlbum.CoverImageData,
+                    editingAlbum.CoverImageContentType
+                );
+            }
+        }
+
+        await LoadAlbums();
+        StateHasChanged();
+        CloseEditModal();
+    }
+
+    private void OpenDeleteModal(Album album)
+    {
+        deletingAlbum = album;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deletingAlbum = null;
+    }
+
+    private async Task DeleteAlbum()
+    {
+        if (deletingAlbum == null) return;
+
+        // Check if user has Owner role
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (!user.IsInRole("Owner"))
+        {
+            return; // Unauthorized
+        }
+
+        await AlbumService.DeleteAlbumAsync(deletingAlbum.Id);
+        await LoadAlbums();
+
+        CloseDeleteModal();
+    }
+    
+    private string GetAlbumImageUrl(string imageSrc)
+    {
+        // Add cache-busting parameter to force reload after image update
+        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
+        {
+            return $"{imageSrc}?v={albumImageVersion}";
+        }
+        return imageSrc ?? string.Empty;
+    }
+}
+

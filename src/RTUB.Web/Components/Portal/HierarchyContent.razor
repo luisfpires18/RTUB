@@ -1,0 +1,223 @@
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Enums
+@using RTUB.Core.Entities
+@using RTUB.Shared
+@inject ILabelService LabelService
+@inject ILogger<HierarchyContent> Logger
+@namespace RTUB.Components.Portal
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <h1 class="portal-title">@(titleLabel?.Content ?? "A carregar...")</h1>
+    <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" />
+</div>
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <h2 class="portal-subtitle">@(subtitleLabel?.Content ?? "")</h2>
+    <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" />
+</div>
+
+@if (introLabel != null)
+{
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-start">
+            <p class="portal-intro-text flex-grow-1">@introLabel.Content</p>
+            <LabelEditButton CurrentLabel="@introLabel" OnEditClick="@OpenEditModal" />
+        </div>
+    </section>
+}
+
+<!-- Photo Cards for Costume Evolution -->
+<section class="mb-5">
+    <h3 class="mb-4 portal-title">Evolução do Traje:</h3>
+    <div class="row g-4">
+        <!-- Leitão Card -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 portal-feature-card">
+                <img src="/images/hierarchy/bag_leitao.webp" class="card-img-top hierarchy-card-image" alt="Leitão">
+                <div class="card-body">
+                    <CategoryBadge Category="MemberCategory.Leitao" AdditionalClasses="mb-2" />
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title text-white">@(leitaoCardTitle?.Content ?? "Recruta")</h5>
+                        <LabelEditButton CurrentLabel="@leitaoCardTitle" OnEditClick="@OpenEditModal" CssClass="text-white" />
+                    </div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <p class="card-text portal-card-text flex-grow-1">@(leitaoCardDesc?.Content ?? "Traje saco de lixo.")</p>
+                        <LabelEditButton CurrentLabel="@leitaoCardDesc" OnEditClick="@OpenEditModal" CssClass="text-white" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Caloiro Card -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 portal-feature-card">
+                <img src="/images/hierarchy/cords_caloiro.webp" class="card-img-top hierarchy-card-image" alt="Caloiro">
+                <div class="card-body">
+                    <CategoryBadge Category="MemberCategory.Caloiro" AdditionalClasses="mb-2" />
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title text-white">@(caloiroCardTitle?.Content ?? "Novo Membro")</h5>
+                        <LabelEditButton CurrentLabel="@caloiroCardTitle" OnEditClick="@OpenEditModal" CssClass="text-white" />
+                    </div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <p class="card-text portal-card-text flex-grow-1">@(caloiroCardDesc?.Content ?? " Cordões Brancos.")</p>
+                        <LabelEditButton CurrentLabel="@caloiroCardDesc" OnEditClick="@OpenEditModal" CssClass="text-white" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tuno Card -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 portal-feature-card">
+                <img src="/images/hierarchy/cords_tuno.webp" class="card-img-top hierarchy-card-image" alt="Tuno">
+                <div class="card-body">
+                    <CategoryBadge Category="MemberCategory.Tuno" AdditionalClasses="mb-2" />
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title text-white">@(tunoCardTitle?.Content ?? "Membro Experiente")</h5>
+                        <LabelEditButton CurrentLabel="@tunoCardTitle" OnEditClick="@OpenEditModal" CssClass="text-white" />
+                    </div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <p class="card-text portal-card-text flex-grow-1">@(tunoCardDesc?.Content ?? "Cordões Pretos.")</p>
+                        <LabelEditButton CurrentLabel="@tunoCardDesc" OnEditClick="@OpenEditModal" CssClass="text-white" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Magister Card -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 portal-feature-card">
+                <img src="/images/hierarchy/cords_magister.webp" class="card-img-top hierarchy-card-image" alt="Magister">
+                <div class="card-body">
+                    <PositionBadge Position="Position.Magister" AdditionalClasses="mb-2" />
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title text-white">@(magisterCardTitle?.Content ?? "Presidente")</h5>
+                        <LabelEditButton CurrentLabel="@magisterCardTitle" OnEditClick="@OpenEditModal" CssClass="text-white" />
+                    </div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <p class="card-text portal-card-text flex-grow-1">@(magisterCardDesc?.Content ?? "Cordões roxos.")</p>
+                        <LabelEditButton CurrentLabel="@magisterCardDesc" OnEditClick="@OpenEditModal" CssClass="text-white" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Edit Label Modal (at root level, outside cards) -->
+<Modal Show="@showEditModal" 
+       ShowChanged="@((value) => showEditModal = value)"
+       Title="Editar Conteúdo"
+       Size="Modal.ModalSize.Large"
+       OnClose="CloseEditModal">
+    <BodyContent>
+        @if (editingLabel != null)
+        {
+            <EditForm Model="editingLabel" OnValidSubmit="SaveLabel">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Referência</label>
+                    <input type="text" class="form-control" value="@editingLabel.Reference" disabled />
+                    <small class="text-white-opacity">Identificador único (não editável)</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Título</label>
+                    <InputText class="form-control" @bind-Value="editingLabel.Title" placeholder="Inserir título..." />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Conteúdo</label>
+                    <InputTextArea class="form-control" rows="10" @bind-Value="editingLabel.Content" 
+                                   placeholder="Inserir conteúdo..." />
+                    <small class="text-white-opacity">Dica: Use quebras de linha para formatar o texto</small>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+</Modal>
+
+@code {
+    private Label? titleLabel;
+    private Label? subtitleLabel;
+    private Label? introLabel;
+    private Label? leitaoCardTitle;
+    private Label? leitaoCardDesc;
+    private Label? caloiroCardTitle;
+    private Label? caloiroCardDesc;
+    private Label? tunoCardTitle;
+    private Label? tunoCardDesc;
+    private Label? magisterCardTitle;
+    private Label? magisterCardDesc;
+
+    private Label? editingLabel;
+    private bool showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLabels();
+    }
+
+    private async Task LoadLabels()
+    {
+        titleLabel = await LabelService.GetLabelByReferenceAsync("hierarchy_title");
+        subtitleLabel = await LabelService.GetLabelByReferenceAsync("hierarchy_subtitle");
+        introLabel = await LabelService.GetLabelByReferenceAsync("hierarchy_intro");
+        leitaoCardTitle = await LabelService.GetLabelByReferenceAsync("hierarchy_leitao_card_title");
+        leitaoCardDesc = await LabelService.GetLabelByReferenceAsync("hierarchy_leitao_card_desc");
+        caloiroCardTitle = await LabelService.GetLabelByReferenceAsync("hierarchy_caloiro_card_title");
+        caloiroCardDesc = await LabelService.GetLabelByReferenceAsync("hierarchy_caloiro_card_desc");
+        tunoCardTitle = await LabelService.GetLabelByReferenceAsync("hierarchy_tuno_card_title");
+        tunoCardDesc = await LabelService.GetLabelByReferenceAsync("hierarchy_tuno_card_desc");
+        magisterCardTitle = await LabelService.GetLabelByReferenceAsync("hierarchy_magister_card_title");
+        magisterCardDesc = await LabelService.GetLabelByReferenceAsync("hierarchy_magister_card_desc");
+    }
+
+    private void OpenEditModal(Label label)
+    {
+        editingLabel = new Label
+        {
+            Id = label.Id,
+            Reference = label.Reference,
+            Title = label.Title,
+            Content = label.Content,
+            IsActive = label.IsActive
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingLabel = null;
+    }
+
+    private async Task SaveLabel()
+    {
+        if (editingLabel == null) return;
+
+        try
+        {
+            await LabelService.UpdateLabelContentAsync(
+                editingLabel.Id,
+                editingLabel.Title,
+                editingLabel.Content
+            );
+
+            await LoadLabels();
+            
+            showEditModal = false;
+            editingLabel = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating label");
+        }
+    }
+}

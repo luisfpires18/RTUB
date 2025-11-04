@@ -1,0 +1,103 @@
+@namespace RTUB.Shared
+@*
+    Reusable search bar component with debouncing
+    Provides consistent search UI across all tables
+*@
+
+<div class="search-bar-container">
+    <div class="input-group">
+        <span class="input-group-text">
+            <i class="bi bi-search"></i>
+        </span>
+        <input type="text" 
+               class="form-control" 
+               placeholder="@Placeholder" 
+               value="@SearchTerm"
+               @oninput="HandleInput"
+               @onkeyup="HandleKeyUp" />
+        @if (!string.IsNullOrEmpty(SearchTerm))
+        {
+            <button class="btn btn-outline-secondary" type="button" @onclick="ClearSearch" title="Limpar pesquisa">
+                <i class="bi bi-x-circle-fill"></i>
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Current search term
+    /// </summary>
+    [Parameter]
+    public string SearchTerm { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Placeholder text for the search input
+    /// </summary>
+    [Parameter]
+    public string Placeholder { get; set; } = "Pesquisar...";
+
+    /// <summary>
+    /// Callback when search term changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnSearchChanged { get; set; }
+
+    /// <summary>
+    /// Debounce delay in milliseconds (default: 300ms)
+    /// </summary>
+    [Parameter]
+    public int DebounceDelay { get; set; } = 300;
+
+    private Timer? debounceTimer;
+    private string pendingSearchTerm = string.Empty;
+
+    private void HandleInput(ChangeEventArgs e)
+    {
+        pendingSearchTerm = e.Value?.ToString() ?? string.Empty;
+
+        // Cancel existing timer
+        debounceTimer?.Dispose();
+
+        // Start new timer
+        debounceTimer = new Timer(_ =>
+        {
+            InvokeAsync(async () =>
+            {
+                if (OnSearchChanged.HasDelegate)
+                {
+                    await OnSearchChanged.InvokeAsync(pendingSearchTerm);
+                }
+                StateHasChanged();
+            });
+        }, null, DebounceDelay, Timeout.Infinite);
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        // Immediate search on Enter key
+        if (e.Key == "Enter")
+        {
+            debounceTimer?.Dispose();
+            if (OnSearchChanged.HasDelegate)
+            {
+                await OnSearchChanged.InvokeAsync(pendingSearchTerm);
+            }
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        pendingSearchTerm = string.Empty;
+        debounceTimer?.Dispose();
+        if (OnSearchChanged.HasDelegate)
+        {
+            await OnSearchChanged.InvokeAsync(string.Empty);
+        }
+    }
+
+    public void Dispose()
+    {
+        debounceTimer?.Dispose();
+    }
+}

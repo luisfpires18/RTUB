@@ -1,0 +1,90 @@
+@namespace RTUB.Shared
+@* 
+    Reusable Alert Component
+    Used for displaying success, error, warning, and info messages
+*@
+
+@if (!string.IsNullOrEmpty(Message) || ChildContent != null)
+{
+    <div class="alert @AlertClass @(Dismissible ? "alert-dismissible fade show" : "")" role="alert">
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <i class="bi @Icon"></i>
+        }
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            @Message
+        }
+        @if (ChildContent != null)
+        {
+            @ChildContent
+        }
+        @if (Dismissible)
+        {
+            <button type="button" class="btn-close" @onclick="Dismiss" aria-label="Close"></button>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// Alert message to display
+    /// </summary>
+    [Parameter]
+    public string? Message { get; set; }
+
+    /// <summary>
+    /// Custom content (alternative to Message)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Alert type: Success, Error, Warning, Info, Purple
+    /// </summary>
+    [Parameter]
+    public AlertType Type { get; set; } = AlertType.Info;
+
+    /// <summary>
+    /// Whether the alert can be dismissed
+    /// </summary>
+    [Parameter]
+    public bool Dismissible { get; set; } = false;
+
+    /// <summary>
+    /// Bootstrap icon class (e.g., "bi-check-circle")
+    /// </summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    /// <summary>
+    /// Event callback when alert is dismissed
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDismiss { get; set; }
+
+    private string AlertClass => Type switch
+    {
+        AlertType.Success => "alert-success",
+        AlertType.Error => "alert-danger",
+        AlertType.Warning => "alert-warning",
+        AlertType.Info => "alert-info",
+        AlertType.Purple => "alert-purple",
+        _ => "alert-info"
+    };
+
+    private async Task Dismiss()
+    {
+        Message = null;
+        await OnDismiss.InvokeAsync();
+    }
+
+    public enum AlertType
+    {
+        Success,
+        Error,
+        Warning,
+        Info,
+        Purple
+    }
+}

@@ -1,0 +1,69 @@
+@namespace RTUB.Shared
+@* 
+    Reusable sortable table header component
+    Provides consistent sorting UI with visual indicators and accessibility
+*@
+
+<th @onclick="HandleClick" 
+    class="sortable-header"
+    @attributes="AdditionalAttributes">
+    @HeaderText
+    @if (IsCurrentColumn)
+    {
+        <i class="bi @GetSortIcon()"></i>
+    }
+</th>
+
+@code {
+    /// <summary>
+    /// The text to display in the header
+    /// </summary>
+    [Parameter]
+    public string HeaderText { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The column name used for sorting
+    /// </summary>
+    [Parameter]
+    public string SortColumn { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The currently active sort column
+    /// </summary>
+    [Parameter]
+    public string CurrentSortColumn { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether the current sort is ascending
+    /// </summary>
+    [Parameter]
+    public bool IsSortAscending { get; set; } = true;
+
+    /// <summary>
+    /// Callback when sort is changed
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnSortChanged { get; set; }
+
+    /// <summary>
+    /// Additional HTML attributes
+    /// </summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private bool IsCurrentColumn => CurrentSortColumn == SortColumn;
+
+    private string GetSortIcon()
+    {
+        if (!IsCurrentColumn) return string.Empty;
+        return IsSortAscending ? "bi-arrow-up" : "bi-arrow-down";
+    }
+
+    private async Task HandleClick()
+    {
+        if (OnSortChanged.HasDelegate)
+        {
+            await OnSortChanged.InvokeAsync(SortColumn);
+        }
+    }
+}

@@ -1,0 +1,485 @@
+@page "/admin/finance"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Helpers
+@using RTUB.Shared
+@attribute [Authorize(Roles = "Admin")]
+@inherits CrudTablePageBase<Report>
+@inject IReportService ReportService
+@inject IActivityService ActivityService
+@inject ITransactionService TransactionService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject RTUB.Application.Services.ReportPdfService PdfService
+
+<h1>Finanças</h1>
+<p class="lead mb-4">Relatórios financeiros anuais.</p>
+
+<div class="mb-3">
+    <button class="btn btn-success mb-2" @onclick="OpenCreateModal" title="Adicionar Relatório">
+        <i class="bi bi-plus-lg"></i>
+    </button>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <TableSearchBar 
+            SearchTerm="@SearchTerm"
+            OnSearchChanged="UpdateSearch"
+            Placeholder="Pesquisar por título ou ano..." />
+    </div>
+</div>
+
+@if (AllItems == null)
+{
+    <p>A carregar relatórios...</p>
+}
+else if (!PaginatedItems.Any())
+{
+    <EmptyTableState 
+        Message="Nenhum relatório criado ainda" 
+        IconClass="bi-info-circle" />
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <SortableTableHeader 
+                        HeaderText="Título" 
+                        SortColumn="@nameof(Report.Title)" 
+                        CurrentSortColumn="@SortHelper.SortColumn"
+                        IsSortAscending="@SortHelper.SortAscending"
+                        OnSortChanged="SortBy" />
+                    <SortableTableHeader 
+                        HeaderText="Ano" 
+                        SortColumn="@nameof(Report.Year)" 
+                        CurrentSortColumn="@SortHelper.SortColumn"
+                        IsSortAscending="@SortHelper.SortAscending"
+                        OnSortChanged="SortBy" />
+                    <SortableTableHeader 
+                        HeaderText="Receitas" 
+                        SortColumn="@nameof(Report.TotalIncome)" 
+                        CurrentSortColumn="@SortHelper.SortColumn"
+                        IsSortAscending="@SortHelper.SortAscending"
+                        OnSortChanged="SortBy" />
+                    <SortableTableHeader 
+                        HeaderText="Despesas" 
+                        SortColumn="@nameof(Report.TotalExpenses)" 
+                        CurrentSortColumn="@SortHelper.SortColumn"
+                        IsSortAscending="@SortHelper.SortAscending"
+                        OnSortChanged="SortBy" />
+                    <SortableTableHeader 
+                        HeaderText="Saldo" 
+                        SortColumn="@nameof(Report.FinalBalance)" 
+                        CurrentSortColumn="@SortHelper.SortColumn"
+                        IsSortAscending="@SortHelper.SortAscending"
+                        OnSortChanged="SortBy" />
+                    <SortableTableHeader 
+                        HeaderText="Estado" 
+                        SortColumn="@nameof(Report.IsPublished)" 
+                        CurrentSortColumn="@SortHelper.SortColumn"
+                        IsSortAscending="@SortHelper.SortAscending"
+                        OnSortChanged="SortBy" />
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var report in PaginatedItems)
+                {
+                    <tr class="clickable-row" @onclick="() => ViewReport(report.Id)">
+                        <td>@report.Title</td>
+                        <td>@($"{report.Year}-{report.Year + 1}")</td>
+                        <td class="text-success">€@report.TotalIncome.ToString("N2")</td>
+                        <td class="text-danger">€@report.TotalExpenses.ToString("N2")</td>
+                        <td class="@(report.FinalBalance >= 0 ? "text-success" : "text-danger")">
+                            €@report.FinalBalance.ToString("N2")
+                        </td>
+                        <td>
+                            @if (report.IsPublished)
+                            {
+                                <span class="badge bg-success">Publicado</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning">Rascunho</span>
+                            }
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-1" @onclick:stopPropagation="true" @onclick="() => DownloadReport(report)" title="Download PDF">
+                                <i class="bi bi-download"></i>
+                            </button>
+                            <AuthorizeView Roles="Owner" Context="ownerContext">
+                                <Authorized>
+                                    @if (!report.IsPublished)
+                                    {
+                                        <button class="btn btn-sm btn-success me-1" @onclick:stopPropagation="true" @onclick="() => OpenPublishModal(report)" title="Publicar Relatório">
+                                            <i class="bi bi-check-circle"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(report)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </Authorized>
+                            </AuthorizeView>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <TablePagination 
+        CurrentPage="@PaginationHelper.CurrentPage"
+        PageSize="@PaginationHelper.PageSize"
+        TotalItems="@FilteredItems.Count"
+        ItemLabel="relatórios"
+        OnPageChanged="ChangePage"
+        OnPageSizeChanged="ChangePageSize" />
+}
+
+<!-- Create/Edit Report Modal -->
+<Modal Show="@showEditModal" 
+       ShowChanged="@((value) => showEditModal = value)"
+       Title="@(isCreateMode ? "Novo Relatório" : "Editar Relatório")" 
+       Centered="true"
+       ShowCloseButton="false">
+    <BodyContent>
+        <EditForm Model="editingReport" OnValidSubmit="SaveReport">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger">@errorMessage</div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label">Ano Fiscal</label>
+                <input type="number" class="form-control" @bind="fiscalYearInput" min="1991"  max="@DateTime.Now.Year" placeholder="Insira o ano inicial" />
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+                <button type="submit" class="btn btn-success">Guardar</button>
+            </div>
+        </EditForm>
+    </BodyContent>
+</Modal>
+
+<!-- Delete Confirmation Modal -->
+<Modal Show="@showDeleteModal" 
+       ShowChanged="@((value) => showDeleteModal = value)"
+       Title="Confirmar Eliminação" 
+       Centered="true"
+       OnClose="@CloseDeleteModal">
+    <BodyContent>
+        <p>Tem certeza que deseja eliminar este relatório?</p>
+        <p class="text-danger"><strong>Aviso:</strong> Todas as atividades e transações associadas a este relatório serão também eliminadas!</p>
+        <p class="text-muted">Esta ação não pode ser desfeita.</p>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="DeleteReport">Eliminar</button>
+    </FooterContent>
+</Modal>
+
+<!-- Publish Confirmation Modal -->
+<Modal Show="@showPublishModal" 
+       ShowChanged="@((value) => showPublishModal = value)"
+       Title="Confirmar Publicação" 
+       Centered="true"
+       OnClose="@ClosePublishModal">
+    <BodyContent>
+        <p>Tem certeza que deseja publicar este relatório?</p>
+        <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> Após publicado, o relatório ficará em modo somente leitura (não poderá ser editado ou eliminado).</p>
+        <p class="text-info"><i class="bi bi-info-circle"></i> Poderá fazer download do PDF a qualquer momento.</p>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="ClosePublishModal">Cancelar</button>
+        <button type="button" class="btn btn-success" @onclick="PublishReport">
+            <i class="bi bi-check-circle"></i> Publicar
+        </button>
+    </FooterContent>
+</Modal>
+
+@code {
+    private bool showEditModal = false;
+    private bool showDeleteModal = false;
+    private bool showPublishModal = false;
+    private bool isCreateMode = false;
+    private Report? editingReport;
+    private Report? deletingReport;
+    private Report? publishingReport;
+
+    private string currentFiscalYear = "";
+    private List<string> availableFiscalYears = new();
+    private string selectedFiscalYearForReport = "";
+    private int fiscalYearInput = DateTime.Now.Year;
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        SortHelper.SortColumn = nameof(Report.Year);
+        SortHelper.SortAscending = false;
+        CalculateCurrentFiscalYear();
+        GenerateAvailableFiscalYears();
+        await LoadItemsAsync();
+        ApplyFiltersAndPagination();
+    }
+
+    protected override async Task LoadItemsAsync()
+    {
+        AllItems = (await ReportService.GetAllReportsAsync()).ToList();
+    }
+
+    protected override Dictionary<string, Func<Report, IComparable>> GetSortColumnSelectors()
+    {
+        return new Dictionary<string, Func<Report, IComparable>>
+        {
+            [nameof(Report.Title)] = r => r.Title ?? "",
+            [nameof(Report.Year)] = r => r.Year,
+            [nameof(Report.TotalIncome)] = r => r.TotalIncome,
+            [nameof(Report.TotalExpenses)] = r => r.TotalExpenses,
+            [nameof(Report.FinalBalance)] = r => r.FinalBalance,
+            [nameof(Report.IsPublished)] = r => r.IsPublished ? 1 : 0
+        };
+    }
+
+    protected override List<Func<Report, string>> GetSearchSelectors()
+    {
+        return new List<Func<Report, string>>
+        {
+            r => r.Title ?? "",
+            r => r.Year.ToString(),
+            r => $"{r.Year}-{r.Year + 1}"
+        };
+    }
+
+    private void CalculateCurrentFiscalYear()
+    {
+        var today = DateTime.Today;
+        var currentMonth = today.Month;
+        var currentYear = today.Year;
+
+        // Determine current fiscal year (Sept-Aug cycle)
+        int currentFiscalStartYear;
+        if (currentMonth >= 9) // September or later
+        {
+            currentFiscalStartYear = currentYear;
+        }
+        else // January to August
+        {
+            currentFiscalStartYear = currentYear - 1;
+        }
+
+        var currentFiscalEndYear = currentFiscalStartYear + 1;
+        currentFiscalYear = $"{currentFiscalStartYear}-{currentFiscalEndYear}";
+    }
+
+    private void GenerateAvailableFiscalYears()
+    {
+        var today = DateTime.Today;
+        var currentMonth = today.Month;
+        var currentYear = today.Year;
+
+        // Get current fiscal start year
+        int currentFiscalStartYear = currentMonth >= 9 ? currentYear : currentYear - 1;
+
+        // Generate fiscal years from 2015 to current fiscal year
+        availableFiscalYears.Clear();
+        for (int year = currentFiscalStartYear; year >= 1991; year--)
+        {
+            availableFiscalYears.Add($"{year}-{year + 1}");
+        }
+    }
+
+    private void ViewReport(int reportId)
+    {
+        NavigationManager.NavigateTo($"/admin/finance/report/{reportId}");
+    }
+
+    private void OpenCreateModal()
+    {
+        isCreateMode = true;
+        errorMessage = "";
+
+        // Default to current fiscal year start year
+        int fiscalYearInput = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+
+        editingReport = new Report
+        {
+            Title = "Placeholder" // Temporary title to pass validation, will be auto-generated in SaveReport
+        };
+        showEditModal = true;
+    }
+
+    private void OpenEditModal(Report report)
+    {
+        isCreateMode = false;
+        errorMessage = "";
+        selectedFiscalYearForReport = $"{report.Year}-{report.Year + 1}";
+        editingReport = new Report
+        {
+            Id = report.Id,
+            Title = report.Title,
+            Year = report.Year,
+            Summary = report.Summary,
+            IsPublished = report.IsPublished,
+            TotalIncome = report.TotalIncome,
+            TotalExpenses = report.TotalExpenses,
+            FinalBalance = report.FinalBalance
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingReport = null;
+        fiscalYearInput = DateTime.Now.Year;
+        errorMessage = "";
+    }
+
+    private async Task SaveReport()
+    {
+        if (editingReport == null) return;
+
+        errorMessage = "";
+
+        // Validate fiscal year input
+        if (fiscalYearInput < 1991 || fiscalYearInput > DateTime.Now.Year)
+        {
+            errorMessage = "Por favor, insira um ano fiscal válido (entre 1991 e o ano atual).";
+            return;
+        }
+
+        var startYear = fiscalYearInput;
+        var endYear = fiscalYearInput + 1;
+        var selectedFiscalYearForReport = $"{startYear}-{endYear}";
+
+        if (isCreateMode)
+        {
+            // Check for duplicate fiscal year
+            var existingReports = await ReportService.GetAllReportsAsync();
+            var existingReport = existingReports.FirstOrDefault(r => r.Year == startYear);
+
+            if (existingReport != null)
+            {
+                errorMessage = $"Já existe um relatório para o ano fiscal {selectedFiscalYearForReport}.";
+                return;
+            }
+
+            // Generate automatic title and create report
+            var title = $"Relatório de Contas {startYear} - {endYear}";
+            await ReportService.CreateReportAsync(title, startYear, editingReport.Summary);
+        }
+        else
+        {
+            var existing = await ReportService.GetReportByIdAsync(editingReport.Id);
+            if (existing != null)
+            {
+                // Check if year changed and if new year is duplicate
+                if (existing.Year != startYear)
+                {
+                    var allReports = await ReportService.GetAllReportsAsync();
+                    var duplicateReport = allReports.FirstOrDefault(r => r.Year == startYear && r.Id != existing.Id);
+
+                    if (duplicateReport != null)
+                    {
+                        errorMessage = $"Já existe um relatório para o ano fiscal {selectedFiscalYearForReport}.";
+                        return;
+                    }
+                }
+
+                await ReportService.UpdateReportAsync(editingReport.Id, editingReport.Summary);
+            }
+        }
+
+        await RefreshDataAsync();
+        CloseEditModal();
+    }
+
+    private void OpenDeleteModal(Report report)
+    {
+        deletingReport = report;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deletingReport = null;
+    }
+
+    private async Task DeleteReport()
+    {
+        if (deletingReport == null) return;
+
+        await ReportService.DeleteReportAsync(deletingReport.Id);
+        await RefreshDataAsync();
+
+        CloseDeleteModal();
+    }
+
+    private void OpenPublishModal(Report report)
+    {
+        publishingReport = report;
+        showPublishModal = true;
+    }
+
+    private void ClosePublishModal()
+    {
+        showPublishModal = false;
+        publishingReport = null;
+    }
+
+    private async Task PublishReport()
+    {
+        if (publishingReport == null) return;
+
+        await ReportService.PublishReportAsync(publishingReport.Id);
+        await RefreshDataAsync();
+
+        ClosePublishModal();
+    }
+
+    private async Task DownloadReport(Report report)
+    {
+        try
+        {
+            // Get all activities and transactions for this report
+            var activities = (await ActivityService.GetActivitiesByReportIdAsync(report.Id)).OrderBy(a => a.Name).ToList();
+
+            var allTransactions = new List<(Activity activity, List<Transaction> transactions)>();
+            foreach (var activity in activities)
+            {
+                var transactions = (await TransactionService.GetTransactionsByActivityIdAsync(activity.Id))
+                    .OrderByDescending(t => t.Date)
+                    .ToList();
+                allTransactions.Add((activity, transactions));
+            }
+
+            // Generate PDF using service
+            var pdfBytes = PdfService.GenerateReportPdf(report, activities, allTransactions);
+
+            // Convert to base64 and trigger download
+            var base64 = Convert.ToBase64String(pdfBytes);
+            var fileName = $"Relatorio_{report.Year}_{DateTime.Now:yyyyMMdd}.pdf";
+
+            // Trigger download using JavaScript
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64, "application/pdf");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating PDF: {ex.Message}");
+        }
+    }
+}
+

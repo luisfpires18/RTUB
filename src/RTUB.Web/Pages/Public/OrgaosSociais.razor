@@ -1,0 +1,418 @@
+@page "/orgaos-sociais"
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
+@using RTUB.Core.Enums
+@using Microsoft.AspNetCore.Identity
+@inject IRoleAssignmentService RoleAssignmentService
+@inject UserManager<ApplicationUser> UserManager
+
+<h1 class="portal-title">Órgãos Sociais  @currentFiscalYearString</h1>
+
+@if (isLoading)
+{
+    <p>A carregar...</p>
+}
+else
+{
+    <!-- Direção -->
+    <section class="mb-4">
+        <div class="card shadow-sm portal-governing-body-card">
+            <div class="card-header gov-body-card-header">
+                <h3 class="mb-0">DIREÇÃO</h3>
+            </div>
+            <div class="card-body">
+                @{
+                    var magister = GetRoleAssignment(Position.Magister);
+                    var viceMagister = GetRoleAssignment(Position.ViceMagister);
+                    var secretario = GetRoleAssignment(Position.Secretario);
+                    var tesoureiro1 = GetRoleAssignment(Position.PrimeiroTesoureiro);
+                    var tesoureiro2 = GetRoleAssignment(Position.SegundoTesoureiro);
+                }
+                
+                @* Magister *@
+                <div class="text-center mb-4">
+                    <div class="position-title mb-2">MAGISTER</div>
+                    @if (magister != null)
+                    {
+                        <div class="d-flex flex-column align-items-center">
+                            <img src="@magister.User!.ProfilePictureSrc" alt="@magister.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                            @if (!string.IsNullOrEmpty(magister.User.Nickname))
+                            {
+                                <div class="text-light-theme">@magister.User.Nickname</div>
+                                <div class="member-nickname">@magister.User.FirstName @magister.User.LastName</div>
+                            }
+                            else
+                            {
+                                <div class="text-light-theme">@magister.User.FirstName @magister.User.LastName</div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="not-available-text">N/D</div>
+                    }
+                </div>
+
+                @* Vice-Magister *@
+                <div class="text-center mb-4">
+                    <div class="position-title mb-2">VICE-MAGISTER</div>
+                    @if (viceMagister != null)
+                    {
+                        <div class="d-flex flex-column align-items-center">
+                            <img src="@viceMagister.User!.ProfilePictureSrc" alt="@viceMagister.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                            @if (!string.IsNullOrEmpty(viceMagister.User.Nickname))
+                            {
+                                <div class="text-light-theme">@viceMagister.User.Nickname</div>
+                                <div class="member-nickname">@viceMagister.User.FirstName @viceMagister.User.LastName</div>
+                            }
+                            else
+                            {
+                                <div class="text-light-theme">@viceMagister.User.FirstName @viceMagister.User.LastName</div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="not-available-text">N/D</div>
+                    }
+                </div>
+
+                @* Horizontal row: Secretário, 1º Tesoureiro, 2º Tesoureiro *@
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="position-title mb-2">SECRETÁRIO</div>
+                        @if (secretario != null)
+                        {
+                            <div class="d-flex flex-column align-items-center">
+                                <img src="@secretario.User!.ProfilePictureSrc" alt="@secretario.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                @if (!string.IsNullOrEmpty(secretario.User.Nickname))
+                                {
+                                    <div class="text-light-theme">@secretario.User.Nickname</div>
+                                    <div class="member-nickname">@secretario.User.FirstName @secretario.User.LastName</div>
+                                }
+                                else
+                                {
+                                    <div class="text-light-theme">@secretario.User.FirstName @secretario.User.LastName</div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">N/D</div>
+                        }
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="position-title mb-2">1º TESOUREIRO</div>
+                        @if (tesoureiro1 != null)
+                        {
+                            <div class="d-flex flex-column align-items-center">
+                                <img src="@tesoureiro1.User!.ProfilePictureSrc" alt="@tesoureiro1.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                @if (!string.IsNullOrEmpty(tesoureiro1.User.Nickname))
+                                {
+                                    <div class="text-light-theme">@tesoureiro1.User.Nickname</div>
+                                    <div class="member-nickname">@tesoureiro1.User.FirstName @tesoureiro1.User.LastName</div>
+                                }
+                                else
+                                {
+                                    <div class="text-light-theme">@tesoureiro1.User.FirstName @tesoureiro1.User.LastName</div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">N/D</div>
+                        }
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="position-title mb-2">2º TESOUREIRO</div>
+                        @if (tesoureiro2 != null)
+                        {
+                            <div class="d-flex flex-column align-items-center">
+                                <img src="@tesoureiro2.User!.ProfilePictureSrc" alt="@tesoureiro2.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                @if (!string.IsNullOrEmpty(tesoureiro2.User.Nickname))
+                                {
+                                    <div class="text-light-theme">@tesoureiro2.User.Nickname</div>
+                                    <div class="member-nickname">@tesoureiro2.User.FirstName @tesoureiro2.User.LastName</div>
+                                }
+                                else
+                                {
+                                    <div class="text-light-theme">@tesoureiro2.User.FirstName @tesoureiro2.User.LastName</div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">N/D</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mesa de Assembleia -->
+    <section class="mb-4">
+        <div class="card shadow-sm portal-governing-body-card">
+            <div class="card-header gov-body-card-header">
+                <h3 class="mb-0">MESA DE ASSEMBLEIA</h3>
+            </div>
+            <div class="card-body">
+                @{
+                    var presidenteMA = GetRoleAssignment(Position.PresidenteMesaAssembleia);
+                    var secretario1MA = GetRoleAssignment(Position.PrimeiroSecretarioMesaAssembleia);
+                    var secretario2MA = GetRoleAssignment(Position.SegundoSecretarioMesaAssembleia);
+                }
+                
+                @* Presidente *@
+                <div class="text-center mb-4">
+                    <div class="position-title mb-2">PRESIDENTE</div>
+                    @if (presidenteMA != null)
+                    {
+                        <div class="d-flex flex-column align-items-center">
+                            <img src="@presidenteMA.User!.ProfilePictureSrc" alt="@presidenteMA.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                            @if (!string.IsNullOrEmpty(presidenteMA.User.Nickname))
+                            {
+                                <div class="text-light-theme">@presidenteMA.User.Nickname</div>
+                                <div class="member-nickname">@presidenteMA.User.FirstName @presidenteMA.User.LastName</div>
+                            }
+                            else
+                            {
+                                <div class="text-light-theme">@presidenteMA.User.FirstName @presidenteMA.User.LastName</div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="not-available-text">N/D</div>
+                    }
+                </div>
+
+                @* Horizontal row: 1º Secretário, 2º Secretário *@
+                <div class="row justify-content-center">
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="position-title mb-2">1º SECRETÁRIO</div>
+                        @if (secretario1MA != null)
+                        {
+                            <div class="d-flex flex-column align-items-center">
+                                <img src="@secretario1MA.User!.ProfilePictureSrc" alt="@secretario1MA.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                @if (!string.IsNullOrEmpty(secretario1MA.User.Nickname))
+                                {
+                                    <div class="text-light-theme">@secretario1MA.User.Nickname</div>
+                                    <div class="member-nickname">@secretario1MA.User.FirstName @secretario1MA.User.LastName</div>
+                                }
+                                else
+                                {
+                                    <div class="text-light-theme">@secretario1MA.User.FirstName @secretario1MA.User.LastName</div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">N/D</div>
+                        }
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="position-title mb-2">2º SECRETÁRIO</div>
+                        @if (secretario2MA != null)
+                        {
+                            <div class="d-flex flex-column align-items-center">
+                                <img src="@secretario2MA.User!.ProfilePictureSrc" alt="@secretario2MA.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                @if (!string.IsNullOrEmpty(secretario2MA.User.Nickname))
+                                {
+                                    <div class="text-light-theme">@secretario2MA.User.Nickname</div>
+                                    <div class="member-nickname">@secretario2MA.User.FirstName @secretario2MA.User.LastName</div>
+                                }
+                                else
+                                {
+                                    <div class="text-light-theme">@secretario2MA.User.FirstName @secretario2MA.User.LastName</div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">N/D</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Conselho Fiscal -->
+    <section class="mb-4">
+        <div class="card shadow-sm portal-governing-body-card">
+            <div class="card-header gov-body-card-header">
+                <h3 class="mb-0">CONSELHO FISCAL</h3>
+            </div>
+            <div class="card-body">
+                @{
+                    var presidenteCF = GetRoleAssignment(Position.PresidenteConselhoFiscal);
+                    var relator1CF = GetRoleAssignment(Position.PrimeiroRelatorConselhoFiscal);
+                    var relator2CF = GetRoleAssignment(Position.SegundoRelatorConselhoFiscal);
+                }
+                
+                @* Presidente *@
+                <div class="text-center mb-4">
+                    <div class="position-title mb-2">PRESIDENTE</div>
+                    @if (presidenteCF != null)
+                    {
+                        <div class="d-flex flex-column align-items-center">
+                            <img src="@presidenteCF.User!.ProfilePictureSrc" alt="@presidenteCF.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                            @if (!string.IsNullOrEmpty(presidenteCF.User.Nickname))
+                            {
+                                <div class="text-light-theme">@presidenteCF.User.Nickname</div>
+                                <div class="member-nickname">@presidenteCF.User.FirstName @presidenteCF.User.LastName</div>
+                            }
+                            else
+                            {
+                                <div class="text-light-theme">@presidenteCF.User.FirstName @presidenteCF.User.LastName</div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="not-available-text">N/D</div>
+                    }
+                </div>
+
+                @* Horizontal row: 1º Relator, 2º Relator *@
+                <div class="row justify-content-center">
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="position-title mb-2">1º RELATOR</div>
+                        @if (relator1CF != null)
+                        {
+                            <div class="d-flex flex-column align-items-center">
+                                <img src="@relator1CF.User!.ProfilePictureSrc" alt="@relator1CF.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                @if (!string.IsNullOrEmpty(relator1CF.User.Nickname))
+                                {
+                                    <div class="text-light-theme">@relator1CF.User.Nickname</div>
+                                    <div class="member-nickname">@relator1CF.User.FirstName @relator1CF.User.LastName</div>
+                                }
+                                else
+                                {
+                                    <div class="text-light-theme">@relator1CF.User.FirstName @relator1CF.User.LastName</div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">N/D</div>
+                        }
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="position-title mb-2">2º RELATOR</div>
+                        @if (relator2CF != null)
+                        {
+                            <div class="d-flex flex-column align-items-center">
+                                <img src="@relator2CF.User!.ProfilePictureSrc" alt="@relator2CF.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                @if (!string.IsNullOrEmpty(relator2CF.User.Nickname))
+                                {
+                                    <div class="text-light-theme">@relator2CF.User.Nickname</div>
+                                    <div class="member-nickname">@relator2CF.User.FirstName @relator2CF.User.LastName</div>
+                                }
+                                else
+                                {
+                                    <div class="text-light-theme">@relator2CF.User.FirstName @relator2CF.User.LastName</div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">N/D</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Conselho de Veteranos -->
+    <section class="mb-4">
+        <div class="card shadow-sm portal-governing-body-card">
+            <div class="card-header gov-body-card-header">
+                <h3 class="mb-0">CONSELHO DE VETERANOS</h3>
+            </div>
+            <div class="card-body">
+                @{
+                    var presidenteCV = GetRoleAssignment(Position.PresidenteConselhoVeteranos);
+                }
+                
+                @* Presidente *@
+                <div class="text-center">
+                    <div class="position-title mb-2">PRESIDENTE</div>
+                    @if (presidenteCV != null)
+                    {
+                        <div class="d-flex flex-column align-items-center">
+                            <img src="@presidenteCV.User!.ProfilePictureSrc" alt="@presidenteCV.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                            @if (!string.IsNullOrEmpty(presidenteCV.User.Nickname))
+                            {
+                                <div class="text-light-theme">@presidenteCV.User.Nickname</div>
+                                <div class="member-nickname">@presidenteCV.User.FirstName @presidenteCV.User.LastName</div>
+                            }
+                            else
+                            {
+                                <div class="text-light-theme">@presidenteCV.User.FirstName @presidenteCV.User.LastName</div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="not-available-text">N/D</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+}
+
+@code {
+    private int currentFiscalYearStartYear;
+    private string currentFiscalYearString = "";
+    private List<RoleAssignment> roleAssignments = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentFiscalYearStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        currentFiscalYearString = FiscalYearHelper.GetCurrentFiscalYearString();
+        
+        // Get all role assignments
+        var allAssignments = await RoleAssignmentService.GetAllRoleAssignmentsAsync();
+        
+        // Filter to current fiscal year
+        roleAssignments = allAssignments
+            .Where(ra => ra.StartYear == currentFiscalYearStartYear)
+            .ToList();
+
+        // Load all user data at once to avoid N+1 queries
+        var userIds = roleAssignments.Select(ra => ra.UserId).Distinct().ToList();
+        var users = new Dictionary<string, ApplicationUser>();
+        
+        foreach (var userId in userIds)
+        {
+            var user = await UserManager.FindByIdAsync(userId);
+            if (user != null)
+            {
+                users[userId] = user;
+            }
+        }
+
+        // Assign users to assignments
+        foreach (var assignment in roleAssignments)
+        {
+            if (users.TryGetValue(assignment.UserId, out var user))
+            {
+                assignment.User = user;
+            }
+        }
+
+        isLoading = false;
+    }
+
+    private RoleAssignment? GetRoleAssignment(Position position)
+    {
+        return roleAssignments.FirstOrDefault(r => r.Position == position);
+    }
+}
+

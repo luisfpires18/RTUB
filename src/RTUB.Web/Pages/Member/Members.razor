@@ -1,0 +1,1186 @@
+@page "/members"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
+@using RTUB.Application.Interfaces
+@using RTUB.Shared
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject IRoleAssignmentService RoleAssignmentService
+@inject IEnrollmentService EnrollmentService
+@inject IEmailNotificationService EmailNotificationService
+@attribute [Authorize]
+
+<h1>Membros</h1>
+<p>Lista de todos os membros da RTUB.</p>
+
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <div class="mb-3">
+            <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Membro">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+<!-- Search and Controls -->
+<div class="d-flex gap-2 mb-3">
+    <div style="flex: 2;">
+        <TableSearchBar SearchTerm="@searchTerm"
+                       Placeholder="Pesquisar membros..."
+                       OnSearchChanged="@HandleSearchChanged" />
+    </div>
+    <div style="flex: 1;">
+        <select class="form-select" @bind="selectedCategoryFilter" @bind:after="ApplyFilters">
+            <option value="">Categoria</option>
+            <option value="Caloiro">Caloiro</option>
+            <option value="Tuno">Tuno</option>
+        </select>
+    </div>
+    <div style="flex: 1;">
+        <select class="form-select" @bind="selectedInstrumentFilter" @bind:after="ApplyFilters">
+            <option value="">Instrumento</option>
+            @foreach (var instrument in Enum.GetValues<InstrumentType>())
+            {
+                <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+            }
+        </select>
+    </div>
+</div>
+
+@if (users == null)
+{
+    <p>A carregar membros...</p>
+}
+else if (!filteredUsers.Any())
+{
+    <EmptyTableState Message="Nenhum membro criado ainda"
+                    IconClass="bi-people"
+                    SubMessage="Adicione membros para começar." />
+}
+else
+{
+    <!-- Regular Members Table -->
+    @if (filteredRegularMembers.Any())
+    {
+        <h3 class="mb-3">Membros</h3>
+        <div class="table-responsive mb-4">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th @onclick="() => SortBy(nameof(ApplicationUser.FirstName))" class="clickable-row">
+                            Nome
+                            @if (sortHelper.IsActiveSortColumn(nameof(ApplicationUser.FirstName)))
+                            {
+                                <i class="bi @sortHelper.GetSortIcon(nameof(ApplicationUser.FirstName))"></i>
+                            }
+                        </th>
+                        <th @onclick="() => SortBy(nameof(ApplicationUser.Nickname))" class="clickable-row">
+                            Nome de Tuna
+                            @if (sortHelper.IsActiveSortColumn(nameof(ApplicationUser.Nickname)))
+                            {
+                                <i class="bi @sortHelper.GetSortIcon(nameof(ApplicationUser.Nickname))"></i>
+                            }
+                        </th>
+                        <th @onclick="@(() => SortBy("Category"))" class="clickable-row">
+                            Categoria
+                            @if (sortHelper.IsActiveSortColumn("Category"))
+                            {
+                                <i class="bi @sortHelper.GetSortIcon("Category")"></i>
+                            }
+                        </th>
+                        <th @onclick="@(() => SortBy("Instrument"))" class="clickable-row">
+                            Instrumento Principal
+                            @if (sortHelper.IsActiveSortColumn("Instrument"))
+                            {
+                                <i class="bi @sortHelper.GetSortIcon("Instrument")"></i>
+                            }
+                        </th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in paginatedRegularMembers)
+                    {
+                        <tr>
+                            <td>
+                                <text>@user.FirstName @user.LastName</text>
+                            </td>
+                            <td>@user.Nickname</td>
+                            <td>
+                                @{
+                                    // Get current fiscal year position for this user
+                                    var currentPosition = GetCurrentFiscalYearPosition(user.Id);
+                                }
+                                @* Display categories first (Caloiro or Tuno) *@
+                                @foreach (var category in user.Categories.Where(c =>
+                                    c == MemberCategory.Caloiro || c == MemberCategory.Tuno))
+                                {
+                                    <CategoryBadge Category="category" AdditionalClasses="me-1" />
+                                }
+                                @* Then display current fiscal year position if exists *@
+                                @if (currentPosition != null)
+                                {
+                                    <PositionBadge Position="currentPosition.Value" AdditionalClasses="me-1" />
+                                }
+                                @if (!user.Positions.Any() && !user.Categories.Any())
+                                {
+                                    <span class="badge bg-secondary">Sem Cargos</span>
+                                }
+                            </td>
+                            <td>@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : "-")</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" @onclick="async () => await OpenViewDetailsModal(user)" title="Ver Detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditModal(user)" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                    </Authorized>
+                                </AuthorizeView>
+                                <AuthorizeView Roles="Owner">
+                                    <Authorized>
+                                        <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteModal(user)" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </Authorized>
+                                </AuthorizeView>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <TablePagination CurrentPage="@paginationHelper.CurrentPage"
+                        PageSize="@paginationHelper.PageSize"
+                        TotalItems="@filteredRegularMembers.Count"
+                        ItemLabel="membros"
+                        OnPageChanged="@HandleRegularMembersPageChange"
+                        OnPageSizeChanged="@HandleRegularMembersPageSizeChange" />
+    }
+
+    <!-- Leitões Table -->
+    @if (filteredLeitoes.Any())
+    {
+        <hr class="my-5 hr-divider" />
+        <h3 class="mb-3">Leitões</h3>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <SortableTableHeader HeaderText="Nome"
+                                            SortColumn="@nameof(ApplicationUser.FirstName)"
+                                            CurrentSortColumn="@sortHelper.SortColumn"
+                                            IsSortAscending="@sortHelper.SortAscending"
+                                            OnSortChanged="@HandleSortChanged" />
+                        <SortableTableHeader HeaderText="Nome de Tuna"
+                                            SortColumn="@nameof(ApplicationUser.Nickname)"
+                                            CurrentSortColumn="@sortHelper.SortColumn"
+                                            IsSortAscending="@sortHelper.SortAscending"
+                                            OnSortChanged="@HandleSortChanged" />
+                        <SortableTableHeader HeaderText="Categoria"
+                                            SortColumn="Category"
+                                            CurrentSortColumn="@sortHelper.SortColumn"
+                                            IsSortAscending="@sortHelper.SortAscending"
+                                            OnSortChanged="@HandleSortChanged" />
+                        <SortableTableHeader HeaderText="Instrumento a aprender"
+                                            SortColumn="Instrument"
+                                            CurrentSortColumn="@sortHelper.SortColumn"
+                                            IsSortAscending="@sortHelper.SortAscending"
+                                            OnSortChanged="@HandleSortChanged" />
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in paginatedLeitoes)
+                    {
+                        <tr>
+                            <td>
+                                <text>@user.FirstName @user.LastName</text>
+                            </td>
+                            <td>@user.Nickname</td>
+                            <td>
+                                <CategoryBadge Category="MemberCategory.Leitao" AdditionalClasses="me-1" />
+                            </td>
+                            <td>@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : "-")</td>
+                            <td>
+                                <button class="btn btn-sm btn-info me-1" @onclick="async () => await OpenViewDetailsModal(user)" title="Ver Detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditModal(user)" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteModal(user)" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </Authorized>
+                                </AuthorizeView>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <TablePagination CurrentPage="@paginationHelperLeitoes.CurrentPage"
+                        PageSize="@paginationHelperLeitoes.PageSize"
+                        TotalItems="@filteredLeitoes.Count"
+                        ItemLabel="leitões"
+                        OnPageChanged="@HandleLeitoesPageChange"
+                        OnPageSizeChanged="@HandleLeitoesPageSizeChange" />
+    }
+}
+
+<!-- Create/Edit Modal -->
+<Modal Show="@showEditModal" 
+       ShowChanged="@((bool show) => showEditModal = show)"
+       Title="@(isCreateMode ? "Adicionar Novo Membro" : "Editar Membro")" 
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Primeiro Nome <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" @bind="editingUser.FirstName" required />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Último Nome <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" @bind="editingUser.LastName" required />
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Nome de Tuna / Username <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" @bind="editingUser.Nickname" required />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Contacto <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" @bind="editingUser.PhoneContact" required />
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Email <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" @bind="editingUser.Email" required />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Data de Nascimento</label>
+                <input type="date" class="form-control" @bind="editingUser.DateOfBirth" />
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Curso</label>
+            <input type="text" class="form-control" @bind="editingUser.Degree" placeholder="Inserir curso..." />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Categoria <span class="text-danger">*</span></label>
+            <select class="form-select" @bind="selectedRole" @bind:after="OnCategoryChanged" required>
+                <option value="">Selecionar Categoria</option>
+                <option value="Leitão">Leitão</option>
+                <option value="Caloiro">Caloiro</option>
+                <option value="Tuno">Tuno</option>
+            </select>
+        </div>
+        <div class="row">
+            @if (showYearLeitao)
+            {
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Ano de entrada Leitão</label>
+                    <input type="number" class="form-control" @bind="editingUser.YearLeitao" placeholder="Inserir ano..." min="1991" max="@DateTime.Now.Year" />
+                </div>
+            }
+
+            @if (showYearCaloiro)
+            {
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Ano de passagem a Caloiro</label>
+                    <input type="number" class="form-control" @bind="editingUser.YearCaloiro" placeholder="Inserir ano..." min="1991" max="@DateTime.Now.Year" />
+                </div>
+            }
+
+            @if (showYearTuno)
+            {
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Ano de passagem a Tuno</label>
+                    <input type="number" class="form-control" @bind="editingUser.YearTuno" placeholder="Inserir ano..." min="1991" max="@DateTime.Now.Year" />
+                </div>
+            }
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Instrumento Principal</label>
+            <select class="form-select" @bind="editingUser.MainInstrument">
+                <option value="">Sem instrumento</option>
+                @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                {
+                    <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                }
+            </select>
+        </div>
+        @* Only show Padrinho field for Caloiro or Tuno (not for Leitão) *@
+        @if (selectedRole == "Caloiro" || selectedRole == "Tuno")
+        {
+            <div class="mb-3">
+                <label class="form-label">Padrinho @(selectedRole == "Caloiro" ? "(Obrigatório quando passa a Caloiro)" : "")</label>
+                <div class="mentor-search-container">
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Pesquisar padrinho por nome, email ou alcunha..."
+                               @bind="mentorSearchTerm" 
+                               @bind:event="oninput" 
+                               @onkeyup="FilterMentors" />
+                        @if (!string.IsNullOrEmpty(mentorSearchTerm))
+                        {
+                            <button class="btn btn-outline-secondary" type="button" @onclick="ClearMentorSelection" title="Limpar seleção">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+                
+                @if (filteredMentors.Any())
+                {
+                    <div class="member-list member-list-scrollable">
+                        @foreach (var mentor in filteredMentors.Take(20))
+                        {
+                            <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                 @onclick="() => SelectMentor(mentor)">
+                                <div class="d-flex align-items-center">
+                                    <img src="@mentor.ProfilePictureSrc" alt="@mentor.GetDisplayName()"
+                                         class="member-avatar-small me-2" />
+                                    <div>
+                                        @if (!string.IsNullOrEmpty(mentor.Nickname))
+                                        {
+                                            <div><strong>@mentor.Nickname</strong></div>
+                                            <div class="text-muted small">@mentor.FirstName @mentor.LastName</div>
+                                        }
+                                        else
+                                        {
+                                            <div><strong>@mentor.FirstName @mentor.LastName</strong></div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(mentorSearchTerm) && string.IsNullOrEmpty(editingUser.MentorId))
+                {
+                    <div class="alert alert-purple mt-2">Nenhum padrinho encontrado.</div>
+                }
+
+                @if (!string.IsNullOrEmpty(editingUser.MentorId))
+                {
+                    // Use cached mentor to avoid repeated lookups on every render
+                    var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editingUser.MentorId);
+                    if (displayMentor != null)
+                    {
+                        <div class="alert alert-success mt-2">
+                            <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
+                        </div>
+                    }
+                }
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal" disabled="@isSaving">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SaveMember" disabled="@isSaving">
+            @if (isSaving)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Guardar
+        </button>
+    </FooterContent>
+</Modal>
+
+<!-- Delete Confirmation Modal -->
+<Modal Show="@showDeleteModal" 
+       ShowChanged="@((bool show) => showDeleteModal = show)"
+       Title="Confirmar Eliminação" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        <p>Tem certeza que deseja eliminar <strong>@deletingUser?.GetDisplayName()</strong>?</p>
+        <p class="text-muted">Esta ação não pode ser desfeita.</p>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="DeleteMember">Eliminar</button>
+    </FooterContent>
+</Modal>
+
+<!-- View Details Modal -->
+@if (viewingUser != null)
+{
+    <Modal Show="@showViewDetailsModal" 
+           ShowChanged="@((bool show) => showViewDetailsModal = show)"
+           Title="Detalhes do Membro" 
+           Size="Modal.ModalSize.Large"
+           Centered="true">
+        <BodyContent>
+            <div class="row">
+                <div class="col-md-4 text-center mb-3">
+                    <img src="@viewingUser.ProfilePictureSrc" alt="@viewingUser.GetDisplayName()"
+                         class="member-avatar-large mb-2" />
+                    @if (!string.IsNullOrEmpty(viewingUser.Nickname))
+                    {
+                        <h5>"@viewingUser.Nickname"</h5>
+                        <p class="text-muted">@viewingUser.FirstName @viewingUser.LastName</p>
+                    }
+                    else
+                    {
+                        <h5>@viewingUser.FirstName @viewingUser.LastName</h5>
+                    }
+                </div>
+                <div class="col-md-8">
+                    <h6 class="border-bottom pb-2 mb-3">Informação Pessoal</h6>
+                    <div class="row mb-2">
+                        <div class="col-5"><strong>Email:</strong></div>
+                        <div class="col-7">@viewingUser.Email</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-5"><strong>Contacto:</strong></div>
+                        <div class="col-7">@(viewingUser.PhoneContact ?? "N/A")</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-5"><strong>Data de Nascimento:</strong></div>
+                        <div class="col-7">
+                            @if (viewingUser.DateOfBirth.HasValue)
+                            {
+                                @viewingUser.DateOfBirth.Value.ToString("dd/MM/yyyy")
+                                @if (viewingUser.Age.HasValue)
+                                {
+                                    <span class="text-muted">(@viewingUser.Age anos)</span>
+                                }
+                            }
+                            else
+                            {
+                                <span>N/A</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-5"><strong>Curso:</strong></div>
+                        <div class="col-7">@(viewingUser.Degree ?? "N/A")</div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-5"><strong>Instrumento Principal:</strong></div>
+                        <div class="col-7">@(viewingUser.MainInstrument.HasValue? StatusHelper.GetInstrumentDisplay(viewingUser.MainInstrument.Value) : "N/A")</div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-5"><strong>Padrinho:</strong></div>
+                        <div class="col-7">
+                            @if (viewingUserMentor != null)
+                            {
+                                <text>@viewingUserMentor.GetDisplayName()</text>
+                            }
+                            else
+                            {
+                                <span>N/A</span>
+                            }
+                        </div>
+                    </div>
+
+                    <h6 class="border-bottom pb-2 mb-3 mt-3">Anos na Tuna</h6>
+                    @{
+                        var primaryCategory = viewingUser.Categories.FirstOrDefault();
+                        var isOnlyLeitao = viewingUser.IsOnlyLeitao();
+                        var isLeitao = primaryCategory == MemberCategory.Leitao;
+                        var isCaloiro = primaryCategory == MemberCategory.Caloiro;
+                        var isTuno = primaryCategory == MemberCategory.Tuno;
+                    }
+
+                    @* Always show Leitão entry year *@
+                    <div class="row mb-2">
+                        <div class="col-5"><strong>Ano de entrada Leitão:</strong></div>
+                        <div class="col-7">@(viewingUser.YearLeitao?.ToString() ?? "N/A")</div>
+                    </div>
+
+                    @* Show Caloiro if Caloiro or Tuno *@
+                    @if (isCaloiro || isTuno)
+                    {
+                        <div class="row mb-2">
+                            <div class="col-5"><strong>Ano de passagem a Caloiro:</strong></div>
+                            <div class="col-7">@(viewingUser.YearCaloiro?.ToString() ?? "N/A")</div>
+                        </div>
+                    }
+
+                    @* Show Tuno only if Tuno *@
+                    @if (isTuno)
+                    {
+                        <div class="row mb-2">
+                            <div class="col-5"><strong>Ano de passagem a Tuno:</strong></div>
+                            <div class="col-7">@(viewingUser.YearTuno?.ToString() ?? "N/A")</div>
+                        </div>
+                    }
+
+                    @* Only show Cargos e Categorias Atuais if not only Leitão *@
+                    @if (!isOnlyLeitao)
+                    {
+                        <h6 class="border-bottom pb-2 mb-3 mt-3">Cargos e Categorias Atuais</h6>
+                    <div class="mb-2">
+                        @if (viewingUser.Positions.Any())
+                        {
+                            <div class="mb-2">
+                                <strong>Cargos:</strong><br />
+                                @foreach (var position in viewingUser.Positions)
+                                {
+                                    <PositionBadge Position="position" AdditionalClasses="me-1 mt-1" />
+                                }
+                            </div>
+                        }
+                        @{
+                            var displayCategories = StatusHelper.GetDisplayCategories(viewingUser.Categories, viewingUser.YearTuno);
+                        }
+                        @if (displayCategories.Any())
+                        {
+                            <div class="mb-2">
+                                <strong>Categorias:</strong><br />
+                                @foreach (var category in displayCategories)
+                                {
+                                    <CategoryBadge Category="category" AdditionalClasses="me-1 mt-1" />
+                                }
+                            </div>
+                        }
+                        @if (!viewingUser.Positions.Any() && !displayCategories.Any())
+                        {
+                            <span class="text-muted">Nenhum cargo ou categoria atribuído</span>
+                        }
+                    </div>
+                    }
+
+                    @if (userRoleAssignments.ContainsKey(viewingUser.Id) && userRoleAssignments[viewingUser.Id].Any())
+                    {
+                        <h6 class="border-bottom pb-2 mb-3 mt-3">Histórico de Cargos</h6>
+                        <div class="role-history-list">
+                            @foreach (var assignment in userRoleAssignments[viewingUser.Id].OrderByDescending(a => a.StartYear))
+                            {
+                                <div class="role-history-item p-2 mb-2 border rounded">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <span class="badge me-2 badge-fiscal-year">@assignment.FiscalYear</span>
+                                            <strong>@StatusHelper.GetPositionDisplay(assignment.Position)</strong>
+                                            @if (!string.IsNullOrEmpty(assignment.Notes))
+                                            {
+                                                <div class="text-muted small mt-1">
+                                                    <i class="bi bi-info-circle"></i> @assignment.Notes
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseViewDetailsModal">Fechar</button>
+        </FooterContent>
+    </Modal>
+}
+
+@code {
+    private List<ApplicationUser>? users;
+    private List<ApplicationUser> filteredUsers = new();
+    private List<ApplicationUser> filteredRegularMembers = new();
+    private List<ApplicationUser> filteredLeitoes = new();
+    private List<ApplicationUser> paginatedUsers = new();
+    private List<ApplicationUser> paginatedRegularMembers = new();
+    private List<ApplicationUser> paginatedLeitoes = new();
+    private Dictionary<string, List<string>> userRoles = new Dictionary<string, List<string>>();
+    private Dictionary<string, List<RoleAssignment>> userRoleAssignments = new Dictionary<string, List<RoleAssignment>>();
+    private List<ApplicationUser> eligibleMentors = new();
+    private ApplicationUser? viewingUserMentor;
+
+    // Helper instances
+    private SearchHelper<ApplicationUser> searchHelper = new();
+    private SortableTableHelper<ApplicationUser> sortHelper = new() { SortColumn = nameof(ApplicationUser.FirstName) };
+    private PaginationHelper<ApplicationUser> paginationHelper = new() { PageSize = 50 };
+    private PaginationHelper<ApplicationUser> paginationHelperLeitoes = new() { PageSize = 50 };
+
+    private string searchTerm = "";
+    private int totalUsers = 0;
+    
+    // Filter variables
+    private string selectedCategoryFilter = "";
+    private string selectedInstrumentFilter = "";
+
+    private bool showEditModal = false;
+    private bool showDeleteModal = false;
+    private bool showViewDetailsModal = false;
+    private bool isCreateMode = false;
+    private bool isSaving = false;
+    private ApplicationUser editingUser = new();
+    private ApplicationUser? deletingUser;
+    private ApplicationUser? viewingUser;
+    private string selectedRole = "";
+    private string errorMessage = "";
+    
+    // Mentor search variables
+    private string mentorSearchTerm = "";
+    private List<ApplicationUser> filteredMentors = new();
+    private SearchHelper<ApplicationUser> mentorSearchHelper = new();
+    private ApplicationUser? selectedMentorCache = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMembers();
+    }
+
+    private async Task LoadMembers()
+    {
+        users = UserManager.Users.ToList();
+        totalUsers = users.Count;
+
+        foreach (var user in users)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            userRoles[user.Id] = roles.ToList();
+        }
+
+        // Load role assignments
+        var allAssignments = (await RoleAssignmentService.GetAllRoleAssignmentsAsync())
+            .Where(ra => users.Select(u => u.Id).Contains(ra.UserId))
+            .ToList();
+
+        userRoleAssignments.Clear();
+        foreach (var user in users)
+        {
+            userRoleAssignments[user.Id] = allAssignments
+                .Where(ra => ra.UserId == user.Id)
+                .OrderByDescending(ra => ra.StartYear)
+                .ToList();
+        }
+
+        // Load eligible mentors (Only Tuno, Veterano, Tunossauro - excluding Leitões and Caloiros)
+        eligibleMentors = users
+            .Where(u => u.CanBeMentor())
+            .OrderBy(u => u.FirstName)
+            .ThenBy(u => u.LastName)
+            .ToList();
+
+        FilterMembers();
+    }
+
+    private void FilterMembers()
+    {
+        if (users == null) return;
+
+        // Use SearchHelper for filtering
+        searchHelper.SearchTerm = searchTerm;
+        var allFilteredUsers = searchHelper.FilterMultiple(users, new List<Func<ApplicationUser, string>>
+        {
+            u => u.FirstName ?? "",
+            u => u.LastName ?? "",
+            u => u.Nickname ?? "",
+            u => u.Email ?? "",
+            u => u.PhoneContact ?? ""
+        });
+
+        // Separate Leitões from regular members
+        filteredLeitoes = allFilteredUsers.Where(u => u.IsLeitao()).ToList();
+        filteredRegularMembers = allFilteredUsers.Where(u => !u.IsLeitao()).ToList();
+        
+        // Apply category filter (only for regular members, not Leitões)
+        if (!string.IsNullOrEmpty(selectedCategoryFilter))
+        {
+            var categoryEnum = Enum.Parse<MemberCategory>(selectedCategoryFilter);
+            filteredRegularMembers = filteredRegularMembers
+                .Where(u => u.Categories.Contains(categoryEnum))
+                .ToList();
+        }
+        
+        // Apply instrument filter (only for regular members, not Leitões)
+        if (!string.IsNullOrEmpty(selectedInstrumentFilter))
+        {
+            var instrumentEnum = Enum.Parse<InstrumentType>(selectedInstrumentFilter);
+            filteredRegularMembers = filteredRegularMembers
+                .Where(u => u.MainInstrument.HasValue && u.MainInstrument.Value == instrumentEnum)
+                .ToList();
+        }
+        
+        filteredUsers = filteredRegularMembers.Concat(filteredLeitoes).ToList(); // Keep for backwards compatibility
+
+        ApplySort();
+        UpdatePagination();
+    }
+    
+    private void ApplyFilters()
+    {
+        FilterMembers();
+    }
+
+    private async Task HandleSearchChanged(string search)
+    {
+        searchTerm = search;
+        FilterMembers();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleSortChanged(string column)
+    {
+        SortBy(column);
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleRegularMembersPageChange(int newPage)
+    {
+        ChangePage(newPage);
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleRegularMembersPageSizeChange(int newPageSize)
+    {
+        paginationHelper.PageSize = newPageSize;
+        paginationHelper.Reset();
+        UpdatePagination();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleLeitoesPageChange(int newPage)
+    {
+        ChangePageLeitoes(newPage);
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleLeitoesPageSizeChange(int newPageSize)
+    {
+        paginationHelperLeitoes.PageSize = newPageSize;
+        paginationHelperLeitoes.Reset();
+        UpdatePagination();
+        await Task.CompletedTask;
+    }
+
+    private void SortBy(string column)
+    {
+        sortHelper.ChangeSortColumn(column);
+        ApplySort();
+        UpdatePagination();
+    }
+
+    private void ApplySort()
+    {
+        var columnSelectors = new Dictionary<string, Func<ApplicationUser, IComparable>>
+        {
+            [nameof(ApplicationUser.FirstName)] = u => u.FirstName ?? "",
+            [nameof(ApplicationUser.Nickname)] = u => u.Nickname ?? "",
+            [nameof(ApplicationUser.Email)] = u => u.Email ?? "",
+            ["Category"] = u => u.Categories.FirstOrDefault().ToString(),
+            ["Instrument"] = u => u.MainInstrument?.ToString() ?? "ZZZ"
+        };
+
+        // Sort regular members and Leitões using SortableTableHelper
+        filteredRegularMembers = sortHelper.ApplySort(filteredRegularMembers, columnSelectors);
+        filteredLeitoes = sortHelper.ApplySort(filteredLeitoes, columnSelectors);
+
+        // Keep for backwards compatibility
+        filteredUsers = filteredRegularMembers.Concat(filteredLeitoes).ToList();
+    }
+
+    private void UpdatePagination()
+    {
+        // Use PaginationHelper for regular members
+        paginatedRegularMembers = paginationHelper.GetPageData(filteredRegularMembers);
+
+        // Use PaginationHelper for Leitões
+        paginatedLeitoes = paginationHelperLeitoes.GetPageData(filteredLeitoes);
+
+        // Keep for backwards compatibility
+        paginatedUsers = paginatedRegularMembers.Concat(paginatedLeitoes).ToList();
+    }
+
+    private void ChangePage(int page)
+    {
+        if (paginationHelper.GoToPage(page))
+        {
+            UpdatePagination();
+        }
+    }
+
+    private void ChangePageLeitoes(int page)
+    {
+        if (paginationHelperLeitoes.GoToPage(page))
+        {
+            UpdatePagination();
+        }
+    }
+
+    private void FilterMentors()
+    {
+        if (string.IsNullOrEmpty(mentorSearchTerm))
+        {
+            filteredMentors.Clear();
+            return;
+        }
+
+        // Use SearchHelper for multi-word search support
+        mentorSearchHelper.SearchTerm = mentorSearchTerm;
+        filteredMentors = mentorSearchHelper.FilterMultiple(eligibleMentors, new List<Func<ApplicationUser, string>>
+        {
+            u => u.FirstName ?? "",
+            u => u.LastName ?? "",
+            u => u.Nickname ?? "",
+            u => u.Email ?? ""
+        });
+    }
+
+    private void SelectMentor(ApplicationUser mentor)
+    {
+        editingUser.MentorId = mentor.Id;
+        selectedMentorCache = mentor;
+        mentorSearchTerm = $"{mentor.FirstName} {mentor.LastName}";
+        filteredMentors.Clear();
+    }
+
+    private void ClearMentorSelection()
+    {
+        editingUser.MentorId = null;
+        selectedMentorCache = null;
+        mentorSearchTerm = "";
+        filteredMentors.Clear();
+    }
+
+    private void OpenCreateModal()
+    {
+        isCreateMode = true;
+        editingUser = new ApplicationUser();
+        selectedRole = "";
+        errorMessage = "";
+        mentorSearchTerm = "";
+        filteredMentors.Clear();
+        selectedMentorCache = null;
+        showEditModal = true;
+    }
+
+    private void OpenEditModal(ApplicationUser user)
+    {
+        isCreateMode = false;
+        editingUser = new ApplicationUser
+        {
+            Id = user.Id,
+            UserName = user.UserName,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Nickname = user.Nickname,
+            PhoneContact = user.PhoneContact,
+            DateOfBirth = user.DateOfBirth,
+            Degree = user.Degree,
+            YearLeitao = user.YearLeitao,
+            YearCaloiro = user.YearCaloiro,
+            YearTuno = user.YearTuno,
+            MainInstrument = user.MainInstrument,
+            EmailConfirmed = user.EmailConfirmed,
+            MentorId = user.MentorId
+        };
+
+        // Set selectedRole based on user's primary category
+        var primaryCategory = user.Categories.FirstOrDefault();
+        selectedRole = primaryCategory switch
+        {
+            MemberCategory.Leitao => "Leitão",
+            MemberCategory.Caloiro => "Caloiro",
+            MemberCategory.Tuno => "Tuno",
+            _ => ""
+        };
+        
+        // Initialize mentor search term if user has a mentor
+        if (!string.IsNullOrEmpty(user.MentorId))
+        {
+            var mentor = eligibleMentors.FirstOrDefault(m => m.Id == user.MentorId);
+            if (mentor != null)
+            {
+                selectedMentorCache = mentor;
+                mentorSearchTerm = $"{mentor.FirstName} {mentor.LastName}";
+            }
+        }
+        else
+        {
+            selectedMentorCache = null;
+            mentorSearchTerm = "";
+        }
+        
+        filteredMentors.Clear();
+        errorMessage = "";
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingUser = new();
+        errorMessage = "";
+        mentorSearchTerm = "";
+        filteredMentors.Clear();
+        selectedMentorCache = null;
+        isSaving = false;
+    }
+
+    private async Task SaveMember()
+    {
+        // Prevent double-submission
+        if (isSaving)
+        {
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = "";
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(editingUser.FirstName))
+            {
+                errorMessage = "Primeiro nome é obrigatório.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(editingUser.LastName))
+            {
+                errorMessage = "Último nome é obrigatório.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(editingUser.PhoneContact))
+            {
+                errorMessage = "Contacto é obrigatório.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(editingUser.Nickname))
+            {
+                errorMessage = "Nome de Tuna / Username é obrigatório.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(editingUser.Email))
+            {
+                errorMessage = "Email é obrigatório.";
+                return;
+            }
+
+            if (string.IsNullOrEmpty(selectedRole))
+            {
+                errorMessage = "Categoria é obrigatória.";
+                return;
+            }
+
+            if (isCreateMode)
+            {
+                // Set UserName to normalized version of Nickname (tuna name)
+                // Keep Nickname as display name, but use normalized version for username
+                editingUser.UserName = UsernameHelper.NormalizeUsername(editingUser.Nickname);
+                editingUser.EmailConfirmed = true;
+
+                // Check if username already exists
+                var existingUser = await UserManager.FindByNameAsync(editingUser.UserName);
+                if (existingUser != null)
+                {
+                    errorMessage = $"Já existe um utilizador com o nome de tuna '{editingUser.Nickname}' (username: {editingUser.UserName}).";
+                    return;
+                }
+
+                // Check if email already exists
+                var existingEmail = await UserManager.FindByEmailAsync(editingUser.Email);
+                if (existingEmail != null)
+                {
+                    errorMessage = $"Já existe um utilizador com o email '{editingUser.Email}'.";
+                    return;
+                }
+
+                // Generate a secure random password
+                var generatedPassword = PasswordGenerator.GeneratePassword();
+            
+                // Create user with generated password
+                var result = await UserManager.CreateAsync(editingUser, generatedPassword);
+            if (!result.Succeeded)
+            {
+                errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+                return;
+            }
+
+            // Always assign MEMBER role only
+            await UserManager.AddToRoleAsync(editingUser, "Member");
+
+            // Set category as user property (not a role)
+            var createdUser = await UserManager.FindByEmailAsync(editingUser.Email);
+            if (createdUser != null)
+            {
+                var category = selectedRole switch
+                {
+                    "Leitão" => MemberCategory.Leitao,
+                    "Caloiro" => MemberCategory.Caloiro,
+                    "Tuno" => MemberCategory.Tuno,
+                    _ => MemberCategory.Leitao
+                };
+                createdUser.Categories = new List<MemberCategory> { category };
+                createdUser.RequirePasswordChange = true;
+                await UserManager.UpdateAsync(createdUser);
+
+                // Send welcome email with credentials
+                await EmailNotificationService.SendWelcomeEmailAsync(
+                    createdUser.UserName ?? "",
+                    createdUser.Email ?? "",
+                    createdUser.FirstName ?? "",
+                    generatedPassword
+                );
+            }
+        }
+        else
+        {
+            var existingUser = await UserManager.FindByIdAsync(editingUser.Id);
+            if (existingUser != null)
+            {
+                existingUser.FirstName = editingUser.FirstName;
+                existingUser.LastName = editingUser.LastName;
+                existingUser.Nickname = editingUser.Nickname;
+                existingUser.PhoneContact = editingUser.PhoneContact;
+                // Set UserName to normalized version of Nickname (tuna name)
+                existingUser.UserName = UsernameHelper.NormalizeUsername(editingUser.Nickname);
+                existingUser.Email = editingUser.Email;
+                existingUser.DateOfBirth = editingUser.DateOfBirth;
+                existingUser.Degree = editingUser.Degree;
+                existingUser.YearLeitao = editingUser.YearLeitao;
+                existingUser.YearCaloiro = editingUser.YearCaloiro;
+                existingUser.YearTuno = editingUser.YearTuno;
+                existingUser.MainInstrument = editingUser.MainInstrument;
+                existingUser.MentorId = editingUser.MentorId;
+
+                // Update category (not role)
+                var category = selectedRole switch
+                {
+                    "Leitão" => MemberCategory.Leitao,
+                    "Caloiro" => MemberCategory.Caloiro,
+                    "Tuno" => MemberCategory.Tuno,
+                    _ => MemberCategory.Leitao
+                };
+
+                // Keep existing categories if they have multiple, or replace with new one
+                if (existingUser.Categories.Count <= 1)
+                {
+                    existingUser.Categories = new List<MemberCategory> { category };
+                }
+                else
+                {
+                    // Remove old primary category and add new one
+                    existingUser.Categories.RemoveAll(c => c == MemberCategory.Leitao || c == MemberCategory.Caloiro || c == MemberCategory.Tuno);
+                    existingUser.Categories.Add(category);
+                }
+
+                var result = await UserManager.UpdateAsync(existingUser);
+                if (!result.Succeeded)
+                {
+                    errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+                    return;
+                }
+            }
+        }
+
+        await LoadMembers();
+        CloseEditModal();
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void OpenDeleteModal(ApplicationUser user)
+    {
+        deletingUser = user;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deletingUser = null;
+    }
+
+    private async Task DeleteMember()
+    {
+        if (deletingUser == null) return;
+
+        var user = await UserManager.FindByIdAsync(deletingUser.Id);
+        if (user != null)
+        {
+            await UserManager.DeleteAsync(user);
+            await LoadMembers();
+        }
+
+        CloseDeleteModal();
+    }
+
+    private async Task OpenViewDetailsModal(ApplicationUser user)
+    {
+        viewingUser = user;
+        
+        // Load mentor if exists
+        if (!string.IsNullOrEmpty(user.MentorId))
+        {
+            viewingUserMentor = await UserManager.FindByIdAsync(user.MentorId);
+        }
+        else
+        {
+            viewingUserMentor = null;
+        }
+        
+        showViewDetailsModal = true;
+    }
+
+    private void CloseViewDetailsModal()
+    {
+        showViewDetailsModal = false;
+        viewingUser = null;
+        viewingUserMentor = null;
+    }
+
+    private Position? GetCurrentFiscalYearPosition(string userId)
+    {
+        int currentFiscalStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+
+        // Check if user has a role assignment for current fiscal year
+        if (userRoleAssignments.ContainsKey(userId))
+        {
+            var currentAssignment = userRoleAssignments[userId]
+                .FirstOrDefault(ra => ra.StartYear == currentFiscalStartYear);
+
+            return currentAssignment?.Position;
+        }
+
+        return null;
+    }
+
+    // Dynamic field visibility based on selected category
+    private bool showYearLeitao => !string.IsNullOrEmpty(selectedRole);
+    private bool showYearCaloiro => selectedRole == "Caloiro" || selectedRole == "Tuno";
+    private bool showYearTuno => selectedRole == "Tuno";
+
+    private void OnCategoryChanged()
+    {
+        StateHasChanged();
+    }
+}
+

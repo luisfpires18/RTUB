@@ -1,0 +1,447 @@
+@page "/shop"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Shared
+@inject IProductService ProductService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h1>Loja RTUB</h1>
+<p class="lead mb-4">Produtos oficiais da Real Tuna Universitária de Bragança</p>
+
+<AuthorizeView Roles="Admin,Owner">
+    <Authorized>
+        <div class="mb-3">
+            <button class="btn btn-success" @onclick="OpenCreateProductModal" title="Adicionar Novo Produto">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+<!-- Info message about purchasing -->
+<div class="alert alert-purple mb-4">
+    <i class="bi bi-info-circle"></i> 
+    <strong>Como comprar:</strong> Para adquirir qualquer produto, por favor envie um pedido através da nossa 
+    <a href="/requests" class="alert-link text-white">página de pedidos</a> indicando o produto pretendido.
+</div>
+
+@if (loading)
+{
+    <p>A carregar produtos...</p>
+}
+else if (!filteredProducts.Any())
+{
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title"><i class="bi bi-info-circle"></i> Sem produtos disponíveis</h5>
+            <p class="card-text">Neste momento não temos produtos disponíveis na loja@(string.IsNullOrEmpty(selectedType) ? "." : " deste tipo.").</p>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Filter -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-funnel text-dark"></i></span>
+                <select class="form-select" @bind="selectedType" @bind:after="FilterProducts">
+                    <option value="">Todos os tipos</option>
+                    @foreach (var type in productTypes)
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Products Grid -->
+    <div class="row">
+        @foreach (var product in filteredProducts)
+        {
+            <div class="col-md-4 col-lg-2 mb-4">
+                <div class="card album-card h-100">
+                    <div class="position-relative">
+                        @if (product.ImageData != null && product.ImageData.Length > 0)
+                        {
+                            <img src="@GetProductImageUrl(product.ImageSrc)" class="card-img-top shop-square-image" alt="@product.Name">
+                        }
+                        else
+                        {
+                            <div class="card-img-top shop-square-placeholder">
+                                <i class="bi bi-bag-fill music-icon-large"></i>
+                            </div>
+                        }
+                        <AuthorizeView Roles="Admin,Owner">
+                            <Authorized>
+                                <div class="admin-overlay">
+                                    <button class="btn btn-sm music-btn-edit" @onclick="() => OpenEditProductModal(product)" title="Editar">
+                                        <i class="bi bi-pencil music-icon-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm music-btn-delete" @onclick="() => OpenDeleteProductModal(product)" title="Eliminar">
+                                        <i class="bi bi-trash music-icon-delete"></i>
+                                    </button>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title music-text-light">@product.Name</h5>
+                        <span class="badge bg-primary mb-2 align-self-start">@product.Type</span>
+                        @if (!string.IsNullOrEmpty(product.Description))
+                        {
+                            <p class="card-text small flex-grow-1 music-text-secondary">@product.Description</p>
+                        }
+                        <div class="mt-auto">
+                            <p class="card-text">
+                                <strong class="fs-5 text-success">@product.Price.ToString("0.00") €</strong>
+                            </p>
+                            @if (product.Stock > 0)
+                            {
+                                <p class="card-text small music-text-secondary">
+                                    <i class="bi bi-box-seam"></i> Em stock: @product.Stock unidades
+                                </p>
+                            }
+                            else
+                            {
+                                <p class="card-text small text-danger">
+                                    <i class="bi bi-x-circle"></i> Esgotado
+                                </p>
+                            }
+                            @if (!product.IsPublic)
+                            {
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-lock-fill"></i> Apenas Membros
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- CRUD Modal for Products -->
+<CrudModalManager TEntity="Product"
+                  ShowEditModal="@showProductEditModal"
+                  ShowEditModalChanged="@((value) => showProductEditModal = value)"
+                  IsCreateMode="@isProductCreateMode"
+                  EditingEntity="@editingProduct"
+                  CreateTitle="Novo Produto"
+                  EditTitle="Editar Produto"
+                  ModalSize="Modal.ModalSize.Large"
+                  OnSave="SaveProduct"
+                  OnEditModalClosed="CloseProductEditModal"
+                  ShowDeleteModal="@showProductDeleteModal"
+                  ShowDeleteModalChanged="@((value) => showProductDeleteModal = value)"
+                  DeletingEntity="@deletingProduct"
+                  DeleteTitle="Confirmar Eliminação"
+                  OnDelete="DeleteProduct"
+                  OnDeleteModalClosed="CloseProductDeleteModal">
+    <EditFormContent Context="product">
+        <EditForm Model="product" OnValidSubmit="SaveProduct">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <label class="form-label">Nome *</label>
+                    <InputText class="form-control" @bind-Value="product.Name" />
+                    <ValidationMessage For="@(() => product.Name)" class="text-danger" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Tipo *</label>
+                    <InputText class="form-control" @bind-Value="product.Type" placeholder="Álbum, Pin, T-shirt..." />
+                    <ValidationMessage For="@(() => product.Type)" class="text-danger" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Preço (€) *</label>
+                    <InputNumber class="form-control" @bind-Value="product.Price" min="0.01" step="0.01" />
+                    <ValidationMessage For="@(() => product.Price)" class="text-danger" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Stock *</label>
+                    <InputNumber class="form-control" @bind-Value="product.Stock" min="0" />
+                    <ValidationMessage For="@(() => product.Stock)" class="text-danger" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input" id="isPublic" @bind-Value="product.IsPublic" />
+                        <label class="form-check-label" for="isPublic">
+                            Público (não membros)
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label class="form-label">Descrição</label>
+                    <InputTextArea class="form-control" @bind-Value="product.Description" rows="3" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Imagem do Produto</label>
+                <InputFile class="form-control file-input-dark" OnChange="HandleImageUpload" accept="image/*" />
+                @if (!string.IsNullOrEmpty(product.ImageSrc) && uploadedImagePath == null && product.ImageData != null && product.ImageData.Length > 0)
+                {
+                    <div class="mt-2">
+                        <small class="text-muted">Imagem atual</small>
+                        <br />
+                        <img src="@GetProductImageUrl(product.ImageSrc)" alt="Preview" class="img-thumbnail mt-1 slideshow-preview" />
+                    </div>
+                }
+                @if (uploadedImagePath != null)
+                {
+                    <div class="mt-2">
+                        <small class="text-success">Nova imagem carregada com sucesso!</small>
+                    </div>
+                }
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="() => showProductEditModal = false">Cancelar</button>
+                <button type="submit" class="btn btn-success">Guardar</button>
+            </div>
+        </EditForm>
+    </EditFormContent>
+    <EditFormFooterContent>
+        <!-- Footer is now inside the form -->
+    </EditFormFooterContent>
+    <DeleteConfirmationContent Context="product">
+        <p>Tem a certeza que deseja eliminar o produto <strong>@product.Name</strong>?</p>
+        <p class="text-muted small">Esta ação não pode ser revertida.</p>
+    </DeleteConfirmationContent>
+</CrudModalManager>
+
+<!-- Image Cropper Component -->
+<ImageCropper @ref="imageCropper"
+              ShowModal="showCropperModal"
+              ShowModalChanged="OnCropperModalChanged"
+              OnImageCropped="OnImageCropped"
+              AspectRatio="1.0"
+              AspectRatioHelp="Product images are displayed in 1:1 aspect ratio (square) for consistent presentation"
+              ImageFormat="image/jpeg"
+              ImageQuality="0.85" />
+
+@code {
+    private List<Product> products = new();
+    private List<Product> filteredProducts = new();
+    private List<string> productTypes = new();
+    private string selectedType = "";
+    private bool loading = true;
+    private bool isMember = false;
+
+    // Product Modal State
+    private bool showProductEditModal = false;
+    private bool showProductDeleteModal = false;
+    private bool isProductCreateMode = false;
+    private Product? editingProduct;
+    private Product? deletingProduct;
+
+    // Image Cropper
+    private bool showCropperModal = false;
+    private ImageCropper? imageCropper;
+    private IBrowserFile? selectedFile;
+    private string? uploadedImagePath;
+    private long productImageVersion = DateTime.UtcNow.Ticks;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        loading = true;
+        
+        // Check if user is authenticated (member)
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isMember = authState.User.Identity?.IsAuthenticated ?? false;
+        
+        // Load products based on membership
+        var allProducts = isMember 
+            ? await ProductService.GetAvailableAsync() 
+            : await ProductService.GetPublicAsync();
+            
+        products = allProducts.OrderBy(p => p.Type).ThenBy(p => p.Name).ToList();
+        productTypes = products.Select(p => p.Type).Distinct().OrderBy(t => t).ToList();
+        FilterProducts();
+        
+        // Refresh cache-bust parameter
+        productImageVersion = DateTime.UtcNow.Ticks;
+        
+        loading = false;
+    }
+
+    private void FilterProducts()
+    {
+        if (string.IsNullOrEmpty(selectedType))
+        {
+            filteredProducts = products;
+        }
+        else
+        {
+            filteredProducts = products.Where(p => p.Type == selectedType).ToList();
+        }
+    }
+
+    // Product Modal Methods
+    private void OpenCreateProductModal()
+    {
+        editingProduct = Product.Create("Novo Produto", "Tipo", 1.00m, 0);
+        isProductCreateMode = true;
+        uploadedImagePath = null;
+        showProductEditModal = true;
+    }
+
+    private void OpenEditProductModal(Product product)
+    {
+        editingProduct = product;
+        isProductCreateMode = false;
+        uploadedImagePath = null;
+        showProductEditModal = true;
+    }
+
+    private void OpenDeleteProductModal(Product product)
+    {
+        deletingProduct = product;
+        showProductDeleteModal = true;
+    }
+
+    private async Task SaveProduct()
+    {
+        if (editingProduct == null) return;
+
+        try
+        {
+            // Auto-set availability based on stock
+            editingProduct.SetAvailability(editingProduct.Stock > 0);
+            
+            if (isProductCreateMode)
+            {
+                await ProductService.CreateAsync(editingProduct);
+            }
+            else
+            {
+                await ProductService.UpdateAsync(editingProduct);
+            }
+            
+            await LoadProducts();
+            showProductEditModal = false;
+            uploadedImagePath = null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving product: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteProduct()
+    {
+        if (deletingProduct == null) return;
+
+        try
+        {
+            await ProductService.DeleteAsync(deletingProduct.Id);
+            await LoadProducts();
+            showProductDeleteModal = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting product: {ex.Message}");
+        }
+    }
+
+    private void CloseProductEditModal()
+    {
+        showProductEditModal = false;
+        editingProduct = null;
+        uploadedImagePath = null;
+    }
+
+    private void CloseProductDeleteModal()
+    {
+        showProductDeleteModal = false;
+        deletingProduct = null;
+    }
+
+    // Image Upload Methods
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var imageFile = e.File;
+            if (imageFile != null)
+            {
+                var maxFileSize = 10 * 1024 * 1024;
+                if (imageFile.Size > maxFileSize)
+                {
+                    return;
+                }
+
+                selectedFile = imageFile;
+
+                if (imageCropper != null)
+                {
+                    await imageCropper.LoadImageAsync(selectedFile);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Handle error silently or show message
+        }
+    }
+
+    private void OnImageCropped(byte[] croppedImageData)
+    {
+        try
+        {
+            if (editingProduct != null && croppedImageData != null && croppedImageData.Length > 0)
+            {
+                editingProduct.ImageData = croppedImageData;
+                editingProduct.ImageContentType = "image/jpeg";
+                uploadedImagePath = "uploaded";
+                
+                // Update cache-bust parameter to force image reload after save
+                productImageVersion = DateTime.UtcNow.Ticks;
+                
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    private void OnCropperModalChanged(bool isOpen)
+    {
+        showCropperModal = isOpen;
+        StateHasChanged();
+    }
+    
+    private string GetProductImageUrl(string imageSrc)
+    {
+        // Add cache-busting parameter to force reload after image update
+        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
+        {
+            return $"{imageSrc}?v={productImageVersion}";
+        }
+        return imageSrc ?? string.Empty;
+    }
+}

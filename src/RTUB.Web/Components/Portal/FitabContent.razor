@@ -1,0 +1,210 @@
+@using RTUB.Application.Interfaces
+@using RTUB.Shared
+@using RTUB.Core.Entities
+@inject ILabelService LabelService
+@inject ILogger<FitabContent> Logger
+@namespace RTUB.Components.Portal
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <h1 class="portal-title">@(titleLabel?.Content ?? "A carregar...")</h1>
+    <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" />
+</div>
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <h2 class="portal-subtitle">@(subtitleLabel?.Content ?? "")</h2>
+    <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" />
+</div>
+
+@if (introLabel != null)
+{
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-start">
+            <p class="portal-intro-text flex-grow-1">@introLabel.Content</p>
+            <LabelEditButton CurrentLabel="@introLabel" OnEditClick="@OpenEditModal" />
+        </div>
+    </section>
+}
+
+<!-- What is FITAB -->
+<section class="mb-5">
+    <div class="card shadow-sm portal-governing-body-card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <h3 class="card-title portal-title">@(whatTitleLabel?.Content ?? "")</h3>
+                <LabelEditButton CurrentLabel="@whatTitleLabel" OnEditClick="@OpenEditModal" />
+            </div>
+            <div class="d-flex justify-content-between align-items-start">
+                <p class="card-text portal-card-text flex-grow-1">@(whatContentLabel?.Content ?? "")</p>
+                <LabelEditButton CurrentLabel="@whatContentLabel" OnEditClick="@OpenEditModal" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features -->
+<section class="mb-5">
+    <div class="card shadow-sm portal-governing-body-card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <h3 class="card-title portal-title">@(featuresTitleLabel?.Content ?? "")</h3>
+                <LabelEditButton CurrentLabel="@featuresTitleLabel" OnEditClick="@OpenEditModal" />
+            </div>
+            <div class="d-flex justify-content-between align-items-start">
+                <p class="card-text portal-content-preformatted flex-grow-1">@(featuresContentLabel?.Content ?? "")</p>
+                <LabelEditButton CurrentLabel="@featuresContentLabel" OnEditClick="@OpenEditModal" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="row g-4 mb-5">
+    <!-- When -->
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100 portal-feature-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h3 class="card-title portal-title">@(whenTitleLabel?.Content ?? "")</h3>
+                    <LabelEditButton CurrentLabel="@whenTitleLabel" OnEditClick="@OpenEditModal" />
+                </div>
+                <div class="d-flex justify-content-between align-items-start">
+                    <p class="card-text portal-card-text flex-grow-1">@(whenContentLabel?.Content ?? "")</p>
+                    <LabelEditButton CurrentLabel="@whenContentLabel" OnEditClick="@OpenEditModal" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Importance -->
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100 portal-feature-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h3 class="card-title portal-title">@(importanceTitleLabel?.Content ?? "")</h3>
+                    <LabelEditButton CurrentLabel="@importanceTitleLabel" OnEditClick="@OpenEditModal" />
+                </div>
+                <div class="d-flex justify-content-between align-items-start">
+                    <p class="card-text portal-card-text flex-grow-1">@(importanceContentLabel?.Content ?? "")</p>
+                    <LabelEditButton CurrentLabel="@importanceContentLabel" OnEditClick="@OpenEditModal" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Label Modal (at root level, outside cards) -->
+<Modal Show="@showEditModal" 
+       ShowChanged="@((value) => showEditModal = value)"
+       Title="Editar Conteúdo"
+       Size="Modal.ModalSize.Large"
+       OnClose="CloseEditModal">
+    <BodyContent>
+        @if (editingLabel != null)
+        {
+            <EditForm Model="editingLabel" OnValidSubmit="SaveLabel">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Referência</label>
+                    <input type="text" class="form-control" value="@editingLabel.Reference" disabled />
+                    <small class="text-white-opacity">Identificador único (não editável)</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Título</label>
+                    <InputText class="form-control" @bind-Value="editingLabel.Title" placeholder="Inserir título..." />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Conteúdo</label>
+                    <InputTextArea class="form-control" rows="10" @bind-Value="editingLabel.Content" 
+                                   placeholder="Inserir conteúdo..." />
+                    <small class="text-white-opacity">Dica: Use quebras de linha para formatar o texto</small>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+</Modal>
+
+@code {
+    private Label? titleLabel;
+    private Label? subtitleLabel;
+    private Label? introLabel;
+    private Label? whatTitleLabel;
+    private Label? whatContentLabel;
+    private Label? featuresTitleLabel;
+    private Label? featuresContentLabel;
+    private Label? whenTitleLabel;
+    private Label? whenContentLabel;
+    private Label? importanceTitleLabel;
+    private Label? importanceContentLabel;
+
+    private Label? editingLabel;
+    private bool showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLabels();
+    }
+
+    private async Task LoadLabels()
+    {
+        titleLabel = await LabelService.GetLabelByReferenceAsync("fitab_title");
+        subtitleLabel = await LabelService.GetLabelByReferenceAsync("fitab_subtitle");
+        introLabel = await LabelService.GetLabelByReferenceAsync("fitab_intro");
+        whatTitleLabel = await LabelService.GetLabelByReferenceAsync("fitab_what_title");
+        whatContentLabel = await LabelService.GetLabelByReferenceAsync("fitab_what_content");
+        featuresTitleLabel = await LabelService.GetLabelByReferenceAsync("fitab_features_title");
+        featuresContentLabel = await LabelService.GetLabelByReferenceAsync("fitab_features_content");
+        whenTitleLabel = await LabelService.GetLabelByReferenceAsync("fitab_when_title");
+        whenContentLabel = await LabelService.GetLabelByReferenceAsync("fitab_when_content");
+        importanceTitleLabel = await LabelService.GetLabelByReferenceAsync("fitab_importance_title");
+        importanceContentLabel = await LabelService.GetLabelByReferenceAsync("fitab_importance_content");
+    }
+
+    private void OpenEditModal(Label label)
+    {
+        editingLabel = new Label
+        {
+            Id = label.Id,
+            Reference = label.Reference,
+            Title = label.Title,
+            Content = label.Content,
+            IsActive = label.IsActive
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingLabel = null;
+    }
+
+    private async Task SaveLabel()
+    {
+        if (editingLabel == null) return;
+
+        try
+        {
+            await LabelService.UpdateLabelContentAsync(
+                editingLabel.Id,
+                editingLabel.Title,
+                editingLabel.Content
+            );
+
+            await LoadLabels();
+            
+            showEditModal = false;
+            editingLabel = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating label");
+        }
+    }
+}

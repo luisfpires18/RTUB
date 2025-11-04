@@ -1,0 +1,33 @@
+@namespace RTUB.Shared
+@using Microsoft.AspNetCore.Components.Authorization
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        @if (CurrentLabel != null)
+        {
+            <button class="btn btn-sm btn-link @CssClass" 
+                    @onclick="HandleClick" 
+                    title="Editar conteúdo">
+                <i class="bi bi-pencil"></i>
+            </button>
+        }
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    [Parameter]
+    public Label? CurrentLabel { get; set; }
+
+    [Parameter]
+    public EventCallback<Label> OnEditClick { get; set; }
+
+    [Parameter]
+    public string CssClass { get; set; } = "text-white";
+
+    private async Task HandleClick()
+    {
+        if (CurrentLabel != null && OnEditClick.HasDelegate)
+        {
+            await OnEditClick.InvokeAsync(CurrentLabel);
+        }
+    }
+}

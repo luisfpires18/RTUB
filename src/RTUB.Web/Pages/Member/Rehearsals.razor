@@ -1,0 +1,750 @@
+@page "/rehearsals"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Helpers
+@using RTUB.Shared
+@using RTUB.Core.Enums
+@attribute [Authorize]
+@inject IRehearsalService RehearsalService
+@inject IRehearsalAttendanceService AttendanceService
+@inject IFiscalYearService FiscalYearService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+
+<h1>Ensaios</h1>
+<p>Ensaios regulares da tuna (Terças e Quintas, 21:00-00:00).</p>
+
+<!-- Filter Controls -->
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label class="form-label">Ano Fiscal</label>
+        <select class="form-select" @bind="selectedFiscalYear" @bind:after="FilterRehearsals">
+            <option value="">Todos os anos</option>
+            @foreach (var year in fiscalYears)
+            {
+                var isCurrent = year == currentFiscalYear;
+                <option value="@year">@year@(isCurrent ? " (ATUAL)" : "")</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-8">
+        <label class="form-label">Pesquisar</label>
+        <TableSearchBar SearchTerm="@searchTerm"
+                       Placeholder="Pesquisar por tema ou localização..."
+                       OnSearchChanged="@HandleSearchChanged" />
+    </div>
+</div>
+
+@if (loading)
+{
+    <p>A carregar ensaios...</p>
+}
+else
+{
+    <!-- Upcoming Rehearsals Section -->
+    <h3 class="mt-4 mb-3">Próximos Ensaios</h3>
+    
+    @if (filteredUpcomingRehearsals == null || !filteredUpcomingRehearsals.Any())
+    {
+        <div class="card shadow-sm card-purple-no-border">
+            <h5 class="card-title text-white"><i class="bi bi-info-circle"></i> Nenhum ensaio agendado</h5>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var rehearsal in filteredUpcomingRehearsals)
+            {
+                var userAttendance = GetUserAttendance(rehearsal.Id);
+                var enrolledCount = rehearsal.Attendances.Count();
+                var approvedCount = rehearsal.Attendances.Count(a => a.Attended);
+                
+                <div class="col-md-4 mb-4">
+                    <div class="card event-card h-100">
+                        <div class="position-relative">
+                            <div class="card-img-top event-image-placeholder">
+                                <i class="bi bi-music-note-beamed music-icon-large"></i>
+                            </div>
+                            <AuthorizeView Roles="Admin,Owner">
+                                <Authorized>
+                                    <div class="admin-overlay">
+                                        <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(rehearsal)" title="Editar">
+                                            <i class="bi bi-pencil music-icon-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(rehearsal)" title="Eliminar">
+                                            <i class="bi bi-trash music-icon-delete"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">
+                                @if (rehearsal.IsCanceled)
+                                {
+                                    <span class="badge bg-danger">Cancelado</span>
+                                }
+                                else if (rehearsal.Date.Date == DateTime.Today)
+                                {
+                                    <span class="badge bg-info">Hoje</span>
+                                }
+                                else if (rehearsal.Date < DateTime.Today)
+                                {
+                                    <span class="badge bg-secondary">Passado</span>
+                                }
+                            </h5>
+                            <p class="card-text text-light-theme">
+                                <small>
+                                    <i class="bi bi-calendar me-1"></i>
+                                    <span>@rehearsal.Date.ToString("dd MMM yyyy")</span>
+                                </small>
+                            </p>
+                            <p class="card-text text-light-theme">
+                                <small>
+                                    <i class="bi bi-clock"></i> @rehearsal.StartTime.ToString(@"hh\:mm") - @rehearsal.EndTime.ToString(@"hh\:mm")
+                                </small>
+                            </p>
+                            @if (!string.IsNullOrEmpty(rehearsal.Location))
+                            {
+                                <p class="card-text text-light-theme">
+                                    <small>
+                                        <i class="bi bi-geo-alt"></i> @rehearsal.Location
+                                    </small>
+                                </p>
+                            }
+                            @if (!string.IsNullOrEmpty(rehearsal.Theme))
+                            {
+                                <p class="card-text">
+                                    <small><strong>Tema:</strong> @rehearsal.Theme</small>
+                                </p>
+                            }
+
+                            @if (!rehearsal.IsCanceled)
+                            {
+                                <div class="enrollment-section mt-auto p-2 rounded">
+                                    <div class="d-flex gap-2 align-items-center justify-content-center">
+                                        <!-- View Attendances button -->
+                                        <button class="btn btn-sm btn-outline-info btn-sm-padded" @onclick="() => ViewAttendances(rehearsal)" title="Ver Presenças (@approvedCount aprovados de @enrolledCount inscritos)">
+                                            <i class="bi bi-people icon-size-1rem"></i> @enrolledCount
+                                        </button>
+
+                                        <!-- User attendance buttons container -->
+                                        <div class="d-flex gap-1 enrollment-actions">
+                                            @if (userAttendance == null)
+                                            {
+                                                <button class="btn btn-sm btn-purple btn-sm-padded" @onclick="() => MarkAttendance(rehearsal)" title="Marcar Presença">
+                                                    <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                @if (userAttendance.Attended)
+                                                {
+                                                    <button class="btn btn-sm btn-success btn-sm-padded" disabled title="Presença Aprovada">
+                                                        <i class="bi bi-check-circle-fill icon-size-1rem"></i>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-sm btn-warning btn-sm-padded" disabled title="Presença Pendente">
+                                                        <i class="bi bi-clock-fill icon-size-1rem"></i>
+                                                    </button>
+                                                }
+                                                <button class="btn btn-sm btn-light btn-sm-padded" @onclick="() => EditAttendance(rehearsal)" title="Editar Presença">
+                                                    <i class="bi bi-pencil-fill icon-size-1rem"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-danger btn-sm-padded" @onclick="() => RemoveAttendance(rehearsal)" title="Remover Presença">
+                                                    <i class="bi bi-x-circle-fill icon-size-1rem"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- My Recent Attendance Section -->
+    <h3 class="mt-5 mb-3">Minhas Presenças Recentes</h3>
+    
+    @if (myAttendances == null || !myAttendances.Any())
+    {
+        <div class="card shadow-sm card-purple-no-border">
+            <h5 class="card-title text-white"><i class="bi bi-info-circle"></i> Sem presenças registadas</h5>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body">
+                <p class="mb-3">
+                    <strong>Taxa de Presença (últimos 10 ensaios):</strong> 
+                    <span class="badge bg-primary">@attendanceCount / @totalRecentRehearsals ensaios</span>
+                    @if (totalRecentRehearsals > 0)
+                    {
+                        <span class="ms-2">(@(Math.Round((double)attendanceCount / totalRecentRehearsals * 100, 1))%)</span>
+                    }
+                </p>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Instrumento</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var attendance in myAttendances.Where(a => a.Rehearsal != null && a.Rehearsal.Date < DateTime.Today).OrderByDescending(a => a.Rehearsal!.Date).Take(10))
+                            {
+                                <tr>
+                                    <td>@attendance.Rehearsal?.Date.ToString("dd MMM yyyy")</td>
+                                    <td>@(attendance.Instrument?.ToString() ?? "-")</td>
+                                    <td>
+                                        @if (attendance.Attended)
+                                        {
+                                            <span class="badge bg-success">Aprovado</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning">Pendente</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+<!-- Mark Attendance Modal -->
+@if (showAttendanceModal && selectedRehearsal != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Marcar Presença</h5>
+                    <button type="button" class="btn-close" @onclick="CloseAttendanceModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Instrumento (Opcional)</label>
+                        <select class="form-select" @bind="selectedInstrument">
+                            <option value="">-- Selecionar --</option>
+                            @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                            {
+                                <option value="@instrument">@instrument</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notas (Opcional)</label>
+                        <textarea class="form-control" rows="3" @bind="selectedNotes" placeholder="Adicione alguma nota..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseAttendanceModal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="ConfirmMarkAttendance">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- View Attendances Modal -->
+@if (showAttendancesModal && selectedRehearsal != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Presenças - @selectedRehearsal.Date.ToString("dd MMM yyyy")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseAttendancesModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (selectedRehearsalAttendances != null && selectedRehearsalAttendances.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Membro</th>
+                                        <th>Instrumento</th>
+                                        <th>Presença (por confirmação)</th>
+                                        <AuthorizeView Roles="Owner">
+                                            <Authorized>
+                                                <th>Ações</th>
+                                            </Authorized>
+                                        </AuthorizeView>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var attendance in selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName))
+                                    {
+                                        <tr>
+                                            <td>@(attendance.User?.Nickname ?? attendance.UserId)</td>
+                                            <td>@(attendance.Instrument?.ToString() ?? "-")</td>
+                                            <td>
+                                                @if (attendance.Attended)
+                                                {
+                                                    <span class="badge bg-success">Aprovado</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">Pendente</span>
+                                                }
+                                            </td>
+                                            <AuthorizeView Roles="Owner">
+                                                <Authorized>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteAttendanceModal(attendance)" title="Eliminar Presença">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </Authorized>
+                                            </AuthorizeView>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p>Nenhuma presença registada ainda.</p>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseAttendancesModal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Edit/Delete Modals -->
+@if (showEditModal && editingRehearsal != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Ensaio</h5>
+                    <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Localização</label>
+                        <input type="text" class="form-control" @bind="editLocation" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tema (opcional)</label>
+                        <input type="text" class="form-control" @bind="editTheme" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notas (opcional)</label>
+                        <textarea class="form-control" rows="3" @bind="editNotes"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveEdit">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showDeleteModal && deletingRehearsal != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Eliminar Ensaio</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDeleteModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem a certeza que deseja eliminar o ensaio de <strong>@deletingRehearsal.Date.ToString("dd MMM yyyy")</strong>?</p>
+                    <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> Esta ação não pode ser revertida.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Attendance Confirmation Modal (Owner Only) -->
+@if (showDeleteAttendanceModal && deletingAttendance != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Eliminação de Presença</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDeleteAttendanceModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem a certeza que deseja eliminar a presença de <strong>@(deletingAttendance.User?.FirstName ?? "") "@(deletingAttendance.User?.Nickname ?? deletingAttendance.UserId)"</strong> neste ensaio?</p>
+                    <p class="text-muted small">Esta ação não pode ser revertida.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteAttendanceModal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteAttendance">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool loading = true;
+    private bool isAdmin = false;
+    private string? currentUserId;
+    
+    private List<Rehearsal> upcomingRehearsals = new();
+    private List<Rehearsal> filteredUpcomingRehearsals = new();
+    private List<RehearsalAttendance> myAttendances = new();
+    private int attendanceCount = 0;
+    private int totalRecentRehearsals = 0;
+    
+    // Fiscal year filtering
+    private List<string> fiscalYears = new();
+    private string currentFiscalYear = "";
+    private string selectedFiscalYear = "";
+    private string searchTerm = "";
+    private SearchHelper<Rehearsal> searchHelper = new();
+    
+    private bool showAttendanceModal = false;
+    private bool showAttendancesModal = false;
+    private bool showEditModal = false;
+    private bool showDeleteModal = false;
+    private bool showDeleteAttendanceModal = false;
+    private Rehearsal? selectedRehearsal;
+    private Rehearsal? editingRehearsal;
+    private Rehearsal? deletingRehearsal;
+    private RehearsalAttendance? deletingAttendance;
+    private string? selectedInstrument;
+    private string? selectedNotes;
+    private string editLocation = "";
+    private string? editTheme;
+    private string? editNotes;
+    private List<RehearsalAttendance>? selectedRehearsalAttendances;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                currentUserId = appUser.Id;
+                isAdmin = user.IsInRole("Admin") || user.IsInRole("Owner");
+            }
+        }
+
+        // Load fiscal years
+        var allFiscalYears = await FiscalYearService.GetAllFiscalYearsAsync();
+        fiscalYears = allFiscalYears.Select(fy => fy.GetFiscalYearString()).OrderByDescending(y => y).ToList();
+        currentFiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
+        
+        // Set default to current fiscal year
+        selectedFiscalYear = currentFiscalYear;
+
+        await LoadData();
+        loading = false;
+    }
+
+    private async Task LoadData()
+    {
+        // Load upcoming rehearsals (next 30 days)
+        var startDate = DateTime.Today;
+        var endDate = DateTime.Today.AddDays(30);
+        var allRehearsals = await RehearsalService.GetRehearsalsAsync(startDate, endDate);
+        upcomingRehearsals = allRehearsals.Where(r => !r.IsCanceled).OrderBy(r => r.Date).ToList();
+
+        // Load user's recent attendances
+        if (currentUserId != null)
+        {
+            myAttendances = (await AttendanceService.GetAttendancesByUserIdAsync(currentUserId)).ToList();
+            
+            // Calculate attendance stats for last 10 past rehearsals
+            var recentEnd = DateTime.Today;
+            var recentStart = DateTime.Today.AddDays(-90); // Look back 90 days (3 months)
+            
+            // Get all past rehearsals in the period
+            var recentRehearsals = await RehearsalService.GetRehearsalsAsync(recentStart, recentEnd);
+            var pastRehearsals = recentRehearsals
+                .Where(r => !r.IsCanceled && r.Date < DateTime.Today)
+                .OrderByDescending(r => r.Date)
+                .Take(10)
+                .ToList();
+            
+            totalRecentRehearsals = pastRehearsals.Count;
+            
+            // Count only approved attendances for these specific rehearsals
+            var pastRehearsalIds = pastRehearsals.Select(r => r.Id).ToHashSet();
+            attendanceCount = myAttendances.Count(a => 
+                a.Attended && 
+                pastRehearsalIds.Contains(a.RehearsalId));
+        }
+        
+        FilterRehearsals();
+    }
+    
+    private void FilterRehearsals()
+    {
+        var filtered = upcomingRehearsals.AsEnumerable();
+        
+        // Apply fiscal year filter
+        if (!string.IsNullOrEmpty(selectedFiscalYear))
+        {
+            // Parse fiscal year (e.g., "2024-2025" -> start: 2024, end: 2025)
+            var parts = selectedFiscalYear.Split('-');
+            if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
+            {
+                var fiscalStart = new DateTime(startYear, 9, 1); // September 1st
+                var fiscalEnd = new DateTime(startYear + 1, 8, 31); // August 31st next year
+                
+                filtered = filtered.Where(r => r.Date >= fiscalStart && r.Date <= fiscalEnd);
+            }
+        }
+        
+        // Apply search filter
+        searchHelper.SearchTerm = searchTerm;
+        filteredUpcomingRehearsals = searchHelper.FilterMultiple(filtered.ToList(), new List<Func<Rehearsal, string>>
+        {
+            r => r.Theme ?? "",
+            r => r.Location ?? "",
+            r => r.Notes ?? ""
+        });
+    }
+    
+    private async Task HandleSearchChanged(string search)
+    {
+        searchTerm = search;
+        FilterRehearsals();
+        await Task.CompletedTask;
+    }
+
+    private RehearsalAttendance? GetUserAttendance(int rehearsalId)
+    {
+        return myAttendances?.FirstOrDefault(a => a.RehearsalId == rehearsalId);
+    }
+
+    private void MarkAttendance(Rehearsal rehearsal)
+    {
+        selectedRehearsal = rehearsal;
+        selectedInstrument = null;
+        selectedNotes = null;
+        showAttendanceModal = true;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmMarkAttendance()
+    {
+        if (selectedRehearsal != null && currentUserId != null)
+        {
+            try
+            {
+                InstrumentType? instrument = null;
+                if (!string.IsNullOrEmpty(selectedInstrument))
+                {
+                    instrument = Enum.Parse<InstrumentType>(selectedInstrument);
+                }
+
+                await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, currentUserId, instrument, selectedNotes);
+                
+                await LoadData();
+                CloseAttendanceModal();
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                // Log error or show message to user
+                Console.WriteLine($"Error marking attendance: {ex.Message}");
+            }
+        }
+    }
+
+    private void CloseAttendanceModal()
+    {
+        showAttendanceModal = false;
+        selectedRehearsal = null;
+        selectedInstrument = null;
+        selectedNotes = null;
+        StateHasChanged();
+    }
+
+    private async Task ViewAttendances(Rehearsal rehearsal)
+    {
+        selectedRehearsal = rehearsal;
+        selectedRehearsalAttendances = (await AttendanceService.GetAttendancesByRehearsalIdAsync(rehearsal.Id)).ToList();
+        
+        // Load user details for display
+        foreach (var attendance in selectedRehearsalAttendances)
+        {
+            if (attendance.User == null)
+            {
+                attendance.User = await UserManager.FindByIdAsync(attendance.UserId);
+            }
+        }
+        
+        showAttendancesModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseAttendancesModal()
+    {
+        showAttendancesModal = false;
+        selectedRehearsal = null;
+        selectedRehearsalAttendances = null;
+        StateHasChanged();
+    }
+
+    private void EditAttendance(Rehearsal rehearsal)
+    {
+        // Similar to mark attendance, but pre-fill with existing data
+        var existingAttendance = GetUserAttendance(rehearsal.Id);
+        selectedRehearsal = rehearsal;
+        selectedInstrument = existingAttendance?.Instrument?.ToString();
+        showAttendanceModal = true;
+        StateHasChanged();
+    }
+
+    private async Task RemoveAttendance(Rehearsal rehearsal)
+    {
+        var attendance = GetUserAttendance(rehearsal.Id);
+        if (attendance != null)
+        {
+            await AttendanceService.DeleteAttendanceAsync(attendance.Id);
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    // Admin methods for edit/delete
+    private void OpenEditModal(Rehearsal rehearsal)
+    {
+        editingRehearsal = rehearsal;
+        editLocation = rehearsal.Location;
+        editTheme = rehearsal.Theme;
+        editNotes = rehearsal.Notes;
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingRehearsal = null;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (editingRehearsal != null)
+        {
+            await RehearsalService.UpdateRehearsalAsync(editingRehearsal.Id, editLocation, editTheme, editNotes);
+            await LoadData();
+            CloseEditModal();
+        }
+    }
+
+    private void OpenDeleteModal(Rehearsal rehearsal)
+    {
+        deletingRehearsal = rehearsal;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deletingRehearsal = null;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (deletingRehearsal != null)
+        {
+            await RehearsalService.DeleteRehearsalAsync(deletingRehearsal.Id);
+            await LoadData();
+            CloseDeleteModal();
+        }
+    }
+    
+    // Owner-only attendance deletion methods
+    private void OpenDeleteAttendanceModal(RehearsalAttendance attendance)
+    {
+        deletingAttendance = attendance;
+        showDeleteAttendanceModal = true;
+    }
+    
+    private void CloseDeleteAttendanceModal()
+    {
+        showDeleteAttendanceModal = false;
+        deletingAttendance = null;
+    }
+    
+    private async Task ConfirmDeleteAttendance()
+    {
+        if (deletingAttendance == null) return;
+        
+        try
+        {
+            await AttendanceService.DeleteAttendanceAsync(deletingAttendance.Id);
+            
+            // Refresh the attendance list for the selected rehearsal
+            if (selectedRehearsal != null)
+            {
+                selectedRehearsalAttendances = (await AttendanceService.GetAttendancesByRehearsalIdAsync(selectedRehearsal.Id)).ToList();
+                
+                // Load user details for display
+                foreach (var attendance in selectedRehearsalAttendances)
+                {
+                    if (attendance.User == null)
+                    {
+                        attendance.User = await UserManager.FindByIdAsync(attendance.UserId);
+                    }
+                }
+            }
+            
+            // Refresh my attendances
+            await LoadData();
+            
+            CloseDeleteAttendanceModal();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting attendance: {ex.Message}");
+        }
+    }
+
+    private void EditRehearsal(Rehearsal rehearsal)
+    {
+        // Admin function - navigate to admin page
+        Navigation.NavigateTo("/admin/ensaios");
+    }
+
+    private void DeleteRehearsal(Rehearsal rehearsal)
+    {
+        // Admin function - navigate to admin page
+        Navigation.NavigateTo("/admin/ensaios");
+    }
+}

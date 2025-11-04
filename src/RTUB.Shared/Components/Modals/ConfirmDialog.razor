@@ -1,0 +1,125 @@
+@namespace RTUB.Shared
+@* 
+    Reusable Confirm Dialog Component
+    Used for delete confirmations and other yes/no dialogs
+*@
+
+<Modal Show="@Show" 
+       ShowChanged="@ShowChanged"
+       Title="@Title" 
+       Size="@Size"
+       Centered="true"
+       ShowCloseButton="@ShowCloseButton">
+    <BodyContent>
+        @if (BodyContent != null)
+        {
+            @BodyContent
+        }
+        else if (!string.IsNullOrEmpty(Message))
+        {
+            <p>@Message</p>
+        }
+        @if (!string.IsNullOrEmpty(WarningMessage))
+        {
+            <p class="text-muted">@WarningMessage</p>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="HandleCancel">@CancelText</button>
+        <button type="button" class="btn @ConfirmButtonClass" @onclick="HandleConfirm">@ConfirmText</button>
+    </FooterContent>
+</Modal>
+
+@code {
+    /// <summary>
+    /// Controls whether the dialog is visible
+    /// </summary>
+    [Parameter]
+    public bool Show { get; set; }
+
+    /// <summary>
+    /// Event callback when Show state changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> ShowChanged { get; set; }
+
+    /// <summary>
+    /// Dialog title
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = "Confirmar";
+
+    /// <summary>
+    /// Simple message to display (alternative to BodyContent)
+    /// </summary>
+    [Parameter]
+    public string? Message { get; set; }
+
+    /// <summary>
+    /// Warning message displayed below main message
+    /// </summary>
+    [Parameter]
+    public string? WarningMessage { get; set; }
+
+    /// <summary>
+    /// Custom body content
+    /// </summary>
+    [Parameter]
+    public RenderFragment? BodyContent { get; set; }
+
+    /// <summary>
+    /// Text for confirm button
+    /// </summary>
+    [Parameter]
+    public string ConfirmText { get; set; } = "Confirmar";
+
+    /// <summary>
+    /// Text for cancel button
+    /// </summary>
+    [Parameter]
+    public string CancelText { get; set; } = "Cancelar";
+
+    /// <summary>
+    /// CSS class for confirm button (e.g., "btn-danger" for delete)
+    /// </summary>
+    [Parameter]
+    public string ConfirmButtonClass { get; set; } = "btn-primary";
+
+    /// <summary>
+    /// Event callback when user confirms
+    /// </summary>
+    [Parameter]
+    public EventCallback OnConfirm { get; set; }
+
+    /// <summary>
+    /// Event callback when user cancels
+    /// </summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    /// <summary>
+    /// Modal size
+    /// </summary>
+    [Parameter]
+    public Modal.ModalSize Size { get; set; } = Modal.ModalSize.Default;
+
+    /// <summary>
+    /// Whether to show close button in header
+    /// </summary>
+    [Parameter]
+    public bool ShowCloseButton { get; set; } = true;
+
+    private async Task HandleConfirm()
+    {
+        await OnConfirm.InvokeAsync();
+        Show = false;
+        await ShowChanged.InvokeAsync(false);
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+        Show = false;
+        await ShowChanged.InvokeAsync(false);
+    }
+}

@@ -1,0 +1,46 @@
+@page "/login"
+
+<div class="login-container">
+    <div class="login-card">
+        <h1 class="text-center mb-4">Entrar</h1>
+
+        @if (NavigationManager.Uri.Contains("error=Invalid"))
+        {
+            <div class="alert alert-danger">Tentativa de login inválida.</div>
+        }
+        @if (NavigationManager.Uri.Contains("error=Locked"))
+        {
+            <div class="alert alert-danger">Conta bloqueada.</div>
+        }
+
+        <form method="post" action="/auth/login" @formname="LoginForm">
+            <div class="mb-3">
+                <label class="form-label" for="inputUsername">Nome de utilizador</label>
+                <input id="inputUsername" name="Username" type="text" class="form-control" placeholder="Inserir nome de utilizador..." required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="inputPassword">Palavra-passe</label>
+                <input id="inputPassword" name="Password" type="password" class="form-control" placeholder="Inserir palavra-passe..." required />
+            </div>
+            <div class="mb-3 form-check">
+                <input id="rememberMe" name="RememberMe" type="checkbox" class="form-check-input" value="true" />
+                <label class="form-check-label" for="rememberMe">Lembrar-me</label>
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-primary-purple">Entrar</button>
+            </div>
+            <div class="text-center mt-3">
+                <a href="/forgot-password">Esqueceu a sua palavra-passe?</a>
+            </div>
+        </form>
+
+        <div class="alert alert-info mt-4 identity-alert-info">
+            <i class="bi bi-info-circle"></i> <strong>Nota:</strong> Esta área de login é exclusiva para membros da RTUB.
+        </div>
+    </div>
+</div>
+
+
+@code {
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+}

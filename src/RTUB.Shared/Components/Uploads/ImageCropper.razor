@@ -1,0 +1,217 @@
+@namespace RTUB.Shared
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<Modal Show="@ShowModal" ShowChanged="@ShowModalChanged" Title="Crop Image" Size="Modal.ModalSize.Large" Centered="true">
+    <BodyContent>
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        <div class="image-cropper-wrapper">
+            <img id="@imageElementId" src="@imageDataUrl" alt="Image to crop" class="cropper-image" />
+        </div>
+
+        <div class="mt-3 d-flex justify-content-center gap-2 flex-wrap">
+            <button class="btn btn-sm btn-outline-light" @onclick="() => Rotate(-90)" title="Rotate Left">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-light" @onclick="() => Rotate(90)" title="Rotate Right">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-light" @onclick="() => Zoom(0.1)" title="Zoom In">
+                <i class="bi bi-zoom-in"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-light" @onclick="() => Zoom(-0.1)" title="Zoom Out">
+                <i class="bi bi-zoom-out"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-light" @onclick="Reset" title="Reset">
+                <i class="bi bi-arrow-clockwise"></i> Reset
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(AspectRatioHelp))
+        {
+            <div class="mt-3">
+                <small class="text-muted">@AspectRatioHelp</small>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="Crop">
+            <i class="bi bi-check-lg"></i> Crop & Save
+        </button>
+    </FooterContent>
+</Modal>
+
+@code {
+    [Parameter] public bool ShowModal { get; set; }
+    [Parameter] public EventCallback<bool> ShowModalChanged { get; set; }
+    [Parameter] public EventCallback<byte[]> OnImageCropped { get; set; }
+    [Parameter] public double AspectRatio { get; set; } = 0; // 0 or NaN = free aspect
+    [Parameter] public string AspectRatioHelp { get; set; } = string.Empty;
+    [Parameter] public string ImageFormat { get; set; } = "image/jpeg";
+    [Parameter] public double ImageQuality { get; set; } = 0.9;
+
+    private string imageElementId = $"cropperImage_{Guid.NewGuid():N}";
+    private string? imageDataUrl;
+    private string? errorMessage;
+    private bool isInitialized = false;
+
+    public async Task LoadImageAsync(IBrowserFile file)
+    {
+        try
+        {
+            errorMessage = null;
+
+            // Limit file size to 10MB for cropping
+            var maxFileSize = 10 * 1024 * 1024;
+            if (file.Size > maxFileSize)
+            {
+                errorMessage = "File size must be less than 10MB.";
+                return;
+            }
+
+            // Read file and convert to base64
+            using var memoryStream = new MemoryStream();
+            await file.OpenReadStream(maxFileSize).CopyToAsync(memoryStream);
+            var imageBytes = memoryStream.ToArray();
+            var base64 = Convert.ToBase64String(imageBytes);
+            var contentType = file.ContentType;
+            imageDataUrl = $"data:{contentType};base64,{base64}";
+
+            ShowModal = true;
+            await ShowModalChanged.InvokeAsync(true);
+            StateHasChanged();
+
+            // Wait a bit for the image to render in the DOM
+            await Task.Delay(100);
+
+            // Initialize cropper
+            await InitializeCropper();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading image: {ex.Message}";
+        }
+    }
+
+    private async Task InitializeCropper()
+    {
+        try
+        {
+            // Give more time for the image to render in the DOM
+            await Task.Delay(200);
+            
+            // Pass null to JavaScript for free aspect ratio (0 or negative means free)
+            // JavaScript will handle null as NaN
+            object? aspectRatioParam = AspectRatio <= 0 ? null : (object)AspectRatio;
+            await JSRuntime.InvokeVoidAsync("ImageCropperInterop.initializeCropper", imageElementId, aspectRatioParam);
+            isInitialized = true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error initializing cropper: {ex.Message}";
+            isInitialized = false;
+        }
+    }
+
+    private async Task Crop()
+    {
+        try
+        {
+            if (!isInitialized)
+            {
+                errorMessage = "Cropper not initialized";
+                return;
+            }
+
+            // Get cropped image as base64
+            var croppedBase64 = await JSRuntime.InvokeAsync<string>(
+                "ImageCropperInterop.getCroppedImageAsBase64",
+                ImageFormat,
+                ImageQuality
+            );
+
+            if (string.IsNullOrEmpty(croppedBase64))
+            {
+                errorMessage = "Failed to crop image";
+                return;
+            }
+
+            // Convert base64 to byte array
+            var base64Data = croppedBase64.Split(',')[1]; // Remove data:image/xxx;base64, prefix
+            var imageBytes = Convert.FromBase64String(base64Data);
+
+            // Invoke callback with cropped image
+            await OnImageCropped.InvokeAsync(imageBytes);
+
+            await Close();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error cropping image: {ex.Message}";
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        if (isInitialized)
+        {
+            await JSRuntime.InvokeVoidAsync("ImageCropperInterop.destroy");
+            isInitialized = false;
+        }
+
+        ShowModal = false;
+        await ShowModalChanged.InvokeAsync(false);
+        imageDataUrl = null;
+        errorMessage = null;
+        StateHasChanged();
+    }
+
+    private async Task Rotate(int degrees)
+    {
+        if (isInitialized)
+        {
+            await JSRuntime.InvokeVoidAsync("ImageCropperInterop.rotate", degrees);
+        }
+    }
+
+    private async Task Zoom(double ratio)
+    {
+        if (isInitialized)
+        {
+            await JSRuntime.InvokeVoidAsync("ImageCropperInterop.zoom", ratio);
+        }
+    }
+
+    private async Task Reset()
+    {
+        if (isInitialized)
+        {
+            await JSRuntime.InvokeVoidAsync("ImageCropperInterop.reset");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (isInitialized)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("ImageCropperInterop.destroy");
+            }
+            catch
+            {
+                // Ignore errors during disposal
+            }
+        }
+    }
+}

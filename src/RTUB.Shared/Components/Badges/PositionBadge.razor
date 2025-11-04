@@ -1,0 +1,26 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Enums
+@using RTUB.Application.Helpers
+
+@*
+    PositionBadge Component
+    Displays a Bootstrap badge with the appropriate styling for a Position
+*@
+
+<span class="badge badge-position @AdditionalClasses">
+    @StatusHelper.GetPositionDisplay(Position)
+</span>
+
+@code {
+    /// <summary>
+    /// The position to display
+    /// </summary>
+    [Parameter]
+    public Position Position { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes to apply to the badge
+    /// </summary>
+    [Parameter]
+    public string AdditionalClasses { get; set; } = "";
+}

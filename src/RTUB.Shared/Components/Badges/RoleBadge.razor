@@ -1,0 +1,37 @@
+@namespace RTUB.Shared
+@*
+    RoleBadge Component
+    Displays a Bootstrap badge with the appropriate styling for a user role
+*@
+
+<span class="badge @GetRoleBadgeClass(Role) @AdditionalClasses">
+    @Role
+</span>
+
+@code {
+    /// <summary>
+    /// The role to display (e.g., "Owner", "Admin", "Member")
+    /// </summary>
+    [Parameter]
+    public string Role { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Additional CSS classes to apply to the badge
+    /// </summary>
+    [Parameter]
+    public string AdditionalClasses { get; set; } = "";
+
+    /// <summary>
+    /// Returns the appropriate CSS class for the role badge
+    /// </summary>
+    private string GetRoleBadgeClass(string role)
+    {
+        return role switch
+        {
+            "Owner" => "bg-danger",
+            "Admin" => "bg-warning text-dark",
+            "Member" => "bg-primary",
+            _ => "bg-secondary"
+        };
+    }
+}

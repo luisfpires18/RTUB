@@ -1,0 +1,89 @@
+@namespace RTUB.Shared
+@*
+    MemberListItem Component
+    Reusable table row for displaying member information in a list
+*@
+
+<tr>
+    <td>@($"{User.FirstName} {User.LastName}")</td>
+    <td>@User.Nickname</td>
+    <td>
+        @* Display categories first (Caloiro or Tuno) *@
+        @foreach (var category in User.Categories.Where(c =>
+            c == MemberCategory.Caloiro || c == MemberCategory.Tuno))
+        {
+            <CategoryBadge Category="category" AdditionalClasses="me-1" />
+        }
+        @* Then display current fiscal year position if exists *@
+        @if (CurrentFiscalYearPosition != null)
+        {
+            <PositionBadge Position="CurrentFiscalYearPosition.Value" AdditionalClasses="me-1" />
+        }
+        @if (!User.Positions.Any() && !User.Categories.Any())
+        {
+            <span class="badge bg-secondary">Sem Cargos</span>
+        }
+    </td>
+    <td>@(User.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(User.MainInstrument.Value) : "-")</td>
+    <td>
+        <button class="btn btn-sm btn-info me-1" @onclick="OnViewDetails" title="View Details">
+            <i class="bi bi-eye"></i>
+        </button>
+        @if (IsAdmin)
+        {
+            <button class="btn btn-sm btn-light me-1" @onclick="OnEdit" title="Edit">
+                <i class="bi bi-pencil"></i>
+            </button>
+        }
+        @if (IsOwner)
+        {
+            <button class="btn btn-sm btn-danger" @onclick="OnDelete" title="Delete">
+                <i class="bi bi-trash"></i>
+            </button>
+        }
+    </td>
+</tr>
+
+@code {
+    /// <summary>
+    /// The user/member to display
+    /// </summary>
+    [Parameter]
+    public ApplicationUser User { get; set; } = null!;
+
+    /// <summary>
+    /// The user's current fiscal year position (if any)
+    /// </summary>
+    [Parameter]
+    public Position? CurrentFiscalYearPosition { get; set; }
+
+    /// <summary>
+    /// Whether the current viewer has admin privileges
+    /// </summary>
+    [Parameter]
+    public bool IsAdmin { get; set; }
+
+    /// <summary>
+    /// Whether the current viewer is the owner (has delete permissions)
+    /// </summary>
+    [Parameter]
+    public bool IsOwner { get; set; }
+
+    /// <summary>
+    /// Callback when the view details button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewDetails { get; set; }
+
+    /// <summary>
+    /// Callback when the edit button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    /// <summary>
+    /// Callback when the delete button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+}

@@ -1,0 +1,20 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Enums
+@using RTUB.Application.Helpers
+
+@*
+    StatusBadge Component
+    Displays a Bootstrap badge with the appropriate styling and translation for a RequestStatus
+*@
+
+<span class="badge @StatusHelper.GetStatusBadgeClass(Status)">
+    @StatusHelper.GetStatusTranslation(Status)
+</span>
+
+@code {
+    /// <summary>
+    /// The request status to display
+    /// </summary>
+    [Parameter]
+    public RequestStatus Status { get; set; }
+}

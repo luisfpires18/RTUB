@@ -1,0 +1,89 @@
+@namespace RTUB.Shared
+@*
+    Reusable empty state component for tables
+    Provides consistent empty state UI with optional action button
+*@
+
+<div class="empty-state-container">
+    <div class="card shadow-sm empty-state-card">
+        <div class="card-body text-center">
+            @if (!string.IsNullOrEmpty(IconClass))
+            {
+                <i class="bi @IconClass empty-state-icon"></i>
+            }
+            <h5 class="card-title text-white mt-2">@Message</h5>
+            @if (!string.IsNullOrEmpty(SubMessage))
+            {
+                <p class="card-text">@SubMessage</p>
+            }
+            @if (ShowButton && !string.IsNullOrEmpty(ButtonText))
+            {
+                <button class="btn @ButtonClass mt-2" @onclick="HandleButtonClick">
+                    @if (!string.IsNullOrEmpty(ButtonIcon))
+                    {
+                        <i class="bi @ButtonIcon"></i>
+                    }
+                    @ButtonText
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Main message to display
+    /// </summary>
+    [Parameter]
+    public string Message { get; set; } = "Nenhum resultado encontrado.";
+
+    /// <summary>
+    /// Optional sub-message
+    /// </summary>
+    [Parameter]
+    public string? SubMessage { get; set; }
+
+    /// <summary>
+    /// Bootstrap icon class (e.g., "bi-inbox", "bi-search")
+    /// </summary>
+    [Parameter]
+    public string IconClass { get; set; } = "bi-info-circle";
+
+    /// <summary>
+    /// Whether to show the action button
+    /// </summary>
+    [Parameter]
+    public bool ShowButton { get; set; } = false;
+
+    /// <summary>
+    /// Text for the action button
+    /// </summary>
+    [Parameter]
+    public string ButtonText { get; set; } = "Criar Novo";
+
+    /// <summary>
+    /// Icon for the button (e.g., "bi-plus-lg")
+    /// </summary>
+    [Parameter]
+    public string? ButtonIcon { get; set; }
+
+    /// <summary>
+    /// CSS class for the button (default: btn-success)
+    /// </summary>
+    [Parameter]
+    public string ButtonClass { get; set; } = "btn-success";
+
+    /// <summary>
+    /// Callback when button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnButtonClick { get; set; }
+
+    private async Task HandleButtonClick()
+    {
+        if (OnButtonClick.HasDelegate)
+        {
+            await OnButtonClick.InvokeAsync();
+        }
+    }
+}

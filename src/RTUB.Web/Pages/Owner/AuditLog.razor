@@ -1,0 +1,698 @@
+@page "/owner/tracing"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Shared
+@using System.Text.Json
+@attribute [Authorize(Roles = "Owner")]
+@inject IAuditLogService AuditLogService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Audit Log - RTUB</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="page-title"><i class="bi bi-shield-check"></i> Registo de auditoria e histórico de atividades</h1>
+            <p class="text-muted">Rastreio de atividades em todo o sistema para fins de responsabilização e resolução de problemas</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-success me-2" @onclick="ExportToJson" disabled="@isExporting">
+                <i class="bi bi-download"></i> @(isExporting ? "Exporting..." : "Export JSON")
+            </button>
+            <button class="btn btn-danger" @onclick="ShowTruncateConfirmation" disabled="@(totalRecords == 0)">
+                <i class="bi bi-trash"></i> Truncate All
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <LoadingSpinner />
+    }
+    else
+    {
+        <!-- Filters Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-funnel"></i> Filters</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">User</label>
+                        <select class="form-select" @bind="selectedUser" @bind:after="ApplyFilters">
+                            <option value="">All Users</option>
+                            @foreach (var user in availableUsers)
+                            {
+                                <option value="@user">@user</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Exclude User</label>
+                        <select class="form-select" @bind="excludedUser" @bind:after="ApplyFilters">
+                            <option value="">No Exclusion</option>
+                            @foreach (var user in availableUsers)
+                            {
+                                <option value="@user">@user</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Entity Type</label>
+                        <select class="form-select" @bind="selectedEntityType" @bind:after="ApplyFilters">
+                            <option value="">All Entities</option>
+                            @foreach (var entity in availableEntityTypes)
+                            {
+                                <option value="@entity">@entity</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Action</label>
+                        <select class="form-select" @bind="selectedAction" @bind:after="ApplyFilters">
+                            <option value="">All Actions</option>
+                            @foreach (var action in availableActions)
+                            {
+                                <option value="@action">@action</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6">
+                        <TableSearchBar 
+                            SearchTerm="@searchTerm"
+                            OnSearchChanged="UpdateSearch"
+                            Placeholder="Search in changes..." />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label d-block">&nbsp;</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="criticalOnly" @bind="criticalOnly" @bind:after="ApplyFilters" />
+                            <label class="form-check-label" for="criticalOnly">
+                                <i class="bi bi-exclamation-triangle-fill text-danger"></i> Critical Actions Only
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label d-block">&nbsp;</label>
+                        <button class="btn btn-secondary" @onclick="ClearFilters">
+                            <i class="bi bi-x-circle"></i> Clear Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 class="mb-0">@totalRecords</h3>
+                        <p class="text-muted mb-0">Total Records</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 class="mb-0 text-danger">@criticalCount</h3>
+                        <p class="text-muted mb-0">Critical Actions</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 class="mb-0 text-primary">@availableEntityTypes.Count()</h3>
+                        <p class="text-muted mb-0">Entity Types</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 class="mb-0 text-success">@availableUsers.Count()</h3>
+                        <p class="text-muted mb-0">Active Users</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audit Log Table -->
+        @if (!auditLogs.Any())
+        {
+            <EmptyTableState 
+                Message="No audit logs found matching the filters." 
+                IconClass="bi-inbox" />
+        }
+        else
+        {
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Activity Log</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <SortableTableHeader 
+                                        HeaderText="Timestamp" 
+                                        SortColumn="Timestamp" 
+                                        CurrentSortColumn="@currentSortColumn"
+                                        IsSortAscending="@isSortAscending"
+                                        OnSortChanged="SortBy" />
+                                    <SortableTableHeader 
+                                        HeaderText="User" 
+                                        SortColumn="UserName" 
+                                        CurrentSortColumn="@currentSortColumn"
+                                        IsSortAscending="@isSortAscending"
+                                        OnSortChanged="SortBy" />
+                                    <SortableTableHeader 
+                                        HeaderText="Entity" 
+                                        SortColumn="EntityType" 
+                                        CurrentSortColumn="@currentSortColumn"
+                                        IsSortAscending="@isSortAscending"
+                                        OnSortChanged="SortBy" />
+                                    <SortableTableHeader 
+                                        HeaderText="Action" 
+                                        SortColumn="Action" 
+                                        CurrentSortColumn="@currentSortColumn"
+                                        IsSortAscending="@isSortAscending"
+                                        OnSortChanged="SortBy" />
+                                    <th>Changes</th>
+                                    <th>Critical</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var log in auditLogs)
+                                {
+                                    <tr>
+                                        <td>
+                                            <small>
+                                                @log.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">@(log.UserName ?? "System")</span>
+                                        </td>
+                                        <td>
+                                            <strong>@log.EntityType</strong>
+                                            @if (log.EntityId.HasValue)
+                                            {
+                                                <br/><small class="text-muted">(ID: @log.EntityId)</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge @GetActionBadgeClass(GetDisplayAction(log))">
+                                                @GetDisplayAction(log)
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(log.Changes))
+                                            {
+                                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => ShowChangesModal(log)">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <small class="text-muted">No details</small>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (log.IsCriticalAction)
+                                            {
+                                                <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                                            }
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-danger" @onclick="() => ShowDeleteConfirmation(log)" title="Delete this log">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="card-footer">
+                        <TablePagination 
+                            CurrentPage="@currentPage"
+                            TotalItems="@totalRecords"
+                            PageSize="@pageSize"
+                            ItemLabel="logs"
+                            OnPageChanged="ChangePage" />
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- Changes Detail Modal -->
+<Modal Show="@showChangesModal" 
+       ShowChanged="@((show) => showChangesModal = show)"
+       Title="@($"Change Details - {selectedLog?.EntityType}")"
+       Size="Modal.ModalSize.Large">
+    <BodyContent>
+        @if (selectedLog != null)
+        {
+            <dl class="row">
+                <dt class="col-sm-3">Timestamp</dt>
+                <dd class="col-sm-9">@selectedLog.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</dd>
+
+                <dt class="col-sm-3">User</dt>
+                <dd class="col-sm-9">@(selectedLog.UserName ?? "System")</dd>
+
+                <dt class="col-sm-3">Entity Type</dt>
+                <dd class="col-sm-9">@selectedLog.EntityType</dd>
+
+                <dt class="col-sm-3">Entity ID</dt>
+                <dd class="col-sm-9">@(selectedLog.EntityId?.ToString() ?? "N/A")</dd>
+
+                <dt class="col-sm-3">Action</dt>
+                <dd class="col-sm-9">
+                    <span class="badge @GetActionBadgeClass(GetDisplayAction(selectedLog))">
+                        @GetDisplayAction(selectedLog)
+                    </span>
+                </dd>
+
+                @if (selectedLog.IsCriticalAction)
+                {
+                    <dt class="col-sm-3">Critical</dt>
+                    <dd class="col-sm-9">
+                        <span class="badge bg-danger">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Critical Action
+                        </span>
+                    </dd>
+                }
+            </dl>
+
+            <hr />
+
+            <h6>Changes:</h6>
+            <pre class="bg-dark text-light p-3 border rounded" style="max-height: 400px; overflow-y: auto;">@FormatChanges(selectedLog.Changes)</pre>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="() => showChangesModal = false">Close</button>
+    </FooterContent>
+</Modal>
+
+<!-- Delete Single Log Confirmation Modal -->
+<Modal Show="@showDeleteModal" 
+       ShowChanged="@((show) => showDeleteModal = show)"
+       Title="Confirm Delete">
+    <BodyContent>
+        @if (logToDelete != null)
+        {
+            <p class="fw-bold">Are you sure you want to delete this audit log entry?</p>
+            <dl class="row">
+                <dt class="col-sm-3">Entity:</dt>
+                <dd class="col-sm-9">@logToDelete.EntityType @(logToDelete.EntityId.HasValue ? $"(ID: {logToDelete.EntityId})" : "")</dd>
+                
+                <dt class="col-sm-3">Action:</dt>
+                <dd class="col-sm-9">@logToDelete.Action</dd>
+                
+                <dt class="col-sm-3">User:</dt>
+                <dd class="col-sm-9">@(logToDelete.UserName ?? "System")</dd>
+                
+                <dt class="col-sm-3">Timestamp:</dt>
+                <dd class="col-sm-9">@logToDelete.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</dd>
+            </dl>
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                This action cannot be undone.
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="() => showDeleteModal = false">Cancel</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@isDeleting">
+            @if (isDeleting)
+            {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+                <span>Deleting...</span>
+            }
+            else
+            {
+                <i class="bi bi-trash"></i>
+                <span> Delete</span>
+            }
+        </button>
+    </FooterContent>
+</Modal>
+
+<!-- Truncate All Confirmation Modal -->
+<Modal Show="@showTruncateModal" 
+       ShowChanged="@((show) => showTruncateModal = show)"
+       Title="Confirm Truncate All">
+    <BodyContent>
+        <p class="fw-bold">Are you sure you want to delete ALL audit logs?</p>
+        <p>This action will permanently delete <strong>@totalRecords</strong> audit log records and cannot be undone.</p>
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>Warning:</strong> This will remove all historical tracking data from the system.
+        </div>
+        <p>Type <code>DELETE ALL</code> to confirm:</p>
+        <input type="text" class="form-control" @bind="truncateConfirmationText" placeholder="DELETE ALL" />
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="() => showTruncateModal = false">Cancel</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmTruncate" disabled="@(truncateConfirmationText != "DELETE ALL" || isTruncating)">
+            @if (isTruncating)
+            {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+                <span>Deleting...</span>
+            }
+            else
+            {
+                <i class="bi bi-trash"></i>
+                <span> Delete All</span>
+            }
+        </button>
+    </FooterContent>
+</Modal>
+
+@code {
+    private bool isLoading = true;
+    private List<RTUB.Core.Entities.AuditLog> auditLogs = new();
+    private RTUB.Core.Entities.AuditLog? selectedLog;
+    private RTUB.Core.Entities.AuditLog? logToDelete;
+
+    // Filter variables
+    private string selectedUser = "";
+    private string excludedUser = "";
+    private string selectedEntityType = "";
+    private string selectedAction = "";
+    private string searchTerm = "";
+    private bool criticalOnly = false;
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 50;
+    private int totalRecords = 0;
+
+    // Sorting
+    private string currentSortColumn = "Timestamp";
+    private bool isSortAscending = false; // Default to descending (newest first)
+
+    // Stats
+    private int criticalCount = 0;
+
+    // Modals
+    private bool showChangesModal = false;
+    private bool showDeleteModal = false;
+    private bool showTruncateModal = false;
+    private string truncateConfirmationText = "";
+    private bool isTruncating = false;
+    private bool isDeleting = false;
+
+    // Export
+    private bool isExporting = false;
+
+    // Available options for dropdowns
+    private List<string> availableUsers = new();
+    private List<string> availableEntityTypes = new();
+    private List<string> availableActions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDropdownData();
+        await LoadAuditLogs();
+        isLoading = false;
+    }
+
+    private async Task LoadDropdownData()
+    {
+        availableUsers = (await AuditLogService.GetUserNamesAsync()).ToList();
+        availableEntityTypes = (await AuditLogService.GetEntityTypesAsync()).ToList();
+        availableActions = (await AuditLogService.GetActionTypesAsync()).ToList();
+    }
+
+    private async Task LoadAuditLogs()
+    {
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            auditLogs = (await AuditLogService.SearchChangesAsync(searchTerm, currentPage, pageSize)).ToList();
+            totalRecords = auditLogs.Count;
+            if (auditLogs.Count == pageSize)
+            {
+                totalRecords = currentPage * pageSize + 1;
+            }
+        }
+        else
+        {
+            auditLogs = (await AuditLogService.GetAllAsync(
+                selectedUser,
+                excludedUser,
+                selectedEntityType,
+                selectedAction,
+                null, // fromDate removed
+                null, // toDate removed
+                criticalOnly ? true : null,
+                currentPage,
+                pageSize)).ToList();
+
+            totalRecords = await AuditLogService.GetCountAsync(
+                selectedUser,
+                excludedUser,
+                selectedEntityType,
+                selectedAction,
+                null, // fromDate removed
+                null, // toDate removed
+                criticalOnly ? true : null);
+        }
+
+        // Apply client-side sorting
+        ApplySorting();
+
+        // Calculate critical count
+        criticalCount = auditLogs.Count(log => log.IsCriticalAction);
+    }
+
+    private void ApplySorting()
+    {
+        auditLogs = currentSortColumn switch
+        {
+            "Timestamp" => isSortAscending 
+                ? auditLogs.OrderBy(l => l.Timestamp).ToList()
+                : auditLogs.OrderByDescending(l => l.Timestamp).ToList(),
+            "UserName" => isSortAscending 
+                ? auditLogs.OrderBy(l => l.UserName).ToList()
+                : auditLogs.OrderByDescending(l => l.UserName).ToList(),
+            "EntityType" => isSortAscending 
+                ? auditLogs.OrderBy(l => l.EntityType).ToList()
+                : auditLogs.OrderByDescending(l => l.EntityType).ToList(),
+            "Action" => isSortAscending 
+                ? auditLogs.OrderBy(l => l.Action).ToList()
+                : auditLogs.OrderByDescending(l => l.Action).ToList(),
+            _ => auditLogs
+        };
+    }
+
+    private void SortBy(string column)
+    {
+        if (currentSortColumn == column)
+        {
+            isSortAscending = !isSortAscending;
+        }
+        else
+        {
+            currentSortColumn = column;
+            isSortAscending = true;
+        }
+        
+        ApplySorting();
+        StateHasChanged();
+    }
+
+    private async Task ApplyFilters()
+    {
+        currentPage = 1;
+        await LoadAuditLogs();
+    }
+
+    private async Task UpdateSearch(string search)
+    {
+        searchTerm = search;
+        currentPage = 1;
+        await LoadAuditLogs();
+    }
+
+    private async Task ClearFilters()
+    {
+        selectedUser = "";
+        excludedUser = "";
+        selectedEntityType = "";
+        selectedAction = "";
+        searchTerm = "";
+        criticalOnly = false;
+        currentPage = 1;
+        await LoadAuditLogs();
+    }
+
+    private async Task ChangePage(int page)
+    {
+        currentPage = page;
+        await LoadAuditLogs();
+    }
+
+    private void ShowChangesModal(RTUB.Core.Entities.AuditLog log)
+    {
+        selectedLog = log;
+        showChangesModal = true;
+    }
+
+    private void ShowDeleteConfirmation(RTUB.Core.Entities.AuditLog log)
+    {
+        logToDelete = log;
+        showDeleteModal = true;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (logToDelete == null) return;
+
+        isDeleting = true;
+        try
+        {
+            await AuditLogService.DeleteAsync(logToDelete.Id);
+            showDeleteModal = false;
+            logToDelete = null;
+            await LoadAuditLogs();
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+    private void ShowTruncateConfirmation()
+    {
+        showTruncateModal = true;
+        truncateConfirmationText = "";
+    }
+
+    private async Task ConfirmTruncate()
+    {
+        if (truncateConfirmationText != "DELETE ALL")
+            return;
+
+        isTruncating = true;
+        try
+        {
+            await AuditLogService.TruncateAsync();
+            showTruncateModal = false;
+            truncateConfirmationText = "";
+            currentPage = 1;
+            await LoadAuditLogs();
+            await LoadDropdownData();
+        }
+        finally
+        {
+            isTruncating = false;
+        }
+    }
+
+    private async Task ExportToJson()
+    {
+        isExporting = true;
+        try
+        {
+            var logsToExport = await AuditLogService.GetAllForExportAsync(
+                selectedUser,
+                excludedUser,
+                selectedEntityType,
+                selectedAction,
+                null, // fromDate removed
+                null, // toDate removed
+                criticalOnly ? true : null);
+
+            var json = JsonSerializer.Serialize(logsToExport, new JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            });
+
+            var fileName = $"tracing-export-{DateTime.UtcNow:yyyy-MM-dd-HHmmss}.json";
+            var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+            var base64 = Convert.ToBase64String(bytes);
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64, "application/json");
+        }
+        finally
+        {
+            isExporting = false;
+        }
+    }
+
+    private string GetActionBadgeClass(string action)
+    {
+        return action switch
+        {
+            "Created" => "bg-success",
+            "Modified" => "bg-warning text-dark",
+            "Deleted" => "bg-danger",
+            "Role Added" => "bg-primary",
+            "Role Removed" => "bg-secondary",
+            "Logged in" => "bg-light text-dark",
+            _ => "bg-info"
+        };
+    }
+    
+    private string GetDisplayAction(RTUB.Core.Entities.AuditLog log)
+    {
+        // Special handling for LastLoginDate changes
+        if (log.EntityType == "ApplicationUser" && log.Action == "Modified")
+        {
+            if (!string.IsNullOrEmpty(log.Changes))
+            {
+                try
+                {
+                    var changesObj = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(log.Changes);
+                    if (changesObj != null && changesObj.ContainsKey("LastLoginDate") && changesObj.Count == 1)
+                    {
+                        // Only LastLoginDate changed, display as "Logged in"
+                        return "Logged in";
+                    }
+                }
+                catch (JsonException)
+                {
+                    // If parsing fails, fall back to the original action
+                }
+            }
+        }
+        
+        return log.Action;
+    }
+
+    private string FormatChanges(string? changes)
+    {
+        if (string.IsNullOrEmpty(changes))
+            return "No changes recorded";
+
+        try
+        {
+            var formatted = JsonSerializer.Serialize(
+                JsonSerializer.Deserialize<object>(changes),
+                new JsonSerializerOptions { WriteIndented = true }
+            );
+            return formatted;
+        }
+        catch (JsonException ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to format JSON changes: {ex.Message}");
+            return changes;
+        }
+    }
+}

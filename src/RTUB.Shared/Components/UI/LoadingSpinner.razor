@@ -1,0 +1,150 @@
+@namespace RTUB.Shared
+@* 
+    Reusable Loading Spinner Component
+    Used for displaying loading states
+*@
+
+@if (Show)
+{
+    <div class="@ContainerClass">
+        <div class="spinner-@SpinnerTypeClass @SizeClass @ColorClass" role="status">
+            @if (ShowLabel)
+            {
+                <span class="@(Type == SpinnerVariant.Border ? "visually-hidden" : "")">@Label</span>
+            }
+            else
+            {
+                <span class="visually-hidden">@Label</span>
+            }
+        </div>
+        @if (!string.IsNullOrEmpty(Message) && ShowMessage)
+        {
+            <p class="mt-2 @MessageClass">@Message</p>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// Controls whether the spinner is visible
+    /// </summary>
+    [Parameter]
+    public bool Show { get; set; } = true;
+
+    /// <summary>
+    /// Loading message to display below spinner
+    /// </summary>
+    [Parameter]
+    public string Message { get; set; } = "A carregar...";
+
+    /// <summary>
+    /// Whether to show the message
+    /// </summary>
+    [Parameter]
+    public bool ShowMessage { get; set; } = true;
+
+    /// <summary>
+    /// Accessible label for screen readers
+    /// </summary>
+    [Parameter]
+    public string Label { get; set; } = "A carregar...";
+
+    /// <summary>
+    /// Whether to show label visibly (for grow spinner type)
+    /// </summary>
+    [Parameter]
+    public bool ShowLabel { get; set; } = false;
+
+    /// <summary>
+    /// Spinner type: Border or Grow
+    /// </summary>
+    [Parameter]
+    public SpinnerVariant Type { get; set; } = SpinnerVariant.Border;
+
+    /// <summary>
+    /// Spinner size: Small, Default, Large
+    /// </summary>
+    [Parameter]
+    public SpinnerSize Size { get; set; } = SpinnerSize.Default;
+
+    /// <summary>
+    /// Spinner color: Primary, Secondary, Success, Danger, Warning, Info, Light, Dark, Purple
+    /// </summary>
+    [Parameter]
+    public SpinnerColor Color { get; set; } = SpinnerColor.Primary;
+
+    /// <summary>
+    /// Whether to center the spinner
+    /// </summary>
+    [Parameter]
+    public bool Centered { get; set; } = true;
+
+    /// <summary>
+    /// Additional CSS classes for the container
+    /// </summary>
+    [Parameter]
+    public string? AdditionalContainerClass { get; set; }
+
+    private string ContainerClass => Centered 
+        ? $"text-center {AdditionalContainerClass}" 
+        : AdditionalContainerClass ?? "";
+
+    private string SpinnerTypeClass => Type switch
+    {
+        SpinnerVariant.Grow => "grow",
+        _ => "border"
+    };
+
+    private string SizeClass => Size switch
+    {
+        SpinnerSize.Small => "spinner-border-sm",
+        SpinnerSize.Large => "spinner-border-lg",
+        _ => ""
+    };
+
+    private string ColorClass => Color switch
+    {
+        SpinnerColor.Secondary => "text-secondary",
+        SpinnerColor.Success => "text-success",
+        SpinnerColor.Danger => "text-danger",
+        SpinnerColor.Warning => "text-warning",
+        SpinnerColor.Info => "text-info",
+        SpinnerColor.Light => "text-light",
+        SpinnerColor.Dark => "text-dark",
+        SpinnerColor.Purple => "text-purple",
+        _ => "text-primary"
+    };
+
+    private string MessageClass => Color switch
+    {
+        SpinnerColor.Light => "text-light",
+        SpinnerColor.Dark => "text-dark",
+        _ => "text-white"
+    };
+
+    public enum SpinnerVariant
+    {
+        Border,
+        Grow
+    }
+
+    public enum SpinnerSize
+    {
+        Small,
+        Default,
+        Large
+    }
+
+    public enum SpinnerColor
+    {
+        Primary,
+        Secondary,
+        Success,
+        Danger,
+        Warning,
+        Info,
+        Light,
+        Dark,
+        Purple
+    }
+}

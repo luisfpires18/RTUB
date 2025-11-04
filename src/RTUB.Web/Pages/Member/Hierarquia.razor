@@ -1,0 +1,139 @@
+@page "/member/hierarquia"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
+@attribute [Authorize]
+@inject UserManager<ApplicationUser> UserManager
+
+<h1 class="text-center mb-4">Hierarquia da Tuna - Família</h1>
+<p class="text-center mb-4">Árvore genealógica dos membros mostrando a relação Padrinho-Afilhado</p>
+
+@if (isLoading)
+{
+    <div class="d-flex justify-content-center my-5">
+        <div class="spinner-border text-purple" role="status">
+            <span class="visually-hidden">A carregar...</span>
+        </div>
+    </div>
+}
+else if (!members.Any())
+{
+    <div class="alert alert-info text-center">
+        <i class="bi bi-info-circle"></i> Nenhum membro encontrado.
+    </div>
+}
+else
+{
+    <div class="family-tree-container">
+        @* Root level - members without mentors *@
+        <div class="tree-level">
+            @foreach (var rootMember in rootMembers)
+            {
+                <div class="tree-node-wrapper">
+                    @RenderMemberNode(rootMember)
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private List<ApplicationUser> members = new();
+    private List<ApplicationUser> rootMembers = new();
+    private Dictionary<string, List<ApplicationUser>> mentorToAfilhados = new();
+    private bool isLoading = true;
+
+    protected override void OnInitialized()
+    {
+        LoadMembersAndBuildHierarchy();
+        isLoading = false;
+    }
+
+    private void LoadMembersAndBuildHierarchy()
+    {
+        // Load all members excluding Leitões (only show Caloiro, Tuno, Veterano, Tunossauro)
+        // Must load to memory first before using IsEffectiveMember() extension method
+        members = UserManager.Users
+            .ToList()
+            .Where(u => u.IsEffectiveMember())
+            .OrderBy(u => u.FirstName)
+            .ThenBy(u => u.LastName)
+            .ToList();
+
+        // Build mentor-to-afilhados mapping
+        // Only include mentors who are Tunos (not Caloiros)
+        mentorToAfilhados.Clear();
+        foreach (var member in members)
+        {
+            if (!string.IsNullOrEmpty(member.MentorId))
+            {
+                // Get the mentor
+                var mentor = members.FirstOrDefault(m => m.Id == member.MentorId);
+                
+                // Only add if mentor is Tuno, Veterano, or Tunossauro (not Caloiro)
+                if (mentor != null && mentor.IsTunoOrHigher())
+                {
+                    if (!mentorToAfilhados.ContainsKey(member.MentorId))
+                    {
+                        mentorToAfilhados[member.MentorId] = new List<ApplicationUser>();
+                    }
+                    mentorToAfilhados[member.MentorId].Add(member);
+                }
+            }
+        }
+
+        // Find root members (those without mentors or whose mentor is not in the displayed list or not a valid Tuno mentor)
+        rootMembers = members
+            .Where(m => 
+            {
+                if (string.IsNullOrEmpty(m.MentorId))
+                    return true;
+                    
+                var mentor = members.FirstOrDefault(mem => mem.Id == m.MentorId);
+                
+                // Include as root if mentor doesn't exist OR mentor is not a Tuno/Veterano/Tunossauro
+                return mentor == null || !mentor.IsTunoOrHigher();
+            })
+            .OrderBy(m => m.FirstName)
+            .ThenBy(m => m.LastName)
+            .ToList();
+    }
+
+    private RenderFragment RenderMemberNode(ApplicationUser member) => __builder =>
+    {
+        <div class="member-node">
+            <div class="member-card">
+                <img src="@member.ProfilePictureSrc" 
+                     alt="@member.GetDisplayName()" 
+                     class="member-avatar-medium mb-2"
+                     title="@member.GetDisplayName()" />
+                <div class="member-info">
+                    @if (!string.IsNullOrEmpty(member.Nickname))
+                    {
+                        <div class="member-name">@member.Nickname</div>
+                        <div class="member-nickname">@member.FirstName @member.LastName</div>
+                    }
+                    else
+                    {
+                        <div class="member-name">@member.FirstName @member.LastName</div>
+                    }
+                </div>
+            </div>
+
+            @* Show afilhados (children) if this member has any *@
+            @if (mentorToAfilhados.ContainsKey(member.Id) && mentorToAfilhados[member.Id].Any())
+            {
+                <div class="children-connector"></div>
+                <div class="children-container">
+                    @foreach (var afilhado in mentorToAfilhados[member.Id].OrderBy(a => a.FirstName).ThenBy(a => a.LastName))
+                    {
+                        <div class="child-node">
+                            @RenderMemberNode(afilhado)
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    };
+}

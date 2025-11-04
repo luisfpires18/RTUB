@@ -1,0 +1,236 @@
+@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Data
+@using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
+@using RTUB.Core.Entities
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<nav class="navbar navbar-expand-lg navbar-dark border-bottom navbar-main">
+    <div class="container-xxl rtub-wide px-xxl-4">
+        <a class="navbar-brand" href="/">RTUB</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav" aria-controls="topNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="topNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+                <li class="nav-item"><NavLink class="nav-link" href="/music"><i class="bi bi-music-note-beamed"></i> Música</NavLink></li>
+                <li class="nav-item"><NavLink class="nav-link" href="/events"><i class="bi bi-calendar-event"></i> Atuações</NavLink></li>
+
+                <AuthorizeView>
+                    <NotAuthorized>
+                        <li class="nav-item"><NavLink class="nav-link" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                    </NotAuthorized>
+                </AuthorizeView>
+
+                <li class="nav-item"><NavLink class="nav-link" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
+                <li class="nav-item"><NavLink class="nav-link" href="/orgaos-sociais"><i class="bi bi-bank"></i> Órgãos Sociais</NavLink></li>
+
+                <AuthorizeView>
+                    <Authorized>
+                        <li class="nav-item"><NavLink class="nav-link" href="/member/hierarquia"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/rehearsals"><i class="bi bi-music-note-list"></i> Ensaios</NavLink></li>
+                    </Authorized>
+                </AuthorizeView>
+
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <li class="nav-item dropdown">
+                            <button class="nav-link dropdown-toggle" type="button" id="adminDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                                <i class="bi bi-gear-fill"></i> Admin
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                <li><NavLink class="dropdown-item" href="/admin/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/admin/rehearsals"><i class="bi bi-calendar-check"></i> Gestão Ensaios</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/admin/finance"><i class="bi bi-cash-stack"></i> Finanças</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/admin/roles"><i class="bi bi-person-badge"></i> Cargos</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/admin/inventory"><i class="bi bi-box-seam"></i> Inventário</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/admin/slideshow-management"><i class="bi bi-images"></i> Imagens</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/admin/labels"><i class="bi bi-tag"></i> Conteúdo</NavLink></li>
+                            </ul>
+                        </li>
+                    </Authorized>
+                </AuthorizeView>
+
+                <AuthorizeView Roles="Owner">
+                    <Authorized>
+                        <li class="nav-item dropdown">
+                            <button class="nav-link dropdown-toggle" type="button" id="ownerDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                                <i class="bi bi-shield-fill-check"></i> Owner
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="ownerDropdown">
+                                <li><NavLink class="dropdown-item" href="/owner/user-roles"><i class="bi bi-people"></i> Funções</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/owner/tracing"><i class="bi bi-shield-check"></i> Tracing</NavLink></li>
+                            </ul>
+                        </li>
+                    </Authorized>
+                </AuthorizeView>
+            </ul>
+
+            <AuthorizeView>
+                <Authorized>
+                    <ul class="navbar-nav mb-2 mb-lg-0">
+                        @if (currentUser != null)
+                        {
+                            @if (currentUser.IsLeitao())
+                            {
+                                <li class="nav-item d-flex align-items-center">
+                                    <CategoryBadge Category="MemberCategory.Leitao" AdditionalClasses="me-1" />
+                                </li>
+                            }
+                            else if (currentUser.IsCaloiro())
+                            {
+                                <li class="nav-item d-flex align-items-center">
+                                    <CategoryBadge Category="MemberCategory.Caloiro" AdditionalClasses="me-1" />
+                                </li>
+                            }
+                            else if (currentUser.IsTuno())
+                            {
+                                if (currentUser.Positions.Contains(Position.Magister))
+                                {
+                                    <li class="nav-item d-flex align-items-center">
+                                        <PositionBadge Position="Position.Magister" AdditionalClasses="me-1" />
+                                    </li>
+                                }
+                                else
+                                {
+                                    <li class="nav-item d-flex align-items-center">
+                                        <CategoryBadge Category="MemberCategory.Tuno" AdditionalClasses="me-1" />
+                                    </li>
+                                }
+                            }
+                        }
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                @if (currentUser != null)
+                                {
+                                    <img src="@currentUser.ProfilePictureSrc" alt="@currentUser.Nickname" class="navbar-avatar me-2" />
+                                    <span>@currentUser.Nickname</span>
+                                }
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="/profile"><i class="bi bi-person-circle"></i> Meu Perfil</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <form method="post" action="/auth/logout" @formname="LogoutForm" class="logout-form">
+                                        <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Sair</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </Authorized>
+                <NotAuthorized>
+                    <a class="btn" href="/login">Entrar</a>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+    </div>
+</nav>
+
+<div class="layout d-flex">
+    <main id="content" class="content flex-fill content-main">
+        <div class="container-xxl rtub-wide py-4 px-xxl-4">
+            @Body
+        </div>
+    </main>
+</div>
+
+<footer class="footer mt-auto py-3 footer-main">
+    <div class="container-xxl rtub-wide text-center px-xxl-4">
+        <p class="footer-text">
+            &copy; 2025 Real Tuna Universitária de Bragança.
+        </p>
+    </div>
+</footer>
+
+<HeadContent>
+    @* Mobile-first viewport configuration *@
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#6f42c1" />
+    
+    <link rel="icon" type="image/webp" href="/images/rtub_logo.webp" />
+
+    @* Preconnect to CDN for faster loading *@
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
+    <link href="/lib/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="/lib/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" crossorigin="anonymous" />
+    <link href="/css/site.css" rel="stylesheet" />
+</HeadContent>
+
+<script src="/_framework/blazor.web.js" autostart="false" suppress-error="BL9992"></script>
+<script src="/lib/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js" crossorigin="anonymous"></script>
+<script src="/js/fileDownload.js"></script>
+<script src="/js/imageCropper.js"></script>
+<script src="/js/imageRefresh.js"></script>
+<script>
+    // Configure Blazor to use absolute path for SignalR hub
+    // This prevents 404 errors when on /admin/* or other sub-paths
+    Blazor.start({
+        circuit: {
+            configureSignalR: function (builder) {
+                builder.withUrl("/_blazor");
+            }
+        }
+    });
+</script>
+
+@code {
+    private ApplicationUser? currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentUser();
+    }
+
+    private async Task LoadCurrentUser()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claimsPrincipal = authState.User;
+
+        if (claimsPrincipal?.Identity?.IsAuthenticated == true)
+        {
+            // Try multiple ways to get the user identifier
+            var userName = claimsPrincipal.Identity.Name;
+            var nameIdentifierClaim = claimsPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var nameClaim = claimsPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+
+            // Try to find by username first
+            if (!string.IsNullOrEmpty(userName))
+            {
+                currentUser = await UserManager.FindByNameAsync(userName);
+            }
+
+            // Try by name claim
+            if (currentUser == null && !string.IsNullOrEmpty(nameClaim))
+            {
+                currentUser = await UserManager.FindByNameAsync(nameClaim);
+                if (currentUser == null)
+                {
+                    currentUser = await UserManager.FindByEmailAsync(nameClaim);
+                }
+            }
+
+            // Try by user ID from NameIdentifier claim
+            if (currentUser == null && !string.IsNullOrEmpty(nameIdentifierClaim))
+            {
+                currentUser = await UserManager.FindByIdAsync(nameIdentifierClaim);
+            }
+        }
+    }
+}

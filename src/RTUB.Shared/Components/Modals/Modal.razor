@@ -1,0 +1,117 @@
+@namespace RTUB.Shared
+@* 
+    Reusable Modal Component
+    Used across the application for dialogs and modals
+*@
+
+@if (Show)
+{
+    <div class="modal-backdrop show"></div>
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog @SizeClass @(Centered ? "modal-dialog-centered" : "")">
+            <div class="modal-content">
+                @if (!string.IsNullOrEmpty(Title) || ShowCloseButton)
+                {
+                    <div class="modal-header">
+                        @if (!string.IsNullOrEmpty(Title))
+                        {
+                            <h5 class="modal-title">@Title</h5>
+                        }
+                        @if (ShowCloseButton)
+                        {
+                            <button type="button" class="btn-close" @onclick="Close"></button>
+                        }
+                    </div>
+                }
+                <div class="modal-body">
+                    @BodyContent
+                </div>
+                @if (FooterContent != null)
+                {
+                    <div class="modal-footer">
+                        @FooterContent
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// Controls whether the modal is visible
+    /// </summary>
+    [Parameter]
+    public bool Show { get; set; }
+
+    /// <summary>
+    /// Event callback when Show state changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> ShowChanged { get; set; }
+
+    /// <summary>
+    /// Modal title displayed in header
+    /// </summary>
+    [Parameter]
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// Body content of the modal
+    /// </summary>
+    [Parameter]
+    public RenderFragment? BodyContent { get; set; }
+
+    /// <summary>
+    /// Footer content (buttons, actions, etc.)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? FooterContent { get; set; }
+
+    /// <summary>
+    /// Modal size: Small, Default, Large, ExtraLarge
+    /// </summary>
+    [Parameter]
+    public ModalSize Size { get; set; } = ModalSize.Default;
+
+    /// <summary>
+    /// Whether to show close button in header
+    /// </summary>
+    [Parameter]
+    public bool ShowCloseButton { get; set; } = true;
+
+    /// <summary>
+    /// Whether to center the modal vertically
+    /// </summary>
+    [Parameter]
+    public bool Centered { get; set; } = false;
+
+    /// <summary>
+    /// Event callback when modal is closed
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private string SizeClass => Size switch
+    {
+        ModalSize.Small => "modal-sm",
+        ModalSize.Large => "modal-lg",
+        ModalSize.ExtraLarge => "modal-xl",
+        _ => ""
+    };
+
+    private async Task Close()
+    {
+        Show = false;
+        await ShowChanged.InvokeAsync(false);
+        await OnClose.InvokeAsync();
+    }
+
+    public enum ModalSize
+    {
+        Small,
+        Default,
+        Large,
+        ExtraLarge
+    }
+}

@@ -1,0 +1,96 @@
+using System.ComponentModel.DataAnnotations;
+using RTUB.Core.Enums;
+
+namespace RTUB.Core.Entities;
+
+/// <summary>
+/// Represents a physical instrument asset in the inventory
+/// </summary>
+public class Instrument : BaseEntity
+{
+    [Required]
+    [MaxLength(50)]
+    public string Category { get; set; } = string.Empty;
+    
+    [Required]
+    [MaxLength(100)]
+    public string Name { get; set; } = string.Empty;
+    
+    [MaxLength(100)]
+    public string? SerialNumber { get; set; }
+    
+    [MaxLength(100)]
+    public string? Brand { get; set; }
+    
+    [Required]
+    public InstrumentCondition Condition { get; set; }
+    
+    public DateTime? PurchaseDate { get; set; }
+    
+    public decimal? PurchasePrice { get; set; }
+    
+    [MaxLength(200)]
+    public string? Location { get; set; }
+    
+    [MaxLength(500)]
+    public string? MaintenanceNotes { get; set; }
+    
+    public DateTime? LastMaintenanceDate { get; set; }
+    
+    // Image
+    public byte[]? ImageData { get; set; }
+    public string? ImageContentType { get; set; }
+
+    // Helper property
+    public string ImageSrc => $"/api/images/instrument/{Id}";
+
+    // Private constructor for EF Core
+    private Instrument() { }
+
+    public static Instrument Create(string category, string name, InstrumentCondition condition)
+    {
+        if (string.IsNullOrWhiteSpace(category))
+            throw new ArgumentException("A categoria do instrumento não pode estar vazia", nameof(category));
+
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("O nome do instrumento não pode estar vazio", nameof(name));
+
+        if (name.Length > 100)
+            throw new ArgumentException("O nome do instrumento não pode exceder 100 caracteres", nameof(name));
+
+        return new Instrument
+        {
+            Category = category,
+            Name = name,
+            Condition = condition
+        };
+    }
+
+    public void Update(string name, InstrumentCondition condition, string? serialNumber = null, 
+                      string? brand = null, string? location = null)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("O nome do instrumento não pode estar vazio", nameof(name));
+
+        if (name.Length > 100)
+            throw new ArgumentException("O nome do instrumento não pode exceder 100 caracteres", nameof(name));
+
+        Name = name;
+        Condition = condition;
+        SerialNumber = serialNumber;
+        Brand = brand;
+        Location = location;
+    }
+
+    public void UpdateMaintenance(string? notes, DateTime? date)
+    {
+        MaintenanceNotes = notes;
+        LastMaintenanceDate = date;
+    }
+
+    public void SetPurchaseInfo(DateTime? date, decimal? price)
+    {
+        PurchaseDate = date;
+        PurchasePrice = price;
+    }
+}

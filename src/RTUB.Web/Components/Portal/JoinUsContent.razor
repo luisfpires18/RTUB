@@ -1,0 +1,228 @@
+@using RTUB.Application.Interfaces
+@using RTUB.Shared
+@using RTUB.Core.Entities
+@inject ILabelService LabelService
+@inject ILogger<JoinUsContent> Logger
+@namespace RTUB.Components.Portal
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <h1 class="portal-title">@(titleLabel?.Content ?? "A carregar...")</h1>
+    <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" />
+</div>
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <h2 class="portal-subtitle">@(subtitleLabel?.Content ?? "")</h2>
+    <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" />
+</div>
+
+@if (introLabel != null)
+{
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-start">
+            <p class="portal-intro-text flex-grow-1">@introLabel.Content</p>
+            <LabelEditButton CurrentLabel="@introLabel" OnEditClick="@OpenEditModal" />
+        </div>
+    </section>
+}
+
+<div class="row g-4 mb-5">
+    <!-- Schedule Card -->
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100 portal-feature-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h3 class="card-title portal-title">@(scheduleTitleLabel?.Content ?? "")</h3>
+                    <LabelEditButton CurrentLabel="@scheduleTitleLabel" OnEditClick="@OpenEditModal" />
+                </div>
+                <div class="d-flex justify-content-between align-items-start">
+                    <p class="card-text portal-content-preformatted flex-grow-1">@(scheduleContentLabel?.Content ?? "")</p>
+                    <LabelEditButton CurrentLabel="@scheduleContentLabel" OnEditClick="@OpenEditModal" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Card -->
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100 portal-feature-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h3 class="card-title portal-title">@(locationTitleLabel?.Content ?? "")</h3>
+                    <LabelEditButton CurrentLabel="@locationTitleLabel" OnEditClick="@OpenEditModal" />
+                </div>
+                <div class="d-flex justify-content-between align-items-start">
+                    <p class="card-text portal-content-preformatted flex-grow-1">@(locationContentLabel?.Content ?? "")</p>
+                    <LabelEditButton CurrentLabel="@locationContentLabel" OnEditClick="@OpenEditModal" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activities Section -->
+<section class="mb-5">
+    <div class="card shadow-sm portal-governing-body-card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <h3 class="card-title portal-title">@(activitiesTitleLabel?.Content ?? "")</h3>
+                <LabelEditButton CurrentLabel="@activitiesTitleLabel" OnEditClick="@OpenEditModal" />
+            </div>
+            <div class="d-flex justify-content-between align-items-start">
+                <p class="card-text portal-content-preformatted flex-grow-1">@(activitiesContentLabel?.Content ?? "")</p>
+                <LabelEditButton CurrentLabel="@activitiesContentLabel" OnEditClick="@OpenEditModal" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- No Experience Required -->
+@if (noExperienceLabel != null)
+{
+    <section class="mb-5">
+        <div class="alert portal-info-alert">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                    <i class="bi bi-info-circle-fill me-2 portal-info-icon"></i>
+                    <strong class="text-white-full text-preformatted">@noExperienceLabel.Content</strong>
+                </div>
+                <LabelEditButton CurrentLabel="@noExperienceLabel" OnEditClick="@OpenEditModal" />
+            </div>
+        </div>
+    </section>
+}
+
+<!-- How to Join -->
+<section class="mb-5">
+    <div class="card shadow-sm portal-governing-body-card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <h3 class="card-title portal-title">@(howToTitleLabel?.Content ?? "")</h3>
+                <LabelEditButton CurrentLabel="@howToTitleLabel" OnEditClick="@OpenEditModal" />
+            </div>
+            <div class="d-flex justify-content-between align-items-start">
+                <p class="card-text portal-text-preformatted-large flex-grow-1">@(howToContentLabel?.Content ?? "")</p>
+                <LabelEditButton CurrentLabel="@howToContentLabel" OnEditClick="@OpenEditModal" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Edit Label Modal (at root level, outside cards) -->
+<Modal Show="@showEditModal" 
+       ShowChanged="@((value) => showEditModal = value)"
+       Title="Editar Conteúdo"
+       Size="Modal.ModalSize.Large"
+       OnClose="CloseEditModal">
+    <BodyContent>
+        @if (editingLabel != null)
+        {
+            <EditForm Model="editingLabel" OnValidSubmit="SaveLabel">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Referência</label>
+                    <input type="text" class="form-control" value="@editingLabel.Reference" disabled />
+                    <small class="text-white-opacity">Identificador único (não editável)</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Título</label>
+                    <InputText class="form-control" @bind-Value="editingLabel.Title" placeholder="Inserir título..." />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Conteúdo</label>
+                    <InputTextArea class="form-control" rows="10" @bind-Value="editingLabel.Content" 
+                                   placeholder="Inserir conteúdo..." />
+                    <small class="text-white-opacity">Dica: Use quebras de linha para formatar o texto</small>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+</Modal>
+
+@code {
+    private Label? titleLabel;
+    private Label? subtitleLabel;
+    private Label? introLabel;
+    private Label? scheduleTitleLabel;
+    private Label? scheduleContentLabel;
+    private Label? locationTitleLabel;
+    private Label? locationContentLabel;
+    private Label? activitiesTitleLabel;
+    private Label? activitiesContentLabel;
+    private Label? noExperienceLabel;
+    private Label? howToTitleLabel;
+    private Label? howToContentLabel;
+
+    private Label? editingLabel;
+    private bool showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLabels();
+    }
+
+    private async Task LoadLabels()
+    {
+        titleLabel = await LabelService.GetLabelByReferenceAsync("join_us_title");
+        subtitleLabel = await LabelService.GetLabelByReferenceAsync("join_us_subtitle");
+        introLabel = await LabelService.GetLabelByReferenceAsync("join_us_intro");
+        scheduleTitleLabel = await LabelService.GetLabelByReferenceAsync("join_us_schedule_title");
+        scheduleContentLabel = await LabelService.GetLabelByReferenceAsync("join_us_schedule_content");
+        locationTitleLabel = await LabelService.GetLabelByReferenceAsync("join_us_location_title");
+        locationContentLabel = await LabelService.GetLabelByReferenceAsync("join_us_location_content");
+        activitiesTitleLabel = await LabelService.GetLabelByReferenceAsync("join_us_activities_title");
+        activitiesContentLabel = await LabelService.GetLabelByReferenceAsync("join_us_activities_content");
+        noExperienceLabel = await LabelService.GetLabelByReferenceAsync("join_us_no_experience");
+        howToTitleLabel = await LabelService.GetLabelByReferenceAsync("join_us_how_to_title");
+        howToContentLabel = await LabelService.GetLabelByReferenceAsync("join_us_how_to_content");
+    }
+
+    private void OpenEditModal(Label label)
+    {
+        editingLabel = new Label
+        {
+            Id = label.Id,
+            Reference = label.Reference,
+            Title = label.Title,
+            Content = label.Content,
+            IsActive = label.IsActive
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingLabel = null;
+    }
+
+    private async Task SaveLabel()
+    {
+        if (editingLabel == null) return;
+
+        try
+        {
+            await LabelService.UpdateLabelContentAsync(
+                editingLabel.Id,
+                editingLabel.Title,
+                editingLabel.Content
+            );
+
+            await LoadLabels();
+            
+            showEditModal = false;
+            editingLabel = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating label");
+        }
+    }
+}

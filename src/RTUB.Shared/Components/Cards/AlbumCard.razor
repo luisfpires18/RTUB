@@ -1,0 +1,82 @@
+@namespace RTUB.Shared
+@*
+    AlbumCard Component
+    Reusable card for displaying album information
+*@
+
+<div class="card album-card h-100">
+    <div class="position-relative music-card-clickable" @onclick="OnClick">
+        @if (!string.IsNullOrEmpty(Album.CoverImageSrc))
+        {
+            <img src="@Album.CoverImageSrc" class="card-img-top album-cover" alt="@Album.Title">
+        }
+        else
+        {
+            <div class="card-img-top album-cover-placeholder">
+                <i class="bi bi-disc music-icon-large"></i>
+            </div>
+        }
+        @if (IsOwner)
+        {
+            <div class="admin-overlay">
+                <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="OnEdit" title="Editar">
+                    <i class="bi bi-pencil music-icon-edit"></i>
+                </button>
+                <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="OnDelete" title="Eliminar">
+                    <i class="bi bi-trash music-icon-delete"></i>
+                </button>
+            </div>
+        }
+    </div>
+    <div class="card-body d-flex flex-column music-card-clickable" @onclick="OnClick">
+        <h5 class="card-title music-text-light">@Album.Title</h5>
+        <p class="card-text music-text-secondary">@Album.Year</p>
+        @if (!string.IsNullOrEmpty(Album.Description))
+        {
+            <p class="card-text small flex-grow-1 music-text-secondary">@Album.Description</p>
+        }
+        <div class="mt-auto">
+            <small class="music-text-secondary">
+                <i class="bi bi-music-note-list"></i> @SongCount músicas
+            </small>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The album to display
+    /// </summary>
+    [Parameter]
+    public Album Album { get; set; } = null!;
+
+    /// <summary>
+    /// Number of songs in this album
+    /// </summary>
+    [Parameter]
+    public int SongCount { get; set; }
+
+    /// <summary>
+    /// Whether the current user is the owner (has edit permissions)
+    /// </summary>
+    [Parameter]
+    public bool IsOwner { get; set; }
+
+    /// <summary>
+    /// Callback when the card is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    /// <summary>
+    /// Callback when the edit button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    /// <summary>
+    /// Callback when the delete button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+}

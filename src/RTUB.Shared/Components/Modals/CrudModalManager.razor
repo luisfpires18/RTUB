@@ -1,0 +1,156 @@
+@namespace RTUB.Shared
+@typeparam TEntity
+@using Microsoft.AspNetCore.Components.Forms
+
+@* Edit/Create Modal *@
+@if (ShowEditModal)
+{
+    <Modal Show="@ShowEditModal" 
+           ShowChanged="@OnEditModalShowChanged"
+           Title="@(IsCreateMode ? CreateTitle : EditTitle)" 
+           Size="@ModalSize" 
+           Centered="@CenteredModal"
+           ShowCloseButton="@ShowCloseButton">
+        <BodyContent>
+            @if (EditFormContent != null)
+            {
+                @EditFormContent(EditingEntity)
+            }
+        </BodyContent>
+        <FooterContent>
+            @if (EditFormFooterContent != null)
+            {
+                @EditFormFooterContent(EditingEntity)
+            }
+            else
+            {
+                <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+                <button type="button" class="btn btn-success" @onclick="OnSaveClicked">Guardar</button>
+            }
+        </FooterContent>
+    </Modal>
+}
+
+@* Delete Confirmation Modal *@
+@if (ShowDeleteModal)
+{
+    <Modal Show="@ShowDeleteModal" 
+           ShowChanged="@OnDeleteModalShowChanged"
+           Title="@DeleteTitle" 
+           Centered="true"
+           OnClose="@CloseDeleteModal">
+        <BodyContent>
+            @if (DeleteConfirmationContent != null)
+            {
+                @DeleteConfirmationContent(DeletingEntity)
+            }
+            else
+            {
+                <p>Tem a certeza que quer eliminar este item?</p>
+                <p class="text-muted">Esta ação não pode ser revertida.</p>
+            }
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
+            <button type="button" class="btn btn-danger" @onclick="OnDeleteConfirmed">Eliminar</button>
+        </FooterContent>
+    </Modal>
+}
+
+@code {
+    // Edit/Create Modal Parameters
+    [Parameter] public bool ShowEditModal { get; set; }
+    [Parameter] public EventCallback<bool> ShowEditModalChanged { get; set; }
+    [Parameter] public bool IsCreateMode { get; set; }
+    [Parameter] public TEntity? EditingEntity { get; set; }
+    [Parameter] public string CreateTitle { get; set; } = "Criar Novo";
+    [Parameter] public string EditTitle { get; set; } = "Editar";
+    [Parameter] public Modal.ModalSize ModalSize { get; set; } = Modal.ModalSize.Default;
+    [Parameter] public bool CenteredModal { get; set; } = true;
+    [Parameter] public bool ShowCloseButton { get; set; } = false;
+
+    // Edit/Create Modal Content
+    [Parameter] public RenderFragment<TEntity?>? EditFormContent { get; set; }
+    [Parameter] public RenderFragment<TEntity?>? EditFormFooterContent { get; set; }
+
+    // Delete Modal Parameters
+    [Parameter] public bool ShowDeleteModal { get; set; }
+    [Parameter] public EventCallback<bool> ShowDeleteModalChanged { get; set; }
+    [Parameter] public TEntity? DeletingEntity { get; set; }
+    [Parameter] public string DeleteTitle { get; set; } = "Confirmar Eliminação";
+    [Parameter] public RenderFragment<TEntity?>? DeleteConfirmationContent { get; set; }
+
+    // Event Callbacks
+    [Parameter] public EventCallback OnSave { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public EventCallback OnEditModalClosed { get; set; }
+    [Parameter] public EventCallback OnDeleteModalClosed { get; set; }
+
+    private async Task OnEditModalShowChanged(bool show)
+    {
+        ShowEditModal = show;
+        await ShowEditModalChanged.InvokeAsync(show);
+    }
+
+    private async Task OnDeleteModalShowChanged(bool show)
+    {
+        ShowDeleteModal = show;
+        await ShowDeleteModalChanged.InvokeAsync(show);
+    }
+
+    private async Task OnSaveClicked()
+    {
+        await OnSave.InvokeAsync();
+    }
+
+    private async Task OnDeleteConfirmed()
+    {
+        await OnDelete.InvokeAsync();
+    }
+
+    private async Task CloseEditModal()
+    {
+        ShowEditModal = false;
+        await ShowEditModalChanged.InvokeAsync(false);
+        await OnEditModalClosed.InvokeAsync();
+    }
+
+    private async Task CloseDeleteModal()
+    {
+        ShowDeleteModal = false;
+        await ShowDeleteModalChanged.InvokeAsync(false);
+        await OnDeleteModalClosed.InvokeAsync();
+    }
+
+    /// <summary>
+    /// Opens the modal in create mode
+    /// </summary>
+    public async Task OpenCreateModalAsync(TEntity entity)
+    {
+        IsCreateMode = true;
+        EditingEntity = entity;
+        ShowEditModal = true;
+        await ShowEditModalChanged.InvokeAsync(true);
+    }
+
+    /// <summary>
+    /// Opens the modal in edit mode
+    /// </summary>
+    public async Task OpenEditModalAsync(TEntity entity)
+    {
+        IsCreateMode = false;
+        EditingEntity = entity;
+        ShowEditModal = true;
+        await ShowEditModalChanged.InvokeAsync(true);
+    }
+
+    /// <summary>
+    /// Opens the delete confirmation modal
+    /// </summary>
+    public async Task OpenDeleteModalAsync(TEntity entity)
+    {
+        DeletingEntity = entity;
+        ShowDeleteModal = true;
+        await ShowDeleteModalChanged.InvokeAsync(true);
+    }
+}

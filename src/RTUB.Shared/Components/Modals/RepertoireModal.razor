@@ -1,0 +1,294 @@
+@namespace RTUB.Shared
+@*
+    RepertoireModal Component
+    Modal for displaying and managing event repertoire with drag and drop functionality
+*@
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@inject IEventRepertoireService RepertoireService
+@inject ISongService SongService
+
+<Modal Show="@Show" 
+       ShowChanged="@((bool show) => OnShowChanged(show))"
+       Title="@($"Repertório - {EventName}")" 
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (isLoading)
+        {
+            <LoadingSpinner />
+        }
+        else
+        {
+            @if (IsAdmin)
+            {
+                <div class="mb-3">
+                    <h6 class="text-white-full mb-2">Adicionar Música</h6>
+                    <div class="d-flex gap-2">
+                        <select class="form-select form-select-dark flex-grow-1" @bind="selectedSongId">
+                            <option value="0">Selecionar música...</option>
+                            @foreach (var song in availableSongs)
+                            {
+                                <option value="@song.Id">@song.Title (@song.Album?.Title)</option>
+                            }
+                        </select>
+                        <button class="btn btn-success" @onclick="AddSongToRepertoire" disabled="@(selectedSongId == 0)">
+                            <i class="bi bi-plus-lg"></i> Adicionar
+                        </button>
+                    </div>
+                </div>
+                <hr class="repertoire-divider" />
+            }
+
+            @if (repertoireItems == null || !repertoireItems.Any())
+            {
+                <div class="text-center py-4">
+                    <i class="bi bi-music-note-list repertoire-empty-icon"></i>
+                    <p class="text-muted mt-2">Nenhuma música no repertório</p>
+                </div>
+            }
+            else
+            {
+                <div class="repertoire-list">
+                    @foreach (var item in repertoireItems.OrderBy(r => r.DisplayOrder))
+                    {
+                        <div class="repertoire-card @(draggingItemId == item.Id ? "dragging" : "") @(dragOverItemId == item.Id ? "drag-over" : "")"
+                             draggable="@(IsAdmin ? "true" : "false")"
+                             @ondragstart="@(() => HandleDragStart(item.Id))"
+                             @ondragover="HandleDragOver"
+                             @ondragover:preventDefault
+                             @ondragenter="@(() => HandleDragEnter(item.Id))"
+                             @ondragleave="@(() => HandleDragLeave())"
+                             @ondrop="@(async () => await HandleDrop(item.Id))"
+                             @ondragend="@(() => HandleDragEnd())">
+                            
+                            <div class="repertoire-card-content">
+                                @if (IsAdmin)
+                                {
+                                    <div class="drag-handle" title="Arrastar para reordenar">
+                                        <i class="bi bi-grip-vertical"></i>
+                                    </div>
+                                }
+                                
+                                <span class="repertoire-item-number">@item.DisplayOrder.</span>
+                                <span class="repertoire-item-text">@item.Song?.Title (@item.Song?.Album?.Title)</span>
+                                
+                                @if (IsAdmin)
+                                {
+                                    <button class="btn-icon-delete" 
+                                            @onclick="@(() => RemoveSongFromRepertoire(item.Id))"
+                                            @onclick:stopPropagation="true"
+                                            title="Remover"
+                                            type="button">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="Close">Fechar</button>
+    </FooterContent>
+</Modal>
+
+@code {
+    [Parameter]
+    public bool Show { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ShowChanged { get; set; }
+
+    [Parameter]
+    public int EventId { get; set; }
+
+    [Parameter]
+    public string EventName { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool IsAdmin { get; set; }
+
+    [Parameter]
+    public EventCallback OnRepertoireChanged { get; set; }
+
+    private List<EventRepertoire>? repertoireItems;
+    private List<Song>? allSongs;
+    private List<Song> availableSongs => allSongs?.Where(s => 
+        repertoireItems?.All(r => r.SongId != s.Id) ?? true).ToList() ?? new List<Song>();
+    
+    private int selectedSongId = 0;
+    private bool isLoading = false;
+    private int? draggingItemId = null;
+    private int? dragOverItemId = null;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Show && EventId > 0)
+        {
+            await LoadRepertoire();
+            if (IsAdmin)
+            {
+                await LoadAllSongs();
+            }
+        }
+    }
+
+    private async Task LoadRepertoire()
+    {
+        isLoading = true;
+        try
+        {
+            repertoireItems = (await RepertoireService.GetRepertoireByEventIdAsync(EventId)).ToList();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadAllSongs()
+    {
+        allSongs = (await SongService.GetAllSongsAsync()).ToList();
+    }
+
+    private async Task AddSongToRepertoire()
+    {
+        if (selectedSongId == 0) return;
+
+        try
+        {
+            var nextOrder = (repertoireItems?.Any() ?? false) 
+                ? repertoireItems!.Max(r => r.DisplayOrder) + 1 
+                : 1;
+
+            await RepertoireService.AddSongToRepertoireAsync(EventId, selectedSongId, nextOrder);
+            await LoadRepertoire();
+            selectedSongId = 0;
+            await OnRepertoireChanged.InvokeAsync();
+        }
+        catch (Exception)
+        {
+            // Handle error - song already in repertoire
+        }
+    }
+
+    private async Task RemoveSongFromRepertoire(int repertoireItemId)
+    {
+        if (!IsAdmin) return;
+
+        await RepertoireService.RemoveSongFromRepertoireAsync(repertoireItemId);
+        await LoadRepertoire();
+        await OnRepertoireChanged.InvokeAsync();
+    }
+
+    private void HandleDragStart(int itemId)
+    {
+        if (!IsAdmin) return;
+        draggingItemId = itemId;
+        dragOverItemId = null;
+    }
+
+    private void HandleDragEnter(int itemId)
+    {
+        if (!IsAdmin || draggingItemId == null || draggingItemId == itemId) return;
+        dragOverItemId = itemId;
+    }
+
+    private void HandleDragLeave()
+    {
+        if (!IsAdmin) return;
+        dragOverItemId = null;
+    }
+
+    private void HandleDragOver()
+    {
+        // Combined with @ondragover:preventDefault directive to allow drops
+        if (!IsAdmin) return;
+    }
+
+    private void HandleDragEnd()
+    {
+        if (!IsAdmin) return;
+        // Always clean up drag state when drag ends
+        draggingItemId = null;
+        dragOverItemId = null;
+    }
+
+    private async Task HandleDrop(int targetItemId)
+    {
+        
+        if (!IsAdmin || draggingItemId == null || draggingItemId == targetItemId) 
+        {
+            // Clean up even if we don't process the drop
+            draggingItemId = null;
+            dragOverItemId = null;
+            return;
+        }
+
+        var draggingItem = repertoireItems?.FirstOrDefault(r => r.Id == draggingItemId);
+        var targetItem = repertoireItems?.FirstOrDefault(r => r.Id == targetItemId);
+
+        if (draggingItem != null && targetItem != null)
+        {
+            // Get the current ordered list
+            var orderedList = repertoireItems!.OrderBy(r => r.DisplayOrder).ToList();
+            
+            // Find current indices
+            var draggedIndex = orderedList.IndexOf(draggingItem);
+            var targetIndex = orderedList.IndexOf(targetItem);
+            
+            // Generic list reordering algorithm for drag-and-drop:
+            // Goal: Move dragged item to target's position (swap places with target)
+            
+            // 1. Remove the dragged item
+            orderedList.RemoveAt(draggedIndex);
+            
+            // 2. Calculate insertion index:
+            //    - Moving DOWN (draggedIndex < targetIndex): 
+            //        After removal, target shifts left by 1, so it's at (targetIndex - 1)
+            //        We want to go AFTER the target, so insert at targetIndex
+            //    - Moving UP (draggedIndex > targetIndex):
+            //        Target position unchanged by removal, it's still at targetIndex
+            //        We want to go AT the target position, so insert at targetIndex
+            var insertIndex = (draggedIndex < targetIndex) ? targetIndex : targetIndex;
+            
+            // 3. Insert at calculated position
+            orderedList.Insert(insertIndex, draggingItem);
+
+            // Update display orders based on new list order
+            var songIds = orderedList.Select(r => r.SongId).ToList();
+            
+            await RepertoireService.UpdateRepertoireOrderAsync(EventId, songIds);
+            
+            // Force reload to get updated order from database
+            await LoadRepertoire();
+            
+            await OnRepertoireChanged.InvokeAsync();
+            
+            // Force UI refresh
+            StateHasChanged();
+        }
+        else
+        {
+            Console.WriteLine($"[HandleDrop] Items not found - cannot reorder");
+        }
+
+        // Clean up drag state - don't wait for dragend as it may not fire consistently
+        draggingItemId = null;
+        dragOverItemId = null;
+    }
+
+    private async Task OnShowChanged(bool show)
+    {
+        Show = show;
+        await ShowChanged.InvokeAsync(show);
+    }
+
+    private async Task Close()
+    {
+        await OnShowChanged(false);
+    }
+}

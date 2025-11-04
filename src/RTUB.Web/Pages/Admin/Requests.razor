@@ -1,0 +1,357 @@
+@page "/admin/requests"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using RTUB.Core.Enums
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Extensions
+@using RTUB.Application.Helpers
+@using RTUB.Shared
+@attribute [Authorize(Roles = "Admin")]
+@inherits CrudTablePageBase<Request>
+@inject IRequestService RequestService
+@inject NavigationManager Navigation
+
+<h1>Gestão de Pedidos</h1>
+<p class="lead mb-4 lead-light">Gerir todos os pedidos submetidos através do website.</p>
+
+<!-- Search and Filter Controls -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <TableSearchBar 
+            SearchTerm="@SearchTerm"
+            OnSearchChanged="UpdateSearch"
+            Placeholder="Pesquisar por nome, email, tipo de evento..." />
+    </div>
+</div>
+
+<!-- Filter and Stats -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="btn-group" role="group" aria-label="Status filter">
+            <button type="button" class="btn @(filterStatus == null ? "btn-primary" : "btn-outline-primary")" @onclick='() => SetFilterStatus(null)'>
+                Todos (@(AllItems?.Count ?? 0))
+            </button>
+            <button type="button" class="btn @(filterStatus == RequestStatus.Pending ? "btn-warning" : "btn-outline-warning")" @onclick='() => SetFilterStatus(RequestStatus.Pending)'>
+                Pendentes (@(AllItems?.Count(r => r.Status == RequestStatus.Pending) ?? 0))
+            </button>
+            <button type="button" class="btn @(filterStatus == RequestStatus.Analysing ? "btn-info" : "btn-outline-info")" @onclick='() => SetFilterStatus(RequestStatus.Analysing)'>
+                Em Análise (@(AllItems?.Count(r => r.Status == RequestStatus.Analysing) ?? 0))
+            </button>
+            <button type="button" class="btn @(filterStatus == RequestStatus.Confirmed ? "btn-success" : "btn-outline-success")" @onclick='() => SetFilterStatus(RequestStatus.Confirmed)'>
+                Confirmados (@(AllItems?.Count(r => r.Status == RequestStatus.Confirmed) ?? 0))
+            </button>
+            <button type="button" class="btn @(filterStatus == RequestStatus.Rejected ? "btn-danger" : "btn-outline-danger")" @onclick='() => SetFilterStatus(RequestStatus.Rejected)'>
+                Rejeitados (@(AllItems?.Count(r => r.Status == RequestStatus.Rejected) ?? 0))
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12 text-end">
+        <button class="btn btn-outline-secondary" @onclick="async () => await RefreshDataAsync()">
+            <i class="bi bi-arrow-clockwise"></i> Atualizar
+        </button>
+    </div>
+</div>
+
+<!-- Requests Table -->
+@if (PaginatedItems.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <SortableTableHeader 
+                        HeaderText="Estado" 
+                        SortColumn="@nameof(Request.Status)" 
+                        CurrentSortColumn="@SortHelper.SortColumn"
+                        IsSortAscending="@SortHelper.SortAscending"
+                        OnSortChanged="SortBy" />
+                    <SortableTableHeader 
+                        HeaderText="Nome" 
+                        SortColumn="@nameof(Request.Name)" 
+                        CurrentSortColumn="@SortHelper.SortColumn"
+                        IsSortAscending="@SortHelper.SortAscending"
+                        OnSortChanged="SortBy" />
+                    <SortableTableHeader 
+                        HeaderText="Tipo de Evento" 
+                        SortColumn="@nameof(Request.EventType)" 
+                        CurrentSortColumn="@SortHelper.SortColumn"
+                        IsSortAscending="@SortHelper.SortAscending"
+                        OnSortChanged="SortBy" />
+                    <SortableTableHeader 
+                        HeaderText="Data Preferida" 
+                        SortColumn="@nameof(Request.PreferredDate)" 
+                        CurrentSortColumn="@SortHelper.SortColumn"
+                        IsSortAscending="@SortHelper.SortAscending"
+                        OnSortChanged="SortBy" />
+                    <SortableTableHeader 
+                        HeaderText="Localização" 
+                        SortColumn="@nameof(Request.Location)" 
+                        CurrentSortColumn="@SortHelper.SortColumn"
+                        IsSortAscending="@SortHelper.SortAscending"
+                        OnSortChanged="SortBy" />
+                    <SortableTableHeader 
+                        HeaderText="Submetido" 
+                        SortColumn="@nameof(Request.CreatedAt)" 
+                        CurrentSortColumn="@SortHelper.SortColumn"
+                        IsSortAscending="@SortHelper.SortAscending"
+                        OnSortChanged="SortBy" />
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var req in PaginatedItems)
+                {
+                    <tr>
+                        <td>
+                            <StatusBadge Status="@req.Status" />
+                        </td>
+                        <td>@req.Name</td>
+                        <td>@req.EventType</td>
+                        <td class="text-light-gray">@req.PreferredDate.ToPortugueseShortDate()</td>
+                        <td class="text-light-gray">@req.Location</td>
+                        <td class="text-light-gray">@req.CreatedAt.ToPortugueseDateTime()</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewRequest(req)" title="Ver Detalhes">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <AuthorizeView Roles="Owner">
+                                <Authorized>
+                                    <button class="btn btn-sm btn-danger ms-1" @onclick="() => OpenDeleteModal(req)" title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </Authorized>
+                            </AuthorizeView>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <TablePagination 
+        CurrentPage="@PaginationHelper.CurrentPage"
+        PageSize="@PaginationHelper.PageSize"
+        TotalItems="@FilteredItems.Count"
+        ItemLabel="pedidos"
+        OnPageChanged="ChangePage"
+        OnPageSizeChanged="ChangePageSize" />
+}
+else
+{
+    <EmptyTableState 
+        Message="@($"Nenhum pedido {GetFilterStatusText()} encontrado.")" 
+        IconClass="bi-info-circle" />
+}
+<!-- View/Edit Modal -->
+<Modal Show="@(selectedRequest != null)" ShowChanged="@((bool show) => { if (!show) CloseModal(); })" 
+       Title="Detalhes do Pedido" Size="Modal.ModalSize.Large">
+    <BodyContent>
+        @if (selectedRequest != null)
+        {
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Nome</label>
+                    <p class="modal-text">@selectedRequest.Name</p>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Email</label>
+                    <p class="modal-text">
+                        <a href="mailto:@selectedRequest.Email">@selectedRequest.Email</a>
+                    </p>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Telefone</label>
+                    <p class="modal-text">
+                        <a href="tel:@selectedRequest.Phone">@selectedRequest.Phone</a>
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Tipo de Evento</label>
+                    <p class="modal-text">@selectedRequest.EventType</p>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Data Preferida</label>
+                    <p class="modal-text">@selectedRequest.PreferredDate.ToPortugueseShortDate()</p>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Localização</label>
+                    <p class="modal-text">@selectedRequest.Location</p>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Informações Adicionais</label>
+                <p class="modal-text modal-text-pre">@selectedRequest.Message</p>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Estado</label>
+                    <InputSelect class="form-select" @bind-Value="selectedRequest.Status">
+                        <option value="@RequestStatus.Pending">Pendente</option>
+                        <option value="@RequestStatus.Analysing">Em Análise</option>
+                        <option value="@RequestStatus.Confirmed">Confirmado</option>
+                        <option value="@RequestStatus.Rejected">Rejeitado</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Submetido</label>
+                    <p class="modal-text">@selectedRequest.CreatedAt.ToPortugueseDateTime()</p>
+                </div>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseModal">Fechar</button>
+        <button type="button" class="btn btn-primary" @onclick="SaveChanges">
+            <i class="bi bi-save"></i> Guardar Alterações
+        </button>
+    </FooterContent>
+</Modal>
+
+<!-- Delete Confirmation Modal -->
+<Modal Show="@(deletingRequest != null)" ShowChanged="@((bool show) => { if (!show) CloseDeleteModal(); })" 
+       Title="Confirmar Eliminação" Size="Modal.ModalSize.Default">
+    <BodyContent>
+        @if (deletingRequest != null)
+        {
+            <p>Tem a certeza que pretende eliminar o pedido de <strong>@deletingRequest.Name</strong>?</p>
+            <p class="text-muted">Esta ação não pode ser revertida.</p>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="DeleteRequest">Eliminar</button>
+    </FooterContent>
+</Modal>
+
+@code {
+    private RequestStatus? filterStatus = null;
+    private Request? selectedRequest = null;
+    private Request? deletingRequest = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SortHelper.SortColumn = nameof(Request.CreatedAt);
+        SortHelper.SortAscending = false;
+        await LoadItemsAsync();
+        ApplyFiltersAndPagination();
+    }
+
+    protected override async Task LoadItemsAsync()
+    {
+        var requests = await RequestService.GetAllRequestsAsync();
+        AllItems = requests.ToList();
+    }
+
+    protected override Dictionary<string, Func<Request, IComparable>> GetSortColumnSelectors()
+    {
+        return new Dictionary<string, Func<Request, IComparable>>
+        {
+            [nameof(Request.Status)] = r => r.Status.ToString(),
+            [nameof(Request.Name)] = r => r.Name ?? "",
+            [nameof(Request.EventType)] = r => r.EventType ?? "",
+            [nameof(Request.PreferredDate)] = r => r.PreferredDate,
+            [nameof(Request.Location)] = r => r.Location ?? "",
+            [nameof(Request.CreatedAt)] = r => r.CreatedAt
+        };
+    }
+
+    protected override List<Func<Request, string>> GetSearchSelectors()
+    {
+        return new List<Func<Request, string>>
+        {
+            r => r.Name ?? "",
+            r => r.Email ?? "",
+            r => r.EventType ?? "",
+            r => r.Location ?? "",
+            r => r.Phone ?? ""
+        };
+    }
+
+    // Override to add custom status filtering
+    protected override void ApplyFiltersAndPagination()
+    {
+        if (AllItems == null) return;
+
+        // Apply status filter first
+        var items = filterStatus != null 
+            ? AllItems.Where(r => r.Status == filterStatus).ToList()
+            : AllItems;
+
+        // Apply search filter
+        SearchHelper.SearchTerm = SearchTerm;
+        FilteredItems = SearchHelper.FilterMultiple(items, GetSearchSelectors());
+
+        // Apply sorting
+        FilteredItems = SortHelper.ApplySort(FilteredItems, GetSortColumnSelectors());
+
+        // Apply pagination
+        UpdatePagination();
+    }
+
+    private void ViewRequest(Request request)
+    {
+        selectedRequest = request;
+    }
+
+    private void CloseModal()
+    {
+        selectedRequest = null;
+    }
+
+    private async Task SaveChanges()
+    {
+        if (selectedRequest != null)
+        {
+            await RequestService.UpdateRequestStatusAsync(selectedRequest.Id, selectedRequest.Status);
+            await RefreshDataAsync();
+            CloseModal();
+        }
+    }
+
+    private string GetFilterStatusText()
+    {
+        return filterStatus == null ? "" : StatusHelper.GetFilterStatusText(filterStatus);
+    }
+
+    private void SetFilterStatus(RequestStatus? status)
+    {
+        filterStatus = status;
+        PaginationHelper.Reset();
+        ApplyFiltersAndPagination();
+    }
+    
+    private void OpenDeleteModal(Request request)
+    {
+        deletingRequest = request;
+    }
+    
+    private void CloseDeleteModal()
+    {
+        deletingRequest = null;
+    }
+    
+    private async Task DeleteRequest()
+    {
+        if (deletingRequest != null)
+        {
+            await RequestService.DeleteRequestAsync(deletingRequest.Id);
+            await RefreshDataAsync();
+            CloseDeleteModal();
+        }
+    }
+}
+

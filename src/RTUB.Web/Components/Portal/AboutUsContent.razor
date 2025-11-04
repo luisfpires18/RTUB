@@ -1,0 +1,239 @@
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Shared
+@inject ILabelService LabelService
+@inject IEventService EventService
+@inject ITrophyService TrophyService
+@inject ILogger<AboutUsContent> Logger
+@namespace RTUB.Components.Portal
+
+<!-- #1 About Us -->
+@if (aboutUs != null)
+{
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <h2>@aboutUs.Title</h2>
+            <LabelEditButton CurrentLabel="@aboutUs" OnEditClick="@OpenEditModal" CssClass="text-white" />
+        </div>
+        <div class="portal-content-preformatted">@aboutUs.Content</div>
+    </section>
+}
+
+<!-- #2 Previous Events -->
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Atuações Anteriores</h2>
+        <a href="/events" class="btn btn-outline-primary btn-sm">Ver Todos as Atuações</a>
+    </div>
+
+    @if (previousEvents != null && previousEvents.Any())
+    {
+        <div class="row g-4">
+            @foreach (var evt in previousEvents)
+            {
+                <div class="col-md-4">
+                    <div class="card h-100 portal-event-card">
+                        <div class="position-relative">
+                            @if (!string.IsNullOrEmpty(evt.ImageSrc))
+                            {
+                                <img src="@evt.ImageSrc" class="card-img-top portal-event-image" alt="@evt.Name">
+                            }
+                            else
+                            {
+                                <div class="card-img-top portal-event-placeholder">
+                                    <i class="bi bi-calendar-event portal-icon-large"></i>
+                                </div>
+                            }
+                            @if (evt.Type == EventType.Festival)
+                            {
+                                <div class="position-absolute top-0 end-0 p-2">
+                                    <button class="btn btn-warning btn-sm" @onclick="() => OpenTrophyModal(evt)" title="Ver Prémios">
+                                        <i class="bi bi-trophy-fill"></i>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">@evt.Name</h5>
+                            <p class="card-text mb-2 portal-card-text">
+                                <i class="bi bi-calendar-event me-1"></i>
+                                @if (evt.EndDate.HasValue && evt.EndDate.Value.Date != evt.Date.Date)
+                                {
+                                    <span>@evt.Date.ToString("dd MMM") - @evt.EndDate.Value.ToString("dd MMM yyyy")</span>
+                                }
+                                else
+                                {
+                                    <span>@evt.Date.ToString("dd MMM yyyy")</span>
+                                }
+                            </p>
+                            @if (!string.IsNullOrEmpty(evt.Location))
+                            {
+                                <p class="card-text mb-2 portal-card-text">
+                                    <i class="bi bi-geo-alt"></i> @evt.Location
+                                </p>
+                            }
+                            <p class="card-text">@evt.Description</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <EmptyTableState Message="Nenhum evento anterior ainda."
+                        IconClass="bi-calendar-event" />
+    }
+</section>
+
+<!-- Edit Label Modal (at root level) -->
+<Modal Show="@showEditModal" 
+       ShowChanged="@((value) => showEditModal = value)"
+       Title="Editar Conteúdo"
+       Size="Modal.ModalSize.Large"
+       OnClose="CloseEditModal">
+    <BodyContent>
+        @if (editingLabel != null)
+        {
+            <EditForm Model="editingLabel" OnValidSubmit="SaveLabel">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Referência</label>
+                    <input type="text" class="form-control" value="@editingLabel.Reference" disabled />
+                    <small class="text-white-opacity">Identificador único (não editável)</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Título</label>
+                    <InputText class="form-control" @bind-Value="editingLabel.Title" placeholder="Inserir título..." />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Conteúdo</label>
+                    <InputTextArea class="form-control" rows="10" @bind-Value="editingLabel.Content" 
+                                   placeholder="Inserir conteúdo..." />
+                    <small class="text-white-opacity">Dica: Use quebras de linha para formatar o texto</small>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+</Modal>
+
+<!-- Trophy Modal -->
+<Modal Show="@showTrophyModal"
+       ShowChanged="@((bool show) => showTrophyModal = show)"
+       Title="@($"Prémios de {selectedEvent?.Name ?? ""}")"
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (eventTrophies == null || !eventTrophies.Any())
+        {
+            <EmptyTableState Message="Nenhum troféu conquistado neste evento."
+                            IconClass="bi-trophy" />
+        }
+        else
+        {
+            <div class="list-group">
+                @foreach (var trophy in eventTrophies)
+                {
+                    <div class="list-group-item">
+                        <i class="bi bi-trophy-fill text-warning me-2"></i>
+                        <strong>@trophy.Name</strong>
+                    </div>
+                }
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseTrophyModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
+@code {
+    private Label? aboutUs;
+    private List<Event>? previousEvents;
+    private bool showTrophyModal = false;
+    private Event? selectedEvent;
+    private List<Trophy>? eventTrophies;
+
+    private Label? editingLabel;
+    private bool showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load About Us label
+        await LoadAboutUs();
+
+        // Load previous 3 events (most recent first)
+        previousEvents = (await EventService.GetPastEventsAsync(3)).ToList();
+    }
+
+    private async Task LoadAboutUs()
+    {
+        aboutUs = await LabelService.GetLabelByReferenceAsync("about-us");
+    }
+
+    private void OpenEditModal(Label label)
+    {
+        editingLabel = new Label
+        {
+            Id = label.Id,
+            Reference = label.Reference,
+            Title = label.Title,
+            Content = label.Content,
+            IsActive = label.IsActive
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingLabel = null;
+    }
+
+    private async Task SaveLabel()
+    {
+        if (editingLabel == null) return;
+
+        try
+        {
+            await LabelService.UpdateLabelContentAsync(
+                editingLabel.Id,
+                editingLabel.Title,
+                editingLabel.Content
+            );
+
+            await LoadAboutUs();
+            
+            showEditModal = false;
+            editingLabel = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating label");
+        }
+    }
+
+    private async Task OpenTrophyModal(Event eventItem)
+    {
+        selectedEvent = eventItem;
+        eventTrophies = (await TrophyService.GetByEventIdAsync(eventItem.Id)).ToList();
+        showTrophyModal = true;
+    }
+
+    private void CloseTrophyModal()
+    {
+        showTrophyModal = false;
+        selectedEvent = null;
+        eventTrophies = null;
+    }
+}

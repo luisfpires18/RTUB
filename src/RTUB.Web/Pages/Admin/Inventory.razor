@@ -1,0 +1,885 @@
+@page "/admin/inventory"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Shared
+@attribute [Authorize(Roles = "Admin,Owner")]
+@inject IInstrumentService InstrumentService
+@inject IProductService ProductService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h1>Inventário</h1>
+<p class="lead mb-4">Gestão de instrumentos e produtos</p>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "instruments" ? "active" : "")" 
+                @onclick="@(() => SwitchTab("instruments"))" 
+                type="button" 
+                role="tab">
+            <i class="bi bi-music-note-beamed"></i> Instrumentos
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "products" ? "active" : "")" 
+                @onclick="@(() => SwitchTab("products"))" 
+                type="button" 
+                role="tab">
+            <i class="bi bi-bag"></i> Produtos
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content">
+    @if (activeTab == "instruments")
+    {
+        <!-- Instruments Tab -->
+        <div class="mb-3">
+            <button class="btn btn-success" @onclick="OpenCreateInstrumentModal" title="Novo Instrumento" disabled="@(loading || !categories.Any())">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+
+        @if (loading)
+        {
+            <p>A carregar instrumentos...</p>
+        }
+        else if (!instruments.Any())
+        {
+            <EmptyTableState Message="Nenhum instrumento cadastrado ainda."
+                            IconClass="bi-music-note-beamed" />
+        }
+        else
+        {
+            <!-- Stats - 2x2 CSS Grid Centered -->
+            <div class="d-flex justify-content-center mb-4">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; max-width: 700px; width: 100%;">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h6 class="card-subtitle mb-2 text-muted">Total</h6>
+                            <h3 class="card-title">@instruments.Count</h3>
+                        </div>
+                    </div>
+                    @{
+                        var statsArray = conditionStats.OrderBy(c => c.Key).ToList();
+                        for (int i = 0; i < Math.Min(3, statsArray.Count); i++)
+                        {
+                            var stat = statsArray[i];
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h6 class="card-subtitle mb-2 text-muted">@GetConditionDisplayName(stat.Key)</h6>
+                                    <h3 class="card-title">@stat.Value</h3>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <select class="form-select" @bind="filterCategory" @bind:after="ApplyFilters">
+                        <option value="">Todos os tipos</option>
+                        @foreach (var category in categories)
+                        {
+                            <option value="@category">@category</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" @bind="filterCondition" @bind:after="ApplyFilters">
+                        <option value="">Todas as condições</option>
+                        @foreach (InstrumentCondition condition in Enum.GetValues(typeof(InstrumentCondition)))
+                        {
+                            <option value="@condition">@GetConditionDisplayName(condition)</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <!-- Instruments Grid -->
+            <div class="row">
+                @foreach (var instrument in filteredInstruments)
+                {
+                    <div class="col-md-4 col-lg-2 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="position-relative">
+                                @if (instrument.ImageData != null && instrument.ImageData.Length > 0)
+                                {
+                                    <img src="@GetImageUrl(instrument.ImageSrc)" class="card-img-top inventory-square-image" alt="@instrument.Name">
+                                }
+                                else
+                                {
+                                    <div class="card-img-top inventory-square-placeholder">
+                                        <i class="bi bi-music-note-beamed music-icon-large"></i>
+                                    </div>
+                                }
+                                <div class="admin-overlay">
+                                    <button class="btn btn-sm btn-primary" @onclick="() => OpenEditInstrumentModal(instrument)" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteInstrumentModal(instrument)" title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">@instrument.Name</h5>
+                                <div class="mb-2">
+                                    <span class="badge bg-primary me-1">@instrument.Category</span>
+                                    <span class="badge @GetConditionBadgeClass(instrument.Condition)">@GetConditionDisplayName(instrument.Condition)</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(instrument.Brand))
+                                {
+                                    <p class="card-text small mb-1"><strong>Marca:</strong> @instrument.Brand</p>
+                                }
+                                @if (!string.IsNullOrEmpty(instrument.SerialNumber))
+                                {
+                                    <p class="card-text small mb-1"><strong>S/N:</strong> @instrument.SerialNumber</p>
+                                }
+                                @if (!string.IsNullOrEmpty(instrument.Location))
+                                {
+                                    <p class="card-text small mb-1"><strong>Local:</strong> @instrument.Location</p>
+                                }
+                                @if (instrument.LastMaintenanceDate.HasValue)
+                                {
+                                    <p class="card-text small text-muted">
+                                        <i class="bi bi-wrench"></i> Manutenção: @instrument.LastMaintenanceDate.Value.ToString("dd/MM/yyyy")
+                                    </p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+    else if (activeTab == "products")
+    {
+        <!-- Products Tab -->
+        <div class="mb-3">
+            <button class="btn btn-success" @onclick="OpenCreateProductModal" title="Novo Produto">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+
+        @if (loading)
+        {
+            <p>A carregar produtos...</p>
+        }
+        else if (!products.Any())
+        {
+            <EmptyTableState Message="Nenhum produto cadastrado ainda."
+                            IconClass="bi-bag" />
+        }
+        else
+        {
+            <!-- Stats - 2x2 CSS Grid Centered -->
+            <div class="d-flex justify-content-center mb-4">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; max-width: 700px; width: 100%;">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h6 class="card-subtitle mb-2 text-muted">Total</h6>
+                            <h3 class="card-title">@products.Count</h3>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h6 class="card-subtitle mb-2 text-muted">Disponíveis</h6>
+                            <h3 class="card-title">@products.Count(p => p.IsAvailable)</h3>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h6 class="card-subtitle mb-2 text-muted">Sem Stock</h6>
+                            <h3 class="card-title">@products.Count(p => p.Stock == 0)</h3>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h6 class="card-subtitle mb-2 text-muted">Valor Total</h6>
+                            <h3 class="card-title">@totalInventoryValue.ToString("0.00") €</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="row">
+                @foreach (var product in products)
+                {
+                    <div class="col-md-4 col-lg-2 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="position-relative">
+                                @if (product.ImageData != null && product.ImageData.Length > 0)
+                                {
+                                    <img src="@GetImageUrl(product.ImageSrc)" class="card-img-top inventory-square-image" alt="@product.Name">
+                                }
+                                else
+                                {
+                                    <div class="card-img-top inventory-square-placeholder">
+                                        <i class="bi bi-bag-fill music-icon-large"></i>
+                                    </div>
+                                }
+                                <div class="admin-overlay">
+                                    <button class="btn btn-sm btn-primary" @onclick="() => OpenEditProductModal(product)" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteProductModal(product)" title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">@product.Name</h5>
+                                <div class="mb-2">
+                                    <span class="badge bg-primary me-1">@product.Type</span>
+                                    @if (product.IsAvailable)
+                                    {
+                                        <span class="badge bg-success me-1">Disponível</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary me-1">Indisponível</span>
+                                    }
+                                    @if (product.IsPublic)
+                                    {
+                                        <span class="badge bg-info">Público</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-lock-fill"></i> Membros</span>
+                                    }
+                                </div>
+                                <p class="card-text"><strong class="text-success fs-5">@product.Price.ToString("0.00") €</strong></p>
+                                <p class="card-text small">
+                                    <i class="bi bi-box-seam"></i> Stock: @product.Stock
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+<!-- CRUD Modals for Instruments -->
+<CrudModalManager TEntity="Instrument"
+                  ShowEditModal="@showInstrumentEditModal"
+                  ShowEditModalChanged="@((value) => showInstrumentEditModal = value)"
+                  IsCreateMode="@isInstrumentCreateMode"
+                  EditingEntity="@editingInstrument"
+                  CreateTitle="Novo Instrumento"
+                  EditTitle="Editar Instrumento"
+                  ModalSize="Modal.ModalSize.Large"
+                  OnSave="SaveInstrument"
+                  OnEditModalClosed="CloseInstrumentEditModal"
+                  ShowDeleteModal="@showInstrumentDeleteModal"
+                  ShowDeleteModalChanged="@((value) => showInstrumentDeleteModal = value)"
+                  DeletingEntity="@deletingInstrument"
+                  DeleteTitle="Confirmar Eliminação"
+                  OnDelete="DeleteInstrument"
+                  OnDeleteModalClosed="CloseInstrumentDeleteModal">
+    <EditFormContent Context="instrument">
+        <EditForm Model="instrument" OnValidSubmit="SaveInstrument">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Nome *</label>
+                    <InputText class="form-control" @bind-Value="instrument.Name" />
+                    <ValidationMessage For="@(() => instrument.Name)" class="text-danger" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Tipo *</label>
+                    <InputSelect class="form-select" @bind-Value="instrument.Category">
+                        <option value="">Selecione...</option>
+                        @foreach (var category in categories)
+                        {
+                            <option value="@category">@category</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => instrument.Category)" class="text-danger" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Marca</label>
+                    <InputText class="form-control" @bind-Value="instrument.Brand" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Número de Série</label>
+                    <InputText class="form-control" @bind-Value="instrument.SerialNumber" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Condição *</label>
+                    <InputSelect class="form-select" @bind-Value="instrument.Condition">
+                        @foreach (InstrumentCondition condition in Enum.GetValues(typeof(InstrumentCondition)))
+                        {
+                            <option value="@condition">@GetConditionDisplayName(condition)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Localização</label>
+                    <InputText class="form-control" @bind-Value="instrument.Location" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label class="form-label">Notas de Manutenção</label>
+                    <InputTextArea class="form-control" @bind-Value="instrument.MaintenanceNotes" rows="3" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Imagem</label>
+                <InputFile class="form-control file-input-dark" OnChange="HandleInstrumentImageUpload" accept="image/*" />
+                @if (!string.IsNullOrEmpty(instrument.ImageSrc) && uploadedInstrumentImagePath == null && instrument.ImageData != null && instrument.ImageData.Length > 0)
+                {
+                    <div class="mt-2">
+                        <small class="text-muted">Imagem atual</small>
+                        <br />
+                        <img src="@GetImageUrl(instrument.ImageSrc)" alt="Preview" class="img-thumbnail mt-1 slideshow-preview" />
+                    </div>
+                }
+                @if (uploadedInstrumentImagePath != null)
+                {
+                    <div class="mt-2">
+                        <small class="text-success">Nova imagem carregada com sucesso!</small>
+                    </div>
+                }
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="() => showInstrumentEditModal = false">Cancelar</button>
+                <button type="submit" class="btn btn-success">Guardar</button>
+            </div>
+        </EditForm>
+    </EditFormContent>
+    <EditFormFooterContent>
+        <!-- Footer is now inside the form -->
+    </EditFormFooterContent>
+    <DeleteConfirmationContent Context="instrument">
+        <p>Tem a certeza que deseja eliminar o instrumento <strong>@instrument.Name</strong>?</p>
+        <p class="text-muted small">Esta ação não pode ser revertida.</p>
+    </DeleteConfirmationContent>
+</CrudModalManager>
+
+<!-- CRUD Modals for Products -->
+<CrudModalManager TEntity="Product"
+                  ShowEditModal="@showProductEditModal"
+                  ShowEditModalChanged="@((value) => showProductEditModal = value)"
+                  IsCreateMode="@isProductCreateMode"
+                  EditingEntity="@editingProduct"
+                  CreateTitle="Novo Produto"
+                  EditTitle="Editar Produto"
+                  ModalSize="Modal.ModalSize.Large"
+                  OnSave="SaveProduct"
+                  OnEditModalClosed="CloseProductEditModal"
+                  ShowDeleteModal="@showProductDeleteModal"
+                  ShowDeleteModalChanged="@((value) => showProductDeleteModal = value)"
+                  DeletingEntity="@deletingProduct"
+                  DeleteTitle="Confirmar Eliminação"
+                  OnDelete="DeleteProduct"
+                  OnDeleteModalClosed="CloseProductDeleteModal">
+    <EditFormContent Context="product">
+        <EditForm Model="product" OnValidSubmit="SaveProduct">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <label class="form-label">Nome *</label>
+                    <InputText class="form-control" @bind-Value="product.Name" />
+                    <ValidationMessage For="@(() => product.Name)" class="text-danger" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Tipo *</label>
+                    <InputText class="form-control" @bind-Value="product.Type" placeholder="Álbum, Pin, T-shirt..." />
+                    <ValidationMessage For="@(() => product.Type)" class="text-danger" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Preço (€) *</label>
+                    <InputNumber class="form-control" @bind-Value="product.Price" min="0.01" step="0.01" />
+                    <ValidationMessage For="@(() => product.Price)" class="text-danger" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Stock *</label>
+                    <InputNumber class="form-control" @bind-Value="product.Stock" min="0" />
+                    <ValidationMessage For="@(() => product.Stock)" class="text-danger" />
+                    <small class="text-muted">Disponível automaticamente se stock &gt; 0</small>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input" id="isPublic" @bind-Value="product.IsPublic" />
+                        <label class="form-check-label" for="isPublic">
+                            Público (não membros)
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label class="form-label">Descrição</label>
+                    <InputTextArea class="form-control" @bind-Value="product.Description" rows="3" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Imagem</label>
+                <InputFile class="form-control file-input-dark" OnChange="HandleProductImageUpload" accept="image/*" />
+                @if (!string.IsNullOrEmpty(product.ImageSrc) && uploadedProductImagePath == null && product.ImageData != null && product.ImageData.Length > 0)
+                {
+                    <div class="mt-2">
+                        <small class="text-muted">Imagem atual</small>
+                        <br />
+                        <img src="@GetImageUrl(product.ImageSrc)" alt="Preview" class="img-thumbnail mt-1 slideshow-preview" />
+                    </div>
+                }
+                @if (uploadedProductImagePath != null)
+                {
+                    <div class="mt-2">
+                        <small class="text-success">Nova imagem carregada com sucesso!</small>
+                    </div>
+                }
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="() => showProductEditModal = false">Cancelar</button>
+                <button type="submit" class="btn btn-success">Guardar</button>
+            </div>
+        </EditForm>
+    </EditFormContent>
+    <EditFormFooterContent>
+        <!-- Footer is now inside the form -->
+    </EditFormFooterContent>
+    <DeleteConfirmationContent Context="product">
+        <p>Tem a certeza que deseja eliminar o produto <strong>@product.Name</strong>?</p>
+        <p class="text-muted small">Esta ação não pode ser revertida.</p>
+    </DeleteConfirmationContent>
+</CrudModalManager>
+
+<!-- Image Cropper Component -->
+<ImageCropper @ref="imageCropper"
+              ShowModal="showCropperModal"
+              ShowModalChanged="OnCropperModalChanged"
+              OnImageCropped="OnImageCropped"
+              AspectRatio="1.0"
+              AspectRatioHelp="Inventory images are displayed in 1:1 aspect ratio (square) for consistent presentation"
+              ImageFormat="image/jpeg"
+              ImageQuality="0.85" />
+
+@code {
+    private string activeTab = "instruments";
+    private bool loading = true;
+
+    // Instruments
+    private List<Instrument> instruments = new();
+    private List<Instrument> filteredInstruments = new();
+    private List<string> categories = new();
+    private Dictionary<InstrumentCondition, int> conditionStats = new();
+    private string filterCategory = "";
+    private string filterCondition = "";
+
+    // Products
+    private List<Product> products = new();
+    private decimal totalInventoryValue = 0;
+
+    // Image Cropper
+    private bool showCropperModal = false;
+    private ImageCropper? imageCropper;
+    private IBrowserFile? selectedFile;
+    private string? uploadedInstrumentImagePath;
+    private string? uploadedProductImagePath;
+    private bool isUploadingForInstrument = false;
+    private long imageVersion = DateTime.UtcNow.Ticks;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load categories from enum
+        LoadCategoriesFromEnum();
+        await LoadData();
+    }
+
+    private void LoadCategoriesFromEnum()
+    {
+        // Get all enum values and convert to strings
+        categories = Enum.GetValues<InstrumentType>()
+            .Select(e => e.ToString())
+            .ToList();
+    }
+
+    private async Task LoadData()
+    {
+        loading = true;
+
+        // Load instruments
+        var instrumentsList = await InstrumentService.GetAllAsync();
+        instruments = instrumentsList.ToList();
+        filteredInstruments = instruments;
+
+        // Load stats
+        conditionStats = await InstrumentService.GetConditionStatsAsync();
+
+        // Load products
+        var productsList = await ProductService.GetAllAsync();
+        products = productsList.ToList();
+
+        // Calculate total value
+        totalInventoryValue = await ProductService.GetTotalInventoryValueAsync();
+
+        // Refresh cache-bust parameter
+        imageVersion = DateTime.UtcNow.Ticks;
+
+        loading = false;
+    }
+
+    private void SwitchTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private void ApplyFilters()
+    {
+        filteredInstruments = instruments;
+
+        if (!string.IsNullOrEmpty(filterCategory))
+        {
+            filteredInstruments = filteredInstruments.Where(i => i.Category == filterCategory).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(filterCondition) && Enum.TryParse<InstrumentCondition>(filterCondition, out var condition))
+        {
+            filteredInstruments = filteredInstruments.Where(i => i.Condition == condition).ToList();
+        }
+    }
+
+    private string GetConditionDisplayName(InstrumentCondition condition)
+    {
+        return condition switch
+        {
+            InstrumentCondition.Excellent => "Óptimo",
+            InstrumentCondition.Good => "Bom",
+            InstrumentCondition.Worn => "Velho",
+            InstrumentCondition.NeedsMaintenance => "Precisa Manutenção",
+            _ => condition.ToString()
+        };
+    }
+
+    private string GetConditionBadgeClass(InstrumentCondition condition)
+    {
+        return condition switch
+        {
+            InstrumentCondition.Excellent => "bg-success",
+            InstrumentCondition.Good => "bg-info",
+            InstrumentCondition.Worn => "bg-warning",
+            InstrumentCondition.NeedsMaintenance => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    // Instrument Modal State
+    private bool showInstrumentEditModal = false;
+    private bool showInstrumentDeleteModal = false;
+    private bool isInstrumentCreateMode = false;
+    private Instrument? editingInstrument;
+    private Instrument? deletingInstrument;
+
+    // Product Modal State
+    private bool showProductEditModal = false;
+    private bool showProductDeleteModal = false;
+    private bool isProductCreateMode = false;
+    private Product? editingProduct;
+    private Product? deletingProduct;
+
+    // Instrument Modal Methods
+    private void OpenCreateInstrumentModal()
+    {
+        if (!categories.Any())
+        {
+            // Prevent modal from opening if categories haven't loaded yet
+            StateHasChanged(); // Trigger a re-render
+            return;
+        }
+        
+        editingInstrument = Instrument.Create(categories.First(), "Novo Instrumento", InstrumentCondition.Good);
+        isInstrumentCreateMode = true;
+        uploadedInstrumentImagePath = null;
+        showInstrumentEditModal = true;
+    }
+
+    private void OpenEditInstrumentModal(Instrument instrument)
+    {
+        editingInstrument = instrument;
+        isInstrumentCreateMode = false;
+        uploadedInstrumentImagePath = null;
+        showInstrumentEditModal = true;
+    }
+
+    private void OpenDeleteInstrumentModal(Instrument instrument)
+    {
+        deletingInstrument = instrument;
+        showInstrumentDeleteModal = true;
+    }
+
+    private async Task SaveInstrument()
+    {
+        if (editingInstrument == null) return;
+
+        try
+        {
+            if (isInstrumentCreateMode)
+            {
+                await InstrumentService.CreateAsync(editingInstrument);
+            }
+            else
+            {
+                await InstrumentService.UpdateAsync(editingInstrument);
+            }
+
+            await LoadData();
+            showInstrumentEditModal = false;
+            uploadedInstrumentImagePath = null;
+        }
+        catch (Exception ex)
+        {
+            // Log error - in production, show user-friendly error message
+            Console.WriteLine($"Error saving instrument: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteInstrument()
+    {
+        if (deletingInstrument == null) return;
+
+        try
+        {
+            await InstrumentService.DeleteAsync(deletingInstrument.Id);
+            await LoadData();
+            showInstrumentDeleteModal = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting instrument: {ex.Message}");
+        }
+    }
+
+    private void CloseInstrumentEditModal()
+    {
+        showInstrumentEditModal = false;
+        editingInstrument = null;
+        uploadedInstrumentImagePath = null;
+    }
+
+    private void CloseInstrumentDeleteModal()
+    {
+        showInstrumentDeleteModal = false;
+        deletingInstrument = null;
+    }
+
+    // Product Modal Methods
+    private void OpenCreateProductModal()
+    {
+        editingProduct = Product.Create("Novo Produto", "Tipo", 1.00m, 0);
+        isProductCreateMode = true;
+        uploadedProductImagePath = null;
+        showProductEditModal = true;
+    }
+
+    private void OpenEditProductModal(Product product)
+    {
+        editingProduct = product;
+        isProductCreateMode = false;
+        uploadedProductImagePath = null;
+        showProductEditModal = true;
+    }
+
+    private void OpenDeleteProductModal(Product product)
+    {
+        deletingProduct = product;
+        showProductDeleteModal = true;
+    }
+
+    private async Task SaveProduct()
+    {
+        if (editingProduct == null) return;
+
+        try
+        {
+            // Auto-set availability based on stock
+            editingProduct.SetAvailability(editingProduct.Stock > 0);
+            
+            if (isProductCreateMode)
+            {
+                await ProductService.CreateAsync(editingProduct);
+            }
+            else
+            {
+                await ProductService.UpdateAsync(editingProduct);
+            }
+
+            await LoadData();
+            showProductEditModal = false;
+            uploadedProductImagePath = null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving product: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteProduct()
+    {
+        if (deletingProduct == null) return;
+
+        try
+        {
+            await ProductService.DeleteAsync(deletingProduct.Id);
+            await LoadData();
+            showProductDeleteModal = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting product: {ex.Message}");
+        }
+    }
+
+    private void CloseProductEditModal()
+    {
+        showProductEditModal = false;
+        editingProduct = null;
+        uploadedProductImagePath = null;
+    }
+
+    private void CloseProductDeleteModal()
+    {
+        showProductDeleteModal = false;
+        deletingProduct = null;
+    }
+
+    // Image Upload Methods
+    private async Task HandleInstrumentImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var imageFile = e.File;
+            if (imageFile != null)
+            {
+                var maxFileSize = 10 * 1024 * 1024;
+                if (imageFile.Size > maxFileSize)
+                {
+                    return;
+                }
+
+                selectedFile = imageFile;
+                isUploadingForInstrument = true;
+
+                if (imageCropper != null)
+                {
+                    await imageCropper.LoadImageAsync(selectedFile);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Handle error silently or show message
+        }
+    }
+
+    private async Task HandleProductImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var imageFile = e.File;
+            if (imageFile != null)
+            {
+                var maxFileSize = 10 * 1024 * 1024;
+                if (imageFile.Size > maxFileSize)
+                {
+                    return;
+                }
+
+                selectedFile = imageFile;
+                isUploadingForInstrument = false;
+
+                if (imageCropper != null)
+                {
+                    await imageCropper.LoadImageAsync(selectedFile);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Handle error silently or show message
+        }
+    }
+
+    private void OnImageCropped(byte[] croppedImageData)
+    {
+        try
+        {
+            if (croppedImageData != null && croppedImageData.Length > 0)
+            {
+                if (isUploadingForInstrument && editingInstrument != null)
+                {
+                    editingInstrument.ImageData = croppedImageData;
+                    editingInstrument.ImageContentType = "image/jpeg";
+                    uploadedInstrumentImagePath = "uploaded";
+                }
+                else if (!isUploadingForInstrument && editingProduct != null)
+                {
+                    editingProduct.ImageData = croppedImageData;
+                    editingProduct.ImageContentType = "image/jpeg";
+                    uploadedProductImagePath = "uploaded";
+                }
+                
+                // Update cache-bust parameter to force image reload after save
+                imageVersion = DateTime.UtcNow.Ticks;
+                
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    private void OnCropperModalChanged(bool isOpen)
+    {
+        showCropperModal = isOpen;
+        StateHasChanged();
+    }
+    
+    private string GetImageUrl(string imageSrc)
+    {
+        // Add cache-busting parameter to force reload after image update
+        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
+        {
+            return $"{imageSrc}?v={imageVersion}";
+        }
+        return imageSrc ?? string.Empty;
+    }
+}

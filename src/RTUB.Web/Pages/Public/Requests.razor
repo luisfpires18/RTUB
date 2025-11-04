@@ -1,0 +1,399 @@
+@page "/requests"
+@rendermode InteractiveServer
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@using RTUB.Core.Enums
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Extensions
+@using RTUB.Shared
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IRequestService RequestService
+@inject IEmailNotificationService EmailNotificationService
+@inject ILabelService LabelService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject ILogger<Requests> Logger
+
+
+<h1>Pedidos</h1>
+<p class="lead mb-4 text-light-theme">Preencha o formulário abaixo para solicitar a RTUB para o seu evento.</p>
+
+@if (showSuccessMessage)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle"></i> O seu pedido foi submetido com sucesso! Entraremos em contacto em breve.
+        <button type="button" class="btn-close" @onclick="() => showSuccessMessage = false"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> @errorMessage
+        <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <EditForm Model="request" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger mb-3" />
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="name" class="form-label">Nome *</label>
+                            <InputText id="name" class="form-control" @bind-Value="request.Name" placeholder="Inserir nome completo..." />
+                            <ValidationMessage For="@(() => request.Name)" class="text-danger" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email *</label>
+                            <InputText id="email" type="email" class="form-control" @bind-Value="request.Email" placeholder="Inserir email..." />
+                            <ValidationMessage For="@(() => request.Email)" class="text-danger" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label">Telefone *</label>
+                            <InputText id="phone" class="form-control" @bind-Value="request.Phone" placeholder="Inserir telefone..." />
+                            <ValidationMessage For="@(() => request.Phone)" class="text-danger" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="eventType" class="form-label">Tipo de Evento *</label>
+                            <InputText id="eventType" class="form-control" @bind-Value="request.EventType" placeholder="Inserir tipo de evento..." />
+                            <ValidationMessage For="@(() => request.EventType)" class="text-danger" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="dateRangeToggle" @bind="request.IsDateRange" />
+                            <label class="form-check-label" for="dateRangeToggle">
+                                Intervalo de Datas (em vez de data única)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="preferredDate" class="form-label">@(request.IsDateRange ? "Data de Início *" : "Data Preferida *")</label>
+                            <InputDate id="preferredDate" class="form-control" @bind-Value="request.PreferredDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <ValidationMessage For="@(() => request.PreferredDate)" class="text-danger" />
+                            @if (!string.IsNullOrEmpty(dateValidationError))
+                            {
+                                <div class="text-danger small mt-1">@dateValidationError</div>
+                            }
+                        </div>
+                        @if (request.IsDateRange)
+                        {
+                            <div class="col-md-6">
+                                <label for="preferredEndDate" class="form-label">Data de Fim *</label>
+                                <InputDate id="preferredEndDate" class="form-control" @bind-Value="request.PreferredEndDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                @if (!string.IsNullOrEmpty(endDateValidationError))
+                                {
+                                    <div class="text-danger small mt-1">@endDateValidationError</div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-md-6">
+                                <label for="location" class="form-label">Localização *</label>
+                                <InputText id="location" class="form-control" @bind-Value="request.Location" placeholder="Inserir localização..." />
+                                <ValidationMessage For="@(() => request.Location)" class="text-danger" />
+                            </div>
+                        }
+                    </div>
+
+                    @if (request.IsDateRange)
+                    {
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="location" class="form-label">Localização *</label>
+                                <InputText id="location" class="form-control" @bind-Value="request.Location" placeholder="Inserir localização..." />
+                                <ValidationMessage For="@(() => request.Location)" class="text-danger" />
+                            </div>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Informações Adicionais</label>
+                        <InputTextArea id="message" class="form-control" @bind-Value="request.Message" rows="5"
+                                       placeholder="Inserir informações adicionais..." />
+                        <ValidationMessage For="@(() => request.Message)" class="text-danger" />
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>A submeter...</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-send"></i>
+                                <span>Submeter Pedido</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-3 card-purple-no-border">
+            <div class="card-body position-relative">
+                <h5 class="card-title text-white">
+                    <i class="bi bi-info-circle"></i> @(whatToExpectLabel?.Title ?? "O que esperar")
+                    <AuthorizeView Roles="Admin">
+                        <Authorized>
+                            <button class="btn btn-sm btn-link text-white position-absolute top-0 end-0 mt-2 me-2" 
+                                    @onclick="OpenEditModal" 
+                                    title="Editar conteúdo">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </Authorized>
+                    </AuthorizeView>
+                </h5>
+                @if (whatToExpectLabel != null && !string.IsNullOrEmpty(whatToExpectLabel.Content))
+                {
+                    <ul class="text-white text-white-opacity">
+                        @foreach (var line in whatToExpectLabel.Content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            <li>@line</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <ul class="text-white text-white-opacity">
+                        <li>Analisaremos o seu pedido dentro de 48 horas</li>
+                        <li>Um membro da equipa entrará em contacto para discutir detalhes</li>
+                        <li>Forneceremos um orçamento baseado nos seus requisitos</li>
+                        <li>Reserve cedo para garantir disponibilidade</li>
+                    </ul>
+                }
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-envelope"></i> Contacte-nos</h5>
+                <p class="mb-2 text-light-theme">
+                    <strong>Email:</strong><br />
+                    <a href="mailto:realtunab@gmail.comt">realtunab@gmail.com</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Label Modal -->
+<Modal Show="@showEditModal" 
+       ShowChanged="@((value) => showEditModal = value)"
+       Title="Editar Conteúdo"
+       Size="Modal.ModalSize.Large"
+       OnClose="CloseEditModal">
+    <BodyContent>
+        @if (editingLabel != null)
+        {
+            <EditForm Model="editingLabel" OnValidSubmit="SaveLabel">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <div class="mb-3">
+                    <label class="form-label">Título</label>
+                    <InputText class="form-control" @bind-Value="editingLabel.Title" placeholder="Inserir título..." />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Conteúdo</label>
+                    <InputTextArea class="form-control" rows="10" @bind-Value="editingLabel.Content" 
+                                   placeholder="Inserir conteúdo (uma linha por item)..." />
+                    <small class="text-muted">Dica: Use uma linha por item da lista</small>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+</Modal>
+
+@code {
+    private Request request = new();
+    private bool isSubmitting = false;
+    private bool showSuccessMessage = false;
+    private string errorMessage = string.Empty;
+    private string dateValidationError = string.Empty;
+    private string endDateValidationError = string.Empty;
+    private Label? whatToExpectLabel;
+    private Label? editingLabel;
+    private bool showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Set default date to tomorrow
+        request.PreferredDate = DateTime.Today.AddDays(1);
+        
+        // Load the label
+        await LoadLabel();
+    }
+
+    private async Task LoadLabel()
+    {
+        whatToExpectLabel = await LabelService.GetLabelByReferenceAsync("requests_what_to_expect");
+    }
+
+    private void OpenEditModal()
+    {
+        if (whatToExpectLabel != null)
+        {
+            editingLabel = new Label
+            {
+                Id = whatToExpectLabel.Id,
+                Reference = whatToExpectLabel.Reference,
+                Title = whatToExpectLabel.Title,
+                Content = whatToExpectLabel.Content,
+                IsActive = whatToExpectLabel.IsActive
+            };
+            showEditModal = true;
+        }
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingLabel = null;
+    }
+
+    private async Task SaveLabel()
+    {
+        if (editingLabel == null) return;
+
+        try
+        {
+            await LabelService.UpdateLabelContentAsync(
+                editingLabel.Id,
+                editingLabel.Title,
+                editingLabel.Content
+            );
+
+            // Reload the label to get updated content
+            await LoadLabel();
+            
+            showEditModal = false;
+            editingLabel = null;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating label");
+            errorMessage = "Ocorreu um erro ao atualizar o conteúdo. Por favor tente novamente.";
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        isSubmitting = true;
+        errorMessage = string.Empty;
+        showSuccessMessage = false;
+        dateValidationError = string.Empty;
+        endDateValidationError = string.Empty;
+
+        // Validate dates
+        if (request.PreferredDate.Date < DateTime.Today)
+        {
+            dateValidationError = "A data não pode ser no passado.";
+            isSubmitting = false;
+            return;
+        }
+
+        if (request.IsDateRange)
+        {
+            if (request.PreferredEndDate == null)
+            {
+                endDateValidationError = "A data de fim é obrigatória para intervalo de datas.";
+                isSubmitting = false;
+                return;
+            }
+
+            if (request.PreferredEndDate.Value.Date < DateTime.Today)
+            {
+                endDateValidationError = "A data de fim não pode ser no passado.";
+                isSubmitting = false;
+                return;
+            }
+
+            if (request.PreferredEndDate.Value.Date < request.PreferredDate.Date)
+            {
+                endDateValidationError = "A data de fim deve ser posterior ou igual à data de início.";
+                isSubmitting = false;
+                return;
+            }
+        }
+
+        try
+        {
+            var newRequest = await RequestService.CreateRequestAsync(
+                request.Name,
+                request.Email,
+                request.Phone,
+                request.EventType,
+                request.PreferredDate,
+                request.Location,
+                request.Message
+            );
+
+            if (request.PreferredEndDate.HasValue)
+            {
+                await RequestService.SetRequestDateRangeAsync(newRequest.Id, request.PreferredEndDate.Value);
+            }
+
+            // Send email notification to RTUB
+            await EmailNotificationService.SendNewRequestNotificationAsync(
+                newRequest.Id,
+                request.Name,
+                request.Email,
+                request.Phone,
+                request.EventType,
+                request.PreferredDate,
+                request.PreferredEndDate,
+                request.Location,
+                request.Message,
+                newRequest.CreatedAt
+            );
+
+            showSuccessMessage = true;
+            request = new Request { PreferredDate = DateTime.Today.AddDays(1) };
+            StateHasChanged();
+
+            // Scroll to top to show success message
+            await JSRuntime.InvokeVoidAsync("window.scrollTo", 0, 0);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error submitting request");
+            errorMessage = $"Ocorreu um erro ao submeter o seu pedido. Por favor tente novamente ou contacte-nos diretamente.";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        request = new Request { PreferredDate = DateTime.Today.AddDays(1) };
+        errorMessage = string.Empty;
+        showSuccessMessage = false;
+        dateValidationError = string.Empty;
+        endDateValidationError = string.Empty;
+    }
+}
