@@ -2498,6 +2498,14 @@ th:hover {
     box-shadow: 0 4px 12px rgba(111, 66, 193, 0.2);
 }
 
+.closing-callout .btn-link {
+    color: #ffffff !important;
+}
+
+.closing-callout .btn-link:hover {
+    color: #e2e2e2 !important;
+}
+
 .closing-content {
     display: flex;
     align-items: flex-start;
