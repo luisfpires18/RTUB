@@ -17,6 +17,12 @@
             @foreach (var item in TimelineItems.OrderBy(t => t.Year).ThenBy(t => t.Order))
             {
                 <div class="timeline-item-unified @GetItemStateClass(item)">
+                    @if (item.Position.HasValue && item.Position.Value == Position.Magister)
+                    {
+                        <div class="timeline-crown">
+                            <i class="bi bi-star-fill"></i>
+                        </div>
+                    }
                     <div class="timeline-badge-unified">
                         <i class="bi @GetItemIcon(item)"></i>
                     </div>

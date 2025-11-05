@@ -1,0 +1,460 @@
+/* =================================================================
+   Profile Page Redesign Styles
+   ================================================================= */
+
+/* Profile Header Card */
+.profile-header-card {
+  background: linear-gradient(135deg, rgba(111, 66, 193, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%);
+  border: 1px solid rgba(111, 66, 193, 0.3);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.profile-avatar-wrapper {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid var(--bs-primary);
+  box-shadow: 0 4px 8px rgba(111, 66, 193, 0.4);
+}
+
+.profile-avatar-large {
+  width: 150px;
+  height: 150px;
+}
+
+.profile-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-display-name {
+  color: #fff;
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.profile-full-name {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.profile-tuna-name {
+  font-size: 1.1rem;
+  font-style: italic;
+}
+
+.profile-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.profile-header-info-centered {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Unified Timeline */
+.unified-timeline {
+  padding: 1rem 0;
+}
+
+.timeline-container-unified {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-start;
+}
+
+.timeline-item-unified {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(52, 58, 64, 0.3);
+  border-radius: 0.5rem;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.timeline-item-unified.active {
+  background: rgba(111, 66, 193, 0.2);
+  border-color: var(--bs-primary);
+}
+
+.timeline-item-unified.completed {
+  background: rgba(0, 188, 140, 0.1);
+  border-color: var(--bs-success);
+}
+
+.timeline-badge-unified {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.timeline-item-unified.active .timeline-badge-unified {
+  color: var(--bs-primary);
+}
+
+.timeline-item-unified.completed .timeline-badge-unified {
+  color: var(--bs-success);
+}
+
+.timeline-content-unified {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.timeline-label-unified {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #fff;
+}
+
+.timeline-year-unified {
+  font-size: 0.75rem;
+  color: var(--bs-body-color);
+}
+
+.timeline-notes {
+  font-size: 0.7rem;
+  font-style: italic;
+}
+
+.timeline-connector-unified {
+  width: 1.5rem;
+  height: 2px;
+  background: var(--bs-border-color);
+  flex-shrink: 0;
+}
+
+/* Crown icon for Magister */
+.timeline-crown {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  color: #ffd700;
+  z-index: 1;
+}
+
+/* Timeline color classes matching badge colors */
+/* Leitao - grey */
+.timeline-item-unified.timeline-leitao {
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.timeline-item-unified.timeline-leitao .timeline-label-unified,
+.timeline-item-unified.timeline-leitao .timeline-year-unified,
+.timeline-item-unified.timeline-leitao .timeline-badge-unified {
+  color: white;
+}
+
+/* Caloiro - white with black text */
+.timeline-item-unified.timeline-caloiro {
+  background-color: #ffffff;
+  border-color: #dee2e6;
+}
+
+.timeline-item-unified.timeline-caloiro .timeline-label-unified,
+.timeline-item-unified.timeline-caloiro .timeline-year-unified,
+.timeline-item-unified.timeline-caloiro .timeline-badge-unified {
+  color: #000000 !important;
+}
+
+/* Tuno - black */
+.timeline-item-unified.timeline-tuno {
+  background-color: #000000;
+  border-color: #000000;
+}
+
+.timeline-item-unified.timeline-tuno .timeline-label-unified,
+.timeline-item-unified.timeline-tuno .timeline-year-unified,
+.timeline-item-unified.timeline-tuno .timeline-badge-unified {
+  color: white;
+}
+
+/* Veterano - dark purple */
+.timeline-item-unified.timeline-veterano {
+  background-color: #1a1a2e;
+  border-color: #6f42c1;
+}
+
+.timeline-item-unified.timeline-veterano .timeline-label-unified,
+.timeline-item-unified.timeline-veterano .timeline-year-unified,
+.timeline-item-unified.timeline-veterano .timeline-badge-unified {
+  color: white;
+}
+
+/* Tunossauro - even darker purple */
+.timeline-item-unified.timeline-tunossauro {
+  background-color: #2c2c54;
+  border: 2px solid #6f42c1;
+}
+
+.timeline-item-unified.timeline-tunossauro .timeline-label-unified,
+.timeline-item-unified.timeline-tunossauro .timeline-year-unified,
+.timeline-item-unified.timeline-tunossauro .timeline-badge-unified {
+  color: white;
+}
+
+/* Role - green */
+.timeline-item-unified.timeline-role {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+.timeline-item-unified.timeline-role .timeline-label-unified,
+.timeline-item-unified.timeline-role .timeline-year-unified,
+.timeline-item-unified.timeline-role .timeline-badge-unified {
+  color: white;
+}
+
+/* Magister - purple */
+.timeline-item-unified.timeline-magister {
+  background-color: #6f42c1;
+  border-color: #6f42c1;
+}
+
+.timeline-item-unified.timeline-magister .timeline-label-unified,
+.timeline-item-unified.timeline-magister .timeline-year-unified,
+.timeline-item-unified.timeline-magister .timeline-badge-unified {
+  color: white;
+}
+
+/* Profile Section */
+.profile-section {
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--bs-border-color);
+  transition: all 0.2s ease;
+}
+
+.profile-section .card-header {
+  background: rgba(111, 66, 193, 0.05);
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: 1rem 1.25rem;
+}
+
+.profile-section .card-header.clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.profile-section .card-header.clickable:hover {
+  background: rgba(111, 66, 193, 0.1);
+}
+
+.profile-section .card-header h5 {
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.profile-section.collapsed .card-body {
+  display: none;
+}
+
+/* Profile Field */
+.profile-field {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(47, 47, 47, 0.5);
+}
+
+.profile-field:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.profile-field-label {
+  padding-right: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.profile-field-value {
+  color: var(--bs-body-color);
+}
+
+.profile-empty-value {
+  font-style: italic;
+  opacity: 0.7;
+  cursor: help;
+}
+
+/* Profile Timeline */
+.profile-timeline {
+  padding: 1rem 0;
+}
+
+.timeline-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.timeline-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(52, 58, 64, 0.3);
+  border-radius: 0.5rem;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.timeline-item.active {
+  background: rgba(111, 66, 193, 0.2);
+  border-color: var(--bs-primary);
+}
+
+.timeline-item.completed {
+  background: rgba(0, 188, 140, 0.1);
+  border-color: var(--bs-success);
+}
+
+.timeline-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.timeline-item.active .timeline-badge {
+  color: var(--bs-primary);
+}
+
+.timeline-item.completed .timeline-badge {
+  color: var(--bs-success);
+}
+
+.timeline-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.timeline-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #fff;
+}
+
+.timeline-year {
+  font-size: 0.8rem;
+  color: var(--bs-body-color);
+}
+
+.timeline-duration {
+  font-size: 0.75rem;
+}
+
+.timeline-connector {
+  width: 2rem;
+  height: 2px;
+  background: var(--bs-border-color);
+  flex-shrink: 0;
+}
+
+.timeline-subcategories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.timeline-subcategory {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Sticky header on mobile */
+@media (max-width: 767.98px) {
+  .profile-header-card {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    margin-bottom: 1rem;
+  }
+
+  .profile-avatar-wrapper {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .profile-avatar-large {
+    width: 120px;
+    height: 120px;
+  }
+
+  .profile-display-name {
+    font-size: 1.25rem;
+  }
+
+  .profile-tuna-name, .profile-full-name {
+    font-size: 0.95rem;
+  }
+
+  /* Stack timeline items on mobile */
+  .timeline-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .timeline-item {
+    width: 100%;
+  }
+
+  .timeline-connector {
+    width: 2px;
+    height: 1rem;
+    margin: 0 auto;
+  }
+  
+  /* Unified timeline on mobile */
+  .timeline-container-unified {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .timeline-item-unified {
+    width: 100%;
+  }
+  
+  .timeline-connector-unified {
+    width: 2px;
+    height: 1rem;
+    margin: 0 auto;
+  }
+
+  /* Better field layout on mobile */
+  .profile-field-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Desktop 2-column grid */
+@media (min-width: 768px) {
+  .profile-field .row {
+    align-items: baseline;
+  }
+
+  .profile-field-label strong {
+    color: rgba(255, 255, 255, 0.9);
+  }
+}
