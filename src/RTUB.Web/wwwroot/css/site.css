@@ -2524,6 +2524,7 @@ th:hover {
     /* Let the tree size itself naturally */
     display: inline-block;
     min-width: 100%;
+    width: fit-content;
 }
 
 .tree-level {
@@ -2630,17 +2631,25 @@ th:hover {
     .family-tree-viewport {
         /* Ensure viewport takes full width and allows scrolling */
         width: 100vw;
-        /* Compensate for container padding */
-        margin-left: calc(-1 * var(--bs-gutter-x, 0.75rem));
-        margin-right: calc(-1 * var(--bs-gutter-x, 0.75rem));
-        padding-left: var(--bs-gutter-x, 0.75rem);
-        padding-right: var(--bs-gutter-x, 0.75rem);
+        /* Break out of all parent containers completely */
+        position: relative;
+        left: 50%;
+        right: 50%;
+        margin-left: -50vw;
+        margin-right: -50vw;
+        /* Add padding to match original container padding */
+        padding-left: 1rem;
+        padding-right: 1rem;
+        /* Ensure no clipping */
+        overflow-x: auto;
+        overflow-y: visible;
     }
 
     .family-tree-container {
         padding: 10px;
         /* Ensure tree can be wider than viewport */
         min-width: max-content;
+        width: max-content;
     }
 
     .tree-level,
@@ -2650,6 +2659,7 @@ th:hover {
         flex-wrap: nowrap;
         /* Ensure tree can expand horizontally */
         min-width: fit-content;
+        width: fit-content;
     }
 
     .member-node {
