@@ -58,10 +58,12 @@
         public int Year { get; set; }
         public int Order { get; set; } // For sorting items in the same year
         public string Label { get; set; } = "";
-        public string Type { get; set; } = ""; // "membership" or "role"
+        public string Type { get; set; } = ""; // "membership", "subcategory", or "role"
         public string State { get; set; } = ""; // "active", "completed", or ""
         public int? EndYear { get; set; }
         public string? Notes { get; set; }
+        public Position? Position { get; set; } // For role items
+        public MemberCategory? Category { get; set; } // For membership items
     }
 
     private List<TimelineItemModel> TimelineItems
@@ -80,7 +82,8 @@
                     Order = 1,
                     Label = "LEITÃO",
                     Type = "membership",
-                    State = User.IsLeitao() && !User.IsCaloiro() && !User.IsTuno() ? "active" : "completed"
+                    State = User.IsLeitao() && !User.IsCaloiro() && !User.IsTuno() ? "active" : "completed",
+                    Category = MemberCategory.Leitao
                 });
             }
 
@@ -92,7 +95,8 @@
                     Order = 2,
                     Label = "CALOIRO",
                     Type = "membership",
-                    State = User.IsCaloiro() && !User.IsTuno() ? "active" : User.IsTuno() ? "completed" : ""
+                    State = User.IsCaloiro() && !User.IsTuno() ? "active" : User.IsTuno() ? "completed" : "",
+                    Category = MemberCategory.Caloiro
                 });
             }
 
@@ -104,7 +108,8 @@
                     Order = 3,
                     Label = "TUNO",
                     Type = "membership",
-                    State = "active"
+                    State = "active",
+                    Category = MemberCategory.Tuno
                 });
             }
 
@@ -120,7 +125,8 @@
                         Order = 4,
                         Label = "VETERANO",
                         Type = "subcategory",
-                        State = "active"
+                        State = "active",
+                        Category = MemberCategory.Veterano
                     });
                 }
 
@@ -133,7 +139,8 @@
                         Order = 5,
                         Label = "TUNOSSAURO",
                         Type = "subcategory",
-                        State = "active"
+                        State = "active",
+                        Category = MemberCategory.Tunossauro
                     });
                 }
             }
@@ -149,7 +156,8 @@
                     Type = "role",
                     State = assignment.EndYear >= currentYear ? "active" : "completed",
                     EndYear = assignment.EndYear,
-                    Notes = assignment.Notes
+                    Notes = assignment.Notes,
+                    Position = assignment.Position
                 });
             }
 
@@ -159,12 +167,37 @@
 
     private string GetItemStateClass(TimelineItemModel item)
     {
-        return item.State switch
+        var classes = new List<string>();
+        
+        // Add state class
+        if (item.State == "active")
+            classes.Add("active");
+        else if (item.State == "completed")
+            classes.Add("completed");
+        
+        // Add category-specific or position-specific class
+        if (item.Category.HasValue)
         {
-            "active" => "active",
-            "completed" => "completed",
-            _ => ""
-        };
+            classes.Add(item.Category.Value switch
+            {
+                MemberCategory.Leitao => "timeline-leitao",
+                MemberCategory.Caloiro => "timeline-caloiro",
+                MemberCategory.Tuno => "timeline-tuno",
+                MemberCategory.Veterano => "timeline-veterano",
+                MemberCategory.Tunossauro => "timeline-tunossauro",
+                _ => ""
+            });
+        }
+        else if (item.Position.HasValue)
+        {
+            // Check if it's Magister for special purple color, otherwise green
+            if (item.Position.Value == Position.Magister)
+                classes.Add("timeline-magister");
+            else
+                classes.Add("timeline-role");
+        }
+        
+        return string.Join(" ", classes.Where(c => !string.IsNullOrEmpty(c)));
     }
 
     private string GetItemIcon(TimelineItemModel item)
