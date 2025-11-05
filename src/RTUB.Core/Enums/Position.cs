@@ -23,5 +23,8 @@ public enum Position
     SegundoRelatorConselhoFiscal,
 
     // Conselho de Veteranos
-    PresidenteConselhoVeteranos
+    PresidenteConselhoVeteranos,
+
+    // Outros Cargos
+    Ensaiador
 }
