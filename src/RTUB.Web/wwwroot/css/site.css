@@ -1211,6 +1211,7 @@ input::placeholder, textarea::placeholder, select::placeholder {
     background-color: #6f42c1;
     color: white;
     font-weight: bold;
+    vertical-align: baseline;
 }
 
 /* Category badges */
