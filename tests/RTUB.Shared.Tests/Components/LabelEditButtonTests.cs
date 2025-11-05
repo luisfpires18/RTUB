@@ -23,9 +23,8 @@ public class LabelEditButtonTests : TestContext
         var cut = RenderComponent<LabelEditButton>(parameters => parameters
             .Add(p => p.CurrentLabel, label));
 
-        // Assert - AuthorizeView renders but button inside should not be accessible
-        cut.Markup.Should().Contain("AuthorizeView", "AuthorizeView component should render");
-        // The button will be in markup but authorization prevents it from showing
+        // Assert - AuthorizeView renders nothing when not authorized
+        cut.Markup.Should().BeEmpty("button should not render for unauthorized users");
     }
 
     [Fact]

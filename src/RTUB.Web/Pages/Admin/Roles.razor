@@ -46,7 +46,7 @@
                                 @foreach (var year in fiscalYears)
                                 {
                                     var isCurrent = year == currentFiscalYear;
-                                    <option value="@year">@year@(isCurrent ? " (ATUAL)" : "")</option>
+                                    <option value="@year">@year@(isCurrent ? " (Ano ativo)" : "")</option>
                                 }
                             </select>
                         </div>

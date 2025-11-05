@@ -372,12 +372,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         if (action == "Modified")
         {
             // Add target user identification at the beginning for easy reference
-            changes["_TargetUser"] = new
-            {
-                UserId = modifiedUserId,
-                UserName = modifiedUserName,
-                Email = modifiedUserEmail
-            };
+            // Store as a simple readable string instead of JSON object
+            changes["_TargetUser"] = $"{modifiedUserName}";
 
             // First pass: Check if any modified property is a critical field
             foreach (var property in entry.Properties)
@@ -462,7 +458,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         // Skip audit log if there are no meaningful changes to log (for Modified actions only)
         // Note: changes.Count > 1 because _TargetUser is always added
-        if (action == "Modified" && changes.Count <= 1)
+        // However, we still create an audit log if it's a critical change even if no values are logged
+        if (action == "Modified" && changes.Count <= 1 && !isCriticalChange)
         {
             return null;
         }
