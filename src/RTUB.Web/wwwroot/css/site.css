@@ -2022,7 +2022,6 @@ th:hover {
     color: #e2e2e2;
 }
 
-.about-us-content p:first-of-type,
 .about-us-content::first-line {
     font-size: 1.15rem;
     color: #f0f0f0;
@@ -2052,7 +2051,6 @@ th:hover {
         line-height: 1.7;
     }
 
-    .about-us-content p:first-of-type,
     .about-us-content::first-line {
         font-size: 1.0625rem;
     }
