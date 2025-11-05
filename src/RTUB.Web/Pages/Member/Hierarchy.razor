@@ -5,6 +5,7 @@
 @using RTUB.Application.Extensions
 @attribute [Authorize]
 @inject UserManager<ApplicationUser> UserManager
+@inject IJSRuntime JSRuntime
 
 <h1 class="text-center mb-4">Hierarquia da Tuna - Família</h1>
 <p class="text-center mb-4">Árvore genealógica dos membros mostrando a relação Padrinho-Afilhado</p>
@@ -25,15 +26,17 @@ else if (!members.Any())
 }
 else
 {
-    <div class="family-tree-container">
-        @* Root level - members without mentors *@
-        <div class="tree-level">
-            @foreach (var rootMember in rootMembers)
-            {
-                <div class="tree-node-wrapper">
-                    @RenderMemberNode(rootMember)
-                </div>
-            }
+    <div class="family-tree-viewport" id="familyTreeViewport">
+        <div class="family-tree-container" id="familyTreeContainer">
+            @* Root level - members without mentors *@
+            <div class="tree-level">
+                @foreach (var rootMember in rootMembers)
+                {
+                    <div class="tree-node-wrapper" data-is-root="true">
+                        @RenderMemberNode(rootMember)
+                    </div>
+                }
+            </div>
         </div>
     </div>
 }
@@ -48,6 +51,15 @@ else
     {
         LoadMembersAndBuildHierarchy();
         isLoading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !isLoading && members.Any())
+        {
+            // Center on root node after initial render
+            await JSRuntime.InvokeVoidAsync("RTUB.centerFamilyTree");
+        }
     }
 
     private void LoadMembersAndBuildHierarchy()
