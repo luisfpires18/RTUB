@@ -11,7 +11,7 @@
         <strong class="text-white-full">@Label:</strong>
     </div>
     <div class="col-12 col-md-8 profile-field-value">
-        @if (!string.IsNullOrEmpty(Value))
+        @if (!string.IsNullOrWhiteSpace(Value))
         {
             @if (ValueContent != null)
             {
