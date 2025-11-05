@@ -96,7 +96,6 @@
 
     private async Task OnEditClick()
     {
-        IsEditing = true;
         await OnEdit.InvokeAsync();
     }
 
@@ -107,7 +106,6 @@
 
     private async Task OnCancelClick()
     {
-        IsEditing = false;
         await OnCancel.InvokeAsync();
     }
 }
