@@ -2502,7 +2502,6 @@ th:hover {
 /* Hierarquia Family Tree Styles */
 .family-tree-container {
     padding: 20px;
-    overflow: auto;
     min-height: 400px;
     width: 100%;
     position: relative;
@@ -2705,8 +2704,8 @@ th:hover {
         padding: 10px;
         /* Optimize scrolling performance on mobile */
         -webkit-overflow-scrolling: touch;
-        /* Allow pinch-to-zoom on mobile */
-        touch-action: pan-x pan-y;
+        /* Allow custom touch handling for pinch-to-zoom and pan */
+        touch-action: none;
     }
 
     .tree-level,

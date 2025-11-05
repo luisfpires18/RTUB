@@ -48,7 +48,7 @@ else
          @onmousemove="HandleMouseMove"
          @onmouseup="HandleMouseUp"
          @onmouseleave="HandleMouseLeave">
-        <div class="family-tree-viewport" style="transform: scale(@(currentZoom / 100.0)) translate(@panX px, @panY px);">
+        <div class="family-tree-viewport" style="transform: scale(@(currentZoom / 100.0)) translate(@(panX)px, @(panY)px);">
             @* Root level - members without mentors *@
             <div class="tree-level">
                 @foreach (var rootMember in rootMembers)
@@ -74,6 +74,8 @@ else
     private const int MinZoom = 50;
     private const int MaxZoom = 200;
     private const int ZoomStep = 10;
+    private const int LeftMouseButton = 0;
+    private const double MinPinchScaleThreshold = 0.1;
     private double panX = 0;
     private double panY = 0;
     
@@ -189,7 +191,7 @@ else
     private void HandleMouseDown(MouseEventArgs e)
     {
         // Only start dragging on left mouse button
-        if (e.Button == 0)
+        if (e.Button == LeftMouseButton)
         {
             isDragging = true;
             startX = e.ClientX;
@@ -255,11 +257,16 @@ else
             var currentDistance = Math.Sqrt(dx * dx + dy * dy);
             
             var scale = currentDistance / initialPinchDistance;
-            var newZoom = (int)(initialPinchZoom * scale);
             
-            // Clamp zoom level
-            currentZoom = Math.Max(MinZoom, Math.Min(MaxZoom, newZoom));
-            StateHasChanged();
+            // Only apply zoom if the scale change is significant enough to prevent jittery behavior
+            if (Math.Abs(scale - 1.0) > MinPinchScaleThreshold)
+            {
+                var newZoom = (int)(initialPinchZoom * scale);
+                
+                // Clamp zoom level
+                currentZoom = Math.Max(MinZoom, Math.Min(MaxZoom, newZoom));
+                StateHasChanged();
+            }
         }
         else if (isDragging && e.Touches.Length == 1)
         {
