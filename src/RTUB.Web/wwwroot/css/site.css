@@ -2239,6 +2239,11 @@ th:hover {
     white-space: pre-wrap;
 }
 
+.motivation-edit-button {
+    position: relative;
+    z-index: 2;
+}
+
 /* How to Join Section */
 .join-us-how-to {
     max-width: 700px;
