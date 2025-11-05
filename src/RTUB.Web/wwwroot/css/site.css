@@ -2606,24 +2606,64 @@ th:hover {
 @media (max-width: 768px) {
     .family-tree-container {
         padding: 10px;
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+        /* Allow horizontal scrolling on mobile for wide trees */
+        max-width: 100vw;
     }
 
     .tree-level,
     .children-container {
-        gap: 20px;
+        gap: 15px;
+        /* Prevent wrapping on mobile for better tree structure visibility */
+        flex-wrap: nowrap;
+    }
+
+    .member-node {
+        /* Ensure nodes maintain structure on mobile */
+        min-width: fit-content;
     }
 
     .member-card {
-        min-width: 120px;
-        padding: 10px;
+        min-width: 100px;
+        padding: 8px;
+        /* Slightly smaller cards on mobile */
+        border-width: 1.5px;
+    }
+
+    .member-avatar-medium {
+        width: 50px;
+        height: 50px;
     }
 
     .member-name {
-        font-size: 12px;
+        font-size: 11px;
+        /* Better text wrapping for mobile */
+        word-break: break-word;
+        max-width: 100px;
     }
 
     .member-nickname {
-        font-size: 11px;
+        font-size: 10px;
+        word-break: break-word;
+        max-width: 100px;
+    }
+
+    .children-connector {
+        height: 20px;
+        margin: 5px auto;
+    }
+
+    .children-container::before {
+        /* Adjust connector line for tighter mobile spacing */
+        width: calc(100% - 30px);
+    }
+
+    .child-node::before {
+        /* Adjust vertical connector for tighter spacing */
+        height: 5px;
+        top: -5px;
     }
 }
 

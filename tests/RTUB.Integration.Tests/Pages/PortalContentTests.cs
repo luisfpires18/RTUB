@@ -61,7 +61,7 @@ public class PortalContentTests : IClassFixture<WebApplicationFactory<Program>>
 
     [Theory]
     [InlineData("/")]
-    [InlineData("/orgaos-sociais")]
+    [InlineData("/roles")]
     [InlineData("/requests")]
     public async Task PublicPages_ContainProperContentType(string url)
     {

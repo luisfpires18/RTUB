@@ -132,7 +132,7 @@ public class DataWorkflowTests : IClassFixture<WebApplicationFactory<Program>>
             "/music",
             "/shop",
             "/requests",
-            "/orgaos-sociais"
+            "/roles"
         };
 
         // Act & Assert

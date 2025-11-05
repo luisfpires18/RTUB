@@ -33,7 +33,7 @@ public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Progr
         var musicResponse = await _client.GetAsync("/music");
         var eventsResponse = await _client.GetAsync("/events");
         var shopResponse = await _client.GetAsync("/shop");
-        var orgaosResponse = await _client.GetAsync("/orgaos-sociais");
+        var rolesResponse = await _client.GetAsync("/roles");
         var requestsResponse = await _client.GetAsync("/requests");
 
         // Assert - All public pages should be accessible
@@ -41,7 +41,7 @@ public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Progr
         musicResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         eventsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         shopResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        orgaosResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        rolesResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         requestsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
@@ -137,7 +137,7 @@ public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Progr
             "/music",
             "/events",
             "/shop",
-            "/orgaos-sociais",
+            "/roles",
             "/requests",
             "/login"
         };
@@ -207,7 +207,7 @@ public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Progr
     public async Task ConcurrentPageLoads_HandleMultipleRequests()
     {
         // Arrange
-        var pages = new[] { "/", "/music", "/events", "/shop", "/orgaos-sociais" };
+        var pages = new[] { "/", "/music", "/events", "/shop", "/roles" };
 
         // Act - Load pages concurrently
         var tasks = pages.Select(page => _client.GetAsync(page)).ToArray();

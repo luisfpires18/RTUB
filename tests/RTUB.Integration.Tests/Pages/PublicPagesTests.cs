@@ -94,23 +94,23 @@ public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
     #endregion
 
-    #region OrgaosSociais Page Tests
+    #region Roles Page Tests
 
     [Fact]
-    public async Task OrgaosSociaisPage_ReturnsSuccessStatusCode()
+    public async Task RolesPage_ReturnsSuccessStatusCode()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/orgaos-sociais");
+        var response = await _client.GetAsync("/roles");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
-    public async Task OrgaosSociaisPage_ContainsExpectedContent()
+    public async Task RolesPage_ContainsExpectedContent()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/orgaos-sociais");
+        var response = await _client.GetAsync("/roles");
         var content = await response.Content.ReadAsStringAsync();
 
         // Assert
@@ -119,10 +119,10 @@ public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
-    public async Task OrgaosSociaisPage_HasCorrectContentType()
+    public async Task RolesPage_HasCorrectContentType()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/orgaos-sociais");
+        var response = await _client.GetAsync("/roles");
 
         // Assert
         response.Content.Headers.ContentType?.MediaType.Should().Be("text/html");
@@ -141,13 +141,13 @@ public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
         // Act - Navigate to each public page
         var shopResponse = await _client.GetAsync("/shop");
         var requestsResponse = await _client.GetAsync("/requests");
-        var orgaosResponse = await _client.GetAsync("/orgaos-sociais");
+        var rolesResponse = await _client.GetAsync("/roles");
 
         // Assert
         homeResponse.IsSuccessStatusCode.Should().BeTrue();
         shopResponse.IsSuccessStatusCode.Should().BeTrue();
         requestsResponse.IsSuccessStatusCode.Should().BeTrue();
-        orgaosResponse.IsSuccessStatusCode.Should().BeTrue();
+        rolesResponse.IsSuccessStatusCode.Should().BeTrue();
     }
 
     [Fact]
@@ -156,12 +156,12 @@ public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
         // Arrange & Act - Navigate through public pages in sequence
         var shopResponse = await _client.GetAsync("/shop");
         var requestsResponse = await _client.GetAsync("/requests");
-        var orgaosResponse = await _client.GetAsync("/orgaos-sociais");
+        var rolesResponse = await _client.GetAsync("/roles");
 
         // Assert
         shopResponse.IsSuccessStatusCode.Should().BeTrue();
         requestsResponse.IsSuccessStatusCode.Should().BeTrue();
-        orgaosResponse.IsSuccessStatusCode.Should().BeTrue();
+        rolesResponse.IsSuccessStatusCode.Should().BeTrue();
     }
 
     #endregion
