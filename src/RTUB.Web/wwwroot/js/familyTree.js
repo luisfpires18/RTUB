@@ -4,7 +4,7 @@ window.RTUB = window.RTUB || {};
 (function() {
     'use strict';
 
-    // Center the family tree viewport on the first root node
+    // Center the family tree viewport on the root node or center of tree
     RTUB.centerFamilyTree = function() {
         const viewport = document.getElementById('familyTreeViewport');
         const container = document.getElementById('familyTreeContainer');
@@ -13,25 +13,19 @@ window.RTUB = window.RTUB || {};
             return;
         }
 
-        // Find the first root node
-        const rootNode = container.querySelector('[data-is-root="true"]');
+        // On mobile, the container has 50vw padding on each side
+        // We want to scroll so the tree content (not padding) is centered in the viewport
         
-        if (!rootNode) {
-            return;
-        }
-
-        // Get positions
-        const viewportRect = viewport.getBoundingClientRect();
-        const rootRect = rootNode.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
+        // Calculate the scroll position to center the content
+        // The container's scroll width includes the padding
+        const scrollWidth = container.scrollWidth;
+        const viewportWidth = viewport.clientWidth;
         
-        // Calculate the offset needed to center the root node
-        // Account for the difference between container and viewport positions
-        const rootOffsetInContainer = rootRect.left - containerRect.left;
-        const targetScroll = rootOffsetInContainer - (viewportRect.width / 2) + (rootRect.width / 2);
+        // Center position: scroll to show middle of the scrollable content
+        const centerScroll = (scrollWidth - viewportWidth) / 2;
         
-        // Scroll to center the root, but don't go negative
-        viewport.scrollLeft = Math.max(0, targetScroll);
+        // Set scroll position to center
+        viewport.scrollLeft = centerScroll;
     };
 
     // Re-center on window resize or orientation change

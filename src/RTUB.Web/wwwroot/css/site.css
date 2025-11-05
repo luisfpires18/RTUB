@@ -2637,22 +2637,34 @@ th:hover {
         right: 50%;
         margin-left: -50vw;
         margin-right: -50vw;
-        /* Add padding to match original container padding */
-        padding-left: 1rem;
-        padding-right: 1rem;
         /* Ensure no clipping */
         overflow-x: auto;
         overflow-y: visible;
+        /* Remove default padding - container will handle it */
     }
 
     .family-tree-container {
-        padding: 10px;
+        /* Add significant horizontal padding so tree can be centered with scroll space on both sides */
+        padding: 10px 50vw 10px 50vw;
         /* Ensure tree can be wider than viewport */
-        min-width: max-content;
+        min-width: 100vw;
         width: max-content;
+        /* Center the tree content */
+        display: flex;
+        justify-content: center;
     }
 
-    .tree-level,
+    .tree-level {
+        gap: 15px;
+        /* Prevent wrapping on mobile for better tree structure visibility */
+        flex-wrap: nowrap;
+        /* Ensure tree can expand horizontally */
+        min-width: fit-content;
+        width: fit-content;
+        /* Override desktop justify-content */
+        justify-content: center;
+    }
+    
     .children-container {
         gap: 15px;
         /* Prevent wrapping on mobile for better tree structure visibility */
