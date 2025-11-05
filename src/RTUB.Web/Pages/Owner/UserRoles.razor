@@ -101,6 +101,11 @@ else
                             @GetLoginStatusBadge(user)
                         </td>
                         <td>
+                            <button class="btn btn-sm btn-purple me-1" 
+                                    @onclick="@(() => OpenUserDetailsModal(user))"
+                                    title="Ver Detalhes">
+                                <i class="bi bi-eye"></i>
+                            </button>
                             <button class="btn btn-sm btn-light" 
                                     @onclick="@(() => OpenEditRoleModal(user, currentRole))"
                                     title="Editar Função">
@@ -133,11 +138,11 @@ else
         {
             <div class="mb-3">
                 <div class="d-flex align-items-center mb-3">
-                    <img src="@selectedUser.ProfilePictureSrc" alt="@selectedUser.FirstName"
+                    <img src="@selectedUser.ProfilePictureSrc" alt="@selectedUser.Nickname"
                          class="member-avatar-small me-2" />
                     <div>
-                        <div><strong>@selectedUser.FirstName @selectedUser.LastName</strong></div>
-                        <div class="text-muted small">@selectedUser.Nickname</div>
+                        <div><strong>@selectedUser.Nickname</strong></div>
+                        <div class="text-muted small">@selectedUser.FirstName @selectedUser.LastName</div>
                     </div>
                 </div>
                 
@@ -161,6 +166,79 @@ else
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseEditRoleModal">Cancelar</button>
         <button type="button" class="btn btn-primary" @onclick="SaveRoleChange">Guardar</button>
+    </FooterContent>
+</Modal>
+
+<!-- User Details Modal -->
+<Modal Show="@showUserDetailsModal"
+       ShowChanged="@((value) => showUserDetailsModal = value)"
+       Title="Detalhes do Utilizador"
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        @if (selectedUserForDetails != null)
+        {
+            <div class="mb-3">
+                <div class="d-flex align-items-center mb-3">
+                    <img src="@selectedUserForDetails.ProfilePictureSrc" alt="@selectedUserForDetails.Nickname"
+                         class="member-avatar-small me-2" />
+                    <div>
+                        <div><strong>@selectedUserForDetails.Nickname</strong></div>
+                        <div class="text-muted small">@selectedUserForDetails.FirstName @selectedUserForDetails.LastName</div>
+                        <div class="text-muted small"><code>@selectedUserForDetails.UserName</code></div>
+                    </div>
+                </div>
+                
+                <h6 class="mb-3">Estado da Conta</h6>
+                
+                <div class="d-flex flex-column gap-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Bloqueado:</span>
+                        @if (IsAccountLocked(selectedUserForDetails))
+                        {
+                            <span class="badge bg-danger">
+                                <i class="bi bi-lock-fill"></i> Sim
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">
+                                <i class="bi bi-unlock-fill"></i> Não
+                            </span>
+                        }
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Necessita Alterar Password:</span>
+                        @if (selectedUserForDetails.RequirePasswordChange)
+                        {
+                            <span class="badge bg-warning">
+                                <i class="bi bi-key-fill"></i> Sim
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle-fill"></i> Não
+                            </span>
+                        }
+                    </div>
+                </div>
+                
+                @if (IsAccountLocked(selectedUserForDetails))
+                {
+                    <div class="alert alert-danger mt-3 mb-0">
+                        <small>
+                            <i class="bi bi-info-circle"></i> 
+                            Conta bloqueada até @selectedUserForDetails.LockoutEnd?.DateTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </small>
+                    </div>
+                }
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseUserDetailsModal">Fechar</button>
     </FooterContent>
 </Modal>
 
@@ -190,6 +268,10 @@ else
     private bool showEditRoleModal = false;
     private string selectedRoleInModal = "";
     private string currentRoleBeforeEdit = "";
+    
+    // User details modal
+    private bool showUserDetailsModal = false;
+    private ApplicationUser? selectedUserForDetails = null;
     
     // Confirmation dialog
     private bool showConfirmDialog = false;
@@ -287,6 +369,29 @@ else
         selectedUser = null;
         selectedRoleInModal = "";
         currentRoleBeforeEdit = "";
+    }
+    
+    private async Task OpenUserDetailsModal(ApplicationUser user)
+    {
+        // Fetch fresh data from the database to ensure we have the latest values
+        var freshUser = await UserManager.FindByIdAsync(user.Id);
+        if (freshUser != null)
+        {
+            selectedUserForDetails = freshUser;
+            showUserDetailsModal = true;
+        }
+    }
+    
+    private void CloseUserDetailsModal()
+    {
+        showUserDetailsModal = false;
+        selectedUserForDetails = null;
+    }
+    
+    private bool IsAccountLocked(ApplicationUser user)
+    {
+        // Account is locked if LockoutEnd is set and is in the future
+        return user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow;
     }
     
     private async Task SaveRoleChange()

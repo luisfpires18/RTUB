@@ -72,7 +72,7 @@ public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task RehearsalsPage_WithoutAuth_RedirectsToLogin()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/ensaios");
+        var response = await _client.GetAsync("/rehearsals");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
@@ -101,7 +101,7 @@ public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
     [Theory]
     [InlineData("/members")]
     [InlineData("/member/hierarquia")]
-    [InlineData("/ensaios")]
+    [InlineData("/rehearsals")]
     [InlineData("/profile")]
     public async Task MemberPages_RequireAuthentication(string url)
     {
@@ -119,7 +119,7 @@ public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task MemberPages_AllRequireAuthenticationInSequence()
     {
         // Arrange
-        var memberUrls = new[] { "/members", "/member/hierarquia", "/ensaios", "/profile" };
+        var memberUrls = new[] { "/members", "/member/hierarquia", "/rehearsals", "/profile" };
 
         // Act & Assert
         foreach (var url in memberUrls)

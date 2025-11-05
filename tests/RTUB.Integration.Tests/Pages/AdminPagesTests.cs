@@ -118,7 +118,7 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task RehearsalManagementPage_WithoutAuth_RedirectsToLogin()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/admin/ensaios");
+        var response = await _client.GetAsync("/admin/rehearsals");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
@@ -136,7 +136,7 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     [InlineData("/admin/slideshow-management")]
     [InlineData("/admin/labels")]
     [InlineData("/admin/requests")]
-    [InlineData("/admin/ensaios")]
+    [InlineData("/admin/rehearsals")]
     public async Task AdminPages_RequireAuthentication(string url)
     {
         // Arrange & Act
@@ -161,7 +161,7 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
             "/admin/slideshow-management",
             "/admin/labels",
             "/admin/requests",
-            "/admin/ensaios",
+            "/admin/rehearsals",
         };
 
         // Act & Assert

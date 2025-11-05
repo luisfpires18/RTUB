@@ -902,11 +902,11 @@ public class ApplicationDbContextTests : IDisposable
         auditLog.EntityType.Should().Be("ApplicationUser");
         auditLog.Changes.Should().NotBeNullOrEmpty();
 
-        // Verify the changes contain _TargetUser identification
+        // Verify the changes contain _TargetUser identification in simplified string format
         auditLog.Changes.Should().Contain("_TargetUser");
         auditLog.Changes.Should().Contain("targetuser");
         auditLog.Changes.Should().Contain("target@example.com");
-        auditLog.Changes.Should().Contain(user.Id);
+        // UserId is no longer included in the simplified string format
     }
 
     [Fact]
@@ -1008,14 +1008,14 @@ public class ApplicationDbContextTests : IDisposable
         _context.AuditLogs.RemoveRange(existingLogs);
         await _context.SaveChangesAsync();
 
-        // Act - Modify only excluded fields (SecurityStamp, EmailConfirmed)
+        // Act - Modify only excluded fields that are NOT critical (EmailConfirmed, PhoneNumberConfirmed)
         var userFromDb = await _context.Users.FindAsync(user.Id);
         userFromDb.Should().NotBeNull();
-        userFromDb!.SecurityStamp = "newstamp";
-        userFromDb.EmailConfirmed = true;
+        userFromDb!.EmailConfirmed = true;
+        userFromDb.PhoneNumberConfirmed = true;
         await _context.SaveChangesAsync();
 
-        // Assert - No audit log should be created because only excluded fields changed
+        // Assert - No audit log should be created because only non-critical excluded fields changed
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().BeEmpty();
     }
