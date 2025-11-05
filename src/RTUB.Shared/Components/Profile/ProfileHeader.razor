@@ -11,69 +11,58 @@
 
 <div class="profile-header-card card mb-4">
     <div class="card-body">
-        <div class="row align-items-center">
-            <!-- Avatar Section -->
-            <div class="col-12 col-md-auto text-center mb-3 mb-md-0">
-                <div class="profile-avatar-wrapper profile-avatar-large">
-                    <img src="@GetProfilePictureUrl()" alt="Foto de Perfil" class="profile-avatar" />
-                </div>
-                <button class="btn btn-sm btn-outline-light mt-2 d-md-none" @onclick="OnUploadPhoto">
-                    <i class="bi bi-upload"></i> Carregar Foto
-                </button>
-            </div>
-
-            <!-- User Info Section -->
-            <div class="col-12 col-md">
-                <div class="profile-header-info">
-                    @if (!string.IsNullOrEmpty(User.Nickname))
-                    {
-                        <h2 class="profile-display-name mb-1">@User.Nickname</h2>
-                        <p class="profile-full-name text-muted mb-2">
-                            @User.FirstName @User.LastName
-                        </p>
-                    }
-                    else
-                    {
-                        <h2 class="profile-display-name mb-1">@GetDisplayName()</h2>
-                    }
+        <div class="row">
+            <!-- Avatar and Info Section - Centered -->
+            <div class="col-12">
+                <div class="text-center">
+                    <!-- Avatar -->
+                    <div class="profile-avatar-wrapper profile-avatar-large mx-auto mb-3">
+                        <img src="@GetProfilePictureUrl()" alt="Foto de Perfil" class="profile-avatar" />
+                    </div>
                     
-                    <!-- Role Badges -->
-                    <div class="profile-badges mb-2">
-                        @{
-                            var displayCategories = StatusHelper.GetDisplayCategories(User);
-                        }
-                        @foreach (var category in displayCategories)
+                    <!-- Name and Badges -->
+                    <div class="profile-header-info-centered">
+                        @if (!string.IsNullOrEmpty(User.Nickname))
                         {
-                            <CategoryBadge Category="category" AdditionalClasses="me-1 mb-1" />
+                            <h2 class="profile-display-name mb-1">@User.Nickname</h2>
+                            <p class="profile-full-name text-muted mb-3">
+                                @User.FirstName @User.LastName
+                            </p>
                         }
-                        @if (User.Positions.Any())
+                        else
                         {
-                            @foreach (var position in User.Positions)
-                            {
-                                <PositionBadge Position="position" AdditionalClasses="me-1 mb-1" />
+                            <h2 class="profile-display-name mb-3">@GetDisplayName()</h2>
+                        }
+                        
+                        <!-- Role Badges -->
+                        <div class="profile-badges mb-3 d-flex justify-content-center flex-wrap">
+                            @{
+                                var displayCategories = StatusHelper.GetDisplayCategories(User);
                             }
-                        }
-                    </div>
+                            @foreach (var category in displayCategories)
+                            {
+                                <CategoryBadge Category="category" AdditionalClasses="me-1 mb-1" />
+                            }
+                            @if (User.Positions.Any())
+                            {
+                                @foreach (var position in User.Positions)
+                                {
+                                    <PositionBadge Position="position" AdditionalClasses="me-1 mb-1" />
+                                }
+                            }
+                        </div>
 
-                    <!-- Primary Actions - Desktop -->
-                    <div class="d-none d-md-flex gap-2 mt-3">
-                        <button class="btn btn-sm btn-outline-light" @onclick="OnUploadPhoto">
-                            <i class="bi bi-upload"></i> Carregar Foto
-                        </button>
-                        <button class="btn btn-sm btn-outline-light" @onclick="OnChangePassword">
-                            <i class="bi bi-key"></i> Alterar Palavra-passe
-                        </button>
+                        <!-- Primary Actions -->
+                        <div class="d-flex gap-2 justify-content-center flex-wrap">
+                            <button class="btn btn-sm btn-outline-light" @onclick="OnUploadPhoto">
+                                <i class="bi bi-upload"></i> Carregar Foto
+                            </button>
+                            <button class="btn btn-sm btn-outline-light" @onclick="OnChangePassword">
+                                <i class="bi bi-key"></i> Alterar Palavra-passe
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Primary Actions - Mobile (Stacked) -->
-        <div class="d-md-none mt-3">
-            <div class="d-grid gap-2">
-                <button class="btn btn-outline-light" @onclick="OnChangePassword">
-                    <i class="bi bi-key"></i> Alterar Palavra-passe
-                </button>
             </div>
         </div>
     </div>

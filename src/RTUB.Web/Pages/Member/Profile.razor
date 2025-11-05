@@ -129,27 +129,8 @@ else
                     <ProfileField Label="Instrumento Principal" 
                                 Value="@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : null)" />
                     
-                    <ProfileField Label="Padrinho">
-                        <ValueContent>
-                            @if (mentor != null)
-                            {
-                                <span class="text-white-full">
-                                    @mentor.FirstName @mentor.LastName
-                                    @if (!string.IsNullOrEmpty(mentor.Nickname))
-                                    {
-                                        <text>"@mentor.Nickname"</text>
-                                    }
-                                </span>
-                            }
-                            else
-                            {
-                                <span class="text-muted profile-empty-value" title="Este campo ainda não foi preenchido">
-                                    Não definido
-                                    <i class="bi bi-info-circle-fill ms-1" style="font-size: 0.85em;"></i>
-                                </span>
-                            }
-                        </ValueContent>
-                    </ProfileField>
+                    <ProfileField Label="Padrinho" 
+                                Value="@GetMentorDisplayName()" />
 
                     <div class="profile-field">
                         <div class="row">
@@ -157,7 +138,7 @@ else
                                 <strong class="text-white-full">Percurso na Tuna:</strong>
                             </div>
                             <div class="col-12 col-md-8 profile-field-value">
-                                <ProfileTimeline User="@user" />
+                                <UnifiedTimeline User="@user" RoleAssignments="@roleAssignments" />
                             </div>
                         </div>
                     </div>
@@ -172,37 +153,6 @@ else
                                 }
                             </ValueContent>
                         </ProfileField>
-                    }
-                    
-                    @* Histórico de Cargos *@
-                    @if (roleAssignments != null && roleAssignments.Any())
-                    {
-                        <div class="profile-field">
-                            <div class="row">
-                                <div class="col-12">
-                                    <h6 class="border-bottom pb-2 mb-3 text-white-full">Histórico de Cargos</h6>
-                                    <div class="role-history-list">
-                                        @foreach (var assignment in roleAssignments.OrderByDescending(a => a.StartYear))
-                                        {
-                                            <div class="role-history-item p-2 mb-2 border rounded">
-                                                <div class="d-flex justify-content-between align-items-start">
-                                                    <div>
-                                                        <span class="badge me-2 badge-fiscal-year">@assignment.FiscalYear</span>
-                                                        <strong class="text-white-full">@StatusHelper.GetPositionDisplay(assignment.Position)</strong>
-                                                        @if (!string.IsNullOrEmpty(assignment.Notes))
-                                                        {
-                                                            <div class="text-muted small mt-1">
-                                                                <i class="bi bi-info-circle"></i> @assignment.Notes
-                                                            </div>
-                                                        }
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     }
                 </ChildContent>
                 <EditContent>
@@ -786,6 +736,24 @@ else
         selectedMentorCache = null;
         mentorSearchTerm = "";
         filteredMentors.Clear();
+    }
+    
+    private string? GetMentorDisplayName()
+    {
+        // Try to get mentor from the loaded mentor object or by looking up the ID
+        if (mentor != null)
+        {
+            var displayName = $"{mentor.FirstName} {mentor.LastName}";
+            if (!string.IsNullOrEmpty(mentor.Nickname))
+            {
+                displayName += $" \"{mentor.Nickname}\"";
+            }
+            return displayName;
+        }
+        
+        // If mentor is null but user has a MentorId, the mentor might not have loaded
+        // Return null to show "Não definido"
+        return null;
     }
 
     private async Task SetAuditContextToCurrentUser()

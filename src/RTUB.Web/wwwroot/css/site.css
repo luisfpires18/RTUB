@@ -3163,6 +3163,90 @@ th:hover {
   gap: 0.25rem;
 }
 
+.profile-header-info-centered {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Unified Timeline */
+.unified-timeline {
+  padding: 1rem 0;
+}
+
+.timeline-container-unified {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-start;
+}
+
+.timeline-item-unified {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(52, 58, 64, 0.3);
+  border-radius: 0.5rem;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.timeline-item-unified.active {
+  background: rgba(111, 66, 193, 0.2);
+  border-color: var(--bs-primary);
+}
+
+.timeline-item-unified.completed {
+  background: rgba(0, 188, 140, 0.1);
+  border-color: var(--bs-success);
+}
+
+.timeline-badge-unified {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.timeline-item-unified.active .timeline-badge-unified {
+  color: var(--bs-primary);
+}
+
+.timeline-item-unified.completed .timeline-badge-unified {
+  color: var(--bs-success);
+}
+
+.timeline-content-unified {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.timeline-label-unified {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #fff;
+}
+
+.timeline-year-unified {
+  font-size: 0.75rem;
+  color: var(--bs-body-color);
+}
+
+.timeline-notes {
+  font-size: 0.7rem;
+  font-style: italic;
+}
+
+.timeline-connector-unified {
+  width: 1.5rem;
+  height: 2px;
+  background: var(--bs-border-color);
+  flex-shrink: 0;
+}
+
 /* Profile Section */
 .profile-section {
   margin-bottom: 1.5rem;
@@ -3349,6 +3433,22 @@ th:hover {
   }
 
   .timeline-connector {
+    width: 2px;
+    height: 1rem;
+    margin: 0 auto;
+  }
+  
+  /* Unified timeline on mobile */
+  .timeline-container-unified {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .timeline-item-unified {
+    width: 100%;
+  }
+  
+  .timeline-connector-unified {
     width: 2px;
     height: 1rem;
     margin: 0 auto;

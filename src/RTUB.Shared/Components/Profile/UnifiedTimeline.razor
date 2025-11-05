@@ -1,0 +1,189 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Application.Extensions
+@using RTUB.Application.Helpers
+
+@*
+    UnifiedTimeline Component
+    Displays a unified timeline combining membership progression (LEITÃO → CALOIRO → TUNO) 
+    with role assignments, all in chronological order
+*@
+
+<div class="unified-timeline @AdditionalClasses">
+    @if (TimelineItems.Any())
+    {
+        <div class="timeline-container-unified">
+            @foreach (var item in TimelineItems.OrderBy(t => t.Year).ThenBy(t => t.Order))
+            {
+                <div class="timeline-item-unified @GetItemStateClass(item)">
+                    <div class="timeline-badge-unified">
+                        <i class="bi @GetItemIcon(item)"></i>
+                    </div>
+                    <div class="timeline-content-unified">
+                        <span class="timeline-label-unified">@item.Label</span>
+                        <span class="timeline-year-unified">@GetYearDisplay(item)</span>
+                        @if (!string.IsNullOrEmpty(item.Notes))
+                        {
+                            <span class="timeline-notes text-muted">@item.Notes</span>
+                        }
+                    </div>
+                </div>
+                
+                @if (item != TimelineItems.OrderBy(t => t.Year).ThenBy(t => t.Order).Last())
+                {
+                    <div class="timeline-connector-unified"></div>
+                }
+            }
+        </div>
+    }
+    else
+    {
+        <p class="text-muted mb-0">Nenhuma informação de percurso disponível</p>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public ApplicationUser User { get; set; } = null!;
+
+    [Parameter]
+    public List<RoleAssignment> RoleAssignments { get; set; } = new();
+
+    [Parameter]
+    public string AdditionalClasses { get; set; } = "";
+
+    public class TimelineItemModel
+    {
+        public int Year { get; set; }
+        public int Order { get; set; } // For sorting items in the same year
+        public string Label { get; set; } = "";
+        public string Type { get; set; } = ""; // "membership" or "role"
+        public string State { get; set; } = ""; // "active", "completed", or ""
+        public int? EndYear { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    private List<TimelineItemModel> TimelineItems
+    {
+        get
+        {
+            var items = new List<TimelineItemModel>();
+            var currentYear = DateTime.Now.Year;
+
+            // Add membership milestones
+            if (User.YearLeitao.HasValue)
+            {
+                items.Add(new TimelineItemModel
+                {
+                    Year = User.YearLeitao.Value,
+                    Order = 1,
+                    Label = "LEITÃO",
+                    Type = "membership",
+                    State = User.IsLeitao() && !User.IsCaloiro() && !User.IsTuno() ? "active" : "completed"
+                });
+            }
+
+            if (User.YearCaloiro.HasValue)
+            {
+                items.Add(new TimelineItemModel
+                {
+                    Year = User.YearCaloiro.Value,
+                    Order = 2,
+                    Label = "CALOIRO",
+                    Type = "membership",
+                    State = User.IsCaloiro() && !User.IsTuno() ? "active" : User.IsTuno() ? "completed" : ""
+                });
+            }
+
+            if (User.YearTuno.HasValue)
+            {
+                items.Add(new TimelineItemModel
+                {
+                    Year = User.YearTuno.Value,
+                    Order = 3,
+                    Label = "TUNO",
+                    Type = "membership",
+                    State = "active"
+                });
+            }
+
+            // Add VETERANO and TUNOSSAURO as separate items if qualified
+            if (User.YearTuno.HasValue)
+            {
+                if (User.QualifiesForVeterano())
+                {
+                    var veteranoYear = User.YearTuno.Value + 2;
+                    items.Add(new TimelineItemModel
+                    {
+                        Year = veteranoYear,
+                        Order = 4,
+                        Label = "VETERANO",
+                        Type = "subcategory",
+                        State = "active"
+                    });
+                }
+
+                if (User.QualifiesForTunossauro())
+                {
+                    var tunossauroYear = User.YearTuno.Value + 6;
+                    items.Add(new TimelineItemModel
+                    {
+                        Year = tunossauroYear,
+                        Order = 5,
+                        Label = "TUNOSSAURO",
+                        Type = "subcategory",
+                        State = "active"
+                    });
+                }
+            }
+
+            // Add role assignments
+            foreach (var assignment in RoleAssignments.OrderBy(a => a.StartYear))
+            {
+                items.Add(new TimelineItemModel
+                {
+                    Year = assignment.StartYear,
+                    Order = 10, // Roles come after memberships in the same year
+                    Label = StatusHelper.GetPositionDisplay(assignment.Position),
+                    Type = "role",
+                    State = assignment.EndYear >= currentYear ? "active" : "completed",
+                    EndYear = assignment.EndYear,
+                    Notes = assignment.Notes
+                });
+            }
+
+            return items;
+        }
+    }
+
+    private string GetItemStateClass(TimelineItemModel item)
+    {
+        return item.State switch
+        {
+            "active" => "active",
+            "completed" => "completed",
+            _ => ""
+        };
+    }
+
+    private string GetItemIcon(TimelineItemModel item)
+    {
+        return item.Type switch
+        {
+            "membership" => "bi-circle-fill",
+            "subcategory" => "bi-arrow-right-circle-fill",
+            "role" => "bi-star-fill",
+            _ => "bi-circle-fill"
+        };
+    }
+
+    private string GetYearDisplay(TimelineItemModel item)
+    {
+        if (item.EndYear.HasValue && item.Type == "role")
+        {
+            return $"{item.Year}–{item.EndYear}";
+        }
+        return item.Year.ToString();
+    }
+}
