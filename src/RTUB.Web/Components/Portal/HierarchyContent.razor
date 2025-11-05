@@ -6,102 +6,149 @@
 @inject ILogger<HierarchyContent> Logger
 @namespace RTUB.Components.Portal
 
-<div class="d-flex justify-content-between align-items-start mb-3">
-    <h1 class="portal-title">@(titleLabel?.Content ?? "A carregar...")</h1>
-    <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" />
-</div>
-<div class="d-flex justify-content-between align-items-start mb-4">
-    <h2 class="portal-subtitle">@(subtitleLabel?.Content ?? "")</h2>
-    <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" />
-</div>
-
-@if (introLabel != null)
-{
-    <section class="mb-5">
-        <div class="d-flex justify-content-between align-items-start">
-            <p class="portal-intro-text flex-grow-1">@introLabel.Content</p>
-            <LabelEditButton CurrentLabel="@introLabel" OnEditClick="@OpenEditModal" />
+<div class="hierarchy-page">
+    <!-- Intro Section -->
+    <section class="hierarchy-intro">
+        <div class="d-flex justify-content-center align-items-baseline mb-2">
+            <h1 class="hierarchy-title">@(titleLabel?.Content ?? "A carregar...")</h1>
+            <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
         </div>
+        <div class="d-flex justify-content-center align-items-baseline mb-3">
+            <h2 class="hierarchy-subtitle">@(subtitleLabel?.Content ?? "")</h2>
+            <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
+        </div>
+        @if (introLabel != null)
+        {
+            <div class="d-flex justify-content-center align-items-start">
+                <p class="hierarchy-intro-text">@introLabel.Content</p>
+                <LabelEditButton CurrentLabel="@introLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
+            </div>
+        }
     </section>
-}
 
-<!-- Photo Cards for Costume Evolution -->
-<section class="mb-5">
-    <h3 class="mb-4 portal-title">Evolução do Traje:</h3>
-    <div class="row g-4">
+    <!-- Stage Cards Grid -->
+    <div class="hierarchy-grid">
         <!-- Leitão Card -->
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100 portal-feature-card">
-                <img src="/images/hierarchy/bag_leitao.webp" class="card-img-top hierarchy-card-image" alt="Leitão">
-                <div class="card-body">
-                    <CategoryBadge Category="MemberCategory.Leitao" AdditionalClasses="mb-2" />
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h5 class="card-title text-white">@(leitaoCardTitle?.Content ?? "Recruta")</h5>
-                        <LabelEditButton CurrentLabel="@leitaoCardTitle" OnEditClick="@OpenEditModal" CssClass="text-white" />
-                    </div>
-                    <div class="d-flex justify-content-between align-items-start">
-                        <p class="card-text portal-card-text flex-grow-1">@(leitaoCardDesc?.Content ?? "Traje saco de lixo.")</p>
-                        <LabelEditButton CurrentLabel="@leitaoCardDesc" OnEditClick="@OpenEditModal" CssClass="text-white" />
-                    </div>
+        <article class="hierarchy-card">
+            <div class="hierarchy-card-image-wrapper">
+                <img src="/images/hierarchy/bag_leitao.webp" 
+                     class="hierarchy-card-image" 
+                     alt="Leitão - Traje de recruta com saco"
+                     loading="lazy" />
+                <div class="hierarchy-edit-button" 
+                     role="button" 
+                     tabindex="0" 
+                     @onclick="() => OpenEditModal(leitaoCardTitle)">
+                    <i class="bi bi-pencil-fill"></i>
                 </div>
             </div>
-        </div>
+            <div class="hierarchy-card-content">
+                <div class="hierarchy-stage-badge">
+                    <CategoryBadge Category="MemberCategory.Leitao" />
+                </div>
+                <div class="hierarchy-card-header">
+                    <h3 class="hierarchy-card-title">@(leitaoCardTitle?.Content ?? "Recruta")</h3>
+                </div>
+                <div class="hierarchy-card-description-wrapper">
+                    <p class="hierarchy-card-description">@(leitaoCardDesc?.Content ?? "Traje saco de lixo.")</p>
+                    <LabelEditButton CurrentLabel="@leitaoCardDesc" 
+                                     OnEditClick="@OpenEditModal" 
+                                     CssClass="hierarchy-description-edit" />
+                </div>
+            </div>
+        </article>
 
         <!-- Caloiro Card -->
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100 portal-feature-card">
-                <img src="/images/hierarchy/cords_caloiro.webp" class="card-img-top hierarchy-card-image" alt="Caloiro">
-                <div class="card-body">
-                    <CategoryBadge Category="MemberCategory.Caloiro" AdditionalClasses="mb-2" />
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h5 class="card-title text-white">@(caloiroCardTitle?.Content ?? "Novo Membro")</h5>
-                        <LabelEditButton CurrentLabel="@caloiroCardTitle" OnEditClick="@OpenEditModal" CssClass="text-white" />
-                    </div>
-                    <div class="d-flex justify-content-between align-items-start">
-                        <p class="card-text portal-card-text flex-grow-1">@(caloiroCardDesc?.Content ?? " Cordões Brancos.")</p>
-                        <LabelEditButton CurrentLabel="@caloiroCardDesc" OnEditClick="@OpenEditModal" CssClass="text-white" />
-                    </div>
+        <article class="hierarchy-card">
+            <div class="hierarchy-card-image-wrapper">
+                <img src="/images/hierarchy/cords_caloiro.webp" 
+                     class="hierarchy-card-image" 
+                     alt="Caloiro - Cordões brancos"
+                     loading="lazy" />
+                <div class="hierarchy-edit-button" 
+                     role="button" 
+                     tabindex="0" 
+                     @onclick="() => OpenEditModal(caloiroCardTitle)">
+                    <i class="bi bi-pencil-fill"></i>
                 </div>
             </div>
-        </div>
+            <div class="hierarchy-card-content">
+                <div class="hierarchy-stage-badge">
+                    <CategoryBadge Category="MemberCategory.Caloiro" />
+                </div>
+                <div class="hierarchy-card-header">
+                    <h3 class="hierarchy-card-title">@(caloiroCardTitle?.Content ?? "Novo Membro")</h3>
+                </div>
+                <div class="hierarchy-card-description-wrapper">
+                    <p class="hierarchy-card-description">@(caloiroCardDesc?.Content ?? "Cordões Brancos.")</p>
+                    <LabelEditButton CurrentLabel="@caloiroCardDesc" 
+                                     OnEditClick="@OpenEditModal" 
+                                     CssClass="hierarchy-description-edit" />
+                </div>
+            </div>
+        </article>
 
         <!-- Tuno Card -->
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100 portal-feature-card">
-                <img src="/images/hierarchy/cords_tuno.webp" class="card-img-top hierarchy-card-image" alt="Tuno">
-                <div class="card-body">
-                    <CategoryBadge Category="MemberCategory.Tuno" AdditionalClasses="mb-2" />
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h5 class="card-title text-white">@(tunoCardTitle?.Content ?? "Membro Experiente")</h5>
-                        <LabelEditButton CurrentLabel="@tunoCardTitle" OnEditClick="@OpenEditModal" CssClass="text-white" />
-                    </div>
-                    <div class="d-flex justify-content-between align-items-start">
-                        <p class="card-text portal-card-text flex-grow-1">@(tunoCardDesc?.Content ?? "Cordões Pretos.")</p>
-                        <LabelEditButton CurrentLabel="@tunoCardDesc" OnEditClick="@OpenEditModal" CssClass="text-white" />
-                    </div>
+        <article class="hierarchy-card">
+            <div class="hierarchy-card-image-wrapper">
+                <img src="/images/hierarchy/cords_tuno.webp" 
+                     class="hierarchy-card-image" 
+                     alt="Tuno - Cordões pretos"
+                     loading="lazy" />
+                <div class="hierarchy-edit-button" 
+                     role="button" 
+                     tabindex="0" 
+                     @onclick="() => OpenEditModal(tunoCardTitle)">
+                    <i class="bi bi-pencil-fill"></i>
                 </div>
             </div>
-        </div>
+            <div class="hierarchy-card-content">
+                <div class="hierarchy-stage-badge">
+                    <CategoryBadge Category="MemberCategory.Tuno" />
+                </div>
+                <div class="hierarchy-card-header">
+                    <h3 class="hierarchy-card-title">@(tunoCardTitle?.Content ?? "Membro Experiente")</h3>
+                </div>
+                <div class="hierarchy-card-description-wrapper">
+                    <p class="hierarchy-card-description">@(tunoCardDesc?.Content ?? "Cordões Pretos.")</p>
+                    <LabelEditButton CurrentLabel="@tunoCardDesc" 
+                                     OnEditClick="@OpenEditModal" 
+                                     CssClass="hierarchy-description-edit" />
+                </div>
+            </div>
+        </article>
 
         <!-- Magister Card -->
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100 portal-feature-card">
-                <img src="/images/hierarchy/cords_magister.webp" class="card-img-top hierarchy-card-image" alt="Magister">
-                <div class="card-body">
-                    <PositionBadge Position="Position.Magister" AdditionalClasses="mb-2" />
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h5 class="card-title text-white">@(magisterCardTitle?.Content ?? "Presidente")</h5>
-                        <LabelEditButton CurrentLabel="@magisterCardTitle" OnEditClick="@OpenEditModal" CssClass="text-white" />
-                    </div>
-                    <div class="d-flex justify-content-between align-items-start">
-                        <p class="card-text portal-card-text flex-grow-1">@(magisterCardDesc?.Content ?? "Cordões roxos.")</p>
-                        <LabelEditButton CurrentLabel="@magisterCardDesc" OnEditClick="@OpenEditModal" CssClass="text-white" />
-                    </div>
+        <article class="hierarchy-card">
+            <div class="hierarchy-card-image-wrapper">
+                <img src="/images/hierarchy/cords_magister.webp" 
+                     class="hierarchy-card-image" 
+                     alt="Magister - Cordões roxos, presidente da tuna"
+                     loading="lazy" />
+                <div class="hierarchy-edit-button" 
+                     role="button" 
+                     tabindex="0" 
+                     @onclick="() => OpenEditModal(magisterCardTitle)">
+                    <i class="bi bi-pencil-fill"></i>
                 </div>
             </div>
-        </div>
+            <div class="hierarchy-card-content">
+                <div class="hierarchy-stage-badge">
+                    <PositionBadge Position="Position.Magister" />
+                </div>
+                <div class="hierarchy-card-header">
+                    <h3 class="hierarchy-card-title">@(magisterCardTitle?.Content ?? "Presidente")</h3>
+                </div>
+                <div class="hierarchy-card-description-wrapper">
+                    <p class="hierarchy-card-description">@(magisterCardDesc?.Content ?? "Cordões roxos.")</p>
+                    <LabelEditButton CurrentLabel="@magisterCardDesc" 
+                                     OnEditClick="@OpenEditModal" 
+                                     CssClass="hierarchy-description-edit" />
+                </div>
+            </div>
+        </article>
     </div>
-</section>
+</div>
 
 <!-- Edit Label Modal (at root level, outside cards) -->
 <Modal Show="@showEditModal" 
