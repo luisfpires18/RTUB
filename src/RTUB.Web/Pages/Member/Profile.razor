@@ -17,6 +17,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IImageService ImageService
 @inject IJSRuntime JSRuntime
+@inject RTUB.Application.Services.AuditContext AuditContext
 
 <h1 class="text-center mb-4">Meu Perfil</h1>
 
@@ -557,6 +558,7 @@ else
                 user.ProfilePictureData = croppedImageData;
                 user.ProfilePictureContentType = "image/jpeg";
 
+                await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(user);
                 
                 // CRITICAL: Clear server-side image cache to ensure fresh image is served
@@ -676,6 +678,7 @@ else
         user.MainInstrument = editUser.MainInstrument;
         user.MentorId = editUser.MentorId;
 
+        await SetAuditContextToCurrentUser();
         await UserManager.UpdateAsync(user);
         
         // Reload mentor if changed
@@ -728,6 +731,7 @@ else
             if (user.RequirePasswordChange)
             {
                 user.RequirePasswordChange = false;
+                await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(user);
             }
 
@@ -782,6 +786,13 @@ else
         filteredMentors.Clear();
     }
 
+    private async Task SetAuditContextToCurrentUser()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userName = authState.User.Identity?.Name;
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        AuditContext.SetUser(userName, userId);
+    }
 
 }
 
