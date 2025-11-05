@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using RTUB.Core.Entities;
 using System.Text.Json;
+using RTUB.Application.Services;
 
 namespace RTUB.Application.Data;
 
@@ -14,11 +15,12 @@ namespace RTUB.Application.Data;
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
     private readonly IHttpContextAccessor? _httpContextAccessor;
+    private readonly AuditContext? _auditContext;
     private bool _isAuditingEnabled = true;
 
     // Critical entities that should always be flagged in audit logs
     private static readonly string[] CriticalEntities = { "RoleAssignment", "Report", "ApplicationUser", "FiscalYear" };
-    
+
     // Constants for audit logging
     private const int BinaryDataTruncateThreshold = 100;
 
@@ -27,10 +29,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
     }
 
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor)
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor, AuditContext auditContext)
         : base(options)
     {
         _httpContextAccessor = httpContextAccessor;
+        _auditContext = auditContext;
     }
 
     // Domain entity DbSets
@@ -75,8 +78,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             return await base.SaveChangesAsync(cancellationToken);
         }
 
+        // Try to get user from HttpContext first (for HTTP requests)
         var username = _httpContextAccessor?.HttpContext?.User?.Identity?.Name;
         var userId = _httpContextAccessor?.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        // Fallback to AuditContext for operations outside HTTP context (e.g., Blazor InteractiveServer)
+        if (string.IsNullOrEmpty(username) && _auditContext != null)
+        {
+            username = _auditContext.UserName;
+            userId = _auditContext.UserId;
+        }
 
         // Collect audit entries before saving
         var auditEntries = new List<AuditLog>();
@@ -120,7 +131,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             if (entry.State == EntityState.Modified || entry.State == EntityState.Deleted)
             {
                 var action = entry.State == EntityState.Deleted ? "Deleted" : "Modified";
-                auditEntries.Add(CreateAuditLogForUser(entry, action, username, userId));
+                var auditLog = CreateAuditLogForUser(entry, action, username, userId);
+
+                // Only add audit entry if there are meaningful changes to log
+                if (auditLog != null)
+                {
+                    auditEntries.Add(auditLog);
+                }
             }
         }
 
@@ -326,20 +343,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             return $"{bytes / (1024 * 1024)} MB";
     }
 
-    private AuditLog CreateAuditLogForUser(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<ApplicationUser> entry, string action, string? username, string? userId)
+    private AuditLog? CreateAuditLogForUser(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<ApplicationUser> entry, string action, string? username, string? userId)
     {
         var changes = new Dictionary<string, object?>();
         var isCriticalChange = false;
 
+        // Get the modified user's information for identification
+        var modifiedUser = entry.Entity;
+        var modifiedUserId = modifiedUser.Id;
+        var modifiedUserName = modifiedUser.UserName;
+        var modifiedUserEmail = modifiedUser.Email;
+
         // Fields to exclude from logging (sensitive or infrastructure fields)
         var excludedFields = new HashSet<string>
         {
-            "PasswordHash", "SecurityStamp", "ConcurrencyStamp", "NormalizedUserName", 
+            "PasswordHash", "SecurityStamp", "ConcurrencyStamp", "NormalizedUserName",
             "NormalizedEmail", "LockoutEnd", "AccessFailedCount", "TwoFactorEnabled",
             "PhoneNumberConfirmed", "EmailConfirmed", "LockoutEnabled",
             "Categories", "Positions" // Legacy collection properties - using CategoriesJson/PositionsJson instead
         };
-        
+
         // Critical fields that should mark the action as critical (even if not logged)
         var criticalFields = new HashSet<string>
         {
@@ -348,6 +371,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         if (action == "Modified")
         {
+            // Add target user identification at the beginning for easy reference
+            changes["_TargetUser"] = new
+            {
+                UserId = modifiedUserId,
+                UserName = modifiedUserName,
+                Email = modifiedUserEmail
+            };
+
             // First pass: Check if any modified property is a critical field
             foreach (var property in entry.Properties)
             {
@@ -355,7 +386,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 {
                     var oldValue = property.OriginalValue;
                     var newValue = property.CurrentValue;
-                    
+
                     // Only mark as critical if values actually changed
                     if (!AreValuesEqual(oldValue, newValue))
                     {
@@ -364,7 +395,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     }
                 }
             }
-            
+
             // Second pass: Log properties that actually changed (excluding sensitive fields)
             foreach (var property in entry.Properties)
             {
@@ -404,6 +435,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
         else if (action == "Deleted")
         {
+            // Add target user identification for deletions
+            changes["_TargetUser"] = new
+            {
+                UserId = modifiedUserId,
+                UserName = modifiedUserName,
+                Email = modifiedUserEmail
+            };
+
             // For deletions, log all non-excluded fields for context
             // User deletions are always critical
             isCriticalChange = true;
@@ -421,10 +460,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             }
         }
 
+        // Skip audit log if there are no meaningful changes to log (for Modified actions only)
+        // Note: changes.Count > 1 because _TargetUser is always added
+        if (action == "Modified" && changes.Count <= 1)
+        {
+            return null;
+        }
+
         return new AuditLog
         {
             EntityType = "ApplicationUser",
-            EntityId = null,
+            EntityId = null, // ApplicationUser uses string IDs (GUID), EntityId is int? for BaseEntity only
             Action = action,
             UserId = userId,
             UserName = username,

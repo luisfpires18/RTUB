@@ -12,6 +12,8 @@
 @inject IRoleAssignmentService RoleAssignmentService
 @inject IEnrollmentService EnrollmentService
 @inject IEmailNotificationService EmailNotificationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject RTUB.Application.Services.AuditContext AuditContext
 @attribute [Authorize]
 
 <h1>Membros</h1>
@@ -1037,6 +1039,7 @@ else
                 };
                 createdUser.Categories = new List<MemberCategory> { category };
                 createdUser.RequirePasswordChange = true;
+                await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(createdUser);
 
                 // Send welcome email with credentials
@@ -1089,6 +1092,7 @@ else
                     existingUser.Categories.Add(category);
                 }
 
+                await SetAuditContextToCurrentUser();
                 var result = await UserManager.UpdateAsync(existingUser);
                 if (!result.Succeeded)
                 {
@@ -1181,6 +1185,14 @@ else
     private void OnCategoryChanged()
     {
         StateHasChanged();
+    }
+
+    private async Task SetAuditContextToCurrentUser()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userName = authState.User.Identity?.Name;
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        AuditContext.SetUser(userName, userId);
     }
 }
 

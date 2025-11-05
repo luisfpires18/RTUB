@@ -27,6 +27,7 @@ namespace RTUB
 
             // Add HttpContextAccessor for user tracking
             services.AddHttpContextAccessor();
+            services.AddScoped<AuditContext>(); // For audit logging in Blazor InteractiveServer components
 
             // ---------- DB: SQLite only ----------
             var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")

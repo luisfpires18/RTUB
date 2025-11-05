@@ -11,6 +11,7 @@
 @inject IFiscalYearService FiscalYearService
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject RTUB.Application.Services.AuditContext AuditContext
 @attribute [Authorize]
 
 <h1>Cargos por Ano Fiscal</h1>
@@ -568,6 +569,7 @@
             {
                 positions.Add(selectedPosition.Value);
                 user.Positions = positions;
+                await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(user);
             }
 
@@ -609,11 +611,20 @@
             {
                 positions.Remove(assignment.Position);
                 user.Positions = positions;
+                await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(user);
             }
         }
 
         await LoadRoleAssignments();
+    }
+
+    private async Task SetAuditContextToCurrentUser()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userName = authState.User.Identity?.Name;
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        AuditContext.SetUser(userName, userId);
     }
 }
 
