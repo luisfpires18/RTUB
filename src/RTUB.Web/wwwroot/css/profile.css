@@ -202,6 +202,7 @@
 .timeline-item-unified.timeline-tunossauro {
   background-color: #2c2c54;
   border: 2px solid #6f42c1;
+  font-weight: bold;
 }
 
 .timeline-item-unified.timeline-tunossauro .timeline-label-unified,
@@ -210,10 +211,11 @@
   color: white;
 }
 
-/* Role - green */
+/* Role - purple (all roles including Magister use same purple from badge-position) */
 .timeline-item-unified.timeline-role {
-  background-color: #28a745;
-  border-color: #28a745;
+  background-color: #6f42c1;
+  border-color: #6f42c1;
+  font-weight: bold;
 }
 
 .timeline-item-unified.timeline-role .timeline-label-unified,
@@ -222,10 +224,11 @@
   color: white;
 }
 
-/* Magister - purple */
+/* Magister - purple with crown icon (same as other roles but with crown) */
 .timeline-item-unified.timeline-magister {
   background-color: #6f42c1;
   border-color: #6f42c1;
+  font-weight: bold;
 }
 
 .timeline-item-unified.timeline-magister .timeline-label-unified,
