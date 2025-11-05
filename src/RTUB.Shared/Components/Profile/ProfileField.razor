@@ -1,0 +1,53 @@
+@namespace RTUB.Shared
+
+@*
+    ProfileField Component
+    Displays a single field in a profile section with responsive layout
+    Shows "Não definido" with tooltip for empty values
+*@
+
+<div class="profile-field row @AdditionalClasses">
+    <div class="col-12 col-md-4 profile-field-label">
+        <strong class="text-white-full">@Label:</strong>
+    </div>
+    <div class="col-12 col-md-8 profile-field-value">
+        @if (!string.IsNullOrEmpty(Value))
+        {
+            @if (ValueContent != null)
+            {
+                @ValueContent
+            }
+            else
+            {
+                <span class="text-white-full">@Value</span>
+            }
+        }
+        else
+        {
+            <span class="text-muted profile-empty-value" title="Este campo ainda não foi preenchido">
+                Não definido
+                @if (ShowTooltip)
+                {
+                    <i class="bi bi-info-circle-fill ms-1" style="font-size: 0.85em;"></i>
+                }
+            </span>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public RenderFragment? ValueContent { get; set; }
+
+    [Parameter]
+    public bool ShowTooltip { get; set; } = true;
+
+    [Parameter]
+    public string AdditionalClasses { get; set; } = "";
+}

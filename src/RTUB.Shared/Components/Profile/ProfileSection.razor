@@ -1,0 +1,113 @@
+@namespace RTUB.Shared
+
+@*
+    ProfileSection Component
+    Displays a profile section with title, optional edit button, and collapsible content
+*@
+
+<div class="card profile-section @(IsExpanded ? "expanded" : "collapsed") @AdditionalClasses">
+    <div class="card-header @(IsCollapsible ? "clickable" : "")" @onclick="ToggleExpanded">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 d-flex align-items-center">
+                @if (!string.IsNullOrEmpty(Icon))
+                {
+                    <i class="bi @Icon me-2"></i>
+                }
+                @Title
+            </h5>
+            <div class="d-flex align-items-center gap-2">
+                @if (ShowEditButton && !IsEditing)
+                {
+                    <button class="btn btn-sm btn-outline-light" @onclick="OnEditClick" @onclick:stopPropagation="true">
+                        <i class="bi bi-pencil"></i>
+                        <span class="d-none d-sm-inline ms-1">Editar</span>
+                    </button>
+                }
+                @if (IsCollapsible)
+                {
+                    <i class="bi @(IsExpanded ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                }
+            </div>
+        </div>
+    </div>
+    @if (IsExpanded || !IsCollapsible)
+    {
+        <div class="card-body">
+            @if (IsEditing)
+            {
+                @EditContent
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                    <button class="btn btn-secondary" @onclick="OnCancelClick">Cancelar</button>
+                    <button class="btn btn-primary btn-primary-purple" @onclick="OnSaveClick">Guardar</button>
+                </div>
+            }
+            else
+            {
+                @ChildContent
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string Icon { get; set; } = "";
+
+    [Parameter]
+    public bool ShowEditButton { get; set; } = true;
+
+    [Parameter]
+    public bool IsCollapsible { get; set; } = true;
+
+    [Parameter]
+    public bool IsExpanded { get; set; } = true;
+
+    [Parameter]
+    public bool IsEditing { get; set; } = false;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? EditContent { get; set; }
+
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public string AdditionalClasses { get; set; } = "";
+
+    private void ToggleExpanded()
+    {
+        if (IsCollapsible && !IsEditing)
+        {
+            IsExpanded = !IsExpanded;
+        }
+    }
+
+    private async Task OnEditClick()
+    {
+        IsEditing = true;
+        await OnEdit.InvokeAsync();
+    }
+
+    private async Task OnSaveClick()
+    {
+        await OnSave.InvokeAsync();
+    }
+
+    private async Task OnCancelClick()
+    {
+        IsEditing = false;
+        await OnCancel.InvokeAsync();
+    }
+}
