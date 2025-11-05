@@ -25,7 +25,8 @@ public class PositionTests
             Position.PresidenteConselhoFiscal,
             Position.PrimeiroRelatorConselhoFiscal,
             Position.SegundoRelatorConselhoFiscal,
-            Position.PresidenteConselhoVeteranos
+            Position.PresidenteConselhoVeteranos,
+            Position.Ensaiador
         };
 
         // Act
@@ -57,6 +58,6 @@ public class PositionTests
         var count = Enum.GetValues<Position>().Length;
 
         // Assert
-        count.Should().Be(12);
+        count.Should().Be(13);
     }
 }

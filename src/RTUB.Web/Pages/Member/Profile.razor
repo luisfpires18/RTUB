@@ -129,7 +129,6 @@ else
                           OnSave="@SaveTunaSection"
                           OnCancel="@CancelEdit">
                 <ChildContent>
-                    <ProfileField Label="Curso" Value="@user.Degree" />
                     
                     <ProfileField Label="Instrumento Principal" 
                                 Value="@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : null)" />
@@ -147,6 +146,9 @@ else
                             </div>
                         </div>
                     </div>
+
+                    <ProfileField Label="Curso" Value="@user.Degree" />
+
                 </ChildContent>
                 <EditContent>
                     @if (editUser != null)
@@ -154,11 +156,6 @@ else
                         <EditForm Model="editUser" OnValidSubmit="SaveTunaSection">
                             <DataAnnotationsValidator />
                             <ValidationSummary class="text-danger" />
-
-                            <div class="mb-3">
-                                <label class="form-label text-white-full">Curso</label>
-                                <InputText class="form-control" @bind-Value="editUser.Degree" placeholder="Inserir curso..." />
-                            </div>
 
                             <div class="mb-3">
                                 <label class="form-label text-white-full">Instrumento Principal</label>
@@ -257,6 +254,11 @@ else
                                 }
                             </div>
                         </EditForm>
+
+                        <div class="mb-3">
+                            <label class="form-label text-white-full">Curso</label>
+                            <InputText class="form-control" @bind-Value="editUser.Degree" placeholder="Inserir curso..." />
+                        </div>
                     }
                 </EditContent>
             </ProfileSection>

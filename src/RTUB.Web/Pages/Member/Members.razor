@@ -481,12 +481,12 @@ else
                 <ProfileField Label="Contacto" Value="@viewingUser.PhoneContact" />
                 <ProfileField Label="Data de Nascimento" 
                             Value="@(viewingUser.DateOfBirth.HasValue ? viewingUser.DateOfBirth.Value.ToString("dd/MM/yyyy") + (viewingUser.Age.HasValue ? $" ({viewingUser.Age} anos)" : "") : null)" />
+                <ProfileField Label="Curso" Value="@viewingUser.Degree" />
             </div>
 
             <!-- Tuna Information Section -->
             <h6 class="mb-3"><i class="bi bi-music-note-list me-2"></i>Informação da Tuna</h6>
             <div class="mb-4">
-                <ProfileField Label="Curso" Value="@viewingUser.Degree" />
                 <ProfileField Label="Instrumento Principal" 
                             Value="@(viewingUser.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(viewingUser.MainInstrument.Value) : null)" />
                 <ProfileField Label="Padrinho" 
