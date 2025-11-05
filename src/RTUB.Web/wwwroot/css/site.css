@@ -2640,7 +2640,7 @@ th:hover {
         /* Ensure no clipping */
         overflow-x: auto;
         overflow-y: visible;
-        /* Remove default padding - container will handle it */
+        -webkit-overflow-scrolling: touch;
     }
 
     .family-tree-container {
@@ -2648,10 +2648,7 @@ th:hover {
         padding: 10px 50vw 10px 50vw;
         /* Ensure tree can be wider than viewport */
         min-width: 100vw;
-        width: max-content;
-        /* Center the tree content */
-        display: flex;
-        justify-content: center;
+        /* Don't set display flex - tree-level handles that */
     }
 
     .tree-level {
@@ -2660,9 +2657,10 @@ th:hover {
         flex-wrap: nowrap;
         /* Ensure tree can expand horizontally */
         min-width: fit-content;
-        width: fit-content;
-        /* Override desktop justify-content */
+        /* Center the root nodes within the available space */
         justify-content: center;
+        /* Ensure the tree-level itself is sized properly */
+        display: flex;
     }
     
     .children-container {
@@ -2671,7 +2669,6 @@ th:hover {
         flex-wrap: nowrap;
         /* Ensure tree can expand horizontally */
         min-width: fit-content;
-        width: fit-content;
     }
 
     .member-node {
