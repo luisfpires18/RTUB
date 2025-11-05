@@ -142,18 +142,6 @@ else
                             </div>
                         </div>
                     </div>
-
-                    @if (user.Positions.Any())
-                    {
-                        <ProfileField Label="Cargos Atuais">
-                            <ValueContent>
-                                @foreach (var position in user.Positions)
-                                {
-                                    <PositionBadge Position="position" AdditionalClasses="me-1 mb-1" />
-                                }
-                            </ValueContent>
-                        </ProfileField>
-                    }
                 </ChildContent>
                 <EditContent>
                     @if (editUser != null)
@@ -428,13 +416,9 @@ else
                     mentor = await UserManager.FindByIdAsync(user.MentorId);
                 }
                 
-                // Load eligible mentors (Caloiro and Tuno, excluding Leitões and self)
+                // Load eligible mentors (only Tuno category)
                 eligibleMentors = UserManager.Users
-                    .Where(u => u.Id != user.Id && 
-                           (u.Categories.Contains(MemberCategory.Caloiro) || 
-                            u.Categories.Contains(MemberCategory.Tuno) ||
-                            u.Categories.Contains(MemberCategory.Veterano) ||
-                            u.Categories.Contains(MemberCategory.Tunossauro)))
+                    .Where(u => u.Id != user.Id && u.Categories.Contains(MemberCategory.Tuno))
                     .OrderBy(u => u.FirstName)
                     .ThenBy(u => u.LastName)
                     .ToList();
