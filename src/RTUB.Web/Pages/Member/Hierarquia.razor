@@ -5,6 +5,7 @@
 @using RTUB.Application.Extensions
 @attribute [Authorize]
 @inject UserManager<ApplicationUser> UserManager
+@inject IJSRuntime JSRuntime
 
 <h1 class="text-center mb-4">Hierarquia da Tuna - Família</h1>
 <p class="text-center mb-4">Árvore genealógica dos membros mostrando a relação Padrinho-Afilhado</p>
@@ -25,15 +26,38 @@ else if (!members.Any())
 }
 else
 {
-    <div class="family-tree-container">
-        @* Root level - members without mentors *@
-        <div class="tree-level">
-            @foreach (var rootMember in rootMembers)
-            {
-                <div class="tree-node-wrapper">
-                    @RenderMemberNode(rootMember)
-                </div>
-            }
+    <div class="family-tree-controls">
+        <button @onclick="ZoomOut" title="Zoom Out" aria-label="Diminuir zoom">
+            <i class="bi bi-dash-lg"></i>
+        </button>
+        <span class="zoom-level">@($"{currentZoom}%")</span>
+        <button @onclick="ZoomIn" title="Zoom In" aria-label="Aumentar zoom">
+            <i class="bi bi-plus-lg"></i>
+        </button>
+        <button @onclick="ResetZoom" title="Reset Zoom" aria-label="Repor zoom">
+            <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+    </div>
+    
+    <div class="family-tree-container" @ref="treeContainer" 
+         @onwheel="HandleWheel"
+         @ontouchstart="HandleTouchStart"
+         @ontouchmove="HandleTouchMove"
+         @ontouchend="HandleTouchEnd"
+         @onmousedown="HandleMouseDown"
+         @onmousemove="HandleMouseMove"
+         @onmouseup="HandleMouseUp"
+         @onmouseleave="HandleMouseLeave">
+        <div class="family-tree-viewport" style="transform: scale(@(currentZoom / 100.0)) translate(@panX px, @panY px);">
+            @* Root level - members without mentors *@
+            <div class="tree-level">
+                @foreach (var rootMember in rootMembers)
+                {
+                    <div class="tree-node-wrapper">
+                        @RenderMemberNode(rootMember)
+                    </div>
+                }
+            </div>
         </div>
     </div>
 }
@@ -43,6 +67,27 @@ else
     private List<ApplicationUser> rootMembers = new();
     private Dictionary<string, List<ApplicationUser>> mentorToAfilhados = new();
     private bool isLoading = true;
+    
+    // Zoom and pan state
+    private ElementReference treeContainer;
+    private int currentZoom = 100;
+    private const int MinZoom = 50;
+    private const int MaxZoom = 200;
+    private const int ZoomStep = 10;
+    private double panX = 0;
+    private double panY = 0;
+    
+    // Pan/drag state
+    private bool isDragging = false;
+    private double startX = 0;
+    private double startY = 0;
+    private double lastPanX = 0;
+    private double lastPanY = 0;
+    
+    // Touch state for pinch-to-zoom
+    private bool isPinching = false;
+    private double initialPinchDistance = 0;
+    private int initialPinchZoom = 100;
 
     protected override void OnInitialized()
     {
@@ -98,6 +143,145 @@ else
             .OrderBy(m => m.FirstName)
             .ThenBy(m => m.LastName)
             .ToList();
+    }
+
+    // Zoom controls
+    private void ZoomIn()
+    {
+        if (currentZoom < MaxZoom)
+        {
+            currentZoom += ZoomStep;
+            StateHasChanged();
+        }
+    }
+
+    private void ZoomOut()
+    {
+        if (currentZoom > MinZoom)
+        {
+            currentZoom -= ZoomStep;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetZoom()
+    {
+        currentZoom = 100;
+        panX = 0;
+        panY = 0;
+        StateHasChanged();
+    }
+
+    // Mouse wheel zoom handler
+    private void HandleWheel(WheelEventArgs e)
+    {
+        if (e.DeltaY < 0)
+        {
+            ZoomIn();
+        }
+        else if (e.DeltaY > 0)
+        {
+            ZoomOut();
+        }
+    }
+
+    // Mouse pan handlers
+    private void HandleMouseDown(MouseEventArgs e)
+    {
+        // Only start dragging on left mouse button
+        if (e.Button == 0)
+        {
+            isDragging = true;
+            startX = e.ClientX;
+            startY = e.ClientY;
+            lastPanX = panX;
+            lastPanY = panY;
+        }
+    }
+
+    private void HandleMouseMove(MouseEventArgs e)
+    {
+        if (isDragging)
+        {
+            var deltaX = e.ClientX - startX;
+            var deltaY = e.ClientY - startY;
+            panX = lastPanX + deltaX;
+            panY = lastPanY + deltaY;
+            StateHasChanged();
+        }
+    }
+
+    private void HandleMouseUp(MouseEventArgs e)
+    {
+        isDragging = false;
+    }
+
+    private void HandleMouseLeave(MouseEventArgs e)
+    {
+        isDragging = false;
+    }
+
+    // Touch handlers for mobile
+    private void HandleTouchStart(TouchEventArgs e)
+    {
+        if (e.Touches.Length == 1)
+        {
+            // Single touch - start panning
+            isDragging = true;
+            startX = e.Touches[0].ClientX;
+            startY = e.Touches[0].ClientY;
+            lastPanX = panX;
+            lastPanY = panY;
+        }
+        else if (e.Touches.Length == 2)
+        {
+            // Two touches - start pinching
+            isPinching = true;
+            isDragging = false;
+            var dx = e.Touches[0].ClientX - e.Touches[1].ClientX;
+            var dy = e.Touches[0].ClientY - e.Touches[1].ClientY;
+            initialPinchDistance = Math.Sqrt(dx * dx + dy * dy);
+            initialPinchZoom = currentZoom;
+        }
+    }
+
+    private void HandleTouchMove(TouchEventArgs e)
+    {
+        if (isPinching && e.Touches.Length == 2)
+        {
+            // Handle pinch-to-zoom
+            var dx = e.Touches[0].ClientX - e.Touches[1].ClientX;
+            var dy = e.Touches[0].ClientY - e.Touches[1].ClientY;
+            var currentDistance = Math.Sqrt(dx * dx + dy * dy);
+            
+            var scale = currentDistance / initialPinchDistance;
+            var newZoom = (int)(initialPinchZoom * scale);
+            
+            // Clamp zoom level
+            currentZoom = Math.Max(MinZoom, Math.Min(MaxZoom, newZoom));
+            StateHasChanged();
+        }
+        else if (isDragging && e.Touches.Length == 1)
+        {
+            // Handle single-touch panning
+            var deltaX = e.Touches[0].ClientX - startX;
+            var deltaY = e.Touches[0].ClientY - startY;
+            panX = lastPanX + deltaX;
+            panY = lastPanY + deltaY;
+            StateHasChanged();
+        }
+    }
+
+    private void HandleTouchEnd(TouchEventArgs e)
+    {
+        if (e.Touches.Length < 2)
+        {
+            isPinching = false;
+        }
+        if (e.Touches.Length == 0)
+        {
+            isDragging = false;
+        }
     }
 
     private RenderFragment RenderMemberNode(ApplicationUser member) => __builder =>

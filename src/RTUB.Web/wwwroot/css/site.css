@@ -2502,8 +2502,32 @@ th:hover {
 /* Hierarquia Family Tree Styles */
 .family-tree-container {
     padding: 20px;
-    overflow-x: auto;
+    overflow: auto;
     min-height: 400px;
+    width: 100%;
+    position: relative;
+    /* Enable smooth scrolling */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    /* Allow both horizontal and vertical scrolling */
+    overflow-x: auto;
+    overflow-y: auto;
+    /* Add visual feedback for scrollable area */
+    background: radial-gradient(circle at center, rgba(111, 66, 193, 0.02) 0%, transparent 70%);
+}
+
+/* Wrapper for zoom and pan functionality */
+.family-tree-viewport {
+    min-width: 100%;
+    width: max-content;
+    min-height: 100%;
+    position: relative;
+    transform-origin: top center;
+    transition: transform 0.2s ease-out;
+    /* Ensure content is centered initially */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .tree-level {
@@ -2512,6 +2536,8 @@ th:hover {
     gap: 40px;
     justify-content: center;
     margin-bottom: 20px;
+    /* Ensure enough space for expansion */
+    min-width: min-content;
 }
 
 .tree-node-wrapper {
@@ -2536,6 +2562,8 @@ th:hover {
     min-width: 150px;
     transition: all 0.3s ease;
     cursor: pointer;
+    /* Add subtle glow effect */
+    box-shadow: 0 0 10px rgba(111, 66, 193, 0.2);
 }
 
 .member-card:hover {
@@ -2553,12 +2581,18 @@ th:hover {
     font-weight: 600;
     font-size: 14px;
     color: var(--bs-body-color);
+    /* Ensure text doesn't overflow */
+    word-wrap: break-word;
+    max-width: 100%;
 }
 
 .member-nickname {
     font-size: 12px;
     color: #6c757d;
     font-style: italic;
+    /* Ensure text doesn't overflow */
+    word-wrap: break-word;
+    max-width: 100%;
 }
 
 .children-connector {
@@ -2566,6 +2600,8 @@ th:hover {
     height: 30px;
     background: #6f42c1;
     margin: 10px auto;
+    /* Add subtle glow to connectors */
+    box-shadow: 0 0 4px rgba(111, 66, 193, 0.4);
 }
 
 .children-container {
@@ -2574,6 +2610,8 @@ th:hover {
     gap: 30px;
     justify-content: center;
     position: relative;
+    /* Ensure container expands to fit content */
+    min-width: min-content;
 }
 
 .children-container::before {
@@ -2585,6 +2623,8 @@ th:hover {
     width: calc(100% - 60px);
     height: 2px;
     background: #6f42c1;
+    /* Add subtle glow to connection line */
+    box-shadow: 0 0 4px rgba(111, 66, 193, 0.4);
 }
 
 .child-node {
@@ -2601,11 +2641,72 @@ th:hover {
     width: 2px;
     height: 10px;
     background: #6f42c1;
+    /* Add subtle glow to connector */
+    box-shadow: 0 0 4px rgba(111, 66, 193, 0.4);
 }
 
+/* Zoom controls for desktop and mobile */
+.family-tree-controls {
+    position: sticky;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    background: rgba(15, 15, 16, 0.9);
+    border: 1px solid rgba(111, 66, 193, 0.3);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    justify-content: flex-end;
+    backdrop-filter: blur(10px);
+}
+
+.family-tree-controls button {
+    background: rgba(111, 66, 193, 0.2);
+    border: 1px solid #6f42c1;
+    color: var(--bs-body-color);
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.family-tree-controls button:hover {
+    background: rgba(111, 66, 193, 0.4);
+    transform: scale(1.1);
+}
+
+.family-tree-controls button:active {
+    transform: scale(0.95);
+}
+
+.family-tree-controls .zoom-level {
+    background: transparent;
+    border: none;
+    color: var(--bs-body-color);
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    min-width: 60px;
+    justify-content: center;
+}
+
+/* Mobile-specific improvements */
 @media (max-width: 768px) {
     .family-tree-container {
         padding: 10px;
+        /* Optimize scrolling performance on mobile */
+        -webkit-overflow-scrolling: touch;
+        /* Allow pinch-to-zoom on mobile */
+        touch-action: pan-x pan-y;
     }
 
     .tree-level,
@@ -2616,6 +2717,9 @@ th:hover {
     .member-card {
         min-width: 120px;
         padding: 10px;
+        /* Larger touch target on mobile */
+        min-height: 140px;
+        justify-content: center;
     }
 
     .member-name {
@@ -2624,6 +2728,93 @@ th:hover {
 
     .member-nickname {
         font-size: 11px;
+    }
+
+    /* Make zoom controls larger on mobile */
+    .family-tree-controls button {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+
+    .family-tree-controls {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    /* Adjust connector sizes for mobile */
+    .children-connector {
+        height: 25px;
+    }
+
+    /* Adjust avatar size for mobile */
+    .member-avatar-medium {
+        width: 80px;
+        height: 80px;
+    }
+}
+
+/* Very small mobile devices */
+@media (max-width: 375px) {
+    .member-card {
+        min-width: 100px;
+        padding: 8px;
+        min-height: 130px;
+    }
+
+    .member-name {
+        font-size: 11px;
+    }
+
+    .member-nickname {
+        font-size: 10px;
+    }
+
+    .tree-level,
+    .children-container {
+        gap: 15px;
+    }
+
+    .member-avatar-medium {
+        width: 70px;
+        height: 70px;
+    }
+}
+
+/* Landscape mode optimizations */
+@media (max-width: 768px) and (orientation: landscape) {
+    .family-tree-container {
+        min-height: 300px;
+    }
+
+    .member-card {
+        min-height: 120px;
+    }
+
+    .family-tree-controls {
+        top: 5px;
+        right: 5px;
+        padding: 6px;
+    }
+
+    .family-tree-controls button {
+        width: 42px;
+        height: 42px;
+    }
+}
+
+/* Ensure smooth animations across all devices */
+@media (prefers-reduced-motion: reduce) {
+    .family-tree-viewport {
+        transition: none;
+    }
+
+    .member-card {
+        transition: none;
+    }
+
+    .family-tree-controls button {
+        transition: none;
     }
 }
 
