@@ -1948,6 +1948,7 @@ th:hover {
 .portal-content-preformatted {
     white-space: pre-wrap;
     color: #e2e2e2;
+    text-align: left;
 }
 
 .portal-event-image {
@@ -2061,6 +2062,7 @@ th:hover {
     line-height: 1.8;
     font-size: 1.0625rem;
     color: #e2e2e2;
+    text-align: left;
 }
 
 .about-us-content::first-line {
@@ -2130,6 +2132,7 @@ th:hover {
     line-height: 1.7;
     color: #e2e2e2;
     max-width: 700px;
+    text-align: left;
 }
 
 /* Schedule & Location Info Block */
@@ -2178,6 +2181,7 @@ th:hover {
     line-height: 1.7;
     color: #e2e2e2;
     font-size: 1.0625rem;
+    text-align: left;
 }
 
 /* Activities Section */
@@ -2215,6 +2219,7 @@ th:hover {
     line-height: 1.8;
     color: #e2e2e2;
     font-size: 1.0625rem;
+    text-align: left;
 }
 
 /* Motivational Banner */
@@ -2396,6 +2401,7 @@ th:hover {
     line-height: 1.7;
     color: #e2e2e2;
     max-width: 700px;
+    text-align: left;
 }
 
 /* Missão & Identidade Section */
@@ -2444,6 +2450,7 @@ th:hover {
     line-height: 1.7;
     color: #e2e2e2;
     font-size: 1.0625rem;
+    text-align: left;
 }
 
 /* Timeline Section */
@@ -2483,6 +2490,7 @@ th:hover {
     font-size: 1.0625rem;
     position: relative;
     padding-left: 2rem;
+    text-align: left;
 }
 
 .timeline-content::before {
@@ -2549,6 +2557,7 @@ th:hover {
     color: #e2e2e2;
     white-space: pre-wrap;
     margin: 0;
+    text-align: left;
 }
 
 /* Mobile Responsive Styles for History */

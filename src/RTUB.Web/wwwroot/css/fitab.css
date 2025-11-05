@@ -22,6 +22,7 @@
     font-size: 1.0625rem;
     line-height: 1.7;
     color: #e2e2e2;
+    text-align: left;
 }
 
 /* Overview Card - Two Column Layout */
@@ -71,6 +72,7 @@
     font-size: 1rem;
     line-height: 1.7;
     color: #e2e2e2;
+    text-align: left;
 }
 
 /* Características Card */
@@ -108,6 +110,7 @@
     color: #e2e2e2;
     padding: 0.5rem 0 0.5rem 2rem;
     position: relative;
+    text-align: left;
 }
 
 .fitab-features-list li::before {
@@ -144,6 +147,7 @@
     font-size: 1rem;
     line-height: 1.7;
     color: #e2e2e2;
+    text-align: left;
 }
 
 /* Edit Button Positioning */
