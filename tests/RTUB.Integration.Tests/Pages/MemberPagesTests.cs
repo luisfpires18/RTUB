@@ -51,13 +51,13 @@ public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
     #endregion
 
-    #region Hierarquia Page Tests
+    #region Hierarchy Page Tests
 
     [Fact]
-    public async Task HierarquiaPage_WithoutAuth_RedirectsToLogin()
+    public async Task HierarchyPage_WithoutAuth_RedirectsToLogin()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/member/hierarquia");
+        var response = await _client.GetAsync("/member/hierarchy");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
@@ -100,7 +100,7 @@ public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
     [Theory]
     [InlineData("/members")]
-    [InlineData("/member/hierarquia")]
+    [InlineData("/member/hierarchy")]
     [InlineData("/rehearsals")]
     [InlineData("/profile")]
     public async Task MemberPages_RequireAuthentication(string url)
@@ -119,7 +119,7 @@ public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task MemberPages_AllRequireAuthenticationInSequence()
     {
         // Arrange
-        var memberUrls = new[] { "/members", "/member/hierarquia", "/rehearsals", "/profile" };
+        var memberUrls = new[] { "/members", "/member/hierarchy", "/rehearsals", "/profile" };
 
         // Act & Assert
         foreach (var url in memberUrls)
