@@ -51,10 +51,10 @@ RTUB/
 - **SQLite** - Lightweight database for data persistence
 
 ### Language Composition
-- **C#** (60.1%) - Backend development, Blazor components, and business logic
-- **HTML** (36.3%) - Razor markup in Blazor components
-- **CSS** (3.2%) - Styling and visual design
-- **JavaScript** (0.4%) - Minimal JS for specific client-side features
+- **C#** - Backend development, Blazor components, and business logic
+- **HTML** - Razor markup in Blazor components
+- **CSS** - Styling and visual design
+- **JavaScript** - Minimal JS for specific client-side features
 
 ### Key Technologies & Libraries
 
