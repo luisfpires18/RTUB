@@ -11,13 +11,6 @@
     text-align: center;
 }
 
-.hierarchy-title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #e2e2e2;
-    margin: 0 0 0.5rem 0;
-}
-
 .hierarchy-subtitle {
     font-size: 1.5rem;
     font-weight: 600;
@@ -156,10 +149,6 @@
 
 /* Responsive Breakpoints */
 @media (max-width: 768px) {
-    .hierarchy-title {
-        font-size: 2rem;
-    }
-
     .hierarchy-subtitle {
         font-size: 1.25rem;
     }

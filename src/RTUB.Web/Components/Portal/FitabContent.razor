@@ -8,15 +8,15 @@
 <div class="fitab-page">
     <!-- Header / Intro Section -->
     <section class="fitab-intro">
-        <div class="fitab-section-header">
-            <h1 class="fitab-title">@(titleLabel?.Content ?? "A carregar...")</h1>
+        <div class="portal-section-header justify-content-center">
+            <h1 class="portal-section-title">@(titleLabel?.Content ?? "A carregar...")</h1>
             <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
         </div>
+        <div class="portal-section-divider"></div>
         <div class="fitab-section-header">
             <h2 class="fitab-subtitle">@(subtitleLabel?.Content ?? "")</h2>
             <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
         </div>
-        <div class="fitab-divider"></div>
         @if (introLabel != null)
         {
             <div class="fitab-content-wrapper">

@@ -7,15 +7,15 @@
 
 <!-- Intro Area: Centered title, subtitle, and description -->
 <section class="join-us-intro text-center mb-5">
-    <div class="d-flex justify-content-center align-items-baseline mb-2">
-        <h1 class="join-us-title">@(titleLabel?.Content ?? "A carregar...")</h1>
+    <div class="portal-section-header justify-content-center">
+        <h1 class="portal-section-title">@(titleLabel?.Content ?? "A carregar...")</h1>
         <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
     </div>
+    <div class="portal-section-divider"></div>
     <div class="d-flex justify-content-center align-items-baseline mb-3">
         <h2 class="join-us-subtitle">@(subtitleLabel?.Content ?? "")</h2>
         <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
     </div>
-    <div class="join-us-divider"></div>
     @if (introLabel != null)
     {
         <div class="d-flex justify-content-center align-items-start">

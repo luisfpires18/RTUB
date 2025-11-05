@@ -8,14 +8,7 @@
 .fitab-intro {
     max-width: 800px;
     margin: 0 auto 2.5rem;
-    text-align: center;
-}
-
-.fitab-title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #e2e2e2;
-    margin: 0 0 0.5rem 0;
+    text-center;
 }
 
 .fitab-subtitle {
@@ -23,13 +16,6 @@
     font-weight: 600;
     color: #6f42c1;
     margin: 0 0 1rem 0;
-}
-
-.fitab-divider {
-    height: 2px;
-    width: 80px;
-    background: linear-gradient(90deg, #6f42c1 0%, rgba(111, 66, 193, 0.3) 100%);
-    margin: 0 auto 1.5rem;
 }
 
 .fitab-intro-text {
@@ -181,10 +167,6 @@
 
 /* Responsive Breakpoints */
 @media (max-width: 768px) {
-    .fitab-title {
-        font-size: 2rem;
-    }
-
     .fitab-subtitle {
         font-size: 1.25rem;
     }
@@ -216,10 +198,6 @@
 }
 
 @media (max-width: 375px) {
-    .fitab-title {
-        font-size: 1.75rem;
-    }
-
     .fitab-subtitle {
         font-size: 1.125rem;
     }
