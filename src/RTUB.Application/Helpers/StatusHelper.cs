@@ -96,6 +96,7 @@ public static class StatusHelper
             Position.PrimeiroRelatorConselhoFiscal => "1º RELATOR CONSELHO FISCAL",
             Position.SegundoRelatorConselhoFiscal => "2º RELATOR CONSELHO FISCAL",
             Position.PresidenteConselhoVeteranos => "PRESIDENTE CONSELHO VETERANOS",
+            Position.Ensaiador => "ENSAIADOR",
             _ => position.ToString()
         };
     }

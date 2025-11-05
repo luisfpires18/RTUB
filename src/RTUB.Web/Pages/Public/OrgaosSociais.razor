@@ -364,6 +364,44 @@ else
             </div>
         </div>
     </section>
+
+    <!-- Outros Cargos -->
+    <section class="mb-4">
+        <div class="card shadow-sm portal-governing-body-card">
+            <div class="card-header gov-body-card-header">
+                <h3 class="mb-0">OUTROS CARGOS</h3>
+            </div>
+            <div class="card-body">
+                @{
+                    var ensaiador = GetRoleAssignment(Position.Ensaiador);
+                }
+                
+                @* Ensaiador *@
+                <div class="text-center">
+                    <div class="position-title mb-2">ENSAIADOR</div>
+                    @if (ensaiador != null)
+                    {
+                        <div class="d-flex flex-column align-items-center">
+                            <img src="@ensaiador.User!.ProfilePictureSrc" alt="@ensaiador.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                            @if (!string.IsNullOrEmpty(ensaiador.User.Nickname))
+                            {
+                                <div class="text-light-theme">@ensaiador.User.Nickname</div>
+                                <div class="member-nickname">@ensaiador.User.FirstName @ensaiador.User.LastName</div>
+                            }
+                            else
+                            {
+                                <div class="text-light-theme">@ensaiador.User.FirstName @ensaiador.User.LastName</div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="not-available-text">N/D</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
 }
 
 @code {

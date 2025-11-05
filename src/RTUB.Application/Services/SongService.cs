@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
@@ -13,27 +14,33 @@ namespace RTUB.Application.Services;
 public class SongService : ISongService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<SongService>? _logger;
 
-    public SongService(ApplicationDbContext context)
+    public SongService(ApplicationDbContext context, ILogger<SongService>? logger = null)
     {
         _context = context;
+        _logger = logger;
     }
 
     public async Task<Song?> GetSongByIdAsync(int id)
     {
-        return await _context.Songs.FindAsync(id);
+        return await _context.Songs
+            .Include(s => s.YouTubeUrls)
+            .FirstOrDefaultAsync(s => s.Id == id);
     }
 
     public async Task<IEnumerable<Song>> GetAllSongsAsync()
     {
         return await _context.Songs
             .Include(s => s.Album)
+            .Include(s => s.YouTubeUrls)
             .ToListAsync();
     }
 
     public async Task<IEnumerable<Song>> GetSongsByAlbumIdAsync(int albumId)
     {
         return await _context.Songs
+            .Include(s => s.YouTubeUrls)
             .Where(s => s.AlbumId == albumId)
             .OrderBy(s => s.TrackNumber)
             .ToListAsync();
@@ -49,40 +56,52 @@ public class SongService : ISongService
 
     public async Task UpdateSongAsync(int id, string title, int? trackNumber, string? lyricAuthor, string? musicAuthor, string? adaptation, int? duration)
     {
-        var song = await _context.Songs.FindAsync(id);
+        var song = await _context.Songs
+            .Include(s => s.YouTubeUrls)
+            .FirstOrDefaultAsync(s => s.Id == id);
+            
         if (song == null)
             throw new InvalidOperationException($"Song with ID {id} not found");
 
         song.UpdateDetails(title, trackNumber, lyricAuthor, musicAuthor, adaptation, duration);
-        _context.Songs.Update(song);
+        // EF Core change tracker automatically detects modifications to loaded entities
         await _context.SaveChangesAsync();
     }
 
     public async Task SetSongLyricsAsync(int id, string? lyrics)
     {
-        var song = await _context.Songs.FindAsync(id);
+        var song = await _context.Songs
+            .Include(s => s.YouTubeUrls)
+            .FirstOrDefaultAsync(s => s.Id == id);
+            
         if (song == null)
             throw new InvalidOperationException($"Song with ID {id} not found");
 
         song.SetLyrics(lyrics);
-        _context.Songs.Update(song);
+        // EF Core change tracker automatically detects modifications to loaded entities
         await _context.SaveChangesAsync();
     }
 
     public async Task SetSongSpotifyUrlAsync(int id, string? url)
     {
-        var song = await _context.Songs.FindAsync(id);
+        var song = await _context.Songs
+            .Include(s => s.YouTubeUrls)
+            .FirstOrDefaultAsync(s => s.Id == id);
+            
         if (song == null)
             throw new InvalidOperationException($"Song with ID {id} not found");
 
         song.SetSpotifyUrl(url);
-        _context.Songs.Update(song);
+        // EF Core change tracker automatically detects modifications to loaded entities
         await _context.SaveChangesAsync();
     }
 
     public async Task DeleteSongAsync(int id)
     {
-        var song = await _context.Songs.FindAsync(id);
+        var song = await _context.Songs
+            .Include(s => s.YouTubeUrls)
+            .FirstOrDefaultAsync(s => s.Id == id);
+            
         if (song == null)
             throw new InvalidOperationException($"Song with ID {id} not found");
 
@@ -92,41 +111,81 @@ public class SongService : ISongService
 
     public async Task AddYouTubeUrlAsync(int songId, string url)
     {
-        var song = await _context.Songs.FindAsync(songId);
+        var song = await _context.Songs
+            .Include(s => s.YouTubeUrls)
+            .FirstOrDefaultAsync(s => s.Id == songId);
+            
         if (song == null)
             throw new InvalidOperationException($"Song with ID {songId} not found");
 
         if (string.IsNullOrWhiteSpace(url))
             throw new ArgumentException("YouTube URL cannot be empty", nameof(url));
+
+        var canonicalUrl = CanonicalizeUrl(url.Trim());
+
+        // Check if URL already exists (avoid duplicates)
+        if (song.YouTubeUrls.Any(y => CanonicalizeUrl(y.Url) == canonicalUrl))
+        {
+            _logger?.LogInformation("YouTube URL already exists for song {SongId}: {Url}", songId, canonicalUrl);
+            return; // URL already exists, don't add duplicate
+        }
 
         // Add YouTube URL to song
         var youtubeUrl = new SongYouTubeUrl 
         { 
             SongId = songId, 
-            Url = url.Trim() 
+            Url = canonicalUrl 
         };
         
         song.YouTubeUrls.Add(youtubeUrl);
-        _context.Songs.Update(song);
         await _context.SaveChangesAsync();
+        
+        _logger?.LogInformation("Added YouTube URL to song {SongId}. Total URLs: {TotalUrls}", 
+            songId, song.YouTubeUrls.Count);
     }
 
     public async Task RemoveYouTubeUrlAsync(int songId, string url)
     {
-        var song = await _context.Songs.FindAsync(songId);
+        var song = await _context.Songs
+            .Include(s => s.YouTubeUrls)
+            .FirstOrDefaultAsync(s => s.Id == songId);
+            
         if (song == null)
             throw new InvalidOperationException($"Song with ID {songId} not found");
 
         if (string.IsNullOrWhiteSpace(url))
             throw new ArgumentException("YouTube URL cannot be empty", nameof(url));
 
-        // Remove YouTube URL from song
-        var youtubeUrl = song.YouTubeUrls.FirstOrDefault(y => y.Url == url.Trim());
+        var canonicalUrl = CanonicalizeUrl(url.Trim());
+
+        // Remove YouTube URL from song - use canonicalized comparison
+        var youtubeUrl = song.YouTubeUrls.FirstOrDefault(y => CanonicalizeUrl(y.Url) == canonicalUrl);
         if (youtubeUrl != null)
         {
             song.YouTubeUrls.Remove(youtubeUrl);
-            _context.Songs.Update(song);
             await _context.SaveChangesAsync();
+            
+            _logger?.LogInformation("Removed YouTube URL from song {SongId}. Remaining URLs: {RemainingUrls}", 
+                songId, song.YouTubeUrls.Count);
         }
+        else
+        {
+            _logger?.LogWarning("Attempted to remove non-existent YouTube URL from song {SongId}: {Url}", 
+                songId, canonicalUrl);
+        }
+    }
+
+    /// <summary>
+    /// Canonicalizes a URL by trimming and normalizing to lowercase for comparison.
+    /// This provides basic normalization for duplicate detection.
+    /// Note: Does not handle protocol differences (http vs https), trailing slashes,
+    /// or query parameter ordering - these are preserved from user input.
+    /// </summary>
+    private string CanonicalizeUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return string.Empty;
+            
+        return url.Trim().ToLowerInvariant();
     }
 }
