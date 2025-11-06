@@ -8,16 +8,18 @@ public interface IAudioStorageService
     /// <summary>
     /// Generates a pre-signed URL for accessing an audio file
     /// </summary>
-    /// <param name="songId">The song ID</param>
-    /// <param name="fileName">The audio file name</param>
+    /// <param name="albumTitle">The album title (used as folder name)</param>
+    /// <param name="trackNumber">The track number</param>
+    /// <param name="songTitle">The song title</param>
     /// <returns>Pre-signed URL valid for a limited time</returns>
-    Task<string?> GetAudioUrlAsync(int songId, string fileName);
+    Task<string?> GetAudioUrlAsync(string albumTitle, int? trackNumber, string songTitle);
     
     /// <summary>
     /// Checks if an audio file exists in storage
     /// </summary>
-    /// <param name="songId">The song ID</param>
-    /// <param name="fileName">The audio file name</param>
+    /// <param name="albumTitle">The album title (used as folder name)</param>
+    /// <param name="trackNumber">The track number</param>
+    /// <param name="songTitle">The song title</param>
     /// <returns>True if file exists, false otherwise</returns>
-    Task<bool> AudioFileExistsAsync(int songId, string fileName);
+    Task<bool> AudioFileExistsAsync(string albumTitle, int? trackNumber, string songTitle);
 }

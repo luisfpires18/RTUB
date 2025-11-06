@@ -678,8 +678,15 @@ else
     {
         try
         {
-            // Generate pre-signed URL for the audio file
-            var audioUrl = await AudioStorageService.GetAudioUrlAsync(song.Id, song.Title);
+            // Get album information
+            if (album == null)
+            {
+                Console.WriteLine("Album information not available");
+                return;
+            }
+            
+            // Generate pre-signed URL for the audio file using album title, track number, and song title
+            var audioUrl = await AudioStorageService.GetAudioUrlAsync(album.Title, song.TrackNumber, song.Title);
             
             if (!string.IsNullOrEmpty(audioUrl))
             {
@@ -691,7 +698,7 @@ else
             {
                 // File not found or error
                 // You could show a notification here
-                Console.WriteLine($"Audio file not found for song: {song.Title}");
+                Console.WriteLine($"Audio file not found for song: {song.Title} in album: {album.Title}");
             }
         }
         catch (Exception ex)

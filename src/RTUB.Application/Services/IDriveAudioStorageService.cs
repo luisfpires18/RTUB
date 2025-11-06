@@ -2,6 +2,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.Runtime;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
 
 namespace RTUB.Application.Services;
@@ -13,10 +14,14 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
 {
     private readonly IAmazonS3 _s3Client;
     private readonly string _bucketName;
+    private readonly ILogger<IDriveAudioStorageService> _logger;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
 
-    public IDriveAudioStorageService(IConfiguration configuration)
+    public IDriveAudioStorageService(IConfiguration configuration, ILogger<IDriveAudioStorageService> logger)
     {
+        _logger = logger;
+        _logger.LogInformation("Initializing IDriveAudioStorageService");
+        
         // Get credentials from environment variables or configuration
         var accessKey = Environment.GetEnvironmentVariable("IDRIVE_ACCESS_KEY") 
                         ?? configuration["IDrive:AccessKey"];
@@ -31,8 +36,9 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
 
         if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
         {
-            throw new InvalidOperationException(
-                "iDrive e2 credentials not configured. Set IDRIVE_ACCESS_KEY and IDRIVE_SECRET_KEY environment variables.");
+            var errorMsg = "iDrive e2 credentials not configured. Set IDRIVE_ACCESS_KEY and IDRIVE_SECRET_KEY environment variables.";
+            _logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
         }
 
         var credentials = new BasicAWSCredentials(accessKey, secretKey);
@@ -43,19 +49,22 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
         };
 
         _s3Client = new AmazonS3Client(credentials, config);
+        _logger.LogInformation("IDriveAudioStorageService initialized with bucket: {BucketName}", _bucketName);
     }
 
-    public async Task<string?> GetAudioUrlAsync(int songId, string fileName)
+    public async Task<string?> GetAudioUrlAsync(string albumTitle, int? trackNumber, string songTitle)
     {
         try
         {
-            // Generate object key - use song ID and sanitized file name
-            var objectKey = GetObjectKey(songId, fileName);
+            // Generate object key using album title as folder
+            var objectKey = GetObjectKey(albumTitle, trackNumber, songTitle);
+            _logger.LogInformation("Requesting audio URL for key: {ObjectKey}", objectKey);
 
             // Check if file exists first
-            var exists = await AudioFileExistsAsync(songId, fileName);
+            var exists = await AudioFileExistsAsync(albumTitle, trackNumber, songTitle);
             if (!exists)
             {
+                _logger.LogWarning("Audio file not found for key: {ObjectKey}", objectKey);
                 return null;
             }
 
@@ -68,21 +77,23 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
             };
 
             var url = _s3Client.GetPreSignedURL(request);
+            _logger.LogInformation("Generated pre-signed URL for: {ObjectKey}", objectKey);
             return url;
         }
         catch (Exception ex)
         {
-            // Log error (consider using ILogger here)
-            Console.WriteLine($"Error generating audio URL: {ex.Message}");
+            _logger.LogError(ex, "Error generating audio URL for album: {AlbumTitle}, song: {SongTitle}", albumTitle, songTitle);
             return null;
         }
     }
 
-    public async Task<bool> AudioFileExistsAsync(int songId, string fileName)
+    public async Task<bool> AudioFileExistsAsync(string albumTitle, int? trackNumber, string songTitle)
     {
         try
         {
-            var objectKey = GetObjectKey(songId, fileName);
+            var objectKey = GetObjectKey(albumTitle, trackNumber, songTitle);
+            _logger.LogDebug("Checking if audio file exists: {ObjectKey}", objectKey);
+            
             var request = new GetObjectMetadataRequest
             {
                 BucketName = _bucketName,
@@ -90,43 +101,43 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
             };
 
             await _s3Client.GetObjectMetadataAsync(request);
+            _logger.LogDebug("Audio file exists: {ObjectKey}", objectKey);
             return true;
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
+            var objectKey = GetObjectKey(albumTitle, trackNumber, songTitle);
+            _logger.LogWarning("Audio file not found (404): {ObjectKey}", objectKey);
             return false;
         }
-        catch
+        catch (Exception ex)
         {
+            var objectKey = GetObjectKey(albumTitle, trackNumber, songTitle);
+            _logger.LogError(ex, "Error checking if audio file exists: {ObjectKey}", objectKey);
             return false;
         }
     }
 
-    private string GetObjectKey(int songId, string fileName)
+    private string GetObjectKey(string albumTitle, int? trackNumber, string songTitle)
     {
-        // Clean the filename and create object key
-        // Format: songs/{songId}/{cleanFileName}
-        var cleanFileName = SanitizeFileName(fileName);
-        return $"songs/{songId}/{cleanFileName}";
-    }
-
-    private string SanitizeFileName(string fileName)
-    {
-        // Remove or replace invalid characters
-        var invalid = Path.GetInvalidFileNameChars();
-        var sanitized = string.Join("_", fileName.Split(invalid, StringSplitOptions.RemoveEmptyEntries));
+        // Format: {AlbumTitle}/{TrackNumber}. {SongTitle}.mp3
+        // Example: Boémios e Trovadores/01. Noites Presentes.mp3
         
-        // Ensure extension is present (default to .mp3 if not)
-        if (!Path.HasExtension(sanitized))
-        {
-            sanitized += ".mp3";
-        }
+        var trackPrefix = trackNumber.HasValue ? $"{trackNumber.Value:D2}. " : "";
+        var fileName = $"{trackPrefix}{songTitle}.mp3";
         
-        return sanitized;
+        // Construct the full key path
+        var objectKey = $"{albumTitle}/{fileName}";
+        
+        _logger.LogDebug("Constructed object key: {ObjectKey} from album: {AlbumTitle}, track: {TrackNumber}, song: {SongTitle}", 
+            objectKey, albumTitle, trackNumber, songTitle);
+        
+        return objectKey;
     }
 
     public void Dispose()
     {
         _s3Client?.Dispose();
+        _logger.LogInformation("IDriveAudioStorageService disposed");
     }
 }
