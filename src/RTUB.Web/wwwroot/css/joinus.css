@@ -1,0 +1,299 @@
+/* ============================================
+   JUNTA-TE A NÓS (JOIN US) PAGE STYLES
+   Scoped styles for JoinUsContent.razor
+   ============================================ */
+
+/* Intro Section */
+.join-us-intro {
+    max-width: 800px;
+    margin: 0 auto 3rem auto;
+}
+
+.join-us-subtitle {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #6f42c1;
+    margin: 0;
+    text-align: left;
+}
+
+.join-us-intro-text {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: #e2e2e2;
+    margin: 0;
+    text-align: left;
+}
+
+/* Schedule & Location Info Block */
+.join-us-info-block {
+    max-width: 900px;
+    margin: 0 auto 3rem auto;
+}
+
+.info-block-container {
+    display: flex;
+    gap: 0;
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.info-block-column {
+    flex: 1;
+    padding: 2rem;
+    position: relative;
+}
+
+.info-block-column:first-child::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 10%;
+    height: 80%;
+    width: 2px;
+    background: linear-gradient(180deg, transparent 0%, #6f42c1 50%, transparent 100%);
+}
+
+.info-block-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.info-block-icon {
+    font-size: 1.75rem;
+    color: #6f42c1;
+    flex-shrink: 0;
+}
+
+.info-block-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e2e2e2;
+    margin: 0;
+}
+
+.info-block-content {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: #e2e2e2;
+    text-align: left;
+}
+
+/* Activities Section */
+.join-us-activities {
+    max-width: 900px;
+    margin: 0 auto 3rem auto;
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.activities-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.activities-icon {
+    font-size: 1.75rem;
+    color: #6f42c1;
+    flex-shrink: 0;
+}
+
+.activities-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e2e2e2;
+    margin: 0;
+}
+
+.activities-content {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: #e2e2e2;
+    text-align: left;
+}
+
+.activities-content ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.activities-content li {
+    padding-left: 1.5rem;
+    position: relative;
+    margin-bottom: 0.75rem;
+}
+
+.activities-content li::before {
+    content: '♪';
+    position: absolute;
+    left: 0;
+    color: #6f42c1;
+    font-weight: bold;
+}
+
+/* Motivational Banner */
+.join-us-motivation {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.motivation-banner {
+    padding: 1.75rem 2rem;
+    background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.motivation-banner::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+.motivation-content {
+    display: flex;
+    align-items: center;
+    color: #ffffff;
+    font-size: 1.25rem;
+    position: relative;
+    z-index: 1;
+}
+
+.motivation-content i {
+    font-size: 2rem;
+    color: #ffd700;
+}
+
+.motivation-content strong {
+    white-space: pre-wrap;
+}
+
+.motivation-edit-button {
+    position: relative;
+    z-index: 2;
+}
+
+
+/* How to Join Section */
+.join-us-how-to {
+    max-width: 900px;
+    margin: 0 auto 3rem auto;
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.how-to-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    justify-content: center;
+}
+
+.join-us-how-to h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e2e2e2;
+    margin: 0;
+}
+
+.how-to-icon {
+    font-size: 1.75rem;
+    color: #6f42c1;
+    flex-shrink: 0;
+}
+
+.how-to-text {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: #e2e2e2;
+    text-align: left;
+    margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .info-block-container {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .info-block-column:first-child::after {
+        width: 80%;
+        height: 2px;
+        top: auto;
+        bottom: 0;
+        left: 10%;
+        right: auto;
+        background: linear-gradient(90deg, transparent 0%, #6f42c1 50%, transparent 100%);
+    }
+
+    .info-block-column {
+        padding: 1.5rem;
+    }
+
+    .join-us-subtitle {
+        font-size: 1.5rem;
+    }
+
+    .join-us-intro-text {
+        font-size: 1rem;
+    }
+
+    .info-block-title,
+    .activities-title,
+    .motivation-title,
+    .join-us-how-to h3 {
+        font-size: 1.25rem;
+    }
+
+    .info-block-content,
+    .activities-content,
+    .how-to-text {
+        font-size: 1rem;
+    }
+
+    .motivation-text {
+        font-size: 1.125rem;
+    }
+
+    .join-us-motivation {
+        padding: 2rem 1.5rem;
+    }
+}
+
+@media (max-width: 375px) {
+    .join-us-subtitle {
+        font-size: 1.375rem;
+    }
+
+    .info-block-title,
+    .activities-title,
+    .motivation-title,
+    .join-us-how-to h3 {
+        font-size: 1.125rem;
+    }
+}

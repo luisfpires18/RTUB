@@ -12,11 +12,14 @@
 @if (aboutUs != null)
 {
     <section class="mb-5">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-            <h2>@aboutUs.Title</h2>
-            <LabelEditButton CurrentLabel="@aboutUs" OnEditClick="@OpenEditModal" CssClass="text-white" />
+        <div class="about-us-container">
+            <div class="about-us-header">
+                <h2 class="about-us-title">@aboutUs.Title</h2>
+                <LabelEditButton CurrentLabel="@aboutUs" OnEditClick="@OpenEditModal" CssClass="text-white" />
+            </div>
+            <div class="about-us-divider"></div>
+            <div class="about-us-content portal-content-preformatted">@aboutUs.Content</div>
         </div>
-        <div class="portal-content-preformatted">@aboutUs.Content</div>
     </section>
 }
 

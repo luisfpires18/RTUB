@@ -5,104 +5,105 @@
 @inject ILogger<JoinUsContent> Logger
 @namespace RTUB.Components.Portal
 
-<div class="d-flex justify-content-between align-items-start mb-3">
-    <h1 class="portal-title">@(titleLabel?.Content ?? "A carregar...")</h1>
-    <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" />
-</div>
-<div class="d-flex justify-content-between align-items-start mb-4">
-    <h2 class="portal-subtitle">@(subtitleLabel?.Content ?? "")</h2>
-    <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" />
-</div>
-
-@if (introLabel != null)
-{
-    <section class="mb-5">
+<!-- Intro Area: Centered container with title, subtitle, and description -->
+<section class="join-us-intro mb-5">
+    <div class="portal-section-header">
+        <h1 class="portal-section-title">@(titleLabel?.Content ?? "A carregar...")</h1>
+        <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" />
+    </div>
+    <div class="portal-section-divider"></div>
+    <div class="d-flex justify-content-between align-items-baseline mb-3">
+        <h2 class="join-us-subtitle">@(subtitleLabel?.Content ?? "")</h2>
+        <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" />
+    </div>
+    @if (introLabel != null)
+    {
         <div class="d-flex justify-content-between align-items-start">
-            <p class="portal-intro-text flex-grow-1">@introLabel.Content</p>
+            <p class="join-us-intro-text">@introLabel.Content</p>
             <LabelEditButton CurrentLabel="@introLabel" OnEditClick="@OpenEditModal" />
         </div>
-    </section>
-}
+    }
+</section>
 
-<div class="row g-4 mb-5">
-    <!-- Schedule Card -->
-    <div class="col-md-6">
-        <div class="card shadow-sm h-100 portal-feature-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <h3 class="card-title portal-title">@(scheduleTitleLabel?.Content ?? "")</h3>
-                    <LabelEditButton CurrentLabel="@scheduleTitleLabel" OnEditClick="@OpenEditModal" />
-                </div>
-                <div class="d-flex justify-content-between align-items-start">
-                    <p class="card-text portal-content-preformatted flex-grow-1">@(scheduleContentLabel?.Content ?? "")</p>
-                    <LabelEditButton CurrentLabel="@scheduleContentLabel" OnEditClick="@OpenEditModal" />
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Location Card -->
-    <div class="col-md-6">
-        <div class="card shadow-sm h-100 portal-feature-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <h3 class="card-title portal-title">@(locationTitleLabel?.Content ?? "")</h3>
-                    <LabelEditButton CurrentLabel="@locationTitleLabel" OnEditClick="@OpenEditModal" />
-                </div>
-                <div class="d-flex justify-content-between align-items-start">
-                    <p class="card-text portal-content-preformatted flex-grow-1">@(locationContentLabel?.Content ?? "")</p>
-                    <LabelEditButton CurrentLabel="@locationContentLabel" OnEditClick="@OpenEditModal" />
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Activities Section -->
-<section class="mb-5">
-    <div class="card shadow-sm portal-governing-body-card">
-        <div class="card-body">
+<!-- Schedule & Location: Merged horizontal info block -->
+<section class="join-us-info-block mb-5">
+    <div class="info-block-container">
+        <div class="info-block-column">
             <div class="d-flex justify-content-between align-items-start mb-3">
-                <h3 class="card-title portal-title">@(activitiesTitleLabel?.Content ?? "")</h3>
-                <LabelEditButton CurrentLabel="@activitiesTitleLabel" OnEditClick="@OpenEditModal" />
+                <div class="info-block-header">
+                    <i class="bi bi-clock-fill me-2"></i>
+                    <h3>@(scheduleTitleLabel?.Content ?? "")</h3>
+                </div>
+                <LabelEditButton CurrentLabel="@scheduleTitleLabel" OnEditClick="@OpenEditModal" />
             </div>
             <div class="d-flex justify-content-between align-items-start">
-                <p class="card-text portal-content-preformatted flex-grow-1">@(activitiesContentLabel?.Content ?? "")</p>
-                <LabelEditButton CurrentLabel="@activitiesContentLabel" OnEditClick="@OpenEditModal" />
+                <p class="info-block-content">@(scheduleContentLabel?.Content ?? "")</p>
+                <LabelEditButton CurrentLabel="@scheduleContentLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
+            </div>
+        </div>
+        <div class="info-block-divider"></div>
+        <div class="info-block-column">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="info-block-header">
+                    <i class="bi bi-geo-alt-fill me-2"></i>
+                    <h3>@(locationTitleLabel?.Content ?? "")</h3>
+                </div>
+                <LabelEditButton CurrentLabel="@locationTitleLabel" OnEditClick="@OpenEditModal" />
+            </div>
+            <div class="d-flex justify-content-between align-items-start">
+                <p class="info-block-content">@(locationContentLabel?.Content ?? "")</p>
+                <LabelEditButton CurrentLabel="@locationContentLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
             </div>
         </div>
     </div>
 </section>
 
-<!-- No Experience Required -->
+<!-- Activities Section: Single wide card -->
+<section class="join-us-activities mb-5">
+    <div class="activities-card">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div class="activities-header">
+                <i class="bi bi-music-note-list me-2"></i>
+                <h3>@(activitiesTitleLabel?.Content ?? "")</h3>
+            </div>
+            <LabelEditButton CurrentLabel="@activitiesTitleLabel" OnEditClick="@OpenEditModal" />
+        </div>
+        <div class="d-flex justify-content-between align-items-start">
+            <div class="activities-content">@(activitiesContentLabel?.Content ?? "")</div>
+            <LabelEditButton CurrentLabel="@activitiesContentLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
+        </div>
+    </div>
+</section>
+
+<!-- Motivational Banner: Purple gradient highlight -->
 @if (noExperienceLabel != null)
 {
-    <section class="mb-5">
-        <div class="alert portal-info-alert">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="flex-grow-1">
-                    <i class="bi bi-info-circle-fill me-2 portal-info-icon"></i>
-                    <strong class="text-white-full text-preformatted">@noExperienceLabel.Content</strong>
+    <section class="join-us-motivation mb-5">
+        <div class="motivation-banner">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="motivation-content">
+                    <i class="bi bi-lightning-charge-fill me-3"></i>
+                    <strong>@noExperienceLabel.Content</strong>
                 </div>
-                <LabelEditButton CurrentLabel="@noExperienceLabel" OnEditClick="@OpenEditModal" />
+                <div class="motivation-edit-button">
+                    <LabelEditButton CurrentLabel="@noExperienceLabel" OnEditClick="@OpenEditModal" />
+                </div>
             </div>
         </div>
     </section>
 }
 
-<!-- How to Join -->
-<section class="mb-5">
-    <div class="card shadow-sm portal-governing-body-card">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start mb-3">
-                <h3 class="card-title portal-title">@(howToTitleLabel?.Content ?? "")</h3>
-                <LabelEditButton CurrentLabel="@howToTitleLabel" OnEditClick="@OpenEditModal" />
-            </div>
-            <div class="d-flex justify-content-between align-items-start">
-                <p class="card-text portal-text-preformatted-large flex-grow-1">@(howToContentLabel?.Content ?? "")</p>
-                <LabelEditButton CurrentLabel="@howToContentLabel" OnEditClick="@OpenEditModal" />
-            </div>
-        </div>
+
+<!-- How to Join: Centered section -->
+<section class="join-us-how-to mb-5">
+    <div class="d-flex justify-content-center align-items-baseline mb-3 how-to-header">
+        <i class="bi bi-hand-thumbs-up-fill me-2 how-to-icon"></i>
+        <h3>@(howToTitleLabel?.Content ?? "")</h3>
+        <LabelEditButton CurrentLabel="@howToTitleLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
+    </div>
+    <div class="d-flex justify-content-center align-items-start">
+        <p class="how-to-text">@(howToContentLabel?.Content ?? "")</p>
+        <LabelEditButton CurrentLabel="@howToContentLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
     </div>
 </section>
 

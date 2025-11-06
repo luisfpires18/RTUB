@@ -1,0 +1,203 @@
+/* Hierarchy Page Styles */
+.hierarchy-page {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Intro Section */
+.hierarchy-intro {
+    max-width: 800px;
+    margin: 0 auto 3rem;
+}
+
+.hierarchy-subtitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #6f42c1;
+    margin: 0 0 1rem 0;
+}
+
+.hierarchy-intro-text {
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: #e2e2e2;
+    text-align: left;
+}
+
+/* Stage Cards Grid */
+.hierarchy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Stage Card */
+.hierarchy-card {
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 100%;
+}
+
+.hierarchy-card:hover,
+.hierarchy-card:focus-within {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(111, 66, 193, 0.3);
+}
+
+/* Card Image */
+.hierarchy-card-image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.hierarchy-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Card Content */
+.hierarchy-card-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+/* Stage Badge */
+.hierarchy-stage-badge {
+    display: inline-block;
+    margin-bottom: 0.75rem;
+}
+
+/* Card Header with Edit Button */
+.hierarchy-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 0.75rem;
+}
+
+.hierarchy-card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #e2e2e2;
+    margin: 0;
+    flex: 1;
+}
+
+.hierarchy-edit-button {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background-color: rgba(111, 66, 193, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    z-index: 2;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.hierarchy-edit-button:hover,
+.hierarchy-edit-button:focus {
+    background-color: #6f42c1;
+    transform: scale(1.1);
+}
+
+.hierarchy-edit-button:focus {
+    outline: 2px solid #6f42c1;
+    outline-offset: 2px;
+}
+
+/* Card Description */
+.hierarchy-card-description-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 0.5rem;
+}
+
+.hierarchy-card-description {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #e2e2e2;
+    margin: 0;
+    flex: 1;
+    text-align: left;
+}
+
+.hierarchy-description-edit {
+    flex-shrink: 0;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 768px) {
+    .hierarchy-subtitle {
+        font-size: 1.25rem;
+    }
+
+    .hierarchy-intro-text {
+        font-size: 1rem;
+    }
+
+    .hierarchy-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .hierarchy-card-content {
+        padding: 1.25rem;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .hierarchy-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1025px) {
+    .hierarchy-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1400px) {
+    .hierarchy-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Accessibility */
+.hierarchy-card:focus-within .hierarchy-edit-button {
+    outline: 2px solid #6f42c1;
+    outline-offset: 2px;
+}
+
+.hierarchy-card-image-wrapper img[alt]:empty::after {
+    content: attr(alt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #e2e2e2;
+    font-size: 0.875rem;
+}

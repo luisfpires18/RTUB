@@ -1,0 +1,214 @@
+/* FITAB Page Styles */
+.fitab-page {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Intro Section */
+.fitab-intro {
+    max-width: 800px;
+    margin: 0 auto 2.5rem;
+}
+
+/* Ensure portal section divider in FITAB doesn't extend beyond intro section */
+.fitab-intro .portal-section-divider {
+    width: 100%;
+    max-width: 100%;
+    display: block;
+    position: relative;
+    height: 3px;
+}
+
+.fitab-subtitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #6f42c1;
+    margin: 0 0 1rem 0;
+}
+
+.fitab-intro-text {
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: #e2e2e2;
+    text-align: left;
+}
+
+/* Overview Card - Two Column Layout */
+.fitab-overview-card {
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.fitab-overview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.fitab-overview-column {
+    position: relative;
+}
+
+.fitab-overview-heading {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #6f42c1;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fitab-overview-heading i {
+    font-size: 1.25rem;
+}
+
+.fitab-overview-content {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #e2e2e2;
+    text-align: left;
+}
+
+/* Características Card */
+.fitab-features-card {
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.fitab-features-heading {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #6f42c1;
+    margin: 0 0 1.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fitab-features-heading i {
+    font-size: 1.25rem;
+}
+
+.fitab-features-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.fitab-features-list li {
+    font-size: 1rem;
+    line-height: 1.8;
+    color: #e2e2e2;
+    padding: 0.5rem 0 0.5rem 2rem;
+    position: relative;
+    text-align: left;
+}
+
+.fitab-features-list li::before {
+    content: "▸";
+    position: absolute;
+    left: 0;
+    color: #6f42c1;
+    font-size: 1.2rem;
+}
+
+/* Quando Card */
+.fitab-when-card {
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.fitab-when-heading {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #6f42c1;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fitab-when-heading i {
+    font-size: 1.25rem;
+}
+
+.fitab-when-content {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #e2e2e2;
+    text-align: left;
+}
+
+/* Edit Button Positioning */
+.fitab-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.fitab-content-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 1rem;
+}
+
+.fitab-content-text {
+    flex: 1;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 768px) {
+    .fitab-subtitle {
+        font-size: 1.25rem;
+    }
+
+    .fitab-intro-text {
+        font-size: 1rem;
+    }
+
+    .fitab-overview-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .fitab-overview-card,
+    .fitab-features-card,
+    .fitab-when-card {
+        padding: 1.5rem;
+    }
+
+    .fitab-overview-heading,
+    .fitab-features-heading,
+    .fitab-when-heading {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 375px) {
+    .fitab-subtitle {
+        font-size: 1.125rem;
+    }
+
+    .fitab-overview-card,
+    .fitab-features-card,
+    .fitab-when-card {
+        padding: 1.25rem;
+    }
+}
+
+/* Accessibility */
+.fitab-page *:focus-visible {
+    outline: 2px solid #6f42c1;
+    outline-offset: 2px;
+}

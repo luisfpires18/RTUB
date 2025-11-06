@@ -1,0 +1,86 @@
+/* ============================================
+   SOBRE NÓS (ABOUT US) PAGE STYLES
+   Scoped styles for AboutUsContent.razor
+   ============================================ */
+
+/* About Us Container */
+.about-us-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+}
+
+.about-us-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 1rem;
+}
+
+.about-us-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #e2e2e2;
+    margin: 0;
+}
+
+.about-us-divider {
+    height: 3px;
+    background: linear-gradient(90deg, #6f42c1 0%, rgba(111, 66, 193, 0.3) 100%);
+    border-radius: 2px;
+    margin-bottom: 1.75rem;
+}
+
+.about-us-content {
+    line-height: 1.8;
+    font-size: 1.0625rem;
+    color: #e2e2e2;
+    text-align: left;
+}
+
+.about-us-content::first-line {
+    font-size: 1.15rem;
+    color: #f0f0f0;
+    font-weight: 500;
+}
+
+/* Mobile responsive styles for About Us */
+@media (max-width: 768px) {
+    .about-us-container {
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        margin: 0 1rem;
+    }
+
+    .about-us-title {
+        font-size: 1.875rem;
+    }
+
+    .about-us-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .about-us-content {
+        font-size: 1rem;
+        line-height: 1.7;
+    }
+
+    .about-us-content::first-line {
+        font-size: 1.0625rem;
+    }
+}
+
+@media (max-width: 375px) {
+    .about-us-container {
+        padding: 1.25rem;
+        margin: 0 0.75rem;
+    }
+
+    .about-us-title {
+        font-size: 1.625rem;
+    }
+}
