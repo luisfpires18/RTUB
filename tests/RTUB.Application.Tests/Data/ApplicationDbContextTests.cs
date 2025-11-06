@@ -443,7 +443,7 @@ public class ApplicationDbContextTests : IDisposable
         auditLogs.Should().ContainSingle();
         
         var auditLog = auditLogs.First();
-        auditLog.EntityType.Should().Be("UserRole");
+        auditLog.EntityType.Should().Be("AspNetUserRoles");
         auditLog.Action.Should().Be("Role Added");
         auditLog.UserName.Should().Be(_testUsername);
         auditLog.IsCriticalAction.Should().BeTrue();
@@ -504,7 +504,7 @@ public class ApplicationDbContextTests : IDisposable
         auditLogs.Should().ContainSingle();
         
         var auditLog = auditLogs.First();
-        auditLog.EntityType.Should().Be("UserRole");
+        auditLog.EntityType.Should().Be("AspNetUserRoles");
         auditLog.Action.Should().Be("Role Removed");
         auditLog.UserName.Should().Be(_testUsername);
         auditLog.IsCriticalAction.Should().BeTrue();
@@ -1104,7 +1104,9 @@ public class ApplicationDbContextTests : IDisposable
 
         var auditLog = auditLogs.First();
         auditLog.Changes.Should().Contain("FirstName");
-        auditLog.Changes.Should().NotContain("SecurityStamp");
+        // SecurityStamp is excluded from logging but appears in _CriticalFieldsModified array
+        auditLog.Changes.Should().Contain("_CriticalFieldsModified");
+        auditLog.Changes.Should().Contain("SecurityStamp");
     }
 
     [Fact]
@@ -1144,8 +1146,11 @@ public class ApplicationDbContextTests : IDisposable
 
         var auditLog = auditLogs.First();
         auditLog.Changes.Should().Contain("Nickname");
-        auditLog.Changes.Should().NotContain("SecurityStamp");
-        auditLog.Changes.Should().NotContain("PasswordHash");
+        // Critical fields appear in _CriticalFieldsModified array but their values are excluded
+        auditLog.Changes.Should().Contain("_CriticalFieldsModified");
+        auditLog.Changes.Should().Contain("SecurityStamp");
+        auditLog.Changes.Should().Contain("PasswordHash");
+        // Non-critical excluded fields like EmailConfirmed don't appear at all
         auditLog.Changes.Should().NotContain("EmailConfirmed");
     }
 

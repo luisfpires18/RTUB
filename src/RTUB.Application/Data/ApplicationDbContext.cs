@@ -162,7 +162,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 
                 auditEntries.Add(new AuditLog
                 {
-                    EntityType = "UserRole",
+                    EntityType = "AspNetUserRoles",
                     EntityId = null,
                     Action = action,
                     UserId = userId,
@@ -173,7 +173,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                         Username = targetUsername,
                         Role = roleName
                     }),
-                    IsCriticalAction = true
+                    IsCriticalAction = true,
+                    EntityDisplayName = $"{targetUsername} - {roleName}"
                 });
             }
         }
@@ -296,6 +297,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
 
         var isCritical = IsCriticalAction(entityType, action);
+        var displayName = GetEntityDisplayName(entry);
 
         return new AuditLog
         {
@@ -306,7 +308,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             UserName = username,
             Timestamp = DateTime.UtcNow,
             Changes = changes.Any() ? JsonSerializer.Serialize(changes) : null,
-            IsCriticalAction = isCritical
+            IsCriticalAction = isCritical,
+            EntityDisplayName = displayName
         };
     }
 
@@ -473,6 +476,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             return null;
         }
 
+        // Use the modified user's username as the display name
+        var displayName = modifiedUserName;
+
         return new AuditLog
         {
             EntityType = "ApplicationUser",
@@ -482,7 +488,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             UserName = username,
             Timestamp = DateTime.UtcNow,
             Changes = changes.Any() ? JsonSerializer.Serialize(changes) : null,
-            IsCriticalAction = isCriticalChange
+            IsCriticalAction = isCriticalChange,
+            EntityDisplayName = displayName
         };
     }
 
@@ -595,5 +602,173 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Resolves the display name for an entity based on its type and ID
+    /// </summary>
+    private string? GetEntityDisplayName(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
+    {
+        var entityType = entry.Entity.GetType().Name;
+        
+        try
+        {
+            switch (entityType)
+            {
+                case "Song":
+                    if (entry.Entity is Song song)
+                        return song.Title;
+                    break;
+                
+                case "Event":
+                    if (entry.Entity is Event evt)
+                        return evt.Name;
+                    break;
+                
+                case "Enrollment":
+                    if (entry.Entity is Enrollment enrollment)
+                    {
+                        var evt2 = Events.Local.FirstOrDefault(e => e.Id == enrollment.EventId)
+                            ?? Events.Find(enrollment.EventId);
+                        return evt2?.Name;
+                    }
+                    break;
+                
+                case "EventRepertoire":
+                    if (entry.Entity is EventRepertoire repertoire)
+                    {
+                        var evt3 = Events.Local.FirstOrDefault(e => e.Id == repertoire.EventId)
+                            ?? Events.Find(repertoire.EventId);
+                        var song2 = Songs.Local.FirstOrDefault(s => s.Id == repertoire.SongId)
+                            ?? Songs.Find(repertoire.SongId);
+                        return $"{evt3?.Name} - {song2?.Title}";
+                    }
+                    break;
+                
+                case "RehearsalAttendance":
+                    if (entry.Entity is RehearsalAttendance attendance)
+                    {
+                        var user = Users.Local.FirstOrDefault(u => u.Id == attendance.UserId)
+                            ?? Users.Find(attendance.UserId);
+                        var rehearsal = Rehearsals.Local.FirstOrDefault(r => r.Id == attendance.RehearsalId)
+                            ?? Rehearsals.Find(attendance.RehearsalId);
+                        return $"{user?.UserName} - {rehearsal?.Date:yyyy-MM-dd}";
+                    }
+                    break;
+                
+                case "RoleAssignment":
+                    if (entry.Entity is RoleAssignment roleAssignment)
+                    {
+                        var user2 = Users.Local.FirstOrDefault(u => u.Id == roleAssignment.UserId)
+                            ?? Users.Find(roleAssignment.UserId);
+                        return $"{user2?.UserName} - {roleAssignment.Position}";
+                    }
+                    break;
+                
+                case "SongYouTubeUrl":
+                    if (entry.Entity is SongYouTubeUrl youtubeUrl)
+                    {
+                        var song3 = Songs.Local.FirstOrDefault(s => s.Id == youtubeUrl.SongId)
+                            ?? Songs.Find(youtubeUrl.SongId);
+                        return song3?.Title;
+                    }
+                    break;
+                
+                case "Transaction":
+                    if (entry.Entity is Transaction transaction && transaction.ActivityId.HasValue)
+                    {
+                        var activity = Activities.Local.FirstOrDefault(a => a.Id == transaction.ActivityId.Value)
+                            ?? Activities.Find(transaction.ActivityId.Value);
+                        return activity?.Name;
+                    }
+                    break;
+                
+                case "Activity":
+                    if (entry.Entity is Activity activity2)
+                        return activity2.Name;
+                    break;
+                
+                case "Album":
+                    if (entry.Entity is Album album)
+                        return album.Title;
+                    break;
+                
+                case "Instrument":
+                    if (entry.Entity is Instrument instrument)
+                        return $"{instrument.Category} - {instrument.Name}";
+                    break;
+                
+                case "Label":
+                    if (entry.Entity is Label label)
+                        return label.Content?.Length > 100 ? label.Content.Substring(0, 100) + "..." : label.Content;
+                    break;
+                
+                case "Product":
+                    if (entry.Entity is Product product)
+                        return product.Name;
+                    break;
+                
+                case "Rehearsal":
+                    if (entry.Entity is Rehearsal rehearsal2)
+                        return rehearsal2.Date.ToString("yyyy-MM-dd");
+                    break;
+                
+                case "Report":
+                    if (entry.Entity is Report report)
+                        return report.Title;
+                    break;
+                
+                case "Request":
+                    // Request doesn't have a specific name field, use ID
+                    return null;
+                
+                case "Slideshow":
+                    // Slideshow can use Title
+                    if (entry.Entity is Slideshow slideshow)
+                        return slideshow.Title;
+                    break;
+            }
+        }
+        catch
+        {
+            // If resolution fails, return null (will fall back to ID display)
+            return null;
+        }
+        
+        return null;
+    }
+
+    /// <summary>
+    /// Resolves the display name for ApplicationUser
+    /// </summary>
+    private string? GetUserDisplayName(string userId)
+    {
+        try
+        {
+            var user = Users.Local.FirstOrDefault(u => u.Id == userId)
+                ?? Users.Find(userId);
+            return user?.UserName;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Resolves the display name for AspNetRole
+    /// </summary>
+    private string? GetRoleDisplayName(string roleId)
+    {
+        try
+        {
+            var role = Roles.Local.FirstOrDefault(r => r.Id == roleId)
+                ?? Roles.Find(roleId);
+            return role?.Name;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
