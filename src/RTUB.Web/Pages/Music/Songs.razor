@@ -546,16 +546,7 @@ else
         
         // Fallback to DB text modal if PDF not found or error occurred
         CloseViewLyricsPdfModal();
-        
-        // Only show DB modal if there are lyrics in the database
-        if (!string.IsNullOrEmpty(song.Lyrics))
-        {
-            showViewLyricsModal = true;
-        }
-        else
-        {
-            Logger.LogInformation("No lyrics available for song: {SongTitle} (neither PDF nor DB)", song.Title);
-        }
+        showViewLyricsModal = true;
     }
 
     private void CloseViewLyricsModal()

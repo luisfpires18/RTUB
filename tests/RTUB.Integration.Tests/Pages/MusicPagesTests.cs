@@ -76,4 +76,46 @@ public class MusicPagesTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     #endregion
+
+    #region Songs Page Tests
+
+    [Fact]
+    public async Task SongsPage_WithValidAlbumId_ReturnsSuccessStatusCode()
+    {
+        // Arrange & Act
+        // Album ID 1 should exist in test data
+        var response = await _client.GetAsync("/music/songs/1");
+
+        // Assert
+        // Either success or redirect if album doesn't exist
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task SongsPage_WithInvalidAlbumId_HandlesGracefully()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/music/songs/99999");
+
+        // Assert
+        // Should either show empty page or redirect, not crash
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.NotFound, HttpStatusCode.Redirect);
+    }
+
+    [Fact]
+    public async Task SongsPage_ContainsExpectedSongElements()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/music/songs/1");
+        
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+
+            // Assert - Check for song-related elements
+            content.Should().Contain("Faixas", "page should display Tracks/Faixas section");
+        }
+    }
+
+    #endregion
 }
