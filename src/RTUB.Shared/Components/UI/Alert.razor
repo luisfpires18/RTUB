@@ -6,7 +6,7 @@
 
 @if (!string.IsNullOrEmpty(Message) || ChildContent != null)
 {
-    <div class="alert @AlertClass @(Dismissible ? "alert-dismissible fade show" : "")" role="alert">
+    <div class="alert @AlertClass @AdditionalClasses @(Dismissible ? "alert-dismissible fade show" : "")" role="alert">
         @if (!string.IsNullOrEmpty(Icon))
         {
             <i class="bi @Icon"></i>
@@ -62,6 +62,12 @@
     /// </summary>
     [Parameter]
     public EventCallback OnDismiss { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes to apply to the alert
+    /// </summary>
+    [Parameter]
+    public string AdditionalClasses { get; set; } = "";
 
     private string AlertClass => Type switch
     {

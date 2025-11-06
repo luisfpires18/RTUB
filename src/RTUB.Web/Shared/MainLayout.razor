@@ -26,21 +26,27 @@
                 <li class="nav-item"><NavLink class="nav-link" href="/events"><i class="bi bi-calendar-event"></i> Atuações</NavLink></li>
 
                 <AuthorizeView>
+                    <Authorized>
+                        <li class="nav-item"><NavLink class="nav-link" href="/rehearsals"><i class="bi bi-music-note-list"></i> Ensaios</NavLink></li>
+                    </Authorized>
+                </AuthorizeView>
+
+                <AuthorizeView>
                     <NotAuthorized>
                         <li class="nav-item"><NavLink class="nav-link" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
                     </NotAuthorized>
                 </AuthorizeView>
 
-                <li class="nav-item"><NavLink class="nav-link" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
                 <li class="nav-item"><NavLink class="nav-link" href="/roles"><i class="bi bi-bank"></i> Órgãos Sociais</NavLink></li>
 
                 <AuthorizeView>
                     <Authorized>
                         <li class="nav-item"><NavLink class="nav-link" href="/member/hierarchy"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
-                        <li class="nav-item"><NavLink class="nav-link" href="/rehearsals"><i class="bi bi-music-note-list"></i> Ensaios</NavLink></li>
                     </Authorized>
                 </AuthorizeView>
+                
+                <li class="nav-item"><NavLink class="nav-link" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
 
                 <AuthorizeView Roles="Admin">
                     <Authorized>
@@ -55,7 +61,6 @@
                                 <li><NavLink class="dropdown-item" href="/admin/roles"><i class="bi bi-person-badge"></i> Cargos</NavLink></li>
                                 <li><NavLink class="dropdown-item" href="/admin/inventory"><i class="bi bi-box-seam"></i> Inventário</NavLink></li>
                                 <li><NavLink class="dropdown-item" href="/admin/slideshow-management"><i class="bi bi-images"></i> Imagens</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/admin/labels"><i class="bi bi-tag"></i> Conteúdo</NavLink></li>
                             </ul>
                         </li>
                     </Authorized>
@@ -69,6 +74,7 @@
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="ownerDropdown">
                                 <li><NavLink class="dropdown-item" href="/owner/user-roles"><i class="bi bi-people"></i> Funções</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/owner/labels"><i class="bi bi-tag"></i> Conteúdo</NavLink></li>
                                 <li><NavLink class="dropdown-item" href="/owner/tracing"><i class="bi bi-shield-check"></i> Tracing</NavLink></li>
                             </ul>
                         </li>

@@ -393,13 +393,8 @@ else
                     var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editingUser.MentorId);
                     if (displayMentor != null)
                     {
-                        <div class="alert alert-purple mt-2 d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
-                            </div>
-                            <button type="button" class="btn btn-sm text-danger" style="background: none; border: none; padding: 0.25rem 0.5rem;" @onclick="ClearMentorSelection" title="Remover padrinho">
-                                <i class="bi bi-x-circle-fill" style="font-size: 1.25rem; color: white;"></i>
-                            </button>
+                        <div class="alert alert-purple mt-2">
+                            <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
                         </div>
                     }
                 }

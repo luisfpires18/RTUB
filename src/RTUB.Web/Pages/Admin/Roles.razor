@@ -190,14 +190,12 @@
         }
         else if (!string.IsNullOrEmpty(memberSearchTerm))
         {
-            <div class="alert alert-purple">Nenhum membro encontrado.</div>
+            <Alert Type="Alert.AlertType.Purple" Message="Nenhum membro encontrado." />
         }
 
         @if (selectedMember != null)
         {
-            <div class="alert alert-success mt-3">
-                <strong>Membro Selecionado:</strong> @selectedMember.GetDisplayName()
-            </div>
+            <Alert Type="Alert.AlertType.Success" Message="@($"Membro Selecionado: {selectedMember.GetDisplayName()}")" AdditionalClasses="mt-3" />
         }
     </BodyContent>
     <FooterContent>
