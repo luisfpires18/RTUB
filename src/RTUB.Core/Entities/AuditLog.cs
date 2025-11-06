@@ -29,5 +29,8 @@ public class AuditLog
     
     public string? Changes { get; set; }
     
+    [MaxLength(500)]
+    public string? EntityDisplayName { get; set; }
+    
     public bool IsCriticalAction { get; set; }
 }

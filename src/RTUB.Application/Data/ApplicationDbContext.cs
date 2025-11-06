@@ -173,7 +173,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                         Username = targetUsername,
                         Role = roleName
                     }),
-                    IsCriticalAction = true
+                    IsCriticalAction = true,
+                    EntityDisplayName = $"{targetUsername} - {roleName}"
                 });
             }
         }
@@ -296,6 +297,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
 
         var isCritical = IsCriticalAction(entityType, action);
+        var displayName = GetEntityDisplayName(entry);
 
         return new AuditLog
         {
@@ -306,7 +308,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             UserName = username,
             Timestamp = DateTime.UtcNow,
             Changes = changes.Any() ? JsonSerializer.Serialize(changes) : null,
-            IsCriticalAction = isCritical
+            IsCriticalAction = isCritical,
+            EntityDisplayName = displayName
         };
     }
 
@@ -473,6 +476,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             return null;
         }
 
+        // Use the modified user's username as the display name
+        var displayName = modifiedUserName;
+
         return new AuditLog
         {
             EntityType = "ApplicationUser",
@@ -482,7 +488,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             UserName = username,
             Timestamp = DateTime.UtcNow,
             Changes = changes.Any() ? JsonSerializer.Serialize(changes) : null,
-            IsCriticalAction = isCriticalChange
+            IsCriticalAction = isCriticalChange,
+            EntityDisplayName = displayName
         };
     }
 
@@ -595,5 +602,150 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Resolves the display name for an entity based on its type and ID
+    /// Optimized to only use Local cache to avoid database queries during SaveChanges
+    /// </summary>
+    private string? GetEntityDisplayName(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
+    {
+        var entityType = entry.Entity.GetType().Name;
+        
+        try
+        {
+            switch (entityType)
+            {
+                case "Song":
+                    if (entry.Entity is Song song)
+                        return song.Title;
+                    break;
+                
+                case "Event":
+                    if (entry.Entity is Event evt)
+                        return evt.Name;
+                    break;
+                
+                case "Enrollment":
+                    if (entry.Entity is Enrollment enrollment)
+                    {
+                        // Only check Local cache to avoid DB queries
+                        var evt2 = Events.Local.FirstOrDefault(e => e.Id == enrollment.EventId);
+                        return evt2?.Name;
+                    }
+                    break;
+                
+                case "EventRepertoire":
+                    if (entry.Entity is EventRepertoire repertoire)
+                    {
+                        // Only check Local cache to avoid DB queries
+                        var evt3 = Events.Local.FirstOrDefault(e => e.Id == repertoire.EventId);
+                        var song2 = Songs.Local.FirstOrDefault(s => s.Id == repertoire.SongId);
+                        if (evt3 != null && song2 != null)
+                            return $"{evt3.Name} - {song2.Title}";
+                        return evt3?.Name ?? song2?.Title; // Return partial if one is missing
+                    }
+                    break;
+                
+                case "RehearsalAttendance":
+                    if (entry.Entity is RehearsalAttendance attendance)
+                    {
+                        // Only check Local cache to avoid DB queries
+                        var user = Users.Local.FirstOrDefault(u => u.Id == attendance.UserId);
+                        var rehearsal = Rehearsals.Local.FirstOrDefault(r => r.Id == attendance.RehearsalId);
+                        if (user != null && rehearsal != null)
+                            return $"{user.UserName} - {rehearsal.Date:yyyy-MM-dd}";
+                        if (user != null)
+                            return user.UserName;
+                        if (rehearsal != null)
+                            return rehearsal.Date.ToString("yyyy-MM-dd");
+                        return null; // Neither found in cache
+                    }
+                    break;
+                
+                case "RoleAssignment":
+                    if (entry.Entity is RoleAssignment roleAssignment)
+                    {
+                        // Only check Local cache to avoid DB queries
+                        var user2 = Users.Local.FirstOrDefault(u => u.Id == roleAssignment.UserId);
+                        return $"{user2?.UserName ?? roleAssignment.UserId} - {roleAssignment.Position}";
+                    }
+                    break;
+                
+                case "SongYouTubeUrl":
+                    if (entry.Entity is SongYouTubeUrl youtubeUrl)
+                    {
+                        // Only check Local cache to avoid DB queries
+                        var song3 = Songs.Local.FirstOrDefault(s => s.Id == youtubeUrl.SongId);
+                        return song3?.Title;
+                    }
+                    break;
+                
+                case "Transaction":
+                    if (entry.Entity is Transaction transaction && transaction.ActivityId.HasValue)
+                    {
+                        // Only check Local cache to avoid DB queries
+                        var activity = Activities.Local.FirstOrDefault(a => a.Id == transaction.ActivityId.Value);
+                        return activity?.Name;
+                    }
+                    break;
+                
+                case "Activity":
+                    if (entry.Entity is Activity activity2)
+                        return activity2.Name;
+                    break;
+                
+                case "Album":
+                    if (entry.Entity is Album album)
+                        return album.Title;
+                    break;
+                
+                case "Instrument":
+                    if (entry.Entity is Instrument instrument)
+                        return $"{instrument.Category} - {instrument.Name}";
+                    break;
+                
+                case "Label":
+                    if (entry.Entity is Label label && !string.IsNullOrEmpty(label.Content))
+                    {
+                        return label.Content.Length > 100 
+                            ? label.Content[..100] + "..." 
+                            : label.Content;
+                    }
+                    break;
+                
+                case "Product":
+                    if (entry.Entity is Product product)
+                        return product.Name;
+                    break;
+                
+                case "Rehearsal":
+                    if (entry.Entity is Rehearsal rehearsal2)
+                        return rehearsal2.Date.ToString("yyyy-MM-dd");
+                    break;
+                
+                case "Report":
+                    if (entry.Entity is Report report)
+                        return report.Title;
+                    break;
+                
+                case "Request":
+                    // Request doesn't have a specific name field, use ID
+                    return null;
+                
+                case "Slideshow":
+                    // Slideshow can use Title
+                    if (entry.Entity is Slideshow slideshow)
+                        return slideshow.Title;
+                    break;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // If resolution fails due to database query issues, return null (will fall back to ID display)
+            return null;
+        }
+        
+        return null;
     }
 }

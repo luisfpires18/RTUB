@@ -206,7 +206,11 @@
                                         </td>
                                         <td>
                                             <strong>@log.EntityType</strong>
-                                            @if (log.EntityId.HasValue)
+                                            @if (!string.IsNullOrEmpty(log.EntityDisplayName))
+                                            {
+                                                <br/><small class="text-muted">@log.EntityDisplayName</small>
+                                            }
+                                            else if (log.EntityId.HasValue)
                                             {
                                                 <br/><small class="text-muted">(ID: @log.EntityId)</small>
                                             }
@@ -278,6 +282,12 @@
                 <dt class="col-sm-3">Entity Type</dt>
                 <dd class="col-sm-9">@selectedLog.EntityType</dd>
 
+                @if (!string.IsNullOrEmpty(selectedLog.EntityDisplayName))
+                {
+                    <dt class="col-sm-3">Entity</dt>
+                    <dd class="col-sm-9">@selectedLog.EntityDisplayName</dd>
+                }
+
                 <dt class="col-sm-3">Entity ID</dt>
                 <dd class="col-sm-9">@(selectedLog.EntityId?.ToString() ?? "N/A")</dd>
 
@@ -320,7 +330,17 @@
             <p class="fw-bold">Are you sure you want to delete this audit log entry?</p>
             <dl class="row">
                 <dt class="col-sm-3">Entity:</dt>
-                <dd class="col-sm-9">@logToDelete.EntityType @(logToDelete.EntityId.HasValue ? $"(ID: {logToDelete.EntityId})" : "")</dd>
+                <dd class="col-sm-9">
+                    @logToDelete.EntityType
+                    @if (!string.IsNullOrEmpty(logToDelete.EntityDisplayName))
+                    {
+                        <span> - @logToDelete.EntityDisplayName</span>
+                    }
+                    else if (logToDelete.EntityId.HasValue)
+                    {
+                        <span> (ID: @logToDelete.EntityId)</span>
+                    }
+                </dd>
                 
                 <dt class="col-sm-3">Action:</dt>
                 <dd class="col-sm-9">@logToDelete.Action</dd>
@@ -666,10 +686,15 @@
                 try
                 {
                     var changesObj = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(log.Changes);
-                    if (changesObj != null && changesObj.ContainsKey("LastLoginDate") && changesObj.Count == 1)
+                    if (changesObj != null && changesObj.ContainsKey("LastLoginDate"))
                     {
-                        // Only LastLoginDate changed, display as "Logged in"
-                        return "Logged in";
+                        // Check if only LastLoginDate and metadata fields (_TargetUser) changed
+                        var nonMetadataKeys = changesObj.Keys.Where(k => !k.StartsWith("_")).ToList();
+                        if (nonMetadataKeys.Count == 1 && nonMetadataKeys[0] == "LastLoginDate")
+                        {
+                            // Only LastLoginDate changed, display as "Logged in"
+                            return "Logged in";
+                        }
                     }
                 }
                 catch (JsonException)
