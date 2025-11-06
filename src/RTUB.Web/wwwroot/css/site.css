@@ -3805,8 +3805,8 @@ th:hover {
 
 .song-author-row {
   display: flex;
-  align-items: center;
-  gap: 0.375rem;
+  align-items: flex-start;
+  gap: 0.4rem;
   font-size: 0.875rem;
   line-height: 1.4;
 }
@@ -3823,15 +3823,15 @@ th:hover {
   color: var(--bs-primary);
   font-weight: 600;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .song-author-text {
   color: #aaa;
   font-weight: 400;
-  /* Text ellipsis for long author names */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  word-break: break-word;
 }
 
 /* Actions section at bottom */
