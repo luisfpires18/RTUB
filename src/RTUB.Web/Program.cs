@@ -95,7 +95,9 @@ namespace RTUB
             services.AddScoped<IRehearsalService, RehearsalService>();
             services.AddScoped<IRehearsalAttendanceService, RehearsalAttendanceService>();
             services.AddScoped<IAuditLogService, AuditLogService>();
-            services.AddSingleton<IAudioStorageService, IDriveAudioStorageService>();
+            services.AddSingleton<IAudioStorageService, DriveAudioStorageService>();
+            services.AddSingleton<ILyricStorageService, DriveLyricStorageService>();
+            services.AddSingleton<IDocumentStorageService, DriveDocumentStorageService>();
             
             // --------- Inventory & Shop Services ---------
             services.AddScoped<IInstrumentService, InstrumentService>();

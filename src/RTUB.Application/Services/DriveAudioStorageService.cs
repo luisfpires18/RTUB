@@ -4,25 +4,24 @@ using Amazon.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
-using System.Text;
-using System.Globalization;
+using RTUB.Application.Utilities;
 
 namespace RTUB.Application.Services;
 
 /// <summary>
 /// Implementation of audio storage service using iDrive e2 (S3-compatible)
 /// </summary>
-public class IDriveAudioStorageService : IAudioStorageService, IDisposable
+public class DriveAudioStorageService : IAudioStorageService, IDisposable
 {
     private readonly IAmazonS3 _s3Client;
-    private readonly string? _bucketName;
-    private readonly ILogger<IDriveAudioStorageService> _logger;
+    private readonly string _bucketName;
+    private readonly ILogger<DriveAudioStorageService> _logger;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
 
-    public IDriveAudioStorageService(IConfiguration configuration, ILogger<IDriveAudioStorageService> logger)
+    public DriveAudioStorageService(IConfiguration configuration, ILogger<DriveAudioStorageService> logger)
     {
         _logger = logger;
-        _logger.LogInformation("Initializing IDriveAudioStorageService");
+        _logger.LogInformation("Initializing DriveAudioStorageService");
         
         // Get credentials from environment variables or configuration
         var accessKey = configuration["IDrive:AccessKey"];
@@ -45,7 +44,7 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
         };
 
         _s3Client = new AmazonS3Client(credentials, config);
-        _logger.LogInformation("IDriveAudioStorageService initialized with bucket: {BucketName}", _bucketName);
+        _logger.LogInformation("DriveAudioStorageService initialized with bucket: {BucketName}", _bucketName);
     }
 
     public async Task<string?> GetAudioUrlAsync(string albumTitle, int? trackNumber, string songTitle)
@@ -138,8 +137,8 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
         songTitle = songTitle?.Trim() ?? string.Empty;
         
         // Normalize album and song names
-        var normalizedAlbum = NormalizeForS3Key(albumTitle);
-        var normalizedSong = NormalizeForS3Key(songTitle);
+        var normalizedAlbum = S3KeyNormalizer.NormalizeForS3Key(albumTitle);
+        var normalizedSong = S3KeyNormalizer.NormalizeForS3Key(songTitle);
         
         // Construct the full key path: album_folder/song_name.mp3
         var objectKey = $"{normalizedAlbum}/{normalizedSong}.mp3";
@@ -149,42 +148,10 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
         
         return objectKey;
     }
-    
-    private string NormalizeForS3Key(string input)
-    {
-        if (string.IsNullOrEmpty(input))
-            return string.Empty;
-        
-        // Remove accents/diacritics
-        var normalizedString = input.Normalize(NormalizationForm.FormD);
-        var stringBuilder = new StringBuilder();
-        
-        foreach (var c in normalizedString)
-        {
-            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
-            {
-                stringBuilder.Append(c);
-            }
-        }
-        
-        var result = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
-        
-        // Convert to lowercase
-        result = result.ToLowerInvariant();
-        
-        // Replace spaces and special characters with underscores
-        result = System.Text.RegularExpressions.Regex.Replace(result, @"[^a-z0-9]+", "_");
-        
-        // Remove leading/trailing underscores
-        result = result.Trim('_');
-        
-        return result;
-    }
 
     public void Dispose()
     {
         _s3Client?.Dispose();
-        _logger.LogInformation("IDriveAudioStorageService disposed");
+        _logger.LogInformation("DriveAudioStorageService disposed");
     }
 }

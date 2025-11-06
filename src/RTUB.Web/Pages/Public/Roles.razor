@@ -1,13 +1,30 @@
 @page "/roles"
+@rendermode InteractiveServer
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Core.Enums
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IRoleAssignmentService RoleAssignmentService
 @inject UserManager<ApplicationUser> UserManager
+@inject IDocumentStorageService DocumentStorageService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1 class="portal-title">Órgãos Sociais  @currentFiscalYearString</h1>
+
+@* RGI Section - Visible only to MEMBER and ADMIN *@
+<AuthorizeView Roles="Member,Admin">
+    <section class="mb-4">
+        <div class="text-center">
+            <h4 class="mb-3">Verifica os regulamentos gerais internos</h4>
+            <button class="btn btn-primary btn-lg" @onclick="OpenRgiModal">
+                Abrir RGI
+            </button>
+        </div>
+    </section>
+</AuthorizeView>
 
 @if (isLoading)
 {
@@ -404,11 +421,56 @@ else
     </section>
 }
 
+<!-- RGI PDF Modal -->
+@using RTUB.Shared
+<Modal Show="@showRgiModal" 
+       ShowChanged="@((value) => showRgiModal = value)"
+       Title="Regulamentos Gerais Internos (RGI)" 
+       Size="Modal.ModalSize.ExtraLarge" 
+       Centered="true"
+       OnClose="@CloseRgiModal">
+    <BodyContent>
+        @if (isLoadingRgi)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">A carregar...</span>
+                </div>
+                <p class="mt-3">A carregar RGI...</p>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(rgiPdfUrl))
+        {
+            <div class="pdf-viewer-container" style="height: 80vh;">
+                <iframe src="@(rgiPdfUrl + "#toolbar=0&navpanes=0&scrollbar=0")" 
+                        style="width: 100%; height: 100%; border: none;"
+                        title="Regulamentos Gerais Internos">
+                </iframe>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> 
+                O documento RGI não está disponível no momento.
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseRgiModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
 @code {
     private int currentFiscalYearStartYear;
     private string currentFiscalYearString = "";
     private List<RoleAssignment> roleAssignments = new();
     private bool isLoading = true;
+    
+    // RGI PDF state
+    private bool showRgiModal = false;
+    private bool isLoadingRgi = false;
+    private string? rgiPdfUrl;
 
     protected override async Task OnInitializedAsync()
     {
@@ -451,6 +513,35 @@ else
     private RoleAssignment? GetRoleAssignment(Position position)
     {
         return roleAssignments.FirstOrDefault(r => r.Position == position);
+    }
+    
+    private async Task OpenRgiModal()
+    {
+        isLoadingRgi = true;
+        showRgiModal = true;
+        StateHasChanged();
+        
+        try
+        {
+            // Generate presigned URL for RGI PDF (docs/rtub_rgi.pdf)
+            rgiPdfUrl = await DocumentStorageService.GetDocumentUrlAsync("docs/rtub_rgi.pdf");
+            
+            isLoadingRgi = false;
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            isLoadingRgi = false;
+            rgiPdfUrl = null;
+            StateHasChanged();
+        }
+    }
+    
+    private void CloseRgiModal()
+    {
+        showRgiModal = false;
+        isLoadingRgi = false;
+        rgiPdfUrl = null;
     }
 }
 

@@ -1,4 +1,5 @@
 @namespace RTUB.Shared
+@using Microsoft.AspNetCore.Components.Web
 @* 
     Reusable Modal Component
     Used across the application for dialogs and modals
@@ -7,7 +8,7 @@
 @if (Show)
 {
     <div class="modal-backdrop show"></div>
-    <div class="modal show d-block" tabindex="-1">
+    <div class="modal show d-block" tabindex="-1" @onkeydown="HandleKeyDown">
         <div class="modal-dialog @SizeClass @(Centered ? "modal-dialog-centered" : "")">
             <div class="modal-content">
                 @if (!string.IsNullOrEmpty(Title) || ShowCloseButton)
@@ -105,6 +106,14 @@
         Show = false;
         await ShowChanged.InvokeAsync(false);
         await OnClose.InvokeAsync();
+    }
+    
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape" && ShowCloseButton)
+        {
+            await Close();
+        }
     }
 
     public enum ModalSize

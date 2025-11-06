@@ -3,11 +3,14 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Logging
 @using RTUB.Application.Interfaces
 @using RTUB.Shared
 @inject IAlbumService AlbumService
 @inject ISongService SongService
 @inject IAudioStorageService AudioStorageService
+@inject ILyricStorageService LyricStorageService
+@inject ILogger<Songs> Logger
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -105,18 +108,9 @@ else
                                             <i class="bi bi-play-circle"></i>
                                         </button>
                                     }
-                                    @if (!string.IsNullOrEmpty(song.Lyrics))
-                                    {
-                                        <button class="btn btn-sm btn-primary music-btn-primary" @onclick="() => OpenViewLyricsModal(song)" title="Ver Letra">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <button class="btn btn-sm btn-secondary" disabled title="Sem Letra">
-                                            <i class="bi bi-eye-slash"></i>
-                                        </button>
-                                    }
+                                    <button class="btn btn-sm btn-primary music-btn-primary" @onclick="() => OpenViewLyricsModal(song)" title="Ver Letra">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
                                     <button class="btn btn-sm btn-info" @onclick="() => OpenLinksModal(song)" title="Ver Links">
                                         <i class="bi bi-link-45deg"></i>
                                     </button>
@@ -180,6 +174,39 @@ else
         <button type="button" class="btn btn-secondary" @onclick="CloseViewLyricsModal">Fechar</button>
     </FooterContent>
 </Modal>
+
+<!-- View Lyrics PDF Modal -->
+<Modal Show="@showViewLyricsPdfModal" 
+       ShowChanged="@((value) => showViewLyricsPdfModal = value)"
+       Title="@($"Letra - {viewingSong?.Title}")" 
+       Size="Modal.ModalSize.ExtraLarge" 
+       Centered="true"
+       OnClose="@CloseViewLyricsPdfModal">
+    <BodyContent>
+        @if (isLoadingPdf)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">A carregar...</span>
+                </div>
+                <p class="mt-3">A carregar PDF...</p>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(currentPdfUrl))
+        {
+            <div class="pdf-viewer-container" style="height: 80vh;">
+                <iframe src="@(currentPdfUrl + "#toolbar=0&navpanes=0&scrollbar=0")" 
+                        style="width: 100%; height: 100%; border: none;"
+                        title="@($"Letra - {viewingSong?.Title}")">
+                </iframe>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseViewLyricsPdfModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
 
 <!-- Links Modal -->
 <Modal Show="@showLinksModal" 
@@ -414,6 +441,7 @@ else
     private bool showCreateModal = false;
     private bool showEditModal = false;
     private bool showViewLyricsModal = false;
+    private bool showViewLyricsPdfModal = false;
     private bool showLinksModal = false;
     private bool showDeleteModal = false;
     private Song? editingSong;
@@ -424,6 +452,10 @@ else
     // Audio player state
     private string? currentAudioUrl;
     private string? currentSongTitle;
+    
+    // PDF viewer state
+    private bool isLoadingPdf = false;
+    private string? currentPdfUrl;
 
     protected override async Task OnInitializedAsync()
     {
@@ -482,15 +514,59 @@ else
         editingYouTubeUrls.Clear();
     }
 
-    private void OpenViewLyricsModal(Song song)
+    private async Task OpenViewLyricsModal(Song song)
     {
         viewingSong = song;
+        
+        // First, try to load PDF from S3
+        try
+        {
+            if (album != null && !string.IsNullOrEmpty(album.Title))
+            {
+                isLoadingPdf = true;
+                showViewLyricsPdfModal = true;
+                StateHasChanged();
+                
+                var pdfUrl = await LyricStorageService.GetLyricPdfUrlAsync(album.Title, song.Title);
+                
+                if (!string.IsNullOrEmpty(pdfUrl))
+                {
+                    currentPdfUrl = pdfUrl;
+                    isLoadingPdf = false;
+                    StateHasChanged();
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading PDF from S3 for song: {SongTitle} in album: {AlbumTitle}", 
+                song.Title, album?.Title ?? "Unknown");
+        }
+        
+        // Fallback to DB text modal if PDF not found or error occurred
+        // Fetch full song details (including lyrics) from database
+        viewingSong = await SongService.GetSongByIdAsync(song.Id);
+        
+        // Don't clear viewingSong - just hide the PDF modal
+        showViewLyricsPdfModal = false;
+        isLoadingPdf = false;
+        currentPdfUrl = null;
+        
         showViewLyricsModal = true;
     }
 
     private void CloseViewLyricsModal()
     {
         showViewLyricsModal = false;
+        viewingSong = null;
+    }
+    
+    private void CloseViewLyricsPdfModal()
+    {
+        showViewLyricsPdfModal = false;
+        isLoadingPdf = false;
+        currentPdfUrl = null;
         viewingSong = null;
     }
 
@@ -710,7 +786,7 @@ else
             // Get album information
             if (album == null)
             {
-                Console.WriteLine("Album information not available");
+                Logger.LogWarning("Cannot play song - album information not available");
                 return;
             }
             
@@ -726,13 +802,14 @@ else
             else
             {
                 // File not found or error
-                // You could show a notification here
-                Console.WriteLine($"Audio file not found for song: {song.Title} in album: {album.Title}");
+                Logger.LogWarning("Audio file not found for song: {SongTitle} in album: {AlbumTitle}", 
+                    song.Title, album.Title);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error playing song: {ex.Message}");
+            Logger.LogError(ex, "Error playing song: {SongTitle} in album: {AlbumTitle}", 
+                song.Title, album?.Title ?? "Unknown");
         }
     }
     
