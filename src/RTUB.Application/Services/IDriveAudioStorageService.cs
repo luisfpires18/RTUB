@@ -4,6 +4,8 @@ using Amazon.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
+using System.Text;
+using System.Globalization;
 
 namespace RTUB.Application.Services;
 
@@ -133,24 +135,57 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
 
     private string GetObjectKey(string albumTitle, int? trackNumber, string songTitle)
     {
-        // Format: {AlbumTitle}/{TrackNumber}. {SongTitle}.mp3
-        // Example: Boémios e Trovadores/01. Noites Presentes.mp3
+        // Normalize names to match bucket structure
+        // Example: "Boémios e Trovadores" -> "boemios_e_trovadores"
+        // Example: "01. Noites Presentes" -> "noites_presentes"
         
         // Ensure no leading/trailing whitespace
         albumTitle = albumTitle?.Trim() ?? string.Empty;
         songTitle = songTitle?.Trim() ?? string.Empty;
         
-        var trackPrefix = trackNumber.HasValue ? $"{trackNumber.Value:D2}. " : "";
-        var fileName = $"{trackPrefix}{songTitle}.mp3";
+        // Normalize album and song names
+        var normalizedAlbum = NormalizeForS3Key(albumTitle);
+        var normalizedSong = NormalizeForS3Key(songTitle);
         
-        // Construct the full key path
-        // AWS SDK handles URL encoding automatically, so we use the raw path
-        var objectKey = $"{albumTitle}/{fileName}";
+        // Construct the full key path: album_folder/song_name.mp3
+        var objectKey = $"{normalizedAlbum}/{normalizedSong}.mp3";
         
         _logger.LogDebug("Constructed object key: {ObjectKey} from album: {AlbumTitle}, track: {TrackNumber}, song: {SongTitle}", 
             objectKey, albumTitle, trackNumber, songTitle);
         
         return objectKey;
+    }
+    
+    private string NormalizeForS3Key(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return string.Empty;
+        
+        // Remove accents/diacritics
+        var normalizedString = input.Normalize(NormalizationForm.FormD);
+        var stringBuilder = new StringBuilder();
+        
+        foreach (var c in normalizedString)
+        {
+            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+            {
+                stringBuilder.Append(c);
+            }
+        }
+        
+        var result = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
+        
+        // Convert to lowercase
+        result = result.ToLowerInvariant();
+        
+        // Replace spaces and special characters with underscores
+        result = System.Text.RegularExpressions.Regex.Replace(result, @"[^a-z0-9]+", "_");
+        
+        // Remove leading/trailing underscores
+        result = result.Trim('_');
+        
+        return result;
     }
 
     public void Dispose()
