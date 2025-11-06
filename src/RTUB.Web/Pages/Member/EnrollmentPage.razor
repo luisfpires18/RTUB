@@ -117,14 +117,17 @@ else
                                 <i class="bi bi-music-note-list"></i> Instrumentos
                             </h4>
                             
-                            <div class="row">
-                                @foreach (var kvp in instrumentCounts.OrderByDescending(x => x.Value))
+                            <div class="instrument-grid">
+                                @foreach (var instrument in Enum.GetValues<InstrumentType>())
                                 {
-                                    <div class="col-6 col-md-4 col-lg-3 mb-3">
-                                        <div class="instrument-counter p-3 text-center rounded">
-                                            <div class="instrument-count display-6 text-purple fw-bold">@kvp.Value</div>
-                                            <div class="instrument-name text-muted small">@StatusHelper.GetInstrumentDisplay(kvp.Key)</div>
+                                    var count = instrumentCounts.ContainsKey(instrument) ? instrumentCounts[instrument] : 0;
+                                    var instrumentName = StatusHelper.GetInstrumentDisplay(instrument);
+                                    
+                                    <div class="instrument-item">
+                                        <div class="instrument-square" title="@instrumentName: @count">
+                                            @count
                                         </div>
+                                        <div class="instrument-label">@instrumentName</div>
                                     </div>
                                 }
                             </div>
@@ -348,7 +351,7 @@ else
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && eventData != null)
+        if (firstRender && eventData != null && currentUser != null)
         {
             await InitializeSignalR();
         }
@@ -536,6 +539,14 @@ else
     
     private async Task InitializeSignalR()
     {
+        // Ensure user is authenticated before attempting connection
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User?.Identity?.IsAuthenticated != true)
+        {
+            Console.WriteLine("SignalR: User not authenticated, skipping connection");
+            return;
+        }
+
         try
         {
             hubConnection = new HubConnectionBuilder()
@@ -594,6 +605,31 @@ else
                 isReconnecting = false;
                 Console.WriteLine($"SignalR: Connection closed. Error: {error?.Message}");
                 await InvokeAsync(StateHasChanged);
+                
+                // Retry connection after delay if it was an unexpected close
+                if (error != null)
+                {
+                    await Task.Delay(5000);
+                    try
+                    {
+                        // Re-check authentication before retry
+                        var authCheck = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                        if (authCheck.User?.Identity?.IsAuthenticated == true)
+                        {
+                            await hubConnection.StartAsync();
+                            isConnected = true;
+                            if (eventData != null)
+                            {
+                                await hubConnection.SendAsync("JoinEventGroup", eventData.Id);
+                            }
+                            await InvokeAsync(StateHasChanged);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"SignalR: Reconnect attempt failed: {ex.Message}");
+                    }
+                }
             };
             
             await hubConnection.StartAsync();
