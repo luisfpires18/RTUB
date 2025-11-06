@@ -474,7 +474,12 @@ else
             var fileName = $"Relatorio_{report.Year}_{DateTime.Now:yyyyMMdd}.pdf";
 
             // Trigger download using JavaScript
-            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64, "application/pdf");
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64, "application/pdf");
+            }
+            catch (TaskCanceledException) { /* User navigated away - benign */ }
+            catch (Microsoft.JSInterop.JSDisconnectedException) { /* Circuit disconnected - benign */ }
         }
         catch (Exception ex)
         {

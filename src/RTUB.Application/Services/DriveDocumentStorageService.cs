@@ -20,18 +20,17 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
     public DriveDocumentStorageService(IConfiguration configuration, ILogger<DriveDocumentStorageService> logger)
     {
         _logger = logger;
-        _logger.LogInformation("Initializing DriveDocumentStorageService");
-        
+
         // Get credentials from environment variables or configuration
-        var accessKey = Environment.GetEnvironmentVariable("IDRIVE_ACCESS_KEY") 
+        var accessKey = Environment.GetEnvironmentVariable("IDRIVE_ACCESS_KEY")
                         ?? configuration["IDrive:AccessKey"];
-        var secretKey = Environment.GetEnvironmentVariable("IDRIVE_SECRET_KEY") 
+        var secretKey = Environment.GetEnvironmentVariable("IDRIVE_SECRET_KEY")
                         ?? configuration["IDrive:SecretKey"];
-        var endpoint = Environment.GetEnvironmentVariable("IDRIVE_ENDPOINT") 
-                       ?? configuration["IDrive:Endpoint"] 
+        var endpoint = Environment.GetEnvironmentVariable("IDRIVE_ENDPOINT")
+                       ?? configuration["IDrive:Endpoint"]
                        ?? "s3.eu-west-4.idrivee2.com";
-        _bucketName = Environment.GetEnvironmentVariable("IDRIVE_BUCKET") 
-                      ?? configuration["IDrive:Bucket"] 
+        _bucketName = Environment.GetEnvironmentVariable("IDRIVE_BUCKET")
+                      ?? configuration["IDrive:Bucket"]
                       ?? "rtub";
 
         if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
@@ -49,7 +48,6 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
         };
 
         _s3Client = new AmazonS3Client(credentials, config);
-        _logger.LogInformation("DriveDocumentStorageService initialized with bucket: {BucketName}", _bucketName);
     }
 
     public async Task<string?> GetDocumentUrlAsync(string documentPath)
@@ -99,8 +97,6 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
     {
         try
         {
-            _logger.LogInformation("Checking if document exists in bucket '{BucketName}' with path: '{DocumentPath}'", _bucketName, documentPath);
-            
             var request = new GetObjectMetadataRequest
             {
                 BucketName = _bucketName,
@@ -108,12 +104,10 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
             };
 
             await _s3Client.GetObjectMetadataAsync(request);
-            _logger.LogDebug("Document exists: {DocumentPath}", documentPath);
             return true;
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            _logger.LogWarning("Document not found (404) in bucket '{BucketName}' with path: '{DocumentPath}'", _bucketName, documentPath);
             return false;
         }
         catch (AmazonS3Exception ex)
@@ -132,6 +126,5 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
     public void Dispose()
     {
         _s3Client?.Dispose();
-        _logger.LogInformation("DriveDocumentStorageService disposed");
     }
 }

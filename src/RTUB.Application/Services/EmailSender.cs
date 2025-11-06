@@ -45,8 +45,6 @@ public class EmailSender : IEmailSender
             // Check if SMTP is configured
             if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
             {
-                _logger.LogWarning("SMTP not configured. Email would be sent to user with subject: {Subject}", subject);
-                // Note: Not logging email content as it may contain sensitive information
                 return;
             }
 
@@ -67,7 +65,6 @@ public class EmailSender : IEmailSender
             mailMessage.To.Add(email);
 
             await smtpClient.SendMailAsync(mailMessage);
-            _logger.LogInformation("Email successfully sent with subject: {Subject}", subject);
         }
         catch (Exception ex)
         {

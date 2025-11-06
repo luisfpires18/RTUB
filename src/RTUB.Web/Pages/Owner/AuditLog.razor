@@ -628,7 +628,13 @@
             var fileName = $"tracing-export-{DateTime.UtcNow:yyyy-MM-dd-HHmmss}.json";
             var bytes = System.Text.Encoding.UTF8.GetBytes(json);
             var base64 = Convert.ToBase64String(bytes);
-            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64, "application/json");
+
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("downloadFile", fileName, base64, "application/json");
+            }
+            catch (TaskCanceledException) { /* User navigated away - benign */ }
+            catch (Microsoft.JSInterop.JSDisconnectedException) { /* Circuit disconnected - benign */ }
         }
         finally
         {

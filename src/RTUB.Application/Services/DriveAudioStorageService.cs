@@ -21,8 +21,7 @@ public class DriveAudioStorageService : IAudioStorageService, IDisposable
     public DriveAudioStorageService(IConfiguration configuration, ILogger<DriveAudioStorageService> logger)
     {
         _logger = logger;
-        _logger.LogInformation("Initializing DriveAudioStorageService");
-        
+
         // Get credentials from environment variables or configuration
         var accessKey = configuration["IDrive:AccessKey"];
         var secretKey = configuration["IDrive:SecretKey"];
@@ -44,7 +43,6 @@ public class DriveAudioStorageService : IAudioStorageService, IDisposable
         };
 
         _s3Client = new AmazonS3Client(credentials, config);
-        _logger.LogInformation("DriveAudioStorageService initialized with bucket: {BucketName}", _bucketName);
     }
 
     public async Task<string?> GetAudioUrlAsync(string albumTitle, int? trackNumber, string songTitle)
@@ -53,13 +51,11 @@ public class DriveAudioStorageService : IAudioStorageService, IDisposable
         {
             // Generate object key using album title as folder
             var objectKey = GetObjectKey(albumTitle, trackNumber, songTitle);
-            _logger.LogInformation("Requesting audio URL for bucket '{BucketName}', key: '{ObjectKey}'", _bucketName, objectKey);
 
             // Check if file exists first
             var exists = await AudioFileExistsAsync(albumTitle, trackNumber, songTitle);
             if (!exists)
             {
-                _logger.LogWarning("Cannot generate URL - audio file not found for key: {ObjectKey}", objectKey);
                 return null;
             }
 
@@ -72,7 +68,6 @@ public class DriveAudioStorageService : IAudioStorageService, IDisposable
             };
 
             var url = _s3Client.GetPreSignedURL(request);
-            _logger.LogInformation("Successfully generated pre-signed URL for: {ObjectKey}", objectKey);
             return url;
         }
         catch (AmazonS3Exception ex)
@@ -93,8 +88,7 @@ public class DriveAudioStorageService : IAudioStorageService, IDisposable
         try
         {
             var objectKey = GetObjectKey(albumTitle, trackNumber, songTitle);
-            _logger.LogInformation("Checking if audio file exists in bucket '{BucketName}' with key: '{ObjectKey}'", _bucketName, objectKey);
-            
+
             var request = new GetObjectMetadataRequest
             {
                 BucketName = _bucketName,
@@ -102,13 +96,10 @@ public class DriveAudioStorageService : IAudioStorageService, IDisposable
             };
 
             await _s3Client.GetObjectMetadataAsync(request);
-            _logger.LogDebug("Audio file exists: {ObjectKey}", objectKey);
             return true;
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            var objectKey = GetObjectKey(albumTitle, trackNumber, songTitle);
-            _logger.LogWarning("Audio file not found (404) in bucket '{BucketName}' with key: '{ObjectKey}'", _bucketName, objectKey);
             return false;
         }
         catch (AmazonS3Exception ex)
@@ -139,19 +130,15 @@ public class DriveAudioStorageService : IAudioStorageService, IDisposable
         // Normalize album and song names
         var normalizedAlbum = S3KeyNormalizer.NormalizeForS3Key(albumTitle);
         var normalizedSong = S3KeyNormalizer.NormalizeForS3Key(songTitle);
-        
+
         // Construct the full key path: album_folder/song_name.mp3
         var objectKey = $"{normalizedAlbum}/{normalizedSong}.mp3";
-        
-        _logger.LogDebug("Constructed object key: {ObjectKey} from album: {AlbumTitle}, track: {TrackNumber}, song: {SongTitle}", 
-            objectKey, albumTitle, trackNumber, songTitle);
-        
+
         return objectKey;
     }
 
     public void Dispose()
     {
         _s3Client?.Dispose();
-        _logger.LogInformation("DriveAudioStorageService disposed");
     }
 }

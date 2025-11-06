@@ -181,23 +181,34 @@
     {
         if (firstRender && slides != null && slides.Any())
         {
-            // Initialize carousel manually to ensure auto-start works in Blazor
-            await JSRuntime.InvokeVoidAsync("eval", @"
-                (function() {
-                    const carouselElement = document.getElementById('homeCarousel');
-                    if (carouselElement && window.bootstrap) {
-                        const carousel = new bootstrap.Carousel(carouselElement, {
-                            ride: 'carousel',
-                            interval: 5000,
-                            pause: 'hover',
-                            wrap: true,
-                            touch: true,
-                            keyboard: true
-                        });
-                        carousel.cycle();
-                    }
-                })();
-            ");
+            try
+            {
+                // Initialize carousel manually to ensure auto-start works in Blazor
+                await JSRuntime.InvokeVoidAsync("eval", @"
+                    (function() {
+                        const carouselElement = document.getElementById('homeCarousel');
+                        if (carouselElement && window.bootstrap) {
+                            const carousel = new bootstrap.Carousel(carouselElement, {
+                                ride: 'carousel',
+                                interval: 5000,
+                                pause: 'hover',
+                                wrap: true,
+                                touch: true,
+                                keyboard: true
+                            });
+                            carousel.cycle();
+                        }
+                    })();
+                ");
+            }
+            catch (TaskCanceledException)
+            {
+                // User navigated away - benign, ignore
+            }
+            catch (Microsoft.JSInterop.JSDisconnectedException)
+            {
+                // Circuit disconnected - benign, ignore
+            }
         }
     }
 }

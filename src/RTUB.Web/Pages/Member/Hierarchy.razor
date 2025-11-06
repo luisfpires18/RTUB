@@ -57,8 +57,13 @@ else
     {
         if (firstRender && !isLoading && members.Any())
         {
-            // Center on root node after initial render
-            await JSRuntime.InvokeVoidAsync("RTUB.centerFamilyTree");
+            try
+            {
+                // Center on root node after initial render
+                await JSRuntime.InvokeVoidAsync("RTUB.centerFamilyTree");
+            }
+            catch (TaskCanceledException) { /* User navigated away - benign */ }
+            catch (Microsoft.JSInterop.JSDisconnectedException) { /* Circuit disconnected - benign */ }
         }
     }
 
