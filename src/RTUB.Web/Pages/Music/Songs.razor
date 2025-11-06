@@ -108,18 +108,9 @@ else
                                             <i class="bi bi-play-circle"></i>
                                         </button>
                                     }
-                                    @if (!string.IsNullOrEmpty(song.Lyrics))
-                                    {
-                                        <button class="btn btn-sm btn-primary music-btn-primary" @onclick="() => OpenViewLyricsModal(song)" title="Ver Letra">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <button class="btn btn-sm btn-secondary" disabled title="Sem Letra">
-                                            <i class="bi bi-eye-slash"></i>
-                                        </button>
-                                    }
+                                    <button class="btn btn-sm btn-primary music-btn-primary" @onclick="() => OpenViewLyricsModal(song)" title="Ver Letra">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
                                     <button class="btn btn-sm btn-info" @onclick="() => OpenLinksModal(song)" title="Ver Links">
                                         <i class="bi bi-link-45deg"></i>
                                     </button>
@@ -555,7 +546,16 @@ else
         
         // Fallback to DB text modal if PDF not found or error occurred
         CloseViewLyricsPdfModal();
-        showViewLyricsModal = true;
+        
+        // Only show DB modal if there are lyrics in the database
+        if (!string.IsNullOrEmpty(song.Lyrics))
+        {
+            showViewLyricsModal = true;
+        }
+        else
+        {
+            Logger.LogInformation("No lyrics available for song: {SongTitle} (neither PDF nor DB)", song.Title);
+        }
     }
 
     private void CloseViewLyricsModal()
