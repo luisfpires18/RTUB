@@ -1,0 +1,12 @@
+@namespace RTUB.Components
+@inject NavigationManager NavigationManager
+@code {
+    protected override void OnInitialized()
+    {
+        // Get the current URL to use as the return URL
+        var returnUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        
+        // Redirect to login page with return URL
+        NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/" + returnUrl)}", forceLoad: true);
+    }
+}

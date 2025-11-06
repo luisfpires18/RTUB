@@ -1,4 +1,5 @@
 @page "/login"
+@using Microsoft.AspNetCore.WebUtilities
 
 <div class="login-container">
     <div class="login-card">
@@ -14,6 +15,7 @@
         }
 
         <form method="post" action="/auth/login" @formname="LoginForm">
+            <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
             <div class="mb-3">
                 <label class="form-label" for="inputUsername">Nome de utilizador</label>
                 <input id="inputUsername" name="Username" type="text" class="form-control" placeholder="Inserir nome de utilizador..." required />
@@ -43,4 +45,15 @@
 
 @code {
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+    
+    private string ReturnUrl { get; set; } = "/";
+    
+    protected override void OnInitialized()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("returnUrl", out var returnUrl))
+        {
+            ReturnUrl = returnUrl.ToString();
+        }
+    }
 }

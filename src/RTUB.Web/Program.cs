@@ -265,6 +265,7 @@ namespace RTUB
                 var password = form["Password"].ToString();
                 var rememberRaw = form["RememberMe"].ToString();
                 var remember = bool.TryParse(rememberRaw, out var b) ? b : string.Equals(rememberRaw, "on", StringComparison.OrdinalIgnoreCase);
+                var returnUrl = form["ReturnUrl"].ToString();
 
                 var user = await userManager.FindByNameAsync(username);
                 if (user is null || !await userManager.IsEmailConfirmedAsync(user))
@@ -284,6 +285,12 @@ namespace RTUB
                     catch
                     {
                         // Log error but don't fail login
+                    }
+                    
+                    // Redirect to return URL if provided and is a local URL, otherwise redirect to home
+                    if (!string.IsNullOrEmpty(returnUrl) && Uri.IsWellFormedUriString(returnUrl, UriKind.Relative))
+                    {
+                        return Results.Redirect(returnUrl);
                     }
                     return Results.Redirect("/");
                 }
