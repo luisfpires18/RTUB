@@ -20,43 +20,46 @@
             </div>
         }
         <div class="song-header">
-            <div class="song-track-badge">
-                @if (Song.TrackNumber.HasValue)
-                {
-                    <span>@Song.TrackNumber</span>
-                }
-                else
-                {
-                    <i class="bi bi-music-note"></i>
-                }
+            <div class="song-icon-circle">
+                <i class="bi bi-music-note-beamed"></i>
             </div>
         </div>
     </div>
     <div class="card-body d-flex flex-column">
         <div class="song-info">
-            <h5 class="song-title" title="@Song.Title">@Song.Title</h5>
-            <div class="song-authors">
-                @if (!string.IsNullOrEmpty(Song.LyricAuthor) || !string.IsNullOrEmpty(Song.MusicAuthor))
+            <h5 class="song-title" title="@GetSongTitleWithTrack()">
+                @if (Song.TrackNumber.HasValue)
                 {
-                    <div class="song-author-row" title="@GetAuthorsTooltip()">
-                        <i class="bi bi-person song-icon"></i>
-                        <span class="song-author-text">
-                            @if (!string.IsNullOrEmpty(Song.LyricAuthor))
-                            {
-                                <span>@Song.LyricAuthor</span>
-                            }
-                            @if (!string.IsNullOrEmpty(Song.LyricAuthor) && !string.IsNullOrEmpty(Song.MusicAuthor))
-                            {
-                                <span> · </span>
-                            }
-                            @if (!string.IsNullOrEmpty(Song.MusicAuthor))
-                            {
-                                <span>@Song.MusicAuthor</span>
-                            }
-                        </span>
+                    <span class="song-track-number">#@Song.TrackNumber</span>
+                }
+                <span>@Song.Title</span>
+            </h5>
+            <div class="song-authors">
+                @if (!string.IsNullOrEmpty(Song.LyricAuthor))
+                {
+                    <div class="song-author-row">
+                        <i class="bi bi-pen song-icon"></i>
+                        <span class="song-author-label">Letra:</span>
+                        <span class="song-author-text">@Song.LyricAuthor</span>
                     </div>
                 }
-                else
+                @if (!string.IsNullOrEmpty(Song.MusicAuthor))
+                {
+                    <div class="song-author-row">
+                        <i class="bi bi-music-note song-icon"></i>
+                        <span class="song-author-label">Música:</span>
+                        <span class="song-author-text">@Song.MusicAuthor</span>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Song.Adaptation))
+                {
+                    <div class="song-author-row">
+                        <i class="bi bi-arrow-repeat song-icon"></i>
+                        <span class="song-author-label">Adaptação:</span>
+                        <span class="song-author-text">@Song.Adaptation</span>
+                    </div>
+                }
+                @if (string.IsNullOrEmpty(Song.LyricAuthor) && string.IsNullOrEmpty(Song.MusicAuthor))
                 {
                     <div class="song-author-row">
                         <i class="bi bi-person song-icon"></i>
@@ -191,10 +194,12 @@
         }
     }
 
-    private string GetAuthorsTooltip()
+    private string GetSongTitleWithTrack()
     {
-        var lyric = string.IsNullOrEmpty(Song.LyricAuthor) ? "N/A" : Song.LyricAuthor;
-        var music = string.IsNullOrEmpty(Song.MusicAuthor) ? "N/A" : Song.MusicAuthor;
-        return $"Letra: {lyric}, Música: {music}";
+        if (Song.TrackNumber.HasValue)
+        {
+            return $"#{Song.TrackNumber} {Song.Title}";
+        }
+        return Song.Title;
     }
 }
