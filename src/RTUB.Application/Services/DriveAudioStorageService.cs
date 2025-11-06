@@ -26,7 +26,7 @@ public class DriveAudioStorageService : IAudioStorageService, IDisposable
         var accessKey = configuration["IDrive:AccessKey"];
         var secretKey = configuration["IDrive:SecretKey"];
         var endpoint = configuration["IDrive:Endpoint"];
-        _bucketName = configuration["IDrive:Bucket"];
+        var bucketName = configuration["IDrive:Bucket"];
 
         if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
         {
@@ -34,6 +34,22 @@ public class DriveAudioStorageService : IAudioStorageService, IDisposable
             _logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
+
+        if (string.IsNullOrEmpty(bucketName))
+        {
+            var errorMsg = "iDrive e2 bucket name not configured.";
+            _logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
+
+        if (string.IsNullOrEmpty(endpoint))
+        {
+            var errorMsg = "iDrive e2 endpoint not configured.";
+            _logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
+
+        _bucketName = bucketName;
 
         var credentials = new BasicAWSCredentials(accessKey, secretKey);
         var config = new AmazonS3Config
