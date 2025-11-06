@@ -1,5 +1,6 @@
 @page "/login"
 @using Microsoft.AspNetCore.WebUtilities
+@using RTUB.Application.Helpers
 
 <div class="login-container">
     <div class="login-card">
@@ -55,22 +56,10 @@
         {
             // Validate that the return URL is local to prevent open redirect attacks
             var returnUrlString = returnUrl.ToString();
-            if (IsLocalUrl(returnUrlString))
+            if (UrlHelper.IsLocalUrl(returnUrlString))
             {
                 ReturnUrl = returnUrlString;
             }
         }
-    }
-    
-    private bool IsLocalUrl(string url)
-    {
-        if (string.IsNullOrEmpty(url))
-        {
-            return false;
-        }
-        
-        // URL must be relative (not start with // or contain :)
-        // This prevents redirects to external sites like //evil.com or http://evil.com
-        return url.StartsWith("/") && !url.StartsWith("//") && !url.Contains(":");
     }
 }

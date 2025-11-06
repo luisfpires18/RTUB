@@ -288,7 +288,7 @@ namespace RTUB
                     }
                     
                     // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
-                    if (!string.IsNullOrEmpty(returnUrl) && IsLocalUrl(returnUrl))
+                    if (!string.IsNullOrEmpty(returnUrl) && RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl))
                     {
                         return Results.Redirect(returnUrl);
                     }
@@ -301,19 +301,6 @@ namespace RTUB
             })
             // If you want antiforgery enforced here, replace the next line with: .RequireAntiforgery();
             .DisableAntiforgery();
-            
-            // Helper function to validate local URLs and prevent open redirect attacks
-            static bool IsLocalUrl(string url)
-            {
-                if (string.IsNullOrEmpty(url))
-                {
-                    return false;
-                }
-                
-                // URL must be relative (start with / but not //)
-                // This prevents redirects to external sites like //evil.com or http://evil.com
-                return url.StartsWith("/") && !url.StartsWith("//") && !url.Contains(":");
-            }
 
             // LOGOUT (HTTP POST)
             app.MapPost("/auth/logout", async (SignInManager<ApplicationUser> signInManager) =>
