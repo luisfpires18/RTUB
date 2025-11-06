@@ -699,8 +699,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     break;
                 
                 case "Label":
-                    if (entry.Entity is Label label)
-                        return label.Content?.Length > 100 ? label.Content.Substring(0, 100) + "..." : label.Content;
+                    if (entry.Entity is Label label && !string.IsNullOrEmpty(label.Content))
+                    {
+                        return label.Content.Length > 100 
+                            ? label.Content.Substring(0, 100) + "..." 
+                            : label.Content;
+                    }
                     break;
                 
                 case "Product":
@@ -736,39 +740,5 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
         
         return null;
-    }
-
-    /// <summary>
-    /// Resolves the display name for ApplicationUser
-    /// </summary>
-    private string? GetUserDisplayName(string userId)
-    {
-        try
-        {
-            var user = Users.Local.FirstOrDefault(u => u.Id == userId)
-                ?? Users.Find(userId);
-            return user?.UserName;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Resolves the display name for AspNetRole
-    /// </summary>
-    private string? GetRoleDisplayName(string roleId)
-    {
-        try
-        {
-            var role = Roles.Local.FirstOrDefault(r => r.Id == roleId)
-                ?? Roles.Find(roleId);
-            return role?.Name;
-        }
-        catch
-        {
-            return null;
-        }
     }
 }
