@@ -59,6 +59,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Product> Products { get; set; }
     public DbSet<Trophy> Trophies { get; set; }
     
+    // Chat DbSet
+    public DbSet<ChatMessage> ChatMessages { get; set; }
+    
     // Audit Log DbSet
     public DbSet<AuditLog> AuditLogs { get; set; }
 

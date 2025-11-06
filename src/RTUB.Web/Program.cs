@@ -122,6 +122,9 @@ namespace RTUB
             services.AddScoped<IInstrumentService, InstrumentService>();
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<ITrophyService, TrophyService>();
+            
+            // --------- Chat Service ---------
+            services.AddScoped<IChatService, ChatService>();
 
             // ---------- Blazor + Authentication ----------
             services.AddRazorComponents()
@@ -321,6 +324,9 @@ namespace RTUB
 
             // Map API controllers
             app.MapControllers();
+            
+            // Map SignalR hubs
+            app.MapHub<RTUB.Hubs.ChatHub>("/chathub");
 
             app.Run();
         }
