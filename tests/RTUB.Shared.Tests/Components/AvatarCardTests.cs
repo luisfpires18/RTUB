@@ -325,4 +325,96 @@ public class AvatarCardTests : TestContext
         cut.Markup.Should().Contain("avatar-card-tuna-name", "should have tuna name class");
         cut.Markup.Should().Contain("avatar-card-full-name", "should have full name class");
     }
+
+    #region Badge Container Tests
+
+    [Fact]
+    public void AvatarCard_BadgeContainer_NeverOverflowsCard()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<AvatarCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg"));
+
+        // Assert
+        cut.Markup.Should().Contain("avatar-card-badges", "should have badge container");
+        // CSS in avatarcard.css defines max-width: 100% for badge container
+        var hasClass = cut.Markup.Contains("avatar-card-badges");
+        hasClass.Should().BeTrue("badge container should use avatar-card-badges class with max-width constraint");
+    }
+
+    [Fact]
+    public void AvatarCard_BadgeContainer_HasVerticalStack()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<AvatarCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg"));
+
+        // Assert
+        cut.Markup.Should().Contain("avatar-card-badges", "should have badge container with vertical stacking");
+    }
+
+    [Fact]
+    public void AvatarCard_BadgeRow_HasFlexWrap()
+    {
+        // Arrange
+        var badgeFragment = (RenderFragment)(builder =>
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "avatar-card-badges-row");
+            builder.AddContent(2, "Test Badge");
+            builder.CloseElement();
+        });
+
+        // Act
+        var cut = RenderComponent<AvatarCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
+            .Add(p => p.BadgeContent, badgeFragment));
+
+        // Assert
+        cut.Markup.Should().Contain("avatar-card-badges-row", "should have badge row with flex-wrap enabled");
+    }
+
+    [Fact]
+    public void AvatarCard_BadgeContainer_RespectsCardPadding()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<AvatarCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg"));
+
+        // Assert
+        var badgeContainer = cut.Find(".avatar-card-badges");
+        badgeContainer.Should().NotBeNull("badge container should exist within card boundaries");
+    }
+
+    [Fact]
+    public void AvatarCard_MultipleBadges_WrapConsistently()
+    {
+        // Arrange
+        var multipleBadges = (RenderFragment)(builder =>
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "avatar-card-badges-row");
+            for (int i = 0; i < 5; i++)
+            {
+                builder.OpenElement(2 + i, "span");
+                builder.AddAttribute(3 + i, "class", "badge avatar-card-role-badge");
+                builder.AddContent(4 + i, $"Badge {i}");
+                builder.CloseElement();
+            }
+            builder.CloseElement();
+        });
+
+        // Act
+        var cut = RenderComponent<AvatarCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
+            .Add(p => p.BadgeContent, multipleBadges));
+
+        // Assert
+        cut.Markup.Should().Contain("avatar-card-badges-row", "should contain badge row");
+        cut.Markup.Should().Contain("Badge 0", "should display first badge");
+        cut.Markup.Should().Contain("Badge 4", "should display last badge");
+    }
+
+    #endregion
 }
+

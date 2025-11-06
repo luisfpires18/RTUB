@@ -102,20 +102,28 @@ else
                             // Get current fiscal year position for this user
                             var currentPosition = GetCurrentFiscalYearPosition(user.Id);
                         }
-                        @* Display categories first (Caloiro or Tuno) *@
-                        @foreach (var category in user.Categories.Where(c =>
-                            c == MemberCategory.Caloiro || c == MemberCategory.Tuno))
-                        {
-                            <CategoryBadge Category="category" AdditionalClasses="me-1" />
-                        }
-                        @* Then display current fiscal year position if exists *@
+                        <!-- Category badges row -->
+                        <div class="avatar-card-badges-row">
+                            @foreach (var category in user.Categories.Where(c =>
+                                c == MemberCategory.Caloiro || c == MemberCategory.Tuno))
+                            {
+                                <CategoryBadge Category="category" />
+                            }
+                        </div>
+                        <!-- Role/Position badges row -->
                         @if (currentPosition != null)
                         {
-                            <PositionBadge Position="currentPosition.Value" AdditionalClasses="me-1" />
+                            <div class="avatar-card-badges-row">
+                                <PositionBadge Position="currentPosition.Value" />
+                            </div>
                         }
                         @if (!user.Positions.Any() && !user.Categories.Any())
                         {
-                            <span class="badge bg-secondary">Sem Cargos</span>
+                            <div class="avatar-card-badges-row">
+                                <span class="badge bg-secondary avatar-card-role-badge" 
+                                      title="Sem Cargos"
+                                      aria-label="Sem Cargos">Sem Cargos</span>
+                            </div>
                         }
                     </BadgeContent>
                 </AvatarCard>
@@ -153,7 +161,9 @@ else
                            DeleteTooltip="Eliminar"
                            LazyLoad="true">
                     <BadgeContent>
-                        <CategoryBadge Category="@MemberCategory.Leitao" AdditionalClasses="me-1" />
+                        <div class="avatar-card-badges-row">
+                            <CategoryBadge Category="@MemberCategory.Leitao" />
+                        </div>
                     </BadgeContent>
                 </AvatarCard>
             }

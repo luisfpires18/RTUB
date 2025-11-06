@@ -183,10 +183,57 @@
 
 .avatar-card-badges {
     display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    min-height: 1.5rem;
+    padding: 0 0.5rem;
+}
+
+.avatar-card-badges-row {
+    display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
     justify-content: center;
-    min-height: 1.5rem;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Role badge specific styles */
+.avatar-card-role-badge {
+    background-color: #6f42c1;
+    color: white;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    line-height: 1.2;
+    display: inline-block;
+    position: relative;
+}
+
+.avatar-card-role-badge:hover {
+    overflow: visible;
+    white-space: normal;
+    z-index: 10;
+}
+
+/* Mobile: allow two-line wrap for long role names */
+@media (max-width: 767px) {
+    .avatar-card-role-badge {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        max-height: 2.8em;
+        line-height: 1.4;
+    }
 }
 
 .avatar-card-instrument {
