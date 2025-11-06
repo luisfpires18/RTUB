@@ -195,7 +195,7 @@ else
         else if (!string.IsNullOrEmpty(currentPdfUrl))
         {
             <div class="pdf-viewer-container" style="height: 80vh;">
-                <iframe src="@currentPdfUrl" 
+                <iframe src="@(currentPdfUrl + "#toolbar=0&navpanes=0&scrollbar=0")" 
                         style="width: 100%; height: 100%; border: none;"
                         title="@($"Letra - {viewingSong?.Title}")">
                 </iframe>
