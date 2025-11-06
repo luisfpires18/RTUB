@@ -20,6 +20,18 @@ namespace RTUB
                    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
                    .AddEnvironmentVariables();
 
+            // Configure logging to suppress benign circuit/navigation errors
+            builder.Logging.AddFilter((category, level) =>
+            {
+                // Suppress TaskCanceledException errors from CircuitHost (benign navigation cancellations)
+                if (category == "Microsoft.AspNetCore.Components.Server.Circuits.CircuitHost" &&
+                    level == LogLevel.Error)
+                {
+                    return false; // Don't log circuit TaskCanceledException errors
+                }
+                return true; // Log everything else
+            });
+
             // Initialize QuestPDF license early to avoid native library loading issues
             QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 

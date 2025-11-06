@@ -6,6 +6,7 @@
 @using RTUB.Application.Extensions
 @using RTUB.Shared
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
 @inject IRequestService RequestService
 @inject IEmailNotificationService EmailNotificationService
 @inject ILabelService LabelService
@@ -375,7 +376,18 @@
             StateHasChanged();
 
             // Scroll to top to show success message
-            await JSRuntime.InvokeVoidAsync("window.scrollTo", 0, 0);
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("window.scrollTo", 0, 0);
+            }
+            catch (TaskCanceledException)
+            {
+                // User navigated away or circuit disconnected - this is benign, ignore
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected - this is benign, ignore
+            }
         }
         catch (Exception ex)
         {

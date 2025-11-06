@@ -1,4 +1,5 @@
 @namespace RTUB.Shared
+@using Microsoft.JSInterop
 @inject IJSRuntime JSRuntime
 @implements IAsyncDisposable
 
@@ -104,12 +105,20 @@
         {
             // Give more time for the image to render in the DOM
             await Task.Delay(200);
-            
+
             // Pass null to JavaScript for free aspect ratio (0 or negative means free)
             // JavaScript will handle null as NaN
             object? aspectRatioParam = AspectRatio <= 0 ? null : (object)AspectRatio;
             await JSRuntime.InvokeVoidAsync("ImageCropperInterop.initializeCropper", imageElementId, aspectRatioParam);
             isInitialized = true;
+        }
+        catch (TaskCanceledException)
+        {
+            // User navigated away or circuit disconnected - benign, ignore
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit disconnected - benign, ignore
         }
         catch (Exception ex)
         {
@@ -150,6 +159,14 @@
 
             await Close();
         }
+        catch (TaskCanceledException)
+        {
+            // User navigated away or circuit disconnected - benign, ignore
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit disconnected - benign, ignore
+        }
         catch (Exception ex)
         {
             errorMessage = $"Error cropping image: {ex.Message}";
@@ -165,7 +182,18 @@
     {
         if (isInitialized)
         {
-            await JSRuntime.InvokeVoidAsync("ImageCropperInterop.destroy");
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("ImageCropperInterop.destroy");
+            }
+            catch (TaskCanceledException)
+            {
+                // User navigated away or circuit disconnected - benign, ignore
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected - benign, ignore
+            }
             isInitialized = false;
         }
 
@@ -180,7 +208,12 @@
     {
         if (isInitialized)
         {
-            await JSRuntime.InvokeVoidAsync("ImageCropperInterop.rotate", degrees);
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("ImageCropperInterop.rotate", degrees);
+            }
+            catch (TaskCanceledException) { /* Benign - user navigated away */ }
+            catch (JSDisconnectedException) { /* Benign - circuit disconnected */ }
         }
     }
 
@@ -188,7 +221,12 @@
     {
         if (isInitialized)
         {
-            await JSRuntime.InvokeVoidAsync("ImageCropperInterop.zoom", ratio);
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("ImageCropperInterop.zoom", ratio);
+            }
+            catch (TaskCanceledException) { /* Benign - user navigated away */ }
+            catch (JSDisconnectedException) { /* Benign - circuit disconnected */ }
         }
     }
 
@@ -196,7 +234,12 @@
     {
         if (isInitialized)
         {
-            await JSRuntime.InvokeVoidAsync("ImageCropperInterop.reset");
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("ImageCropperInterop.reset");
+            }
+            catch (TaskCanceledException) { /* Benign - user navigated away */ }
+            catch (JSDisconnectedException) { /* Benign - circuit disconnected */ }
         }
     }
 
