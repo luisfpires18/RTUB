@@ -115,12 +115,15 @@
 .avatar-card-image-wrapper {
     position: relative;
     width: 100%;
+    max-width: 120px;
     aspect-ratio: 1;
     overflow: hidden;
     background-color: rgba(0, 0, 0, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
+    margin: 0 auto;
+    border-radius: 50%;
 }
 
 .avatar-card-image {
@@ -128,6 +131,7 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    border-radius: 50%;
 }
 
 /* Skeleton loader */
@@ -239,6 +243,10 @@
 
 /* Responsive adjustments */
 @media (max-width: 767px) {
+    .avatar-card-image-wrapper {
+        max-width: 100px;
+    }
+
     .avatar-card-content {
         padding: 0.75rem;
     }
