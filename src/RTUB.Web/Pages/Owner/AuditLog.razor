@@ -686,10 +686,15 @@
                 try
                 {
                     var changesObj = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(log.Changes);
-                    if (changesObj != null && changesObj.ContainsKey("LastLoginDate") && changesObj.Count == 1)
+                    if (changesObj != null && changesObj.ContainsKey("LastLoginDate"))
                     {
-                        // Only LastLoginDate changed, display as "Logged in"
-                        return "Logged in";
+                        // Check if only LastLoginDate and metadata fields (_TargetUser) changed
+                        var nonMetadataKeys = changesObj.Keys.Where(k => !k.StartsWith("_")).ToList();
+                        if (nonMetadataKeys.Count == 1 && nonMetadataKeys[0] == "LastLoginDate")
+                        {
+                            // Only LastLoginDate changed, display as "Logged in"
+                            return "Logged in";
+                        }
                     }
                 }
                 catch (JsonException)

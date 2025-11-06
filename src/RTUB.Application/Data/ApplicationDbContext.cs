@@ -606,6 +606,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     /// <summary>
     /// Resolves the display name for an entity based on its type and ID
+    /// Optimized to only use Local cache to avoid database queries during SaveChanges
     /// </summary>
     private string? GetEntityDisplayName(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
     {
@@ -628,8 +629,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "Enrollment":
                     if (entry.Entity is Enrollment enrollment)
                     {
-                        var evt2 = Events.Local.FirstOrDefault(e => e.Id == enrollment.EventId)
-                            ?? Events.Find(enrollment.EventId);
+                        // Only check Local cache to avoid DB queries
+                        var evt2 = Events.Local.FirstOrDefault(e => e.Id == enrollment.EventId);
                         return evt2?.Name;
                     }
                     break;
@@ -637,39 +638,41 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "EventRepertoire":
                     if (entry.Entity is EventRepertoire repertoire)
                     {
-                        var evt3 = Events.Local.FirstOrDefault(e => e.Id == repertoire.EventId)
-                            ?? Events.Find(repertoire.EventId);
-                        var song2 = Songs.Local.FirstOrDefault(s => s.Id == repertoire.SongId)
-                            ?? Songs.Find(repertoire.SongId);
-                        return $"{evt3?.Name} - {song2?.Title}";
+                        // Only check Local cache to avoid DB queries
+                        var evt3 = Events.Local.FirstOrDefault(e => e.Id == repertoire.EventId);
+                        var song2 = Songs.Local.FirstOrDefault(s => s.Id == repertoire.SongId);
+                        if (evt3 != null && song2 != null)
+                            return $"{evt3.Name} - {song2.Title}";
+                        return evt3?.Name ?? song2?.Title; // Return partial if one is missing
                     }
                     break;
                 
                 case "RehearsalAttendance":
                     if (entry.Entity is RehearsalAttendance attendance)
                     {
-                        var user = Users.Local.FirstOrDefault(u => u.Id == attendance.UserId)
-                            ?? Users.Find(attendance.UserId);
-                        var rehearsal = Rehearsals.Local.FirstOrDefault(r => r.Id == attendance.RehearsalId)
-                            ?? Rehearsals.Find(attendance.RehearsalId);
-                        return $"{user?.UserName} - {rehearsal?.Date:yyyy-MM-dd}";
+                        // Only check Local cache to avoid DB queries
+                        var user = Users.Local.FirstOrDefault(u => u.Id == attendance.UserId);
+                        var rehearsal = Rehearsals.Local.FirstOrDefault(r => r.Id == attendance.RehearsalId);
+                        if (user != null && rehearsal != null)
+                            return $"{user.UserName} - {rehearsal.Date:yyyy-MM-dd}";
+                        return user?.UserName ?? rehearsal?.Date.ToString("yyyy-MM-dd"); // Return partial if one is missing
                     }
                     break;
                 
                 case "RoleAssignment":
                     if (entry.Entity is RoleAssignment roleAssignment)
                     {
-                        var user2 = Users.Local.FirstOrDefault(u => u.Id == roleAssignment.UserId)
-                            ?? Users.Find(roleAssignment.UserId);
-                        return $"{user2?.UserName} - {roleAssignment.Position}";
+                        // Only check Local cache to avoid DB queries
+                        var user2 = Users.Local.FirstOrDefault(u => u.Id == roleAssignment.UserId);
+                        return $"{user2?.UserName ?? roleAssignment.UserId} - {roleAssignment.Position}";
                     }
                     break;
                 
                 case "SongYouTubeUrl":
                     if (entry.Entity is SongYouTubeUrl youtubeUrl)
                     {
-                        var song3 = Songs.Local.FirstOrDefault(s => s.Id == youtubeUrl.SongId)
-                            ?? Songs.Find(youtubeUrl.SongId);
+                        // Only check Local cache to avoid DB queries
+                        var song3 = Songs.Local.FirstOrDefault(s => s.Id == youtubeUrl.SongId);
                         return song3?.Title;
                     }
                     break;
@@ -677,8 +680,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "Transaction":
                     if (entry.Entity is Transaction transaction && transaction.ActivityId.HasValue)
                     {
-                        var activity = Activities.Local.FirstOrDefault(a => a.Id == transaction.ActivityId.Value)
-                            ?? Activities.Find(transaction.ActivityId.Value);
+                        // Only check Local cache to avoid DB queries
+                        var activity = Activities.Local.FirstOrDefault(a => a.Id == transaction.ActivityId.Value);
                         return activity?.Name;
                     }
                     break;

@@ -1154,6 +1154,103 @@ public class ApplicationDbContextTests : IDisposable
         auditLog.Changes.Should().NotContain("EmailConfirmed");
     }
 
+    [Fact]
+    public async Task SaveChangesAsync_WhenOnlyLastLoginDateChanged_CreatesAuditLogForLogin()
+    {
+        // Arrange - Create a user
+        var user = new ApplicationUser
+        {
+            Id = Guid.NewGuid().ToString(),
+            UserName = "testuser",
+            Email = "test@example.com",
+            FirstName = "Test",
+            LastName = "User",
+            PhoneContact = "123456789"
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        // Clear existing audit logs
+        var existingLogs = await _context.AuditLogs.ToListAsync();
+        _context.AuditLogs.RemoveRange(existingLogs);
+        await _context.SaveChangesAsync();
+
+        // Act - Update only LastLoginDate
+        var userFromDb = await _context.Users.FirstAsync(u => u.Id == user.Id);
+        userFromDb.LastLoginDate = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        // Assert - Audit log should be created with only LastLoginDate in non-metadata changes
+        var auditLogs = await _context.AuditLogs.ToListAsync();
+        auditLogs.Should().ContainSingle();
+
+        var auditLog = auditLogs.First();
+        auditLog.Changes.Should().Contain("LastLoginDate");
+        auditLog.Changes.Should().Contain("_TargetUser"); // Metadata field
+        
+        // Verify that the changes JSON contains LastLoginDate as the only non-metadata field
+        var changesDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(auditLog.Changes!);
+        var nonMetadataKeys = changesDict!.Keys.Where(k => !k.StartsWith("_")).ToList();
+        nonMetadataKeys.Should().ContainSingle();
+        nonMetadataKeys[0].Should().Be("LastLoginDate");
+    }
+
+    [Fact]
+    public async Task GetEntityDisplayName_OnlyUsesLocalCache_NoDbQueries()
+    {
+        // Arrange - Create entities but don't load them into context
+        var song = new Song { Title = "Test Song", AlbumId = 1 };
+        _context.Songs.Add(song);
+        await _context.SaveChangesAsync();
+
+        // Clear the change tracker so Song is not in Local cache
+        _context.ChangeTracker.Clear();
+
+        // Create a SongYouTubeUrl that references the song
+        var youtubeUrl = new SongYouTubeUrl { SongId = song.Id, Url = "https://youtube.com/test" };
+        _context.SongYouTubeUrls.Add(youtubeUrl);
+        
+        // Act - Save changes which triggers GetEntityDisplayName
+        // Since Song is not in Local cache, EntityDisplayName should be null (not fetch from DB)
+        await _context.SaveChangesAsync();
+
+        // Assert - Audit log should exist but without resolved entity name
+        var auditLogs = await _context.AuditLogs.Where(a => a.EntityType == "SongYouTubeUrl").ToListAsync();
+        auditLogs.Should().ContainSingle();
+        
+        var auditLog = auditLogs.First();
+        // EntityDisplayName should be null because Song was not in Local cache
+        auditLog.EntityDisplayName.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetEntityDisplayName_UsesLocalCache_WhenEntitiesInCache()
+    {
+        // Arrange - Create entities and keep them in context
+        var song = new Song { Title = "Test Song", AlbumId = 1 };
+        _context.Songs.Add(song);
+        await _context.SaveChangesAsync();
+
+        // Clear existing audit logs
+        var existingLogs = await _context.AuditLogs.ToListAsync();
+        _context.AuditLogs.RemoveRange(existingLogs);
+        await _context.SaveChangesAsync();
+
+        // Create a SongYouTubeUrl - Song is now in Local cache
+        var youtubeUrl = new SongYouTubeUrl { SongId = song.Id, Url = "https://youtube.com/test" };
+        _context.SongYouTubeUrls.Add(youtubeUrl);
+        
+        // Act - Save changes which triggers GetEntityDisplayName
+        await _context.SaveChangesAsync();
+
+        // Assert - Audit log should have resolved entity name from Local cache
+        var auditLogs = await _context.AuditLogs.Where(a => a.EntityType == "SongYouTubeUrl").ToListAsync();
+        auditLogs.Should().ContainSingle();
+        
+        var auditLog = auditLogs.First();
+        auditLog.EntityDisplayName.Should().Be("Test Song");
+    }
+
     public void Dispose()
     {
         _context.Dispose();
