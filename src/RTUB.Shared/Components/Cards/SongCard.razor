@@ -1,4 +1,5 @@
 @namespace RTUB.Shared
+@using RTUB.Core.Entities
 @*
     SongCard Component
     Card-based design for displaying song information with actions
@@ -86,7 +87,7 @@
                     <span class="action-label">Letra</span>
                 </button>
                 @{
-                    var hasLinks = !string.IsNullOrEmpty(Song.SpotifyUrl) || (Song.YouTubeUrls != null && Song.YouTubeUrls.Any());
+                    var hasLinks = !string.IsNullOrEmpty(Song.SpotifyUrl) || (Song.YouTubeUrls?.Any() == true);
                 }
                 @if (hasLinks)
                 {
