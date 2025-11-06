@@ -472,41 +472,55 @@ else
                 </div>
             </div>
 
-            <hr class="mb-4" />
+            <div class="mb-3"></div>
 
             <!-- Personal Information Section -->
-            <h6 class="mb-3"><i class="bi bi-person-fill me-2"></i>Informações Pessoais</h6>
-            <div class="mb-4">
-                <ProfileField Label="Email" Value="@viewingUser.Email" />
-                <ProfileField Label="Contacto" Value="@viewingUser.PhoneContact" />
-                <ProfileField Label="Data de Nascimento" 
-                            Value="@(viewingUser.DateOfBirth.HasValue ? viewingUser.DateOfBirth.Value.ToString("dd/MM/yyyy") + (viewingUser.Age.HasValue ? $" ({viewingUser.Age} anos)" : "") : null)" />
-                <ProfileField Label="Curso" Value="@viewingUser.Degree" />
+            <div class="modal-info-section mb-4">
+                <div class="modal-section-header">
+                    <h6 class="modal-section-title">
+                        <i class="bi bi-person-fill me-2 text-primary"></i>
+                        Informações Pessoais
+                    </h6>
+                </div>
+                <div class="modal-section-body">
+                    <ProfileField Label="Email" Value="@viewingUser.Email" />
+                    <ProfileField Label="Contacto" Value="@viewingUser.PhoneContact" />
+                    <ProfileField Label="Data de Nascimento" 
+                                Value="@(viewingUser.DateOfBirth.HasValue ? viewingUser.DateOfBirth.Value.ToString("dd/MM/yyyy") + (viewingUser.Age.HasValue ? $" ({viewingUser.Age} anos)" : "") : null)" />
+                    <ProfileField Label="Curso" Value="@viewingUser.Degree" />
+                </div>
             </div>
 
             <!-- Tuna Information Section -->
-            <h6 class="mb-3"><i class="bi bi-music-note-list me-2"></i>Informação da Tuna</h6>
-            <div class="mb-4">
-                <ProfileField Label="Instrumento Principal" 
-                            Value="@(viewingUser.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(viewingUser.MainInstrument.Value) : null)" />
-                <ProfileField Label="Padrinho" 
-                            Value="@(viewingUserMentor != null ? viewingUserMentor.GetDisplayName() : null)" />
-                
-                <!-- Unified Timeline -->
-                <div class="profile-field">
-                    <div class="row">
-                        <div class="col-12 col-md-4 profile-field-label">
-                            <strong class="text-white-full">Percurso na Tuna:</strong>
-                        </div>
-                        <div class="col-12 col-md-8 profile-field-value">
-                            @if (userRoleAssignments.ContainsKey(viewingUser.Id))
-                            {
-                                <UnifiedTimeline User="@viewingUser" RoleAssignments="@userRoleAssignments[viewingUser.Id]" />
-                            }
-                            else
-                            {
-                                <UnifiedTimeline User="@viewingUser" RoleAssignments="@(new List<RoleAssignment>())" />
-                            }
+            <div class="modal-info-section mb-3">
+                <div class="modal-section-header">
+                    <h6 class="modal-section-title">
+                        <i class="bi bi-music-note-list me-2 text-primary"></i>
+                        Informação da Tuna
+                    </h6>
+                </div>
+                <div class="modal-section-body">
+                    <ProfileField Label="Instrumento Principal" 
+                                Value="@(viewingUser.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(viewingUser.MainInstrument.Value) : null)" />
+                    <ProfileField Label="Padrinho" 
+                                Value="@(viewingUserMentor != null ? viewingUserMentor.GetDisplayName() : null)" />
+                    
+                    <!-- Unified Timeline -->
+                    <div class="profile-field">
+                        <div class="row">
+                            <div class="col-12 col-md-4 profile-field-label">
+                                <strong class="text-white-full">Percurso na Tuna:</strong>
+                            </div>
+                            <div class="col-12 col-md-8 profile-field-value">
+                                @if (userRoleAssignments.ContainsKey(viewingUser.Id))
+                                {
+                                    <UnifiedTimeline User="@viewingUser" RoleAssignments="@userRoleAssignments[viewingUser.Id]" />
+                                }
+                                else
+                                {
+                                    <UnifiedTimeline User="@viewingUser" RoleAssignments="@(new List<RoleAssignment>())" />
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>

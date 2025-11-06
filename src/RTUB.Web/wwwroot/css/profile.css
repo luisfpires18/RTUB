@@ -461,3 +461,97 @@
     color: rgba(255, 255, 255, 0.9);
   }
 }
+
+/* =================================================================
+   Modal Info Sections - Enhanced Visual Grouping
+   ================================================================= */
+
+/* Elevated section container */
+.modal-info-section {
+  background: rgba(30, 30, 30, 0.5);
+  border: 1px solid rgba(111, 66, 193, 0.2);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+/* Section header with title and divider */
+.modal-section-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 2px solid rgba(111, 66, 193, 0.3);
+  background: rgba(111, 66, 193, 0.05);
+}
+
+.modal-section-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  display: flex;
+  align-items: center;
+}
+
+.modal-section-title .text-primary {
+  color: var(--bs-primary) !important;
+}
+
+/* Section body with content */
+.modal-section-body {
+  padding: 1.25rem;
+}
+
+/* Refined field styling within modal sections */
+.modal-section-body .profile-field {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modal-section-body .profile-field:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* Labels as secondary, values as primary */
+.modal-section-body .profile-field-label strong {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.modal-section-body .profile-field-value {
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 400;
+}
+
+/* Mobile responsive stacking */
+@media (max-width: 767px) {
+  .modal-section-header {
+    padding: 0.875rem 1rem;
+  }
+  
+  .modal-section-title {
+    font-size: 1rem;
+  }
+  
+  .modal-section-body {
+    padding: 1rem;
+  }
+  
+  .modal-section-body .profile-field {
+    margin-bottom: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+  
+  .modal-section-body .profile-field-label {
+    margin-bottom: 0.25rem;
+  }
+}
+
+/* Desktop two-column field layout within sections */
+@media (min-width: 768px) {
+  .modal-section-body .profile-field .row {
+    align-items: baseline;
+  }
+}
