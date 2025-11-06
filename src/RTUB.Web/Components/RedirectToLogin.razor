@@ -7,6 +7,6 @@
         var returnUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         
         // Redirect to login page with return URL
-        NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/" + returnUrl)}", forceLoad: true);
+        NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(returnUrl)}", forceLoad: true);
     }
 }

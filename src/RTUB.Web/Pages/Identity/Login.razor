@@ -53,7 +53,24 @@
         var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
         if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("returnUrl", out var returnUrl))
         {
-            ReturnUrl = returnUrl.ToString();
+            // Validate that the return URL is local to prevent open redirect attacks
+            var returnUrlString = returnUrl.ToString();
+            if (IsLocalUrl(returnUrlString))
+            {
+                ReturnUrl = returnUrlString;
+            }
         }
+    }
+    
+    private bool IsLocalUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+        {
+            return false;
+        }
+        
+        // URL must be relative (not start with // or contain :)
+        // This prevents redirects to external sites like //evil.com or http://evil.com
+        return url.StartsWith("/") && !url.StartsWith("//") && !url.Contains(":");
     }
 }
