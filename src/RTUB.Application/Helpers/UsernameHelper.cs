@@ -48,8 +48,13 @@ public static class UsernameHelper
     /// <summary>
     /// Removes diacritics (accent marks) from characters
     /// </summary>
-    private static string RemoveDiacritics(string text)
+    public static string RemoveDiacritics(string text)
     {
+        if (string.IsNullOrEmpty(text))
+        {
+            return string.Empty;
+        }
+
         var normalizedString = text.Normalize(NormalizationForm.FormD);
         var stringBuilder = new StringBuilder();
 

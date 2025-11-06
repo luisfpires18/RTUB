@@ -180,7 +180,7 @@ else
                                         </span>
                                         <input type="text" 
                                                class="form-control" 
-                                               placeholder="Pesquisar padrinho por nome, email ou alcunha..."
+                                               placeholder="Pesquisar padrinho por nome ou alcunha..."
                                                @bind="mentorSearchTerm" 
                                                @bind:event="oninput" 
                                                @onkeyup="FilterMentors" />
@@ -229,8 +229,13 @@ else
                                     var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editUser.MentorId);
                                     if (displayMentor != null)
                                     {
-                                        <div class="alert alert-success mt-2">
-                                            <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
+                                        <div class="alert alert-purple mt-2 d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
+                                            </div>
+                                            <button type="button" class="btn btn-sm text-danger" style="background: none; border: none; padding: 0.25rem 0.5rem;" @onclick="ClearMentorSelection" title="Remover padrinho">
+                                                <i class="bi bi-x-circle-fill" style="font-size: 1.25rem; color: white;"></i>
+                                            </button>
                                         </div>
                                     }
                                 }
@@ -619,6 +624,13 @@ else
     {
         if (editUser == null || user == null) return;
 
+        // Server-side guard: prevent user from being their own padrinho
+        if (!string.IsNullOrEmpty(editUser.MentorId) && editUser.MentorId == user.Id)
+        {
+            // This should never happen due to client-side filtering, but guard against it
+            editUser.MentorId = null;
+        }
+
         user.Degree = editUser.Degree;
         user.MainInstrument = editUser.MainInstrument;
         user.MentorId = editUser.MentorId;
@@ -702,20 +714,39 @@ else
         }
 
         // Use SearchHelper for multi-word search support
+        // Only search by FirstName, LastName, and Nickname (NOT Email)
+        // Use accent-insensitive search
         mentorSearchHelper.SearchTerm = mentorSearchTerm;
-        filteredMentors = mentorSearchHelper.FilterMultiple(eligibleMentors, new List<Func<ApplicationUser, string>>
+        
+        // eligibleMentors already excludes the current user (filtered at load time)
+        // but we explicitly filter here as well for consistency and safety
+        var availableMentors = eligibleMentors;
+        if (user != null && !string.IsNullOrEmpty(user.Id))
+        {
+            availableMentors = eligibleMentors.Where(u => u.Id != user.Id).ToList();
+        }
+        
+        filteredMentors = mentorSearchHelper.FilterMultiple(availableMentors, new List<Func<ApplicationUser, string>>
         {
             u => u.FirstName ?? "",
             u => u.LastName ?? "",
-            u => u.Nickname ?? "",
-            u => u.Email ?? ""
-        });
+            u => $"{u.FirstName} {u.LastName}",
+            u => u.Nickname ?? ""
+        }, caseSensitive: false, accentSensitive: false);
     }
 
     private void SelectMentor(ApplicationUser mentor)
     {
         if (editUser != null)
         {
+            // Prevent accidental clear: if clicking the already selected mentor, don't clear it
+            if (editUser.MentorId == mentor.Id)
+            {
+                // Keep the selection and just close the dropdown
+                filteredMentors.Clear();
+                return;
+            }
+            
             editUser.MentorId = mentor.Id;
         }
         selectedMentorCache = mentor;
