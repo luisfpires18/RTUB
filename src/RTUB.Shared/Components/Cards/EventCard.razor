@@ -21,14 +21,12 @@
             <div class="admin-overlay">
                 <button class="btn btn-sm music-btn-edit" 
                         @onclick="OnEdit" 
-                        title="Editar evento"
-                        data-bs-toggle="tooltip">
+                        title="Editar evento">
                     <i class="bi bi-pencil music-icon-edit"></i>
                 </button>
                 <button class="btn btn-sm music-btn-delete" 
                         @onclick="OnDelete" 
-                        title="Eliminar evento"
-                        data-bs-toggle="tooltip">
+                        title="Eliminar evento">
                     <i class="bi bi-trash music-icon-delete"></i>
                 </button>
             </div>
@@ -70,15 +68,13 @@
                     <div class="btn-group btn-group-sm" role="group" aria-label="Ações principais do evento">
                         <button class="btn btn-outline-info d-flex align-items-center gap-1" 
                                 @onclick="OnViewEnrollments" 
-                                title="Ver Inscrições"
-                                data-bs-toggle="tooltip">
+                                title="Ver Inscrições">
                             <i class="bi bi-people icon-size-1rem"></i>
-                            <span class="badge bg-info text-dark">@EnrollmentCount</span>
+                            <span class="badge bg-info text-white">@EnrollmentCount</span>
                         </button>
                         <button class="btn btn-outline-primary d-flex align-items-center" 
                                 @onclick="OnWatchRepertoire" 
-                                title="Ver Repertório"
-                                data-bs-toggle="tooltip">
+                                title="Ver Repertório">
                             <i class="bi bi-music-note-list icon-size-1rem"></i>
                         </button>
                     </div>
@@ -90,8 +86,7 @@
                     {
                         <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
                                 @onclick="OnEnroll" 
-                                title="Inscrever neste evento"
-                                data-bs-toggle="tooltip">
+                                title="Inscrever neste evento">
                             <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
                             <span class="d-none d-sm-inline">Inscrever</span>
                         </button>
@@ -101,21 +96,18 @@
                         <div class="btn-group btn-group-sm" role="group" aria-label="Ações de inscrição">
                             <button class="btn btn-success d-flex align-items-center gap-1" 
                                     disabled 
-                                    title="Inscrito"
-                                    data-bs-toggle="tooltip">
+                                    title="Inscrito">
                                 <i class="bi bi-check-circle-fill icon-size-1rem"></i>
                                 <span class="d-none d-md-inline">Inscrito</span>
                             </button>
                             <button class="btn btn-outline-secondary d-flex align-items-center" 
                                     @onclick="OnEditEnrollment" 
-                                    title="Editar Inscrição"
-                                    data-bs-toggle="tooltip">
+                                    title="Editar Inscrição">
                                 <i class="bi bi-pencil-fill icon-size-1rem"></i>
                             </button>
                             <button class="btn btn-outline-danger d-flex align-items-center" 
                                     @onclick="OnRemoveEnrollment" 
-                                    title="Anular Inscrição"
-                                    data-bs-toggle="tooltip">
+                                    title="Anular Inscrição">
                                 <i class="bi bi-x-circle-fill icon-size-1rem"></i>
                             </button>
                         </div>
