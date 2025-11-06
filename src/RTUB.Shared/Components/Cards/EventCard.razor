@@ -19,18 +19,24 @@
         @if (IsAdmin)
         {
             <div class="admin-overlay">
-                <button class="btn btn-sm music-btn-edit" @onclick="OnEdit" title="Editar">
+                <button class="btn btn-sm music-btn-edit" 
+                        @onclick="OnEdit" 
+                        title="Editar evento"
+                        data-bs-toggle="tooltip">
                     <i class="bi bi-pencil music-icon-edit"></i>
                 </button>
-                <button class="btn btn-sm music-btn-delete" @onclick="OnDelete" title="Eliminar">
+                <button class="btn btn-sm music-btn-delete" 
+                        @onclick="OnDelete" 
+                        title="Eliminar evento"
+                        data-bs-toggle="tooltip">
                     <i class="bi bi-trash music-icon-delete"></i>
                 </button>
             </div>
         }
     </div>
-    <div class="card-body d-flex flex-column">
-        <h5 class="card-title">@Event.Name</h5>
-        <p class="card-text text-light-theme">
+    <div class="card-body d-flex flex-column p-3">
+        <h5 class="card-title mb-2">@Event.Name</h5>
+        <p class="card-text text-light-theme mb-2">
             <small>
                 <i class="bi bi-calendar me-1"></i>
                 @if (Event.EndDate.HasValue && Event.EndDate.Value.Date != Event.Date.Date)
@@ -45,52 +51,75 @@
         </p>
         @if (!string.IsNullOrEmpty(Event.Location))
         {
-            <p class="card-text text-light-theme">
+            <p class="card-text text-light-theme mb-2">
                 <small>
-                    <i class="bi bi-geo-alt"></i> @Event.Location
+                    <i class="bi bi-geo-alt me-1"></i> @Event.Location
                 </small>
             </p>
         }
         @if (!string.IsNullOrEmpty(Event.Description))
         {
-            <p class="card-text flex-grow-1">@Event.Description</p>
+            <p class="card-text flex-grow-1 mb-2">@Event.Description</p>
         }
 
         @if (!IsPastEvent)
         {
             <div class="enrollment-section mt-auto p-2 rounded">
-                <div class="d-flex gap-2 align-items-center justify-content-center">
-                    <!-- View Enrollments button -->
-                    <button class="btn btn-sm btn-outline-info btn-sm-padded" @onclick="OnViewEnrollments" title="Ver Inscrições">
-                        <i class="bi bi-people icon-size-1rem"></i> @EnrollmentCount
-                    </button>
+                <!-- Main action buttons (View & Repertoire) -->
+                <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Ações principais do evento">
+                        <button class="btn btn-outline-info d-flex align-items-center gap-1" 
+                                @onclick="OnViewEnrollments" 
+                                title="Ver Inscrições"
+                                data-bs-toggle="tooltip">
+                            <i class="bi bi-people icon-size-1rem"></i>
+                            <span class="badge bg-info text-dark">@EnrollmentCount</span>
+                        </button>
+                        <button class="btn btn-outline-primary d-flex align-items-center" 
+                                @onclick="OnWatchRepertoire" 
+                                title="Ver Repertório"
+                                data-bs-toggle="tooltip">
+                            <i class="bi bi-music-note-list icon-size-1rem"></i>
+                        </button>
+                    </div>
+                </div>
 
-                    <!-- Watch Repertoire button -->
-                    <button class="btn btn-sm btn-watch btn-sm-padded" @onclick="OnWatchRepertoire" title="Ver Repertório">
-                        <i class="bi bi-music-note-list icon-size-1rem"></i>
-                    </button>
-
-                    <!-- User enrollment buttons container -->
-                    <div class="d-flex gap-1 enrollment-actions">
-                        @if (UserEnrollment == null)
-                        {
-                            <button class="btn btn-sm btn-purple btn-sm-padded" @onclick="OnEnroll" title="Inscrever neste evento">
-                                <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
-                            </button>
-                        }
-                        else
-                        {
-                            <button class="btn btn-sm btn-success btn-sm-padded" disabled title="Inscrito">
+                <!-- User enrollment action buttons -->
+                <div class="d-flex gap-1 align-items-center justify-content-center">
+                    @if (UserEnrollment == null)
+                    {
+                        <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
+                                @onclick="OnEnroll" 
+                                title="Inscrever neste evento"
+                                data-bs-toggle="tooltip">
+                            <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
+                            <span class="d-none d-sm-inline">Inscrever</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Ações de inscrição">
+                            <button class="btn btn-success d-flex align-items-center gap-1" 
+                                    disabled 
+                                    title="Inscrito"
+                                    data-bs-toggle="tooltip">
                                 <i class="bi bi-check-circle-fill icon-size-1rem"></i>
+                                <span class="d-none d-md-inline">Inscrito</span>
                             </button>
-                            <button class="btn btn-sm btn-light btn-sm-padded" @onclick="OnEditEnrollment" title="Editar Inscrição">
+                            <button class="btn btn-outline-secondary d-flex align-items-center" 
+                                    @onclick="OnEditEnrollment" 
+                                    title="Editar Inscrição"
+                                    data-bs-toggle="tooltip">
                                 <i class="bi bi-pencil-fill icon-size-1rem"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger btn-sm-padded" @onclick="OnRemoveEnrollment" title="Anular Inscrição">
+                            <button class="btn btn-outline-danger d-flex align-items-center" 
+                                    @onclick="OnRemoveEnrollment" 
+                                    title="Anular Inscrição"
+                                    data-bs-toggle="tooltip">
                                 <i class="bi bi-x-circle-fill icon-size-1rem"></i>
                             </button>
-                        }
-                    </div>
+                        </div>
+                    }
                 </div>
             </div>
         }
