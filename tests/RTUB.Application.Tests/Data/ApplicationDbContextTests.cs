@@ -443,7 +443,7 @@ public class ApplicationDbContextTests : IDisposable
         auditLogs.Should().ContainSingle();
         
         var auditLog = auditLogs.First();
-        auditLog.EntityType.Should().Be("AspNetUserRoles");
+        auditLog.EntityType.Should().Be("UserRole");
         auditLog.Action.Should().Be("Role Added");
         auditLog.UserName.Should().Be(_testUsername);
         auditLog.IsCriticalAction.Should().BeTrue();
@@ -504,7 +504,7 @@ public class ApplicationDbContextTests : IDisposable
         auditLogs.Should().ContainSingle();
         
         var auditLog = auditLogs.First();
-        auditLog.EntityType.Should().Be("AspNetUserRoles");
+        auditLog.EntityType.Should().Be("UserRole");
         auditLog.Action.Should().Be("Role Removed");
         auditLog.UserName.Should().Be(_testUsername);
         auditLog.IsCriticalAction.Should().BeTrue();

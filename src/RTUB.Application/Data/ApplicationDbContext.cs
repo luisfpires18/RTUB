@@ -162,7 +162,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 
                 auditEntries.Add(new AuditLog
                 {
-                    EntityType = "AspNetUserRoles",
+                    EntityType = "UserRole",
                     EntityId = null,
                     Action = action,
                     UserId = userId,
