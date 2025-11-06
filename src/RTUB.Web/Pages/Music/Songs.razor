@@ -145,7 +145,7 @@ else
         else if (!string.IsNullOrEmpty(currentPdfUrl))
         {
             <div class="pdf-viewer-container" style="height: 80vh;">
-                <iframe src="@(currentPdfUrl + "#toolbar=0&navpanes=0&scrollbar=0")" 
+                <iframe src="@currentPdfUrl" 
                         style="width: 100%; height: 100%; border: none;"
                         title="@($"Letra - {viewingSong?.Title}")">
                 </iframe>
@@ -272,7 +272,7 @@ else
 
             <div class="mb-3">
                 <label class="form-label">Letra</label>
-                <InputTextArea class="form-control" rows="15" @bind-Value="editingSong!.Lyrics" placeholder="Inserir letra da música..." />
+                <InputTextArea class="form-control" rows="15" @bind-Value="editingSong!.Lyrics" placeholder="Adicionar letra apenas se a música não estiver no cancioneiro..." />
             </div>
 
             <div class="d-flex justify-content-end gap-2">
@@ -353,7 +353,7 @@ else
 
             <div class="mb-3">
                 <label class="form-label">Letra</label>
-                <InputTextArea class="form-control" rows="15" @bind-Value="editingSong!.Lyrics" placeholder="Inserir letra da música..." />
+                <InputTextArea class="form-control" rows="15" @bind-Value="editingSong!.Lyrics" placeholder="Adicionar letra apenas se a música não estiver no cancioneiro..." />
             </div>
 
             <div class="d-flex justify-content-end gap-2">
