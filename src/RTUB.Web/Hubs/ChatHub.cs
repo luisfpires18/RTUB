@@ -56,15 +56,10 @@ public class ChatHub : Hub
             
             // Send to all clients in the event group
             var groupName = $"event-{eventId}";
-            await Clients.Group(groupName).SendAsync("ReceiveMessage", new
-            {
-                id = chatMessage.Id,
-                userId = chatMessage.UserId,
-                userName = chatMessage.User?.GetDisplayName() ?? "Unknown",
-                avatarUrl = chatMessage.User?.ProfilePictureSrc ?? "/images/default-avatar.png",
-                message = chatMessage.Message,
-                sentAt = chatMessage.SentAt
-            });
+            await Clients.Group(groupName).SendAsync("ReceiveMessage", chatMessage.Id, chatMessage.UserId, 
+                chatMessage.User?.GetDisplayName() ?? "Unknown", 
+                chatMessage.User?.ProfilePictureSrc ?? "/images/default-avatar.png",
+                chatMessage.Message, chatMessage.SentAt);
         }
         catch (ArgumentException ex)
         {

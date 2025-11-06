@@ -1,0 +1,125 @@
+/* Enrollment Page Styles */
+
+.enrollment-page-container {
+    padding: 1rem 0;
+}
+
+.enrollment-page-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem;
+    border-radius: 0.5rem;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.enrollment-page-header h1 {
+    margin: 0;
+    font-weight: bold;
+}
+
+.instrument-counter {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8eaf0 100%);
+    border: 1px solid #dee2e6;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.instrument-counter:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.instrument-count {
+    color: #667eea !important;
+}
+
+/* Chat Styles */
+
+.chat-card {
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chat-messages {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+}
+
+.chat-message {
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    background-color: white;
+}
+
+.chat-avatar {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+}
+
+.chat-user-name {
+    font-size: 0.875rem;
+    color: #495057;
+}
+
+.chat-timestamp {
+    font-size: 0.75rem;
+}
+
+.chat-message-text {
+    font-size: 0.875rem;
+    color: #212529;
+    word-wrap: break-word;
+}
+
+.chat-input-container {
+    position: relative;
+}
+
+.chat-input-container small {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+}
+
+/* Responsive adjustments */
+
+@media (max-width: 991.98px) {
+    .chat-card {
+        position: relative !important;
+        margin-bottom: 2rem;
+    }
+    
+    .chat-card .card-body {
+        height: 400px !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .enrollment-page-header {
+        padding: 1rem;
+    }
+    
+    .enrollment-page-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .instrument-counter {
+        font-size: 0.875rem;
+    }
+    
+    .instrument-count {
+        font-size: 2rem !important;
+    }
+}
+
+/* Sticky positioning for chat on desktop */
+
+@media (min-width: 992px) {
+    .sticky-top {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 1rem;
+    }
+}

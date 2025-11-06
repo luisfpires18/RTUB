@@ -1,0 +1,663 @@
+@page "/enrollment/{eventIdParam}"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
+@using RTUB.Application.Interfaces
+@using RTUB.Shared
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.Web
+@inject IEventService EventService
+@inject IEnrollmentService EnrollmentService
+@inject IChatService ChatService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@if (eventData == null)
+{
+    <p>A carregar...</p>
+}
+else
+{
+    <div class="enrollment-page-container">
+        <!-- Header -->
+        <div class="enrollment-page-header mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h1>@eventData.Name</h1>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-calendar me-1"></i>
+                        @if (eventData.EndDate.HasValue && eventData.EndDate.Value.Date != eventData.Date.Date)
+                        {
+                            <span>@eventData.Date.ToString("dd MMM") - @eventData.EndDate.Value.ToString("dd MMM yyyy")</span>
+                        }
+                        else
+                        {
+                            <span>@eventData.Date.ToString("dd MMM yyyy")</span>
+                        }
+                    </p>
+                </div>
+                @if (!string.IsNullOrEmpty(returnUrl))
+                {
+                    <button class="btn btn-secondary" @onclick="GoBack">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                }
+            </div>
+            
+            <!-- Search Bar -->
+            <div class="mb-3">
+                <input type="text" class="form-control" placeholder="Pesquisar membros..." 
+                       @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterMembers" />
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-lg-8 mb-4">
+                <!-- Membros Section -->
+                @if (filteredPerformingMembers.Any())
+                {
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h4 class="card-title mb-3 heading-purple">
+                                <i class="bi bi-people-fill"></i> Membros (@filteredPerformingMembers.Count)
+                            </h4>
+                            
+                            <div class="avatar-card-grid">
+                                @foreach (var enrollment in filteredPerformingMembers)
+                                {
+                                    <AvatarCard AvatarUrl="@enrollment.User?.ProfilePictureSrc"
+                                               TunaName="@enrollment.User?.Nickname"
+                                               FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}")"
+                                               InstrumentText="@(enrollment.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(enrollment.Instrument.Value) : "")"
+                                               AltText="@enrollment.User?.GetDisplayName()"
+                                               OnView="@(async () => await ViewMemberDetails(enrollment))"
+                                               OnEdit="@(() => EditEnrollment(enrollment))"
+                                               OnDelete="@(() => RemoveEnrollment(enrollment))"
+                                               ShowEditButton="@(isCurrentUser(enrollment.UserId) || isAdmin)"
+                                               ShowDeleteButton="@(isCurrentUser(enrollment.UserId) || isAdmin)"
+                                               ViewTooltip="Ver Detalhes"
+                                               EditTooltip="Editar Inscrição"
+                                               DeleteTooltip="Remover Inscrição"
+                                               ViewButtonText="Ver"
+                                               LazyLoad="true">
+                                        <BadgeContent>
+                                            @if (enrollment.User != null)
+                                            {
+                                                @if (enrollment.User.Positions.Contains(Position.Magister))
+                                                {
+                                                    <PositionBadge Position="Position.Magister" />
+                                                }
+                                                else if (enrollment.User.Categories.Contains(MemberCategory.Tuno))
+                                                {
+                                                    <CategoryBadge Category="MemberCategory.Tuno" />
+                                                }
+                                                else if (enrollment.User.Categories.Contains(MemberCategory.Caloiro))
+                                                {
+                                                    <CategoryBadge Category="MemberCategory.Caloiro" />
+                                                }
+                                            }
+                                        </BadgeContent>
+                                    </AvatarCard>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+                
+                <!-- Instrumentos Section -->
+                @if (performingMembers.Any())
+                {
+                    var instrumentCounts = GetInstrumentCounts();
+                    
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h4 class="card-title mb-3 heading-purple">
+                                <i class="bi bi-music-note-list"></i> Instrumentos
+                            </h4>
+                            
+                            <div class="row">
+                                @foreach (var kvp in instrumentCounts.OrderByDescending(x => x.Value))
+                                {
+                                    <div class="col-6 col-md-4 col-lg-3 mb-3">
+                                        <div class="instrument-counter p-3 text-center rounded">
+                                            <div class="instrument-count display-6 text-purple fw-bold">@kvp.Value</div>
+                                            <div class="instrument-name text-muted small">@StatusHelper.GetInstrumentDisplay(kvp.Key)</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+                
+                <!-- Leitões Section -->
+                @if (filteredLeitaoMembers.Any())
+                {
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 class="card-title mb-3 heading-warning">
+                                <i class="bi bi-star-fill"></i> Leitões (@filteredLeitaoMembers.Count)
+                            </h4>
+                            
+                            <div class="avatar-card-grid">
+                                @foreach (var enrollment in filteredLeitaoMembers)
+                                {
+                                    <AvatarCard AvatarUrl="@enrollment.User?.ProfilePictureSrc"
+                                               TunaName="@enrollment.User?.Nickname"
+                                               FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}")"
+                                               InstrumentText=""
+                                               AltText="@enrollment.User?.GetDisplayName()"
+                                               OnView="@(async () => await ViewMemberDetails(enrollment))"
+                                               OnEdit="@(() => EditEnrollment(enrollment))"
+                                               OnDelete="@(() => RemoveEnrollment(enrollment))"
+                                               ShowEditButton="@(isCurrentUser(enrollment.UserId) || isAdmin)"
+                                               ShowDeleteButton="@(isCurrentUser(enrollment.UserId) || isAdmin)"
+                                               ViewTooltip="Ver Detalhes"
+                                               EditTooltip="Editar Inscrição"
+                                               DeleteTooltip="Remover Inscrição"
+                                               ViewButtonText="Ver"
+                                               LazyLoad="true">
+                                        <BadgeContent>
+                                            <CategoryBadge Category="MemberCategory.Leitao" />
+                                        </BadgeContent>
+                                    </AvatarCard>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            
+            <!-- Chat Column -->
+            <div class="col-lg-4">
+                <div class="card chat-card sticky-top">
+                    <div class="card-body d-flex flex-column" style="height: 70vh;">
+                        <h5 class="card-title mb-3">
+                            <i class="bi bi-chat-dots-fill"></i> Chat do Evento
+                        </h5>
+                        
+                        <div class="chat-messages flex-grow-1 overflow-auto mb-3" @ref="chatMessagesContainer">
+                            @if (chatMessages == null)
+                            {
+                                <p class="text-muted text-center">A carregar mensagens...</p>
+                            }
+                            else if (!chatMessages.Any())
+                            {
+                                <p class="text-muted text-center">Nenhuma mensagem ainda. Seja o primeiro a escrever!</p>
+                            }
+                            else
+                            {
+                                @foreach (var msg in chatMessages.OrderBy(m => m.SentAt))
+                                {
+                                    <div class="chat-message mb-3">
+                                        <div class="d-flex align-items-start">
+                                            <img src="@msg.AvatarUrl" alt="@msg.UserName" class="chat-avatar rounded-circle me-2" />
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <strong class="chat-user-name">@msg.UserName</strong>
+                                                    <small class="text-muted chat-timestamp">@msg.SentAt.ToLocalTime().ToString("HH:mm")</small>
+                                                </div>
+                                                <p class="mb-0 chat-message-text">@msg.Message</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                        
+                        <div class="chat-input-container">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Escreva uma mensagem..." 
+                                       @bind="newMessage" @bind:event="oninput" @onkeyup="HandleChatKeyPress" 
+                                       maxlength="500" disabled="@(!isConnected)" />
+                                <button class="btn btn-primary btn-primary-purple" @onclick="SendMessage" 
+                                        disabled="@(!isConnected || string.IsNullOrWhiteSpace(newMessage))">
+                                    <i class="bi bi-send-fill"></i>
+                                </button>
+                            </div>
+                            @if (!isConnected)
+                            {
+                                <small class="text-warning">
+                                    <i class="bi bi-exclamation-triangle-fill"></i> A reconectar...
+                                </small>
+                            }
+                            else
+                            {
+                                <small class="text-muted">@(newMessage?.Length ?? 0)/500 caracteres</small>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Edit Enrollment Modal -->
+@if (editingEnrollment != null)
+{
+    <Modal Show="@showEditEnrollmentModal" 
+           ShowChanged="@((bool show) => showEditEnrollmentModal = show)"
+           Title="Editar Inscrição" 
+           Size="Modal.ModalSize.Default"
+           Centered="true">
+        <BodyContent>
+            <EditForm Model="editingEnrollmentForm" OnValidSubmit="SaveEnrollmentEdit">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+                
+                @if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao))
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-white-full">Instrumento</label>
+                        <InputSelect class="form-select form-select-dark" @bind-Value="editingEnrollmentForm!.Instrument">
+                            <option value="">Não tocar</option>
+                            @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                            {
+                                <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                }
+                
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Notas</label>
+                    <InputTextArea class="form-control" rows="4" @bind-Value="editingEnrollmentForm!.Notes" />
+                </div>
+                
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditEnrollmentModal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-primary-purple">Guardar</button>
+                </div>
+            </EditForm>
+        </BodyContent>
+    </Modal>
+}
+
+<!-- Remove Enrollment Modal -->
+<Modal Show="@showRemoveEnrollmentModal" 
+       ShowChanged="@((bool show) => showRemoveEnrollmentModal = show)"
+       Title="Confirmar Remoção de Inscrição" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        <p>Tem certeza que deseja remover esta inscrição?</p>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseRemoveEnrollmentModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmRemoveEnrollment">Remover</button>
+    </FooterContent>
+</Modal>
+
+@code {
+    [Parameter]
+    public string EventIdParam { get; set; } = string.Empty;
+    
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+    
+    private Event? eventData;
+    private List<RTUB.Core.Entities.Enrollment> allEnrollments = new();
+    private List<RTUB.Core.Entities.Enrollment> performingMembers = new();
+    private List<RTUB.Core.Entities.Enrollment> leitaoMembers = new();
+    private List<RTUB.Core.Entities.Enrollment> filteredPerformingMembers = new();
+    private List<RTUB.Core.Entities.Enrollment> filteredLeitaoMembers = new();
+    private ApplicationUser? currentUser;
+    private bool isAdmin = false;
+    private string returnUrl = string.Empty;
+    private string searchTerm = string.Empty;
+    
+    // Chat
+    private HubConnection? hubConnection;
+    private List<ChatMessageDto> chatMessages = new();
+    private string newMessage = string.Empty;
+    private bool isConnected = false;
+    private ElementReference chatMessagesContainer;
+    
+    // Edit modal
+    private bool showEditEnrollmentModal = false;
+    private RTUB.Core.Entities.Enrollment? editingEnrollment;
+    private RTUB.Core.Entities.Enrollment? editingEnrollmentForm;
+    
+    // Remove modal
+    private bool showRemoveEnrollmentModal = false;
+    private RTUB.Core.Entities.Enrollment? removingEnrollment;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        if (!int.TryParse(EventIdParam, out var eventId))
+        {
+            NavigationManager.NavigateTo("/events");
+            return;
+        }
+        
+        returnUrl = ReturnUrl ?? "/events";
+        
+        await LoadCurrentUser();
+        await LoadEventData(eventId);
+        await LoadEnrollments(eventId);
+        await LoadChatMessages(eventId);
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && eventData != null)
+        {
+            await InitializeSignalR();
+        }
+    }
+    
+    private async Task LoadCurrentUser()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userName = authState.User.Identity?.Name;
+        
+        if (!string.IsNullOrEmpty(userName))
+        {
+            currentUser = await UserManager.FindByNameAsync(userName);
+            isAdmin = authState.User.IsInRole("Admin") || authState.User.IsInRole("Owner");
+        }
+    }
+    
+    private async Task LoadEventData(int eventId)
+    {
+        var allEvents = await EventService.GetAllEventsAsync();
+        eventData = allEvents.FirstOrDefault(e => e.Id == eventId);
+        
+        if (eventData == null)
+        {
+            NavigationManager.NavigateTo("/events");
+        }
+    }
+    
+    private async Task LoadEnrollments(int eventId)
+    {
+        allEnrollments = (await EnrollmentService.GetEnrollmentsByEventIdAsync(eventId)).ToList();
+        
+        performingMembers = allEnrollments
+            .Where(e => e.User != null && !e.User.Categories.Contains(MemberCategory.Leitao))
+            .ToList();
+            
+        leitaoMembers = allEnrollments
+            .Where(e => e.User != null && e.User.Categories.Contains(MemberCategory.Leitao))
+            .ToList();
+            
+        FilterMembers();
+    }
+    
+    private void FilterMembers()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredPerformingMembers = performingMembers;
+            filteredLeitaoMembers = leitaoMembers;
+        }
+        else
+        {
+            var searchTerms = searchTerm.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(t => t.ToLower())
+                .ToArray();
+                
+            filteredPerformingMembers = performingMembers.Where(e =>
+            {
+                if (e.User == null) return false;
+                var searchableText = $"{e.User.FirstName} {e.User.LastName} {e.User.Nickname}".ToLower();
+                return searchTerms.All(term => searchableText.Contains(term));
+            }).ToList();
+            
+            filteredLeitaoMembers = leitaoMembers.Where(e =>
+            {
+                if (e.User == null) return false;
+                var searchableText = $"{e.User.FirstName} {e.User.LastName} {e.User.Nickname}".ToLower();
+                return searchTerms.All(term => searchableText.Contains(term));
+            }).ToList();
+        }
+        
+        StateHasChanged();
+    }
+    
+    private Dictionary<InstrumentType, int> GetInstrumentCounts()
+    {
+        var counts = new Dictionary<InstrumentType, int>();
+        foreach (var inst in Enum.GetValues<InstrumentType>())
+        {
+            counts[inst] = performingMembers.Count(e => e.Instrument == inst);
+        }
+        return counts;
+    }
+    
+    private bool isCurrentUser(string userId)
+    {
+        return currentUser != null && currentUser.Id == userId;
+    }
+    
+    private void GoBack()
+    {
+        var decodedUrl = HttpUtility.UrlDecode(returnUrl);
+        NavigationManager.NavigateTo(decodedUrl);
+    }
+    
+    private async Task ViewMemberDetails(RTUB.Core.Entities.Enrollment enrollment)
+    {
+        // Could navigate to member profile or show a modal
+        await Task.CompletedTask;
+    }
+    
+    private void EditEnrollment(RTUB.Core.Entities.Enrollment enrollment)
+    {
+        editingEnrollment = enrollment;
+        editingEnrollmentForm = new RTUB.Core.Entities.Enrollment
+        {
+            Id = enrollment.Id,
+            UserId = enrollment.UserId,
+            EventId = enrollment.EventId,
+            Instrument = enrollment.Instrument,
+            Notes = enrollment.Notes
+        };
+        showEditEnrollmentModal = true;
+    }
+    
+    private async Task SaveEnrollmentEdit()
+    {
+        if (editingEnrollmentForm == null || editingEnrollment == null) return;
+        
+        try
+        {
+            await EnrollmentService.DeleteEnrollmentAsync(editingEnrollment.Id);
+            await EnrollmentService.CreateEnrollmentAsync(
+                editingEnrollmentForm.UserId,
+                editingEnrollmentForm.EventId,
+                editingEnrollment.Attended,
+                editingEnrollmentForm.Instrument,
+                editingEnrollmentForm.Notes
+            );
+            
+            await LoadEnrollments(eventData!.Id);
+            CloseEditEnrollmentModal();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error editing enrollment: {ex.Message}");
+        }
+    }
+    
+    private void CloseEditEnrollmentModal()
+    {
+        showEditEnrollmentModal = false;
+        editingEnrollment = null;
+        editingEnrollmentForm = null;
+    }
+    
+    private void RemoveEnrollment(RTUB.Core.Entities.Enrollment enrollment)
+    {
+        removingEnrollment = enrollment;
+        showRemoveEnrollmentModal = true;
+    }
+    
+    private async Task ConfirmRemoveEnrollment()
+    {
+        if (removingEnrollment == null) return;
+        
+        try
+        {
+            await EnrollmentService.DeleteEnrollmentAsync(removingEnrollment.Id);
+            await LoadEnrollments(eventData!.Id);
+            CloseRemoveEnrollmentModal();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error removing enrollment: {ex.Message}");
+        }
+    }
+    
+    private void CloseRemoveEnrollmentModal()
+    {
+        showRemoveEnrollmentModal = false;
+        removingEnrollment = null;
+    }
+    
+    // Chat methods
+    private async Task LoadChatMessages(int eventId)
+    {
+        var messages = await ChatService.GetMessagesByEventIdAsync(eventId);
+        chatMessages = messages.Select(m => new ChatMessageDto
+        {
+            Id = m.Id,
+            UserId = m.UserId,
+            UserName = m.User?.GetDisplayName() ?? "Unknown",
+            AvatarUrl = m.User?.ProfilePictureSrc ?? "/images/default-avatar.png",
+            Message = m.Message,
+            SentAt = m.SentAt
+        }).ToList();
+        
+        StateHasChanged();
+    }
+    
+    private async Task InitializeSignalR()
+    {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/chathub"))
+                .WithAutomaticReconnect()
+                .Build();
+            
+            hubConnection.On<int, string, string, string, string, DateTime>("ReceiveMessage", async (id, userId, userName, avatarUrl, message, sentAt) =>
+            {
+                chatMessages.Add(new ChatMessageDto
+                {
+                    Id = id,
+                    UserId = userId,
+                    UserName = userName,
+                    AvatarUrl = avatarUrl,
+                    Message = message,
+                    SentAt = sentAt
+                });
+                await InvokeAsync(StateHasChanged);
+                await ScrollChatToBottom();
+            });
+            
+            hubConnection.On<int>("MessageDeleted", async (messageId) =>
+            {
+                chatMessages.RemoveAll(m => m.Id == messageId);
+                await InvokeAsync(StateHasChanged);
+            });
+            
+            hubConnection.Reconnecting += (error) =>
+            {
+                isConnected = false;
+                InvokeAsync(StateHasChanged);
+                return Task.CompletedTask;
+            };
+            
+            hubConnection.Reconnected += async (connectionId) =>
+            {
+                isConnected = true;
+                await InvokeAsync(StateHasChanged);
+                if (eventData != null)
+                {
+                    await hubConnection.SendAsync("JoinEventGroup", eventData.Id);
+                }
+            };
+            
+            await hubConnection.StartAsync();
+            isConnected = true;
+            
+            if (eventData != null)
+            {
+                await hubConnection.SendAsync("JoinEventGroup", eventData.Id);
+            }
+            
+            await ScrollChatToBottom();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error connecting to SignalR: {ex.Message}");
+            isConnected = false;
+        }
+    }
+    
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(newMessage) || hubConnection == null || eventData == null) return;
+        
+        try
+        {
+            await hubConnection.SendAsync("SendMessage", eventData.Id, newMessage);
+            newMessage = string.Empty;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending message: {ex.Message}");
+        }
+    }
+    
+    private async Task HandleChatKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(newMessage))
+        {
+            await SendMessage();
+        }
+    }
+    
+    private async Task ScrollChatToBottom()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("scrollToBottom", chatMessagesContainer);
+        }
+        catch
+        {
+            // Ignore JS interop errors
+        }
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection != null)
+        {
+            if (eventData != null)
+            {
+                await hubConnection.SendAsync("LeaveEventGroup", eventData.Id);
+            }
+            await hubConnection.DisposeAsync();
+        }
+    }
+    
+    private class ChatMessageDto
+    {
+        public int Id { get; set; }
+        public string UserId { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public string AvatarUrl { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public DateTime SentAt { get; set; }
+    }
+}

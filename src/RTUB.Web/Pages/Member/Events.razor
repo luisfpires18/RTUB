@@ -13,6 +13,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IWebHostEnvironment Environment
+@inject NavigationManager NavigationManager
 
 <h1>Atuações</h1>
 <p>Próximas atuações e atividades.</p>
@@ -658,6 +659,9 @@ else
             }
         </BodyContent>
         <FooterContent>
+            <button type="button" class="btn btn-primary btn-primary-purple" @onclick="NavigateToEnrollmentPage">
+                <i class="bi bi-box-arrow-up-right"></i> Ver Página de Inscrições
+            </button>
             <button type="button" class="btn btn-secondary" @onclick="CloseEnrollmentListModal">Fechar</button>
         </FooterContent>
     </Modal>
@@ -1492,6 +1496,15 @@ else
         catch (Exception ex)
         {
             Console.WriteLine($"Error deleting enrollment: {ex.Message}");
+        }
+    }
+    
+    private void NavigateToEnrollmentPage()
+    {
+        if (selectedEvent != null)
+        {
+            var returnUrl = Uri.EscapeDataString("/events");
+            NavigationManager.NavigateTo($"/enrollment/{selectedEvent.Id}?returnUrl={returnUrl}");
         }
     }
     
