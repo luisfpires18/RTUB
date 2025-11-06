@@ -54,8 +54,6 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
     {
         try
         {
-            _logger.LogInformation("Requesting document URL for bucket '{BucketName}', path: '{DocumentPath}'", _bucketName, documentPath);
-
             // Check if file exists first
             var exists = await DocumentExistsAsync(documentPath);
             if (!exists)
@@ -77,7 +75,6 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
             };
 
             var url = _s3Client.GetPreSignedURL(request);
-            _logger.LogInformation("Successfully generated pre-signed URL for document: {DocumentPath}", documentPath);
             return url;
         }
         catch (AmazonS3Exception ex)

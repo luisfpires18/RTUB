@@ -140,7 +140,6 @@ public class SongService : ISongService
         // Check if URL already exists (avoid duplicates)
         if (song.YouTubeUrls.Any(y => CanonicalizeUrl(y.Url) == canonicalUrl))
         {
-            _logger?.LogInformation("YouTube URL already exists for song {SongId}: {Url}", songId, canonicalUrl);
             return; // URL already exists, don't add duplicate
         }
 
@@ -153,9 +152,6 @@ public class SongService : ISongService
         
         song.YouTubeUrls.Add(youtubeUrl);
         await _context.SaveChangesAsync();
-        
-        _logger?.LogInformation("Added YouTube URL to song {SongId}. Total URLs: {TotalUrls}", 
-            songId, song.YouTubeUrls.Count);
     }
 
     public async Task RemoveYouTubeUrlAsync(int songId, string url)
@@ -178,9 +174,6 @@ public class SongService : ISongService
         {
             song.YouTubeUrls.Remove(youtubeUrl);
             await _context.SaveChangesAsync();
-            
-            _logger?.LogInformation("Removed YouTube URL from song {SongId}. Remaining URLs: {RemainingUrls}", 
-                songId, song.YouTubeUrls.Count);
         }
         else
         {
