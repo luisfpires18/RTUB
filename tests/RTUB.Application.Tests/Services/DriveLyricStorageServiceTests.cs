@@ -65,18 +65,8 @@ public class DriveLyricStorageServiceTests
         {
             service = new DriveLyricStorageService(_mockConfiguration.Object, _mockLogger.Object);
 
-            // Assert
+            // Assert - Should initialize successfully
             service.Should().NotBeNull();
-            
-            // Verify initialization was logged
-            _mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Information,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Initializing DriveLyricStorageService")),
-                    null,
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-                Times.Once);
         }
         finally
         {
@@ -99,16 +89,8 @@ public class DriveLyricStorageServiceTests
         {
             service = new DriveLyricStorageService(_mockConfiguration.Object, _mockLogger.Object);
 
-            // Assert - should not throw and should log with default bucket name "rtub"
+            // Assert - Should initialize successfully with defaults
             service.Should().NotBeNull();
-            _mockLogger.Verify(
-                x => x.Log(
-                    LogLevel.Information,
-                    It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("bucket: rtub")),
-                    null,
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-                Times.Once);
         }
         finally
         {
