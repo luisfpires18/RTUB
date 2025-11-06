@@ -3714,7 +3714,6 @@ th:hover {
   border-radius: 0.5rem;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
-  max-width: 380px; /* Slightly wider for better content display */
 }
 
 .song-card:hover {
@@ -3964,7 +3963,7 @@ th:hover {
   border: 1px solid var(--bs-border-color);
   border-radius: 0.5rem;
   overflow: hidden;
-  height: 350px;
+  min-height: 320px; /* Flexible height to accommodate content */
 }
 
 .song-skeleton-header {

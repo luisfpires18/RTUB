@@ -38,7 +38,7 @@
             <div class="song-authors">
                 @if (!string.IsNullOrEmpty(Song.LyricAuthor) || !string.IsNullOrEmpty(Song.MusicAuthor))
                 {
-                    <div class="song-author-row" title="Letra: @(string.IsNullOrEmpty(Song.LyricAuthor) ? "N/A" : Song.LyricAuthor), Música: @(string.IsNullOrEmpty(Song.MusicAuthor) ? "N/A" : Song.MusicAuthor)">
+                    <div class="song-author-row" title="@GetAuthorsTooltip()">
                         <i class="bi bi-person song-icon"></i>
                         <span class="song-author-text">
                             @if (!string.IsNullOrEmpty(Song.LyricAuthor))
@@ -189,5 +189,12 @@
         {
             await OnDelete.InvokeAsync();
         }
+    }
+
+    private string GetAuthorsTooltip()
+    {
+        var lyric = string.IsNullOrEmpty(Song.LyricAuthor) ? "N/A" : Song.LyricAuthor;
+        var music = string.IsNullOrEmpty(Song.MusicAuthor) ? "N/A" : Song.MusicAuthor;
+        return $"Letra: {lyric}, Música: {music}";
     }
 }

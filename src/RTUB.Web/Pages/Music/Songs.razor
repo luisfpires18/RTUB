@@ -408,8 +408,9 @@ else
     private bool isLoadingPdf = false;
     private string? currentPdfUrl;
     
-    // URL cache for performance (session-based)
+    // URL cache for performance (session-based with size limit)
     private Dictionary<string, string> urlCache = new();
+    private const int MaxCacheSize = 100; // Limit cache to 100 URLs per session
 
     protected override async Task OnInitializedAsync()
     {
@@ -498,9 +499,15 @@ else
                 {
                     pdfUrl = await LyricStorageService.GetLyricPdfUrlAsync(album.Title, song.Title);
                     
-                    // Cache the URL for session
+                    // Cache the URL for session with size limit
                     if (!string.IsNullOrEmpty(pdfUrl))
                     {
+                        // If cache is at limit, remove oldest entry (first key)
+                        if (urlCache.Count >= MaxCacheSize)
+                        {
+                            var firstKey = urlCache.Keys.First();
+                            urlCache.Remove(firstKey);
+                        }
                         urlCache[cacheKey] = pdfUrl;
                     }
                 }
@@ -779,9 +786,15 @@ else
                 // Generate pre-signed URL for the audio file (lazy loading - only on play)
                 audioUrl = await AudioStorageService.GetAudioUrlAsync(album.Title, song.TrackNumber, song.Title);
                 
-                // Cache the URL for session
+                // Cache the URL for session with size limit
                 if (!string.IsNullOrEmpty(audioUrl))
                 {
+                    // If cache is at limit, remove oldest entry (first key)
+                    if (urlCache.Count >= MaxCacheSize)
+                    {
+                        var firstKey = urlCache.Keys.First();
+                        urlCache.Remove(firstKey);
+                    }
                     urlCache[cacheKey] = audioUrl;
                 }
             }
