@@ -52,16 +52,6 @@
     position: relative;
 }
 
-.fitab-overview-divider {
-    position: absolute;
-    left: 50%;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: linear-gradient(180deg, rgba(111, 66, 193, 0.3) 0%, #6f42c1 50%, rgba(111, 66, 193, 0.3) 100%);
-    transform: translateX(-50%);
-}
-
 .fitab-overview-heading {
     font-size: 1.5rem;
     font-weight: 600;
@@ -190,10 +180,6 @@
     .fitab-overview-grid {
         grid-template-columns: 1fr;
         gap: 2rem;
-    }
-
-    .fitab-overview-divider {
-        display: none;
     }
 
     .fitab-overview-card,
