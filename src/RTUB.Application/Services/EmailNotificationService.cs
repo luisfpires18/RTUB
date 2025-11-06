@@ -239,6 +239,7 @@ RTUB
             mailMessage.To.Add(email);
 
             await smtpClient.SendMailAsync(mailMessage);
+            _logger.LogInformation("Welcome email successfully sent to new member: {UserName}", userName);
         }
         catch (Exception ex)
         {
