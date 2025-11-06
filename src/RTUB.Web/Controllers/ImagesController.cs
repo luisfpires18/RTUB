@@ -41,9 +41,11 @@ public class ImagesController : ControllerBase
     private IActionResult FileWithCache(byte[] data, string contentType, DateTime? lastModified = null, bool immutable = false)
     {
         var etag = GenerateETag(data);
+        var quotedETag = $"\"{etag}\""; // ETags must be quoted per HTTP specification
         
         // Check if client has cached version with matching ETag
-        if (Request.Headers.IfNoneMatch.Any(tag => tag == etag))
+        // Compare both quoted and unquoted versions for compatibility
+        if (Request.Headers.IfNoneMatch.Any(tag => tag == quotedETag || tag == etag))
         {
             return StatusCode(304); // Not Modified
         }
@@ -60,7 +62,8 @@ public class ImagesController : ControllerBase
             }
         }
 
-        Response.Headers.Append("ETag", etag);
+        // Set ETag header with proper quoting per HTTP specification
+        Response.Headers.Append("ETag", quotedETag);
         
         // Set Last-Modified header if provided
         if (lastModified.HasValue)
