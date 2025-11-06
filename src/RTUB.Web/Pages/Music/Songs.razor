@@ -545,6 +545,9 @@ else
         }
         
         // Fallback to DB text modal if PDF not found or error occurred
+        // Fetch full song details (including lyrics) from database
+        viewingSong = await SongService.GetSongByIdAsync(song.Id);
+        
         // Don't clear viewingSong - just hide the PDF modal
         showViewLyricsPdfModal = false;
         isLoadingPdf = false;
