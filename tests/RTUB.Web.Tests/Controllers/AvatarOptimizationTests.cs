@@ -152,7 +152,7 @@ public class AvatarOptimizationTests
     #region Last-Modified Support
 
     [Fact]
-    public async Task GetProfileImage_IncludesLastModifiedHeader()
+    public async Task GetProfileImage_DoesNotIncludeLastModifiedHeader_ForUserImages()
     {
         // Arrange
         var userId = "user123";
@@ -165,12 +165,13 @@ public class AvatarOptimizationTests
         await _controller.GetProfileImage(userId);
 
         // Assert
-        _controller.Response.Headers.Should().ContainKey("Last-Modified");
-        _controller.Response.Headers["Last-Modified"].ToString().Should().NotBeNullOrEmpty();
+        // User profile images don't include Last-Modified since we don't track upload time
+        // ETag provides sufficient cache validation
+        _controller.Response.Headers.Should().NotContainKey("Last-Modified");
     }
 
     [Fact]
-    public async Task GetProfileImage_WithIfModifiedSince_Returns304WhenNotModified()
+    public async Task GetProfileImage_UsesETagForCacheValidation_NotLastModified()
     {
         // Arrange
         var userId = "user123";
@@ -179,23 +180,13 @@ public class AvatarOptimizationTests
         _mockImageService.Setup(s => s.GetProfileImageAsync(userId))
             .ReturnsAsync((imageData, "image/jpeg"));
 
-        // First request to get Last-Modified
-        await _controller.GetProfileImage(userId);
-        var lastModified = _controller.Response.Headers["Last-Modified"].ToString();
-
-        // Reset controller for conditional request
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext()
-        };
-        _controller.Request.Headers["If-Modified-Since"] = lastModified;
-
         // Act
-        var result = await _controller.GetProfileImage(userId);
+        await _controller.GetProfileImage(userId);
 
         // Assert
-        result.Should().BeOfType<StatusCodeResult>();
-        (result as StatusCodeResult)!.StatusCode.Should().Be(304);
+        // For user images, ETag is the primary cache validation mechanism
+        _controller.Response.Headers.Should().ContainKey("ETag");
+        _controller.Response.Headers["ETag"].ToString().Should().NotBeNullOrEmpty();
     }
 
     #endregion

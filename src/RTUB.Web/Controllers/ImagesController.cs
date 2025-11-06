@@ -12,6 +12,10 @@ public class ImagesController : ControllerBase
     private readonly IWebHostEnvironment _environment;
     private readonly IConfiguration _configuration;
     private readonly int _cacheDurationInSeconds;
+    
+    // Cache duration constants
+    private const int ImmutableCacheDurationSeconds = 31536000; // 1 year
+    private const int IfModifiedSinceToleranceSeconds = 1; // Allow 1 second tolerance for date precision
 
     public ImagesController(IImageService imageService, IWebHostEnvironment environment, IConfiguration configuration)
     {
@@ -49,7 +53,7 @@ public class ImagesController : ControllerBase
         {
             if (DateTime.TryParse(Request.Headers.IfModifiedSince.ToString(), out var ifModifiedSince))
             {
-                if (lastModified.Value <= ifModifiedSince.AddSeconds(1)) // Add 1 second tolerance for precision
+                if (lastModified.Value <= ifModifiedSince.AddSeconds(IfModifiedSinceToleranceSeconds))
                 {
                     return StatusCode(304); // Not Modified
                 }
@@ -67,7 +71,7 @@ public class ImagesController : ControllerBase
         // Use immutable caching when version is in URL (cache busting)
         if (immutable)
         {
-            Response.Headers.Append("Cache-Control", "public, max-age=31536000, immutable");
+            Response.Headers.Append("Cache-Control", $"public, max-age={ImmutableCacheDurationSeconds}, immutable");
         }
         else
         {
@@ -131,7 +135,9 @@ public class ImagesController : ControllerBase
         if (imageData != null)
         {
             // Use immutable caching when version is specified in URL
-            return FileWithCache(imageData.Value.Data, imageData.Value.ContentType, DateTime.UtcNow, immutable: hasVersion);
+            // Don't set Last-Modified for profile images as we don't track upload timestamp
+            // ETag provides sufficient cache validation
+            return FileWithCache(imageData.Value.Data, imageData.Value.ContentType, lastModified: null, immutable: hasVersion);
         }
 
         // Otherwise, return the default profile picture (WebP for better performance)
