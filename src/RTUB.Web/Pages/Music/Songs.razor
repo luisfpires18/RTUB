@@ -153,8 +153,7 @@ else
                                                 height="152" 
                                                 frameborder="0" 
                                                 allowtransparency="true" 
-                                                allow="encrypted-media"
-                                                @onerror="() => HandleEmbedError(song.SpotifyUrl ?? string.Empty)">
+                                                allow="encrypted-media">
                                         </iframe>
                                     </div>
                                 </td>
@@ -693,14 +692,23 @@ else
             else
             {
                 // Switch to new track (closes previous if any)
-                activeTrackId = songId;
-                activeSpotifyEmbedUrl = ConvertToSpotifyEmbedUrl(spotifyUrl);
+                var embedUrl = ConvertToSpotifyEmbedUrl(spotifyUrl);
+                if (!string.IsNullOrEmpty(embedUrl))
+                {
+                    activeTrackId = songId;
+                    activeSpotifyEmbedUrl = embedUrl;
+                }
+                else
+                {
+                    // If conversion fails, use fallback
+                    HandleEmbedError(spotifyUrl);
+                }
             }
             StateHasChanged();
         }
-        catch (Exception)
+        catch (UriFormatException)
         {
-            // If conversion fails, open in new tab as fallback
+            // If URL parsing fails, open in new tab as fallback
             HandleEmbedError(spotifyUrl);
         }
     }
@@ -710,14 +718,34 @@ else
         if (string.IsNullOrEmpty(spotifyUrl))
             return string.Empty;
 
-        // Convert open.spotify.com URL to embed URL
-        // Example: https://open.spotify.com/track/xxx -> https://open.spotify.com/embed/track/xxx
-        if (spotifyUrl.Contains("open.spotify.com/") && !spotifyUrl.Contains("/embed/"))
+        try
         {
-            return spotifyUrl.Replace("open.spotify.com/", "open.spotify.com/embed/");
-        }
+            // Validate and parse the URL
+            if (!Uri.TryCreate(spotifyUrl, UriKind.Absolute, out var uri))
+                return string.Empty;
 
-        return spotifyUrl;
+            // Check if it's a valid Spotify URL
+            if (!uri.Host.Contains("spotify.com", StringComparison.OrdinalIgnoreCase))
+                return string.Empty;
+
+            // Convert open.spotify.com URL to embed URL
+            // Example: https://open.spotify.com/track/xxx -> https://open.spotify.com/embed/track/xxx
+            if (uri.Host.Equals("open.spotify.com", StringComparison.OrdinalIgnoreCase))
+            {
+                var path = uri.AbsolutePath;
+                if (!path.Contains("/embed/", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Insert /embed/ after the domain
+                    return $"{uri.Scheme}://{uri.Host}/embed{path}{uri.Query}";
+                }
+            }
+
+            return spotifyUrl;
+        }
+        catch (Exception)
+        {
+            return string.Empty;
+        }
     }
 
     private void HandleEmbedError(string spotifyUrl)
