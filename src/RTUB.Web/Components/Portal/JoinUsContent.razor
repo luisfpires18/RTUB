@@ -5,22 +5,22 @@
 @inject ILogger<JoinUsContent> Logger
 @namespace RTUB.Components.Portal
 
-<!-- Intro Area: Centered title, subtitle, and description -->
-<section class="join-us-intro text-center mb-5">
-    <div class="portal-section-header justify-content-center">
+<!-- Intro Area: Centered container with title, subtitle, and description -->
+<section class="join-us-intro mb-5">
+    <div class="portal-section-header">
         <h1 class="portal-section-title">@(titleLabel?.Content ?? "A carregar...")</h1>
-        <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
+        <LabelEditButton CurrentLabel="@titleLabel" OnEditClick="@OpenEditModal" />
     </div>
     <div class="portal-section-divider"></div>
-    <div class="d-flex justify-content-center align-items-baseline mb-3">
+    <div class="d-flex justify-content-between align-items-baseline mb-3">
         <h2 class="join-us-subtitle">@(subtitleLabel?.Content ?? "")</h2>
-        <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
+        <LabelEditButton CurrentLabel="@subtitleLabel" OnEditClick="@OpenEditModal" />
     </div>
     @if (introLabel != null)
     {
-        <div class="d-flex justify-content-center align-items-start">
+        <div class="d-flex justify-content-between align-items-start">
             <p class="join-us-intro-text">@introLabel.Content</p>
-            <LabelEditButton CurrentLabel="@introLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
+            <LabelEditButton CurrentLabel="@introLabel" OnEditClick="@OpenEditModal" />
         </div>
     }
 </section>
@@ -94,15 +94,15 @@
 }
 
 
-<!-- How to Join: Simplified centered section -->
-<section class="join-us-how-to text-center mb-5">
-    <div class="d-flex justify-content-center align-items-baseline mb-3">
+<!-- How to Join: Centered section -->
+<section class="join-us-how-to mb-5">
+    <div class="d-flex justify-content-center align-items-baseline mb-3 how-to-header">
         <i class="bi bi-hand-thumbs-up-fill me-2 how-to-icon"></i>
         <h3>@(howToTitleLabel?.Content ?? "")</h3>
         <LabelEditButton CurrentLabel="@howToTitleLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
     </div>
     <div class="d-flex justify-content-center align-items-start">
-        <p class="how-to-content">@(howToContentLabel?.Content ?? "")</p>
+        <p class="how-to-text">@(howToContentLabel?.Content ?? "")</p>
         <LabelEditButton CurrentLabel="@howToContentLabel" OnEditClick="@OpenEditModal" CssClass="ms-2" />
     </div>
 </section>

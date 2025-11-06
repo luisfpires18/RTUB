@@ -1,0 +1,269 @@
+/* ============================================
+   A NOSSA HISTÓRIA (HISTORY) PAGE STYLES
+   Scoped styles for HistoryContent.razor
+   ============================================ */
+
+/* Header and Intro Section */
+.history-header {
+    max-width: 900px;
+    margin: 0 auto 3rem auto;
+}
+
+.history-subtitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #6f42c1;
+    margin: 0;
+    text-align: left;
+}
+
+.history-intro-text {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: #e2e2e2;
+    margin: 0;
+    text-align: left;
+}
+
+/* Mission & Identity Section */
+.history-mission-identity {
+    max-width: 900px;
+    margin: 0 auto 3rem auto;
+}
+
+.mission-identity-container {
+    display: flex;
+    gap: 0;
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.mission-column,
+.identity-column {
+    flex: 1;
+    padding: 2rem;
+    position: relative;
+}
+
+.mission-column::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 10%;
+    height: 80%;
+    width: 2px;
+    background: linear-gradient(180deg, transparent 0%, #6f42c1 50%, transparent 100%);
+}
+
+.column-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.column-icon {
+    font-size: 1.75rem;
+    color: #6f42c1;
+    flex-shrink: 0;
+}
+
+.column-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e2e2e2;
+    margin: 0;
+}
+
+.column-content {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: #e2e2e2;
+    text-align: left;
+}
+
+.column-content ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.column-content li {
+    padding-left: 1.5rem;
+    position: relative;
+    margin-bottom: 0.75rem;
+}
+
+.column-content li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: #6f42c1;
+    font-weight: bold;
+    font-size: 1.25rem;
+}
+
+/* Timeline Section */
+.history-timeline {
+    max-width: 900px;
+    margin: 0 auto 3rem auto;
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    border-left: 4px solid #6f42c1;
+}
+
+.timeline-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.timeline-icon {
+    font-size: 1.75rem;
+    color: #6f42c1;
+    flex-shrink: 0;
+}
+
+.timeline-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e2e2e2;
+    margin: 0;
+}
+
+.timeline-content {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: #e2e2e2;
+    text-align: left;
+}
+
+.timeline-content p {
+    margin-bottom: 1rem;
+    padding-left: 1rem;
+    position: relative;
+}
+
+.timeline-content p::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: #6f42c1;
+    font-weight: bold;
+}
+
+/* Closing Callout Section */
+.history-closing {
+    max-width: 900px;
+    margin: 0 auto 3rem auto;
+    background: linear-gradient(135deg, rgba(111, 66, 193, 0.2) 0%, rgba(90, 47, 158, 0.2) 100%);
+    border: 1px solid rgba(111, 66, 193, 0.3);
+    border-radius: 1rem;
+    padding: 2.5rem;
+    box-shadow: 0 4px 8px rgba(111, 66, 193, 0.2);
+}
+
+.closing-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.closing-icon {
+    font-size: 2rem;
+    color: #6f42c1;
+    flex-shrink: 0;
+}
+
+.closing-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #e2e2e2;
+    margin: 0;
+}
+
+.closing-text {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: #e2e2e2;
+    margin: 0;
+    text-align: left;
+}
+
+/* White edit button for closing section */
+.history-closing .btn i {
+    color: #ffffff !important;
+}
+
+.history-closing .btn:hover i {
+    color: #f0f0f0 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .mission-identity-container {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .mission-column::after {
+        width: 80%;
+        height: 2px;
+        top: auto;
+        bottom: 0;
+        left: 10%;
+        right: auto;
+        background: linear-gradient(90deg, transparent 0%, #6f42c1 50%, transparent 100%);
+    }
+
+    .mission-column,
+    .identity-column {
+        padding: 1.5rem;
+    }
+
+    .history-subtitle {
+        font-size: 1.375rem;
+    }
+
+    .history-intro-text {
+        font-size: 1rem;
+    }
+
+    .column-title,
+    .timeline-title,
+    .closing-title {
+        font-size: 1.25rem;
+    }
+
+    .column-content,
+    .timeline-content,
+    .closing-text {
+        font-size: 1rem;
+    }
+
+    .history-timeline {
+        padding: 1.5rem;
+    }
+
+    .history-closing {
+        padding: 2rem 1.5rem;
+    }
+}
+
+@media (max-width: 375px) {
+    .history-subtitle {
+        font-size: 1.25rem;
+    }
+
+    .column-title,
+    .timeline-title,
+    .closing-title {
+        font-size: 1.125rem;
+    }
+}
