@@ -58,7 +58,12 @@ else
 
     @if (songs == null)
     {
-        <p>A carregar músicas...</p>
+        <div class="song-grid">
+            @for (int i = 0; i < 6; i++)
+            {
+                <SongCardSkeleton />
+            }
+        </div>
     }
     else if (!songs.Any())
     {
@@ -68,72 +73,17 @@ else
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table table-dark table-striped">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Título</th>
-                        <th>Autor (Letra)</th>
-                        <th>Autor (Música)</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var song in songs.OrderBy(s => s.TrackNumber))
-                    {
-                        <tr>
-                            <td>
-                                @if (song.TrackNumber.HasValue)
-                                {
-                                    <span class="badge bg-secondary">@song.TrackNumber</span>
-                                }
-                            </td>
-                            <td>
-                                <strong class="music-text-light">@song.Title</strong>
-                            </td>
-                            <td>
-                                <span class="music-text-secondary">@(string.IsNullOrEmpty(song.LyricAuthor) ? "-" : song.LyricAuthor)</span>
-                            </td>
-                            <td>
-                                <span class="music-text-secondary">@(string.IsNullOrEmpty(song.MusicAuthor) ? "-" : song.MusicAuthor)</span>
-                            </td>
-                            <td>
-                                <div class="d-flex gap-1">
-                                    @if (song.HasMusic)
-                                    {
-                                        <button class="btn btn-sm btn-success" 
-                                                @onclick="() => PlaySong(song)" 
-                                                title="Reproduzir">
-                                            <i class="bi bi-play-circle"></i>
-                                        </button>
-                                    }
-                                    <button class="btn btn-sm btn-primary music-btn-primary" @onclick="() => OpenViewLyricsModal(song)" title="Ver Letra">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-info" @onclick="() => OpenLinksModal(song)" title="Ver Links">
-                                        <i class="bi bi-link-45deg"></i>
-                                    </button>
-                                    <AuthorizeView Roles="Owner">
-                                        <Authorized>
-                                            <button class="btn btn-sm btn-light" @onclick="() => OpenEditModal(song)" title="Editar">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                        </Authorized>
-                                    </AuthorizeView>
-                                    <AuthorizeView Roles="Owner">
-                                        <Authorized>
-                                            <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteSongModal(song)" title="Eliminar">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </Authorized>
-                                    </AuthorizeView>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+        <div class="song-grid">
+            @foreach (var song in songs.OrderBy(s => s.TrackNumber))
+            {
+                <SongCard Song="@song" 
+                         IsOwner="@isOwner"
+                         OnPlay="@(() => PlaySong(song))"
+                         OnViewLyric="@(() => OpenViewLyricsModal(song))"
+                         OnViewLinks="@(() => OpenLinksModal(song))"
+                         OnEdit="@(() => OpenEditModal(song))"
+                         OnDelete="@(() => OpenDeleteSongModal(song))" />
+            }
         </div>
     }
 }
@@ -448,6 +398,7 @@ else
     private Song? viewingSong;
     private Song? deletingSong;
     private List<string> editingYouTubeUrls = new();
+    private bool isOwner = false;
     
     // Audio player state
     private string? currentAudioUrl;
@@ -456,12 +407,20 @@ else
     // PDF viewer state
     private bool isLoadingPdf = false;
     private string? currentPdfUrl;
+    
+    // URL cache for performance (session-based)
+    private Dictionary<string, string> urlCache = new();
 
     protected override async Task OnInitializedAsync()
     {
         album = await AlbumService.GetAlbumByIdAsync(AlbumId);
         albumImageVersion = DateTime.UtcNow.Ticks;
         await LoadSongs();
+        
+        // Check if user is Owner
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isOwner = user.IsInRole("Owner");
     }
 
     private async Task LoadSongs()
@@ -518,7 +477,7 @@ else
     {
         viewingSong = song;
         
-        // First, try to load PDF from S3
+        // First, try to load PDF from S3 with caching
         try
         {
             if (album != null && !string.IsNullOrEmpty(album.Title))
@@ -527,7 +486,24 @@ else
                 showViewLyricsPdfModal = true;
                 StateHasChanged();
                 
-                var pdfUrl = await LyricStorageService.GetLyricPdfUrlAsync(album.Title, song.Title);
+                // Check cache first
+                string cacheKey = $"lyric_{album.Title}_{song.Title}";
+                string? pdfUrl = null;
+                
+                if (urlCache.TryGetValue(cacheKey, out var cachedUrl))
+                {
+                    pdfUrl = cachedUrl;
+                }
+                else
+                {
+                    pdfUrl = await LyricStorageService.GetLyricPdfUrlAsync(album.Title, song.Title);
+                    
+                    // Cache the URL for session
+                    if (!string.IsNullOrEmpty(pdfUrl))
+                    {
+                        urlCache[cacheKey] = pdfUrl;
+                    }
+                }
                 
                 if (!string.IsNullOrEmpty(pdfUrl))
                 {
@@ -790,8 +766,25 @@ else
                 return;
             }
             
-            // Generate pre-signed URL for the audio file using album title, track number, and song title
-            var audioUrl = await AudioStorageService.GetAudioUrlAsync(album.Title, song.TrackNumber, song.Title);
+            // Check cache first for performance
+            string cacheKey = $"audio_{album.Title}_{song.TrackNumber}_{song.Title}";
+            
+            string? audioUrl = null;
+            if (urlCache.TryGetValue(cacheKey, out var cachedUrl))
+            {
+                audioUrl = cachedUrl;
+            }
+            else
+            {
+                // Generate pre-signed URL for the audio file (lazy loading - only on play)
+                audioUrl = await AudioStorageService.GetAudioUrlAsync(album.Title, song.TrackNumber, song.Title);
+                
+                // Cache the URL for session
+                if (!string.IsNullOrEmpty(audioUrl))
+                {
+                    urlCache[cacheKey] = audioUrl;
+                }
+            }
             
             if (!string.IsNullOrEmpty(audioUrl))
             {

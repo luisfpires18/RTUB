@@ -1,0 +1,192 @@
+@namespace RTUB.Shared
+@*
+    SongCard Component
+    Card-based design for displaying song information with actions
+    Desktop-first design that scales well on mobile
+*@
+
+<div class="card song-card h-100">
+    <div class="position-relative">
+        @if (IsOwner)
+        {
+            <div class="song-admin-overlay">
+                <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
+                    <i class="bi bi-pencil music-icon-edit"></i>
+                </button>
+                <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
+                    <i class="bi bi-trash music-icon-delete"></i>
+                </button>
+            </div>
+        }
+        <div class="song-header">
+            <div class="song-track-badge">
+                @if (Song.TrackNumber.HasValue)
+                {
+                    <span>@Song.TrackNumber</span>
+                }
+                else
+                {
+                    <i class="bi bi-music-note"></i>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="card-body d-flex flex-column">
+        <div class="song-info">
+            <h5 class="song-title" title="@Song.Title">@Song.Title</h5>
+            <div class="song-authors">
+                @if (!string.IsNullOrEmpty(Song.LyricAuthor) || !string.IsNullOrEmpty(Song.MusicAuthor))
+                {
+                    <div class="song-author-row" title="Letra: @(string.IsNullOrEmpty(Song.LyricAuthor) ? "N/A" : Song.LyricAuthor), Música: @(string.IsNullOrEmpty(Song.MusicAuthor) ? "N/A" : Song.MusicAuthor)">
+                        <i class="bi bi-person song-icon"></i>
+                        <span class="song-author-text">
+                            @if (!string.IsNullOrEmpty(Song.LyricAuthor))
+                            {
+                                <span>@Song.LyricAuthor</span>
+                            }
+                            @if (!string.IsNullOrEmpty(Song.LyricAuthor) && !string.IsNullOrEmpty(Song.MusicAuthor))
+                            {
+                                <span> · </span>
+                            }
+                            @if (!string.IsNullOrEmpty(Song.MusicAuthor))
+                            {
+                                <span>@Song.MusicAuthor</span>
+                            }
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <div class="song-author-row">
+                        <i class="bi bi-person song-icon"></i>
+                        <span class="song-author-text text-muted">Autor desconhecido</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="song-actions mt-auto">
+            <div class="song-primary-actions">
+                @if (Song.HasMusic)
+                {
+                    <button class="btn btn-sm btn-purple song-action-btn" @onclick="HandlePlay" title="Reproduzir">
+                        <i class="bi bi-play-circle-fill"></i>
+                        <span class="action-label">Play</span>
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-purple song-action-btn" disabled title="Áudio não disponível">
+                        <i class="bi bi-play-circle-fill"></i>
+                        <span class="action-label">Play</span>
+                    </button>
+                }
+                <button class="btn btn-sm btn-purple song-action-btn" @onclick="HandleViewLyric" title="Ver Letra">
+                    <i class="bi bi-file-text-fill"></i>
+                    <span class="action-label">Letra</span>
+                </button>
+                @{
+                    var hasLinks = !string.IsNullOrEmpty(Song.SpotifyUrl) || (Song.YouTubeUrls != null && Song.YouTubeUrls.Any());
+                }
+                @if (hasLinks)
+                {
+                    <button class="btn btn-sm btn-purple song-action-btn" @onclick="HandleViewLinks" title="Ver Links">
+                        <i class="bi bi-link-45deg"></i>
+                        <span class="action-label">Links</span>
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-purple song-action-btn" disabled title="Sem links disponíveis">
+                        <i class="bi bi-link-45deg"></i>
+                        <span class="action-label">Links</span>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The song to display
+    /// </summary>
+    [Parameter]
+    public Song Song { get; set; } = null!;
+
+    /// <summary>
+    /// Whether the current user is the owner (has edit permissions)
+    /// </summary>
+    [Parameter]
+    public bool IsOwner { get; set; }
+
+    /// <summary>
+    /// Callback when the play button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnPlay { get; set; }
+
+    /// <summary>
+    /// Callback when the view lyric button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewLyric { get; set; }
+
+    /// <summary>
+    /// Callback when the view links button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewLinks { get; set; }
+
+    /// <summary>
+    /// Callback when the edit button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    /// <summary>
+    /// Callback when the delete button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    private async Task HandlePlay()
+    {
+        if (OnPlay.HasDelegate)
+        {
+            await OnPlay.InvokeAsync();
+        }
+    }
+
+    private async Task HandleViewLyric()
+    {
+        if (OnViewLyric.HasDelegate)
+        {
+            await OnViewLyric.InvokeAsync();
+        }
+    }
+
+    private async Task HandleViewLinks()
+    {
+        if (OnViewLinks.HasDelegate)
+        {
+            await OnViewLinks.InvokeAsync();
+        }
+    }
+
+    private async Task HandleEdit()
+    {
+        if (OnEdit.HasDelegate)
+        {
+            await OnEdit.InvokeAsync();
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync();
+        }
+    }
+}
