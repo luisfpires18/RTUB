@@ -92,14 +92,5 @@ public static partial class SeedData
         await SeedMusicAsync(dbContext);
 
         await SeedInventoryAsync(dbContext);
-
-        // Non prod
-        await SeedEnrollmentsAsync(dbContext, userManager);
-
-        await SeedFinanceAsync(dbContext);
-
-        await SeedRequestsAsync(dbContext);
-
-        await SeedRehearsalsAsync(dbContext, userManager);
     }
 }
