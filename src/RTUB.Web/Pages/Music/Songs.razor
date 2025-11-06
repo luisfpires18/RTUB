@@ -96,6 +96,21 @@ else
                             </td>
                             <td>
                                 <div class="d-flex gap-1">
+                                    @if (!string.IsNullOrEmpty(song.SpotifyUrl))
+                                    {
+                                        <button class="btn btn-sm btn-success spotify-play-btn" 
+                                                @onclick="() => ToggleSpotifyPlayer(song.Id, song.SpotifyUrl)" 
+                                                title="Ouvir no Spotify">
+                                            @if (activeTrackId == song.Id)
+                                            {
+                                                <i class="bi bi-pause-circle"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-play-circle"></i>
+                                            }
+                                        </button>
+                                    }
                                     @if (!string.IsNullOrEmpty(song.Lyrics))
                                     {
                                         <button class="btn btn-sm btn-primary music-btn-primary" @onclick="() => OpenViewLyricsModal(song)" title="Ver Letra">
@@ -128,6 +143,23 @@ else
                                 </div>
                             </td>
                         </tr>
+                        @if (activeTrackId == song.Id && !string.IsNullOrEmpty(activeSpotifyEmbedUrl))
+                        {
+                            <tr class="spotify-embed-row">
+                                <td colspan="5">
+                                    <div class="spotify-embed-container">
+                                        <iframe src="@activeSpotifyEmbedUrl" 
+                                                width="100%" 
+                                                height="152" 
+                                                frameborder="0" 
+                                                allowtransparency="true" 
+                                                allow="encrypted-media"
+                                                @onerror="() => HandleEmbedError(song.SpotifyUrl ?? string.Empty)">
+                                        </iframe>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
                     }
                 </tbody>
             </table>
@@ -373,6 +405,10 @@ else
     private Song? viewingSong;
     private Song? deletingSong;
     private List<string> editingYouTubeUrls = new();
+    
+    // Spotify player state
+    private int? activeTrackId = null;
+    private string? activeSpotifyEmbedUrl = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -642,6 +678,58 @@ else
             return $"{imageSrc}?v={albumImageVersion}";
         }
         return imageSrc ?? string.Empty;
+    }
+
+    private void ToggleSpotifyPlayer(int songId, string spotifyUrl)
+    {
+        try
+        {
+            // If clicking the same track, toggle it off
+            if (activeTrackId == songId)
+            {
+                activeTrackId = null;
+                activeSpotifyEmbedUrl = null;
+            }
+            else
+            {
+                // Switch to new track (closes previous if any)
+                activeTrackId = songId;
+                activeSpotifyEmbedUrl = ConvertToSpotifyEmbedUrl(spotifyUrl);
+            }
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            // If conversion fails, open in new tab as fallback
+            HandleEmbedError(spotifyUrl);
+        }
+    }
+
+    private string ConvertToSpotifyEmbedUrl(string spotifyUrl)
+    {
+        if (string.IsNullOrEmpty(spotifyUrl))
+            return string.Empty;
+
+        // Convert open.spotify.com URL to embed URL
+        // Example: https://open.spotify.com/track/xxx -> https://open.spotify.com/embed/track/xxx
+        if (spotifyUrl.Contains("open.spotify.com/") && !spotifyUrl.Contains("/embed/"))
+        {
+            return spotifyUrl.Replace("open.spotify.com/", "open.spotify.com/embed/");
+        }
+
+        return spotifyUrl;
+    }
+
+    private void HandleEmbedError(string spotifyUrl)
+    {
+        // Fallback: open Spotify URL in new tab
+        if (!string.IsNullOrEmpty(spotifyUrl))
+        {
+            NavigationManager.NavigateTo(spotifyUrl, true);
+        }
+        // Reset active player
+        activeTrackId = null;
+        activeSpotifyEmbedUrl = null;
     }
 }
 
