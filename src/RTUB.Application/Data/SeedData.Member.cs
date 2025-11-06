@@ -16,131 +16,167 @@ public static partial class SeedData
 {
     public static async Task SeedMembersAsync(ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager)
     {
-        // Keep single owner - Luís Pires (Jeans)
-        await CreateSampleUser(userManager,
-            email: "jeans@rtub.pt",
-            password: "Admin123!",
-            role: "Member",
-            firstName: "Luís",
-            lastName: "Pires",
-            nickname: "Jeans",
-            phone: "936854524",
-            degree: "Engenharia Informática",
-            instrument: InstrumentType.Guitarra,
-            new List<Position>(),
-            new List<MemberCategory> { MemberCategory.Tuno },
-            yearLeitao: 2013,
-            yearCaloiro: 2017,
-            yearTuno: 2019);
+        // Data for generating members
+        var firstNames = new[] { "João", "José", "António", "Manuel", "Francisco", "Pedro", "Miguel", "Rui", "Carlos", "Paulo",
+            "Luís", "Marco", "Nuno", "Bruno", "Tiago", "Ricardo", "Diogo", "André", "Fernando", "Jorge",
+            "Rafael", "Daniel", "Gonçalo", "Vítor", "Alexandre", "Sérgio", "Hugo", "Bernardo", "Rodrigo", "Fábio",
+            "David", "Gabriel", "Leonardo", "Filipe", "Afonso", "Henrique", "Renato", "Samuel", "Tomás", "Martim",
+            "Gustavo", "Cristiano", "Eduardo", "Leandro", "Marcelo", "Joaquim", "Guilherme", "Duarte", "Simão", "Edgar" };
 
-        // ========== GUITARRA ==========
-        await CreateSampleUser(userManager, EmailFromNickname("Nabo"), "Sample123!", "Member", "Rafael", "Magalhães", "Nabo", "", null, InstrumentType.Guitarra, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Nharro"), "Sample123!", "Admin", "Alexandre", "Caldeira", "Nharro", "", null, InstrumentType.Guitarra, new List<Position> { Position.SegundoSecretarioMesaAssembleia }, new List<MemberCategory> { MemberCategory.Caloiro });
-        await CreateSampleUser(userManager, EmailFromNickname("Atchim"), "Sample123!", "Member", "Bruno", "Costa", "Atchim", "", null, InstrumentType.Guitarra, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Arbusto"), "Sample123!", "Admin", "Diogo", "Couto", "Arbusto", "", null, InstrumentType.Guitarra, new List<Position> { Position.ViceMagister }, new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Matchero"), "Sample123!", "Member", "Ricardo", "Lameirão", "Matchero", "", null, InstrumentType.Guitarra, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Erbalife"), "Sample123!", "Member", "Carlos", "Silva", "Erbalife", "", null, InstrumentType.Guitarra, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Badjoncas"), "Sample123!", "Member", "Rafael", "Gomes", "Badjoncas", "", null, InstrumentType.Guitarra, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Snoopy"), "Sample123!", "Member", "Diogo", "Morais", "Snoopy", "", null, InstrumentType.Guitarra, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Calimero"), "Sample123!", "Member", "Tiago", "Maia", "Calimero", "", null, InstrumentType.Guitarra, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Vinhas"), "Sample123!", "Member", "José", "Rebelo", "Vinhas", "", null, InstrumentType.Guitarra, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Malelo"), "Sample123!", "Member", "Bruno", "Neves", "Malelo", "", null, InstrumentType.Guitarra, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Prepúcio"), "Sample123!", "Admin", "João", "Nunes", "Prepúcio", "", null, InstrumentType.Guitarra, new List<Position> { Position.PrimeiroTesoureiro }, new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Nininho"), "Sample123!", "Admin", "Luís", "Prôta", "Nininho", "", null, InstrumentType.Guitarra, new List<Position> { Position.Secretario }, new List<MemberCategory> { MemberCategory.Caloiro });
+        var lastNames = new[] { "Silva", "Santos", "Ferreira", "Pereira", "Oliveira", "Costa", "Rodrigues", "Martins", "Jesus", "Sousa",
+            "Fernandes", "Gonçalves", "Gomes", "Lopes", "Marques", "Alves", "Almeida", "Ribeiro", "Pinto", "Carvalho",
+            "Teixeira", "Moreira", "Correia", "Mendes", "Nunes", "Soares", "Vieira", "Monteiro", "Cardoso", "Rocha",
+            "Neves", "Coelho", "Cruz", "Cunha", "Pires", "Ramos", "Reis", "Simões", "Antunes", "Matos",
+            "Fonseca", "Morais", "Batista", "Campos", "Freitas", "Barbosa", "Macedo", "Castro", "Lourenço", "Azevedo" };
 
-        // ========== BANDOLIM ==========
-        await CreateSampleUser(userManager, EmailFromNickname("Pilão"), "Sample123!", "Member", "Samuel", "Silva", "Pilão", "", null, InstrumentType.Bandolim, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Tainada"), "Sample123!", "Admin", "Daniel", "Afonso", "Tainada", "", null, InstrumentType.Bandolim, new List<Position> { Position.PresidenteConselhoFiscal }, new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Cigano"), "Sample123!", "Member", "Ruben", "Freire", "Cigano", "", null, InstrumentType.Bandolim, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Infra"), "Sample123!", "Member", "Alvaro", "Rosas", "Infra", "", null, InstrumentType.Bandolim, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Drift"), "Sample123!", "Member", "João", "Cunha", "Drift", "", null, InstrumentType.Bandolim, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Saca Rabos"), "Sample123!", "Member", "Zé Tó", "", "Saca Rabos", "", null, InstrumentType.Bandolim, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Tampas"), "Sample123!", "Member", "Helder", "Martins", "Tampas", "", null, InstrumentType.Bandolim, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Indigesto"), "Sample123!", "Member", "André", "Batista", "Indigesto", "", null, InstrumentType.Bandolim, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Autoscópio"), "Sample123!", "Member", "Sergio", "Silva", "Autoscópio", "", null, InstrumentType.Bandolim, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Mata-cães"), "Sample123!", "Member", "Henrique", "Spiessens", "Mata-cães", "", null, InstrumentType.Bandolim, new List<Position>(), new List<MemberCategory> { MemberCategory.Caloiro });
+        var nicknames = new[] { "Zé", "Manel", "Chico", "Toninho", "Zeca", "Paulinho", "Zé Manel", "Marquinhos", "Nando", "Jorginho",
+            "Rafa", "Dani", "Gonçalo", "Vitor", "Alex", "Serginho", "Hugão", "Bernas", "Rodrigão", "Fábio",
+            "Davi", "Gabi", "Leo", "Fili", "Afonso", "Henrique", "Renato", "Samu", "Tomás", "Martim",
+            "Guga", "Cris", "Edu", "Leandro", "Marcelo", "Quim", "Gui", "Dudu", "Simão", "Edgar",
+            "Pipa", "Micas", "Trinca", "Bola", "Caracol", "Mocho", "Grilo", "Panda", "Tigre", "Urso",
+            "Javali", "Coelho", "Raposa", "Texugo", "Falcão", "Coruja", "Gato", "Cão", "Lobo", "Lince",
+            "Búfalo", "Touro", "Cavalo", "Pónei", "Zebra", "Girafa", "Elefante", "Rinoceronte", "Hipopótamo", "Camelo",
+            "Gazela", "Antílope", "Veado", "Alce", "Rena", "Bisonte", "Cabra", "Ovelha", "Porco", "Javardo",
+            "Perdiz", "Codorniz", "Gaivota", "Pelicano", "Flamingo", "Cisne", "Pato", "Ganso", "Pavão", "Faisão",
+            "Papagaio", "Arara", "Cacatua", "Periquito", "Canário", "Andorinha", "Pardal", "Melro", "Pintassilgo", "Rouxinol",
+            "Sardinha", "Carapau", "Atum", "Salmão", "Truta", "Bacalhau", "Dourada", "Robalo", "Linguado", "Pregado",
+            "Polvo", "Lula", "Choco", "Camarão", "Lagosta", "Caranguejo", "Mexilhão", "Amêijoa", "Berbigão", "Ostra",
+            "Morango", "Framboesa", "Amora", "Cereja", "Pêssego", "Alperce", "Ameixa", "Nectarina", "Tangerina", "Laranja",
+            "Limão", "Lima", "Toranja", "Maçã", "Pera", "Marmelo", "Figo", "Kiwi", "Manga", "Papaia",
+            "Abacaxi", "Melancia", "Melão", "Meloa", "Banana", "Uva", "Romã", "Caqui", "Lichia", "Maracujá",
+            "Goiaba", "Pitanga", "Graviola", "Carambola", "Acerola", "Jambo", "Jabuticaba", "Cajá", "Caju", "Pequi",
+            "Buriti", "Bacuri", "Cupuaçu", "Tucumã", "Açaí", "Guaraná", "Cacau", "Castanha", "Avelã", "Noz",
+            "Amêndoa", "Pistache", "Macadâmia", "Pinhão", "Coco", "Dendê", "Babaçu", "Licuri", "Ouricuri", "Carnaúba" };
 
-        // ========== CAVAQUINHO ==========
-        await CreateSampleUser(userManager, EmailFromNickname("Borat"), "Sample123!", "Member", "Rui", "Almeida", "Borat", "", null, InstrumentType.Cavaquinho, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Castanholas"), "Sample123!", "Member", "Renato", "Alves", "Castanholas", "", null, InstrumentType.Cavaquinho, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Pardal"), "Sample123!", "Member", "Andre", "Fernandes", "Pardal", "", null, InstrumentType.Cavaquinho, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
+        var degrees = new[] { "Engenharia Informática", "Engenharia Civil", "Engenharia Mecânica", "Engenharia Eletrotécnica",
+            "Medicina", "Direito", "Arquitetura", "Gestão", "Economia", "Comunicação Social",
+            "Design", "Psicologia", "Biologia", "Física", "Matemática", "Química", "Farmácia" };
 
-        // ========== ACORDEÃO ==========
-        await CreateSampleUser(userManager, EmailFromNickname("Ambrósio"), "Sample123!", "Admin", "Pedro", "Pereira", "Ambrósio", "", null, InstrumentType.Acordeao, new List<Position> { Position.PresidenteMesaAssembleia }, new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("TumTum"), "Sample123!", "Member", "Francisco", "Lima", "TumTum", "", null, InstrumentType.Acordeao, new List<Position>(), new List<MemberCategory> { MemberCategory.Caloiro });
+        var instruments = new[] { InstrumentType.Guitarra, InstrumentType.Bandolim, InstrumentType.Cavaquinho, InstrumentType.Baixo,
+            InstrumentType.Acordeao, InstrumentType.Flauta, InstrumentType.Percussao, InstrumentType.Pandeireta,
+            InstrumentType.Estandarte, InstrumentType.Fagote };
 
-        // ========== FAGOTE ==========
-        await CreateSampleUser(userManager, EmailFromNickname("KimKana"), "Sample123!", "Member", "Joni", "Figueiredo", "KimKana", "", null, InstrumentType.Fagote, new List<Position>(), new List<MemberCategory> { MemberCategory.Caloiro });
+        var random = new Random(42); // Fixed seed for reproducibility
+        var createdUsers = new List<ApplicationUser>();
 
-        // ========== FLAUTA ==========
-        await CreateSampleUser(userManager, EmailFromNickname("Txaio"), "Sample123!", "Member", "Bruno", "Rafael", "Txaio", "", null, InstrumentType.Flauta, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Slimmy"), "Sample123!", "Member", "Nuno", "Oliveira", "Slimmy", "", null, InstrumentType.Flauta, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
+        // Generate 200 members
+        for (int i = 0; i < 200; i++)
+        {
+            // Calculate age: starts at 60 for founders, decreases to 18 for youngest
+            // First 20 are founders (age 60-59), rest decrease linearly
+            int age;
+            if (i < 20)
+            {
+                // Founders: ages 60-59
+                age = 60 - (i / 10);
+            }
+            else
+            {
+                // Remaining 180: ages 58 down to 18
+                // 58 - ((i-20) * 40 / 180) gives us a spread from 58 to 18
+                age = 58 - ((i - 20) * 40 / 180);
+            }
 
-        // ========== BAIXO ==========
-        await CreateSampleUser(userManager, EmailFromNickname("Zeca Diabo"), "Sample123!", "Member", "Marcos", "António", "Zeca Diabo", "", null, InstrumentType.Baixo, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Mija"), "Sample123!", "Member", "Vitor", "Teixeira", "Mija", "", null, InstrumentType.Baixo, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Rolhas"), "Sample123!", "Admin", "Afonso", "Martins", "Rolhas", "", null, InstrumentType.Baixo, new List<Position> { Position.SegundoTesoureiro }, new List<MemberCategory> { MemberCategory.Caloiro });
+            var dateOfBirth = DateTime.Now.AddYears(-age).AddDays(-random.Next(0, 365));
 
-        // ========== PERCUSSÃO ==========
-        await CreateSampleUser(userManager, EmailFromNickname("Pássaro Maluco"), "Sample123!", "Admin", "Joel", "Gaspar", "Pássaro Maluco", "", null, InstrumentType.Percussao, new List<Position> { Position.PresidenteConselhoVeteranos }, new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Bronha"), "Sample123!", "Member", "Eduardo", "Cuevas", "Bronha", "", null, InstrumentType.Percussao, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Meia Grama"), "Sample123!", "Member", "João", "Pinheiro", "Meia Grama", "", null, InstrumentType.Percussao, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Coma"), "Sample123!", "Member", "Vitor", "Silva", "Coma", "", null, InstrumentType.Percussao, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
+            // Select random attributes
+            var firstName = firstNames[random.Next(firstNames.Length)];
+            var lastName = lastNames[random.Next(lastNames.Length)];
+            var nickname = $"{nicknames[i % nicknames.Length]} {i + 1}";
+            var degree = degrees[random.Next(degrees.Length)];
+            var instrument = instruments[random.Next(instruments.Length)];
 
-        // ========== PANDEIRETA ==========
-        await CreateSampleUser(userManager, EmailFromNickname("Frango"), "Sample123!", "Member", "Samuel", "Carneiro", "Frango", "", null, InstrumentType.Pandeireta, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Croquetes"), "Sample123!", "Member", "Pedro", "Morais", "Croquetes", "", null, InstrumentType.Pandeireta, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Conchita"), "Sample123!", "Member", "Manuel", "Esteves", "Conchita", "", null, InstrumentType.Pandeireta, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("El Chapo"), "Sample123!", "Member", "Luis", "Pinto", "El Chapo", "", null, InstrumentType.Pandeireta, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
+            // Determine category and years based on age
+            MemberCategory category;
+            int? yearLeitao = null;
+            int? yearCaloiro = null;
+            int? yearTuno = null;
 
-        // ========== ESTANDARTE ==========
-        await CreateSampleUser(userManager, EmailFromNickname("Bombeiro"), "Sample123!", "Admin", "Alexandre", "Figueiredo", "Bombeiro", "", null, InstrumentType.Estandarte, new List<Position> { Position.PrimeiroRelatorConselhoFiscal }, new List<MemberCategory> { MemberCategory.Caloiro });
-        await CreateSampleUser(userManager, EmailFromNickname("Rufus"), "Sample123!", "Member", "Helder", "Vieira", "Rufus", "", null, InstrumentType.Estandarte, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Bate Sacas"), "Sample123!", "Member", "Bernardo", "Carvalho", "Bate Sacas", "", null, InstrumentType.Estandarte, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Calhau"), "Sample123!", "Admin", "Leonardo", "Cardoso", "Calhau", "", null, InstrumentType.Estandarte, new List<Position> { Position.Magister }, new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Casilhas"), "Sample123!", "Admin", "Gonçalo", "Borges", "Casilhas", "", null, InstrumentType.Estandarte, new List<Position> { Position.SegundoRelatorConselhoFiscal }, new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Mealheiro"), "Sample123!", "Admin", "Rui", "Guimarães", "Mealheiro", "", null, InstrumentType.Estandarte, new List<Position> { Position.PrimeiroSecretarioMesaAssembleia }, new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Smeagol"), "Sample123!", "Member", "Claudio", "Moreira", "Smeagol", "", null, InstrumentType.Estandarte, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Delay"), "Sample123!", "Member", "José", "Gonçalves", "Delay", "", null, InstrumentType.Estandarte, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
-        await CreateSampleUser(userManager, EmailFromNickname("Buceta"), "Sample123!", "Member", "David", "Ferreira", "Buceta", "", null, InstrumentType.Estandarte, new List<Position>(), new List<MemberCategory> { MemberCategory.Tuno });
+            if (age <= 20)
+            {
+                category = MemberCategory.Leitao;
+                yearLeitao = DateTime.Now.Year - (20 - age);
+            }
+            else if (age <= 23)
+            {
+                category = MemberCategory.Caloiro;
+                yearCaloiro = DateTime.Now.Year - (23 - age);
+                yearLeitao = yearCaloiro - 2;
+            }
+            else
+            {
+                category = MemberCategory.Tuno;
+                yearTuno = DateTime.Now.Year - (age - 23);
+                yearCaloiro = yearTuno - 2;
+                yearLeitao = yearCaloiro - 2;
+            }
 
-        // ========== LEITÕES ==========
-        await CreateSampleUser(userManager, EmailFromNickname("Merdas 1"), "Sample123!", "Member", "Porquinho", "Leitao1", "Merdas 1", "", null, null, new List<Position>(), new List<MemberCategory> { MemberCategory.Leitao });
-        await CreateSampleUser(userManager, EmailFromNickname("Merdas 2"), "Sample123!", "Member", "Porquinho", "Leitao2", "Merdas 2", "", null, null, new List<Position>(), new List<MemberCategory> { MemberCategory.Leitao });
-        await CreateSampleUser(userManager, EmailFromNickname("Merdas 3"), "Sample123!", "Member", "Porquinho", "Leitao3", "Merdas 3", "", null, null, new List<Position>(), new List<MemberCategory> { MemberCategory.Leitao });
+            // Determine mentor (padrinho)
+            string? mentorId = null;
+            if (i >= 20 && createdUsers.Count > 0)
+            {
+                // Pick a mentor from previous members (preferably older ones)
+                // Bias towards earlier members (older)
+                var maxMentorIndex = Math.Min(i - 1, createdUsers.Count - 1);
+                var mentorIndex = random.Next(0, Math.Max(1, maxMentorIndex - 10)); // Prefer older members
+                mentorId = createdUsers[mentorIndex].Id;
+            }
 
-        // -------- Role assignments (by nickname) --------
+            var user = await CreateSampleUser(
+                userManager,
+                email: EmailFromNickname(nickname),
+                password: "Sample123!",
+                role: "Member",
+                firstName: firstName,
+                lastName: lastName,
+                nickname: nickname,
+                phone: $"9{random.Next(10000000, 99999999)}",
+                degree: degree,
+                instrument: instrument,
+                positions: new List<Position>(),
+                categories: new List<MemberCategory> { category },
+                yearTuno: yearTuno,
+                yearCaloiro: yearCaloiro,
+                yearLeitao: yearLeitao,
+                mentorId: mentorId,
+                dateOfBirth: dateOfBirth
+            );
+
+            if (user != null)
+            {
+                createdUsers.Add(user);
+            }
+        }
+
+        // -------- Role assignments (assign some roles to generated members) --------
         if (!await dbContext.RoleAssignments.AnyAsync())
         {
             var currentYear = DateTime.Now.Year;
-
-            var assignments = new (string Nickname, Position Pos)[]
-            {
-        ("Calhau",            Position.Magister),
-        ("Arbusto",           Position.ViceMagister),
-        ("Nininho",           Position.Secretario),
-        ("Prepúcio",          Position.PrimeiroTesoureiro),
-        ("Rolhas",            Position.SegundoTesoureiro),
-
-        ("Ambrósio",          Position.PresidenteMesaAssembleia),
-        ("Mealheiro",         Position.PrimeiroSecretarioMesaAssembleia),
-        ("Nharro",            Position.SegundoSecretarioMesaAssembleia),
-
-        ("Tainada",           Position.PresidenteConselhoFiscal),
-        ("Bombeiro",          Position.PrimeiroRelatorConselhoFiscal),
-        ("Casilhas",          Position.SegundoRelatorConselhoFiscal),
-
-        ("Pássaro Maluco",    Position.PresidenteConselhoVeteranos),
-            };
-
             var toAdd = new List<RoleAssignment>();
-            foreach (var (nick, pos) in assignments)
-            {
-                var username = UsernameFromNickname(nick);
-                var user = await userManager.FindByNameAsync(username);
-                if (user == null) continue;
 
-                toAdd.Add(RoleAssignment.Create(user.Id, pos, currentYear, currentYear + 1));
+            // Assign roles to some of the generated members (using indices from createdUsers)
+            if (createdUsers.Count >= 12)
+            {
+                var roleAssignments = new[]
+                {
+                    (createdUsers[0].Id, Position.Magister),
+                    (createdUsers[1].Id, Position.ViceMagister),
+                    (createdUsers[2].Id, Position.Secretario),
+                    (createdUsers[3].Id, Position.PrimeiroTesoureiro),
+                    (createdUsers[4].Id, Position.SegundoTesoureiro),
+                    (createdUsers[5].Id, Position.PresidenteMesaAssembleia),
+                    (createdUsers[6].Id, Position.PrimeiroSecretarioMesaAssembleia),
+                    (createdUsers[7].Id, Position.SegundoSecretarioMesaAssembleia),
+                    (createdUsers[8].Id, Position.PresidenteConselhoFiscal),
+                    (createdUsers[9].Id, Position.PrimeiroRelatorConselhoFiscal),
+                    (createdUsers[10].Id, Position.SegundoRelatorConselhoFiscal),
+                    (createdUsers[11].Id, Position.PresidenteConselhoVeteranos),
+                };
+
+                foreach (var (userId, position) in roleAssignments)
+                {
+                    toAdd.Add(RoleAssignment.Create(userId, position, currentYear, currentYear + 1));
+                }
             }
 
             if (toAdd.Count > 0)
@@ -151,7 +187,7 @@ public static partial class SeedData
         }
     }
 
-    private static async Task CreateSampleUser(
+    private static async Task<ApplicationUser?> CreateSampleUser(
         UserManager<ApplicationUser> userManager,
         string email,
         string password,
@@ -166,7 +202,9 @@ public static partial class SeedData
         List<MemberCategory>? categories,
         int? yearTuno = null,
         int? yearCaloiro = null,
-        int? yearLeitao = null)
+        int? yearLeitao = null,
+        string? mentorId = null,
+        DateTime? dateOfBirth = null)
     {
         // Build login username from the nickname
         var username = UsernameFromNickname(nickname);
@@ -191,6 +229,8 @@ public static partial class SeedData
                 YearLeitao = yearLeitao,
                 Positions = positions ?? new List<Position>(),
                 Categories = categories ?? new List<MemberCategory>(),
+                MentorId = mentorId,
+                DateOfBirth = dateOfBirth,
             };
 
             var result = await userManager.CreateAsync(user, password);
@@ -213,8 +253,12 @@ public static partial class SeedData
             user.YearCaloiro = yearCaloiro;
             user.YearLeitao = yearLeitao;
             user.MainInstrument = instrument;
+            user.MentorId = mentorId;
+            user.DateOfBirth = dateOfBirth;
             await userManager.UpdateAsync(user);
         }
+
+        return user;
     }
 
     /// <summary>
