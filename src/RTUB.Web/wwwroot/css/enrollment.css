@@ -4,19 +4,6 @@
     padding: 1rem 0;
 }
 
-.enrollment-page-header {
-    background: linear-gradient(135deg, #6f42c1 0%, #764ba2 100%);
-    padding: 2rem;
-    border-radius: 0.5rem;
-    color: white;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.enrollment-page-header h1 {
-    margin: 0;
-    font-weight: bold;
-}
-
 .instrument-counter {
     background: linear-gradient(135deg, #6f42c1 0%, #764ba2 100%);
     border: 1px solid #764ba2;

@@ -70,6 +70,14 @@
                 <i class="bi bi-music-note"></i> @InstrumentText
             </div>
         }
+        
+        <!-- Notes -->
+        @if (!string.IsNullOrEmpty(Notes))
+        {
+            <div class="avatar-card-notes text-muted small mt-2">
+                <i class="bi bi-sticky"></i> @Notes
+            </div>
+        }
     </div>
 </div>
 
@@ -85,6 +93,9 @@
 
     [Parameter]
     public string InstrumentText { get; set; } = "";
+    
+    [Parameter]
+    public string Notes { get; set; } = "";
 
     [Parameter]
     public string AltText { get; set; } = "";
