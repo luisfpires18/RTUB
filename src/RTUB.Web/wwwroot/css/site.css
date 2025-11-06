@@ -3835,6 +3835,7 @@ th:hover {
   /* Text ellipsis for long author names - desktop: 1 line */
   display: -webkit-box;
   -webkit-line-clamp: 1;
+  line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3919,6 +3920,7 @@ th:hover {
   .song-author-text {
     /* Mobile: allow 2 lines for better readability */
     -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
   
   .song-actions {
