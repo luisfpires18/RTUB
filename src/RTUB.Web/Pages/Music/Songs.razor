@@ -150,8 +150,9 @@ else
                                     <div class="spotify-embed-container">
                                         <iframe src="@activeSpotifyEmbedUrl" 
                                                 width="100%" 
-                                                height="352" 
-                                                allow="autoplay; encrypted-media"
+                                                height="80" 
+                                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                                loading="eager"
                                                 style="border: none;">
                                         </iframe>
                                     </div>
@@ -728,26 +729,28 @@ else
                 return string.Empty;
 
             // Convert open.spotify.com URL to embed URL
-            // Example: https://open.spotify.com/track/xxx -> https://open.spotify.com/embed/track/xxx?autoplay=1
+            // Example: https://open.spotify.com/track/xxx -> https://open.spotify.com/embed/track/xxx?utm_source=generator&theme=0
             if (uri.Host.Equals("open.spotify.com", StringComparison.OrdinalIgnoreCase))
             {
                 var path = uri.AbsolutePath;
                 if (!path.Contains("/embed/", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Insert /embed/ after the domain and add autoplay parameter
-                    var query = string.IsNullOrEmpty(uri.Query) ? "?autoplay=1" : $"{uri.Query}&autoplay=1";
+                    // Insert /embed/ after the domain and add parameters for compact player with autoplay
+                    var query = string.IsNullOrEmpty(uri.Query) 
+                        ? "?utm_source=generator&theme=0" 
+                        : $"{uri.Query}&utm_source=generator&theme=0";
                     return $"{uri.Scheme}://{uri.Host}/embed{path}{query}";
                 }
             }
 
-            // If already an embed URL, ensure autoplay is added
+            // If already an embed URL, ensure compact theme is used
             var existingUri = uri.ToString();
             if (existingUri.Contains("/embed/", StringComparison.OrdinalIgnoreCase))
             {
-                if (!existingUri.Contains("autoplay", StringComparison.OrdinalIgnoreCase))
+                if (!existingUri.Contains("theme", StringComparison.OrdinalIgnoreCase))
                 {
                     var separator = existingUri.Contains("?") ? "&" : "?";
-                    return $"{existingUri}{separator}autoplay=1";
+                    return $"{existingUri}{separator}utm_source=generator&theme=0";
                 }
             }
 
