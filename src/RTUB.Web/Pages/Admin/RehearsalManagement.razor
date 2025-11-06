@@ -358,88 +358,14 @@ else
                     <button type="button" class="btn-close" @onclick="CloseAttendancesModal"></button>
                 </div>
                 <div class="modal-body">
-                    @if (!string.IsNullOrEmpty(addMemberFeedbackMessage))
-                    {
-                        <div class="alert @(addMemberFeedbackIsError ? "alert-danger" : "alert-success") alert-dismissible fade show" role="alert">
-                            @addMemberFeedbackMessage
-                            <button type="button" class="btn-close" @onclick="ClearAddMemberFeedback"></button>
-                        </div>
-                    }
-                    
                     @if (selectedRehearsalAttendances != null && selectedRehearsalAttendances.Any())
                     {
-                        <!-- Search Bar and Add Button -->
-                        <div class="mb-3 d-flex gap-2">
-                            <div class="flex-grow-1">
-                                <TableSearchBar SearchTerm="@attendanceSearchTerm"
-                                               Placeholder="Pesquisar por nome..."
-                                               OnSearchChanged="@HandleAttendanceSearchChanged" />
-                            </div>
-                            <AuthorizeView Roles="Admin">
-                                <Authorized>
-                                    <button class="btn btn-success" @onclick="ToggleAddMemberDropdown" title="Adicionar Membro">
-                                        <i class="bi bi-plus-lg"></i> Add
-                                    </button>
-                                </Authorized>
-                            </AuthorizeView>
+                        <!-- Search Bar (top, unchanged) -->
+                        <div class="mb-3">
+                            <TableSearchBar SearchTerm="@attendanceSearchTerm"
+                                           Placeholder="Pesquisar por nome..."
+                                           OnSearchChanged="@HandleAttendanceSearchChanged" />
                         </div>
-                        
-                        <!-- Add Member Dropdown -->
-                        @if (showAddMemberDropdown)
-                        {
-                            <div class="mb-3">
-                                <div class="member-search-container">
-                                    <div class="input-group mb-2">
-                                        <span class="input-group-text">
-                                            <i class="bi bi-search"></i>
-                                        </span>
-                                        <input type="text" 
-                                               class="form-control" 
-                                               placeholder="Pesquisar membro por nome..."
-                                               @bind="addMemberSearchTerm" 
-                                               @bind:event="oninput" 
-                                               @onkeyup="FilterMembersForAdd" />
-                                        @if (!string.IsNullOrEmpty(addMemberSearchTerm))
-                                        {
-                                            <button class="btn btn-outline-secondary" type="button" @onclick="ClearAddMemberSearch" title="Limpar">
-                                                <i class="bi bi-x-circle-fill"></i>
-                                            </button>
-                                        }
-                                    </div>
-                                </div>
-                                
-                                @if (filteredMembersForAdd.Any())
-                                {
-                                    <div class="member-list member-list-scrollable">
-                                        @foreach (var member in filteredMembersForAdd.Take(MaxMemberSearchResults))
-                                        {
-                                            <div class="member-item p-2 mb-2 border rounded clickable-row"
-                                                 @onclick="() => AddMemberToAttendance(member)">
-                                                <div class="d-flex align-items-center">
-                                                    <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
-                                                         class="member-avatar-small me-2" />
-                                                    <div>
-                                                        @if (!string.IsNullOrEmpty(member.Nickname))
-                                                        {
-                                                            <div><strong>@member.Nickname</strong></div>
-                                                            <div class="text-muted small">@member.FirstName @member.LastName</div>
-                                                        }
-                                                        else
-                                                        {
-                                                            <div><strong>@member.FirstName @member.LastName</strong></div>
-                                                        }
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                                else if (!string.IsNullOrEmpty(addMemberSearchTerm))
-                                {
-                                    <div class="alert alert-purple mt-2">Nenhum membro encontrado.</div>
-                                }
-                            </div>
-                        }
                         
                         <div class="table-responsive">
                             <table class="table table-striped">
@@ -499,6 +425,88 @@ else
                             </tbody>
                         </table>
                         </div>
+                        
+                        <!-- Add Member Section (Bottom Right) -->
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                <div class="mt-3">
+                                    <!-- Success Alert (auto-dismiss) -->
+                                    @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && !addMemberFeedbackIsError)
+                                    {
+                                        <Alert Type="Alert.AlertType.Purple" 
+                                               Message="@addMemberFeedbackMessage" 
+                                               Dismissible="true"
+                                               OnDismiss="ClearAddMemberFeedback"
+                                               AdditionalClasses="mb-2" />
+                                    }
+                                    
+                                    <!-- Error Alert (manual dismiss) -->
+                                    @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && addMemberFeedbackIsError)
+                                    {
+                                        <Alert Type="Alert.AlertType.Error" 
+                                               Message="@addMemberFeedbackMessage" 
+                                               Dismissible="true"
+                                               OnDismiss="ClearAddMemberFeedback"
+                                               AdditionalClasses="mb-2" />
+                                    }
+                                    
+                                    <!-- Collapsible Search Bar -->
+                                    @if (showAddMemberDropdown)
+                                    {
+                                        <div class="mb-2" @onkeydown="HandleAddMemberKeyDown">
+                                            <TableSearchBar SearchTerm="@addMemberSearchTerm"
+                                                           Placeholder="Pesquisar membro por nome..."
+                                                           OnSearchChanged="@HandleAddMemberSearchChanged" />
+                                            
+                                            @if (filteredMembersForAdd.Any())
+                                            {
+                                                <div class="member-list member-list-scrollable mt-2">
+                                                    @foreach (var member in filteredMembersForAdd.Take(MaxMemberSearchResults))
+                                                    {
+                                                        <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                                             @onclick="() => AddMemberToAttendance(member)"
+                                                             tabindex="0"
+                                                             @onkeydown="@(async (e) => await HandleMemberItemKeyDown(e, member))">
+                                                            <div class="d-flex align-items-center">
+                                                                <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                                     class="member-avatar-small me-2" />
+                                                                <div>
+                                                                    @if (!string.IsNullOrEmpty(member.Nickname))
+                                                                    {
+                                                                        <div><strong>@member.Nickname</strong></div>
+                                                                        <div class="text-muted small">@member.FirstName @member.LastName</div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div><strong>@member.FirstName @member.LastName</strong></div>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                            else if (!string.IsNullOrEmpty(addMemberSearchTerm))
+                                            {
+                                                <Alert Type="Alert.AlertType.Purple" 
+                                                       Message="Nenhum membro encontrado." 
+                                                       AdditionalClasses="mt-2" />
+                                            }
+                                        </div>
+                                    }
+                                    
+                                    <!-- Circular Add Button (Bottom Right) -->
+                                    <div class="d-flex justify-content-end">
+                                        <button class="btn btn-purple rounded-circle p-2" 
+                                                @onclick="ToggleAddMemberDropdown" 
+                                                title="Adicionar Membro"
+                                                style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="bi @(showAddMemberDropdown ? "bi-x-lg" : "bi-plus-lg")"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
                     }
                     else
                     {
@@ -586,6 +594,7 @@ else
     private List<ApplicationUser> filteredMembersForAdd = new();
     private string addMemberFeedbackMessage = string.Empty;
     private bool addMemberFeedbackIsError = false;
+    private Timer? feedbackDismissTimer;
 
     // Delete confirmation
     private bool showDeleteConfirmation = false;
@@ -888,6 +897,7 @@ else
         showAddMemberDropdown = false;
         addMemberSearchTerm = string.Empty;
         filteredMembersForAdd = new();
+        feedbackDismissTimer?.Dispose();
         addMemberFeedbackMessage = string.Empty;
         addMemberFeedbackIsError = false;
     }
@@ -934,8 +944,35 @@ else
     
     private void ClearAddMemberFeedback()
     {
+        feedbackDismissTimer?.Dispose();
         addMemberFeedbackMessage = string.Empty;
         addMemberFeedbackIsError = false;
+    }
+    
+    private void HandleAddMemberSearchChanged(string searchTerm)
+    {
+        addMemberSearchTerm = searchTerm;
+        FilterMembersForAdd();
+    }
+    
+    private void HandleAddMemberKeyDown(KeyboardEventArgs e)
+    {
+        // Esc key collapses the search
+        if (e.Key == "Escape")
+        {
+            showAddMemberDropdown = false;
+            addMemberSearchTerm = string.Empty;
+            filteredMembersForAdd = new();
+        }
+    }
+    
+    private async Task HandleMemberItemKeyDown(KeyboardEventArgs e, ApplicationUser member)
+    {
+        // Enter key confirms selection
+        if (e.Key == "Enter")
+        {
+            await AddMemberToAttendance(member);
+        }
     }
     
     private async Task AddMemberToAttendance(ApplicationUser member)
@@ -972,11 +1009,23 @@ else
             var displayName = !string.IsNullOrEmpty(member.Nickname) ? member.Nickname : $"{member.FirstName} {member.LastName}";
             addMemberFeedbackMessage = $"{displayName} foi adicionado à lista de presenças.";
             addMemberFeedbackIsError = false;
+            
+            // Auto-dismiss success message after 3 seconds
+            feedbackDismissTimer?.Dispose();
+            feedbackDismissTimer = new Timer(_ =>
+            {
+                InvokeAsync(() =>
+                {
+                    ClearAddMemberFeedback();
+                    StateHasChanged();
+                });
+            }, null, 3000, Timeout.Infinite);
         }
         catch (Exception ex)
         {
             addMemberFeedbackMessage = $"Erro ao adicionar membro: {ex.Message}";
             addMemberFeedbackIsError = true;
+            // Error messages require manual dismissal (no auto-dismiss)
         }
         
         StateHasChanged();
