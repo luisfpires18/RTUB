@@ -55,10 +55,9 @@
         if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("returnUrl", out var returnUrl))
         {
             // Validate that the return URL is local to prevent open redirect attacks
-            var returnUrlString = returnUrl.ToString();
-            if (UrlHelper.IsLocalUrl(returnUrlString))
+            if (UrlHelper.IsLocalUrl(returnUrl.ToString()))
             {
-                ReturnUrl = returnUrlString;
+                ReturnUrl = returnUrl.ToString();
             }
         }
     }
