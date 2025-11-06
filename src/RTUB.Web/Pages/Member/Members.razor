@@ -343,7 +343,7 @@ else
                         </span>
                         <input type="text" 
                                class="form-control" 
-                               placeholder="Pesquisar padrinho por nome, email ou alcunha..."
+                               placeholder="Pesquisar padrinho por nome ou alcunha..."
                                @bind="mentorSearchTerm" 
                                @bind:event="oninput" 
                                @onkeyup="FilterMentors" />
@@ -393,8 +393,13 @@ else
                     var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editingUser.MentorId);
                     if (displayMentor != null)
                     {
-                        <div class="alert alert-success mt-2">
-                            <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
+                        <div class="alert alert-success mt-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearMentorSelection" title="Remover padrinho">
+                                <i class="bi bi-x-circle"></i> Remover
+                            </button>
                         </div>
                     }
                 }
@@ -606,6 +611,7 @@ else
         }
 
         // Load eligible mentors (Only Tuno, Veterano, Tunossauro - excluding Leitões and Caloiros)
+        // Also exclude the user being edited if in edit mode
         eligibleMentors = users
             .Where(u => u.CanBeMentor())
             .OrderBy(u => u.FirstName)
@@ -767,18 +773,35 @@ else
         }
 
         // Use SearchHelper for multi-word search support
+        // Only search by FirstName, LastName, and Nickname (NOT Email)
         mentorSearchHelper.SearchTerm = mentorSearchTerm;
-        filteredMentors = mentorSearchHelper.FilterMultiple(eligibleMentors, new List<Func<ApplicationUser, string>>
+        
+        // Exclude the user being edited from mentor candidates
+        var availableMentors = eligibleMentors;
+        if (!isCreateMode && !string.IsNullOrEmpty(editingUser?.Id))
+        {
+            availableMentors = eligibleMentors.Where(u => u.Id != editingUser.Id).ToList();
+        }
+        
+        filteredMentors = mentorSearchHelper.FilterMultiple(availableMentors, new List<Func<ApplicationUser, string>>
         {
             u => u.FirstName ?? "",
             u => u.LastName ?? "",
-            u => u.Nickname ?? "",
-            u => u.Email ?? ""
+            u => $"{u.FirstName} {u.LastName}",
+            u => u.Nickname ?? ""
         });
     }
 
     private void SelectMentor(ApplicationUser mentor)
     {
+        // Prevent accidental clear: if clicking the already selected mentor, don't clear it
+        if (editingUser.MentorId == mentor.Id)
+        {
+            // Keep the selection and just close the dropdown
+            filteredMentors.Clear();
+            return;
+        }
+        
         editingUser.MentorId = mentor.Id;
         selectedMentorCache = mentor;
         mentorSearchTerm = $"{mentor.FirstName} {mentor.LastName}";
@@ -985,6 +1008,13 @@ else
             var existingUser = await UserManager.FindByIdAsync(editingUser.Id);
             if (existingUser != null)
             {
+                // Server-side guard: prevent user from being their own padrinho
+                if (!string.IsNullOrEmpty(editingUser.MentorId) && editingUser.MentorId == editingUser.Id)
+                {
+                    errorMessage = "Um utilizador não pode ser o seu próprio padrinho.";
+                    return;
+                }
+                
                 existingUser.FirstName = editingUser.FirstName;
                 existingUser.LastName = editingUser.LastName;
                 existingUser.Nickname = editingUser.Nickname;
