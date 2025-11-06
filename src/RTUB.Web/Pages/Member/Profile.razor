@@ -229,12 +229,12 @@ else
                                     var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editUser.MentorId);
                                     if (displayMentor != null)
                                     {
-                                        <div class="alert alert-success mt-2 d-flex justify-content-between align-items-center">
+                                        <div class="alert alert-purple mt-2 d-flex justify-content-between align-items-center">
                                             <div>
                                                 <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
                                             </div>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearMentorSelection" title="Remover padrinho">
-                                                <i class="bi bi-x-circle"></i> Remover
+                                            <button type="button" class="btn btn-sm text-danger" style="background: none; border: none; padding: 0.25rem 0.5rem;" @onclick="ClearMentorSelection" title="Remover padrinho">
+                                                <i class="bi bi-x-circle-fill" style="font-size: 1.25rem;"></i>
                                             </button>
                                         </div>
                                     }
@@ -715,6 +715,7 @@ else
 
         // Use SearchHelper for multi-word search support
         // Only search by FirstName, LastName, and Nickname (NOT Email)
+        // Use accent-insensitive search
         mentorSearchHelper.SearchTerm = mentorSearchTerm;
         
         // eligibleMentors already excludes the current user (filtered at load time)
@@ -731,7 +732,7 @@ else
             u => u.LastName ?? "",
             u => $"{u.FirstName} {u.LastName}",
             u => u.Nickname ?? ""
-        });
+        }, caseSensitive: false, accentSensitive: false);
     }
 
     private void SelectMentor(ApplicationUser mentor)

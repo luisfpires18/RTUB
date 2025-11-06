@@ -51,8 +51,9 @@ public class SearchHelper<T>
     /// <param name="items">List of items to filter</param>
     /// <param name="selectors">Functions to extract searchable strings from each item</param>
     /// <param name="caseSensitive">Whether the search should be case-sensitive (default: false)</param>
+    /// <param name="accentSensitive">Whether the search should be accent-sensitive (default: false)</param>
     /// <returns>Filtered list of items</returns>
-    public List<T> FilterMultiple(List<T> items, List<Func<T, string>> selectors, bool caseSensitive = false)
+    public List<T> FilterMultiple(List<T> items, List<Func<T, string>> selectors, bool caseSensitive = false, bool accentSensitive = false)
     {
         if (items == null || !items.Any())
         {
@@ -75,6 +76,10 @@ public class SearchHelper<T>
         {
             searchTerms = searchTerms.Select(t => t.ToLower()).ToArray();
         }
+        if (!accentSensitive)
+        {
+            searchTerms = searchTerms.Select(t => RTUB.Application.Helpers.UsernameHelper.RemoveDiacritics(t)).ToArray();
+        }
 
         return items.Where(item =>
         {
@@ -87,6 +92,10 @@ public class SearchHelper<T>
                     if (string.IsNullOrEmpty(value)) return false;
 
                     var compareValue = caseSensitive ? value : value.ToLower();
+                    if (!accentSensitive)
+                    {
+                        compareValue = RTUB.Application.Helpers.UsernameHelper.RemoveDiacritics(compareValue);
+                    }
                     return compareValue.Contains(searchTerm);
                 });
             });
