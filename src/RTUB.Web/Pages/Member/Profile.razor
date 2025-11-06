@@ -77,6 +77,7 @@ else
                                     Value="@(user.Age?.ToString() + " anos")" />
                     }
                     <ProfileField Label="Contacto" Value="@user.PhoneContact" />
+                    <ProfileField Label="Cidade" Value="@user.City" />
                 </ChildContent>
                 <EditContent>
                     @if (editUser != null)
@@ -115,6 +116,11 @@ else
                                     <label class="form-label text-white-full">Contacto</label>
                                     <InputText class="form-control" @bind-Value="editUser.PhoneContact" placeholder="Inserir contacto..." />
                                 </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-white-full">Cidade</label>
+                                <InputText class="form-control" @bind-Value="editUser.City" placeholder="Inserir cidade..." />
                             </div>
                         </EditForm>
                     }
@@ -571,6 +577,7 @@ else
             Nickname = user.Nickname,
             Email = user.Email,
             PhoneContact = user.PhoneContact,
+            City = user.City,
             DateOfBirth = user.DateOfBirth,
             Degree = user.Degree,
             YearLeitao = user.YearLeitao,
@@ -617,6 +624,7 @@ else
         user.Nickname = editUser.Nickname;
         user.Email = editUser.Email;
         user.PhoneContact = editUser.PhoneContact;
+        user.City = editUser.City;
         user.DateOfBirth = editUser.DateOfBirth;
 
         await SetAuditContextToCurrentUser();

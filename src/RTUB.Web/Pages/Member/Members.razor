@@ -283,9 +283,15 @@ else
                 <input type="date" class="form-control" @bind="editingUser.DateOfBirth" />
             </div>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Curso</label>
-            <input type="text" class="form-control" @bind="editingUser.Degree" placeholder="Inserir curso..." />
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Curso</label>
+                <input type="text" class="form-control" @bind="editingUser.Degree" placeholder="Inserir curso..." />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Cidade</label>
+                <input type="text" class="form-control" @bind="editingUser.City" placeholder="Inserir cidade..." />
+            </div>
         </div>
         <div class="mb-3">
             <label class="form-label">Categoria <span class="text-danger">*</span></label>
@@ -485,6 +491,7 @@ else
                 <div class="modal-section-body">
                     <ProfileField Label="Email" Value="@viewingUser.Email" />
                     <ProfileField Label="Contacto" Value="@viewingUser.PhoneContact" />
+                    <ProfileField Label="Cidade" Value="@viewingUser.City" />
                     <ProfileField Label="Data de Nascimento" 
                                 Value="@(viewingUser.DateOfBirth.HasValue ? viewingUser.DateOfBirth.Value.ToString("dd/MM/yyyy") + (viewingUser.Age.HasValue ? $" ({viewingUser.Age} anos)" : "") : null)" />
                     <ProfileField Label="Curso" Value="@viewingUser.Degree" />
@@ -1021,6 +1028,7 @@ else
                 // Set UserName to normalized version of Nickname (tuna name)
                 existingUser.UserName = UsernameHelper.NormalizeUsername(editingUser.Nickname);
                 existingUser.Email = editingUser.Email;
+                existingUser.City = editingUser.City;
                 existingUser.DateOfBirth = editingUser.DateOfBirth;
                 existingUser.Degree = editingUser.Degree;
                 existingUser.YearLeitao = editingUser.YearLeitao;
