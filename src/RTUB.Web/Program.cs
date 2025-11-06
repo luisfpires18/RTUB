@@ -141,6 +141,9 @@ namespace RTUB
                 options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10MB
                 options.EnableDetailedErrors = builder.Environment.IsDevelopment();
             });
+            
+            // Add SignalR services
+            services.AddSignalR();
 
             // Configure circuit options for better stability
             services.AddServerSideBlazor(options =>
@@ -325,8 +328,8 @@ namespace RTUB
             // Map API controllers
             app.MapControllers();
             
-            // Map SignalR hubs
-            app.MapHub<RTUB.Hubs.ChatHub>("/chathub");
+            // Map SignalR hubs with authorization
+            app.MapHub<RTUB.Hubs.ChatHub>("/chathub").RequireAuthorization();
 
             app.Run();
         }
