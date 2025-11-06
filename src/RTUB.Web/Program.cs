@@ -81,6 +81,13 @@ namespace RTUB
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
+            // Configure cookie authentication to redirect to /login instead of /Account/Login
+            services.ConfigureApplicationCookie(options =>
+            {
+                options.LoginPath = "/login";
+                options.AccessDeniedPath = "/login";
+            });
+
             // PDF generation service - moved to Application layer
             services.AddScoped<RTUB.Application.Services.ReportPdfService>();
 
@@ -265,6 +272,7 @@ namespace RTUB
                 var password = form["Password"].ToString();
                 var rememberRaw = form["RememberMe"].ToString();
                 var remember = bool.TryParse(rememberRaw, out var b) ? b : string.Equals(rememberRaw, "on", StringComparison.OrdinalIgnoreCase);
+                var returnUrl = form["ReturnUrl"].ToString();
 
                 var user = await userManager.FindByNameAsync(username);
                 if (user is null || !await userManager.IsEmailConfirmedAsync(user))
@@ -284,6 +292,12 @@ namespace RTUB
                     catch
                     {
                         // Log error but don't fail login
+                    }
+                    
+                    // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
+                    if (!string.IsNullOrEmpty(returnUrl) && RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl))
+                    {
+                        return Results.Redirect(returnUrl);
                     }
                     return Results.Redirect("/");
                 }

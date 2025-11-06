@@ -33,7 +33,7 @@ public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
         var location = response.Headers.Location?.ToString();
-        location.Should().Contain("/Account/Login");
+        location.Should().Contain("/login");
         location.Should().Contain("ReturnUrl");
     }
 
@@ -61,7 +61,7 @@ public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion
@@ -76,7 +76,7 @@ public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion
@@ -91,7 +91,7 @@ public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion
@@ -111,7 +111,7 @@ public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect,
             $"{url} should redirect unauthenticated users");
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login",
+        response.Headers.Location?.ToString().Should().Contain("/login",
             $"{url} should redirect to login page");
     }
 

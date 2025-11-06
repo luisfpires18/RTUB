@@ -1,0 +1,22 @@
+@namespace RTUB.Components
+@using RTUB.Application.Helpers
+@inject NavigationManager NavigationManager
+@code {
+    protected override void OnInitialized()
+    {
+        // Get the current URL path (without query parameters or fragments)
+        var currentUri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var returnUrl = currentUri.AbsolutePath;
+        
+        // Validate and redirect to login page with return URL (only if it's a valid local URL)
+        if (UrlHelper.IsLocalUrl(returnUrl))
+        {
+            NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(returnUrl)}", forceLoad: true);
+        }
+        else
+        {
+            // If invalid URL, just redirect to login without return URL
+            NavigationManager.NavigateTo("/login", forceLoad: true);
+        }
+    }
+}
