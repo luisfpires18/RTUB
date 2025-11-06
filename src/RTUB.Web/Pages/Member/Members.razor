@@ -438,162 +438,91 @@ else
            Size="Modal.ModalSize.Large"
            Centered="true">
         <BodyContent>
-            <div class="row">
-                <div class="col-md-4 text-center mb-3">
-                    <img src="@viewingUser.ProfilePictureSrc" alt="@viewingUser.GetDisplayName()"
-                         class="member-avatar-large mb-2" />
-                    @if (!string.IsNullOrEmpty(viewingUser.Nickname))
-                    {
-                        <h5>"@viewingUser.Nickname"</h5>
-                        <p class="text-muted">@viewingUser.FirstName @viewingUser.LastName</p>
+            <!-- Centered Header Section -->
+            <div class="text-center mb-4">
+                <img src="@viewingUser.ProfilePictureSrc" alt="@viewingUser.GetDisplayName()"
+                     class="member-avatar-large mb-3" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--bs-primary);" />
+                
+                @if (!string.IsNullOrEmpty(viewingUser.Nickname))
+                {
+                    <h4 class="mb-1">@viewingUser.Nickname</h4>
+                    <p class="text-muted mb-2">@viewingUser.FirstName @viewingUser.LastName</p>
+                }
+                else
+                {
+                    <h4 class="mb-2">@viewingUser.FirstName @viewingUser.LastName</h4>
+                }
+                
+                <!-- Badges centered below name -->
+                <div class="d-flex justify-content-center flex-wrap gap-1 mb-2">
+                    @{
+                        var displayCategories = StatusHelper.GetDisplayCategories(viewingUser);
                     }
-                    else
+                    @foreach (var category in displayCategories)
                     {
-                        <h5>@viewingUser.FirstName @viewingUser.LastName</h5>
+                        <CategoryBadge Category="category" />
+                    }
+                    @if (viewingUser.Positions.Any())
+                    {
+                        @foreach (var position in viewingUser.Positions)
+                        {
+                            <PositionBadge Position="position" />
+                        }
                     }
                 </div>
-                <div class="col-md-8">
-                    <h6 class="border-bottom pb-2 mb-3">Informação Pessoal</h6>
-                    <div class="row mb-2">
-                        <div class="col-5"><strong>Email:</strong></div>
-                        <div class="col-7">@viewingUser.Email</div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-5"><strong>Contacto:</strong></div>
-                        <div class="col-7">@(viewingUser.PhoneContact ?? "N/A")</div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-5"><strong>Data de Nascimento:</strong></div>
-                        <div class="col-7">
-                            @if (viewingUser.DateOfBirth.HasValue)
-                            {
-                                @viewingUser.DateOfBirth.Value.ToString("dd/MM/yyyy")
-                                @if (viewingUser.Age.HasValue)
+            </div>
+
+            <div class="mb-3"></div>
+
+            <!-- Personal Information Section -->
+            <div class="modal-info-section mb-4">
+                <div class="modal-section-header">
+                    <h6 class="modal-section-title">
+                        <i class="bi bi-person-fill me-2 text-primary"></i>
+                        Informações Pessoais
+                    </h6>
+                </div>
+                <div class="modal-section-body">
+                    <ProfileField Label="Email" Value="@viewingUser.Email" />
+                    <ProfileField Label="Contacto" Value="@viewingUser.PhoneContact" />
+                    <ProfileField Label="Data de Nascimento" 
+                                Value="@(viewingUser.DateOfBirth.HasValue ? viewingUser.DateOfBirth.Value.ToString("dd/MM/yyyy") + (viewingUser.Age.HasValue ? $" ({viewingUser.Age} anos)" : "") : null)" />
+                    <ProfileField Label="Curso" Value="@viewingUser.Degree" />
+                </div>
+            </div>
+
+            <!-- Tuna Information Section -->
+            <div class="modal-info-section mb-3">
+                <div class="modal-section-header">
+                    <h6 class="modal-section-title">
+                        <i class="bi bi-music-note-list me-2 text-primary"></i>
+                        Informação da Tuna
+                    </h6>
+                </div>
+                <div class="modal-section-body">
+                    <ProfileField Label="Instrumento Principal" 
+                                Value="@(viewingUser.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(viewingUser.MainInstrument.Value) : null)" />
+                    <ProfileField Label="Padrinho" 
+                                Value="@(viewingUserMentor != null ? viewingUserMentor.GetDisplayName() : null)" />
+                    
+                    <!-- Unified Timeline -->
+                    <div class="profile-field">
+                        <div class="row">
+                            <div class="col-12 col-md-4 profile-field-label">
+                                <strong class="text-white-full">Percurso na Tuna:</strong>
+                            </div>
+                            <div class="col-12 col-md-8 profile-field-value">
+                                @if (userRoleAssignments.ContainsKey(viewingUser.Id))
                                 {
-                                    <span class="text-muted">(@viewingUser.Age anos)</span>
+                                    <UnifiedTimeline User="@viewingUser" RoleAssignments="@userRoleAssignments[viewingUser.Id]" />
                                 }
-                            }
-                            else
-                            {
-                                <span>N/A</span>
-                            }
-                        </div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-5"><strong>Curso:</strong></div>
-                        <div class="col-7">@(viewingUser.Degree ?? "N/A")</div>
-                    </div>
-
-                    <div class="row mb-2">
-                        <div class="col-5"><strong>Instrumento Principal:</strong></div>
-                        <div class="col-7">@(viewingUser.MainInstrument.HasValue? StatusHelper.GetInstrumentDisplay(viewingUser.MainInstrument.Value) : "N/A")</div>
-                    </div>
-
-                    <div class="row mb-2">
-                        <div class="col-5"><strong>Padrinho:</strong></div>
-                        <div class="col-7">
-                            @if (viewingUserMentor != null)
-                            {
-                                <text>@viewingUserMentor.GetDisplayName()</text>
-                            }
-                            else
-                            {
-                                <span>N/A</span>
-                            }
-                        </div>
-                    </div>
-
-                    <h6 class="border-bottom pb-2 mb-3 mt-3">Anos na Tuna</h6>
-                    @{
-                        var primaryCategory = viewingUser.Categories.FirstOrDefault();
-                        var isOnlyLeitao = viewingUser.IsOnlyLeitao();
-                        var isLeitao = primaryCategory == MemberCategory.Leitao;
-                        var isCaloiro = primaryCategory == MemberCategory.Caloiro;
-                        var isTuno = primaryCategory == MemberCategory.Tuno;
-                    }
-
-                    @* Always show Leitão entry year *@
-                    <div class="row mb-2">
-                        <div class="col-5"><strong>Ano de entrada Leitão:</strong></div>
-                        <div class="col-7">@(viewingUser.YearLeitao?.ToString() ?? "N/A")</div>
-                    </div>
-
-                    @* Show Caloiro if Caloiro or Tuno *@
-                    @if (isCaloiro || isTuno)
-                    {
-                        <div class="row mb-2">
-                            <div class="col-5"><strong>Ano de passagem a Caloiro:</strong></div>
-                            <div class="col-7">@(viewingUser.YearCaloiro?.ToString() ?? "N/A")</div>
-                        </div>
-                    }
-
-                    @* Show Tuno only if Tuno *@
-                    @if (isTuno)
-                    {
-                        <div class="row mb-2">
-                            <div class="col-5"><strong>Ano de passagem a Tuno:</strong></div>
-                            <div class="col-7">@(viewingUser.YearTuno?.ToString() ?? "N/A")</div>
-                        </div>
-                    }
-
-                    @* Only show Cargos e Categorias Atuais if not only Leitão *@
-                    @if (!isOnlyLeitao)
-                    {
-                        <h6 class="border-bottom pb-2 mb-3 mt-3">Cargos e Categorias Atuais</h6>
-                    <div class="mb-2">
-                        @if (viewingUser.Positions.Any())
-                        {
-                            <div class="mb-2">
-                                <strong>Cargos:</strong><br />
-                                @foreach (var position in viewingUser.Positions)
+                                else
                                 {
-                                    <PositionBadge Position="position" AdditionalClasses="me-1 mt-1" />
+                                    <UnifiedTimeline User="@viewingUser" RoleAssignments="@(new List<RoleAssignment>())" />
                                 }
                             </div>
-                        }
-                        @{
-                            var displayCategories = StatusHelper.GetDisplayCategories(viewingUser.Categories, viewingUser.YearTuno);
-                        }
-                        @if (displayCategories.Any())
-                        {
-                            <div class="mb-2">
-                                <strong>Categorias:</strong><br />
-                                @foreach (var category in displayCategories)
-                                {
-                                    <CategoryBadge Category="category" AdditionalClasses="me-1 mt-1" />
-                                }
-                            </div>
-                        }
-                        @if (!viewingUser.Positions.Any() && !displayCategories.Any())
-                        {
-                            <span class="text-muted">Nenhum cargo ou categoria atribuído</span>
-                        }
-                    </div>
-                    }
-
-                    @if (userRoleAssignments.ContainsKey(viewingUser.Id) && userRoleAssignments[viewingUser.Id].Any())
-                    {
-                        <h6 class="border-bottom pb-2 mb-3 mt-3">Histórico de Cargos</h6>
-                        <div class="role-history-list">
-                            @foreach (var assignment in userRoleAssignments[viewingUser.Id].OrderByDescending(a => a.StartYear))
-                            {
-                                <div class="role-history-item p-2 mb-2 border rounded">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <span class="badge me-2 badge-fiscal-year">@assignment.FiscalYear</span>
-                                            <strong>@StatusHelper.GetPositionDisplay(assignment.Position)</strong>
-                                            @if (!string.IsNullOrEmpty(assignment.Notes))
-                                            {
-                                                <div class="text-muted small mt-1">
-                                                    <i class="bi bi-info-circle"></i> @assignment.Notes
-                                                </div>
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-                            }
                         </div>
-                    }
+                    </div>
                 </div>
             </div>
         </BodyContent>

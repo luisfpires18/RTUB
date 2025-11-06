@@ -18,6 +18,7 @@
 @inject IImageService ImageService
 @inject IJSRuntime JSRuntime
 @inject RTUB.Application.Services.AuditContext AuditContext
+@inject IRoleAssignmentService RoleAssignmentService
 
 <h1 class="text-center mb-4">Meu Perfil</h1>
 
@@ -43,149 +44,228 @@ else
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
-    
-    <!-- Avatar Section -->
-    <div class="text-center mb-4">
-        <div class="avatar-container mx-auto">
-            <img src="@GetProfilePictureUrl()" alt="Foto de Perfil" class="avatar" />
-        </div>
-        <div class="mt-3">
-            <button class="btn btn-primary btn-primary-purple" @onclick="OpenUploadModal">
-                <i class="bi bi-upload"></i> Carregar Foto
-            </button>
-        </div>
-    </div>
 
-    <!-- Profile Information -->
+    <!-- Profile Header Card -->
+    <ProfileHeader User="@user" 
+                   ProfilePictureVersion="@profilePictureVersion"
+                   OnChangePassword="@OpenChangePasswordModal"
+                   OnUploadPhoto="@OpenUploadModal" />
+
+    <!-- Profile Content -->
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="card-title mb-0 text-white-full">Informações Pessoais</h5>
-                        <button class="btn btn-sm btn-outline-light" @onclick="OpenEditModal">
-                            <i class="bi bi-pencil"></i> Editar
-                        </button>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-sm-4"><strong class="text-white-full">Nome Completo:</strong></div>
-                        <div class="col-sm-8 text-white-full">@($"{user.FirstName} {user.LastName}")</div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-sm-4"><strong class="text-white-full">Nome de Tuna:</strong></div>
-                        <div class="col-sm-8 text-white-full">@(user.Nickname ?? "N/D")</div>
-                    </div>
-
-                    @if (user.DateOfBirth != null)
+        <div class="col-lg-10 col-xl-9">
+            
+            <!-- Section 1: Pessoal (Personal Information) -->
+            <ProfileSection Title="Informações Pessoais"
+                          Icon="bi-person-fill"
+                          IsCollapsible="true"
+                          IsExpanded="@sectionsExpanded["personal"]"
+                          IsEditing="@(editingSection == "personal")"
+                          ShowEditButton="true"
+                          OnEdit="@(() => OpenEditSectionModal("personal"))"
+                          OnSave="@SavePersonalSection"
+                          OnCancel="@CancelEdit">
+                <ChildContent>
+                    <ProfileField Label="Nome Completo" Value="@($"{user.FirstName} {user.LastName}")" />
+                    <ProfileField Label="Nome de Tuna" Value="@user.Nickname" />
+                    <ProfileField Label="Email" Value="@user.Email" />
+                    <ProfileField Label="Data de Nascimento" 
+                                Value="@(user.DateOfBirth?.ToString("dd/MM/yyyy"))" />
+                    @if (user.DateOfBirth.HasValue)
                     {
-                        <div class="row mb-3">
-                            <div class="col-sm-4"><strong class="text-white-full">Data de Nascimento:</strong></div>
-                            <div class="col-sm-8 text-white-full">@user.DateOfBirth.Value.ToString("dd/MM/yyyy")</div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-sm-4"><strong class="text-white-full">Idade:</strong></div>
-                            <div class="col-sm-8 text-white-full">@user.Age anos</div>
-                        </div>
+                        <ProfileField Label="Idade" 
+                                    Value="@(user.Age?.ToString() + " anos")" />
                     }
-
-                    <div class="row mb-3">
-                        <div class="col-sm-4"><strong class="text-white-full">Contacto:</strong></div>
-                        <div class="col-sm-8 text-white-full">@(user.PhoneContact ?? "N/D")</div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-sm-4"><strong class="text-white-full">Email:</strong></div>
-                        <div class="col-sm-8 text-white-full">@user.Email</div>
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(user.Degree))
+                    <ProfileField Label="Contacto" Value="@user.PhoneContact" />
+                </ChildContent>
+                <EditContent>
+                    @if (editUser != null)
                     {
-                        <div class="row mb-3">
-                            <div class="col-sm-4"><strong class="text-white-full">Curso:</strong></div>
-                            <div class="col-sm-8 text-white-full">@user.Degree</div>
-                        </div>
+                        <EditForm Model="editUser" OnValidSubmit="SavePersonalSection">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="text-danger" />
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-white-full">Primeiro Nome</label>
+                                    <InputText class="form-control" @bind-Value="editUser.FirstName" placeholder="Inserir primeiro nome..." />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-white-full">Último Nome</label>
+                                    <InputText class="form-control" @bind-Value="editUser.LastName" placeholder="Inserir último nome..." />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-white-full">Nome de Tuna (Alcunha)</label>
+                                <InputText class="form-control" @bind-Value="editUser.Nickname" placeholder="Inserir nome de tuna..." />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-white-full">Email</label>
+                                <InputText class="form-control" @bind-Value="editUser.Email" type="email" placeholder="Inserir email..." />
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-white-full">Data de Nascimento</label>
+                                    <InputDate class="form-control" @bind-Value="editUser.DateOfBirth" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-white-full">Contacto</label>
+                                    <InputText class="form-control" @bind-Value="editUser.PhoneContact" placeholder="Inserir contacto..." />
+                                </div>
+                            </div>
+                        </EditForm>
                     }
+                </EditContent>
+            </ProfileSection>
 
-                    <div class="row mb-3">
-                        <div class="col-sm-4"><strong class="text-white-full">Instrumento Principal:</strong></div>
-                        <div class="col-sm-8 text-white-full">@(user.MainInstrument.HasValue? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : "N/D")</div>
-                    </div>
+            <!-- Section 2: Tuna (Tuna Information) -->
+            <ProfileSection Title="Informação da Tuna"
+                          Icon="bi-music-note-list"
+                          IsCollapsible="true"
+                          IsExpanded="@sectionsExpanded["tuna"]"
+                          IsEditing="@(editingSection == "tuna")"
+                          ShowEditButton="true"
+                          OnEdit="@(() => OpenEditSectionModal("tuna"))"
+                          OnSave="@SaveTunaSection"
+                          OnCancel="@CancelEdit">
+                <ChildContent>
+                    
+                    <ProfileField Label="Instrumento Principal" 
+                                Value="@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : null)" />
+                    
+                    <ProfileField Label="Padrinho" 
+                                Value="@GetMentorDisplayName()" />
 
-                    <div class="row mb-3">
-                        <div class="col-sm-4"><strong class="text-white-full">Padrinho:</strong></div>
-                        <div class="col-sm-8 text-white-full">@(mentor != null ? $"{mentor.FirstName} {mentor.LastName}" + (!string.IsNullOrEmpty(mentor.Nickname) ? $" \"{mentor.Nickname}\"" : "") : "N/D")</div>
-                    </div>
-
-                    @if (user.YearLeitao != null)
-                    {
-                        <div class="row mb-3">
-                            <div class="col-sm-4"><strong class="text-white-full">Ano de entrada LEITÃO:</strong></div>
-                            <div class="col-sm-8 text-white-full">@user.YearLeitao</div>
-                        </div>
-                    }
-
-                    @if (user.YearCaloiro != null)
-                    {
-                        <div class="row mb-3">
-                            <div class="col-sm-4"><strong class="text-white-full">Ano de entrada CALOIRO:</strong></div>
-                            <div class="col-sm-8 text-white-full">@user.YearCaloiro</div>
-                        </div>
-                    }
-
-                    @if (user.YearTuno != null)
-                    {
-                        <div class="row mb-3">
-                            <div class="col-sm-4"><strong class="text-white-full">Ano de entrada TUNO:</strong></div>
-                            <div class="col-sm-8 text-white-full">@user.YearTuno</div>
-                        </div>
-                    }
-
-                    @if (user.Positions.Any())
-                    {
-                        <div class="row mb-3">
-                            <div class="col-sm-4"><strong class="text-white-full">Cargos:</strong></div>
-                            <div class="col-sm-8">
-                                @foreach (var position in user.Positions)
-                                {
-                                    <PositionBadge Position="position" AdditionalClasses="me-1 mt-1" />
-                                }
+                    <div class="profile-field">
+                        <div class="row">
+                            <div class="col-12 col-md-4 profile-field-label">
+                                <strong class="text-white-full">Percurso na Tuna:</strong>
+                            </div>
+                            <div class="col-12 col-md-8 profile-field-value">
+                                <UnifiedTimeline User="@user" RoleAssignments="@roleAssignments" />
                             </div>
                         </div>
-                    }
+                    </div>
 
-                    @{
-                        var displayCategories = StatusHelper.GetDisplayCategories(user.Categories, user.YearTuno);
-                    }
-                    @if (displayCategories.Any())
+                    <ProfileField Label="Curso" Value="@user.Degree" />
+
+                </ChildContent>
+                <EditContent>
+                    @if (editUser != null)
                     {
-                        <div class="row mb-3">
-                            <div class="col-sm-4"><strong class="text-white-full">Categorias:</strong></div>
-                            <div class="col-sm-8">
-                                @foreach (var category in displayCategories)
+                        <EditForm Model="editUser" OnValidSubmit="SaveTunaSection">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="text-danger" />
+
+                            <div class="mb-3">
+                                <label class="form-label text-white-full">Instrumento Principal</label>
+                                <select class="form-select" @bind="editUser.MainInstrument">
+                                    <option value="">Sem instrumento</option>
+                                    @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                                    {
+                                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-white-full">Padrinho</label>
+                                <div class="mentor-search-container">
+                                    <div class="input-group mb-2">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-search"></i>
+                                        </span>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               placeholder="Pesquisar padrinho por nome, email ou alcunha..."
+                                               @bind="mentorSearchTerm" 
+                                               @bind:event="oninput" 
+                                               @onkeyup="FilterMentors" />
+                                        @if (!string.IsNullOrEmpty(mentorSearchTerm))
+                                        {
+                                            <button class="btn btn-outline-secondary" type="button" @onclick="ClearMentorSelection" title="Limpar seleção">
+                                                <i class="bi bi-x-circle-fill"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                                
+                                @if (filteredMentors.Any())
                                 {
-                                    <CategoryBadge Category="category" AdditionalClasses="me-1 mt-1" />
+                                    <div class="member-list member-list-scrollable">
+                                        @foreach (var mentorItem in filteredMentors.Take(20))
+                                        {
+                                            <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                                 @onclick="() => SelectMentor(mentorItem)">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="@mentorItem.ProfilePictureSrc" alt="@mentorItem.GetDisplayName()"
+                                                         class="member-avatar-small me-2" />
+                                                    <div>
+                                                        @if (!string.IsNullOrEmpty(mentorItem.Nickname))
+                                                        {
+                                                            <div><strong>@mentorItem.Nickname</strong></div>
+                                                            <div class="text-muted small">@mentorItem.FirstName @mentorItem.LastName</div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div><strong>@mentorItem.FirstName @mentorItem.LastName</strong></div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else if (!string.IsNullOrEmpty(mentorSearchTerm) && string.IsNullOrEmpty(editUser.MentorId))
+                                {
+                                    <div class="alert alert-purple mt-2">Nenhum padrinho encontrado.</div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(editUser.MentorId))
+                                {
+                                    var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editUser.MentorId);
+                                    if (displayMentor != null)
+                                    {
+                                        <div class="alert alert-success mt-2">
+                                            <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
+                                        </div>
+                                    }
                                 }
                             </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-white-full">Ano LEITÃO</label>
+                                    <InputNumber class="form-control" @bind-Value="editUser.YearLeitao" placeholder="Inserir ano..." />
+                                </div>
+                                @if (user != null && !user.IsOnlyLeitao())
+                                {
+                                    <div class="col-md-4">
+                                        <label class="form-label text-white-full">Ano CALOIRO</label>
+                                        <InputNumber class="form-control" @bind-Value="editUser.YearCaloiro" placeholder="Inserir ano..." />
+                                    </div>
+                                }
+                                @if (user != null && user.IsTunoOrHigher())
+                                {
+                                    <div class="col-md-4">
+                                        <label class="form-label text-white-full">Ano TUNO</label>
+                                        <InputNumber class="form-control" @bind-Value="editUser.YearTuno" placeholder="Inserir ano..." />
+                                    </div>
+                                }
+                            </div>
+                        </EditForm>
+
+                        <div class="mb-3">
+                            <label class="form-label text-white-full">Curso</label>
+                            <InputText class="form-control" @bind-Value="editUser.Degree" placeholder="Inserir curso..." />
                         </div>
                     }
-                </div>
-            </div>
+                </EditContent>
+            </ProfileSection>
 
-            <!-- Manage Account Section -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h5 class="card-title mb-3 text-white-full">Gerir Conta</h5>
-                    <p class="mb-3 text-light-theme">
-                        Gerir as definições da sua conta e segurança.
-                    </p>
-                    <button class="btn btn-primary btn-primary-purple" @onclick="OpenChangePasswordModal">
-                        <i class="bi bi-key"></i> Alterar Palavra-passe
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
 }
@@ -217,160 +297,6 @@ else
               AspectRatioHelp="As fotos de perfil são exibidas como avatares circulares (proporção 1:1 recomendada)"
               ImageFormat="image/jpeg"
               ImageQuality="0.9" />
-
-<!-- Edit Profile Modal -->
-@if (editUser != null)
-{
-    <Modal Show="@showEditModal" 
-           ShowChanged="@((bool show) => showEditModal = show)"
-           Title="Editar Perfil" 
-           Size="Modal.ModalSize.Large"
-           Centered="true">
-        <BodyContent>
-            <EditForm Model="editUser" OnValidSubmit="SaveProfile">
-                <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger" />
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label text-white-full">Primeiro Nome</label>
-                        <InputText class="form-control" @bind-Value="editUser.FirstName" placeholder="Inserir primeiro nome..." />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label text-white-full">Último Nome</label>
-                        <InputText class="form-control" @bind-Value="editUser.LastName" placeholder="Inserir último nome..." />
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label text-white-full">Nome de Tuna (Alcunha)</label>
-                    <InputText class="form-control" @bind-Value="editUser.Nickname" placeholder="Inserir nome de tuna..." />
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label text-white-full">Data de Nascimento</label>
-                        <InputDate class="form-control" @bind-Value="editUser.DateOfBirth" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label text-white-full">Contacto</label>
-                        <InputText class="form-control" @bind-Value="editUser.PhoneContact" placeholder="Inserir contacto..." />
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label text-white-full">Curso</label>
-                    <InputText class="form-control" @bind-Value="editUser.Degree" placeholder="Inserir curso..." />
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label text-white-full">Ano LEITÃO</label>
-                        <InputNumber class="form-control" @bind-Value="editUser.YearLeitao" placeholder="Inserir ano..." />
-                    </div>
-                    @* Only show Ano CALOIRO if user is not just Leitão *@
-                    @if (user != null && !user.IsOnlyLeitao())
-                    {
-                        <div class="col-md-4">
-                            <label class="form-label text-white-full">Ano CALOIRO</label>
-                            <InputNumber class="form-control" @bind-Value="editUser.YearCaloiro" placeholder="Inserir ano..." />
-                        </div>
-                    }
-                    @* Only show Ano TUNO if user is Tuno or higher *@
-                    @if (user != null && user.IsTunoOrHigher())
-                    {
-                        <div class="col-md-4">
-                            <label class="form-label text-white-full">Ano TUNO</label>
-                            <InputNumber class="form-control" @bind-Value="editUser.YearTuno" placeholder="Inserir ano..." />
-                        </div>
-                    }
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label text-white-full">Instrumento Principal</label>
-                    <select class="form-select" @bind="editUser.MainInstrument">
-                        <option value="">Sem instrumento</option>
-                        @foreach (var instrument in Enum.GetValues<InstrumentType>())
-                        {
-                            <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
-                        }
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label text-white-full">Padrinho</label>
-                    <div class="mentor-search-container">
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">
-                                <i class="bi bi-search"></i>
-                            </span>
-                            <input type="text" 
-                                   class="form-control" 
-                                   placeholder="Pesquisar padrinho por nome, email ou alcunha..."
-                                   @bind="mentorSearchTerm" 
-                                   @bind:event="oninput" 
-                                   @onkeyup="FilterMentors" />
-                            @if (!string.IsNullOrEmpty(mentorSearchTerm))
-                            {
-                                <button class="btn btn-outline-secondary" type="button" @onclick="ClearMentorSelection" title="Limpar seleção">
-                                    <i class="bi bi-x-circle-fill"></i>
-                                </button>
-                            }
-                        </div>
-                    </div>
-                    
-                    @if (filteredMentors.Any())
-                    {
-                        <div class="member-list member-list-scrollable">
-                            @foreach (var mentor in filteredMentors.Take(20))
-                            {
-                                <div class="member-item p-2 mb-2 border rounded clickable-row"
-                                     @onclick="() => SelectMentor(mentor)">
-                                    <div class="d-flex align-items-center">
-                                        <img src="@mentor.ProfilePictureSrc" alt="@mentor.GetDisplayName()"
-                                             class="member-avatar-small me-2" />
-                                        <div>
-                                            @if (!string.IsNullOrEmpty(mentor.Nickname))
-                                            {
-                                                <div><strong>@mentor.Nickname</strong></div>
-                                                <div class="text-muted small">@mentor.FirstName @mentor.LastName</div>
-                                            }
-                                            else
-                                            {
-                                                <div><strong>@mentor.FirstName @mentor.LastName</strong></div>
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-                    else if (!string.IsNullOrEmpty(mentorSearchTerm) && string.IsNullOrEmpty(editUser.MentorId))
-                    {
-                        <div class="alert alert-purple mt-2">Nenhum padrinho encontrado.</div>
-                    }
-
-                    @if (!string.IsNullOrEmpty(editUser.MentorId))
-                    {
-                        // Use cached mentor to avoid repeated lookups on every render
-                        var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editUser.MentorId);
-                        if (displayMentor != null)
-                        {
-                            <div class="alert alert-success mt-2">
-                                <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
-                            </div>
-                        }
-                    }
-                </div>
-
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary btn-primary-purple">Guardar Alterações</button>
-                </div>
-            </EditForm>
-        </BodyContent>
-    </Modal>
-}
 
 <!-- Change Password Modal -->
 <Modal Show="@showPasswordModal" 
@@ -415,8 +341,8 @@ else
     private ApplicationUser? editUser;
     private ApplicationUser? mentor;
     private List<ApplicationUser> eligibleMentors = new();
+    private List<RoleAssignment> roleAssignments = new();
     private bool showUploadModal = false;
-    private bool showEditModal = false;
     private bool showCropperModal = false;
     private bool showPasswordModal = false;
     private string? uploadMessage;
@@ -426,6 +352,14 @@ else
     private string? ChangePasswordMessage;
     private bool ChangePasswordSucceeded;
     private long profilePictureVersion = DateTime.UtcNow.Ticks;
+    
+    // Section editing state
+    private string? editingSection = null;
+    private Dictionary<string, bool> sectionsExpanded = new()
+    {
+        { "personal", true },
+        { "tuna", true }
+    };
     
     // Mentor search variables
     private string mentorSearchTerm = "";
@@ -492,16 +426,16 @@ else
                     mentor = await UserManager.FindByIdAsync(user.MentorId);
                 }
                 
-                // Load eligible mentors (Caloiro and Tuno, excluding Leitões and self)
+                // Load eligible mentors (only Tuno category)
                 eligibleMentors = UserManager.Users
-                    .Where(u => u.Id != user.Id && 
-                           (u.Categories.Contains(MemberCategory.Caloiro) || 
-                            u.Categories.Contains(MemberCategory.Tuno) ||
-                            u.Categories.Contains(MemberCategory.Veterano) ||
-                            u.Categories.Contains(MemberCategory.Tunossauro)))
+                    .Where(u => u.Id != user.Id && u.Categories.Contains(MemberCategory.Tuno))
                     .OrderBy(u => u.FirstName)
                     .ThenBy(u => u.LastName)
                     .ToList();
+                    
+                // Load role assignments for this user
+                var allAssignments = await RoleAssignmentService.GetAllRoleAssignmentsAsync();
+                roleAssignments = allAssignments.Where(a => a.UserId == user.Id).ToList();
             }
         }
     }
@@ -613,16 +547,18 @@ else
         StateHasChanged();
     }
 
-    private void OpenEditModal()
+    private void OpenEditSectionModal(string section)
     {
         if (user == null) return;
 
+        editingSection = section;
         editUser = new ApplicationUser
         {
             Id = user.Id,
             FirstName = user.FirstName,
             LastName = user.LastName,
             Nickname = user.Nickname,
+            Email = user.Email,
             PhoneContact = user.PhoneContact,
             DateOfBirth = user.DateOfBirth,
             Degree = user.Degree,
@@ -633,8 +569,8 @@ else
             MentorId = user.MentorId
         };
         
-        // Initialize mentor search term if user has a mentor
-        if (!string.IsNullOrEmpty(user.MentorId))
+        // Initialize mentor search term if user has a mentor (for tuna section)
+        if (section == "tuna" && !string.IsNullOrEmpty(user.MentorId))
         {
             var existingMentor = eligibleMentors.FirstOrDefault(m => m.Id == user.MentorId);
             if (existingMentor != null)
@@ -650,33 +586,45 @@ else
         }
         
         filteredMentors.Clear();
-        showEditModal = true;
     }
 
-    private void CloseEditModal()
+    private void CancelEdit()
     {
-        showEditModal = false;
+        editingSection = null;
         editUser = null;
         mentorSearchTerm = "";
         filteredMentors.Clear();
         selectedMentorCache = null;
     }
 
-    private async Task SaveProfile()
+    private async Task SavePersonalSection()
     {
         if (editUser == null || user == null) return;
 
         user.FirstName = editUser.FirstName;
         user.LastName = editUser.LastName;
         user.Nickname = editUser.Nickname;
+        user.Email = editUser.Email;
         user.PhoneContact = editUser.PhoneContact;
         user.DateOfBirth = editUser.DateOfBirth;
+
+        await SetAuditContextToCurrentUser();
+        await UserManager.UpdateAsync(user);
+        
+        CancelEdit();
+        StateHasChanged();
+    }
+
+    private async Task SaveTunaSection()
+    {
+        if (editUser == null || user == null) return;
+
         user.Degree = editUser.Degree;
+        user.MainInstrument = editUser.MainInstrument;
+        user.MentorId = editUser.MentorId;
         user.YearLeitao = editUser.YearLeitao;
         user.YearCaloiro = editUser.YearCaloiro;
         user.YearTuno = editUser.YearTuno;
-        user.MainInstrument = editUser.MainInstrument;
-        user.MentorId = editUser.MentorId;
 
         await SetAuditContextToCurrentUser();
         await UserManager.UpdateAsync(user);
@@ -691,7 +639,7 @@ else
             mentor = null;
         }
         
-        CloseEditModal();
+        CancelEdit();
         StateHasChanged();
     }
 
@@ -784,6 +732,24 @@ else
         selectedMentorCache = null;
         mentorSearchTerm = "";
         filteredMentors.Clear();
+    }
+    
+    private string? GetMentorDisplayName()
+    {
+        // Try to get mentor from the loaded mentor object or by looking up the ID
+        if (mentor != null)
+        {
+            var displayName = $"{mentor.FirstName} {mentor.LastName}";
+            if (!string.IsNullOrEmpty(mentor.Nickname))
+            {
+                displayName += $" \"{mentor.Nickname}\"";
+            }
+            return displayName;
+        }
+        
+        // If mentor is null but user has a MentorId, the mentor might not have loaded
+        // Return null to show "Não definido"
+        return null;
     }
 
     private async Task SetAuditContextToCurrentUser()

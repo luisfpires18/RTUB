@@ -1,0 +1,102 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Application.Extensions
+
+@*
+    ProfileTimeline Component
+    Displays a compact timeline showing the user's progression through categories (LEITÃO → CALOIRO → TUNO)
+    with subcategories for VETERANO and TUNOSSAURO
+*@
+
+<div class="profile-timeline @AdditionalClasses">
+    @if (User.YearLeitao.HasValue || User.YearCaloiro.HasValue || User.YearTuno.HasValue)
+    {
+        <div class="timeline-container">
+            @if (User.YearLeitao.HasValue)
+            {
+                <div class="timeline-item @(User.IsLeitao() ? "active" : "completed")">
+                    <div class="timeline-badge">
+                        <i class="bi bi-circle-fill"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <span class="timeline-label">LEITÃO</span>
+                        <span class="timeline-year">@User.YearLeitao</span>
+                    </div>
+                </div>
+            }
+
+            @if (User.YearCaloiro.HasValue)
+            {
+                @if (User.YearLeitao.HasValue)
+                {
+                    <div class="timeline-connector"></div>
+                }
+                <div class="timeline-item @(User.IsCaloiro() && !User.IsTuno() ? "active" : User.IsTuno() ? "completed" : "")">
+                    <div class="timeline-badge">
+                        <i class="bi bi-circle-fill"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <span class="timeline-label">CALOIRO</span>
+                        <span class="timeline-year">@User.YearCaloiro</span>
+                    </div>
+                </div>
+            }
+
+            @if (User.YearTuno.HasValue)
+            {
+                @if (User.YearCaloiro.HasValue)
+                {
+                    <div class="timeline-connector"></div>
+                }
+                <div class="timeline-item active">
+                    <div class="timeline-badge">
+                        <i class="bi bi-circle-fill"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <span class="timeline-label">TUNO</span>
+                        <span class="timeline-year">@User.YearTuno</span>
+                        @{
+                            var yearsAsTuno = User.GetYearsAsTuno();
+                            if (yearsAsTuno.HasValue && yearsAsTuno.Value > 0)
+                            {
+                                <span class="timeline-duration text-muted">(@yearsAsTuno anos)</span>
+                            }
+                        }
+                        
+                        @* Show subcategories for VETERANO and TUNOSSAURO *@
+                        @if (User.QualifiesForVeterano() || User.QualifiesForTunossauro())
+                        {
+                            <div class="timeline-subcategories mt-2">
+                                @if (User.QualifiesForVeterano())
+                                {
+                                    <span class="timeline-subcategory badge badge-veterano me-1">
+                                        <i class="bi bi-arrow-right-short"></i> VETERANO
+                                    </span>
+                                }
+                                @if (User.QualifiesForTunossauro())
+                                {
+                                    <span class="timeline-subcategory badge badge-tunossauro">
+                                        <i class="bi bi-arrow-right-short"></i> TUNOSSAURO
+                                    </span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <p class="text-muted mb-0">Nenhuma informação de entrada disponível</p>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public ApplicationUser User { get; set; } = null!;
+
+    [Parameter]
+    public string AdditionalClasses { get; set; } = "";
+}

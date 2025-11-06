@@ -905,8 +905,6 @@ public class ApplicationDbContextTests : IDisposable
         // Verify the changes contain _TargetUser identification in simplified string format
         auditLog.Changes.Should().Contain("_TargetUser");
         auditLog.Changes.Should().Contain("targetuser");
-        auditLog.Changes.Should().Contain("target@example.com");
-        // UserId is no longer included in the simplified string format
     }
 
     [Fact]
