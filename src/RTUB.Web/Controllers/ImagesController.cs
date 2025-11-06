@@ -34,7 +34,7 @@ public class ImagesController : ControllerBase
     /// <summary>
     /// Returns a file result with caching headers or 304 Not Modified if ETag matches
     /// </summary>
-    private IActionResult FileWithCache(byte[] data, string contentType)
+    private IActionResult FileWithCache(byte[] data, string contentType, DateTime? lastModified = null, bool immutable = false)
     {
         var etag = GenerateETag(data);
         
@@ -44,11 +44,38 @@ public class ImagesController : ControllerBase
             return StatusCode(304); // Not Modified
         }
 
+        // Check If-Modified-Since for conditional requests
+        if (lastModified.HasValue && Request.Headers.IfModifiedSince.Any())
+        {
+            if (DateTime.TryParse(Request.Headers.IfModifiedSince.ToString(), out var ifModifiedSince))
+            {
+                if (lastModified.Value <= ifModifiedSince.AddSeconds(1)) // Add 1 second tolerance for precision
+                {
+                    return StatusCode(304); // Not Modified
+                }
+            }
+        }
+
         Response.Headers.Append("ETag", etag);
-        // Use 'no-cache' which means "cache it, but always validate with server using ETag"
-        // This ensures image updates are seen immediately while still getting 304 responses
-        // for unchanged images (saving bandwidth). Alternative: use shorter max-age.
-        Response.Headers.Append("Cache-Control", "public, no-cache");
+        
+        // Set Last-Modified header if provided
+        if (lastModified.HasValue)
+        {
+            Response.Headers.Append("Last-Modified", lastModified.Value.ToUniversalTime().ToString("R"));
+        }
+        
+        // Use immutable caching when version is in URL (cache busting)
+        if (immutable)
+        {
+            Response.Headers.Append("Cache-Control", "public, max-age=31536000, immutable");
+        }
+        else
+        {
+            // Use 'no-cache' which means "cache it, but always validate with server using ETag"
+            // This ensures image updates are seen immediately while still getting 304 responses
+            // for unchanged images (saving bandwidth). Alternative: use shorter max-age.
+            Response.Headers.Append("Cache-Control", "public, no-cache");
+        }
         
         return File(data, contentType);
     }
@@ -97,10 +124,14 @@ public class ImagesController : ControllerBase
     {
         var imageData = await _imageService.GetProfileImageAsync(id);
 
+        // Check if version parameter is present for immutable caching
+        var hasVersion = Request.Query.ContainsKey("v");
+
         // If user has a profile picture, return it with caching
         if (imageData != null)
         {
-            return FileWithCache(imageData.Value.Data, imageData.Value.ContentType);
+            // Use immutable caching when version is specified in URL
+            return FileWithCache(imageData.Value.Data, imageData.Value.ContentType, DateTime.UtcNow, immutable: hasVersion);
         }
 
         // Otherwise, return the default profile picture (WebP for better performance)
@@ -112,7 +143,9 @@ public class ImagesController : ControllerBase
         }
 
         var imageBytes = await System.IO.File.ReadAllBytesAsync(defaultImagePath);
-        return FileWithCache(imageBytes, "image/webp");
+        // Default image can use immutable caching since it rarely changes
+        var defaultImageLastModified = System.IO.File.GetLastWriteTimeUtc(defaultImagePath);
+        return FileWithCache(imageBytes, "image/webp", defaultImageLastModified, immutable: true);
     }
 
     [HttpGet("instrument/{id}")]

@@ -40,6 +40,8 @@
         <img src="@AvatarUrl" 
              alt="@AltText" 
              class="avatar-card-image @(imageLoaded ? "" : "d-none")"
+             width="220"
+             height="220"
              @onload="@HandleImageLoad"
              loading="@(LazyLoad ? "lazy" : "eager")" />
     </div>

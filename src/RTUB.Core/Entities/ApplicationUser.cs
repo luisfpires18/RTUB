@@ -43,6 +43,7 @@ public class ApplicationUser : IdentityUser
     // Image handling
     public byte[]? ProfilePictureData { get; set; }
     public string? ProfilePictureContentType { get; set; }
+    public int ProfilePictureVersion { get; set; } = 1; // Incremented when picture changes for cache busting
     
     // Positions and Categories (stored as JSON)
     public string? PositionsJson { get; set; }
@@ -117,5 +118,5 @@ public class ApplicationUser : IdentityUser
         }
     }
     
-    public string ProfilePictureSrc => $"/api/images/profile/{Id}";
+    public string ProfilePictureSrc => $"/api/images/profile/{Id}?v={ProfilePictureVersion}";
 }
