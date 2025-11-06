@@ -375,6 +375,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             // Store as a simple readable string instead of JSON object
             changes["_TargetUser"] = $"{modifiedUserName}";
 
+            // Track which critical fields were modified (for transparency without exposing values)
+            var criticalFieldsModified = new List<string>();
+
             // First pass: Check if any modified property is a critical field
             foreach (var property in entry.Properties)
             {
@@ -387,9 +390,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     if (!AreValuesEqual(oldValue, newValue))
                     {
                         isCriticalChange = true;
-                        break; // No need to check further
+                        criticalFieldsModified.Add(property.Metadata.Name);
                     }
                 }
+            }
+
+            // Add critical fields metadata if any were modified
+            if (criticalFieldsModified.Any())
+            {
+                changes["_CriticalFieldsModified"] = criticalFieldsModified;
             }
 
             // Second pass: Log properties that actually changed (excluding sensitive fields)
