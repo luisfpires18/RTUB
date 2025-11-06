@@ -211,8 +211,9 @@ dotnet restore
 ```
 
 3. **Configure the application:**
-   - Update `appsettings.json` in `src/RTUB.Web/` if needed
-   - Default SQLite database: `app.db` (auto-created)
+   - Copy `appsettings.Development.json.example` to `appsettings.Development.json` (if not present)
+   - Update your local `appsettings.Development.json` with your development credentials
+   - The file is ignored by git to keep your secrets safe
 
 4. **Run the application:**
 ```bash
@@ -223,6 +224,61 @@ dotnet run
 5. **Access the application:**
    - Navigate to `https://localhost:5001` or `http://localhost:5000`
    - The database will be automatically migrated and seeded on first run
+
+### Configuration
+
+#### Local Development
+
+For local development, sensitive configuration values should be stored in `appsettings.Development.json` (which is git-ignored):
+
+```json
+{
+  "AdminUser": {
+    "Username": "your-username",
+    "Email": "your-email@example.com",
+    "Password": "YourPassword123!"
+  },
+  "EmailSettings": {
+    "SmtpServer": "smtp.gmail.com",
+    "SmtpPort": 587,
+    "SmtpUsername": "your-email@gmail.com",
+    "SmtpPassword": "your-app-password",
+    "SenderEmail": "sender@example.com",
+    "SenderName": "RTUB"
+  },
+  "IDrive": {
+    "Endpoint": "s3.endpoint.example.com",
+    "Bucket": "your-bucket",
+    "AccessKey": "your-access-key",
+    "SecretKey": "your-secret-key"
+  }
+}
+```
+
+#### Production Deployment
+
+For production, **do not include credentials in JSON files**. Instead, use environment variables:
+
+**SMTP Configuration:**
+- `EmailSettings__SmtpUsername` - SMTP username
+- `EmailSettings__SmtpPassword` - SMTP password
+- `EmailSettings__SenderEmail` - Sender email address
+
+**Admin User Configuration:**
+- `AdminUser__Username` - Default admin username
+- `AdminUser__Email` - Default admin email
+- `AdminUser__Password` - Default admin password
+
+**IDrive/S3 Configuration:**
+- `IDrive__AccessKey` - S3-compatible storage access key
+- `IDrive__SecretKey` - S3-compatible storage secret key
+- `IDrive__Endpoint` - S3-compatible storage endpoint
+- `IDrive__Bucket` - Storage bucket name
+
+The configuration system follows the standard ASP.NET Core hierarchy:
+1. `appsettings.json` (base settings)
+2. `appsettings.{Environment}.json` (environment-specific settings)
+3. Environment variables (highest priority - overrides all)
 
 ### Default Configuration
 

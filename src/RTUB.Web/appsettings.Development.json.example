@@ -1,0 +1,29 @@
+{
+  "UseSqlServer": false,
+  "ConnectionStrings": {
+    "SqliteConnection": "Data Source=app.db"
+  },
+  "AdminUser": {
+    "Username": "admin",
+    "Email": "admin@example.com",
+    "Password": "YourSecurePassword123!"
+  },
+  "EmailSettings": {
+    "SmtpServer": "smtp.gmail.com",
+    "SmtpPort": 587,
+    "SmtpUsername": "your-email@gmail.com",
+    "SmtpPassword": "your-app-password-here",
+    "SenderEmail": "sender@example.com",
+    "SenderName": "RTUB",
+    "EnableSsl": true
+  },
+  "ImageCaching": {
+    "CacheDurationInSeconds": 86400
+  },
+  "IDrive": {
+    "Endpoint": "s3.eu-west-4.idrivee2.com",
+    "Bucket": "your-bucket-name",
+    "AccessKey": "your-access-key-here",
+    "SecretKey": "your-secret-key-here"
+  }
+}
