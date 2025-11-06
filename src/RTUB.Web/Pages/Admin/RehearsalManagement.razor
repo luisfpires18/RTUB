@@ -11,6 +11,7 @@
 @inject IRehearsalService RehearsalService
 @inject IRehearsalAttendanceService AttendanceService
 @inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Gestão de Ensaios</h1>
 <p>Gestão de ensaios e estatísticas de presenças.</p>
@@ -359,7 +360,7 @@ else
                 <div class="modal-body">
                     @if (selectedRehearsalAttendances != null && selectedRehearsalAttendances.Any())
                     {
-                        <!-- Search Bar -->
+                        <!-- Search Bar (top, unchanged) -->
                         <div class="mb-3">
                             <TableSearchBar SearchTerm="@attendanceSearchTerm"
                                            Placeholder="Pesquisar por nome..."
@@ -424,6 +425,88 @@ else
                             </tbody>
                         </table>
                         </div>
+                        
+                        <!-- Add Member Section (Bottom Right) -->
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                <div class="mt-3">
+                                    <!-- Success Alert (auto-dismiss) -->
+                                    @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && !addMemberFeedbackIsError)
+                                    {
+                                        <Alert Type="Alert.AlertType.Purple" 
+                                               Message="@addMemberFeedbackMessage" 
+                                               Dismissible="true"
+                                               OnDismiss="ClearAddMemberFeedback"
+                                               AdditionalClasses="mb-2" />
+                                    }
+                                    
+                                    <!-- Error Alert (manual dismiss) -->
+                                    @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && addMemberFeedbackIsError)
+                                    {
+                                        <Alert Type="Alert.AlertType.Error" 
+                                               Message="@addMemberFeedbackMessage" 
+                                               Dismissible="true"
+                                               OnDismiss="ClearAddMemberFeedback"
+                                               AdditionalClasses="mb-2" />
+                                    }
+                                    
+                                    <!-- Collapsible Search Bar -->
+                                    @if (showAddMemberDropdown)
+                                    {
+                                        <div class="mb-2" @onkeydown="HandleAddMemberKeyDown">
+                                            <TableSearchBar SearchTerm="@addMemberSearchTerm"
+                                                           Placeholder="Pesquisar membro por nome..."
+                                                           OnSearchChanged="@HandleAddMemberSearchChanged" />
+                                            
+                                            @if (filteredMembersForAdd.Any())
+                                            {
+                                                <div class="member-list member-list-scrollable mt-2">
+                                                    @foreach (var member in filteredMembersForAdd.Take(MaxMemberSearchResults))
+                                                    {
+                                                        <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                                             @onclick="() => AddMemberToAttendance(member)"
+                                                             tabindex="0"
+                                                             @onkeydown="@(async (e) => await HandleMemberItemKeyDown(e, member))">
+                                                            <div class="d-flex align-items-center">
+                                                                <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                                     class="member-avatar-small me-2" />
+                                                                <div>
+                                                                    @if (!string.IsNullOrEmpty(member.Nickname))
+                                                                    {
+                                                                        <div><strong>@member.Nickname</strong></div>
+                                                                        <div class="text-muted small">@member.FirstName @member.LastName</div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div><strong>@member.FirstName @member.LastName</strong></div>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                            else if (!string.IsNullOrEmpty(addMemberSearchTerm))
+                                            {
+                                                <Alert Type="Alert.AlertType.Purple" 
+                                                       Message="Nenhum membro encontrado." 
+                                                       AdditionalClasses="mt-2" />
+                                            }
+                                        </div>
+                                    }
+                                    
+                                    <!-- Circular Add Button (Bottom Right) -->
+                                    <div class="d-flex justify-content-end">
+                                        <button class="btn btn-purple rounded-circle p-2" 
+                                                @onclick="ToggleAddMemberDropdown" 
+                                                title="Adicionar Membro"
+                                                style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="bi @(showAddMemberDropdown ? "bi-x-lg" : "bi-plus-lg")"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
                     }
                     else
                     {
@@ -467,6 +550,9 @@ else
 @code {
     private bool loading = true;
     private string activeTab = "rehearsals";
+    
+    // Constants
+    private const int MaxMemberSearchResults = 20;
 
     // Rehearsals data
     private List<Rehearsal>? rehearsals;
@@ -500,6 +586,15 @@ else
     private List<RehearsalAttendance>? selectedRehearsalAttendances;
     private List<RehearsalAttendance> filteredAttendances = new();
     private string attendanceSearchTerm = string.Empty;
+    
+    // Add member to attendance
+    private bool showAddMemberDropdown = false;
+    private string addMemberSearchTerm = string.Empty;
+    private List<ApplicationUser> allMembers = new();
+    private List<ApplicationUser> filteredMembersForAdd = new();
+    private string addMemberFeedbackMessage = string.Empty;
+    private bool addMemberFeedbackIsError = false;
+    private Timer? feedbackDismissTimer;
 
     // Delete confirmation
     private bool showDeleteConfirmation = false;
@@ -522,7 +617,15 @@ else
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        await LoadMembers();
         loading = false;
+    }
+    
+    private async Task LoadMembers()
+    {
+        // Load all members with Member role for the add dropdown
+        var membersInRole = await UserManager.GetUsersInRoleAsync("Member");
+        allMembers = membersInRole.OrderBy(u => u.FirstName).ThenBy(u => u.LastName).ToList();
     }
 
     private async Task LoadData()
@@ -789,6 +892,143 @@ else
         selectedRehearsalAttendances = null;
         filteredAttendances = new();
         attendanceSearchTerm = string.Empty;
+        
+        // Reset add member state
+        showAddMemberDropdown = false;
+        addMemberSearchTerm = string.Empty;
+        filteredMembersForAdd = new();
+        feedbackDismissTimer?.Dispose();
+        addMemberFeedbackMessage = string.Empty;
+        addMemberFeedbackIsError = false;
+    }
+    
+    private void ToggleAddMemberDropdown()
+    {
+        showAddMemberDropdown = !showAddMemberDropdown;
+        if (!showAddMemberDropdown)
+        {
+            addMemberSearchTerm = string.Empty;
+            filteredMembersForAdd = new();
+        }
+        ClearAddMemberFeedback();
+    }
+    
+    private void FilterMembersForAdd()
+    {
+        if (string.IsNullOrWhiteSpace(addMemberSearchTerm))
+        {
+            filteredMembersForAdd = new();
+            return;
+        }
+        
+        // Filter members who are NOT already in the attendance list
+        var existingUserIds = selectedRehearsalAttendances?.Select(a => a.UserId).ToHashSet() ?? new HashSet<string>();
+        
+        filteredMembersForAdd = allMembers
+            .Where(m => !existingUserIds.Contains(m.Id))
+            .Where(m =>
+                (m.FirstName?.Contains(addMemberSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (m.LastName?.Contains(addMemberSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (m.Nickname?.Contains(addMemberSearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                ($"{m.FirstName} {m.LastName}".Contains(addMemberSearchTerm, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(m => m.FirstName)
+            .ThenBy(m => m.LastName)
+            .ToList();
+    }
+    
+    private void ClearAddMemberSearch()
+    {
+        addMemberSearchTerm = string.Empty;
+        filteredMembersForAdd = new();
+    }
+    
+    private void ClearAddMemberFeedback()
+    {
+        feedbackDismissTimer?.Dispose();
+        addMemberFeedbackMessage = string.Empty;
+        addMemberFeedbackIsError = false;
+    }
+    
+    private void HandleAddMemberSearchChanged(string searchTerm)
+    {
+        addMemberSearchTerm = searchTerm;
+        FilterMembersForAdd();
+    }
+    
+    private void HandleAddMemberKeyDown(KeyboardEventArgs e)
+    {
+        // Esc key collapses the search
+        if (e.Key == "Escape")
+        {
+            showAddMemberDropdown = false;
+            addMemberSearchTerm = string.Empty;
+            filteredMembersForAdd = new();
+        }
+    }
+    
+    private async Task HandleMemberItemKeyDown(KeyboardEventArgs e, ApplicationUser member)
+    {
+        // Enter key confirms selection
+        if (e.Key == "Enter")
+        {
+            await AddMemberToAttendance(member);
+        }
+    }
+    
+    private async Task AddMemberToAttendance(ApplicationUser member)
+    {
+        if (selectedRehearsal == null)
+            return;
+        
+        try
+        {
+            // Create attendance record
+            // Note: MarkAttendanceAsync defaults to Attended=false (pending approval)
+            // We immediately update it to Attended=true since admin is adding them
+            var attendance = await AttendanceService.MarkAttendanceAsync(
+                selectedRehearsal.Id, 
+                member.Id, 
+                member.MainInstrument);
+            
+            // Mark as attended (confirmed) immediately for admin additions
+            await AttendanceService.UpdateAttendanceAsync(attendance.Id, true, member.MainInstrument);
+            
+            // Reload modal data to show the new member in the attendance list
+            await ViewAttendances(selectedRehearsal);
+            
+            // Reload main table data to update attendance counts in rehearsal list
+            // (counts are calculated from rehearsal.Attendances navigation property)
+            await LoadData();
+            
+            // Reset add member dropdown
+            showAddMemberDropdown = false;
+            addMemberSearchTerm = string.Empty;
+            filteredMembersForAdd = new();
+            
+            // Show success feedback
+            var displayName = !string.IsNullOrEmpty(member.Nickname) ? member.Nickname : $"{member.FirstName} {member.LastName}";
+            addMemberFeedbackMessage = $"{displayName} foi adicionado à lista de presenças.";
+            addMemberFeedbackIsError = false;
+            
+            // Auto-dismiss success message after 3 seconds
+            feedbackDismissTimer?.Dispose();
+            feedbackDismissTimer = new Timer(_ =>
+            {
+                InvokeAsync(() =>
+                {
+                    ClearAddMemberFeedback();
+                    StateHasChanged();
+                });
+            }, null, 3000, Timeout.Infinite);
+        }
+        catch (Exception ex)
+        {
+            addMemberFeedbackMessage = $"Erro ao adicionar membro: {ex.Message}";
+            addMemberFeedbackIsError = true;
+            // Error messages require manual dismissal (no auto-dismiss)
+        }
+        
+        StateHasChanged();
     }
 
     private async Task ApproveAttendance(RehearsalAttendance attendance)
