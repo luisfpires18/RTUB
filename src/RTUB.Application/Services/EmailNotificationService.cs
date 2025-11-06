@@ -1,12 +1,10 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Enums;
 using System.Net;
 using System.Net.Mail;
-using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 
 namespace RTUB.Application.Services;
 
@@ -39,7 +37,7 @@ public class EmailNotificationService : IEmailNotificationService
             _logger.LogInformation("Email rate limited: {CacheKey}", cacheKey);
             return true; // Already sent recently
         }
-        
+
         // Mark as sent for the next 5 minutes
         _cache.Set(cacheKey, true, TimeSpan.FromMinutes(5));
         return false;
@@ -90,16 +88,29 @@ public class EmailNotificationService : IEmailNotificationService
         try
         {
             // Get email settings from configuration
-            var recipientEmail = _configuration["EmailSettings:RecipientEmail"] ?? "jeans@rtub.pt";
+            var recipientEmail = _configuration["EmailSettings:RecipientEmail"];
             var smtpServer = _configuration["EmailSettings:SmtpServer"];
             var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
             var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
             var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
             var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
-            var senderEmail = _configuration["EmailSettings:SenderEmail"] ?? "jeans@rtub.pt";
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
             var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
             var enableSslStr = _configuration["EmailSettings:EnableSsl"];
             var enableSsl = enableSslStr != "false"; // Default to true
+
+            // Validate required email settings
+            if (string.IsNullOrEmpty(recipientEmail))
+            {
+                _logger.LogError("RecipientEmail is not configured in EmailSettings");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(senderEmail))
+            {
+                _logger.LogError("SenderEmail is not configured in EmailSettings");
+                return;
+            }
 
             var subject = $"Novo Pedido de Atuação - {requestName}";
 
@@ -146,10 +157,10 @@ Submetido em: {createdAt:dd/MM/yyyy HH:mm}
                 Body = body,
                 IsBodyHtml = false
             };
+
             mailMessage.To.Add(recipientEmail);
 
             await smtpClient.SendMailAsync(mailMessage);
-            _logger.LogInformation($"Email successfully sent to {recipientEmail} for request #{requestId}");
         }
         catch (Exception ex)
         {
@@ -178,10 +189,23 @@ Submetido em: {createdAt:dd/MM/yyyy HH:mm}
             var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
             var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
             var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
-            var senderEmail = _configuration["EmailSettings:SenderEmail"] ?? "jeans@rtub.pt";
-            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var senderName = _configuration["EmailSettings:SenderName"];
             var enableSslStr = _configuration["EmailSettings:EnableSsl"];
             var enableSsl = enableSslStr != "false"; // Default to true
+
+            // Validate required email settings
+            if (string.IsNullOrEmpty(email))
+            {
+                _logger.LogError("Recipient email is null or empty");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(senderEmail))
+            {
+                _logger.LogError("SenderEmail is not configured in EmailSettings");
+                return;
+            }
 
             var subject = "Bem-vindo à RTUB - Credenciais de Acesso";
 
@@ -225,7 +249,7 @@ RTUB
 
             var mailMessage = new MailMessage
             {
-                From = new MailAddress(senderEmail, senderName),
+                From = new MailAddress(senderEmail, senderName ?? "RTUB"),
                 Subject = subject,
                 Body = body,
                 IsBodyHtml = false

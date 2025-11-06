@@ -15,7 +15,7 @@ namespace RTUB.Application.Services;
 public class IDriveAudioStorageService : IAudioStorageService, IDisposable
 {
     private readonly IAmazonS3 _s3Client;
-    private readonly string _bucketName;
+    private readonly string? _bucketName;
     private readonly ILogger<IDriveAudioStorageService> _logger;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
 
@@ -25,20 +25,14 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
         _logger.LogInformation("Initializing IDriveAudioStorageService");
         
         // Get credentials from environment variables or configuration
-        var accessKey = Environment.GetEnvironmentVariable("IDRIVE_ACCESS_KEY") 
-                        ?? configuration["IDrive:AccessKey"];
-        var secretKey = Environment.GetEnvironmentVariable("IDRIVE_SECRET_KEY") 
-                        ?? configuration["IDrive:SecretKey"];
-        var endpoint = Environment.GetEnvironmentVariable("IDRIVE_ENDPOINT") 
-                       ?? configuration["IDrive:Endpoint"] 
-                       ?? "s3.eu-west-4.idrivee2.com";
-        _bucketName = Environment.GetEnvironmentVariable("IDRIVE_BUCKET") 
-                      ?? configuration["IDrive:Bucket"] 
-                      ?? "rtub";
+        var accessKey = configuration["IDrive:AccessKey"];
+        var secretKey = configuration["IDrive:SecretKey"];
+        var endpoint = configuration["IDrive:Endpoint"];
+        _bucketName = configuration["IDrive:Bucket"];
 
         if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
         {
-            var errorMsg = "iDrive e2 credentials not configured. Set IDRIVE_ACCESS_KEY and IDRIVE_SECRET_KEY environment variables.";
+            var errorMsg = "iDrive e2 credentials not configured. Set environment variables.";
             _logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }

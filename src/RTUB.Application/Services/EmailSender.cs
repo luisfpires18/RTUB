@@ -31,10 +31,16 @@ public class EmailSender : IEmailSender
             var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
             var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
             var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
-            var senderEmail = _configuration["EmailSettings:SenderEmail"] ?? "jeans@rtub.pt";
-            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var senderName = _configuration["EmailSettings:SenderName"];
             var enableSslStr = _configuration["EmailSettings:EnableSsl"];
             var enableSsl = enableSslStr != "false"; // Default to true
+
+            if (string.IsNullOrEmpty(senderEmail))
+            {
+                _logger.LogError("SenderEmail is not configured in EmailSettings");
+                return;
+            }
 
             // Check if SMTP is configured
             if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
