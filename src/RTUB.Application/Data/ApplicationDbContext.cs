@@ -702,7 +702,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     if (entry.Entity is Label label && !string.IsNullOrEmpty(label.Content))
                     {
                         return label.Content.Length > 100 
-                            ? label.Content.Substring(0, 100) + "..." 
+                            ? label.Content[..100] + "..." 
                             : label.Content;
                     }
                     break;
@@ -733,9 +733,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     break;
             }
         }
-        catch
+        catch (InvalidOperationException)
         {
-            // If resolution fails, return null (will fall back to ID display)
+            // If resolution fails due to database query issues, return null (will fall back to ID display)
             return null;
         }
         
