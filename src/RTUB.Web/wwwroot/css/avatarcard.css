@@ -1,0 +1,268 @@
+/* AvatarCard Component Styles */
+/* Reuses hierarchy card visual without connectors */
+
+/* Grid Container */
+.avatar-card-grid {
+    display: grid;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Responsive columns */
+/* Mobile: 1-2 columns */
+@media (max-width: 767px) {
+    .avatar-card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+}
+
+/* Tablet: 3 columns */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .avatar-card-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Desktop: 4-6 columns (auto-fit based on available space) */
+@media (min-width: 1024px) {
+    .avatar-card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+}
+
+@media (min-width: 1400px) {
+    .avatar-card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+}
+
+/* Avatar Card */
+.avatar-card {
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 100%;
+    cursor: pointer;
+}
+
+.avatar-card:hover,
+.avatar-card:focus {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(111, 66, 193, 0.3);
+    outline: none;
+}
+
+.avatar-card:focus-visible {
+    outline: 2px solid #6f42c1;
+    outline-offset: 2px;
+}
+
+/* Top-right action buttons */
+.avatar-card-edit-btn,
+.avatar-card-delete-btn {
+    position: absolute;
+    top: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.avatar-card-edit-btn {
+    right: 3rem;
+    color: #333;
+}
+
+.avatar-card-delete-btn {
+    right: 0.5rem;
+    background-color: rgba(220, 53, 69, 0.95);
+    color: white;
+}
+
+.avatar-card-edit-btn:hover,
+.avatar-card-edit-btn:focus {
+    background-color: white;
+    transform: scale(1.1);
+}
+
+.avatar-card-delete-btn:hover,
+.avatar-card-delete-btn:focus {
+    background-color: rgb(200, 35, 51);
+    transform: scale(1.1);
+}
+
+.avatar-card-edit-btn:focus,
+.avatar-card-delete-btn:focus {
+    outline: 2px solid #6f42c1;
+    outline-offset: 2px;
+}
+
+/* Avatar Image */
+.avatar-card-image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Skeleton loader */
+.avatar-card-skeleton {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 25%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Card Content */
+.avatar-card-content {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex-grow: 1;
+}
+
+.avatar-card-tuna-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #e2e2e2;
+    text-align: center;
+    line-height: 1.3;
+}
+
+.avatar-card-full-name {
+    font-size: 0.9rem;
+    color: #b0b0b0;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.avatar-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: center;
+    min-height: 1.5rem;
+}
+
+.avatar-card-instrument {
+    font-size: 0.85rem;
+    color: #e2e2e2;
+    text-align: center;
+    margin-top: auto;
+    padding-top: 0.5rem;
+}
+
+/* View button */
+.avatar-card-actions {
+    padding: 0 1rem 1rem 1rem;
+}
+
+.btn-purple {
+    background-color: #6f42c1;
+    color: white;
+    border: none;
+}
+
+.btn-purple:hover,
+.btn-purple:focus {
+    background-color: #5a32a3;
+    color: white;
+}
+
+/* Empty state */
+.avatar-card-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+/* Skeleton card for loading state */
+.avatar-card-skeleton-card {
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    overflow: hidden;
+    height: 100%;
+    min-height: 300px;
+}
+
+.avatar-card-skeleton-card .avatar-card-image-wrapper {
+    aspect-ratio: 1;
+}
+
+/* Accessibility */
+.avatar-card:focus-within .avatar-card-edit-btn,
+.avatar-card:focus-within .avatar-card-delete-btn {
+    outline: 2px solid #6f42c1;
+    outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+    .avatar-card-content {
+        padding: 0.75rem;
+    }
+
+    .avatar-card-tuna-name {
+        font-size: 1rem;
+    }
+
+    .avatar-card-full-name {
+        font-size: 0.85rem;
+    }
+
+    .avatar-card-instrument {
+        font-size: 0.8rem;
+    }
+
+    .avatar-card-edit-btn,
+    .avatar-card-delete-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.85rem;
+    }
+
+    .avatar-card-edit-btn {
+        right: 2.5rem;
+    }
+}
