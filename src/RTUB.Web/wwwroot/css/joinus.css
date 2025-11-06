@@ -143,16 +143,19 @@
 /* Motivational Banner */
 .join-us-motivation {
     max-width: 900px;
-    margin: 0 auto 3rem auto;
-    background: linear-gradient(135deg, #6f42c1 0%, #5a2f9e 100%);
+    margin: 0 auto;
+}
+
+.motivation-banner {
+    padding: 1.75rem 2rem;
+    background: linear-gradient(135deg, #6f42c1 0%, #8b5cf6 100%);
     border-radius: 1rem;
-    padding: 2.5rem;
-    box-shadow: 0 6px 12px rgba(111, 66, 193, 0.4);
+    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.4);
     position: relative;
     overflow: hidden;
 }
 
-.join-us-motivation::before {
+.motivation-banner::before {
     content: '';
     position: absolute;
     top: -50%;
@@ -164,48 +167,33 @@
 }
 
 @keyframes pulse {
-    0%, 100% {
-        opacity: 0.5;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.05);
-    }
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
 }
 
-.motivation-wrapper {
+.motivation-content {
+    display: flex;
+    align-items: center;
+    color: #ffffff;
+    font-size: 1.25rem;
+    position: relative;
+    z-index: 1;
+}
+
+.motivation-content i {
+    font-size: 2rem;
+    color: #ffd700;
+}
+
+.motivation-content strong {
+    white-space: pre-wrap;
+}
+
+.motivation-edit-button {
     position: relative;
     z-index: 2;
 }
 
-.motivation-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
-}
-
-.motivation-icon {
-    font-size: 2rem;
-    color: #ffd700;
-    flex-shrink: 0;
-}
-
-.motivation-title {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0;
-}
-
-.motivation-text {
-    font-size: 1.25rem;
-    line-height: 1.8;
-    color: #ffffff;
-    margin: 0;
-    text-align: left;
-}
 
 /* How to Join Section */
 .join-us-how-to {

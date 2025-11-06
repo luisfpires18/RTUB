@@ -175,6 +175,24 @@
     margin-bottom: 1.25rem;
 }
 
+.closing-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    color: #e2e2e2;
+}
+
+.closing-content i {
+    font-size: 2rem;
+    color: #6f42c1;
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+}
+
+.closing-text-wrapper {
+    flex: 1;
+}
+
 .closing-icon {
     font-size: 2rem;
     color: #6f42c1;
