@@ -36,6 +36,12 @@ public class EmailSender : IEmailSender
             var enableSslStr = _configuration["EmailSettings:EnableSsl"];
             var enableSsl = enableSslStr != "false"; // Default to true
 
+            if (string.IsNullOrEmpty(senderEmail))
+            {
+                _logger.LogError("SenderEmail is not configured in EmailSettings");
+                return;
+            }
+
             // Check if SMTP is configured
             if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
             {
