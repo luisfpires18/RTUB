@@ -90,13 +90,13 @@ public class EmailNotificationService : IEmailNotificationService
         try
         {
             // Get email settings from configuration
-            var recipientEmail = _configuration["EmailSettings:RecipientEmail"] ?? "jeans@rtub.pt";
+            var recipientEmail = _configuration["EmailSettings:RecipientEmail"];
             var smtpServer = _configuration["EmailSettings:SmtpServer"];
             var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
             var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
             var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
             var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
-            var senderEmail = _configuration["EmailSettings:SenderEmail"] ?? "jeans@rtub.pt";
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
             var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
             var enableSslStr = _configuration["EmailSettings:EnableSsl"];
             var enableSsl = enableSslStr != "false"; // Default to true
@@ -146,6 +146,7 @@ Submetido em: {createdAt:dd/MM/yyyy HH:mm}
                 Body = body,
                 IsBodyHtml = false
             };
+
             mailMessage.To.Add(recipientEmail);
 
             await smtpClient.SendMailAsync(mailMessage);
@@ -178,8 +179,8 @@ Submetido em: {createdAt:dd/MM/yyyy HH:mm}
             var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
             var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
             var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
-            var senderEmail = _configuration["EmailSettings:SenderEmail"] ?? "jeans@rtub.pt";
-            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var senderName = _configuration["EmailSettings:SenderName"];
             var enableSslStr = _configuration["EmailSettings:EnableSsl"];
             var enableSsl = enableSslStr != "false"; // Default to true
 
