@@ -15,6 +15,7 @@ public interface ISongService
     Task UpdateSongAsync(int id, string title, int? trackNumber, string? lyricAuthor, string? musicAuthor, string? adaptation, int? duration);
     Task SetSongLyricsAsync(int id, string? lyrics);
     Task SetSongSpotifyUrlAsync(int id, string? url);
+    Task SetSongHasMusicAsync(int id, bool hasMusic);
     Task AddYouTubeUrlAsync(int songId, string url);
     Task RemoveYouTubeUrlAsync(int songId, string url);
     Task DeleteSongAsync(int id);

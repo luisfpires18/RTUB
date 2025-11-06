@@ -80,4 +80,9 @@ public class Song : BaseEntity
     {
         SpotifyUrl = url;
     }
+
+    public void SetHasMusic(bool hasMusic)
+    {
+        HasMusic = hasMusic;
+    }
 }

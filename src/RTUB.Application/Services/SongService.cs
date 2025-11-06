@@ -96,6 +96,20 @@ public class SongService : ISongService
         await _context.SaveChangesAsync();
     }
 
+    public async Task SetSongHasMusicAsync(int id, bool hasMusic)
+    {
+        var song = await _context.Songs
+            .Include(s => s.YouTubeUrls)
+            .FirstOrDefaultAsync(s => s.Id == id);
+            
+        if (song == null)
+            throw new InvalidOperationException($"Song with ID {id} not found");
+
+        song.SetHasMusic(hasMusic);
+        // EF Core change tracker automatically detects modifications to loaded entities
+        await _context.SaveChangesAsync();
+    }
+
     public async Task DeleteSongAsync(int id)
     {
         var song = await _context.Songs

@@ -461,7 +461,8 @@ else
                 Adaptation = fullSong.Adaptation,
                 SpotifyUrl = fullSong.SpotifyUrl,
                 Lyrics = fullSong.Lyrics,
-                Duration = fullSong.Duration
+                Duration = fullSong.Duration,
+                HasMusic = fullSong.HasMusic
             };
 
             editingYouTubeUrls = fullSong.YouTubeUrls?.Select(y => y.Url).ToList() ?? new List<string>();
@@ -548,6 +549,9 @@ else
             // Update Spotify URL
             await SongService.SetSongSpotifyUrlAsync(editingSong.Id, editingSong.SpotifyUrl);
 
+            // Update HasMusic
+            await SongService.SetSongHasMusicAsync(editingSong.Id, editingSong.HasMusic);
+
             // Update lyrics
             await SongService.SetSongLyricsAsync(editingSong.Id, editingSong.Lyrics);
 
@@ -589,7 +593,8 @@ else
             MusicAuthor = "",
             Adaptation = "",
             SpotifyUrl = "",
-            Lyrics = ""
+            Lyrics = "",
+            HasMusic = false
         };
 
         editingYouTubeUrls = new List<string> { string.Empty };
@@ -638,6 +643,9 @@ else
         {
             await SongService.SetSongSpotifyUrlAsync(newSong.Id, editingSong.SpotifyUrl);
         }
+
+        // Set HasMusic
+        await SongService.SetSongHasMusicAsync(newSong.Id, editingSong.HasMusic);
 
         // Set lyrics
         if (!string.IsNullOrWhiteSpace(editingSong.Lyrics))
