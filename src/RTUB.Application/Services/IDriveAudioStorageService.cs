@@ -4,8 +4,7 @@ using Amazon.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
-using System.Text;
-using System.Globalization;
+using RTUB.Application.Utilities;
 
 namespace RTUB.Application.Services;
 
@@ -138,8 +137,8 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
         songTitle = songTitle?.Trim() ?? string.Empty;
         
         // Normalize album and song names
-        var normalizedAlbum = NormalizeForS3Key(albumTitle);
-        var normalizedSong = NormalizeForS3Key(songTitle);
+        var normalizedAlbum = S3KeyNormalizer.NormalizeForS3Key(albumTitle);
+        var normalizedSong = S3KeyNormalizer.NormalizeForS3Key(songTitle);
         
         // Construct the full key path: album_folder/song_name.mp3
         var objectKey = $"{normalizedAlbum}/{normalizedSong}.mp3";
@@ -148,38 +147,6 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
             objectKey, albumTitle, trackNumber, songTitle);
         
         return objectKey;
-    }
-    
-    private string NormalizeForS3Key(string input)
-    {
-        if (string.IsNullOrEmpty(input))
-            return string.Empty;
-        
-        // Remove accents/diacritics
-        var normalizedString = input.Normalize(NormalizationForm.FormD);
-        var stringBuilder = new StringBuilder();
-        
-        foreach (var c in normalizedString)
-        {
-            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
-            {
-                stringBuilder.Append(c);
-            }
-        }
-        
-        var result = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
-        
-        // Convert to lowercase
-        result = result.ToLowerInvariant();
-        
-        // Replace spaces and special characters with underscores
-        result = System.Text.RegularExpressions.Regex.Replace(result, @"[^a-z0-9]+", "_");
-        
-        // Remove leading/trailing underscores
-        result = result.Trim('_');
-        
-        return result;
     }
 
     public void Dispose()
