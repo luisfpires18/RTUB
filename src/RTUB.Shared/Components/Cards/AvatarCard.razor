@@ -78,7 +78,7 @@
                 @onclick="@OnView"
                 title="@ViewTooltip"
                 aria-label="@ViewTooltip">
-            <i class="bi bi-eye"></i> Ver Detalhes
+            <i class="bi bi-eye"></i> @ViewButtonText
         </button>
     </div>
 </div>
@@ -122,6 +122,9 @@
 
     [Parameter]
     public string ViewTooltip { get; set; } = "Ver Detalhes";
+
+    [Parameter]
+    public string ViewButtonText { get; set; } = "Ver Detalhes";
 
     [Parameter]
     public string EditTooltip { get; set; } = "Editar";
