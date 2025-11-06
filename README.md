@@ -242,7 +242,7 @@ For local development, sensitive configuration values should be stored in `appse
     "SmtpServer": "smtp.gmail.com",
     "SmtpPort": 587,
     "SmtpUsername": "your-email@gmail.com",
-    "SmtpPassword": "your-app-password",
+    "SmtpPassword": "your-gmail-app-password",
     "SenderEmail": "sender@example.com",
     "SenderName": "RTUB"
   },
@@ -255,13 +255,15 @@ For local development, sensitive configuration values should be stored in `appse
 }
 ```
 
+**Note:** For Gmail SMTP, use an [App Password](https://support.google.com/accounts/answer/185833) (not your regular Gmail password). Generate one in your Google Account settings under Security > 2-Step Verification > App passwords.
+
 #### Production Deployment
 
 For production, **do not include credentials in JSON files**. Instead, use environment variables:
 
 **SMTP Configuration:**
 - `EmailSettings__SmtpUsername` - SMTP username
-- `EmailSettings__SmtpPassword` - SMTP password
+- `EmailSettings__SmtpPassword` - SMTP password (for Gmail, use an App Password)
 - `EmailSettings__SenderEmail` - Sender email address
 
 **Admin User Configuration:**
@@ -275,10 +277,10 @@ For production, **do not include credentials in JSON files**. Instead, use envir
 - `IDrive__Endpoint` - S3-compatible storage endpoint
 - `IDrive__Bucket` - Storage bucket name
 
-The configuration system follows the standard ASP.NET Core hierarchy:
+The configuration system follows the standard ASP.NET Core hierarchy (from lowest to highest priority):
 1. `appsettings.json` (base settings)
-2. `appsettings.{Environment}.json` (environment-specific settings)
-3. Environment variables (highest priority - overrides all)
+2. `appsettings.{Environment}.json` (environment-specific overrides)
+3. Environment variables (overrides all JSON settings)
 
 ### Default Configuration
 

@@ -12,7 +12,7 @@
     "SmtpServer": "smtp.gmail.com",
     "SmtpPort": 587,
     "SmtpUsername": "your-email@gmail.com",
-    "SmtpPassword": "your-app-password-here",
+    "SmtpPassword": "your-gmail-app-password",
     "SenderEmail": "sender@example.com",
     "SenderName": "RTUB",
     "EnableSsl": true
@@ -21,7 +21,7 @@
     "CacheDurationInSeconds": 86400
   },
   "IDrive": {
-    "Endpoint": "s3.eu-west-4.idrivee2.com",
+    "Endpoint": "s3.your-provider.example.com",
     "Bucket": "your-bucket-name",
     "AccessKey": "your-access-key-here",
     "SecretKey": "your-secret-key-here"
