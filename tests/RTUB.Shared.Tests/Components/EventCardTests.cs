@@ -132,7 +132,7 @@ public class EventCardTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("bi-check-circle-fill", "should show enrolled check icon");
-        cut.Markup.Should().Contain("btn-success", "enrolled button should have success style");
+        cut.Markup.Should().Contain("btn-purple", "enrolled button should have purple style");
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public class EventCardTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("bi-music-note-list", "should show watch repertoire button");
-        cut.Markup.Should().Contain("btn-watch", "repertoire button should have watch style");
+        cut.Markup.Should().Contain("btn-outline-primary", "repertoire button should have primary outline style");
     }
 
     [Fact]
