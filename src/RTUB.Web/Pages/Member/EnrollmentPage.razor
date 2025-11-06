@@ -71,20 +71,17 @@ else
                             <div class="avatar-card-grid">
                                 @foreach (var enrollment in filteredPerformingMembers)
                                 {
-                                    <AvatarCard AvatarUrl="@enrollment.User?.ProfilePictureSrc"
+                                    <EnrollmentCard AvatarUrl="@enrollment.User?.ProfilePictureSrc"
                                                TunaName="@enrollment.User?.Nickname"
                                                FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}")"
                                                InstrumentText="@(enrollment.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(enrollment.Instrument.Value) : "")"
                                                AltText="@enrollment.User?.GetDisplayName()"
-                                               OnView="@(async () => await ViewMemberDetails(enrollment))"
                                                OnEdit="@(() => EditEnrollment(enrollment))"
                                                OnDelete="@(() => RemoveEnrollment(enrollment))"
                                                ShowEditButton="@(isCurrentUser(enrollment.UserId) || isAdmin)"
                                                ShowDeleteButton="@(isCurrentUser(enrollment.UserId) || isAdmin)"
-                                               ViewTooltip="Ver Detalhes"
                                                EditTooltip="Editar Inscrição"
                                                DeleteTooltip="Remover Inscrição"
-                                               ViewButtonText="Ver"
                                                LazyLoad="true">
                                         <BadgeContent>
                                             @if (enrollment.User != null)
@@ -103,7 +100,7 @@ else
                                                 }
                                             }
                                         </BadgeContent>
-                                    </AvatarCard>
+                                    </EnrollmentCard>
                                 }
                             </div>
                         </div>
@@ -148,25 +145,22 @@ else
                             <div class="avatar-card-grid">
                                 @foreach (var enrollment in filteredLeitaoMembers)
                                 {
-                                    <AvatarCard AvatarUrl="@enrollment.User?.ProfilePictureSrc"
+                                    <EnrollmentCard AvatarUrl="@enrollment.User?.ProfilePictureSrc"
                                                TunaName="@enrollment.User?.Nickname"
                                                FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}")"
                                                InstrumentText=""
                                                AltText="@enrollment.User?.GetDisplayName()"
-                                               OnView="@(async () => await ViewMemberDetails(enrollment))"
                                                OnEdit="@(() => EditEnrollment(enrollment))"
                                                OnDelete="@(() => RemoveEnrollment(enrollment))"
                                                ShowEditButton="@(isCurrentUser(enrollment.UserId) || isAdmin)"
                                                ShowDeleteButton="@(isCurrentUser(enrollment.UserId) || isAdmin)"
-                                               ViewTooltip="Ver Detalhes"
                                                EditTooltip="Editar Inscrição"
                                                DeleteTooltip="Remover Inscrição"
-                                               ViewButtonText="Ver"
                                                LazyLoad="true">
                                         <BadgeContent>
                                             <CategoryBadge Category="MemberCategory.Leitao" />
                                         </BadgeContent>
-                                    </AvatarCard>
+                                    </EnrollmentCard>
                                 }
                             </div>
                         </div>
@@ -443,12 +437,6 @@ else
         NavigationManager.NavigateTo(decodedUrl);
     }
     
-    private async Task ViewMemberDetails(RTUB.Core.Entities.Enrollment enrollment)
-    {
-        // Could navigate to member profile or show a modal
-        await Task.CompletedTask;
-    }
-    
     private void EditEnrollment(RTUB.Core.Entities.Enrollment enrollment)
     {
         editingEnrollment = enrollment;
@@ -545,7 +533,7 @@ else
         {
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(NavigationManager.ToAbsoluteUri("/chathub"))
-                .WithAutomaticReconnect()
+                .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
                 .Build();
             
             hubConnection.On<int, string, string, string, string, DateTime>("ReceiveMessage", async (id, userId, userName, avatarUrl, message, sentAt) =>
@@ -572,6 +560,7 @@ else
             hubConnection.Reconnecting += (error) =>
             {
                 isConnected = false;
+                Console.WriteLine($"SignalR: Connection lost, reconnecting... Error: {error?.Message}");
                 InvokeAsync(StateHasChanged);
                 return Task.CompletedTask;
             };
@@ -579,10 +568,35 @@ else
             hubConnection.Reconnected += async (connectionId) =>
             {
                 isConnected = true;
+                Console.WriteLine($"SignalR: Reconnected with connection ID: {connectionId}");
                 await InvokeAsync(StateHasChanged);
                 if (eventData != null)
                 {
                     await hubConnection.SendAsync("JoinEventGroup", eventData.Id);
+                }
+            };
+            
+            hubConnection.Closed += async (error) =>
+            {
+                isConnected = false;
+                Console.WriteLine($"SignalR: Connection closed. Error: {error?.Message}");
+                await InvokeAsync(StateHasChanged);
+                
+                // Attempt to reconnect after a delay
+                await Task.Delay(5000);
+                try
+                {
+                    await hubConnection.StartAsync();
+                    isConnected = true;
+                    if (eventData != null)
+                    {
+                        await hubConnection.SendAsync("JoinEventGroup", eventData.Id);
+                    }
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"SignalR: Reconnect failed: {ex.Message}");
                 }
             };
             
@@ -598,7 +612,7 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error connecting to SignalR: {ex.Message}");
+            Console.WriteLine($"SignalR: Error connecting: {ex.Message}");
             isConnected = false;
         }
     }

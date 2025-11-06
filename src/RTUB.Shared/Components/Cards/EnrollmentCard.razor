@@ -1,0 +1,123 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Enums
+@using RTUB.Application.Helpers
+
+@*
+    EnrollmentCard Component
+    Displays a member enrollment card with avatar, name, badges, and action buttons
+    Similar to AvatarCard but without the View button
+*@
+
+<div class="avatar-card" tabindex="0">
+    <!-- Edit & Delete buttons in top-right -->
+    @if (ShowEditButton)
+    {
+        <button class="avatar-card-edit-btn" 
+                @onclick="@OnEdit" 
+                @onclick:stopPropagation="true"
+                title="@EditTooltip"
+                aria-label="@EditTooltip">
+            <i class="bi bi-pencil"></i>
+        </button>
+    }
+    @if (ShowDeleteButton)
+    {
+        <button class="avatar-card-delete-btn" 
+                @onclick="@OnDelete" 
+                @onclick:stopPropagation="true"
+                title="@DeleteTooltip"
+                aria-label="@DeleteTooltip">
+            <i class="bi bi-trash"></i>
+        </button>
+    }
+
+    <!-- Avatar -->
+    <div class="avatar-card-image-wrapper">
+        @if (LazyLoad && !imageLoaded)
+        {
+            <div class="avatar-card-skeleton"></div>
+        }
+        <img src="@AvatarUrl" 
+             alt="@AltText" 
+             class="avatar-card-image @(imageLoaded ? "" : "d-none")"
+             @onload="@HandleImageLoad"
+             loading="@(LazyLoad ? "lazy" : "eager")" />
+    </div>
+
+    <!-- Member Info -->
+    <div class="avatar-card-content">
+        <!-- Nome de Tuna (primary) -->
+        @if (!string.IsNullOrEmpty(TunaName))
+        {
+            <div class="avatar-card-tuna-name">@TunaName</div>
+        }
+        
+        <!-- Nome (secondary) -->
+        @if (!string.IsNullOrEmpty(FullName))
+        {
+            <div class="avatar-card-full-name">@FullName</div>
+        }
+
+        <!-- Badges (Category/Roles) -->
+        <div class="avatar-card-badges">
+            @BadgeContent
+        </div>
+
+        <!-- Instrumento Principal / a aprender -->
+        @if (!string.IsNullOrEmpty(InstrumentText))
+        {
+            <div class="avatar-card-instrument">
+                <i class="bi bi-music-note"></i> @InstrumentText
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string AvatarUrl { get; set; } = "";
+
+    [Parameter]
+    public string TunaName { get; set; } = "";
+
+    [Parameter]
+    public string FullName { get; set; } = "";
+
+    [Parameter]
+    public string InstrumentText { get; set; } = "";
+
+    [Parameter]
+    public string AltText { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? BadgeContent { get; set; }
+
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    [Parameter]
+    public bool ShowEditButton { get; set; } = false;
+
+    [Parameter]
+    public bool ShowDeleteButton { get; set; } = false;
+
+    [Parameter]
+    public bool LazyLoad { get; set; } = true;
+
+    [Parameter]
+    public string EditTooltip { get; set; } = "Editar";
+
+    [Parameter]
+    public string DeleteTooltip { get; set; } = "Eliminar";
+
+    private bool imageLoaded = false;
+
+    private void HandleImageLoad()
+    {
+        imageLoaded = true;
+        StateHasChanged();
+    }
+}
