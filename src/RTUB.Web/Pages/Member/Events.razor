@@ -102,27 +102,25 @@ else
                                     var userEnrollment = GetUserEnrollment(eventItem.Id);
                                 }
                                 <div class="enrollment-section mt-auto p-2 rounded">
-                                    <!-- Main action buttons (View & Repertoire) -->
-                                    <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
-                                        <div class="btn-group btn-group-sm" role="group" aria-label="Ações principais do evento">
-                                            <button class="btn btn-outline-info d-flex align-items-center gap-1" 
-                                                    @onclick="() => OpenEnrollmentListModal(eventItem)" 
-                                                    title="Ver Inscrições">
-                                                <i class="bi bi-people icon-size-1rem"></i>
-                                                <span class="badge bg-info text-white">@GetEnrollmentCount(eventItem.Id)</span>
-                                            </button>
-                                            <button class="btn btn-outline-primary d-flex align-items-center" 
-                                                    @onclick="() => OpenRepertoireModal(eventItem)" 
-                                                    title="Ver Repertório">
-                                                <i class="bi bi-music-note-list icon-size-1rem"></i>
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <div class="d-flex gap-2 align-items-center justify-content-center flex-wrap">
+                                        <!-- View Enrollments button -->
+                                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
+                                                @onclick="() => OpenEnrollmentListModal(eventItem)" 
+                                                title="Ver Inscrições">
+                                            <i class="bi bi-people icon-size-1rem"></i>
+                                            <span>@GetEnrollmentCount(eventItem.Id)</span>
+                                        </button>
 
-                                    <!-- User enrollment action buttons -->
-                                    <div class="d-flex gap-1 align-items-center justify-content-center">
+                                        <!-- Watch Repertoire button -->
+                                        <button class="btn btn-sm btn-outline-primary d-flex align-items-center" 
+                                                @onclick="() => OpenRepertoireModal(eventItem)" 
+                                                title="Ver Repertório">
+                                            <i class="bi bi-music-note-list icon-size-1rem"></i>
+                                        </button>
+
                                         @if (userEnrollment == null)
                                         {
+                                            <!-- Enroll button -->
                                             <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
                                                     @onclick="() => OpenEnrollModal(eventItem)" 
                                                     title="Inscrever neste evento">
@@ -132,24 +130,27 @@ else
                                         }
                                         else
                                         {
-                                            <div class="btn-group btn-group-sm" role="group" aria-label="Ações de inscrição">
-                                                <button class="btn btn-success d-flex align-items-center gap-1" 
-                                                        disabled 
-                                                        title="Inscrito">
-                                                    <i class="bi bi-check-circle-fill icon-size-1rem"></i>
-                                                    <span class="d-none d-md-inline">Inscrito</span>
-                                                </button>
-                                                <button class="btn btn-outline-secondary d-flex align-items-center" 
-                                                        @onclick="() => OpenEditEnrollmentModal(userEnrollment)" 
-                                                        title="Editar Inscrição">
-                                                    <i class="bi bi-pencil-fill icon-size-1rem"></i>
-                                                </button>
-                                                <button class="btn btn-outline-danger d-flex align-items-center" 
-                                                        @onclick="() => OpenRemoveEnrollmentModal(userEnrollment)" 
-                                                        title="Anular Inscrição">
-                                                    <i class="bi bi-x-circle-fill icon-size-1rem"></i>
-                                                </button>
-                                            </div>
+                                            <!-- Enrolled status button (disabled, purple) -->
+                                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
+                                                    disabled 
+                                                    title="Inscrito">
+                                                <i class="bi bi-check-circle-fill icon-size-1rem"></i>
+                                                <span class="d-none d-md-inline">Inscrito</span>
+                                            </button>
+                                            
+                                            <!-- Edit enrollment button (white) -->
+                                            <button class="btn btn-sm btn-light d-flex align-items-center" 
+                                                    @onclick="() => OpenEditEnrollmentModal(userEnrollment)" 
+                                                    title="Editar Inscrição">
+                                                <i class="bi bi-pencil-fill icon-size-1rem"></i>
+                                            </button>
+                                            
+                                            <!-- Remove enrollment button (red) -->
+                                            <button class="btn btn-sm btn-danger d-flex align-items-center" 
+                                                    @onclick="() => OpenRemoveEnrollmentModal(userEnrollment)" 
+                                                    title="Anular Inscrição">
+                                                <i class="bi bi-x-circle-fill icon-size-1rem"></i>
+                                            </button>
                                         }
                                     </div>
                                 </div>
@@ -246,28 +247,31 @@ else
 
                                 <div class="admin-section mt-auto p-2 rounded">
                                     <small class="text-muted d-block mb-2 text-center"><i class="bi bi-clock-history"></i> Evento Passado</small>
-                                    <div class="d-flex gap-2 justify-content-center">
-                                        <div class="btn-group btn-group-sm" role="group" aria-label="Ações do evento passado">
-                                            <button class="btn btn-outline-info d-flex align-items-center gap-1" 
-                                                    @onclick="() => OpenEnrollmentListModal(eventItem)" 
-                                                    title="Ver Inscrições">
-                                                <i class="bi bi-people icon-size-1rem"></i>
-                                                <span class="badge bg-info text-white">@GetEnrollmentCount(eventItem.Id)</span>
+                                    <div class="d-flex gap-2 justify-content-center flex-wrap">
+                                        <!-- View Enrollments button -->
+                                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
+                                                @onclick="() => OpenEnrollmentListModal(eventItem)" 
+                                                title="Ver Inscrições">
+                                            <i class="bi bi-people icon-size-1rem"></i>
+                                            <span>@GetEnrollmentCount(eventItem.Id)</span>
+                                        </button>
+                                        
+                                        <!-- Watch Repertoire button -->
+                                        <button class="btn btn-sm btn-outline-primary d-flex align-items-center" 
+                                                @onclick="() => OpenRepertoireModal(eventItem)" 
+                                                title="Ver Repertório">
+                                            <i class="bi bi-music-note-list icon-size-1rem"></i>
+                                        </button>
+                                        
+                                        @if (eventItem.Type == EventType.Festival)
+                                        {
+                                            <!-- Trophy button -->
+                                            <button class="btn btn-sm btn-warning d-flex align-items-center" 
+                                                    @onclick="() => OpenTrophyModal(eventItem)" 
+                                                    title="Ver Prémios">
+                                                <i class="bi bi-trophy-fill icon-size-1rem"></i>
                                             </button>
-                                            <button class="btn btn-outline-primary d-flex align-items-center" 
-                                                    @onclick="() => OpenRepertoireModal(eventItem)" 
-                                                    title="Ver Repertório">
-                                                <i class="bi bi-music-note-list icon-size-1rem"></i>
-                                            </button>
-                                            @if (eventItem.Type == EventType.Festival)
-                                            {
-                                                <button class="btn btn-warning d-flex align-items-center" 
-                                                        @onclick="() => OpenTrophyModal(eventItem)" 
-                                                        title="Ver Prémios">
-                                                    <i class="bi bi-trophy-fill icon-size-1rem"></i>
-                                                </button>
-                                            }
-                                        </div>
+                                        }
                                     </div>
                                 </div>
                             </div>
