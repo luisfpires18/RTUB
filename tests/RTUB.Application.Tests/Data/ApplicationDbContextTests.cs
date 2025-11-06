@@ -702,15 +702,17 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("ApplicationUser");
         auditLog.Action.Should().Be("Modified");
         auditLog.IsCriticalAction.Should().BeTrue(); // PasswordHash changes are critical
         // But the actual hash value should NOT be in the changes (excluded field)
-        auditLog.Changes.Should().NotContain("PasswordHash");
         auditLog.Changes.Should().NotContain("oldhash");
         auditLog.Changes.Should().NotContain("newhash");
+        // However, we should indicate WHICH critical field was modified
+        auditLog.Changes.Should().Contain("_CriticalFieldsModified");
+        auditLog.Changes.Should().Contain("PasswordHash");
     }
 
     [Fact]
@@ -743,15 +745,17 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("ApplicationUser");
         auditLog.Action.Should().Be("Modified");
         auditLog.IsCriticalAction.Should().BeTrue(); // SecurityStamp changes are critical
         // But the actual stamp value should NOT be in the changes (excluded field)
-        auditLog.Changes.Should().NotContain("SecurityStamp");
         auditLog.Changes.Should().NotContain("oldstamp");
         auditLog.Changes.Should().NotContain("newstamp");
+        // However, we should indicate WHICH critical field was modified
+        auditLog.Changes.Should().Contain("_CriticalFieldsModified");
+        auditLog.Changes.Should().Contain("SecurityStamp");
     }
 
     [Fact]
@@ -983,6 +987,54 @@ public class ApplicationDbContextTests : IDisposable
         var auditLog = auditLogs.First();
         auditLog.UserName.Should().BeNull();
         auditLog.UserId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_WhenMultipleCriticalFieldsChanged_IncludesAllInCriticalFieldsModified()
+    {
+        // Arrange - Create a user
+        var user = new ApplicationUser
+        {
+            UserName = "testuser",
+            Email = "test@example.com",
+            FirstName = "Test",
+            LastName = "User",
+            PhoneContact = "123456789",
+            PasswordHash = "oldhash",
+            SecurityStamp = "oldstamp"
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        // Clear previous audit logs for cleaner test
+        var existingLogs = await _context.AuditLogs.ToListAsync();
+        _context.AuditLogs.RemoveRange(existingLogs);
+        await _context.SaveChangesAsync();
+
+        // Act - Modify multiple critical fields at once
+        var userFromDb = await _context.Users.FindAsync(user.Id);
+        userFromDb.Should().NotBeNull();
+        userFromDb!.PasswordHash = "newhash";
+        userFromDb.SecurityStamp = "newstamp";
+        await _context.SaveChangesAsync();
+
+        // Assert
+        var auditLogs = await _context.AuditLogs.ToListAsync();
+        auditLogs.Should().ContainSingle();
+
+        var auditLog = auditLogs.First();
+        auditLog.EntityType.Should().Be("ApplicationUser");
+        auditLog.Action.Should().Be("Modified");
+        auditLog.IsCriticalAction.Should().BeTrue();
+        // Both critical fields should be listed in _CriticalFieldsModified
+        auditLog.Changes.Should().Contain("_CriticalFieldsModified");
+        auditLog.Changes.Should().Contain("PasswordHash");
+        auditLog.Changes.Should().Contain("SecurityStamp");
+        // But the actual values should NOT be logged
+        auditLog.Changes.Should().NotContain("oldhash");
+        auditLog.Changes.Should().NotContain("newhash");
+        auditLog.Changes.Should().NotContain("oldstamp");
+        auditLog.Changes.Should().NotContain("newstamp");
     }
 
     [Fact]
