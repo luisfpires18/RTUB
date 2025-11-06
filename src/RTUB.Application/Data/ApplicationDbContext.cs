@@ -97,7 +97,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                    // Only set CreatedAt if it hasn't been explicitly set
+                    if (entry.Entity.CreatedAt == default)
+                    {
+                        entry.Entity.CreatedAt = DateTime.UtcNow;
+                    }
                     if (!string.IsNullOrEmpty(username))
                     {
                         entry.Entity.CreatedBy = username;

@@ -1255,6 +1255,58 @@ public class ApplicationDbContextTests : IDisposable
         auditLog.EntityDisplayName.Should().Be("Test Song");
     }
 
+    [Fact]
+    public async Task SaveChangesAsync_WhenMultipleEnrollmentsCreated_DoesNotDetectCreatedAtAsChanged()
+    {
+        // Arrange - Create test data (simulating seed data scenario)
+        var user = new ApplicationUser
+        {
+            UserName = "testuser",
+            Email = "test@example.com",
+            FirstName = "Test",
+            LastName = "User",
+            PhoneContact = "123456789"
+        };
+        _context.Users.Add(user);
+        
+        var evt = Event.Create("Test Event", DateTime.UtcNow.AddDays(7), "Test Location", Core.Enums.EventType.Festival);
+        _context.Events.Add(evt);
+        await _context.SaveChangesAsync();
+
+        // Clear existing audit logs
+        var existingLogs = await _context.AuditLogs.ToListAsync();
+        _context.AuditLogs.RemoveRange(existingLogs);
+        await _context.SaveChangesAsync();
+
+        // Act - Create multiple enrollments at once (like in seed data)
+        var enrollments = new List<Enrollment>();
+        for (int i = 0; i < 10; i++)
+        {
+            var enrollment = Enrollment.Create(user.Id, evt.Id, attended: i % 2 == 0);
+            enrollments.Add(enrollment);
+        }
+        
+        _context.Enrollments.AddRange(enrollments);
+        
+        // This should NOT cause an infinite loop or detect CreatedAt as changed
+        await _context.SaveChangesAsync();
+
+        // Assert - Verify all enrollments were saved successfully
+        var savedEnrollments = await _context.Enrollments.Where(e => e.EventId == evt.Id).ToListAsync();
+        savedEnrollments.Should().HaveCount(10);
+        
+        // Verify CreatedAt was set correctly for all enrollments
+        foreach (var enrollment in savedEnrollments)
+        {
+            enrollment.CreatedAt.Should().NotBe(default(DateTime));
+            enrollment.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(10));
+        }
+        
+        // Verify audit logs were created for all enrollments (no infinite loop)
+        var auditLogs = await _context.AuditLogs.Where(a => a.EntityType == "Enrollment").ToListAsync();
+        auditLogs.Should().HaveCount(10);
+    }
+
     public void Dispose()
     {
         _context.Dispose();
