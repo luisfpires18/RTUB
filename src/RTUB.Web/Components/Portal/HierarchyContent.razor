@@ -32,16 +32,19 @@
         <!-- Leitão Card -->
         <article class="hierarchy-card">
             <div class="hierarchy-card-image-wrapper">
-                <img src="/images/hierarchy/bag_leitao.webp" 
-                     class="hierarchy-card-image" 
+                <img src="/images/hierarchy/bag_leitao.webp"
+                     class="hierarchy-card-image"
                      alt="Leitão - Traje de recruta com saco"
                      loading="lazy" />
-                <div class="hierarchy-edit-button" 
-                     role="button" 
-                     tabindex="0" 
-                     @onclick="() => OpenEditModal(leitaoCardTitle)">
-                    <i class="bi bi-pencil-fill"></i>
-                </div>
+                @if (leitaoCardTitle != null)
+                {
+                    <div class="hierarchy-edit-button"
+                         role="button"
+                         tabindex="0"
+                         @onclick="() => OpenEditModal(leitaoCardTitle)">
+                        <i class="bi bi-pencil-fill"></i>
+                    </div>
+                }
             </div>
             <div class="hierarchy-card-content">
                 <div class="hierarchy-stage-badge">
@@ -52,8 +55,8 @@
                 </div>
                 <div class="hierarchy-card-description-wrapper">
                     <p class="hierarchy-card-description">@(leitaoCardDesc?.Content ?? "Traje saco de lixo.")</p>
-                    <LabelEditButton CurrentLabel="@leitaoCardDesc" 
-                                     OnEditClick="@OpenEditModal" 
+                    <LabelEditButton CurrentLabel="@leitaoCardDesc"
+                                     OnEditClick="@OpenEditModal"
                                      CssClass="hierarchy-description-edit" />
                 </div>
             </div>
@@ -62,16 +65,19 @@
         <!-- Caloiro Card -->
         <article class="hierarchy-card">
             <div class="hierarchy-card-image-wrapper">
-                <img src="/images/hierarchy/cords_caloiro.webp" 
-                     class="hierarchy-card-image" 
+                <img src="/images/hierarchy/cords_caloiro.webp"
+                     class="hierarchy-card-image"
                      alt="Caloiro - Cordões brancos"
                      loading="lazy" />
-                <div class="hierarchy-edit-button" 
-                     role="button" 
-                     tabindex="0" 
-                     @onclick="() => OpenEditModal(caloiroCardTitle)">
-                    <i class="bi bi-pencil-fill"></i>
-                </div>
+                @if (caloiroCardTitle != null)
+                {
+                    <div class="hierarchy-edit-button"
+                         role="button"
+                         tabindex="0"
+                         @onclick="() => OpenEditModal(caloiroCardTitle)">
+                        <i class="bi bi-pencil-fill"></i>
+                    </div>
+                }
             </div>
             <div class="hierarchy-card-content">
                 <div class="hierarchy-stage-badge">
@@ -82,8 +88,8 @@
                 </div>
                 <div class="hierarchy-card-description-wrapper">
                     <p class="hierarchy-card-description">@(caloiroCardDesc?.Content ?? "Cordões Brancos.")</p>
-                    <LabelEditButton CurrentLabel="@caloiroCardDesc" 
-                                     OnEditClick="@OpenEditModal" 
+                    <LabelEditButton CurrentLabel="@caloiroCardDesc"
+                                     OnEditClick="@OpenEditModal"
                                      CssClass="hierarchy-description-edit" />
                 </div>
             </div>
@@ -92,16 +98,19 @@
         <!-- Tuno Card -->
         <article class="hierarchy-card">
             <div class="hierarchy-card-image-wrapper">
-                <img src="/images/hierarchy/cords_tuno.webp" 
-                     class="hierarchy-card-image" 
+                <img src="/images/hierarchy/cords_tuno.webp"
+                     class="hierarchy-card-image"
                      alt="Tuno - Cordões pretos"
                      loading="lazy" />
-                <div class="hierarchy-edit-button" 
-                     role="button" 
-                     tabindex="0" 
-                     @onclick="() => OpenEditModal(tunoCardTitle)">
-                    <i class="bi bi-pencil-fill"></i>
-                </div>
+                @if (tunoCardTitle != null)
+                {
+                    <div class="hierarchy-edit-button"
+                         role="button"
+                         tabindex="0"
+                         @onclick="() => OpenEditModal(tunoCardTitle)">
+                        <i class="bi bi-pencil-fill"></i>
+                    </div>
+                }
             </div>
             <div class="hierarchy-card-content">
                 <div class="hierarchy-stage-badge">
@@ -112,8 +121,8 @@
                 </div>
                 <div class="hierarchy-card-description-wrapper">
                     <p class="hierarchy-card-description">@(tunoCardDesc?.Content ?? "Cordões Pretos.")</p>
-                    <LabelEditButton CurrentLabel="@tunoCardDesc" 
-                                     OnEditClick="@OpenEditModal" 
+                    <LabelEditButton CurrentLabel="@tunoCardDesc"
+                                     OnEditClick="@OpenEditModal"
                                      CssClass="hierarchy-description-edit" />
                 </div>
             </div>
@@ -122,16 +131,19 @@
         <!-- Magister Card -->
         <article class="hierarchy-card">
             <div class="hierarchy-card-image-wrapper">
-                <img src="/images/hierarchy/cords_magister.webp" 
-                     class="hierarchy-card-image" 
+                <img src="/images/hierarchy/cords_magister.webp"
+                     class="hierarchy-card-image"
                      alt="Magister - Cordões roxos, presidente da tuna"
                      loading="lazy" />
-                <div class="hierarchy-edit-button" 
-                     role="button" 
-                     tabindex="0" 
-                     @onclick="() => OpenEditModal(magisterCardTitle)">
-                    <i class="bi bi-pencil-fill"></i>
-                </div>
+                @if (magisterCardTitle != null)
+                {
+                    <div class="hierarchy-edit-button"
+                         role="button"
+                         tabindex="0"
+                         @onclick="() => OpenEditModal(magisterCardTitle)">
+                        <i class="bi bi-pencil-fill"></i>
+                    </div>
+                }
             </div>
             <div class="hierarchy-card-content">
                 <div class="hierarchy-stage-badge">
@@ -142,8 +154,8 @@
                 </div>
                 <div class="hierarchy-card-description-wrapper">
                     <p class="hierarchy-card-description">@(magisterCardDesc?.Content ?? "Cordões roxos.")</p>
-                    <LabelEditButton CurrentLabel="@magisterCardDesc" 
-                                     OnEditClick="@OpenEditModal" 
+                    <LabelEditButton CurrentLabel="@magisterCardDesc"
+                                     OnEditClick="@OpenEditModal"
                                      CssClass="hierarchy-description-edit" />
                 </div>
             </div>
@@ -152,7 +164,7 @@
 </div>
 
 <!-- Edit Label Modal (at root level, outside cards) -->
-<Modal Show="@showEditModal" 
+<Modal Show="@showEditModal"
        ShowChanged="@((value) => showEditModal = value)"
        Title="Editar Conteúdo"
        Size="Modal.ModalSize.Large"
@@ -177,7 +189,7 @@
 
                 <div class="mb-3">
                     <label class="form-label text-white-full">Conteúdo</label>
-                    <InputTextArea class="form-control" rows="10" @bind-Value="editingLabel.Content" 
+                    <InputTextArea class="form-control" rows="10" @bind-Value="editingLabel.Content"
                                    placeholder="Inserir conteúdo..." />
                     <small class="text-white-opacity">Dica: Use quebras de linha para formatar o texto</small>
                 </div>
@@ -259,7 +271,7 @@
             );
 
             await LoadLabels();
-            
+
             showEditModal = false;
             editingLabel = null;
         }
