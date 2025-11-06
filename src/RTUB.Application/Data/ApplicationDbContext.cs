@@ -655,7 +655,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                         var rehearsal = Rehearsals.Local.FirstOrDefault(r => r.Id == attendance.RehearsalId);
                         if (user != null && rehearsal != null)
                             return $"{user.UserName} - {rehearsal.Date:yyyy-MM-dd}";
-                        return user?.UserName ?? rehearsal?.Date.ToString("yyyy-MM-dd"); // Return partial if one is missing
+                        if (user != null)
+                            return user.UserName;
+                        if (rehearsal != null)
+                            return rehearsal.Date.ToString("yyyy-MM-dd");
+                        return null; // Neither found in cache
                     }
                     break;
                 

@@ -1189,10 +1189,14 @@ public class ApplicationDbContextTests : IDisposable
         auditLog.Changes.Should().Contain("_TargetUser"); // Metadata field
         
         // Verify that the changes JSON contains LastLoginDate as the only non-metadata field
-        var changesDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(auditLog.Changes!);
-        var nonMetadataKeys = changesDict!.Keys.Where(k => !k.StartsWith("_")).ToList();
-        nonMetadataKeys.Should().ContainSingle();
-        nonMetadataKeys[0].Should().Be("LastLoginDate");
+        if (!string.IsNullOrEmpty(auditLog.Changes))
+        {
+            var changesDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(auditLog.Changes);
+            changesDict.Should().NotBeNull();
+            var nonMetadataKeys = changesDict!.Keys.Where(k => !k.StartsWith("_")).ToList();
+            nonMetadataKeys.Should().ContainSingle();
+            nonMetadataKeys[0].Should().Be("LastLoginDate");
+        }
     }
 
     [Fact]
