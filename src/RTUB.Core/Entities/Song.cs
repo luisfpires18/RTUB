@@ -32,6 +32,8 @@ public class Song : BaseEntity
     [MaxLength(500, ErrorMessage = "O URL do Spotify não pode exceder 500 caracteres")]
     public string? SpotifyUrl { get; set; }
     
+    public bool HasMusic { get; set; } = false;
+    
     [Required(ErrorMessage = "O álbum é obrigatório")]
     public int AlbumId { get; set; }
     

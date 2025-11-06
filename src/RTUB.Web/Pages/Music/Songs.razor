@@ -97,11 +97,14 @@ else
                             </td>
                             <td>
                                 <div class="d-flex gap-1">
-                                    <button class="btn btn-sm btn-success" 
-                                            @onclick="() => PlaySong(song)" 
-                                            title="Reproduzir">
-                                        <i class="bi bi-play-circle"></i>
-                                    </button>
+                                    @if (song.HasMusic)
+                                    {
+                                        <button class="btn btn-sm btn-success" 
+                                                @onclick="() => PlaySong(song)" 
+                                                title="Reproduzir">
+                                            <i class="bi bi-play-circle"></i>
+                                        </button>
+                                    }
                                     @if (!string.IsNullOrEmpty(song.Lyrics))
                                     {
                                         <button class="btn btn-sm btn-primary music-btn-primary" @onclick="() => OpenViewLyricsModal(song)" title="Ver Letra">
@@ -262,6 +265,15 @@ else
             </div>
 
             <div class="mb-3">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" id="createHasMusic" @bind-Value="editingSong!.HasMusic" />
+                    <label class="form-check-label" for="createHasMusic">
+                        Tem ficheiro de música disponível
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label">YouTube URLs</label>
                 @if (editingYouTubeUrls != null)
                 {
@@ -331,6 +343,15 @@ else
             <div class="mb-3">
                 <label class="form-label">Spotify URL</label>
                 <InputText class="form-control" @bind-Value="editingSong!.SpotifyUrl" placeholder="Inserir URL do Spotify..." />
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" id="editHasMusic" @bind-Value="editingSong!.HasMusic" />
+                    <label class="form-check-label" for="editHasMusic">
+                        Tem ficheiro de música disponível
+                    </label>
+                </div>
             </div>
 
             <div class="mb-3">
