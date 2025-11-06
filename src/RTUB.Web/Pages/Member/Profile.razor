@@ -716,7 +716,16 @@ else
         // Use SearchHelper for multi-word search support
         // Only search by FirstName, LastName, and Nickname (NOT Email)
         mentorSearchHelper.SearchTerm = mentorSearchTerm;
-        filteredMentors = mentorSearchHelper.FilterMultiple(eligibleMentors, new List<Func<ApplicationUser, string>>
+        
+        // eligibleMentors already excludes the current user (filtered at load time)
+        // but we explicitly filter here as well for consistency and safety
+        var availableMentors = eligibleMentors;
+        if (user != null && !string.IsNullOrEmpty(user.Id))
+        {
+            availableMentors = eligibleMentors.Where(u => u.Id != user.Id).ToList();
+        }
+        
+        filteredMentors = mentorSearchHelper.FilterMultiple(availableMentors, new List<Func<ApplicationUser, string>>
         {
             u => u.FirstName ?? "",
             u => u.LastName ?? "",

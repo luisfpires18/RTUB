@@ -810,7 +810,10 @@ else
 
     private void ClearMentorSelection()
     {
-        editingUser.MentorId = null;
+        if (editingUser != null)
+        {
+            editingUser.MentorId = null;
+        }
         selectedMentorCache = null;
         mentorSearchTerm = "";
         filteredMentors.Clear();
