@@ -34,7 +34,6 @@ public class EmailNotificationService : IEmailNotificationService
     {
         if (_cache.TryGetValue<bool>(cacheKey, out _))
         {
-            _logger.LogInformation("Email rate limited: {CacheKey}", cacheKey);
             return true; // Already sent recently
         }
 
@@ -47,12 +46,6 @@ public class EmailNotificationService : IEmailNotificationService
     public async Task SendRequestStatusChangedAsync(int requestId, string requestName, string requestEmail, RequestStatus oldStatus, RequestStatus newStatus)
     {
         // TODO: Implement actual email sending logic
-        // For now, just log the notification
-        _logger.LogInformation(
-            "Email notification: Request #{RequestId} status changed from {OldStatus} to {NewStatus}. " +
-            "Recipient: {Name} <{Email}>",
-            requestId, oldStatus, newStatus, requestName, requestEmail);
-
         // Placeholder for actual implementation:
         // var subject = $"Request Status Update - #{requestId}";
         // var body = BuildStatusChangeEmailBody(requestName, requestId, oldStatus, newStatus);
@@ -64,12 +57,7 @@ public class EmailNotificationService : IEmailNotificationService
     /// <inheritdoc/>
     public async Task SendNewRequestNotificationAsync(int requestId, string requestName, string requestEmail, string eventType)
     {
-        // Simple overload that just logs - kept for backward compatibility
-        _logger.LogInformation(
-            "Email notification: New request #{RequestId} submitted. " +
-            "Event Type: {EventType}, From: {Name} <{Email}>",
-            requestId, eventType, requestName, requestEmail);
-
+        // Simple overload - kept for backward compatibility
         await Task.CompletedTask;
     }
 
@@ -81,7 +69,6 @@ public class EmailNotificationService : IEmailNotificationService
         var rateLimitKey = $"email-request-{requestId}";
         if (ShouldRateLimitEmail(rateLimitKey))
         {
-            _logger.LogInformation("Skipping duplicate email for request #{RequestId}", requestId);
             return;
         }
 
@@ -137,8 +124,6 @@ Submetido em: {createdAt:dd/MM/yyyy HH:mm}
             // Check if SMTP is configured
             if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
             {
-                _logger.LogWarning($"SMTP not configured. Email would be sent to {recipientEmail}: {subject}");
-                _logger.LogInformation($"Email body: {body}");
                 return;
             }
 
@@ -177,7 +162,6 @@ Submetido em: {createdAt:dd/MM/yyyy HH:mm}
         var rateLimitKey = $"email-welcome-{normalizedUserName}";
         if (ShouldRateLimitEmail(rateLimitKey))
         {
-            _logger.LogInformation("Skipping duplicate welcome email for user {UserName}", userName);
             return;
         }
 
@@ -234,8 +218,6 @@ RTUB
             // Check if SMTP is configured
             if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
             {
-                _logger.LogWarning("SMTP not configured. Welcome email would be sent to user with subject: {Subject}", subject);
-                // Note: Not logging email body as it contains sensitive password information
                 return;
             }
 
@@ -257,7 +239,6 @@ RTUB
             mailMessage.To.Add(email);
 
             await smtpClient.SendMailAsync(mailMessage);
-            _logger.LogInformation("Welcome email successfully sent to new member");
         }
         catch (Exception ex)
         {

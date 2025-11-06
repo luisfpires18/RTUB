@@ -176,17 +176,10 @@ namespace RTUB
                     var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
                     if (pendingMigrations.Any())
                     {
-                        logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count());
                         await db.Database.MigrateAsync();
-                        logger.LogInformation("Migrations applied successfully");
-                    }
-                    else
-                    {
-                        logger.LogInformation("No pending migrations");
                     }
 
                     await SeedData.InitializeAsync(sp, builder.Configuration);
-                    logger.LogInformation("Database initialization completed");
                 }
                 catch (Exception ex)
                 {
