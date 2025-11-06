@@ -7,6 +7,7 @@
 @using RTUB.Shared
 @inject IAlbumService AlbumService
 @inject ISongService SongService
+@inject IAudioStorageService AudioStorageService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -96,6 +97,14 @@ else
                             </td>
                             <td>
                                 <div class="d-flex gap-1">
+                                    @if (song.HasMusic)
+                                    {
+                                        <button class="btn btn-sm btn-success" 
+                                                @onclick="() => PlaySong(song)" 
+                                                title="Reproduzir">
+                                            <i class="bi bi-play-circle"></i>
+                                        </button>
+                                    }
                                     @if (!string.IsNullOrEmpty(song.Lyrics))
                                     {
                                         <button class="btn btn-sm btn-primary music-btn-primary" @onclick="() => OpenViewLyricsModal(song)" title="Ver Letra">
@@ -133,6 +142,26 @@ else
             </table>
         </div>
     }
+}
+
+<!-- Fixed Audio Player -->
+@if (!string.IsNullOrEmpty(currentAudioUrl))
+{
+    <div class="fixed-audio-player">
+        <div class="audio-player-content">
+            <div class="audio-info">
+                <i class="bi bi-music-note-beamed me-2"></i>
+                <span class="audio-title">@currentSongTitle</span>
+            </div>
+            <audio controls autoplay @key="currentAudioUrl" class="audio-element">
+                <source src="@currentAudioUrl" type="audio/mpeg">
+                Seu navegador não suporta o elemento de áudio.
+            </audio>
+            <button class="btn btn-sm btn-outline-light" @onclick="StopAudio" title="Fechar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    </div>
 }
 
 <!-- View Lyrics Modal -->
@@ -236,6 +265,15 @@ else
             </div>
 
             <div class="mb-3">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" id="createHasMusic" @bind-Value="editingSong!.HasMusic" />
+                    <label class="form-check-label" for="createHasMusic">
+                        Tem ficheiro de música disponível
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label">YouTube URLs</label>
                 @if (editingYouTubeUrls != null)
                 {
@@ -308,6 +346,15 @@ else
             </div>
 
             <div class="mb-3">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" id="editHasMusic" @bind-Value="editingSong!.HasMusic" />
+                    <label class="form-check-label" for="editHasMusic">
+                        Tem ficheiro de música disponível
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label">YouTube URLs</label>
                 @if (editingYouTubeUrls != null)
                 {
@@ -373,6 +420,10 @@ else
     private Song? viewingSong;
     private Song? deletingSong;
     private List<string> editingYouTubeUrls = new();
+    
+    // Audio player state
+    private string? currentAudioUrl;
+    private string? currentSongTitle;
 
     protected override async Task OnInitializedAsync()
     {
@@ -410,7 +461,8 @@ else
                 Adaptation = fullSong.Adaptation,
                 SpotifyUrl = fullSong.SpotifyUrl,
                 Lyrics = fullSong.Lyrics,
-                Duration = fullSong.Duration
+                Duration = fullSong.Duration,
+                HasMusic = fullSong.HasMusic
             };
 
             editingYouTubeUrls = fullSong.YouTubeUrls?.Select(y => y.Url).ToList() ?? new List<string>();
@@ -497,6 +549,9 @@ else
             // Update Spotify URL
             await SongService.SetSongSpotifyUrlAsync(editingSong.Id, editingSong.SpotifyUrl);
 
+            // Update HasMusic
+            await SongService.SetSongHasMusicAsync(editingSong.Id, editingSong.HasMusic);
+
             // Update lyrics
             await SongService.SetSongLyricsAsync(editingSong.Id, editingSong.Lyrics);
 
@@ -538,7 +593,8 @@ else
             MusicAuthor = "",
             Adaptation = "",
             SpotifyUrl = "",
-            Lyrics = ""
+            Lyrics = "",
+            HasMusic = false
         };
 
         editingYouTubeUrls = new List<string> { string.Empty };
@@ -587,6 +643,9 @@ else
         {
             await SongService.SetSongSpotifyUrlAsync(newSong.Id, editingSong.SpotifyUrl);
         }
+
+        // Set HasMusic
+        await SongService.SetSongHasMusicAsync(newSong.Id, editingSong.HasMusic);
 
         // Set lyrics
         if (!string.IsNullOrWhiteSpace(editingSong.Lyrics))
@@ -642,6 +701,46 @@ else
             return $"{imageSrc}?v={albumImageVersion}";
         }
         return imageSrc ?? string.Empty;
+    }
+    
+    private async Task PlaySong(Song song)
+    {
+        try
+        {
+            // Get album information
+            if (album == null)
+            {
+                Console.WriteLine("Album information not available");
+                return;
+            }
+            
+            // Generate pre-signed URL for the audio file using album title, track number, and song title
+            var audioUrl = await AudioStorageService.GetAudioUrlAsync(album.Title, song.TrackNumber, song.Title);
+            
+            if (!string.IsNullOrEmpty(audioUrl))
+            {
+                currentAudioUrl = audioUrl;
+                currentSongTitle = song.Title;
+                StateHasChanged();
+            }
+            else
+            {
+                // File not found or error
+                // You could show a notification here
+                Console.WriteLine($"Audio file not found for song: {song.Title} in album: {album.Title}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error playing song: {ex.Message}");
+        }
+    }
+    
+    private void StopAudio()
+    {
+        currentAudioUrl = null;
+        currentSongTitle = null;
+        StateHasChanged();
     }
 }
 
