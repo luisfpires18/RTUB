@@ -55,12 +55,11 @@ else
     }
     else
     {
-        <div class="row">
+        <div class="rehearsal-grid">
             @foreach (var rehearsal in filteredUpcomingRehearsals)
             {
                 var userAttendance = GetUserAttendance(rehearsal.Id);
-                var enrolledCount = rehearsal.Attendances.Count();
-                var approvedCount = rehearsal.Attendances.Count(a => a.Attended);
+                var attendanceCount = rehearsal.Attendances.Count();
                 
                 <div class="col-md-4 mb-4">
                     <div class="card event-card h-100">
