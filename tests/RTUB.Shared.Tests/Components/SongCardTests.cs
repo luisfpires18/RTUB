@@ -1,4 +1,3 @@
-using AutoFixture;
 using Bunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
@@ -12,13 +11,6 @@ namespace RTUB.Shared.Tests.Components;
 /// </summary>
 public class SongCardTests : TestContext
 {
-    private readonly Fixture _fixture;
-
-    public SongCardTests()
-    {
-        _fixture = new Fixture();
-    }
-
     [Fact]
     public void SongCard_RendersSongTitle()
     {
