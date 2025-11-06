@@ -1,17 +1,14 @@
 @namespace RTUB.Shared
 @*
     RehearsalCard Component
-    Reusable card for displaying rehearsal information with attendance actions
+    Compact card for displaying rehearsal information with attendance actions
 *@
 
-<div class="card event-card h-100">
+<div class="card rehearsal-card h-100">
     <div class="position-relative">
-        <div class="card-img-top event-image-placeholder">
-            <i class="bi bi-music-note-beamed music-icon-large"></i>
-        </div>
         @if (IsAdmin)
         {
-            <div class="admin-overlay">
+            <div class="rehearsal-admin-overlay">
                 <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
                     <i class="bi bi-pencil music-icon-edit"></i>
                 </button>
@@ -20,52 +17,59 @@
                 </button>
             </div>
         }
+        <div class="rehearsal-icon-header">
+            <div class="rehearsal-icon-circle">
+                <i class="bi bi-music-note-beamed"></i>
+            </div>
+        </div>
     </div>
     <div class="card-body d-flex flex-column">
-        <h5 class="card-title">
-            @if (Rehearsal.IsCanceled)
+        @if (Rehearsal.IsCanceled)
+        {
+            <div class="rehearsal-status-badge cancelled">
+                <i class="bi bi-x-circle"></i> Cancelado
+            </div>
+        }
+        
+        <div class="rehearsal-info">
+         
+            <!-- Date, Time and Day in one row -->
+            <div class="rehearsal-info-row">
+                <i class="bi bi-calendar3 rehearsal-icon"></i>
+                <span class="rehearsal-text">@Rehearsal.Date.ToString("dd MMM yyyy")</span>
+                <span class="rehearsal-day">(@GetDayOfWeek(Rehearsal.Date))</span>
+            </div>
+            
+            <div class="rehearsal-info-row">
+                <i class="bi bi-clock rehearsal-icon"></i>
+                <span class="rehearsal-text">@Rehearsal.StartTime.ToString(@"hh\:mm") - @Rehearsal.EndTime.ToString(@"hh\:mm")</span>
+                @if (Rehearsal.Date.Date == DateTime.Today)
+                {
+                    <span class="rehearsal-today-badge">Hoje</span>
+                }
+            </div>
+            
+            @if (!string.IsNullOrEmpty(Rehearsal.Location))
             {
-                <span class="text-danger"><i class="bi bi-x-circle"></i> Cancelado</span>
+                <div class="rehearsal-info-row">
+                    <i class="bi bi-geo-alt rehearsal-icon"></i>
+                    <span class="rehearsal-text">@Rehearsal.Location</span>
+                </div>
             }
-            else
+            
+            @if (!string.IsNullOrEmpty(Rehearsal.Theme))
             {
-                <span>Ensaio</span>
+                <div class="rehearsal-theme-row">
+                    <span class="rehearsal-theme-label">Tema:</span>
+                    <span class="rehearsal-theme-text">@Rehearsal.Theme</span>
+                </div>
             }
-        </h5>
-        <p class="card-text text-light-theme">
-            <small>
-                <i class="bi bi-calendar me-1"></i>
-                <span>@Rehearsal.Date.ToString("dd MMM yyyy")</span>
-            </small>
-        </p>
-        <p class="card-text text-light-theme">
-            <small>
-                <i class="bi bi-clock"></i> @Rehearsal.StartTime.ToString(@"hh\:mm") - @Rehearsal.EndTime.ToString(@"hh\:mm")
-            </small>
-        </p>
-        @if (!string.IsNullOrEmpty(Rehearsal.Location))
-        {
-            <p class="card-text text-light-theme">
-                <small>
-                    <i class="bi bi-geo-alt"></i> @Rehearsal.Location
-                </small>
-            </p>
-        }
-        @if (!string.IsNullOrEmpty(Rehearsal.Theme))
-        {
-            <p class="card-text">
-                <small><strong>Tema:</strong> @Rehearsal.Theme</small>
-            </p>
-        }
-        @if (!string.IsNullOrEmpty(Rehearsal.Notes))
-        {
-            <p class="card-text flex-grow-1">@Rehearsal.Notes</p>
-        }
+        </div>
 
         @if (!IsPastRehearsal && !Rehearsal.IsCanceled)
         {
-            <div class="enrollment-section mt-auto p-2 rounded">
-                <div class="d-flex gap-2 align-items-center justify-content-center">
+            <div class="rehearsal-actions-section mt-auto">
+                <div class="d-flex gap-2 align-items-center justify-content-center flex-wrap">
                     <!-- View Attendances button -->
                     <button class="btn btn-sm btn-outline-info btn-sm-padded" @onclick="HandleViewAttendances" title="Ver Presenças">
                         <i class="bi bi-people icon-size-1rem"></i> @AttendanceCount
@@ -221,5 +225,21 @@
         {
             await OnDelete.InvokeAsync();
         }
+    }
+
+    // Helper method to get day of week in Portuguese
+    private string GetDayOfWeek(DateTime date)
+    {
+        return date.DayOfWeek switch
+        {
+            DayOfWeek.Monday => "Segunda",
+            DayOfWeek.Tuesday => "Terça",
+            DayOfWeek.Wednesday => "Quarta",
+            DayOfWeek.Thursday => "Quinta",
+            DayOfWeek.Friday => "Sexta",
+            DayOfWeek.Saturday => "Sábado",
+            DayOfWeek.Sunday => "Domingo",
+            _ => ""
+        };
     }
 }

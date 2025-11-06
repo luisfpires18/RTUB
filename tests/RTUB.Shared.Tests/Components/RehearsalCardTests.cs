@@ -96,12 +96,12 @@ public class RehearsalCardTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("Cancelado", "should display canceled status");
-        cut.Markup.Should().Contain("text-danger", "canceled status should have danger color");
+        cut.Markup.Should().Contain("rehearsal-status-badge cancelled", "canceled status should have cancelled badge class");
         cut.Markup.Should().Contain("bi-x-circle", "canceled status should have X icon");
     }
 
     [Fact]
-    public void RehearsalCard_ShowsEnsaioTitle_WhenNotCanceled()
+    public void RehearsalCard_ShowsRehearsalInfo_WhenNotCanceled()
     {
         // Arrange
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
@@ -112,7 +112,8 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.AttendanceCount, 0));
 
         // Assert
-        cut.Markup.Should().Contain("Ensaio", "should display 'Ensaio' title");
+        cut.Markup.Should().Contain("rehearsal-info", "should display rehearsal info section");
+        cut.Markup.Should().NotContain("Cancelado", "should not display cancelled status");
     }
 
     [Fact]
@@ -253,7 +254,7 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.AttendanceCount, 0));
 
         // Assert
-        cut.Markup.Should().Contain("admin-overlay", "admin overlay should appear");
+        cut.Markup.Should().Contain("rehearsal-admin-overlay", "admin overlay should appear");
         cut.Markup.Should().Contain("bi-pencil", "edit button should appear");
         cut.Markup.Should().Contain("bi-trash", "delete button should appear");
     }
@@ -271,7 +272,38 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.AttendanceCount, 0));
 
         // Assert
-        cut.Markup.Should().NotContain("admin-overlay", "admin overlay should not appear for non-admin");
+        cut.Markup.Should().NotContain("rehearsal-admin-overlay", "admin overlay should not appear for non-admin");
+    }
+
+    [Fact]
+    public void RehearsalCard_ShowsTodayBadge_WhenRehearsalIsToday()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Today, "Music Room");
+
+        // Act
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("Hoje", "should display 'Hoje' badge for today's rehearsal");
+        cut.Markup.Should().Contain("rehearsal-today-badge", "should have today badge class");
+    }
+
+    [Fact]
+    public void RehearsalCard_DoesNotShowTodayBadge_WhenRehearsalIsNotToday()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Today.AddDays(1), "Music Room");
+
+        // Act
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("Hoje", "should not display 'Hoje' badge when not today");
     }
 
     [Fact]
@@ -287,7 +319,7 @@ public class RehearsalCardTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("card", "should have card class");
-        cut.Markup.Should().Contain("event-card", "should have event-card class");
+        cut.Markup.Should().Contain("rehearsal-card", "should have rehearsal-card class");
     }
 
     [Fact]
