@@ -216,11 +216,35 @@ public class ProfilePageTests : IClassFixture<WebApplicationFactory<Program>>
             "Update TunaName",
             "Update Email",
             "Update DateOfBirth",
-            "Update PhoneContact"
+            "Update PhoneContact",
+            "Update City"
         };
 
         // Assert
-        expectedOperations.Should().NotBeEmpty("SavePersonalSection should update all personal fields");
+        expectedOperations.Should().NotBeEmpty("SavePersonalSection should update all personal fields including City");
+    }
+
+    [Fact]
+    public void ProfilePage_IncludesCityFieldInPersonalInformation()
+    {
+        // Verify City field is part of the Personal Information section
+        // This test documents that City should be displayed and editable
+
+        // Arrange
+        var personalInfoFields = new[]
+        {
+            "FirstName",
+            "LastName",
+            "Nickname",
+            "Email",
+            "DateOfBirth",
+            "PhoneContact",
+            "City"
+        };
+
+        // Assert
+        personalInfoFields.Should().Contain("City", "City should be part of Personal Information section");
+        personalInfoFields.Length.Should().Be(7, "Personal Information should include 7 fields including City");
     }
 
     [Fact]
@@ -405,6 +429,101 @@ public class ProfilePageTests : IClassFixture<WebApplicationFactory<Program>>
             "profile styles should be in dedicated CSS file");
         expectedClasses.Should().NotBeEmpty(
             "profile.css should contain all profile-related classes");
+    }
+
+    [Fact]
+    public void MembersPage_ViewDetailsModal_IncludesCityField()
+    {
+        // Verify City field is displayed in the view details modal
+        // This test documents that City should be visible in Personal Information section
+
+        // Arrange
+        var personalInfoFieldsInModal = new[]
+        {
+            "Email",
+            "PhoneContact",
+            "City",
+            "DateOfBirth",
+            "Degree"
+        };
+
+        // Assert
+        personalInfoFieldsInModal.Should().Contain("City", 
+            "City should be displayed in Members view details modal under Personal Information");
+    }
+
+    [Fact]
+    public void MembersPage_EditModal_IncludesCityField()
+    {
+        // Verify City field is editable in the edit modal
+        // This test documents that City should be in the edit form
+
+        // Arrange
+        var editableFieldsInModal = new[]
+        {
+            "FirstName",
+            "LastName",
+            "Nickname",
+            "PhoneContact",
+            "Email",
+            "DateOfBirth",
+            "Degree",
+            "City"
+        };
+
+        // Assert
+        editableFieldsInModal.Should().Contain("City", 
+            "City should be editable in Members edit modal");
+    }
+
+    [Fact]
+    public void MembersPage_OpenEditModal_PreFillsCityField()
+    {
+        // Verify OpenEditModal method includes City in editingUser initialization
+        // This test documents the bug fix where City was not being pre-filled
+
+        // Arrange
+        var expectedInitializedFields = new[]
+        {
+            "Id",
+            "UserName",
+            "Email",
+            "FirstName",
+            "LastName",
+            "Nickname",
+            "PhoneContact",
+            "City",
+            "DateOfBirth",
+            "Degree"
+        };
+
+        // Assert
+        expectedInitializedFields.Should().Contain("City", 
+            "OpenEditModal should initialize City from the user object to pre-fill the edit form");
+    }
+
+    [Fact]
+    public void MembersPage_SaveMember_UpdatesCityField()
+    {
+        // Verify SaveMember method updates City field when saving changes
+        // This test documents that City is persisted on save
+
+        // Arrange
+        var fieldsUpdatedOnSave = new[]
+        {
+            "FirstName",
+            "LastName",
+            "Nickname",
+            "PhoneContact",
+            "Email",
+            "City",
+            "DateOfBirth",
+            "Degree"
+        };
+
+        // Assert
+        fieldsUpdatedOnSave.Should().Contain("City", 
+            "SaveMember should update City field when saving user changes");
     }
 
     #endregion

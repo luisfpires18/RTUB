@@ -77,6 +77,7 @@ else
                                     Value="@(user.Age?.ToString() + " anos")" />
                     }
                     <ProfileField Label="Contacto" Value="@user.PhoneContact" />
+                    <ProfileField Label="Cidade" Value="@user.City" />
                 </ChildContent>
                 <EditContent>
                     @if (editUser != null)
@@ -116,6 +117,11 @@ else
                                     <InputText class="form-control" @bind-Value="editUser.PhoneContact" placeholder="Inserir contacto..." />
                                 </div>
                             </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-white-full">Cidade</label>
+                                <InputText class="form-control" @bind-Value="editUser.City" placeholder="Inserir cidade..." />
+                            </div>
                         </EditForm>
                     }
                 </EditContent>
@@ -136,8 +142,11 @@ else
                     <ProfileField Label="Instrumento Principal" 
                                 Value="@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : null)" />
                     
-                    <ProfileField Label="Padrinho" 
-                                Value="@GetMentorDisplayName()" />
+                    @if (!user.IsLeitao() || user.IsCaloiro() || user.IsTuno())
+                    {
+                        <ProfileField Label="Padrinho" 
+                                    Value="@GetMentorDisplayName()" />
+                    }
 
                     <div class="profile-field">
                         <div class="row">
@@ -171,75 +180,78 @@ else
                                 </select>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label text-white-full">Padrinho</label>
-                                <div class="mentor-search-container">
-                                    <div class="input-group mb-2">
-                                        <span class="input-group-text">
-                                            <i class="bi bi-search"></i>
-                                        </span>
-                                        <input type="text" 
-                                               class="form-control" 
-                                               placeholder="Pesquisar padrinho por nome ou alcunha..."
-                                               @bind="mentorSearchTerm" 
-                                               @bind:event="oninput" 
-                                               @onkeyup="FilterMentors" />
-                                        @if (!string.IsNullOrEmpty(mentorSearchTerm))
-                                        {
-                                            <button class="btn btn-outline-secondary" type="button" @onclick="ClearMentorSelection" title="Limpar seleção">
-                                                <i class="bi bi-x-circle-fill"></i>
-                                            </button>
-                                        }
+                            @if (user != null && (!user.IsLeitao() || user.IsCaloiro() || user.IsTuno()))
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label text-white-full">Padrinho</label>
+                                    <div class="mentor-search-container">
+                                        <div class="input-group mb-2">
+                                            <span class="input-group-text">
+                                                <i class="bi bi-search"></i>
+                                            </span>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   placeholder="Pesquisar padrinho por nome ou alcunha..."
+                                                   @bind="mentorSearchTerm" 
+                                                   @bind:event="oninput" 
+                                                   @onkeyup="FilterMentors" />
+                                            @if (!string.IsNullOrEmpty(mentorSearchTerm))
+                                            {
+                                                <button class="btn btn-outline-secondary" type="button" @onclick="ClearMentorSelection" title="Limpar seleção">
+                                                    <i class="bi bi-x-circle-fill"></i>
+                                                </button>
+                                            }
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                @if (filteredMentors.Any())
-                                {
-                                    <div class="member-list member-list-scrollable">
-                                        @foreach (var mentorItem in filteredMentors.Take(20))
-                                        {
-                                            <div class="member-item p-2 mb-2 border rounded clickable-row"
-                                                 @onclick="() => SelectMentor(mentorItem)">
-                                                <div class="d-flex align-items-center">
-                                                    <img src="@mentorItem.ProfilePictureSrc" alt="@mentorItem.GetDisplayName()"
-                                                         class="member-avatar-small me-2" />
-                                                    <div>
-                                                        @if (!string.IsNullOrEmpty(mentorItem.Nickname))
-                                                        {
-                                                            <div><strong>@mentorItem.Nickname</strong></div>
-                                                            <div class="text-muted small">@mentorItem.FirstName @mentorItem.LastName</div>
-                                                        }
-                                                        else
-                                                        {
-                                                            <div><strong>@mentorItem.FirstName @mentorItem.LastName</strong></div>
-                                                        }
+                                    
+                                    @if (filteredMentors.Any())
+                                    {
+                                        <div class="member-list member-list-scrollable">
+                                            @foreach (var mentorItem in filteredMentors.Take(20))
+                                            {
+                                                <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                                     @onclick="() => SelectMentor(mentorItem)">
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="@mentorItem.ProfilePictureSrc" alt="@mentorItem.GetDisplayName()"
+                                                             class="member-avatar-small me-2" />
+                                                        <div>
+                                                            @if (!string.IsNullOrEmpty(mentorItem.Nickname))
+                                                            {
+                                                                <div><strong>@mentorItem.Nickname</strong></div>
+                                                                <div class="text-muted small">@mentorItem.FirstName @mentorItem.LastName</div>
+                                                            }
+                                                            else
+                                                            {
+                                                                <div><strong>@mentorItem.FirstName @mentorItem.LastName</strong></div>
+                                                            }
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                                else if (!string.IsNullOrEmpty(mentorSearchTerm) && string.IsNullOrEmpty(editUser.MentorId))
-                                {
-                                    <div class="alert alert-purple mt-2">Nenhum padrinho encontrado.</div>
-                                }
-
-                                @if (!string.IsNullOrEmpty(editUser.MentorId))
-                                {
-                                    var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editUser.MentorId);
-                                    if (displayMentor != null)
-                                    {
-                                        <div class="alert alert-purple mt-2 d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
-                                            </div>
-                                            <button type="button" class="btn btn-sm text-danger" style="background: none; border: none; padding: 0.25rem 0.5rem;" @onclick="ClearMentorSelection" title="Remover padrinho">
-                                                <i class="bi bi-x-circle-fill" style="font-size: 1.25rem; color: white;"></i>
-                                            </button>
+                                            }
                                         </div>
                                     }
-                                }
-                            </div>
+                                    else if (!string.IsNullOrEmpty(mentorSearchTerm) && string.IsNullOrEmpty(editUser.MentorId))
+                                    {
+                                        <div class="alert alert-purple mt-2">Nenhum padrinho encontrado.</div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(editUser.MentorId))
+                                    {
+                                        var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editUser.MentorId);
+                                        if (displayMentor != null)
+                                        {
+                                            <div class="alert alert-purple mt-2 d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
+                                                </div>
+                                                <button type="button" class="btn btn-sm text-danger" style="background: none; border: none; padding: 0.25rem 0.5rem;" @onclick="ClearMentorSelection" title="Remover padrinho">
+                                                    <i class="bi bi-x-circle-fill" style="font-size: 1.25rem; color: white;"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            }
 
                             <div class="row mb-3">
                                 <div class="col-md-4">
@@ -565,6 +577,7 @@ else
             Nickname = user.Nickname,
             Email = user.Email,
             PhoneContact = user.PhoneContact,
+            City = user.City,
             DateOfBirth = user.DateOfBirth,
             Degree = user.Degree,
             YearLeitao = user.YearLeitao,
@@ -611,6 +624,7 @@ else
         user.Nickname = editUser.Nickname;
         user.Email = editUser.Email;
         user.PhoneContact = editUser.PhoneContact;
+        user.City = editUser.City;
         user.DateOfBirth = editUser.DateOfBirth;
 
         await SetAuditContextToCurrentUser();

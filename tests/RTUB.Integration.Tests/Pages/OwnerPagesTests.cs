@@ -78,11 +78,40 @@ public class OwnerPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
     #endregion
 
+    #region Labels Management Page Tests
+
+    [Fact]
+    public async Task LabelsPage_WithoutAuth_RedirectsToLogin()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/owner/labels");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+    }
+
+    [Fact]
+    public async Task LabelsPage_RedirectsWithReturnUrl()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/owner/labels");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var location = response.Headers.Location?.ToString();
+        location.Should().Contain("/Account/Login");
+        location.Should().Contain("ReturnUrl");
+    }
+
+    #endregion
+
     #region Authorization Tests
 
     [Theory]
     [InlineData("/owner/user-roles")]
     [InlineData("/owner/tracing")]
+    [InlineData("/owner/labels")]
     public async Task OwnerPages_RequireAuthentication(string url)
     {
         // Arrange & Act
@@ -99,7 +128,7 @@ public class OwnerPagesTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task OwnerPages_AllRequireAuthenticationInSequence()
     {
         // Arrange
-        var ownerUrls = new[] { "/owner/user-roles", "/owner/tracing" };
+        var ownerUrls = new[] { "/owner/user-roles", "/owner/tracing", "/owner/labels" };
 
         // Act & Assert
         foreach (var url in ownerUrls)
@@ -116,12 +145,15 @@ public class OwnerPagesTests : IClassFixture<WebApplicationFactory<Program>>
         // Arrange & Act - Navigate between owner pages
         var userRolesResponse = await _client.GetAsync("/owner/user-roles");
         var tracingResponse = await _client.GetAsync("/owner/tracing");
+        var labelsResponse = await _client.GetAsync("/owner/labels");
 
-        // Assert - Both should redirect (requires owner role)
+        // Assert - All should redirect (requires owner role)
         userRolesResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
         tracingResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        labelsResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
         userRolesResponse.Headers.Location?.ToString().Should().Contain("/Account/Login");
         tracingResponse.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        labelsResponse.Headers.Location?.ToString().Should().Contain("/Account/Login");
     }
 
     #endregion

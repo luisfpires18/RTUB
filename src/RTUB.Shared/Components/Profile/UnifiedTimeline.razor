@@ -14,8 +14,13 @@
     @if (TimelineItems.Any())
     {
         <div class="timeline-container-unified">
-            @foreach (var item in TimelineItems.OrderBy(t => t.Year).ThenBy(t => t.Order))
+            @{
+                var orderedItems = TimelineItems.OrderBy(t => t.Year).ThenBy(t => t.Order).ToList();
+                var lastIndex = orderedItems.Count - 1;
+            }
+            @for (int i = 0; i < orderedItems.Count; i++)
             {
+                var item = orderedItems[i];
                 <div class="timeline-item-unified @GetItemStateClass(item)">
                     @if (item.Position.HasValue && item.Position.Value == Position.Magister)
                     {
@@ -36,7 +41,7 @@
                     </div>
                 </div>
                 
-                @if (item != TimelineItems.OrderBy(t => t.Year).ThenBy(t => t.Order).Last())
+                @if (i < lastIndex)
                 {
                     <div class="timeline-connector-unified"></div>
                 }

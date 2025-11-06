@@ -85,14 +85,14 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     #region Labels Management Tests
 
     [Fact]
-    public async Task LabelsPage_WithoutAuth_RedirectsToLogin()
+    public async Task LabelsPage_RedirectsToOwnerLabels()
     {
-        // Arrange & Act
+        // Arrange & Act - /admin/labels should redirect to /owner/labels
         var response = await _client.GetAsync("/admin/labels");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        response.Headers.Location?.ToString().Should().Contain("/owner/labels");
     }
 
     #endregion
@@ -134,7 +134,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     [InlineData("/admin/roles")]
     [InlineData("/admin/inventory")]
     [InlineData("/admin/slideshow-management")]
-    [InlineData("/admin/labels")]
     [InlineData("/admin/requests")]
     [InlineData("/admin/rehearsals")]
     public async Task AdminPages_RequireAuthentication(string url)
@@ -159,7 +158,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
             "/admin/roles",
             "/admin/inventory",
             "/admin/slideshow-management",
-            "/admin/labels",
             "/admin/requests",
             "/admin/rehearsals",
         };
@@ -182,8 +180,7 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
             "/admin/finance",
             "/admin/roles",
             "/admin/inventory",
-            "/admin/slideshow-management",
-            "/admin/labels"
+            "/admin/slideshow-management"
         };
 
         // Act & Assert - All should redirect (requires auth)

@@ -23,6 +23,10 @@ public class ApplicationUser : IdentityUser
     [Required(ErrorMessage = "O contacto telefónico é obrigatório")]
     [MaxLength(80, ErrorMessage = "O contacto telefónico não pode exceder 80 caracteres")]
     public string? PhoneContact { get; set; }
+    
+    [MaxLength(100, ErrorMessage = "A cidade não pode exceder 100 caracteres")]
+    public string? City { get; set; }
+    
     public DateTime? DateOfBirth { get; set; }
     public string? Degree { get; set; }
     public int? YearLeitao { get; set; }
