@@ -7,6 +7,7 @@
 @using RTUB.Shared
 @inject IAlbumService AlbumService
 @inject ISongService SongService
+@inject IAudioStorageService AudioStorageService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -96,21 +97,11 @@ else
                             </td>
                             <td>
                                 <div class="d-flex gap-1">
-                                    @if (!string.IsNullOrEmpty(song.SpotifyUrl))
-                                    {
-                                        <button class="btn btn-sm btn-success spotify-play-btn" 
-                                                @onclick="() => ToggleSpotifyPlayer(song.Id, song.SpotifyUrl)" 
-                                                title="Ouvir no Spotify">
-                                            @if (activeTrackId == song.Id)
-                                            {
-                                                <i class="bi bi-pause-circle"></i>
-                                            }
-                                            else
-                                            {
-                                                <i class="bi bi-play-circle"></i>
-                                            }
-                                        </button>
-                                    }
+                                    <button class="btn btn-sm btn-success" 
+                                            @onclick="() => PlaySong(song)" 
+                                            title="Reproduzir">
+                                        <i class="bi bi-play-circle"></i>
+                                    </button>
                                     @if (!string.IsNullOrEmpty(song.Lyrics))
                                     {
                                         <button class="btn btn-sm btn-primary music-btn-primary" @onclick="() => OpenViewLyricsModal(song)" title="Ver Letra">
@@ -143,27 +134,31 @@ else
                                 </div>
                             </td>
                         </tr>
-                        @if (activeTrackId == song.Id && !string.IsNullOrEmpty(activeSpotifyEmbedUrl))
-                        {
-                            <tr class="spotify-embed-row">
-                                <td colspan="5">
-                                    <div class="spotify-embed-container">
-                                        <iframe src="@activeSpotifyEmbedUrl" 
-                                                width="100%" 
-                                                height="80" 
-                                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                                                loading="eager"
-                                                style="border: none;">
-                                        </iframe>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
                     }
                 </tbody>
             </table>
         </div>
     }
+}
+
+<!-- Fixed Audio Player -->
+@if (!string.IsNullOrEmpty(currentAudioUrl))
+{
+    <div class="fixed-audio-player">
+        <div class="audio-player-content">
+            <div class="audio-info">
+                <i class="bi bi-music-note-beamed me-2"></i>
+                <span class="audio-title">@currentSongTitle</span>
+            </div>
+            <audio controls autoplay @key="currentAudioUrl" class="audio-element">
+                <source src="@currentAudioUrl" type="audio/mpeg">
+                Seu navegador não suporta o elemento de áudio.
+            </audio>
+            <button class="btn btn-sm btn-outline-light" @onclick="StopAudio" title="Fechar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    </div>
 }
 
 <!-- View Lyrics Modal -->
@@ -405,9 +400,9 @@ else
     private Song? deletingSong;
     private List<string> editingYouTubeUrls = new();
     
-    // Spotify player state
-    private int? activeTrackId = null;
-    private string? activeSpotifyEmbedUrl = null;
+    // Audio player state
+    private string? currentAudioUrl;
+    private string? currentSongTitle;
 
     protected override async Task OnInitializedAsync()
     {
@@ -678,100 +673,38 @@ else
         }
         return imageSrc ?? string.Empty;
     }
-
-    private void ToggleSpotifyPlayer(int songId, string spotifyUrl)
+    
+    private async Task PlaySong(Song song)
     {
         try
         {
-            // If clicking the same track, toggle it off
-            if (activeTrackId == songId)
+            // Generate pre-signed URL for the audio file
+            var audioUrl = await AudioStorageService.GetAudioUrlAsync(song.Id, song.Title);
+            
+            if (!string.IsNullOrEmpty(audioUrl))
             {
-                activeTrackId = null;
-                activeSpotifyEmbedUrl = null;
+                currentAudioUrl = audioUrl;
+                currentSongTitle = song.Title;
+                StateHasChanged();
             }
             else
             {
-                // Switch to new track (closes previous if any)
-                var embedUrl = ConvertToSpotifyEmbedUrl(spotifyUrl);
-                if (!string.IsNullOrEmpty(embedUrl))
-                {
-                    activeTrackId = songId;
-                    activeSpotifyEmbedUrl = embedUrl;
-                }
-                else
-                {
-                    // If conversion fails, use fallback
-                    HandleEmbedError(spotifyUrl);
-                }
+                // File not found or error
+                // You could show a notification here
+                Console.WriteLine($"Audio file not found for song: {song.Title}");
             }
-            StateHasChanged();
         }
-        catch (UriFormatException)
+        catch (Exception ex)
         {
-            // If URL parsing fails, open in new tab as fallback
-            HandleEmbedError(spotifyUrl);
+            Console.WriteLine($"Error playing song: {ex.Message}");
         }
     }
-
-    private string ConvertToSpotifyEmbedUrl(string spotifyUrl)
+    
+    private void StopAudio()
     {
-        if (string.IsNullOrEmpty(spotifyUrl))
-            return string.Empty;
-
-        try
-        {
-            // Validate and parse the URL
-            if (!Uri.TryCreate(spotifyUrl, UriKind.Absolute, out var uri))
-                return string.Empty;
-
-            // Check if it's a valid Spotify URL
-            if (!uri.Host.Contains("spotify.com", StringComparison.OrdinalIgnoreCase))
-                return string.Empty;
-
-            // Convert open.spotify.com URL to embed URL
-            // Example: https://open.spotify.com/track/xxx -> https://open.spotify.com/embed/track/xxx?utm_source=generator&theme=0
-            if (uri.Host.Equals("open.spotify.com", StringComparison.OrdinalIgnoreCase))
-            {
-                var path = uri.AbsolutePath;
-                if (!path.Contains("/embed/", StringComparison.OrdinalIgnoreCase))
-                {
-                    // Insert /embed/ after the domain and add parameters for compact player with autoplay
-                    var query = string.IsNullOrEmpty(uri.Query) 
-                        ? "?utm_source=generator&theme=0" 
-                        : $"{uri.Query}&utm_source=generator&theme=0";
-                    return $"{uri.Scheme}://{uri.Host}/embed{path}{query}";
-                }
-            }
-
-            // If already an embed URL, ensure compact theme is used
-            var existingUri = uri.ToString();
-            if (existingUri.Contains("/embed/", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!existingUri.Contains("theme", StringComparison.OrdinalIgnoreCase))
-                {
-                    var separator = existingUri.Contains("?") ? "&" : "?";
-                    return $"{existingUri}{separator}utm_source=generator&theme=0";
-                }
-            }
-
-            return spotifyUrl;
-        }
-        catch (Exception)
-        {
-            return string.Empty;
-        }
-    }
-
-    private void HandleEmbedError(string spotifyUrl)
-    {
-        // Fallback: open Spotify URL in new tab
-        if (!string.IsNullOrEmpty(spotifyUrl))
-        {
-            NavigationManager.NavigateTo(spotifyUrl, true);
-        }
-        // Reset active player
-        activeTrackId = null;
-        activeSpotifyEmbedUrl = null;
+        currentAudioUrl = null;
+        currentSongTitle = null;
+        StateHasChanged();
     }
 }
 
