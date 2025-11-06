@@ -56,7 +56,17 @@
 
 @if (users == null)
 {
-    <p>A carregar membros...</p>
+    <!-- Loading skeleton cards -->
+    <div class="avatar-card-grid">
+        @for (int i = 0; i < 8; i++)
+        {
+            <div class="avatar-card-skeleton-card">
+                <div class="avatar-card-image-wrapper">
+                    <div class="avatar-card-skeleton"></div>
+                </div>
+            </div>
+        }
+    </div>
 }
 else if (!filteredUsers.Any())
 {
@@ -66,98 +76,58 @@ else if (!filteredUsers.Any())
 }
 else
 {
-    <!-- Regular Members Table -->
+    <!-- Regular Members Grid -->
     @if (filteredRegularMembers.Any())
     {
         <h3 class="mb-3">Membros</h3>
-        <div class="table-responsive mb-4">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th @onclick="() => SortBy(nameof(ApplicationUser.FirstName))" class="clickable-row">
-                            Nome
-                            @if (sortHelper.IsActiveSortColumn(nameof(ApplicationUser.FirstName)))
+        <div class="avatar-card-grid">
+            @foreach (var user in paginatedRegularMembers)
+            {
+                <AvatarCard AvatarUrl="@user.ProfilePictureSrc"
+                           TunaName="@user.Nickname"
+                           FullName="@($"{user.FirstName} {user.LastName}")"
+                           InstrumentText="@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : "")"
+                           AltText="@user.GetDisplayName()"
+                           OnView="@(async () => await OpenViewDetailsModal(user))"
+                           OnEdit="@(() => OpenEditModal(user))"
+                           OnDelete="@(() => OpenDeleteModal(user))"
+                           ShowEditButton="@isAdmin"
+                           ShowDeleteButton="@isOwner"
+                           ViewTooltip="Ver Detalhes"
+                           EditTooltip="Editar"
+                           DeleteTooltip="Eliminar"
+                           LazyLoad="true">
+                    <BadgeContent>
+                        @{
+                            // Get current fiscal year position for this user
+                            var currentPosition = GetCurrentFiscalYearPosition(user.Id);
+                        }
+                        <!-- Category badges row -->
+                        <div class="avatar-card-badges-row">
+                            @foreach (var category in user.Categories.Where(c =>
+                                c == MemberCategory.Caloiro || c == MemberCategory.Tuno))
                             {
-                                <i class="bi @sortHelper.GetSortIcon(nameof(ApplicationUser.FirstName))"></i>
+                                <CategoryBadge Category="category" />
                             }
-                        </th>
-                        <th @onclick="() => SortBy(nameof(ApplicationUser.Nickname))" class="clickable-row">
-                            Nome de Tuna
-                            @if (sortHelper.IsActiveSortColumn(nameof(ApplicationUser.Nickname)))
-                            {
-                                <i class="bi @sortHelper.GetSortIcon(nameof(ApplicationUser.Nickname))"></i>
-                            }
-                        </th>
-                        <th @onclick="@(() => SortBy("Category"))" class="clickable-row">
-                            Categoria
-                            @if (sortHelper.IsActiveSortColumn("Category"))
-                            {
-                                <i class="bi @sortHelper.GetSortIcon("Category")"></i>
-                            }
-                        </th>
-                        <th @onclick="@(() => SortBy("Instrument"))" class="clickable-row">
-                            Instrumento Principal
-                            @if (sortHelper.IsActiveSortColumn("Instrument"))
-                            {
-                                <i class="bi @sortHelper.GetSortIcon("Instrument")"></i>
-                            }
-                        </th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var user in paginatedRegularMembers)
-                    {
-                        <tr>
-                            <td>
-                                <text>@user.FirstName @user.LastName</text>
-                            </td>
-                            <td>@user.Nickname</td>
-                            <td>
-                                @{
-                                    // Get current fiscal year position for this user
-                                    var currentPosition = GetCurrentFiscalYearPosition(user.Id);
-                                }
-                                @* Display categories first (Caloiro or Tuno) *@
-                                @foreach (var category in user.Categories.Where(c =>
-                                    c == MemberCategory.Caloiro || c == MemberCategory.Tuno))
-                                {
-                                    <CategoryBadge Category="category" AdditionalClasses="me-1" />
-                                }
-                                @* Then display current fiscal year position if exists *@
-                                @if (currentPosition != null)
-                                {
-                                    <PositionBadge Position="currentPosition.Value" AdditionalClasses="me-1" />
-                                }
-                                @if (!user.Positions.Any() && !user.Categories.Any())
-                                {
-                                    <span class="badge bg-secondary">Sem Cargos</span>
-                                }
-                            </td>
-                            <td>@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : "-")</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary" @onclick="async () => await OpenViewDetailsModal(user)" title="Ver Detalhes">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                                <AuthorizeView Roles="Admin">
-                                    <Authorized>
-                                        <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditModal(user)" title="Editar">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                    </Authorized>
-                                </AuthorizeView>
-                                <AuthorizeView Roles="Owner">
-                                    <Authorized>
-                                        <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteModal(user)" title="Eliminar">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </Authorized>
-                                </AuthorizeView>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                        </div>
+                        <!-- Role/Position badges row -->
+                        @if (currentPosition != null)
+                        {
+                            <div class="avatar-card-badges-row">
+                                <PositionBadge Position="currentPosition.Value" />
+                            </div>
+                        }
+                        @if (!user.Positions.Any() && !user.Categories.Any())
+                        {
+                            <div class="avatar-card-badges-row">
+                                <span class="badge bg-secondary avatar-card-role-badge" 
+                                      title="Sem Cargos"
+                                      aria-label="Sem Cargos">Sem Cargos</span>
+                            </div>
+                        }
+                    </BadgeContent>
+                </AvatarCard>
+            }
         </div>
 
         <TablePagination CurrentPage="@paginationHelper.CurrentPage"
@@ -168,69 +138,35 @@ else
                         OnPageSizeChanged="@HandleRegularMembersPageSizeChange" />
     }
 
-    <!-- Leitões Table -->
+    <!-- Leitões Grid -->
     @if (filteredLeitoes.Any())
     {
         <hr class="my-5 hr-divider" />
         <h3 class="mb-3">Leitões</h3>
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <SortableTableHeader HeaderText="Nome"
-                                            SortColumn="@nameof(ApplicationUser.FirstName)"
-                                            CurrentSortColumn="@sortHelper.SortColumn"
-                                            IsSortAscending="@sortHelper.SortAscending"
-                                            OnSortChanged="@HandleSortChanged" />
-                        <SortableTableHeader HeaderText="Nome de Tuna"
-                                            SortColumn="@nameof(ApplicationUser.Nickname)"
-                                            CurrentSortColumn="@sortHelper.SortColumn"
-                                            IsSortAscending="@sortHelper.SortAscending"
-                                            OnSortChanged="@HandleSortChanged" />
-                        <SortableTableHeader HeaderText="Categoria"
-                                            SortColumn="Category"
-                                            CurrentSortColumn="@sortHelper.SortColumn"
-                                            IsSortAscending="@sortHelper.SortAscending"
-                                            OnSortChanged="@HandleSortChanged" />
-                        <SortableTableHeader HeaderText="Instrumento a aprender"
-                                            SortColumn="Instrument"
-                                            CurrentSortColumn="@sortHelper.SortColumn"
-                                            IsSortAscending="@sortHelper.SortAscending"
-                                            OnSortChanged="@HandleSortChanged" />
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var user in paginatedLeitoes)
-                    {
-                        <tr>
-                            <td>
-                                <text>@user.FirstName @user.LastName</text>
-                            </td>
-                            <td>@user.Nickname</td>
-                            <td>
-                                <CategoryBadge Category="MemberCategory.Leitao" AdditionalClasses="me-1" />
-                            </td>
-                            <td>@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : "-")</td>
-                            <td>
-                                <button class="btn btn-sm btn-info me-1" @onclick="async () => await OpenViewDetailsModal(user)" title="Ver Detalhes">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                                <AuthorizeView Roles="Admin">
-                                    <Authorized>
-                                        <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditModal(user)" title="Editar">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteModal(user)" title="Eliminar">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </Authorized>
-                                </AuthorizeView>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+        <div class="avatar-card-grid">
+            @foreach (var user in paginatedLeitoes)
+            {
+                <AvatarCard AvatarUrl="@user.ProfilePictureSrc"
+                           TunaName="@user.Nickname"
+                           FullName="@($"{user.FirstName} {user.LastName}")"
+                           InstrumentText="@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : "")"
+                           AltText="@user.GetDisplayName()"
+                           OnView="@(async () => await OpenViewDetailsModal(user))"
+                           OnEdit="@(() => OpenEditModal(user))"
+                           OnDelete="@(() => OpenDeleteModal(user))"
+                           ShowEditButton="@isAdmin"
+                           ShowDeleteButton="@isAdmin"
+                           ViewTooltip="Ver Detalhes"
+                           EditTooltip="Editar"
+                           DeleteTooltip="Eliminar"
+                           LazyLoad="true">
+                    <BadgeContent>
+                        <div class="avatar-card-badges-row">
+                            <CategoryBadge Category="@MemberCategory.Leitao" />
+                        </div>
+                    </BadgeContent>
+                </AvatarCard>
+            }
         </div>
 
         <TablePagination CurrentPage="@paginationHelperLeitoes.CurrentPage"
@@ -582,9 +518,22 @@ else
     private SearchHelper<ApplicationUser> mentorSearchHelper = new();
     private ApplicationUser? selectedMentorCache = null;
 
+    // Authorization flags
+    private bool isAdmin = false;
+    private bool isOwner = false;
+
     protected override async Task OnInitializedAsync()
     {
+        await CheckUserRoles();
         await LoadMembers();
+    }
+
+    private async Task CheckUserRoles()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isAdmin = user.IsInRole("Admin");
+        isOwner = user.IsInRole("Owner");
     }
 
     private async Task LoadMembers()

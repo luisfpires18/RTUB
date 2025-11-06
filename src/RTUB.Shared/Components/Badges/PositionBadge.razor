@@ -7,7 +7,9 @@
     Displays a Bootstrap badge with the appropriate styling for a Position
 *@
 
-<span class="badge badge-position @AdditionalClasses">
+<span class="badge badge-position avatar-card-role-badge @AdditionalClasses" 
+      title="@StatusHelper.GetPositionDisplay(Position)"
+      aria-label="@StatusHelper.GetPositionDisplay(Position)">
     @StatusHelper.GetPositionDisplay(Position)
 </span>
 

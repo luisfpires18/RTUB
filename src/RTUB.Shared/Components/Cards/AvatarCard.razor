@@ -1,0 +1,150 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Enums
+@using RTUB.Application.Helpers
+
+@*
+    AvatarCard Component
+    Displays a member card with avatar, name, badges, and action buttons
+    Reuses hierarchy card visual without connectors
+*@
+
+<div class="avatar-card" tabindex="0" @onkeydown="@HandleKeyDown">
+    <!-- Edit & Delete buttons in top-right -->
+    @if (ShowEditButton)
+    {
+        <button class="avatar-card-edit-btn" 
+                @onclick="@OnEdit" 
+                @onclick:stopPropagation="true"
+                title="@EditTooltip"
+                aria-label="@EditTooltip">
+            <i class="bi bi-pencil"></i>
+        </button>
+    }
+    @if (ShowDeleteButton)
+    {
+        <button class="avatar-card-delete-btn" 
+                @onclick="@OnDelete" 
+                @onclick:stopPropagation="true"
+                title="@DeleteTooltip"
+                aria-label="@DeleteTooltip">
+            <i class="bi bi-trash"></i>
+        </button>
+    }
+
+    <!-- Avatar -->
+    <div class="avatar-card-image-wrapper">
+        @if (LazyLoad && !imageLoaded)
+        {
+            <div class="avatar-card-skeleton"></div>
+        }
+        <img src="@AvatarUrl" 
+             alt="@AltText" 
+             class="avatar-card-image @(imageLoaded ? "" : "d-none")"
+             @onload="@HandleImageLoad"
+             loading="@(LazyLoad ? "lazy" : "eager")" />
+    </div>
+
+    <!-- Member Info -->
+    <div class="avatar-card-content">
+        <!-- Nome de Tuna (primary) -->
+        @if (!string.IsNullOrEmpty(TunaName))
+        {
+            <div class="avatar-card-tuna-name">@TunaName</div>
+        }
+        
+        <!-- Nome (secondary) -->
+        @if (!string.IsNullOrEmpty(FullName))
+        {
+            <div class="avatar-card-full-name">@FullName</div>
+        }
+
+        <!-- Badges (Category/Roles) -->
+        <div class="avatar-card-badges">
+            @BadgeContent
+        </div>
+
+        <!-- Instrumento Principal / a aprender -->
+        @if (!string.IsNullOrEmpty(InstrumentText))
+        {
+            <div class="avatar-card-instrument">
+                <i class="bi bi-music-note"></i> @InstrumentText
+            </div>
+        }
+    </div>
+
+    <!-- View button below the card -->
+    <div class="avatar-card-actions">
+        <button class="btn btn-sm btn-purple w-100" 
+                @onclick="@OnView"
+                title="@ViewTooltip"
+                aria-label="@ViewTooltip">
+            <i class="bi bi-eye"></i> @ViewButtonText
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string AvatarUrl { get; set; } = "";
+
+    [Parameter]
+    public string TunaName { get; set; } = "";
+
+    [Parameter]
+    public string FullName { get; set; } = "";
+
+    [Parameter]
+    public string InstrumentText { get; set; } = "";
+
+    [Parameter]
+    public string AltText { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? BadgeContent { get; set; }
+
+    [Parameter]
+    public EventCallback OnView { get; set; }
+
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    [Parameter]
+    public bool ShowEditButton { get; set; } = false;
+
+    [Parameter]
+    public bool ShowDeleteButton { get; set; } = false;
+
+    [Parameter]
+    public bool LazyLoad { get; set; } = true;
+
+    [Parameter]
+    public string ViewTooltip { get; set; } = "Ver Detalhes";
+
+    [Parameter]
+    public string ViewButtonText { get; set; } = "Ver Detalhes";
+
+    [Parameter]
+    public string EditTooltip { get; set; } = "Editar";
+
+    [Parameter]
+    public string DeleteTooltip { get; set; } = "Eliminar";
+
+    private bool imageLoaded = false;
+
+    private void HandleImageLoad()
+    {
+        imageLoaded = true;
+        StateHasChanged();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await OnView.InvokeAsync();
+        }
+    }
+}
