@@ -394,4 +394,151 @@ public class SongCardTests : TestContext
         // Assert
         callbackInvoked.Should().BeTrue("OnDelete callback should be invoked");
     }
+
+    [Fact]
+    public void SongCard_AllThreeMetadataFields_RenderCorrectly_WhenAllPopulated()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+        song.UpdateDetails("Favaios", null, "João Silva", "Maria Santos", "Pedro Costa", null);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsOwner, false));
+
+        // Assert
+        cut.Markup.Should().Contain("Letra:", "lyric author label should be present");
+        cut.Markup.Should().Contain("João Silva", "lyric author value should be displayed");
+        cut.Markup.Should().Contain("Música:", "music author label should be present");
+        cut.Markup.Should().Contain("Maria Santos", "music author value should be displayed");
+        cut.Markup.Should().Contain("Adaptação:", "adaptation label should be present");
+        cut.Markup.Should().Contain("Pedro Costa", "adaptation value should be displayed");
+        
+        // Verify all three rows are present
+        var authorRows = cut.FindAll(".song-author-row");
+        authorRows.Count.Should().Be(3, "should have exactly three metadata rows when all fields are populated");
+    }
+
+    [Fact]
+    public void SongCard_MissingMetadataFields_HideCleanly()
+    {
+        // Arrange - Only lyric author populated
+        var song = Song.Create("Favaios", 1);
+        song.UpdateDetails("Favaios", null, "João Silva", null, null, null);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsOwner, false));
+
+        // Assert
+        cut.Markup.Should().Contain("Letra:", "lyric author should be present");
+        cut.Markup.Should().NotContain("Música:", "music author label should not appear when empty");
+        cut.Markup.Should().NotContain("Adaptação:", "adaptation label should not appear when empty");
+        
+        var authorRows = cut.FindAll(".song-author-row");
+        authorRows.Count.Should().Be(1, "should have only one metadata row when only one field is populated");
+    }
+
+    [Fact]
+    public void SongCard_MetadataTooltips_ContainFullValues()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+        var longLyricAuthor = "João Silva de Oliveira e Sousa Rodrigues";
+        var longMusicAuthor = "Maria Santos da Costa e Silva Ferreira";
+        var longAdaptation = "Pedro Costa Almeida Pereira Gomes";
+        song.UpdateDetails("Favaios", null, longLyricAuthor, longMusicAuthor, longAdaptation, null);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsOwner, false));
+
+        // Assert - Check tooltips contain full text
+        cut.Markup.Should().Contain($"title=\"{longLyricAuthor}\"", "lyric author row should have tooltip with full text");
+        cut.Markup.Should().Contain($"title=\"{longMusicAuthor}\"", "music author row should have tooltip with full text");
+        cut.Markup.Should().Contain($"title=\"{longAdaptation}\"", "adaptation row should have tooltip with full text");
+    }
+
+    [Fact]
+    public void SongCard_AriaLabels_PresentForAccessibility()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+        song.UpdateDetails("Favaios", null, "João Silva", "Maria Santos", "Pedro Costa", null);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsOwner, false));
+
+        // Assert - Check aria-labels are present
+        cut.Markup.Should().Contain("aria-label=\"Letra\"", "lyric author label should have aria-label");
+        cut.Markup.Should().Contain("aria-label=\"Música\"", "music author label should have aria-label");
+        cut.Markup.Should().Contain("aria-label=\"Adaptação\"", "adaptation label should have aria-label");
+        
+        // Check icons have aria-hidden
+        cut.Markup.Should().Contain("aria-hidden=\"true\"", "icons should have aria-hidden attribute");
+    }
+
+    [Fact]
+    public void SongCard_MetadataLayout_UsesFlexboxWithGap()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+        song.UpdateDetails("Favaios", null, "João Silva", "Maria Santos", null, null);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsOwner, false));
+
+        // Assert - Check that rows have proper class structure
+        var authorRows = cut.FindAll(".song-author-row");
+        authorRows.Should().NotBeEmpty("should have metadata rows");
+        
+        foreach (var row in authorRows)
+        {
+            row.ClassList.Should().Contain("song-author-row", "each row should have the proper class");
+        }
+    }
+
+    [Fact]
+    public void SongCard_MetadataLabels_AreBoldAndPurple()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+        song.UpdateDetails("Favaios", null, "João Silva", null, null, null);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsOwner, false));
+
+        // Assert - Check that labels have proper class
+        cut.Markup.Should().Contain("song-author-label", "labels should have song-author-label class for styling");
+        
+        var labels = cut.FindAll(".song-author-label");
+        labels.Should().NotBeEmpty("should have at least one label");
+    }
+
+    [Fact]
+    public void SongCard_SupportsUTF8Characters()
+    {
+        // Arrange - Test with Portuguese characters and diacritics
+        var song = Song.Create("Canção de Coimbra", 1);
+        song.UpdateDetails("Canção de Coimbra", null, "José António", "João Côrte-Real", "Adaptação Moderna", null);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsOwner, false));
+
+        // Assert - Check UTF-8 characters render correctly
+        cut.Markup.Should().Contain("José António", "should render diacritics correctly");
+        cut.Markup.Should().Contain("João Côrte-Real", "should render special characters correctly");
+        cut.Markup.Should().Contain("Canção de Coimbra", "should render ç correctly");
+    }
 }
