@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace RTUB.Shared.Helpers;
 
@@ -36,26 +37,23 @@ public class AuditLogDisplayHelper
 
         try
         {
-            var changesObj = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(changes);
-            if (changesObj == null)
-            {
-                return result;
-            }
+            // Use JsonDocument for more efficient parsing - only allocates what we read
+            using var doc = JsonDocument.Parse(changes);
+            var root = doc.RootElement;
 
             // Extract target user if present
-            if (changesObj.ContainsKey("_TargetUser") && changesObj["_TargetUser"].ValueKind == JsonValueKind.String)
+            if (root.TryGetProperty("_TargetUser", out var targetUserElement) && 
+                targetUserElement.ValueKind == JsonValueKind.String)
             {
-                result.TargetUser = changesObj["_TargetUser"].GetString();
+                result.TargetUser = targetUserElement.GetString();
             }
 
             // Check for LastLoginDate change
-            if (!changesObj.ContainsKey("LastLoginDate"))
+            if (!root.TryGetProperty("LastLoginDate", out var lastLoginDateElement))
             {
                 return result;
             }
 
-            var lastLoginDateElement = changesObj["LastLoginDate"];
-            
             // Parse Old and New values
             DateTime? oldDate = ParseDateTime(lastLoginDateElement, "Old");
             DateTime? newDate = ParseDateTime(lastLoginDateElement, "New");
@@ -77,10 +75,23 @@ public class AuditLogDisplayHelper
             }
 
             // Count non-metadata fields that changed (excluding fields starting with _)
-            var nonMetadataChanges = changesObj.Keys.Where(k => !k.StartsWith("_")).ToList();
+            int nonMetadataCount = 0;
+            bool hasOnlyLastLoginDate = false;
+            
+            foreach (var property in root.EnumerateObject())
+            {
+                if (!property.Name.StartsWith("_"))
+                {
+                    nonMetadataCount++;
+                    if (property.Name == "LastLoginDate")
+                    {
+                        hasOnlyLastLoginDate = (nonMetadataCount == 1);
+                    }
+                }
+            }
 
             // If only LastLoginDate changed, display as "Logged in"
-            if (nonMetadataChanges.Count == 1 && nonMetadataChanges[0] == "LastLoginDate")
+            if (nonMetadataCount == 1 && hasOnlyLastLoginDate)
             {
                 result.DisplayAction = "Logged in";
             }
