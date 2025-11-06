@@ -3,12 +3,14 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Logging
 @using RTUB.Application.Interfaces
 @using RTUB.Shared
 @inject IAlbumService AlbumService
 @inject ISongService SongService
 @inject IAudioStorageService AudioStorageService
 @inject ILyricStorageService LyricStorageService
+@inject ILogger<Songs> Logger
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -547,7 +549,8 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading PDF from S3: {ex.Message}");
+            Logger.LogError(ex, "Error loading PDF from S3 for song: {SongTitle} in album: {AlbumTitle}", 
+                song.Title, album?.Title ?? "Unknown");
         }
         
         // Fallback to DB text modal if PDF not found or error occurred
@@ -785,7 +788,7 @@ else
             // Get album information
             if (album == null)
             {
-                Console.WriteLine("Album information not available");
+                Logger.LogWarning("Cannot play song - album information not available");
                 return;
             }
             
@@ -801,13 +804,14 @@ else
             else
             {
                 // File not found or error
-                // You could show a notification here
-                Console.WriteLine($"Audio file not found for song: {song.Title} in album: {album.Title}");
+                Logger.LogWarning("Audio file not found for song: {SongTitle} in album: {AlbumTitle}", 
+                    song.Title, album.Title);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error playing song: {ex.Message}");
+            Logger.LogError(ex, "Error playing song: {SongTitle} in album: {AlbumTitle}", 
+                song.Title, album?.Title ?? "Unknown");
         }
     }
     
