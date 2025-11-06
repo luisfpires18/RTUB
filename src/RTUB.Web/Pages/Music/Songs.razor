@@ -545,7 +545,11 @@ else
         }
         
         // Fallback to DB text modal if PDF not found or error occurred
-        CloseViewLyricsPdfModal();
+        // Don't clear viewingSong - just hide the PDF modal
+        showViewLyricsPdfModal = false;
+        isLoadingPdf = false;
+        currentPdfUrl = null;
+        
         showViewLyricsModal = true;
     }
 
