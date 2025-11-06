@@ -76,7 +76,7 @@ public class AuditLogDisplayHelper
 
             // Count non-metadata fields that changed (excluding fields starting with _)
             int nonMetadataCount = 0;
-            bool hasOnlyLastLoginDate = false;
+            bool foundLastLoginDate = false;
             
             foreach (var property in root.EnumerateObject())
             {
@@ -85,13 +85,13 @@ public class AuditLogDisplayHelper
                     nonMetadataCount++;
                     if (property.Name == "LastLoginDate")
                     {
-                        hasOnlyLastLoginDate = (nonMetadataCount == 1);
+                        foundLastLoginDate = true;
                     }
                 }
             }
 
             // If only LastLoginDate changed, display as "Logged in"
-            if (nonMetadataCount == 1 && hasOnlyLastLoginDate)
+            if (nonMetadataCount == 1 && foundLastLoginDate)
             {
                 result.DisplayAction = "Logged in";
             }
