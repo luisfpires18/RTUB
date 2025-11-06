@@ -81,6 +81,13 @@ namespace RTUB
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
+            // Configure cookie authentication to redirect to /login instead of /Account/Login
+            services.ConfigureApplicationCookie(options =>
+            {
+                options.LoginPath = "/login";
+                options.AccessDeniedPath = "/login";
+            });
+
             // PDF generation service - moved to Application layer
             services.AddScoped<RTUB.Application.Services.ReportPdfService>();
 

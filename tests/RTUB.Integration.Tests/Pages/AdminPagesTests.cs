@@ -32,7 +32,7 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion
@@ -47,7 +47,7 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion
@@ -62,7 +62,7 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion
@@ -77,7 +77,7 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion
@@ -107,7 +107,7 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion
@@ -122,7 +122,7 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion
@@ -144,7 +144,7 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect,
             $"{url} should redirect unauthenticated users");
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login",
+        response.Headers.Location?.ToString().Should().Contain("/login",
             $"{url} should redirect to login page");
     }
 
@@ -188,7 +188,7 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
         {
             var response = await _client.GetAsync(url);
             response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-            response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+            response.Headers.Location?.ToString().Should().Contain("/login");
         }
     }
 

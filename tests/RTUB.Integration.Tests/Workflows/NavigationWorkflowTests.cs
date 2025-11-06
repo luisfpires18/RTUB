@@ -86,9 +86,9 @@ public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Progr
         rehearsalsResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
         profileResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
 
-        membersResponse.Headers.Location?.ToString().Should().Contain("/Account/Login");
-        rehearsalsResponse.Headers.Location?.ToString().Should().Contain("/Account/Login");
-        profileResponse.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        membersResponse.Headers.Location?.ToString().Should().Contain("/login");
+        rehearsalsResponse.Headers.Location?.ToString().Should().Contain("/login");
+        profileResponse.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     [Fact]
@@ -104,9 +104,9 @@ public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Progr
         rolesResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
         inventoryResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
 
-        financeResponse.Headers.Location?.ToString().Should().Contain("/Account/Login");
-        rolesResponse.Headers.Location?.ToString().Should().Contain("/Account/Login");
-        inventoryResponse.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        financeResponse.Headers.Location?.ToString().Should().Contain("/login");
+        rolesResponse.Headers.Location?.ToString().Should().Contain("/login");
+        inventoryResponse.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion
