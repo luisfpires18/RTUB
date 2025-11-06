@@ -11,17 +11,17 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// Implementation of audio storage service using iDrive e2 (S3-compatible)
 /// </summary>
-public class IDriveAudioStorageService : IAudioStorageService, IDisposable
+public class DriveAudioStorageService : IAudioStorageService, IDisposable
 {
     private readonly IAmazonS3 _s3Client;
-    private readonly string? _bucketName;
-    private readonly ILogger<IDriveAudioStorageService> _logger;
+    private readonly string _bucketName;
+    private readonly ILogger<DriveAudioStorageService> _logger;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
 
-    public IDriveAudioStorageService(IConfiguration configuration, ILogger<IDriveAudioStorageService> logger)
+    public DriveAudioStorageService(IConfiguration configuration, ILogger<DriveAudioStorageService> logger)
     {
         _logger = logger;
-        _logger.LogInformation("Initializing IDriveAudioStorageService");
+        _logger.LogInformation("Initializing DriveAudioStorageService");
         
         // Get credentials from environment variables or configuration
         var accessKey = configuration["IDrive:AccessKey"];
@@ -44,7 +44,7 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
         };
 
         _s3Client = new AmazonS3Client(credentials, config);
-        _logger.LogInformation("IDriveAudioStorageService initialized with bucket: {BucketName}", _bucketName);
+        _logger.LogInformation("DriveAudioStorageService initialized with bucket: {BucketName}", _bucketName);
     }
 
     public async Task<string?> GetAudioUrlAsync(string albumTitle, int? trackNumber, string songTitle)
@@ -152,6 +152,6 @@ public class IDriveAudioStorageService : IAudioStorageService, IDisposable
     public void Dispose()
     {
         _s3Client?.Dispose();
-        _logger.LogInformation("IDriveAudioStorageService disposed");
+        _logger.LogInformation("DriveAudioStorageService disposed");
     }
 }

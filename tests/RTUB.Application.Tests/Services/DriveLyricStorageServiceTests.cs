@@ -8,16 +8,16 @@ using Xunit;
 namespace RTUB.Application.Tests.Services;
 
 /// <summary>
-/// Tests for IDriveLyricStorageService
+/// Tests for DriveLyricStorageService
 /// </summary>
-public class IDriveLyricStorageServiceTests
+public class DriveLyricStorageServiceTests
 {
-    private readonly Mock<ILogger<IDriveLyricStorageService>> _mockLogger;
+    private readonly Mock<ILogger<DriveLyricStorageService>> _mockLogger;
     private readonly Mock<IConfiguration> _mockConfiguration;
 
-    public IDriveLyricStorageServiceTests()
+    public DriveLyricStorageServiceTests()
     {
-        _mockLogger = new Mock<ILogger<IDriveLyricStorageService>>();
+        _mockLogger = new Mock<ILogger<DriveLyricStorageService>>();
         _mockConfiguration = new Mock<IConfiguration>();
     }
 
@@ -38,7 +38,7 @@ public class IDriveLyricStorageServiceTests
             Environment.SetEnvironmentVariable("IDRIVE_SECRET_KEY", null);
 
             // Act & Assert
-            Action act = () => new IDriveLyricStorageService(_mockConfiguration.Object, _mockLogger.Object);
+            Action act = () => new DriveLyricStorageService(_mockConfiguration.Object, _mockLogger.Object);
             act.Should().Throw<InvalidOperationException>()
                 .WithMessage("*credentials not configured*");
         }
@@ -60,10 +60,10 @@ public class IDriveLyricStorageServiceTests
         _mockConfiguration.Setup(c => c["IDrive:Bucket"]).Returns("test-bucket");
 
         // Act
-        IDriveLyricStorageService? service = null;
+        DriveLyricStorageService? service = null;
         try
         {
-            service = new IDriveLyricStorageService(_mockConfiguration.Object, _mockLogger.Object);
+            service = new DriveLyricStorageService(_mockConfiguration.Object, _mockLogger.Object);
 
             // Assert
             service.Should().NotBeNull();
@@ -73,7 +73,7 @@ public class IDriveLyricStorageServiceTests
                 x => x.Log(
                     LogLevel.Information,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Initializing IDriveLyricStorageService")),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Initializing DriveLyricStorageService")),
                     null,
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
@@ -94,10 +94,10 @@ public class IDriveLyricStorageServiceTests
         _mockConfiguration.Setup(c => c["IDrive:Bucket"]).Returns((string?)null);
 
         // Act
-        IDriveLyricStorageService? service = null;
+        DriveLyricStorageService? service = null;
         try
         {
-            service = new IDriveLyricStorageService(_mockConfiguration.Object, _mockLogger.Object);
+            service = new DriveLyricStorageService(_mockConfiguration.Object, _mockLogger.Object);
 
             // Assert - should not throw and should log with default bucket name "rtub"
             service.Should().NotBeNull();
@@ -128,10 +128,10 @@ public class IDriveLyricStorageServiceTests
         _mockConfiguration.Setup(c => c["IDrive:AccessKey"]).Returns("test-access-key");
         _mockConfiguration.Setup(c => c["IDrive:SecretKey"]).Returns("test-secret-key");
 
-        IDriveLyricStorageService? service = null;
+        DriveLyricStorageService? service = null;
         try
         {
-            service = new IDriveLyricStorageService(_mockConfiguration.Object, _mockLogger.Object);
+            service = new DriveLyricStorageService(_mockConfiguration.Object, _mockLogger.Object);
 
             // Act - Attempt to get URL (will fail but will log the key)
             await service.GetLyricPdfUrlAsync(albumTitle, songTitle);

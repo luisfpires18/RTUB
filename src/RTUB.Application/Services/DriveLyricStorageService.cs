@@ -11,17 +11,17 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// Implementation of lyric PDF storage service using iDrive e2 (S3-compatible)
 /// </summary>
-public class IDriveLyricStorageService : ILyricStorageService, IDisposable
+public class DriveLyricStorageService : ILyricStorageService, IDisposable
 {
     private readonly IAmazonS3 _s3Client;
     private readonly string _bucketName;
-    private readonly ILogger<IDriveLyricStorageService> _logger;
+    private readonly ILogger<DriveLyricStorageService> _logger;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
 
-    public IDriveLyricStorageService(IConfiguration configuration, ILogger<IDriveLyricStorageService> logger)
+    public DriveLyricStorageService(IConfiguration configuration, ILogger<DriveLyricStorageService> logger)
     {
         _logger = logger;
-        _logger.LogInformation("Initializing IDriveLyricStorageService");
+        _logger.LogInformation("Initializing DriveLyricStorageService");
         
         // Get credentials from environment variables or configuration
         var accessKey = Environment.GetEnvironmentVariable("IDRIVE_ACCESS_KEY") 
@@ -50,7 +50,7 @@ public class IDriveLyricStorageService : ILyricStorageService, IDisposable
         };
 
         _s3Client = new AmazonS3Client(credentials, config);
-        _logger.LogInformation("IDriveLyricStorageService initialized with bucket: {BucketName}", _bucketName);
+        _logger.LogInformation("DriveLyricStorageService initialized with bucket: {BucketName}", _bucketName);
     }
 
     public async Task<string?> GetLyricPdfUrlAsync(string albumTitle, string songTitle)
@@ -162,6 +162,6 @@ public class IDriveLyricStorageService : ILyricStorageService, IDisposable
     public void Dispose()
     {
         _s3Client?.Dispose();
-        _logger.LogInformation("IDriveLyricStorageService disposed");
+        _logger.LogInformation("DriveLyricStorageService disposed");
     }
 }
