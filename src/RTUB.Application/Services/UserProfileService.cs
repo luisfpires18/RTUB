@@ -52,6 +52,9 @@ public class UserProfileService : IUserProfileService
 
         user.ProfilePictureData = imageData;
         user.ProfilePictureContentType = contentType;
+        
+        // Increment version for cache busting - ensures browsers fetch new image
+        user.ProfilePictureVersion++;
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
