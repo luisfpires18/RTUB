@@ -549,11 +549,9 @@ else
 
         try
         {
+            // For Blazor Server with cookie auth, cookies flow automatically
             hubConnection = new HubConnectionBuilder()
-                .WithUrl(NavigationManager.ToAbsoluteUri("/chathub"), options =>
-                {
-                    options.UseDefaultCredentials = true;
-                })
+                .WithUrl(NavigationManager.ToAbsoluteUri("/chathub"))
                 .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
                 .Build();
             
@@ -632,13 +630,16 @@ else
                 }
             };
             
+            Console.WriteLine("SignalR: Starting connection...");
             await hubConnection.StartAsync();
             isConnected = true;
             isReconnecting = false;
+            Console.WriteLine("SignalR: Connection established successfully");
             
             if (eventData != null)
             {
                 await hubConnection.SendAsync("JoinEventGroup", eventData.Id);
+                Console.WriteLine($"SignalR: Joined event group: event-{eventData.Id}");
             }
             
             await ScrollChatToBottom();
@@ -646,6 +647,7 @@ else
         catch (Exception ex)
         {
             Console.WriteLine($"SignalR: Error connecting: {ex.Message}");
+            Console.WriteLine($"SignalR: Stack trace: {ex.StackTrace}");
             isConnected = false;
             isReconnecting = false;
         }

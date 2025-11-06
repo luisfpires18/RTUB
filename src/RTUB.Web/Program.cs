@@ -86,6 +86,10 @@ namespace RTUB
             {
                 options.LoginPath = "/login";
                 options.AccessDeniedPath = "/login";
+                options.Cookie.Name = ".RTUB.Auth";
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.HttpOnly = true;
             });
 
             // PDF generation service - moved to Application layer
