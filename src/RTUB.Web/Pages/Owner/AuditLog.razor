@@ -5,6 +5,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Shared
+@using RTUB.Shared.Helpers
 @using System.Text.Json
 @attribute [Authorize(Roles = "Owner")]
 @inject IAuditLogService AuditLogService
@@ -195,14 +196,26 @@
                             <tbody>
                                 @foreach (var log in auditLogs)
                                 {
+                                    var displayInfo = AuditLogDisplayHelper.GetDisplayInfo(log.EntityType, log.Action, log.Changes);
                                     <tr>
                                         <td>
-                                            <small>
+                                            <small title="@GetRelativeTime(log.Timestamp)">
                                                 @log.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
                                             </small>
                                         </td>
                                         <td>
-                                            <span class="badge bg-primary">@(log.UserName ?? "System")</span>
+                                            @if (!string.IsNullOrEmpty(displayInfo.TargetUser))
+                                            {
+                                                <span class="badge bg-primary">@displayInfo.TargetUser</span>
+                                            }
+                                            else if (!string.IsNullOrEmpty(log.UserName))
+                                            {
+                                                <span class="badge bg-primary">@log.UserName</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-primary">System</span>
+                                            }
                                         </td>
                                         <td>
                                             <strong>@log.EntityType</strong>
@@ -216,9 +229,13 @@
                                             }
                                         </td>
                                         <td>
-                                            <span class="badge @GetActionBadgeClass(GetDisplayAction(log))">
-                                                @GetDisplayAction(log)
+                                            <span class="badge @GetActionBadgeClass(displayInfo.DisplayAction)">
+                                                @displayInfo.DisplayAction
                                             </span>
+                                            @if (displayInfo.ShowLoggedInBadge)
+                                            {
+                                                <span class="badge bg-light text-dark ms-1">Logged in</span>
+                                            }
                                         </td>
                                         <td>
                                             @if (!string.IsNullOrEmpty(log.Changes))
@@ -272,12 +289,25 @@
     <BodyContent>
         @if (selectedLog != null)
         {
+            var modalDisplayInfo = AuditLogDisplayHelper.GetDisplayInfo(selectedLog.EntityType, selectedLog.Action, selectedLog.Changes);
             <dl class="row">
                 <dt class="col-sm-3">Timestamp</dt>
-                <dd class="col-sm-9">@selectedLog.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</dd>
+                <dd class="col-sm-9">
+                    @selectedLog.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                    <small class="text-muted ms-2">(@GetRelativeTime(selectedLog.Timestamp))</small>
+                </dd>
 
                 <dt class="col-sm-3">User</dt>
-                <dd class="col-sm-9">@(selectedLog.UserName ?? "System")</dd>
+                <dd class="col-sm-9">
+                    @if (!string.IsNullOrEmpty(modalDisplayInfo.TargetUser))
+                    {
+                        <span>@modalDisplayInfo.TargetUser</span>
+                    }
+                    else
+                    {
+                        <span>@(selectedLog.UserName ?? "System")</span>
+                    }
+                </dd>
 
                 <dt class="col-sm-3">Entity Type</dt>
                 <dd class="col-sm-9">@selectedLog.EntityType</dd>
@@ -291,11 +321,20 @@
                 <dt class="col-sm-3">Entity ID</dt>
                 <dd class="col-sm-9">@(selectedLog.EntityId?.ToString() ?? "N/A")</dd>
 
-                <dt class="col-sm-3">Action</dt>
+                <dt class="col-sm-3">Action (Raw)</dt>
                 <dd class="col-sm-9">
-                    <span class="badge @GetActionBadgeClass(GetDisplayAction(selectedLog))">
-                        @GetDisplayAction(selectedLog)
+                    <span class="badge bg-secondary">@selectedLog.Action</span>
+                </dd>
+
+                <dt class="col-sm-3">Display Action</dt>
+                <dd class="col-sm-9">
+                    <span class="badge @GetActionBadgeClass(modalDisplayInfo.DisplayAction)">
+                        @modalDisplayInfo.DisplayAction
                     </span>
+                    @if (modalDisplayInfo.ShowLoggedInBadge)
+                    {
+                        <span class="badge bg-light text-dark ms-1">Logged in</span>
+                    }
                 </dd>
 
                 @if (selectedLog.IsCriticalAction)
@@ -498,6 +537,16 @@
         // Apply client-side sorting
         ApplySorting();
 
+        // Apply debouncing to collapse rapid logins
+        auditLogs = AuditLogDisplayHelper.ApplyDebouncing(
+            auditLogs,
+            log => log.EntityType,
+            log => log.Action,
+            log => log.Changes,
+            log => log.Timestamp,
+            log => log.UserName
+        );
+
         // Calculate critical count
         criticalCount = auditLogs.Count(log => log.IsCriticalAction);
     }
@@ -661,7 +710,7 @@
             isExporting = false;
         }
     }
-
+    
     private string GetActionBadgeClass(string action)
     {
         return action switch
@@ -672,39 +721,30 @@
             "Role Added" => "bg-primary",
             "Role Removed" => "bg-secondary",
             "Logged in" => "bg-light text-dark",
+            "Profile Updated" => "bg-info text-dark",
             _ => "bg-info"
         };
     }
     
-    private string GetDisplayAction(RTUB.Core.Entities.AuditLog log)
+    private string GetRelativeTime(DateTime timestamp)
     {
-        // Special handling for LastLoginDate changes
-        if (log.EntityType == "ApplicationUser" && log.Action == "Modified")
-        {
-            if (!string.IsNullOrEmpty(log.Changes))
-            {
-                try
-                {
-                    var changesObj = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(log.Changes);
-                    if (changesObj != null && changesObj.ContainsKey("LastLoginDate"))
-                    {
-                        // Check if only LastLoginDate and metadata fields (_TargetUser) changed
-                        var nonMetadataKeys = changesObj.Keys.Where(k => !k.StartsWith("_")).ToList();
-                        if (nonMetadataKeys.Count == 1 && nonMetadataKeys[0] == "LastLoginDate")
-                        {
-                            // Only LastLoginDate changed, display as "Logged in"
-                            return "Logged in";
-                        }
-                    }
-                }
-                catch (JsonException)
-                {
-                    // If parsing fails, fall back to the original action
-                }
-            }
-        }
+        var now = DateTime.UtcNow;
+        var diff = now - timestamp.ToUniversalTime();
+
+        if (diff.TotalSeconds < 60)
+            return "just now";
+        if (diff.TotalMinutes < 60)
+            return $"{(int)diff.TotalMinutes} minute{((int)diff.TotalMinutes != 1 ? "s" : "")} ago";
+        if (diff.TotalHours < 24)
+            return $"{(int)diff.TotalHours} hour{((int)diff.TotalHours != 1 ? "s" : "")} ago";
+        if (diff.TotalDays < 7)
+            return $"{(int)diff.TotalDays} day{((int)diff.TotalDays != 1 ? "s" : "")} ago";
+        if (diff.TotalDays < 30)
+            return $"{(int)(diff.TotalDays / 7)} week{((int)(diff.TotalDays / 7) != 1 ? "s" : "")} ago";
+        if (diff.TotalDays < 365)
+            return $"{(int)(diff.TotalDays / 30)} month{((int)(diff.TotalDays / 30) != 1 ? "s" : "")} ago";
         
-        return log.Action;
+        return $"{(int)(diff.TotalDays / 365)} year{((int)(diff.TotalDays / 365) != 1 ? "s" : "")} ago";
     }
 
     private string FormatChanges(string? changes)
