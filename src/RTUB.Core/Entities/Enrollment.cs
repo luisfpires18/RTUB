@@ -18,7 +18,7 @@ public class Enrollment : BaseEntity
     public bool Attended { get; set; }
     public InstrumentType? Instrument { get; set; }
     public string? Notes { get; set; }
-    public DateTime EnrolledAt { get; set; } = DateTime.UtcNow;
+    public DateTime EnrolledAt { get; set; }
     
     // Navigation properties
     public virtual Event? Event { get; set; }
@@ -36,7 +36,8 @@ public class Enrollment : BaseEntity
         {
             UserId = userId,
             EventId = eventId,
-            Attended = attended
+            Attended = attended,
+            EnrolledAt = DateTime.UtcNow
         };
     }
 

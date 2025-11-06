@@ -22,7 +22,7 @@ public class RehearsalAttendance : BaseEntity
     [MaxLength(500)]
     public string? Notes { get; set; }
     
-    public DateTime CheckedInAt { get; set; } = DateTime.UtcNow;
+    public DateTime CheckedInAt { get; set; }
     
     // Navigation
     public virtual Rehearsal? Rehearsal { get; set; }
