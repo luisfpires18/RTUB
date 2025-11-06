@@ -63,7 +63,8 @@
         @if (!IsPastEvent)
         {
             <div class="enrollment-section mt-auto p-2 rounded">
-                <div class="d-flex gap-2 align-items-center justify-content-center flex-wrap">
+                <!-- First row: View and Repertoire buttons -->
+                <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
                     <!-- View Enrollments button -->
                     <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
                             @onclick="OnViewEnrollments" 
@@ -78,7 +79,10 @@
                             title="Ver Repertório">
                         <i class="bi bi-music-note-list icon-size-1rem"></i>
                     </button>
+                </div>
 
+                <!-- Second row: Enrollment action buttons -->
+                <div class="d-flex gap-2 align-items-center justify-content-center">
                     @if (UserEnrollment == null)
                     {
                         <!-- Enroll button -->
