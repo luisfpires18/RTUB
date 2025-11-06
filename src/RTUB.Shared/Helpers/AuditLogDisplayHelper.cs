@@ -15,8 +15,6 @@ public class AuditLogDisplayHelper
         public string DisplayAction { get; set; } = string.Empty;
         public bool ShowLoggedInBadge { get; set; }
         public string? TargetUser { get; set; }
-        public bool IsDebounced { get; set; }
-        public string? DebouncedNote { get; set; }
     }
 
     /// <summary>
@@ -171,11 +169,10 @@ public class AuditLogDisplayHelper
             if (displayInfo.DisplayAction == "Logged in" || displayInfo.ShowLoggedInBadge)
             {
                 var targetUser = displayInfo.TargetUser ?? userName ?? "Unknown";
-                var key = $"{targetUser}";
 
-                if (seenLogins.ContainsKey(key))
+                if (seenLogins.ContainsKey(targetUser))
                 {
-                    var (existingLog, existingTimestamp) = seenLogins[key];
+                    var (existingLog, existingTimestamp) = seenLogins[targetUser];
                     var timeDiff = Math.Abs((timestamp - existingTimestamp).TotalMinutes);
 
                     if (timeDiff <= 2)
@@ -187,7 +184,7 @@ public class AuditLogDisplayHelper
                 }
 
                 // Update the seen logins tracker
-                seenLogins[key] = (log, timestamp);
+                seenLogins[targetUser] = (log, timestamp);
             }
 
             result.Add(log);
