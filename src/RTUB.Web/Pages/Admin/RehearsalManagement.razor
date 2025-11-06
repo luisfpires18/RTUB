@@ -411,7 +411,7 @@ else
                                 @if (filteredMembersForAdd.Any())
                                 {
                                     <div class="member-list member-list-scrollable">
-                                        @foreach (var member in filteredMembersForAdd.Take(20))
+                                        @foreach (var member in filteredMembersForAdd.Take(MaxMemberSearchResults))
                                         {
                                             <div class="member-item p-2 mb-2 border rounded clickable-row"
                                                  @onclick="() => AddMemberToAttendance(member)">
@@ -542,6 +542,9 @@ else
 @code {
     private bool loading = true;
     private string activeTab = "rehearsals";
+    
+    // Constants
+    private const int MaxMemberSearchResults = 20;
 
     // Rehearsals data
     private List<Rehearsal>? rehearsals;
@@ -942,17 +945,23 @@ else
         
         try
         {
-            // Add attendance with Attended=true (confirmed by admin)
+            // Create attendance record
+            // Note: MarkAttendanceAsync defaults to Attended=false (pending approval)
+            // We immediately update it to Attended=true since admin is adding them
             var attendance = await AttendanceService.MarkAttendanceAsync(
                 selectedRehearsal.Id, 
                 member.Id, 
                 member.MainInstrument);
             
-            // Mark as attended (confirmed) immediately
+            // Mark as attended (confirmed) immediately for admin additions
             await AttendanceService.UpdateAttendanceAsync(attendance.Id, true, member.MainInstrument);
             
-            // Reload the attendances to show the new member
+            // Reload modal data to show the new member in the attendance list
             await ViewAttendances(selectedRehearsal);
+            
+            // Reload main table data to update attendance counts in rehearsal list
+            // (counts are calculated from rehearsal.Attendances navigation property)
+            await LoadData();
             
             // Reset add member dropdown
             showAddMemberDropdown = false;
@@ -963,8 +972,6 @@ else
             var displayName = !string.IsNullOrEmpty(member.Nickname) ? member.Nickname : $"{member.FirstName} {member.LastName}";
             addMemberFeedbackMessage = $"{displayName} foi adicionado à lista de presenças.";
             addMemberFeedbackIsError = false;
-            
-            await LoadData(); // Refresh main table
         }
         catch (Exception ex)
         {
