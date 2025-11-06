@@ -1298,8 +1298,8 @@ public class ApplicationDbContextTests : IDisposable
         // Verify CreatedAt was set correctly for all enrollments
         foreach (var enrollment in savedEnrollments)
         {
-            enrollment.CreatedAt.Should().NotBe(default(DateTime));
-            enrollment.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(10));
+            enrollment.CreatedAt.Should().NotBe(default);
+            enrollment.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(2));
         }
         
         // Verify audit logs were created for all enrollments (no infinite loop)
