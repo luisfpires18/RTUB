@@ -71,8 +71,11 @@ else
                     <ProfileField Label="Email" Value="@user.Email" />
                     <ProfileField Label="Data de Nascimento" 
                                 Value="@(user.DateOfBirth?.ToString("dd/MM/yyyy"))" />
-                    <ProfileField Label="Idade" 
-                                Value="@(user.Age?.ToString() + " anos")" />
+                    @if (user.DateOfBirth.HasValue)
+                    {
+                        <ProfileField Label="Idade" 
+                                    Value="@(user.Age?.ToString() + " anos")" />
+                    }
                     <ProfileField Label="Contacto" Value="@user.PhoneContact" />
                 </ChildContent>
                 <EditContent>
