@@ -5,6 +5,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
 using RTUB.Application.Interfaces;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats.Webp;
 
 namespace RTUB.Application.Services;
 
@@ -18,6 +21,9 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
     private readonly ILogger<DriveSlideshowStorageService> _logger;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
     private const string SlideshowPathPrefix = "images/slideshows/";
+    private const int WebPQuality = 85; // High quality WebP (0-100, where 100 is best quality)
+    private const int MaxImageWidth = 1920; // Max width for slideshow images
+    private const int MaxImageHeight = 1080; // Max height for slideshow images
 
     public DriveSlideshowStorageService(IConfiguration configuration, ILogger<DriveSlideshowStorageService> logger)
     {
@@ -72,23 +78,49 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
 
         try
         {
-            var filename = GenerateFilename(slideshowId, file.ContentType);
+            // Convert image to WebP format
+            using var inputStream = file.OpenReadStream();
+            using var image = await Image.LoadAsync(inputStream);
+            
+            // Resize if image is too large while maintaining aspect ratio
+            if (image.Width > MaxImageWidth || image.Height > MaxImageHeight)
+            {
+                image.Mutate(x => x.Resize(new ResizeOptions
+                {
+                    Size = new Size(MaxImageWidth, MaxImageHeight),
+                    Mode = ResizeMode.Max // Maintain aspect ratio
+                }));
+                _logger.LogInformation("Resized slideshow image from {OriginalWidth}x{OriginalHeight} to {NewWidth}x{NewHeight}", 
+                    image.Width, image.Height, image.Width, image.Height);
+            }
+
+            // Generate filename with .webp extension
+            var filename = GenerateFilename(slideshowId, "image/webp");
             var objectKey = GetObjectKey(filename);
 
-            using var stream = file.OpenReadStream();
-            
+            // Convert to WebP with high quality
+            using var outputStream = new MemoryStream();
+            var encoder = new WebpEncoder 
+            { 
+                Quality = WebPQuality,
+                FileFormat = WebpFileFormatType.Lossy // Use lossy compression for better size reduction
+            };
+            await image.SaveAsync(outputStream, encoder);
+            outputStream.Position = 0;
+
             var putRequest = new PutObjectRequest
             {
                 BucketName = _bucketName,
                 Key = objectKey,
-                InputStream = stream,
-                ContentType = file.ContentType,
+                InputStream = outputStream,
+                ContentType = "image/webp",
                 CannedACL = S3CannedACL.PublicRead // Make publicly readable
             };
 
             await _s3Client.PutObjectAsync(putRequest);
             
-            _logger.LogInformation("Successfully uploaded slideshow image to S3: {ObjectKey}", objectKey);
+            _logger.LogInformation("Successfully uploaded slideshow image to S3 as WebP: {ObjectKey}, Size: {Size} bytes", 
+                objectKey, outputStream.Length);
             
             return filename;
         }
@@ -119,23 +151,49 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
 
         try
         {
-            var filename = GenerateFilename(slideshowId, contentType);
+            // Convert image to WebP format
+            using var inputStream = new MemoryStream(imageData);
+            using var image = await Image.LoadAsync(inputStream);
+            
+            // Resize if image is too large while maintaining aspect ratio
+            if (image.Width > MaxImageWidth || image.Height > MaxImageHeight)
+            {
+                image.Mutate(x => x.Resize(new ResizeOptions
+                {
+                    Size = new Size(MaxImageWidth, MaxImageHeight),
+                    Mode = ResizeMode.Max // Maintain aspect ratio
+                }));
+                _logger.LogInformation("Resized slideshow image from {OriginalWidth}x{OriginalHeight} to {NewWidth}x{NewHeight}", 
+                    image.Width, image.Height, image.Width, image.Height);
+            }
+
+            // Generate filename with .webp extension
+            var filename = GenerateFilename(slideshowId, "image/webp");
             var objectKey = GetObjectKey(filename);
 
-            using var stream = new MemoryStream(imageData);
-            
+            // Convert to WebP with high quality
+            using var outputStream = new MemoryStream();
+            var encoder = new WebpEncoder 
+            { 
+                Quality = WebPQuality,
+                FileFormat = WebpFileFormatType.Lossy // Use lossy compression for better size reduction
+            };
+            await image.SaveAsync(outputStream, encoder);
+            outputStream.Position = 0;
+
             var putRequest = new PutObjectRequest
             {
                 BucketName = _bucketName,
                 Key = objectKey,
-                InputStream = stream,
-                ContentType = contentType,
+                InputStream = outputStream,
+                ContentType = "image/webp",
                 CannedACL = S3CannedACL.PublicRead // Make publicly readable
             };
 
             await _s3Client.PutObjectAsync(putRequest);
             
-            _logger.LogInformation("Successfully uploaded slideshow image to S3: {ObjectKey}", objectKey);
+            _logger.LogInformation("Successfully uploaded slideshow image to S3 as WebP: {ObjectKey}, Size: {Size} bytes", 
+                objectKey, outputStream.Length);
             
             return filename;
         }
