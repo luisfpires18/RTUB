@@ -108,6 +108,9 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
             await image.SaveAsync(outputStream, encoder);
             outputStream.Position = 0;
 
+            // Capture the size before upload
+            var fileSize = outputStream.Length;
+
             var putRequest = new PutObjectRequest
             {
                 BucketName = _bucketName,
@@ -120,7 +123,7 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
             await _s3Client.PutObjectAsync(putRequest);
             
             _logger.LogInformation("Successfully uploaded slideshow image to S3 as WebP: {ObjectKey}, Size: {Size} bytes", 
-                objectKey, outputStream.Length);
+                objectKey, fileSize);
             
             return filename;
         }
@@ -181,6 +184,9 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
             await image.SaveAsync(outputStream, encoder);
             outputStream.Position = 0;
 
+            // Capture the size before upload
+            var fileSize = outputStream.Length;
+
             var putRequest = new PutObjectRequest
             {
                 BucketName = _bucketName,
@@ -193,7 +199,7 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
             await _s3Client.PutObjectAsync(putRequest);
             
             _logger.LogInformation("Successfully uploaded slideshow image to S3 as WebP: {ObjectKey}, Size: {Size} bytes", 
-                objectKey, outputStream.Length);
+                objectKey, fileSize);
             
             return filename;
         }
