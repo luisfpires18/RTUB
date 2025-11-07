@@ -89,7 +89,10 @@ namespace RTUB.Migrations
                     ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Enrollments"" PRIMARY KEY AUTOINCREMENT,
                     ""CreatedAt"" TEXT NOT NULL,
                     ""CreatedBy"" TEXT NULL,
+                    ""EnrolledAt"" TEXT NOT NULL,
                     ""EventId"" INTEGER NOT NULL,
+                    ""Instrument"" INTEGER NULL,
+                    ""Notes"" TEXT NULL,
                     ""UpdatedAt"" TEXT NULL,
                     ""UpdatedBy"" TEXT NULL,
                     ""UserId"" TEXT NOT NULL,
@@ -100,9 +103,9 @@ namespace RTUB.Migrations
 
             migrationBuilder.Sql(@"
                 INSERT INTO ""Enrollments_new""
-                    (""Id"", ""CreatedAt"", ""CreatedBy"", ""EventId"", ""UpdatedAt"", ""UpdatedBy"", ""UserId"")
+                    (""Id"", ""CreatedAt"", ""CreatedBy"", ""EnrolledAt"", ""EventId"", ""Instrument"", ""Notes"", ""UpdatedAt"", ""UpdatedBy"", ""UserId"")
                 SELECT
-                    ""Id"", ""CreatedAt"", ""CreatedBy"", ""EventId"", ""UpdatedAt"", ""UpdatedBy"", ""UserId""
+                    ""Id"", ""CreatedAt"", ""CreatedBy"", ""EnrolledAt"", ""EventId"", ""Instrument"", ""Notes"", ""UpdatedAt"", ""UpdatedBy"", ""UserId""
                 FROM ""Enrollments"";
             ");
 
@@ -199,7 +202,10 @@ namespace RTUB.Migrations
                     ""Attended"" INTEGER NOT NULL DEFAULT 0,
                     ""CreatedAt"" TEXT NOT NULL,
                     ""CreatedBy"" TEXT NULL,
+                    ""EnrolledAt"" TEXT NOT NULL,
                     ""EventId"" INTEGER NOT NULL,
+                    ""Instrument"" INTEGER NULL,
+                    ""Notes"" TEXT NULL,
                     ""UpdatedAt"" TEXT NULL,
                     ""UpdatedBy"" TEXT NULL,
                     ""UserId"" TEXT NOT NULL,
@@ -210,9 +216,9 @@ namespace RTUB.Migrations
 
             migrationBuilder.Sql(@"
                 INSERT INTO ""Enrollments_old""
-                    (""Id"", ""CreatedAt"", ""CreatedBy"", ""EventId"", ""UpdatedAt"", ""UpdatedBy"", ""UserId"", ""Attended"")
+                    (""Id"", ""CreatedAt"", ""CreatedBy"", ""EnrolledAt"", ""EventId"", ""Instrument"", ""Notes"", ""UpdatedAt"", ""UpdatedBy"", ""UserId"", ""Attended"")
                 SELECT
-                    ""Id"", ""CreatedAt"", ""CreatedBy"", ""EventId"", ""UpdatedAt"", ""UpdatedBy"", ""UserId"", 0
+                    ""Id"", ""CreatedAt"", ""CreatedBy"", ""EnrolledAt"", ""EventId"", ""Instrument"", ""Notes"", ""UpdatedAt"", ""UpdatedBy"", ""UserId"", 0
                 FROM ""Enrollments"";
             ");
 
