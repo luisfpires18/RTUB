@@ -833,7 +833,6 @@ public class ApplicationDbContextTests : IDisposable
         auditLog.Action.Should().Be("Modified");
         auditLog.IsCriticalAction.Should().BeFalse(); // LastLoginDate is not critical
         auditLog.Changes.Should().Contain("LastLoginDate");
-        // Note: The display logic for "Logged in" is in the UI layer, not in the audit log itself
     }
 
     [Fact]
