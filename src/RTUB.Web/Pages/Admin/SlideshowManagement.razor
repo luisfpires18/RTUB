@@ -81,8 +81,16 @@ else
                         <td>
                             @if (!string.IsNullOrEmpty(slide.ImageSrc))
                             {
-                                var separator = slide.ImageSrc.Contains('?') ? "&" : "?";
-                                <img src="@($"{slide.ImageSrc}{separator}v={slide.Id}_{DateTime.UtcNow.Ticks}")" alt="@slide.Title" class="slideshow-thumbnail img-thumbnail" />
+                                // Don't add cache-busting to pre-signed S3 URLs as it invalidates the signature
+                                // Pre-signed URLs already have expiration built-in
+                                var imageUrl = slide.ImageSrc;
+                                if (!imageUrl.StartsWith("http"))
+                                {
+                                    // Only add cache-busting for non-S3 images (e.g., /api/images/)
+                                    var separator = imageUrl.Contains('?') ? "&" : "?";
+                                    imageUrl = $"{imageUrl}{separator}v={slide.Id}_{DateTime.UtcNow.Ticks}";
+                                }
+                                <img src="@imageUrl" alt="@slide.Title" class="slideshow-thumbnail img-thumbnail" />
                             }
                         </td>
                         <td>@slide.Title</td>
