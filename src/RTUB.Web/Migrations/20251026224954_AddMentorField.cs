@@ -10,51 +10,150 @@ namespace RTUB.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // SQLite PRAGMA commands cannot be executed within a transaction
-            // Adding a self-referential foreign key requires table rebuild which uses PRAGMA
-            migrationBuilder.Sql("PRAGMA foreign_keys = 0;", suppressTransaction: true);
+            // SQLite requires manual table rebuild for adding self-referential foreign key
+            // Using raw SQL to avoid EF Core's automatic PRAGMA generation within transactions
+            
+            // Step 1: Create new table with MentorId column and foreign key
+            migrationBuilder.Sql(@"
+                CREATE TABLE ""AspNetUsers_new"" (
+                    ""Id"" TEXT NOT NULL CONSTRAINT ""PK_AspNetUsers"" PRIMARY KEY,
+                    ""AccessFailedCount"" INTEGER NOT NULL,
+                    ""Categories"" TEXT NULL,
+                    ""CategoriesJson"" TEXT NULL,
+                    ""ConcurrencyStamp"" TEXT NULL,
+                    ""DateOfBirth"" TEXT NULL,
+                    ""Degree"" TEXT NULL,
+                    ""Email"" TEXT NULL,
+                    ""EmailConfirmed"" INTEGER NOT NULL,
+                    ""FirstName"" TEXT NULL,
+                    ""IsActive"" INTEGER NOT NULL,
+                    ""LastName"" TEXT NULL,
+                    ""LockoutEnabled"" INTEGER NOT NULL,
+                    ""LockoutEnd"" TEXT NULL,
+                    ""MainInstrument"" INTEGER NULL,
+                    ""Nickname"" TEXT NULL,
+                    ""NormalizedEmail"" TEXT NULL,
+                    ""NormalizedUserName"" TEXT NULL,
+                    ""PasswordHash"" TEXT NULL,
+                    ""PhoneContact"" TEXT NULL,
+                    ""PhoneNumber"" TEXT NULL,
+                    ""PhoneNumberConfirmed"" INTEGER NOT NULL,
+                    ""Positions"" TEXT NULL,
+                    ""PositionsJson"" TEXT NULL,
+                    ""ProfilePictureContentType"" TEXT NULL,
+                    ""ProfilePictureData"" BLOB NULL,
+                    ""SecurityStamp"" TEXT NULL,
+                    ""TwoFactorEnabled"" INTEGER NOT NULL,
+                    ""UserName"" TEXT NULL,
+                    ""MentorId"" TEXT NULL,
+                    CONSTRAINT ""FK_AspNetUsers_AspNetUsers_MentorId"" FOREIGN KEY (""MentorId"") REFERENCES ""AspNetUsers"" (""Id"") ON DELETE SET NULL
+                );
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "MentorId",
-                table: "AspNetUsers",
-                type: "TEXT",
-                nullable: true);
+            // Step 2: Copy data from old table to new table
+            migrationBuilder.Sql(@"
+                INSERT INTO ""AspNetUsers_new""
+                    (""Id"", ""AccessFailedCount"", ""Categories"", ""CategoriesJson"", ""ConcurrencyStamp"",
+                     ""DateOfBirth"", ""Degree"", ""Email"", ""EmailConfirmed"", ""FirstName"", ""IsActive"",
+                     ""LastName"", ""LockoutEnabled"", ""LockoutEnd"", ""MainInstrument"", ""Nickname"",
+                     ""NormalizedEmail"", ""NormalizedUserName"", ""PasswordHash"", ""PhoneContact"",
+                     ""PhoneNumber"", ""PhoneNumberConfirmed"", ""Positions"", ""PositionsJson"",
+                     ""ProfilePictureContentType"", ""ProfilePictureData"", ""SecurityStamp"",
+                     ""TwoFactorEnabled"", ""UserName"", ""MentorId"")
+                SELECT
+                    ""Id"", ""AccessFailedCount"", ""Categories"", ""CategoriesJson"", ""ConcurrencyStamp"",
+                    ""DateOfBirth"", ""Degree"", ""Email"", ""EmailConfirmed"", ""FirstName"", ""IsActive"",
+                    ""LastName"", ""LockoutEnabled"", ""LockoutEnd"", ""MainInstrument"", ""Nickname"",
+                    ""NormalizedEmail"", ""NormalizedUserName"", ""PasswordHash"", ""PhoneContact"",
+                    ""PhoneNumber"", ""PhoneNumberConfirmed"", ""Positions"", ""PositionsJson"",
+                    ""ProfilePictureContentType"", ""ProfilePictureData"", ""SecurityStamp"",
+                    ""TwoFactorEnabled"", ""UserName"", NULL
+                FROM ""AspNetUsers"";
+            ");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_AspNetUsers_MentorId",
-                table: "AspNetUsers",
-                column: "MentorId");
+            // Step 3: Drop old table
+            migrationBuilder.Sql(@"DROP TABLE ""AspNetUsers"";");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_AspNetUsers_AspNetUsers_MentorId",
-                table: "AspNetUsers",
-                column: "MentorId",
-                principalTable: "AspNetUsers",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+            // Step 4: Rename new table
+            migrationBuilder.Sql(@"ALTER TABLE ""AspNetUsers_new"" RENAME TO ""AspNetUsers"";");
 
-            migrationBuilder.Sql("PRAGMA foreign_keys = 1;", suppressTransaction: true);
+            // Step 5: Recreate indexes
+            migrationBuilder.Sql(@"CREATE UNIQUE INDEX ""UserNameIndex"" ON ""AspNetUsers"" (""NormalizedUserName"");");
+            migrationBuilder.Sql(@"CREATE INDEX ""EmailIndex"" ON ""AspNetUsers"" (""NormalizedEmail"");");
+            migrationBuilder.Sql(@"CREATE INDEX ""IX_AspNetUsers_MentorId"" ON ""AspNetUsers"" (""MentorId"");");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // SQLite PRAGMA commands cannot be executed within a transaction
-            migrationBuilder.Sql("PRAGMA foreign_keys = 0;", suppressTransaction: true);
+            // SQLite requires manual table rebuild for removing self-referential foreign key
+            // Using raw SQL to avoid EF Core's automatic PRAGMA generation within transactions
+            
+            // Step 1: Create new table without MentorId column and foreign key
+            migrationBuilder.Sql(@"
+                CREATE TABLE ""AspNetUsers_old"" (
+                    ""Id"" TEXT NOT NULL CONSTRAINT ""PK_AspNetUsers"" PRIMARY KEY,
+                    ""AccessFailedCount"" INTEGER NOT NULL,
+                    ""Categories"" TEXT NULL,
+                    ""CategoriesJson"" TEXT NULL,
+                    ""ConcurrencyStamp"" TEXT NULL,
+                    ""DateOfBirth"" TEXT NULL,
+                    ""Degree"" TEXT NULL,
+                    ""Email"" TEXT NULL,
+                    ""EmailConfirmed"" INTEGER NOT NULL,
+                    ""FirstName"" TEXT NULL,
+                    ""IsActive"" INTEGER NOT NULL,
+                    ""LastName"" TEXT NULL,
+                    ""LockoutEnabled"" INTEGER NOT NULL,
+                    ""LockoutEnd"" TEXT NULL,
+                    ""MainInstrument"" INTEGER NULL,
+                    ""Nickname"" TEXT NULL,
+                    ""NormalizedEmail"" TEXT NULL,
+                    ""NormalizedUserName"" TEXT NULL,
+                    ""PasswordHash"" TEXT NULL,
+                    ""PhoneContact"" TEXT NULL,
+                    ""PhoneNumber"" TEXT NULL,
+                    ""PhoneNumberConfirmed"" INTEGER NOT NULL,
+                    ""Positions"" TEXT NULL,
+                    ""PositionsJson"" TEXT NULL,
+                    ""ProfilePictureContentType"" TEXT NULL,
+                    ""ProfilePictureData"" BLOB NULL,
+                    ""SecurityStamp"" TEXT NULL,
+                    ""TwoFactorEnabled"" INTEGER NOT NULL,
+                    ""UserName"" TEXT NULL
+                );
+            ");
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_AspNetUsers_AspNetUsers_MentorId",
-                table: "AspNetUsers");
+            // Step 2: Copy data from current table to old table (excluding MentorId)
+            migrationBuilder.Sql(@"
+                INSERT INTO ""AspNetUsers_old""
+                    (""Id"", ""AccessFailedCount"", ""Categories"", ""CategoriesJson"", ""ConcurrencyStamp"",
+                     ""DateOfBirth"", ""Degree"", ""Email"", ""EmailConfirmed"", ""FirstName"", ""IsActive"",
+                     ""LastName"", ""LockoutEnabled"", ""LockoutEnd"", ""MainInstrument"", ""Nickname"",
+                     ""NormalizedEmail"", ""NormalizedUserName"", ""PasswordHash"", ""PhoneContact"",
+                     ""PhoneNumber"", ""PhoneNumberConfirmed"", ""Positions"", ""PositionsJson"",
+                     ""ProfilePictureContentType"", ""ProfilePictureData"", ""SecurityStamp"",
+                     ""TwoFactorEnabled"", ""UserName"")
+                SELECT
+                    ""Id"", ""AccessFailedCount"", ""Categories"", ""CategoriesJson"", ""ConcurrencyStamp"",
+                    ""DateOfBirth"", ""Degree"", ""Email"", ""EmailConfirmed"", ""FirstName"", ""IsActive"",
+                    ""LastName"", ""LockoutEnabled"", ""LockoutEnd"", ""MainInstrument"", ""Nickname"",
+                    ""NormalizedEmail"", ""NormalizedUserName"", ""PasswordHash"", ""PhoneContact"",
+                    ""PhoneNumber"", ""PhoneNumberConfirmed"", ""Positions"", ""PositionsJson"",
+                    ""ProfilePictureContentType"", ""ProfilePictureData"", ""SecurityStamp"",
+                    ""TwoFactorEnabled"", ""UserName""
+                FROM ""AspNetUsers"";
+            ");
 
-            migrationBuilder.DropIndex(
-                name: "IX_AspNetUsers_MentorId",
-                table: "AspNetUsers");
+            // Step 3: Drop current table
+            migrationBuilder.Sql(@"DROP TABLE ""AspNetUsers"";");
 
-            migrationBuilder.DropColumn(
-                name: "MentorId",
-                table: "AspNetUsers");
+            // Step 4: Rename old table
+            migrationBuilder.Sql(@"ALTER TABLE ""AspNetUsers_old"" RENAME TO ""AspNetUsers"";");
 
-            migrationBuilder.Sql("PRAGMA foreign_keys = 1;", suppressTransaction: true);
+            // Step 5: Recreate indexes (without MentorId index)
+            migrationBuilder.Sql(@"CREATE UNIQUE INDEX ""UserNameIndex"" ON ""AspNetUsers"" (""NormalizedUserName"");");
+            migrationBuilder.Sql(@"CREATE INDEX ""EmailIndex"" ON ""AspNetUsers"" (""NormalizedEmail"");");
         }
     }
 }
