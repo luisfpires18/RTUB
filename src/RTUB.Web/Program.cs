@@ -266,7 +266,8 @@ namespace RTUB
             // LOGIN (HTTP POST) — sets cookie, then redirects
             app.MapPost("/auth/login", async (HttpContext http,
                                               SignInManager<ApplicationUser> signInManager,
-                                              UserManager<ApplicationUser> userManager) =>
+                                              UserManager<ApplicationUser> userManager,
+                                              ILogger<Program> logger) =>
             {
                 var form = await http.Request.ReadFormAsync();
                 var username = form["Username"].ToString();
@@ -281,20 +282,36 @@ namespace RTUB
                     return Results.Redirect("/login?error=Invalid");
                 }
 
+                // Check password is valid BEFORE updating last login date to avoid race condition
+                // We need to verify credentials first, then update the timestamp BEFORE signing in
+                // to ensure the LastLoginDate is persisted before the user can make any requests
+                var passwordValid = await userManager.CheckPasswordAsync(user, password);
+                if (!passwordValid)
+                {
+                    return Results.Redirect("/login?error=Invalid");
+                }
+
+                // Update last login date BEFORE signing in to prevent race condition
+                // This ensures the timestamp is set before the authentication cookie is issued
+                try
+                {
+                    user.LastLoginDate = DateTime.UtcNow;
+                    var updateResult = await userManager.UpdateAsync(user);
+                    if (!updateResult.Succeeded)
+                    {
+                        logger.LogWarning("Failed to update LastLoginDate for user {Username}: {Errors}", 
+                            username, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't fail login
+                    logger.LogError(ex, "Exception while updating LastLoginDate for user {Username}", username);
+                }
+
                 var result = await signInManager.PasswordSignInAsync(user, password, remember, lockoutOnFailure: false);
                 if (result.Succeeded)
                 {
-                    // Update last login date (best effort - don't fail login if this fails)
-                    try
-                    {
-                        user.LastLoginDate = DateTime.UtcNow;
-                        await userManager.UpdateAsync(user);
-                    }
-                    catch
-                    {
-                        // Log error but don't fail login
-                    }
-                    
                     // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
                     if (!string.IsNullOrEmpty(returnUrl) && RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl))
                     {
