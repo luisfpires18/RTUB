@@ -15,22 +15,26 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h1>Ensaios</h1>
-        <p class="mb-0">Ensaios regulares da tuna (Terças e Quintas, 21:00-00:00).</p>
-    </div>
+<h1>Ensaios</h1>
+<p>Ensaios regulares da tuna (Terças e Quintas, 21:00-00:00).</p>
+
+<!-- Header Controls -->
+<div class="mb-3">
     @if (isAdmin)
     {
-        <div class="d-flex gap-2">
-            <button class="btn btn-success" @onclick="OpenCreateSingleModal" title="Adicionar Ensaio">
-                <i class="bi bi-plus-lg"></i> Adicionar
-            </button>
-            <button class="btn btn-outline-primary" @onclick="OpenStatsModal" title="Ver Estatísticas">
-                <i class="bi bi-bar-chart"></i> Estatísticas
-            </button>
-        </div>
+        <button class="btn btn-success me-2" @onclick="OpenCreateSingleModal" title="Criar Ensaio (Data Específica)">
+            <i class="bi bi-plus-lg"></i>
+        </button>
+        <button class="btn btn-sm btn-light me-2" @onclick="OpenDateRangeModal" title="Criar Ensaios (Intervalo)">
+            <i class="bi bi-calendar-range"></i>
+        </button>
+        <button class="btn btn-outline-primary me-2" @onclick="OpenStatsModal" title="Ver Estatísticas">
+            <i class="bi bi-bar-chart"></i> Estatísticas
+        </button>
     }
+    <button class="btn btn-outline-secondary" @onclick="OpenMyAttendancesModal" title="Minhas Presenças">
+        <i class="bi bi-calendar-check"></i> Minhas Presenças
+    </button>
 </div>
 
 <!-- Filter Controls -->
@@ -89,61 +93,6 @@ else
                                OnEditAttendance="@(() => EditAttendance(rehearsal))"
                                OnRemoveAttendance="@(() => RemoveAttendance(rehearsal))" />
             }
-        </div>
-    }
-
-    <!-- My Recent Attendance Section -->
-    <h3 class="mt-5 mb-3">Minhas Presenças Recentes</h3>
-
-    @if (myAttendances == null || !myAttendances.Any())
-    {
-        <div class="card shadow-sm card-purple-no-border">
-            <h5 class="card-title text-white"><i class="bi bi-info-circle"></i> Sem presenças registadas</h5>
-        </div>
-    }
-    else
-    {
-        <div class="card">
-            <div class="card-body">
-                <p class="mb-3">
-                    <strong>Taxa de Presença (últimos 10 ensaios):</strong>
-                    <span class="badge bg-primary">@attendanceCount / @totalRecentRehearsals ensaios</span>
-                    @if (totalRecentRehearsals > 0)
-                    {
-                        <span class="ms-2">(@(Math.Round((double)attendanceCount / totalRecentRehearsals * 100, 1))%)</span>
-                    }
-                </p>
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Instrumento</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var attendance in myAttendances.Where(a => a.Rehearsal != null && a.Rehearsal.Date < DateTime.Today).OrderByDescending(a => a.Rehearsal!.Date).Take(10))
-                            {
-                                <tr>
-                                    <td>@attendance.Rehearsal?.Date.ToString("dd MMM yyyy")</td>
-                                    <td>@(attendance.Instrument?.ToString() ?? "-")</td>
-                                    <td>
-                                        @if (attendance.Attended)
-                                        {
-                                            <span class="badge bg-success">Aprovado</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-warning">Pendente</span>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     }
     
@@ -498,6 +447,124 @@ else
     </Modal>
 }
 
+<!-- Date Range Modal (Admin Only) -->
+@if (showDateRangeModal && isAdmin)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Criar Ensaios (Intervalo)</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDateRangeModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Data Início</label>
+                        <input type="date" class="form-control" @bind="rangeStartDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data Fim</label>
+                        <input type="date" class="form-control" @bind="rangeEndDate" max="@maxRangeDate.ToString("yyyy-MM-dd")" />
+                    </div>
+                    @if (rangeEndDate.Date < rangeStartDate.Date)
+                    {
+                        <div class="alert alert-danger">
+                            A data de fim não pode ser anterior à data de início.
+                        </div>
+                    }
+                    @if ((rangeEndDate.Date - rangeStartDate.Date).TotalDays > 90)
+                    {
+                        <div class="alert alert-warning">
+                            O período máximo é de 3 meses.
+                        </div>
+                    }
+                    <div class="mb-3">
+                        <label class="form-label">Localização</label>
+                        <input type="text" class="form-control" @bind="rangeLocation" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tema (Opcional)</label>
+                        <input type="text" class="form-control" @bind="rangeTheme" />
+                    </div>
+                    <p class="text-muted">
+                        <small>Serão criados ensaios às Terças e Quintas no intervalo selecionado.</small>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDateRangeModal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="CreateRangeRehearsals" 
+                            disabled="@(rangeEndDate.Date < rangeStartDate.Date || (rangeEndDate.Date - rangeStartDate.Date).TotalDays > 90)">
+                        Criar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Minhas Presenças Modal -->
+@if (showMyAttendancesModal)
+{
+    <Modal Show="@showMyAttendancesModal"
+           ShowChanged="@((bool show) => showMyAttendancesModal = show)"
+           Title="Minhas Presenças Recentes"
+           Size="Modal.ModalSize.Large"
+           Centered="true">
+        <BodyContent>
+            @if (myAttendances == null || !myAttendances.Any())
+            {
+                <EmptyTableState 
+                    Message="Sem presenças registadas." 
+                    IconClass="bi-info-circle" />
+            }
+            else
+            {
+                <div class="mb-3">
+                    <strong>Taxa de Presença (últimos 10 ensaios):</strong>
+                    <span class="badge bg-primary">@attendanceCount / @totalRecentRehearsals ensaios</span>
+                    @if (totalRecentRehearsals > 0)
+                    {
+                        <span class="ms-2">(@(Math.Round((double)attendanceCount / totalRecentRehearsals * 100, 1))%)</span>
+                    }
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Instrumento</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var attendance in myAttendances.Where(a => a.Rehearsal != null && a.Rehearsal.Date < DateTime.Today).OrderByDescending(a => a.Rehearsal!.Date).Take(10))
+                            {
+                                <tr>
+                                    <td>@attendance.Rehearsal?.Date.ToString("dd MMM yyyy")</td>
+                                    <td>@(attendance.Instrument?.ToString() ?? "-")</td>
+                                    <td>
+                                        @if (attendance.Attended)
+                                        {
+                                            <span class="badge bg-success">Aprovado</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning">Pendente</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseMyAttendancesModal">Fechar</button>
+        </FooterContent>
+    </Modal>
+}
+
 @code {
     private bool loading = true;
     private bool isAdmin = false;
@@ -533,6 +600,8 @@ else
     private bool showDeleteAttendanceModal = false;
     private bool showCreateModal = false;
     private bool showStatsModal = false;
+    private bool showDateRangeModal = false;
+    private bool showMyAttendancesModal = false;
     
     private Rehearsal? selectedRehearsal;
     private Rehearsal? editingRehearsal;
@@ -550,6 +619,13 @@ else
     private string createLocation = "Centro Académico";
     private string? createTheme;
     private string? createNotes;
+
+    // Range rehearsals
+    private DateTime rangeStartDate = DateTime.Today;
+    private DateTime rangeEndDate = DateTime.Today.AddMonths(1);
+    private DateTime maxRangeDate => DateTime.Today.AddMonths(3);
+    private string rangeLocation = "Centro Académico";
+    private string? rangeTheme;
 
     // Stats data
     private DateTime statsStartDate = DateTime.Today.AddDays(-30);
@@ -668,6 +744,12 @@ else
             r => r.Location ?? "",
             r => r.Notes ?? ""
         });
+
+        // Also filter previous rehearsals if admin
+        if (isAdmin)
+        {
+            FilterPreviousRehearsals();
+        }
     }
 
     private async Task HandleSearchChanged(string search)
@@ -884,9 +966,25 @@ else
     // Previous rehearsals filtering and pagination
     private void FilterPreviousRehearsals()
     {
+        var filtered = previousRehearsals.AsEnumerable();
+
+        // Apply fiscal year filter (same as upcoming)
+        if (!string.IsNullOrEmpty(selectedFiscalYear))
+        {
+            var parts = selectedFiscalYear.Split('-');
+            if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
+            {
+                var fiscalStart = new DateTime(startYear, 9, 1); // September 1st
+                var fiscalEnd = new DateTime(startYear + 1, 8, 31); // August 31st next year
+
+                filtered = filtered.Where(r => r.Date >= fiscalStart && r.Date <= fiscalEnd);
+            }
+        }
+
+        // Apply search filter
         previousSearchHelper.SearchTerm = previousRehearsalsSearch;
         filteredPreviousRehearsals = previousSearchHelper.FilterMultiple(
-            previousRehearsals,
+            filtered.ToList(),
             new List<Func<Rehearsal, string>>
             {
                 r => r.Theme ?? "",
@@ -1051,6 +1149,57 @@ else
         statsPaginationHelper.Reset();
         paginatedStatsUsers = statsPaginationHelper.GetPageData(filteredStatsUsers);
         await Task.CompletedTask;
+    }
+
+    // Date Range Modal methods
+    private void OpenDateRangeModal()
+    {
+        rangeStartDate = DateTime.Today;
+        rangeEndDate = DateTime.Today.AddMonths(1);
+        rangeLocation = "Centro Académico";
+        rangeTheme = null;
+        showDateRangeModal = true;
+    }
+
+    private void CloseDateRangeModal()
+    {
+        showDateRangeModal = false;
+    }
+
+    private async Task CreateRangeRehearsals()
+    {
+        try
+        {
+            var currentDate = rangeStartDate;
+            while (currentDate <= rangeEndDate)
+            {
+                // Tuesday = 2, Thursday = 4
+                if (currentDate.DayOfWeek == DayOfWeek.Tuesday || currentDate.DayOfWeek == DayOfWeek.Thursday)
+                {
+                    await RehearsalService.CreateRehearsalAsync(currentDate, rangeLocation, rangeTheme);
+                }
+                currentDate = currentDate.AddDays(1);
+            }
+
+            await LoadData();
+            CloseDateRangeModal();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating range rehearsals: {ex.Message}");
+        }
+    }
+
+    // My Attendances Modal methods
+    private void OpenMyAttendancesModal()
+    {
+        showMyAttendancesModal = true;
+    }
+
+    private void CloseMyAttendancesModal()
+    {
+        showMyAttendancesModal = false;
     }
 
     private class UserAttendanceStats
