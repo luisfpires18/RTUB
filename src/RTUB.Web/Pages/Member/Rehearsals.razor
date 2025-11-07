@@ -622,6 +622,7 @@ else
 
 @code {
     private bool loading = true;
+    private bool isInitializing = true;
     private bool isAdmin = false;
     private bool isOwner = false;
     private string? currentUserId;
@@ -736,6 +737,7 @@ else
 
         await LoadData();
         loading = false;
+        isInitializing = false;
     }
 
     private async Task LoadData()
@@ -886,6 +888,12 @@ else
 
     private void UpdateUrlState()
     {
+        // Don't update URL during initialization to avoid redirect loop
+        if (isInitializing)
+        {
+            return;
+        }
+
         var queryParams = new List<string>();
         
         // Add fiscal year if not default
