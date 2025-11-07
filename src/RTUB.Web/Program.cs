@@ -300,12 +300,14 @@ namespace RTUB
                 }
 
                 // Check if two-factor authentication is required
+                // If so, redirect to 2FA page without updating LastLoginDate yet
+                // The 2FA completion page should handle that after successful 2FA
                 if (await userManager.GetTwoFactorEnabledAsync(user))
                 {
                     return Results.Redirect($"/login-with-2fa?rememberMe={remember}");
                 }
 
-                // Update last login date BEFORE signing in to prevent race condition
+                // Password verified and no 2FA required - update last login date BEFORE signing in
                 // This ensures the timestamp is set before the authentication cookie is issued
                 try
                 {
@@ -323,7 +325,7 @@ namespace RTUB
                     logger.LogError(ex, "Exception while updating LastLoginDate for user {UserId}", user.Id);
                 }
 
-                // Reset access failed count on successful login
+                // Reset access failed count on successful password verification (no 2FA case)
                 await userManager.ResetAccessFailedCountAsync(user);
 
                 // Sign in the user (password already validated above)
