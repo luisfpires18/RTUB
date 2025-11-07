@@ -257,10 +257,12 @@ else
                                     Notes=""
                                     AltText="@attendance.User?.GetDisplayName()"
                                     ShowEditButton="false"
-                                    ShowDeleteButton="@isOwner"
-                                    ShowApproveButton="false"
+                                    ShowDeleteButton="@(isAdmin && attendance.Attended)"
+                                    ShowApproveButton="@(isAdmin && !attendance.Attended)"
                                     OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
-                                    DeleteTooltip="Eliminar Presença">
+                                    OnApprove="@(() => ApproveAttendance(attendance))"
+                                    DeleteTooltip="Eliminar Presença"
+                                    ApproveTooltip="Aprovar">
                                     <BadgeContent>
                                         <div class="enrollment-card-badges-row">
                                             @if (attendance.Attended)
@@ -832,6 +834,37 @@ else
     {
         showDeleteAttendanceModal = false;
         deletingAttendance = null;
+    }
+
+    private async Task ApproveAttendance(RehearsalAttendance attendance)
+    {
+        try
+        {
+            await AttendanceService.UpdateAttendanceAsync(attendance.Id, true, attendance.Instrument);
+            
+            // Refresh the attendance list for the selected rehearsal
+            if (selectedRehearsal != null)
+            {
+                selectedRehearsalAttendances = (await AttendanceService.GetAttendancesByRehearsalIdAsync(selectedRehearsal.Id)).ToList();
+
+                // Load user details for display
+                foreach (var att in selectedRehearsalAttendances)
+                {
+                    if (att.User == null)
+                    {
+                        att.User = await UserManager.FindByIdAsync(att.UserId);
+                    }
+                }
+            }
+
+            // Refresh data
+            await LoadData();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error approving attendance: {ex.Message}");
+        }
     }
 
     private async Task ConfirmDeleteAttendance()
