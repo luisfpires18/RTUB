@@ -1294,6 +1294,15 @@ else
     {
         try
         {
+            // Check if rehearsal already exists on this date
+            var existingRehearsal = await RehearsalService.GetRehearsalByDateAsync(createDate);
+            if (existingRehearsal != null)
+            {
+                Console.WriteLine($"A rehearsal already exists on {createDate.ToString("dd/MM/yyyy")}");
+                // TODO: Show user-friendly error message
+                return;
+            }
+
             await RehearsalService.CreateRehearsalAsync(createDate, createLocation, createTheme);
             await LoadData();
             CloseCreateModal();
@@ -1429,16 +1438,31 @@ else
         try
         {
             var currentDate = rangeStartDate;
+            int created = 0;
+            int skipped = 0;
+            
             while (currentDate <= rangeEndDate)
             {
                 // Tuesday = 2, Thursday = 4
                 if (currentDate.DayOfWeek == DayOfWeek.Tuesday || currentDate.DayOfWeek == DayOfWeek.Thursday)
                 {
-                    await RehearsalService.CreateRehearsalAsync(currentDate, rangeLocation, rangeTheme);
+                    // Check if rehearsal already exists on this date
+                    var existingRehearsal = await RehearsalService.GetRehearsalByDateAsync(currentDate);
+                    if (existingRehearsal == null)
+                    {
+                        await RehearsalService.CreateRehearsalAsync(currentDate, rangeLocation, rangeTheme);
+                        created++;
+                    }
+                    else
+                    {
+                        skipped++;
+                        Console.WriteLine($"Skipped {currentDate.ToString("dd/MM/yyyy")} - rehearsal already exists");
+                    }
                 }
                 currentDate = currentDate.AddDays(1);
             }
 
+            Console.WriteLine($"Created {created} rehearsals, skipped {skipped} duplicates");
             await LoadData();
             CloseDateRangeModal();
             StateHasChanged();
