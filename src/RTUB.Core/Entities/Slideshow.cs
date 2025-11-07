@@ -87,21 +87,14 @@ public class Slideshow : BaseEntity, IValidatableObject
     }
 
     /// <summary>
-    /// Custom validation logic to ensure an image URL is present.
+    /// Custom validation logic. Image URL is optional to allow creating slideshows without images.
+    /// Images should be uploaded after slideshow creation via the admin interface.
     /// </summary>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        // Check if a valid URL is present
-        bool hasUrl = !string.IsNullOrWhiteSpace(ImageUrl);
-
-        // If URL is not present, return a validation error.
-        if (!hasUrl)
-        {
-            yield return new ValidationResult(
-                "An image is required. Please provide an Image URL or upload a new image.",
-                new[] { nameof(ImageUrl) }
-            );
-        }
+        // No validation errors - image URL is optional
+        // Images can be uploaded after slideshow creation
+        yield break;
     }
 
     // Property alias for backward compatibility

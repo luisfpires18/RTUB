@@ -231,18 +231,17 @@ public class SlideshowTests
     }
 
     [Fact]
-    public void Validate_WithoutImage_ReturnsValidationError()
+    public void Validate_WithoutImage_ReturnsNoErrors()
     {
-        // Arrange
+        // Arrange - Image URL is now optional to allow creating slideshows without images
         var slideshow = Slideshow.Create("Title", 1);
         var validationContext = new ValidationContext(slideshow);
 
         // Act
         var results = slideshow.Validate(validationContext).ToList();
 
-        // Assert
-        results.Should().ContainSingle();
-        results[0].ErrorMessage.Should().Contain("An image is required");
+        // Assert - No validation errors, images can be uploaded later via admin interface
+        results.Should().BeEmpty();
     }
 
     [Fact]

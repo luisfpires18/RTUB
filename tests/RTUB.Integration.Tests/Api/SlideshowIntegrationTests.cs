@@ -70,44 +70,16 @@ public class SlideshowIntegrationTests : IClassFixture<WebApplicationFactory<Pro
     }
 
     [Fact]
-    public async Task SlideshowImageApi_WithDatabaseStoredImage_ReturnsImage()
+    public async Task SlideshowImageApi_EndpointRemoved_Returns404()
     {
-        // Arrange
-        using var scope = _factory.Services.CreateScope();
-        var slideshowService = scope.ServiceProvider.GetRequiredService<ISlideshowService>();
+        // Arrange - The /api/images/slideshow/{id} endpoint has been removed
+        // as all slideshow images are now stored in IDrive S3, not in the database
         
-        var createdSlideshow = await slideshowService.CreateSlideshowAsync(
-            "Test Slideshow With DB Image",
-            1,
-            "Integration test",
-            5000);
+        // Act
+        var response = await _client.GetAsync($"/api/images/slideshow/1");
 
-        try
-        {
-            // Create a minimal valid PNG image using ImageSharp
-            byte[] testImageData = CreateTestPngImage();
-
-            await slideshowService.SetSlideshowImageAsync(
-                createdSlideshow.Id, 
-                testImageData, 
-                "image/png", 
-                null);
-
-            // Act
-            var response = await _client.GetAsync($"/api/images/slideshow/{createdSlideshow.Id}");
-
-            // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
-            response.Content.Headers.ContentType?.MediaType.Should().Be("image/png");
-            
-            var content = await response.Content.ReadAsByteArrayAsync();
-            content.Should().NotBeEmpty();
-        }
-        finally
-        {
-            // Cleanup
-            await slideshowService.DeleteSlideshowAsync(createdSlideshow.Id);
-        }
+        // Assert - Should return 404 as the endpoint no longer exists
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     #endregion
