@@ -11,6 +11,10 @@ namespace RTUB.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // SQLite PRAGMA commands cannot be executed within a transaction
+            // DropColumn operations on tables with foreign keys require table rebuild which uses PRAGMA
+            migrationBuilder.Sql("PRAGMA foreign_keys = 0;", suppressTransaction: true);
+
             migrationBuilder.DropColumn(
                 name: "ReceiptContentType",
                 table: "Transactions");
@@ -30,11 +34,16 @@ namespace RTUB.Migrations
             migrationBuilder.DropColumn(
                 name: "Attended",
                 table: "Enrollments");
+
+            migrationBuilder.Sql("PRAGMA foreign_keys = 1;", suppressTransaction: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // SQLite PRAGMA commands cannot be executed within a transaction
+            migrationBuilder.Sql("PRAGMA foreign_keys = 0;", suppressTransaction: true);
+
             migrationBuilder.AddColumn<string>(
                 name: "ReceiptContentType",
                 table: "Transactions",
@@ -65,6 +74,8 @@ namespace RTUB.Migrations
                 type: "INTEGER",
                 nullable: false,
                 defaultValue: false);
+
+            migrationBuilder.Sql("PRAGMA foreign_keys = 1;", suppressTransaction: true);
         }
     }
 }
