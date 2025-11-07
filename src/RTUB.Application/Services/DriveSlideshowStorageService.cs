@@ -216,26 +216,20 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
         }
     }
 
-    public async Task<string?> GetImageUrlAsync(string filename)
+    public Task<string?> GetImageUrlAsync(string filename)
     {
         if (string.IsNullOrEmpty(filename))
         {
-            return null;
+            return Task.FromResult<string?>(null);
         }
 
         try
         {
             var objectKey = GetObjectKey(filename);
 
-            // Check if file exists first
-            var exists = await ImageExistsAsync(filename);
-            if (!exists)
-            {
-                _logger.LogWarning("Slideshow image not found in S3: {Filename}", filename);
-                return null;
-            }
-
             // Generate pre-signed URL
+            // Note: Pre-signed URLs are generated without checking file existence first.
+            // This avoids permission issues and the URL will return 404 if file doesn't exist.
             var request = new GetPreSignedUrlRequest
             {
                 BucketName = _bucketName,
@@ -244,18 +238,18 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
             };
 
             var url = _s3Client.GetPreSignedURL(request);
-            return url;
+            return Task.FromResult<string?>(url);
         }
         catch (AmazonS3Exception ex)
         {
             _logger.LogError(ex, "S3 error generating slideshow image URL for filename: {Filename}. ErrorCode: {ErrorCode}, Message: {Message}", 
                 filename, ex.ErrorCode, ex.Message);
-            return null;
+            return Task.FromResult<string?>(null);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error generating slideshow image URL for filename: {Filename}", filename);
-            return null;
+            return Task.FromResult<string?>(null);
         }
     }
 

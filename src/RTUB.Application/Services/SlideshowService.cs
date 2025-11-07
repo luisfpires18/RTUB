@@ -76,11 +76,9 @@ public class SlideshowService : ISlideshowService
                     // Temporarily store the generated URL in ImageUrl for rendering
                     slideshow.ImageUrl = url;
                 }
-                else
-                {
-                    // File not found in S3, clear ImageUrl so GetImageSource() can fall back to ImageData
-                    slideshow.ImageUrl = null;
-                }
+                // Note: If URL generation fails, we keep the filename in ImageUrl
+                // GetImageSource() will return it, and if it's invalid, the browser will show broken image
+                // This is acceptable as it indicates a configuration or permission issue that needs attention
             }
         }
     }
