@@ -16,6 +16,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 <h1>Ensaios</h1>
 <p>Ensaios regulares da tuna (Terças e Quintas, 21:00-00:00).</p>
@@ -652,6 +653,48 @@ else
                             disabled="@(rangeEndDate.Date < rangeStartDate.Date || (rangeEndDate.Date - rangeStartDate.Date).TotalDays > 90)">
                         Criar
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Ver Detalhes Modal -->
+@if (selectedRehearsal != null)
+{
+    <div class="modal fade" id="ViewRehearsalDetailsModal" tabindex="-1" aria-labelledby="ViewRehearsalDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="ViewRehearsalDetailsModalLabel">Detalhes do Ensaio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <strong>Data:</strong>
+                        <p>@selectedRehearsal.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"))</p>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Local:</strong>
+                        <p>@selectedRehearsal.Location</p>
+                    </div>
+                    @if (!string.IsNullOrEmpty(selectedRehearsal.Theme))
+                    {
+                        <div class="mb-3">
+                            <strong>Tema:</strong>
+                            <p>@selectedRehearsal.Theme</p>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(selectedRehearsal.Notes))
+                    {
+                        <div class="mb-3">
+                            <strong>Notas:</strong>
+                            <p style="white-space: pre-wrap;">@selectedRehearsal.Notes</p>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>
@@ -1723,6 +1766,13 @@ else
     private void CloseMyAttendancesModal()
     {
         showMyAttendancesModal = false;
+    }
+
+    // Rehearsal Details Modal methods
+    private async Task OpenRehearsalDetailsModal(Rehearsal rehearsal)
+    {
+        selectedRehearsal = rehearsal;
+        await JSRuntime.InvokeVoidAsync("eval", "$('#ViewRehearsalDetailsModal').modal('show')");
     }
 
     private class UserAttendanceStats
