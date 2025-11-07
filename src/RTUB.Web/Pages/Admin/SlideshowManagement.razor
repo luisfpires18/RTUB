@@ -349,6 +349,11 @@ else
         {
             editingSlide.ImageUrl = "pending-upload";
         }
+        else if (croppedImageData == null && string.IsNullOrEmpty(editingSlide.ImageUrl))
+        {
+            // No image data and no existing URL - validation will fail as expected
+            // This ensures the form shows validation error when no image is provided
+        }
 
         if (isCreateMode)
         {
