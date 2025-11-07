@@ -481,7 +481,7 @@ else
                     </div>
                     
                     <div class="enrollment-card-grid mb-4">
-                        @foreach (var enrollment in filteredPerformingMembers)
+                        @foreach (var enrollment in paginatedPerformingMembers)
                         {
                             <EnrollmentCard 
                                 AvatarUrl="@enrollment.User?.ProfilePictureSrc"
@@ -517,6 +517,19 @@ else
                         }
                     </div>
 
+                    <!-- Pagination for Performing Members -->
+                    @if (filteredPerformingMembers.Count > 0)
+                    {
+                        <div class="mb-3">
+                            <TablePagination 
+                                TotalItems="@filteredPerformingMembers.Count"
+                                CurrentPage="@performingMembersPagination.CurrentPage"
+                                PageSize="@performingMembersPagination.PageSize"
+                                OnPageChanged="@HandlePerformingMembersPageChange"
+                                OnPageSizeChanged="@HandlePerformingMembersPageSizeChange" />
+                        </div>
+                    }
+
                     @* Instrument Counts - Horizontal Counter Section *@
                     var instrumentCounts = new Dictionary<InstrumentType, int>();
                     foreach (var inst in Enum.GetValues<InstrumentType>())
@@ -547,7 +560,7 @@ else
                 {
                     <h6 class="mb-3 heading-warning">Leitões (@leitaoMembers.Count)</h6>
                     <div class="enrollment-card-grid">
-                        @foreach (var enrollment in leitaoMembers.OrderBy(e => e.User?.FirstName))
+                        @foreach (var enrollment in paginatedLeitoes)
                         {
                             <EnrollmentCard 
                                 AvatarUrl="@enrollment.User?.ProfilePictureSrc"
@@ -568,6 +581,19 @@ else
                             </EnrollmentCard>
                         }
                     </div>
+                    
+                    <!-- Pagination for Leitões -->
+                    @if (filteredLeitoes.Count > 0)
+                    {
+                        <div class="mt-3">
+                            <TablePagination 
+                                TotalItems="@filteredLeitoes.Count"
+                                CurrentPage="@leitoesPagination.CurrentPage"
+                                PageSize="@leitoesPagination.PageSize"
+                                OnPageChanged="@HandleLeitoesPageChange"
+                                OnPageSizeChanged="@HandleLeitoesPageSizeChange" />
+                        </div>
+                    }
                 }
             }
         </BodyContent>
@@ -765,6 +791,13 @@ else
     private string enrollmentSearchTerm = string.Empty;
     private SortableTableHelper<Enrollment> enrollmentSortHelper = new() { SortColumn = "EnrolledAt", SortAscending = false };
     private List<Enrollment> filteredPerformingMembers = new();
+    private List<Enrollment> filteredLeitoes = new();
+    
+    // Pagination for enrollment modals
+    private PaginationHelper<Enrollment> performingMembersPagination = new() { PageSize = 8 };
+    private PaginationHelper<Enrollment> leitoesPagination = new() { PageSize = 8 };
+    private List<Enrollment> paginatedPerformingMembers => performingMembersPagination.GetPageData(filteredPerformingMembers ?? new List<Enrollment>());
+    private List<Enrollment> paginatedLeitoes => leitoesPagination.GetPageData(filteredLeitoes ?? new List<Enrollment>());
 
     protected override async Task OnInitializedAsync()
     {
@@ -1182,6 +1215,7 @@ else
         selectedEvent = null;
         eventEnrollments = null;
         filteredPerformingMembers.Clear();
+        filteredLeitoes.Clear();
     }
     
     private void FilterEnrollments()
@@ -1189,6 +1223,7 @@ else
         if (eventEnrollments == null)
         {
             filteredPerformingMembers = new List<Enrollment>();
+            filteredLeitoes = new List<Enrollment>();
             return;
         }
         
@@ -1196,7 +1231,11 @@ else
             .Where(e => e.User != null && !e.User.Categories.Contains(MemberCategory.Leitao))
             .ToList();
         
-        // Apply search filter
+        var leitaoMembers = eventEnrollments
+            .Where(e => e.User != null && e.User.Categories.Contains(MemberCategory.Leitao))
+            .ToList();
+        
+        // Apply search filter to performing members
         if (!string.IsNullOrWhiteSpace(enrollmentSearchTerm))
         {
             var searchTerms = enrollmentSearchTerm.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
@@ -1213,7 +1252,39 @@ else
         }
         
         filteredPerformingMembers = performingMembers;
+        filteredLeitoes = leitaoMembers.OrderBy(e => e.User?.FirstName).ToList();
+        
+        // Reset to page 1 when search changes
+        performingMembersPagination.CurrentPage = 1;
+        leitoesPagination.CurrentPage = 1;
+        
         ApplySortToEnrollments();
+    }
+    
+    private void HandlePerformingMembersPageChange(int page)
+    {
+        performingMembersPagination.CurrentPage = page;
+        StateHasChanged();
+    }
+
+    private void HandlePerformingMembersPageSizeChange(int pageSize)
+    {
+        performingMembersPagination.PageSize = pageSize;
+        performingMembersPagination.CurrentPage = 1;
+        StateHasChanged();
+    }
+
+    private void HandleLeitoesPageChange(int page)
+    {
+        leitoesPagination.CurrentPage = page;
+        StateHasChanged();
+    }
+
+    private void HandleLeitoesPageSizeChange(int pageSize)
+    {
+        leitoesPagination.PageSize = pageSize;
+        leitoesPagination.CurrentPage = 1;
+        StateHasChanged();
     }
     
     private void SortEnrollmentsBy(string column)

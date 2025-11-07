@@ -40,6 +40,16 @@
             <i class="bi bi-check"></i>
         </button>
     }
+    @if (ShowCancelButton)
+    {
+        <button class="enrollment-card-cancel-btn" 
+                @onclick="@OnCancel" 
+                @onclick:stopPropagation="true"
+                title="@CancelTooltip"
+                aria-label="@CancelTooltip">
+            <i class="bi bi-x"></i>
+        </button>
+    }
 
     <!-- Avatar -->
     <div class="enrollment-card-image-wrapper">
@@ -132,6 +142,9 @@
     public EventCallback OnApprove { get; set; }
 
     [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
     public bool ShowEditButton { get; set; } = false;
 
     [Parameter]
@@ -141,6 +154,9 @@
     public bool ShowApproveButton { get; set; } = false;
 
     [Parameter]
+    public bool ShowCancelButton { get; set; } = false;
+
+    [Parameter]
     public string EditTooltip { get; set; } = "Editar Inscrição";
 
     [Parameter]
@@ -148,4 +164,7 @@
 
     [Parameter]
     public string ApproveTooltip { get; set; } = "Aprovar";
+
+    [Parameter]
+    public string CancelTooltip { get; set; } = "Cancelar";
 }
