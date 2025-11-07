@@ -576,7 +576,7 @@ else
                         </table>
                     </div>
 
-                    @* Instrument Counts *@
+                    @* Instrument Counts - Horizontal Counter Section *@
                     var instrumentCounts = new Dictionary<InstrumentType, int>();
                     foreach (var inst in Enum.GetValues<InstrumentType>())
                     {
@@ -584,14 +584,20 @@ else
                     }
 
                     <div class="mt-3 mb-4">
-                        <h6 class="heading-purple">Instrumentos:</h6>
-                        <div class="row">
-                            @foreach (var kvp in instrumentCounts.OrderByDescending(x => x.Value))
-                            {
-                                <div class="col-6 col-md-4 col-lg-3 mb-2">
-                                    <span class="text-light-theme">@StatusHelper.GetInstrumentDisplay(kvp.Key): <strong>@kvp.Value</strong></span>
-                                </div>
-                            }
+                        <div class="instrument-counter-section">
+                            <div class="instrument-counter-header">
+                                <i class="bi bi-music-note-beamed"></i>
+                                <span>Instrumentos</span>
+                            </div>
+                            <div class="instrument-counter-grid">
+                                @foreach (var kvp in instrumentCounts.OrderByDescending(x => x.Value).Where(x => x.Value > 0))
+                                {
+                                    <div class="instrument-counter-box">
+                                        <div class="instrument-counter-number">@kvp.Value</div>
+                                        <div class="instrument-counter-label">@StatusHelper.GetInstrumentDisplay(kvp.Key)</div>
+                                    </div>
+                                }
+                            </div>
                         </div>
                     </div>
                 }
