@@ -76,6 +76,11 @@ public class SlideshowService : ISlideshowService
                     // Temporarily store the generated URL in ImageUrl for rendering
                     slideshow.ImageUrl = url;
                 }
+                else
+                {
+                    // File not found in S3, clear ImageUrl so GetImageSource() can fall back to ImageData
+                    slideshow.ImageUrl = null;
+                }
             }
         }
     }
