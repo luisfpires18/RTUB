@@ -66,19 +66,6 @@ public class ImagesController : ControllerBase
         return FileWithCache(imageData.Value.Data, imageData.Value.ContentType);
     }
 
-    [HttpGet("slideshow/{id}")]
-    public async Task<IActionResult> GetSlideshowImage(int id)
-    {
-        var imageData = await _imageService.GetSlideshowImageAsync(id);
-
-        if (imageData == null)
-        {
-            return NotFound();
-        }
-
-        return FileWithCache(imageData.Value.Data, imageData.Value.ContentType);
-    }
-
     [HttpGet("album/{id}")]
     public async Task<IActionResult> GetAlbumImage(int id)
     {

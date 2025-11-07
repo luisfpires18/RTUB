@@ -249,13 +249,19 @@ For local development, sensitive configuration values should be stored in `appse
   "IDrive": {
     "Endpoint": "s3.endpoint.example.com",
     "Bucket": "your-bucket",
-    "AccessKey": "your-access-key",
-    "SecretKey": "your-secret-key"
+    "AccessKey": "your-readonly-access-key",
+    "SecretKey": "your-readonly-secret-key",
+    "WriteAccessKey": "your-write-access-key",
+    "WriteSecretKey": "your-write-secret-key"
   }
 }
 ```
 
 **Note:** For Gmail SMTP, use an [App Password](https://support.google.com/accounts/answer/185833) (not your regular Gmail password). Generate one in your Google Account settings under Security > 2-Step Verification > App passwords.
+
+**IDrive Keys:** The application uses two sets of credentials:
+- **Read-only keys** (`AccessKey`/`SecretKey`) - Used for reading audio files, lyrics, and documents
+- **Write keys** (`WriteAccessKey`/`WriteSecretKey`) - Used for uploading and deleting slideshow images
 
 #### Production Deployment
 
@@ -272,8 +278,10 @@ For production, **do not include credentials in JSON files**. Instead, use envir
 - `AdminUser__Password` - Default admin password
 
 **IDrive/S3 Configuration:**
-- `IDrive__AccessKey` - S3-compatible storage access key
-- `IDrive__SecretKey` - S3-compatible storage secret key
+- `IDrive__AccessKey` - S3-compatible storage read-only access key
+- `IDrive__SecretKey` - S3-compatible storage read-only secret key
+- `IDrive__WriteAccessKey` - S3-compatible storage write access key (for slideshow uploads)
+- `IDrive__WriteSecretKey` - S3-compatible storage write secret key (for slideshow uploads)
 - `IDrive__Endpoint` - S3-compatible storage endpoint
 - `IDrive__Bucket` - Storage bucket name
 
