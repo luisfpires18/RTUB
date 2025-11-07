@@ -299,6 +299,10 @@ namespace RTUB
                     return Results.Redirect("/login?error=Invalid");
                 }
 
+                // Password is valid - reset access failed count regardless of 2FA status
+                // This ensures consistent behavior: successful password = reset count
+                await userManager.ResetAccessFailedCountAsync(user);
+
                 // Check if two-factor authentication is required
                 // If so, redirect to 2FA page without updating LastLoginDate yet
                 // The 2FA completion page should handle that after successful 2FA
@@ -324,9 +328,6 @@ namespace RTUB
                     // Log error but don't fail login
                     logger.LogError(ex, "Exception while updating LastLoginDate for user {UserId}", user.Id);
                 }
-
-                // Reset access failed count on successful password verification (no 2FA case)
-                await userManager.ResetAccessFailedCountAsync(user);
 
                 // Sign in the user (password already validated above)
                 await signInManager.SignInAsync(user, remember);
