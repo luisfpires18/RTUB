@@ -235,56 +235,6 @@ public class TransactionServiceTests : IDisposable
 
     #endregion
 
-    #region Receipt Tests
-
-    [Fact]
-    public async Task SetTransactionReceiptAsync_WithValidData_SetsReceipt()
-    {
-        // Arrange
-        var transaction = await _service.CreateTransactionAsync(
-            DateTime.Now, "Test", "Cat", 100m, "Income");
-        var receiptData = new byte[] { 1, 2, 3, 4 };
-        var contentType = "image/jpeg";
-
-        // Act
-        await _service.SetTransactionReceiptAsync(transaction.Id, receiptData, contentType);
-
-        // Assert
-        var updated = await _service.GetTransactionByIdAsync(transaction.Id);
-        updated!.ReceiptData.Should().Equal(receiptData);
-        updated.ReceiptContentType.Should().Be(contentType);
-    }
-
-    [Fact]
-    public async Task SetTransactionReceiptAsync_WithNullData_ClearsReceipt()
-    {
-        // Arrange
-        var transaction = await _service.CreateTransactionAsync(
-            DateTime.Now, "Test", "Cat", 100m, "Income");
-        await _service.SetTransactionReceiptAsync(transaction.Id, new byte[] { 1, 2, 3 }, "image/jpeg");
-
-        // Act
-        await _service.SetTransactionReceiptAsync(transaction.Id, null, null);
-
-        // Assert
-        var updated = await _service.GetTransactionByIdAsync(transaction.Id);
-        updated!.ReceiptData.Should().BeNull();
-        updated.ReceiptContentType.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task SetTransactionReceiptAsync_NonExistingTransaction_ThrowsException()
-    {
-        // Act & Assert
-        var act = async () => await _service.SetTransactionReceiptAsync(
-            999, new byte[] { 1, 2, 3 }, "image/jpeg");
-
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*not found*");
-    }
-
-    #endregion
-
     #region Delete Tests
 
     [Fact]

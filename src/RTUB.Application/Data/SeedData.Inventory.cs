@@ -53,10 +53,7 @@ public static partial class SeedData
     {
         var instrument = Instrument.Create(category, name, condition);
         instrument.Update(name, condition, serialNumber, brand, location);
-        if (brand != null)
-        {
-            instrument.SetPurchaseInfo(DateTime.UtcNow.AddYears(-2), 500.00m);
-        }
+
         return instrument;
     }
 

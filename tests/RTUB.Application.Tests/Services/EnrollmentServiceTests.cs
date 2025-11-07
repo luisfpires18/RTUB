@@ -40,13 +40,12 @@ public class EnrollmentServiceTests : IDisposable
         var attended = true;
 
         // Act
-        var result = await _enrollmentService.CreateEnrollmentAsync(userId, eventEntity.Id, attended);
+        var result = await _enrollmentService.CreateEnrollmentAsync(userId, eventEntity.Id);
 
         // Assert
         result.Should().NotBeNull();
         result.UserId.Should().Be(userId);
         result.EventId.Should().Be(eventEntity.Id);
-        result.Attended.Should().Be(attended);
     }
 
     [Fact]
@@ -133,30 +132,6 @@ public class EnrollmentServiceTests : IDisposable
         result.Should().HaveCount(2);
         result.Should().Contain(e => e.Id == enroll1.Id);
         result.Should().Contain(e => e.Id == enroll2.Id);
-    }
-
-    [Fact]
-    public async Task MarkEnrollmentAttendanceAsync_UpdatesAttendance()
-    {
-        // Arrange
-        var eventEntity = await _eventService.CreateEventAsync("Test Event", DateTime.Now.AddDays(7), "Location", Core.Enums.EventType.Festival, "Description");
-        var enrollment = await _enrollmentService.CreateEnrollmentAsync("user123", eventEntity.Id, false);
-
-        // Act
-        await _enrollmentService.MarkEnrollmentAttendanceAsync(enrollment.Id, true);
-        var updated = await _enrollmentService.GetEnrollmentByIdAsync(enrollment.Id);
-
-        // Assert
-        updated!.Attended.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task MarkEnrollmentAttendanceAsync_WithInvalidId_ThrowsException()
-    {
-        // Act & Assert
-        var act = async () => await _enrollmentService.MarkEnrollmentAttendanceAsync(999, true);
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*not found*");
     }
 
     [Fact]

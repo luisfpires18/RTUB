@@ -1209,7 +1209,6 @@ else
                 await EnrollmentService.CreateEnrollmentAsync(
                     enrollmentForm.UserId,
                     enrollmentForm.EventId,
-                    enrollmentForm.Attended,
                     enrollmentForm.Instrument,
                     enrollmentForm.Notes
                 );
@@ -1220,7 +1219,6 @@ else
             await EnrollmentService.CreateEnrollmentAsync(
                 enrollmentForm.UserId,
                 enrollmentForm.EventId,
-                false,
                 enrollmentForm.Instrument,
                 enrollmentForm.Notes
             );

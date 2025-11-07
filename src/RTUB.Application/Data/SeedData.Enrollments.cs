@@ -63,12 +63,12 @@ public static partial class SeedData
         var seen = new HashSet<string>(); // userId:eventId
 
         // dentro do SeedEnrollmentsAsync, troca apenas o AddOnce por isto:
-        void AddOnce(ApplicationUser u, Event evt, bool confirmed)
+        void AddOnce(ApplicationUser u, Event evt)
         {
             var key = $"{u.Id}:{evt.Id}";
             if (seen.Add(key))
             {
-                var en = Enrollment.Create(u.Id, evt.Id, confirmed);
+                var en = Enrollment.Create(u.Id, evt.Id);
                 en.Instrument = u.MainInstrument; // Leitões: null -> UI mostra N/A
                 toAdd.Add(en);
             }
@@ -116,8 +116,7 @@ public static partial class SeedData
                 for (int i = 0; i < kv.Value; i++)
                 {
                     var u = TakeNext(kv.Key);
-                    var confirmed = StablePercent(u.Email + "|" + evt.Id + "|core") < 85; // most core are confirmed
-                    AddOnce(u, evt, confirmed);
+                    AddOnce(u, evt);
                 }
             }
 
@@ -134,8 +133,7 @@ public static partial class SeedData
                 if (seen.Contains($"{u.Id}:{evt.Id}")) continue;
                 var go = StablePercent(u.Email + ":" + evt.Id) < percent;
                 if (!go) continue;
-                var confirmed = StablePercent("c:" + u.Email + ":" + evt.Id) < 80;
-                AddOnce(u, evt, confirmed);
+                AddOnce(u, evt);
             }
 
             // Give no-instrument members (Leitões) an additional deterministic chance
@@ -144,8 +142,7 @@ public static partial class SeedData
                 if (seen.Contains($"{u.Id}:{evt.Id}")) continue;
                 var go = StablePercent("leitao:" + u.Email + ":" + evt.Id) < Math.Max(25, percent - 15);
                 if (!go) continue;
-                var confirmed = StablePercent("leitao:c:" + u.Email + ":" + evt.Id) < 65;
-                AddOnce(u, evt, confirmed);
+                AddOnce(u, evt);
             }
         }
 

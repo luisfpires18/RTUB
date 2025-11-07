@@ -69,7 +69,6 @@ public class TransactionService : ITransactionService
         if (transaction == null)
             throw new InvalidOperationException($"Transaction with ID {id} not found");
 
-        transaction.SetReceipt(receiptData, contentType);
         _context.Transactions.Update(transaction);
         await _context.SaveChangesAsync();
     }

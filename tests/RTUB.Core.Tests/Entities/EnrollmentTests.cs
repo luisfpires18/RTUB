@@ -15,16 +15,14 @@ public class EnrollmentTests
         // Arrange
         var userId = "user123";
         var eventId = 1;
-        var attended = true;
 
         // Act
-        var result = Enrollment.Create(userId, eventId, attended);
+        var result = Enrollment.Create(userId, eventId);
 
         // Assert
         result.Should().NotBeNull();
         result.UserId.Should().Be(userId);
         result.EventId.Should().Be(eventId);
-        result.Attended.Should().Be(attended);
         result.EnrolledAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
     }
 
@@ -39,29 +37,6 @@ public class EnrollmentTests
         var act = () => Enrollment.Create(userId, eventId);
         act.Should().Throw<ArgumentException>()
             .WithMessage("*utilizador*");
-    }
-
-    [Fact]
-    public void MarkAttendance_UpdatesAttendance()
-    {
-        // Arrange
-        var enrollment = Enrollment.Create("user123", 1, false);
-
-        // Act
-        enrollment.MarkAttendance(true);
-
-        // Assert
-        enrollment.Attended.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Create_DefaultAttendance_IsFalse()
-    {
-        // Arrange & Act
-        var enrollment = Enrollment.Create("user123", 1);
-
-        // Assert
-        enrollment.Attended.Should().BeFalse();
     }
 
     [Fact]

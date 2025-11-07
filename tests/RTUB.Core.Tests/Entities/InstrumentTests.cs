@@ -120,22 +120,6 @@ public class InstrumentTests
     }
 
     [Fact]
-    public void SetPurchaseInfo_SetsPurchaseInfo()
-    {
-        // Arrange
-        var instrument = Instrument.Create("Guitarra", "Guitarra #1", InstrumentCondition.Good);
-        var date = DateTime.UtcNow.AddDays(-30);
-        var price = 500.00m;
-
-        // Act
-        instrument.SetPurchaseInfo(date, price);
-
-        // Assert
-        instrument.PurchaseDate.Should().Be(date);
-        instrument.PurchasePrice.Should().Be(price);
-    }
-
-    [Fact]
     public void ImageSrc_ReturnsCorrectPath()
     {
         // Arrange

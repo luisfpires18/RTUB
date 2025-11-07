@@ -130,65 +130,6 @@ public class TransactionTests
     }
 
     [Fact]
-    public void SetReceipt_WithValidData_SetsReceipt()
-    {
-        // Arrange
-        var transaction = Transaction.Create(DateTime.Now, "Test", "Test", 100m, "Income");
-        var receiptData = new byte[] { 1, 2, 3, 4 };
-        var contentType = "application/pdf";
-
-        // Act
-        transaction.SetReceipt(receiptData, contentType);
-
-        // Assert
-        transaction.ReceiptData.Should().BeEquivalentTo(receiptData);
-        transaction.ReceiptContentType.Should().Be(contentType);
-    }
-
-    [Fact]
-    public void SetReceipt_WithNull_ClearsReceipt()
-    {
-        // Arrange
-        var transaction = Transaction.Create(DateTime.Now, "Test", "Test", 100m, "Income");
-        transaction.SetReceipt(new byte[] { 1, 2, 3 }, "application/pdf");
-
-        // Act
-        transaction.SetReceipt(null, null);
-
-        // Assert
-        transaction.ReceiptData.Should().BeNull();
-        transaction.ReceiptContentType.Should().BeNull();
-    }
-
-    [Fact]
-    public void GetReceiptSource_WithReceipt_ReturnsApiUrl()
-    {
-        // Arrange
-        var transaction = Transaction.Create(DateTime.Now, "Test", "Test", 100m, "Income");
-        transaction.SetReceipt(new byte[] { 1, 2, 3 }, "application/pdf");
-        transaction.Id = 123;
-
-        // Act
-        var source = transaction.GetReceiptSource();
-
-        // Assert
-        source.Should().Be("/api/images/receipt/123");
-    }
-
-    [Fact]
-    public void GetReceiptSource_WithoutReceipt_ReturnsEmptyString()
-    {
-        // Arrange
-        var transaction = Transaction.Create(DateTime.Now, "Test", "Test", 100m, "Income");
-
-        // Act
-        var source = transaction.GetReceiptSource();
-
-        // Assert
-        source.Should().BeEmpty();
-    }
-
-    [Fact]
     public void Transaction_Properties_CanBeSet()
     {
         // Arrange & Act
