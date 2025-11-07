@@ -102,6 +102,7 @@ else
                         PageSize="@upcomingRehearsalsPagination.PageSize"
                         TotalItems="@filteredUpcomingRehearsals.Count"
                         ItemLabel="ensaios"
+                        PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
                         OnPageChanged="@HandleUpcomingRehearsalsPageChange"
                         OnPageSizeChanged="@HandleUpcomingRehearsalsPageSizeChange" />
     }
@@ -150,6 +151,7 @@ else
                             PageSize="@previousRehearsalsPagination.PageSize"
                             TotalItems="@filteredPreviousRehearsals.Count"
                             ItemLabel="ensaios"
+                            PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
                             OnPageChanged="@HandlePreviousRehearsalsPageChange"
                             OnPageSizeChanged="@HandlePreviousRehearsalsPageSizeChange" />
         }
@@ -574,6 +576,7 @@ else
                                     PageSize="@statsPaginationHelper.PageSize"
                                     TotalItems="@filteredStatsUsers.Count"
                                     ItemLabel="membros"
+                                    PageSizeOptions="@(new[] { 5, 10, 15, 20 })"
                                     OnPageChanged="@HandleStatsPageChange"
                                     OnPageSizeChanged="@HandleStatsPageSizeChange" />
                 }
@@ -726,7 +729,7 @@ else
     private List<Rehearsal> upcomingRehearsals = new();
     private List<Rehearsal> filteredUpcomingRehearsals = new();
     private List<Rehearsal> paginatedUpcomingRehearsals = new();
-    private PaginationHelper<Rehearsal> upcomingRehearsalsPagination = new() { PageSize = 10 };
+    private PaginationHelper<Rehearsal> upcomingRehearsalsPagination = new() { PageSize = 12 };
     private List<RehearsalAttendance> myAttendances = new();
     private int attendanceCount = 0;
     private int totalRecentRehearsals = 0;
@@ -737,7 +740,7 @@ else
     private List<Rehearsal> paginatedPreviousRehearsals = new();
     private string previousRehearsalsSearch = "";
     private SearchHelper<Rehearsal> previousSearchHelper = new();
-    private PaginationHelper<Rehearsal> previousRehearsalsPagination = new() { PageSize = 10 };
+    private PaginationHelper<Rehearsal> previousRehearsalsPagination = new() { PageSize = 12 };
 
     // Fiscal year filtering
     private List<string> fiscalYears = new();
@@ -806,7 +809,7 @@ else
     private List<UserAttendanceStats> paginatedStatsUsers = new();
     private string statsSearchTerm = string.Empty;
     private SortableTableHelper<UserAttendanceStats> statsSortHelper = new() { SortColumn = nameof(UserAttendanceStats.Count), SortAscending = false };
-    private PaginationHelper<UserAttendanceStats> statsPaginationHelper = new() { PageSize = 20 };
+    private PaginationHelper<UserAttendanceStats> statsPaginationHelper = new() { PageSize = 10 };
 
     protected override async Task OnInitializedAsync()
     {

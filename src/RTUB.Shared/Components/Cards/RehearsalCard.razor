@@ -68,48 +68,56 @@
 
         @if (!Rehearsal.IsCanceled)
         {
+            <!-- Action buttons row (Ver Detalhes + Ver Presenças) -->
             <div class="rehearsal-actions-section mt-auto">
-                <div class="d-flex gap-2 align-items-center justify-content-center flex-wrap">
-                    <!-- View Attendances button (always visible) -->
+                <div class="d-flex gap-2 align-items-center justify-content-between flex-wrap">
+                    <!-- Ver Detalhes button (purple eye icon) -->
+                    <button class="btn btn-sm btn-purple btn-sm-padded" @onclick="HandleViewDetails" title="Ver Detalhes">
+                        <i class="bi bi-eye-fill icon-size-1rem"></i>
+                    </button>
+                    
+                    <!-- Ver Presenças button with attendance count -->
                     <button class="btn btn-sm btn-outline-info btn-sm-padded" @onclick="HandleViewAttendances" title="Ver Presenças">
                         <i class="bi bi-people icon-size-1rem"></i> @AttendanceCount
                     </button>
+                </div>
+            </div>
 
-                    @if (!IsPastRehearsal)
-                    {
-                        <!-- User attendance buttons container (only for upcoming rehearsals) -->
-                        <div class="d-flex gap-1 enrollment-actions">
-                            @if (UserAttendance == null)
+            @if (!IsPastRehearsal)
+            {
+                <!-- User attendance buttons (only for upcoming rehearsals) -->
+                <div class="rehearsal-user-actions mt-2">
+                    <div class="d-flex gap-1 align-items-center justify-content-center flex-wrap">
+                        @if (UserAttendance == null)
+                        {
+                            <button class="btn btn-sm btn-purple btn-sm-padded" @onclick="HandleMarkAttendance" title="Marcar Presença">
+                                <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            @if (UserAttendance.Attended)
                             {
-                                <button class="btn btn-sm btn-purple btn-sm-padded" @onclick="HandleMarkAttendance" title="Marcar Presença">
-                                    <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
+                                <button class="btn btn-sm btn-success btn-sm-padded" disabled title="Presença Aprovada">
+                                    <i class="bi bi-check-circle-fill icon-size-1rem"></i>
                                 </button>
                             }
                             else
                             {
-                                @if (UserAttendance.Attended)
-                                {
-                                    <button class="btn btn-sm btn-success btn-sm-padded" disabled title="Presença Aprovada">
-                                        <i class="bi bi-check-circle-fill icon-size-1rem"></i>
-                                    </button>
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-warning btn-sm-padded" disabled title="Presença Pendente">
-                                        <i class="bi bi-clock-fill icon-size-1rem"></i>
-                                    </button>
-                                }
-                                <button class="btn btn-sm btn-light btn-sm-padded" @onclick="HandleEditAttendance" title="Editar Presença">
-                                    <i class="bi bi-pencil-fill icon-size-1rem"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger btn-sm-padded" @onclick="HandleRemoveAttendance" title="Remover Presença">
-                                    <i class="bi bi-x-circle-fill icon-size-1rem"></i>
+                                <button class="btn btn-sm btn-warning btn-sm-padded" disabled title="Presença Pendente">
+                                    <i class="bi bi-clock-fill icon-size-1rem"></i>
                                 </button>
                             }
-                        </div>
-                    }
+                            <button class="btn btn-sm btn-light btn-sm-padded" @onclick="HandleEditAttendance" title="Editar Presença">
+                                <i class="bi bi-pencil-fill icon-size-1rem"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger btn-sm-padded" @onclick="HandleRemoveAttendance" title="Remover Presença">
+                                <i class="bi bi-x-circle-fill icon-size-1rem"></i>
+                            </button>
+                        }
+                    </div>
                 </div>
-            </div>
+            }
         }
     </div>
 </div>
@@ -181,12 +189,26 @@
     [Parameter]
     public EventCallback OnRemoveAttendance { get; set; }
 
+    /// <summary>
+    /// Callback when the view details button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewDetails { get; set; }
+
     // Handler methods to ensure events fire properly
     private async Task HandleViewAttendances()
     {
         if (OnViewAttendances.HasDelegate)
         {
             await OnViewAttendances.InvokeAsync();
+        }
+    }
+
+    private async Task HandleViewDetails()
+    {
+        if (OnViewDetails.HasDelegate)
+        {
+            await OnViewDetails.InvokeAsync();
         }
     }
 
