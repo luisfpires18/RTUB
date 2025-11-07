@@ -815,9 +815,9 @@ else
 
     private async Task LoadData()
     {
-        // Load upcoming rehearsals (next 30 days)
+        // Load upcoming rehearsals (next 12 months to ensure we get all rehearsals in current fiscal year)
         var startDate = DateTime.Today;
-        var endDate = DateTime.Today.AddDays(30);
+        var endDate = DateTime.Today.AddMonths(12);
         var allRehearsals = await RehearsalService.GetRehearsalsAsync(startDate, endDate);
         upcomingRehearsals = allRehearsals.Where(r => !r.IsCanceled).OrderBy(r => r.Date).ToList();
 
