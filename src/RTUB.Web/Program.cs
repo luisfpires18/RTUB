@@ -305,7 +305,7 @@ namespace RTUB
 
                 // Check if two-factor authentication is required
                 // If so, redirect to 2FA page without updating LastLoginDate yet
-                // The 2FA completion page should handle that after successful 2FA
+                // TODO: Ensure the 2FA completion endpoint also updates LastLoginDate before sign-in
                 if (await userManager.GetTwoFactorEnabledAsync(user))
                 {
                     return Results.Redirect($"/login-with-2fa?rememberMe={remember}");
@@ -313,6 +313,7 @@ namespace RTUB
 
                 // Password verified and no 2FA required - update last login date BEFORE signing in
                 // This ensures the timestamp is set before the authentication cookie is issued
+                // This fixes the race condition where users could make requests before LastLoginDate was set
                 try
                 {
                     user.LastLoginDate = DateTime.UtcNow;
@@ -329,7 +330,9 @@ namespace RTUB
                     logger.LogError(ex, "Exception while updating LastLoginDate for user {UserId}", user.Id);
                 }
 
-                // Sign in the user (password already validated above)
+                // Sign in the user using SignInAsync (password already validated above)
+                // Note: We use SignInAsync instead of PasswordSignInAsync to avoid duplicate password validation
+                // All security checks (lockout, password validation, failed attempt tracking) are handled above
                 await signInManager.SignInAsync(user, remember);
                 
                 // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
