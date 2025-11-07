@@ -15,11 +15,16 @@ public class SlideshowService : ISlideshowService
 {
     private readonly ApplicationDbContext _context;
     private readonly IImageService _imageService;
+    private readonly ISlideshowStorageService _slideshowStorageService;
 
-    public SlideshowService(ApplicationDbContext context, IImageService imageService)
+    public SlideshowService(
+        ApplicationDbContext context, 
+        IImageService imageService,
+        ISlideshowStorageService slideshowStorageService)
     {
         _context = context;
         _imageService = imageService;
+        _slideshowStorageService = slideshowStorageService;
     }
 
     public async Task<Slideshow?> GetSlideshowByIdAsync(int id)
@@ -38,6 +43,33 @@ public class SlideshowService : ISlideshowService
             .Where(s => s.IsActive)
             .OrderBy(s => s.Order)
             .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Slideshow>> GetActiveSlideshowsWithUrlsAsync()
+    {
+        var slideshows = await _context.Slideshows
+            .Where(s => s.IsActive)
+            .OrderBy(s => s.Order)
+            .ToListAsync();
+
+        // Generate pre-signed URLs for slideshows stored in IDrive S3
+        foreach (var slideshow in slideshows)
+        {
+            // If ImageUrl contains a filename (not a full URL and not an API path), get the pre-signed URL
+            if (!string.IsNullOrEmpty(slideshow.ImageUrl) && 
+                !slideshow.ImageUrl.StartsWith("http") && 
+                !slideshow.ImageUrl.StartsWith("/"))
+            {
+                var url = await _slideshowStorageService.GetImageUrlAsync(slideshow.ImageUrl);
+                if (!string.IsNullOrEmpty(url))
+                {
+                    // Temporarily store the generated URL in ImageUrl for rendering
+                    slideshow.ImageUrl = url;
+                }
+            }
+        }
+
+        return slideshows;
     }
 
     public async Task<Slideshow> CreateSlideshowAsync(string title, int order, string description = "", int intervalMs = 5000)
@@ -65,7 +97,36 @@ public class SlideshowService : ISlideshowService
         if (slideshow == null)
             throw new InvalidOperationException($"Slideshow with ID {id} not found");
 
-        slideshow.SetImage(imageData, contentType, url);
+        // If imageData is provided, upload to IDrive S3
+        if (imageData != null && !string.IsNullOrEmpty(contentType))
+        {
+            try
+            {
+                // Upload to IDrive S3 and get the filename
+                var filename = await _slideshowStorageService.UploadImageAsync(imageData, id, contentType);
+                
+                // Delete old image from S3 if it exists
+                if (!string.IsNullOrEmpty(slideshow.ImageUrl))
+                {
+                    await _slideshowStorageService.DeleteImageAsync(slideshow.ImageUrl);
+                }
+                
+                // Store the filename in the ImageUrl field
+                slideshow.SetImage(null, null, filename);
+            }
+            catch (Exception ex)
+            {
+                // If upload fails, fall back to storing in database for backward compatibility
+                slideshow.SetImage(imageData, contentType, url);
+                throw new InvalidOperationException($"Failed to upload image to storage: {ex.Message}", ex);
+            }
+        }
+        else
+        {
+            // If no imageData provided, just update the URL
+            slideshow.SetImage(imageData, contentType, url);
+        }
+        
         _context.Slideshows.Update(slideshow);
         await _context.SaveChangesAsync();
         
@@ -100,6 +161,12 @@ public class SlideshowService : ISlideshowService
         var slideshow = await _context.Slideshows.FindAsync(id);
         if (slideshow == null)
             throw new InvalidOperationException($"Slideshow with ID {id} not found");
+
+        // Delete image from S3 if it exists
+        if (!string.IsNullOrEmpty(slideshow.ImageUrl))
+        {
+            await _slideshowStorageService.DeleteImageAsync(slideshow.ImageUrl);
+        }
 
         _context.Slideshows.Remove(slideshow);
         await _context.SaveChangesAsync();
