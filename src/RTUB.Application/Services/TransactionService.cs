@@ -63,16 +63,6 @@ public class TransactionService : ITransactionService
         await _context.SaveChangesAsync();
     }
 
-    public async Task SetTransactionReceiptAsync(int id, byte[]? receiptData, string? contentType)
-    {
-        var transaction = await _context.Transactions.FindAsync(id);
-        if (transaction == null)
-            throw new InvalidOperationException($"Transaction with ID {id} not found");
-
-        _context.Transactions.Update(transaction);
-        await _context.SaveChangesAsync();
-    }
-
     public async Task DeleteTransactionAsync(int id)
     {
         var transaction = await _context.Transactions.FindAsync(id);
