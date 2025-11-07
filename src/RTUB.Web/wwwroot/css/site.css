@@ -3800,7 +3800,7 @@ th:hover {
 .song-authors {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.5rem;
 }
 
 .song-author-row {
@@ -3809,6 +3809,9 @@ th:hover {
   gap: 0.4rem;
   font-size: 0.875rem;
   line-height: 1.3;
+  background-color: #1e1e1e;
+  border-radius: 6px;
+  padding: 6px 8px;
 }
 
 .song-icon {
@@ -3829,11 +3832,12 @@ th:hover {
 .song-author-text {
   color: #aaa;
   font-weight: 400;
-  font-size: 0.9rem;
+  font-size: 0.9em;
   white-space: normal;
   overflow: visible;
   word-break: break-word;
   overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 
 /* Actions section at bottom */
