@@ -590,7 +590,7 @@ else
                                 <span>Instrumentos</span>
                             </div>
                             <div class="instrument-counter-grid">
-                                @foreach (var kvp in instrumentCounts.OrderByDescending(x => x.Value).Where(x => x.Value > 0))
+                                @foreach (var kvp in instrumentCounts.Where(x => x.Value > 0).OrderByDescending(x => x.Value))
                                 {
                                     <div class="instrument-counter-box">
                                         <div class="instrument-counter-number">@kvp.Value</div>
