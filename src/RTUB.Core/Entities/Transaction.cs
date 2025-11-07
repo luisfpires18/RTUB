@@ -28,11 +28,7 @@ public class Transaction : BaseEntity
     [Required(ErrorMessage = "O tipo é obrigatório")]
     [RegularExpression("^(Income|Expense)$", ErrorMessage = "O tipo deve ser 'Income' ou 'Expense'")]
     public string Type { get; set; } = "Expense";
-    
-    // Receipt handling
-    public byte[]? ReceiptData { get; set; }
-    public string? ReceiptContentType { get; set; }
-    
+
     // Navigation property
     public virtual Activity? Activity { get; set; }
 
@@ -83,18 +79,5 @@ public class Transaction : BaseEntity
         Category = category;
         Amount = amount;
         Type = type;
-    }
-
-    public void SetReceipt(byte[]? receiptData, string? contentType)
-    {
-        ReceiptData = receiptData;
-        ReceiptContentType = contentType;
-    }
-
-    public string GetReceiptSource()
-    {
-        return ReceiptData != null && !string.IsNullOrEmpty(ReceiptContentType)
-            ? $"/api/images/receipt/{Id}"
-            : "";
     }
 }
