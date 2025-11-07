@@ -311,14 +311,14 @@ namespace RTUB
                     var updateResult = await userManager.UpdateAsync(user);
                     if (!updateResult.Succeeded)
                     {
-                        logger.LogWarning("Failed to update LastLoginDate for user {Username}: {Errors}", 
-                            username, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                        logger.LogWarning("Failed to update LastLoginDate for user {UserId}: {Errors}", 
+                            user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
                     }
                 }
                 catch (Exception ex)
                 {
                     // Log error but don't fail login
-                    logger.LogError(ex, "Exception while updating LastLoginDate for user {Username}", username);
+                    logger.LogError(ex, "Exception while updating LastLoginDate for user {UserId}", user.Id);
                 }
 
                 // Sign in the user (password already validated above)
