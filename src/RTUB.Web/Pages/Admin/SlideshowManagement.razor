@@ -342,6 +342,14 @@ else
     {
         if (editingSlide == null) return;
 
+        // Set a temporary ImageUrl value if image data is ready to upload
+        // This allows validation to pass while the actual S3 upload happens after entity creation
+        string? originalImageUrl = editingSlide.ImageUrl;
+        if (croppedImageData != null && string.IsNullOrEmpty(editingSlide.ImageUrl))
+        {
+            editingSlide.ImageUrl = "pending-upload";
+        }
+
         if (isCreateMode)
         {
             var newSlide = await SlideshowService.CreateSlideshowAsync(
