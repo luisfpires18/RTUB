@@ -282,6 +282,12 @@ namespace RTUB
                     return Results.Redirect("/login?error=Invalid");
                 }
 
+                // Check if account is locked out before any other checks
+                if (await userManager.IsLockedOutAsync(user))
+                {
+                    return Results.Redirect("/login?error=Locked");
+                }
+
                 // Check password is valid BEFORE updating last login date to avoid race condition
                 // We need to verify credentials first, then update the timestamp BEFORE signing in
                 // to ensure the LastLoginDate is persisted before the user can make any requests
@@ -289,6 +295,12 @@ namespace RTUB
                 if (!passwordValid)
                 {
                     return Results.Redirect("/login?error=Invalid");
+                }
+
+                // Check if two-factor authentication is required
+                if (await userManager.GetTwoFactorEnabledAsync(user))
+                {
+                    return Results.Redirect($"/login-with-2fa?rememberMe={remember}");
                 }
 
                 // Update last login date BEFORE signing in to prevent race condition
@@ -309,20 +321,15 @@ namespace RTUB
                     logger.LogError(ex, "Exception while updating LastLoginDate for user {Username}", username);
                 }
 
-                var result = await signInManager.PasswordSignInAsync(user, password, remember, lockoutOnFailure: false);
-                if (result.Succeeded)
+                // Sign in the user (password already validated above)
+                await signInManager.SignInAsync(user, remember);
+                
+                // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
+                if (!string.IsNullOrEmpty(returnUrl) && RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl))
                 {
-                    // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
-                    if (!string.IsNullOrEmpty(returnUrl) && RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl))
-                    {
-                        return Results.Redirect(returnUrl);
-                    }
-                    return Results.Redirect("/");
+                    return Results.Redirect(returnUrl);
                 }
-                if (result.RequiresTwoFactor) return Results.Redirect($"/login-with-2fa?rememberMe={remember}");
-                if (result.IsLockedOut) return Results.Redirect("/login?error=Locked");
-
-                return Results.Redirect("/login?error=Invalid");
+                return Results.Redirect("/");
             })
             // If you want antiforgery enforced here, replace the next line with: .RequireAntiforgery();
             .DisableAntiforgery();
