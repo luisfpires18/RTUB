@@ -294,6 +294,8 @@ namespace RTUB
                 var passwordValid = await userManager.CheckPasswordAsync(user, password);
                 if (!passwordValid)
                 {
+                    // Track failed login attempt for lockout purposes
+                    await userManager.AccessFailedAsync(user);
                     return Results.Redirect("/login?error=Invalid");
                 }
 
@@ -320,6 +322,9 @@ namespace RTUB
                     // Log error but don't fail login
                     logger.LogError(ex, "Exception while updating LastLoginDate for user {UserId}", user.Id);
                 }
+
+                // Reset access failed count on successful login
+                await userManager.ResetAccessFailedCountAsync(user);
 
                 // Sign in the user (password already validated above)
                 await signInManager.SignInAsync(user, remember);
