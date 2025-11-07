@@ -194,8 +194,15 @@ else
                 <div class="modal-body">
                     @if (selectedRehearsalAttendances != null && selectedRehearsalAttendances.Any())
                     {
+                        <!-- Search Bar -->
+                        <div class="mb-3">
+                            <TableSearchBar SearchTerm="@attendanceSearchTerm"
+                                           Placeholder="Pesquisar por nome..."
+                                           OnSearchChanged="@HandleAttendanceSearchChanged" />
+                        </div>
+                        
                         <div class="enrollment-card-grid">
-                            @foreach (var attendance in selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName))
+                            @foreach (var attendance in filteredAttendances)
                             {
                                 var instrumentDisplay = attendance.Instrument?.ToString() ?? "—";
                                 <EnrollmentCard 
@@ -206,10 +213,12 @@ else
                                     Notes=""
                                     AltText="@attendance.User?.GetDisplayName()"
                                     ShowEditButton="false"
-                                    ShowDeleteButton="@isOwner"
-                                    ShowApproveButton="false"
+                                    ShowDeleteButton="@(isAdmin && attendance.Attended)"
+                                    ShowApproveButton="@(isAdmin && !attendance.Attended)"
                                     OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
-                                    DeleteTooltip="Eliminar Presença">
+                                    OnApprove="@(() => ApproveAttendance(attendance))"
+                                    DeleteTooltip="Eliminar"
+                                    ApproveTooltip="Aprovar">
                                     <BadgeContent>
                                         <div class="enrollment-card-badges-row">
                                             @if (attendance.Attended)
@@ -225,6 +234,51 @@ else
                                 </EnrollmentCard>
                             }
                         </div>
+
+                        <!-- Add Member Section (Admin Only) -->
+                        @if (isAdmin)
+                        {
+                            <div class="mt-3">
+                                @if (!string.IsNullOrEmpty(addMemberFeedbackMessage))
+                                {
+                                    <div class="alert @(addMemberFeedbackIsError ? "alert-danger" : "alert-success") alert-dismissible fade show">
+                                        @addMemberFeedbackMessage
+                                        <button type="button" class="btn-close" @onclick="ClearAddMemberFeedback"></button>
+                                    </div>
+                                }
+                                
+                                @if (showAddMemberDropdown)
+                                {
+                                    <div class="mb-2">
+                                        <TableSearchBar SearchTerm="@addMemberSearchTerm"
+                                                       Placeholder="Pesquisar membro por nome..."
+                                                       OnSearchChanged="@HandleAddMemberSearchChanged" />
+                                        
+                                        @if (filteredAvailableMembers.Any())
+                                        {
+                                            <div class="list-group mt-2" style="max-height: 200px; overflow-y: auto;">
+                                                @foreach (var user in filteredAvailableMembers.Take(10))
+                                                {
+                                                    <button type="button" class="list-group-item list-group-item-action" 
+                                                            @onclick="() => AddMemberToRehearsal(user)">
+                                                        @user.FirstName "@user.Nickname" @user.LastName
+                                                    </button>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <p class="text-muted mt-2">Nenhum membro encontrado.</p>
+                                        }
+                                    </div>
+                                }
+                                
+                                <button class="btn btn-sm btn-outline-primary" @onclick="ToggleAddMemberDropdown">
+                                    <i class="bi bi-@(showAddMemberDropdown ? "x" : "plus")-circle"></i> 
+                                    @(showAddMemberDropdown ? "Cancelar" : "Adicionar Membro")
+                                </button>
+                            </div>
+                        }
                     }
                     else
                     {
@@ -613,6 +667,16 @@ else
     private string? editTheme;
     private string? editNotes;
     private List<RehearsalAttendance>? selectedRehearsalAttendances;
+    private List<RehearsalAttendance> filteredAttendances = new();
+    private string attendanceSearchTerm = "";
+
+    // Add member to rehearsal functionality
+    private bool showAddMemberDropdown = false;
+    private string addMemberSearchTerm = "";
+    private string addMemberFeedbackMessage = "";
+    private bool addMemberFeedbackIsError = false;
+    private List<ApplicationUser> allMembers = new();
+    private List<ApplicationUser> filteredAvailableMembers = new();
 
     // Create rehearsal
     private DateTime createDate = DateTime.Today.AddDays(1);
@@ -822,6 +886,20 @@ else
             }
         }
 
+        // Initialize filtered attendances
+        filteredAttendances = selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName).ToList();
+        attendanceSearchTerm = "";
+
+        // Load all members for adding if admin
+        if (isAdmin)
+        {
+            allMembers = UserManager.Users.ToList();
+            filteredAvailableMembers = new List<ApplicationUser>();
+            showAddMemberDropdown = false;
+            addMemberSearchTerm = "";
+            addMemberFeedbackMessage = "";
+        }
+
         showAttendancesModal = true;
         StateHasChanged();
     }
@@ -831,7 +909,137 @@ else
         showAttendancesModal = false;
         selectedRehearsal = null;
         selectedRehearsalAttendances = null;
+        filteredAttendances = new();
+        attendanceSearchTerm = "";
+        showAddMemberDropdown = false;
+        addMemberSearchTerm = "";
+        addMemberFeedbackMessage = "";
         StateHasChanged();
+    }
+
+    private async Task HandleAttendanceSearchChanged(string searchTerm)
+    {
+        attendanceSearchTerm = searchTerm;
+        
+        if (selectedRehearsalAttendances != null)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                filteredAttendances = selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName).ToList();
+            }
+            else
+            {
+                var search = searchTerm.ToLower();
+                filteredAttendances = selectedRehearsalAttendances
+                    .Where(a => (a.User?.FirstName?.ToLower().Contains(search) ?? false) ||
+                               (a.User?.LastName?.ToLower().Contains(search) ?? false) ||
+                               (a.User?.Nickname?.ToLower().Contains(search) ?? false))
+                    .OrderByDescending(a => a.Attended)
+                    .ThenBy(a => a.User?.FirstName)
+                    .ToList();
+            }
+        }
+        
+        await Task.CompletedTask;
+    }
+
+    private async Task ApproveAttendance(RehearsalAttendance attendance)
+    {
+        try
+        {
+            await AttendanceService.UpdateAttendanceAsync(attendance.Id, true, attendance.Instrument);
+            
+            // Refresh the attendance list
+            if (selectedRehearsal != null)
+            {
+                await ViewAttendances(selectedRehearsal);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error approving attendance: {ex.Message}");
+        }
+    }
+
+    private void ToggleAddMemberDropdown()
+    {
+        showAddMemberDropdown = !showAddMemberDropdown;
+        if (showAddMemberDropdown)
+        {
+            addMemberSearchTerm = "";
+            FilterAvailableMembers();
+        }
+        else
+        {
+            addMemberFeedbackMessage = "";
+        }
+    }
+
+    private async Task HandleAddMemberSearchChanged(string searchTerm)
+    {
+        addMemberSearchTerm = searchTerm;
+        FilterAvailableMembers();
+        await Task.CompletedTask;
+    }
+
+    private void FilterAvailableMembers()
+    {
+        if (selectedRehearsalAttendances == null)
+        {
+            filteredAvailableMembers = new List<ApplicationUser>();
+            return;
+        }
+
+        // Get list of user IDs already in attendance
+        var attendingUserIds = selectedRehearsalAttendances.Select(a => a.UserId).ToHashSet();
+
+        // Filter members who are not already attending
+        var available = allMembers.Where(u => !attendingUserIds.Contains(u.Id));
+
+        if (string.IsNullOrWhiteSpace(addMemberSearchTerm))
+        {
+            filteredAvailableMembers = available.OrderBy(u => u.FirstName).ToList();
+        }
+        else
+        {
+            var search = addMemberSearchTerm.ToLower();
+            filteredAvailableMembers = available
+                .Where(u => (u.FirstName?.ToLower().Contains(search) ?? false) ||
+                           (u.LastName?.ToLower().Contains(search) ?? false) ||
+                           (u.Nickname?.ToLower().Contains(search) ?? false))
+                .OrderBy(u => u.FirstName)
+                .ToList();
+        }
+    }
+
+    private async Task AddMemberToRehearsal(ApplicationUser user)
+    {
+        if (selectedRehearsal == null) return;
+
+        try
+        {
+            await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, user.Id, null, null);
+            
+            addMemberFeedbackMessage = $"Presença de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";
+            addMemberFeedbackIsError = false;
+            
+            // Refresh attendance list
+            await ViewAttendances(selectedRehearsal);
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            addMemberFeedbackMessage = $"Erro ao adicionar membro: {ex.Message}";
+            addMemberFeedbackIsError = true;
+            Console.WriteLine($"Error adding member: {ex.Message}");
+        }
+    }
+
+    private void ClearAddMemberFeedback()
+    {
+        addMemberFeedbackMessage = "";
+        addMemberFeedbackIsError = false;
     }
 
     private void EditAttendance(Rehearsal rehearsal)
