@@ -216,8 +216,8 @@
                                             }
                                         </td>
                                         <td>
-                                            <span class="badge @GetActionBadgeClass(GetDisplayAction(log))">
-                                                @GetDisplayAction(log)
+                                            <span class="badge @GetActionBadgeClass(log.Action)">
+                                                @log.Action
                                             </span>
                                         </td>
                                         <td>
@@ -293,8 +293,8 @@
 
                 <dt class="col-sm-3">Action</dt>
                 <dd class="col-sm-9">
-                    <span class="badge @GetActionBadgeClass(GetDisplayAction(selectedLog))">
-                        @GetDisplayAction(selectedLog)
+                    <span class="badge @GetActionBadgeClass(selectedLog.Action)">
+                        @selectedLog.Action
                     </span>
                 </dd>
 
@@ -671,42 +671,10 @@
             "Deleted" => "bg-danger",
             "Role Added" => "bg-primary",
             "Role Removed" => "bg-secondary",
-            "Logged in" => "bg-light text-dark",
             _ => "bg-info"
         };
     }
     
-    private string GetDisplayAction(RTUB.Core.Entities.AuditLog log)
-    {
-        // Special handling for LastLoginDate changes
-        if (log.EntityType == "ApplicationUser" && log.Action == "Modified")
-        {
-            if (!string.IsNullOrEmpty(log.Changes))
-            {
-                try
-                {
-                    var changesObj = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(log.Changes);
-                    if (changesObj != null && changesObj.ContainsKey("LastLoginDate"))
-                    {
-                        // Check if only LastLoginDate and metadata fields (_TargetUser) changed
-                        var nonMetadataKeys = changesObj.Keys.Where(k => !k.StartsWith("_")).ToList();
-                        if (nonMetadataKeys.Count == 1 && nonMetadataKeys[0] == "LastLoginDate")
-                        {
-                            // Only LastLoginDate changed, display as "Logged in"
-                            return "Logged in";
-                        }
-                    }
-                }
-                catch (JsonException)
-                {
-                    // If parsing fails, fall back to the original action
-                }
-            }
-        }
-        
-        return log.Action;
-    }
-
     private string FormatChanges(string? changes)
     {
         if (string.IsNullOrEmpty(changes))
