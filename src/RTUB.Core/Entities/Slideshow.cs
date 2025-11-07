@@ -8,8 +8,6 @@ namespace RTUB.Core.Entities;
 public class Slideshow : BaseEntity, IValidatableObject
 {
     public string ImageUrl { get; set; } = string.Empty;
-    public byte[]? ImageData { get; set; }
-    public string? ImageContentType { get; set; }
     
     [Required(ErrorMessage = "Slideshow title is required")]
     [MaxLength(200, ErrorMessage = "Title must not exceed 200 characters")]
@@ -68,10 +66,8 @@ public class Slideshow : BaseEntity, IValidatableObject
         IntervalMs = intervalMs;
     }
 
-    public void SetImage(byte[]? imageData, string? contentType, string url = "")
+    public void SetImage(string url)
     {
-        ImageData = imageData;
-        ImageContentType = contentType;
         ImageUrl = url;
     }
 
@@ -87,30 +83,23 @@ public class Slideshow : BaseEntity, IValidatableObject
 
     public string GetImageSource()
     {
-        if (ImageData != null && !string.IsNullOrEmpty(ImageContentType))
-            return $"/api/images/slideshow/{Id}";
-        
         return !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
     }
 
     /// <summary>
-    /// Custom validation logic to ensure an image is present.
+    /// Custom validation logic to ensure an image URL is present.
     /// </summary>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         // Check if a valid URL is present
         bool hasUrl = !string.IsNullOrWhiteSpace(ImageUrl);
 
-        // Check if valid image data is present (mirroring your GetImageSource logic)
-        bool hasData = ImageData != null && ImageData.Length > 0 && !string.IsNullOrWhiteSpace(ImageContentType);
-
-        // If NEITHER is present, return a validation error.
-        if (!hasUrl && !hasData)
+        // If URL is not present, return a validation error.
+        if (!hasUrl)
         {
             yield return new ValidationResult(
-                "An image is required. Please provide either an Image URL or upload a new image.",
-                // Associate the error with both fields so it can be displayed by either
-                new[] { nameof(ImageUrl), nameof(ImageData) }
+                "An image is required. Please provide an Image URL or upload a new image.",
+                new[] { nameof(ImageUrl) }
             );
         }
     }

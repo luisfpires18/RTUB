@@ -171,9 +171,7 @@ public class SlideshowServiceTests : IDisposable
 
         // Assert
         var updated = await _service.GetSlideshowByIdAsync(slideshow.Id);
-        updated!.ImageData.Should().BeNull(); // Image data should not be stored in DB when uploaded to S3
-        updated.ImageContentType.Should().BeNull();
-        updated.ImageUrl.Should().Be(expectedFilename); // Should contain the filename from S3
+        updated!.ImageUrl.Should().Be(expectedFilename); // Should contain the filename from S3
         
         _slideshowStorageServiceMock.Verify(x => x.UploadImageAsync(imageData, slideshow.Id, contentType), Times.Once);
         _imageServiceMock.Verify(x => x.InvalidateSlideshowImageCache(slideshow.Id), Times.Once);

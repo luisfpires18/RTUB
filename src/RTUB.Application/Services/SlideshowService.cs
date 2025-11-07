@@ -122,13 +122,13 @@ public class SlideshowService : ISlideshowService
                 await _slideshowStorageService.DeleteImageAsync(slideshow.ImageUrl);
             }
             
-            // Store the filename in the ImageUrl field, clear ImageData
-            slideshow.SetImage(null, null, filename);
+            // Store the filename in the ImageUrl field
+            slideshow.SetImage(filename);
         }
-        else
+        else if (!string.IsNullOrEmpty(url))
         {
             // If no imageData provided, just update the URL
-            slideshow.SetImage(imageData, contentType, url);
+            slideshow.SetImage(url);
         }
         
         _context.Slideshows.Update(slideshow);

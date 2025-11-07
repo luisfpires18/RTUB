@@ -94,24 +94,6 @@ public class ImageServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetSlideshowImageAsync_ReturnsImage_WhenSlideshowHasImage()
-    {
-        // Arrange
-        var slideshow = Slideshow.Create("Test", 1, "Description");
-        slideshow.SetImage(new byte[] { 7, 8, 9 }, "image/jpg");
-        _context.Slideshows.Add(slideshow);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var result = await _service.GetSlideshowImageAsync(slideshow.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Value.Data.Should().BeEquivalentTo(new byte[] { 7, 8, 9 });
-        result.Value.ContentType.Should().Be("image/jpg");
-    }
-
-    [Fact]
     public async Task GetAlbumImageAsync_ReturnsImage_WhenAlbumHasImage()
     {
         // Arrange

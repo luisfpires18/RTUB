@@ -252,6 +252,7 @@ else
     {
         isCreateMode = true;
         uploadedImagePath = null;
+        croppedImageData = null;
         editingSlide = new Slideshow
         {
             Title = string.Empty,
@@ -268,14 +269,13 @@ else
     {
         isCreateMode = false;
         uploadedImagePath = null;
+        croppedImageData = null;
         editingSlide = new Slideshow
         {
             Id = slide.Id,
             Title = slide.Title,
             Description = slide.Description,
             ImageUrl = slide.ImageUrl,
-            ImageData = slide.ImageData,
-            ImageContentType = slide.ImageContentType,
             Order = slide.Order,
             IntervalMs = slide.IntervalMs,
             IsActive = slide.IsActive,
@@ -289,6 +289,7 @@ else
         showEditModal = false;
         editingSlide = null;
         uploadedImagePath = null;
+        croppedImageData = null;
         imageUploadManager?.Reset();
     }
 
@@ -312,14 +313,15 @@ else
         }
     }
 
-    private void OnImageCropped(byte[] croppedImageData)
+    private byte[]? croppedImageData = null;
+
+    private void OnImageCropped(byte[] croppedData)
     {
         try
         {
-            if (editingSlide != null && croppedImageData != null && croppedImageData.Length > 0)
+            if (editingSlide != null && croppedData != null && croppedData.Length > 0)
             {
-                editingSlide.ImageData = croppedImageData;
-                editingSlide.ImageContentType = "image/jpeg";
+                croppedImageData = croppedData;
                 uploadedImagePath = "uploaded";
                 StateHasChanged();
             }
@@ -349,12 +351,12 @@ else
                 editingSlide.IntervalMs
             );
             
-            if (editingSlide.ImageData != null)
+            if (croppedImageData != null)
             {
                 await SlideshowService.SetSlideshowImageAsync(
                     newSlide.Id,
-                    editingSlide.ImageData,
-                    editingSlide.ImageContentType
+                    croppedImageData,
+                    "image/jpeg"
                 );
             }
             
@@ -373,12 +375,12 @@ else
                 editingSlide.IntervalMs
             );
 
-            if (editingSlide.ImageData != null)
+            if (croppedImageData != null)
             {
                 await SlideshowService.SetSlideshowImageAsync(
                     editingSlide.Id,
-                    editingSlide.ImageData,
-                    editingSlide.ImageContentType
+                    croppedImageData,
+                    "image/jpeg"
                 );
             }
 

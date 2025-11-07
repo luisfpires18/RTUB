@@ -19,22 +19,19 @@ public static partial class SeedData
         // Seed slideshow data
         if (!await dbContext.Slideshows.AnyAsync())
         {
-            // Create sample SVG images
-            var svg1 = @"<svg width='800' height='440' xmlns='http://www.w3.org/2000/svg'><rect width='800' height='440' fill='#6f42c1'/><text x='400' y='220' font-family='Arial' font-size='48' fill='white' text-anchor='middle'>RTUB 1991</text></svg>";
-            var svg2 = @"<svg width='800' height='440' xmlns='http://www.w3.org/2000/svg'><rect width='800' height='440' fill='#000000'/><text x='400' y='220' font-family='Arial' font-size='48' fill='#6f42c1' text-anchor='middle'>Tradição</text></svg>";
-            var svg3 = @"<svg width='800' height='440' xmlns='http://www.w3.org/2000/svg'><rect width='800' height='440' fill='#2c2c2c'/><text x='400' y='220' font-family='Arial' font-size='48' fill='white' text-anchor='middle'>Eventos</text></svg>";
-
+            // Note: Seed data will need images to be uploaded via the admin interface
+            // These are placeholder slideshows without images
             var slideshow1 = Slideshow.Create("RTUB", 1, "Bem-vindo à Real Tuna Universitária de Bragança. A preservar o espírito e a tradição académica desde 1991.", 5000);
-            slideshow1.SetImage(System.Text.Encoding.UTF8.GetBytes(svg1), "image/svg+xml");
-            slideshow1.Activate();
+            slideshow1.SetImage(""); // Will need to upload image via admin
+            slideshow1.Deactivate(); // Deactivate until image is uploaded
 
             var slideshow2 = Slideshow.Create("O nosso Festival", 2, "Somos os orgulhosos organizadores do FITAB – Festival Internacional de Tunas Académicas de Bragança, um marco na cultura da cidade.", 5000);
-            slideshow2.SetImage(System.Text.Encoding.UTF8.GetBytes(svg2), "image/svg+xml");
-            slideshow2.Activate();
+            slideshow2.SetImage(""); // Will need to upload image via admin
+            slideshow2.Deactivate(); // Deactivate until image is uploaded
 
             var slideshow3 = Slideshow.Create("Amigos Para Sempre", 3, "Mais que uma tuna, uma família. Cantamos a boémia, a amizade e a saudade, unidos pela música e pela \"Terra dos amigos para sempre\".", 5000);
-            slideshow3.SetImage(System.Text.Encoding.UTF8.GetBytes(svg3), "image/svg+xml");
-            slideshow3.Activate();
+            slideshow3.SetImage(""); // Will need to upload image via admin
+            slideshow3.Deactivate(); // Deactivate until image is uploaded
 
             await dbContext.Slideshows.AddRangeAsync(new[] { slideshow1, slideshow2, slideshow3 });
             await dbContext.SaveChangesAsync();
