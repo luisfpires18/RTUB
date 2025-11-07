@@ -694,7 +694,7 @@ else
     private List<Rehearsal> upcomingRehearsals = new();
     private List<Rehearsal> filteredUpcomingRehearsals = new();
     private List<Rehearsal> paginatedUpcomingRehearsals = new();
-    private PaginationHelper<Rehearsal> upcomingRehearsalsPagination = new() { PageSize = 12 };
+    private PaginationHelper<Rehearsal> upcomingRehearsalsPagination = new() { PageSize = 10 };
     private List<RehearsalAttendance> myAttendances = new();
     private int attendanceCount = 0;
     private int totalRecentRehearsals = 0;
@@ -705,7 +705,7 @@ else
     private List<Rehearsal> paginatedPreviousRehearsals = new();
     private string previousRehearsalsSearch = "";
     private SearchHelper<Rehearsal> previousSearchHelper = new();
-    private PaginationHelper<Rehearsal> previousRehearsalsPagination = new() { PageSize = 12 };
+    private PaginationHelper<Rehearsal> previousRehearsalsPagination = new() { PageSize = 10 };
 
     // Fiscal year filtering
     private List<string> fiscalYears = new();
@@ -1185,7 +1185,21 @@ else
 
         try
         {
+            // For past rehearsals, mark as attended (approved) immediately
+            bool attended = isSelectedRehearsalPast;
             await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, user.Id, null, null);
+            
+            // If it's a past rehearsal, immediately approve the attendance
+            if (isSelectedRehearsalPast)
+            {
+                // Get the just-created attendance and update it to approved
+                var newAttendances = await AttendanceService.GetAttendancesByRehearsalIdAsync(selectedRehearsal.Id);
+                var newAttendance = newAttendances.FirstOrDefault(a => a.UserId == user.Id);
+                if (newAttendance != null && !newAttendance.Attended)
+                {
+                    await AttendanceService.UpdateAttendanceAsync(newAttendance.Id, true, newAttendance.Instrument);
+                }
+            }
             
             addMemberFeedbackMessage = $"Presença de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";
             addMemberFeedbackIsError = false;
@@ -1319,16 +1333,7 @@ else
             // Refresh the attendance list for the selected rehearsal
             if (selectedRehearsal != null)
             {
-                selectedRehearsalAttendances = (await AttendanceService.GetAttendancesByRehearsalIdAsync(selectedRehearsal.Id)).ToList();
-
-                // Load user details for display
-                foreach (var attendance in selectedRehearsalAttendances)
-                {
-                    if (attendance.User == null)
-                    {
-                        attendance.User = await UserManager.FindByIdAsync(attendance.UserId);
-                    }
-                }
+                await ViewAttendances(selectedRehearsal);
             }
 
             // Refresh my attendances
