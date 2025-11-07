@@ -242,7 +242,15 @@
             try
             {
                 var newLocation = e.Location;
-                var oldUri = new Uri(_lastLocation ?? string.Empty);
+                
+                // Check if we have a valid previous location
+                if (string.IsNullOrEmpty(_lastLocation))
+                {
+                    _lastLocation = newLocation;
+                    return;
+                }
+                
+                var oldUri = new Uri(_lastLocation);
                 var newUri = new Uri(newLocation);
                 
                 // Check if it's a hash change only (same path)
@@ -251,6 +259,7 @@
                 // Only scroll if it's not a hash-only change and not the first render
                 if (!isHashChangeOnly && !_isFirstRender)
                 {
+                    // Fire-and-forget is intentional here; we don't need to wait for scroll completion
                     _ = JSRuntime.InvokeVoidAsync("scrollToTop.scrollInstant");
                 }
                 
@@ -258,7 +267,7 @@
             }
             catch
             {
-                // Ignore JS interop errors during disposal
+                // Ignore errors during navigation or disposal
             }
         }, null, 50, Timeout.Infinite);
     }
