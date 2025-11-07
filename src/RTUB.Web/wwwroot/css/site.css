@@ -837,6 +837,13 @@ a:hover, a:focus {
   border-color: #5a379c;
   color: #fff;
 }
+.btn-purple:disabled {
+  background-color: #8e6fc7;
+  border-color: #8e6fc7;
+  color: #fff;
+  opacity: 0.75;
+  cursor: not-allowed;
+}
 
 /* Forms */
 .form-control {
