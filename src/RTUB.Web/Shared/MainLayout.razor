@@ -10,6 +10,8 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
+@inject IJSRuntime JSRuntime
+@implements IDisposable
 
 <nav class="navbar navbar-expand-lg navbar-dark border-bottom navbar-main">
     <div class="container-xxl rtub-wide px-xxl-4">
@@ -193,6 +195,7 @@
 <script src="/js/imageRefresh.js"></script>
 <script src="/js/familyTree.js"></script>
 <script src="/js/roleBadge.js"></script>
+<script src="/js/scrollToTop.js"></script>
 <script>
     // Configure Blazor to use absolute path for SignalR hub
     // This prevents 404 errors when on /admin/* or other sub-paths
@@ -207,10 +210,66 @@
 
 @code {
     private ApplicationUser? currentUser;
+    private string? _lastLocation;
+    private System.Threading.Timer? _debounceTimer;
+    private bool _isFirstRender = true;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadCurrentUser();
+        
+        // Subscribe to location changes
+        NavigationManager.LocationChanged += HandleLocationChanged;
+        _lastLocation = NavigationManager.Uri;
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _isFirstRender = false;
+        }
+        return Task.CompletedTask;
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        // Debounce to avoid double fires
+        _debounceTimer?.Dispose();
+        
+        _debounceTimer = new System.Threading.Timer(_ =>
+        {
+            try
+            {
+                var newLocation = e.Location;
+                
+                // Check if we have a valid previous location
+                if (string.IsNullOrEmpty(_lastLocation))
+                {
+                    _lastLocation = newLocation;
+                    return;
+                }
+                
+                var oldUri = new Uri(_lastLocation);
+                var newUri = new Uri(newLocation);
+                
+                // Check if it's a hash change only (same path)
+                bool isHashChangeOnly = oldUri.GetLeftPart(UriPartial.Path) == newUri.GetLeftPart(UriPartial.Path);
+                
+                // Only scroll if it's not a hash-only change and not the first render
+                if (!isHashChangeOnly && !_isFirstRender)
+                {
+                    // Fire-and-forget is intentional here; we don't need to wait for scroll completion
+                    _ = JSRuntime.InvokeVoidAsync("scrollToTop.scrollInstant");
+                }
+                
+                _lastLocation = newLocation;
+            }
+            catch
+            {
+                // Ignore errors during navigation or disposal
+            }
+        }, null, 50, Timeout.Infinite);
     }
 
     private async Task LoadCurrentUser()
@@ -247,5 +306,11 @@
                 currentUser = await UserManager.FindByIdAsync(nameIdentifierClaim);
             }
         }
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= HandleLocationChanged;
+        _debounceTimer?.Dispose();
     }
 }
