@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
@@ -722,8 +723,16 @@ else
         fiscalYears = allFiscalYears.Select(fy => fy.GetFiscalYearString()).OrderByDescending(y => y).ToList();
         currentFiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
 
-        // Set default to current fiscal year
-        selectedFiscalYear = currentFiscalYear;
+        // Read URL parameters
+        var uri = new Uri(Navigation.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        
+        // Fiscal year from URL or default to current
+        selectedFiscalYear = query.TryGetValue("fy", out var fy) ? fy.ToString() : currentFiscalYear;
+        
+        // Search terms from URL
+        searchTerm = query.TryGetValue("qNext", out var qNext) ? qNext.ToString() : "";
+        previousRehearsalsSearch = query.TryGetValue("qPrev", out var qPrev) ? qPrev.ToString() : "";
 
         await LoadData();
         loading = false;
@@ -814,6 +823,9 @@ else
         {
             FilterPreviousRehearsals();
         }
+
+        // Update URL state
+        UpdateUrlState();
     }
 
     private async Task HandleSearchChanged(string search)
@@ -870,6 +882,32 @@ else
         selectedInstrument = null;
         selectedNotes = null;
         StateHasChanged();
+    }
+
+    private void UpdateUrlState()
+    {
+        var queryParams = new List<string>();
+        
+        // Add fiscal year if not default
+        if (!string.IsNullOrEmpty(selectedFiscalYear) && selectedFiscalYear != currentFiscalYear)
+        {
+            queryParams.Add($"fy={Uri.EscapeDataString(selectedFiscalYear)}");
+        }
+        
+        // Add search terms if not empty
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            queryParams.Add($"qNext={Uri.EscapeDataString(searchTerm)}");
+        }
+        
+        if (!string.IsNullOrWhiteSpace(previousRehearsalsSearch))
+        {
+            queryParams.Add($"qPrev={Uri.EscapeDataString(previousRehearsalsSearch)}");
+        }
+        
+        var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+        var newUrl = Navigation.ToAbsoluteUri("/rehearsals" + queryString).ToString();
+        Navigation.NavigateTo(newUrl, false); // false = don't force reload
     }
 
     private async Task ViewAttendances(Rehearsal rehearsal)
@@ -1207,6 +1245,7 @@ else
     {
         previousRehearsalsSearch = searchTerm;
         FilterPreviousRehearsals();
+        UpdateUrlState();
         await Task.CompletedTask;
     }
 
