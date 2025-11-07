@@ -550,8 +550,15 @@ else
         try
         {
             // For Blazor Server with cookie auth, cookies flow automatically
+            // Skip WebSockets to avoid conflicts with Blazor circuit, use ServerSentEvents or LongPolling
             hubConnection = new HubConnectionBuilder()
-                .WithUrl(NavigationManager.ToAbsoluteUri("/chathub"))
+                .WithUrl(NavigationManager.ToAbsoluteUri("/chathub"), options =>
+                {
+                    // Skip WebSockets as it conflicts with Blazor Server circuit
+                    options.SkipNegotiation = false;
+                    options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.ServerSentEvents | 
+                                        Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
+                })
                 .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
                 .Build();
             
