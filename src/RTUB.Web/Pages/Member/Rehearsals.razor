@@ -43,7 +43,7 @@
 <div class="row mb-3">
     <div class="col-md-4">
         <label class="form-label">Ano Fiscal</label>
-        <select class="form-select" @bind="selectedFiscalYear" @bind:after="FilterRehearsals">
+        <select class="form-select" @bind="selectedFiscalYear" @bind:after="OnFiscalYearChanged">
             <option value="">Todos os anos</option>
             @foreach (var year in fiscalYears)
             {
@@ -256,6 +256,7 @@ else
                                     TotalItems="@filteredAttendances.Count"
                                     CurrentPage="@attendancesPagination.CurrentPage"
                                     PageSize="@attendancesPagination.PageSize"
+                                    PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
                                     OnPageChanged="@HandleAttendancesPageChange"
                                     OnPageSizeChanged="@HandleAttendancesPageSizeChange" />
                             </div>
@@ -924,6 +925,12 @@ else
         }
     }
 
+    private async Task OnFiscalYearChanged()
+    {
+        // Reload data when fiscal year changes
+        await LoadData();
+    }
+
     private void FilterRehearsals()
     {
         var filtered = upcomingRehearsals.AsEnumerable();
@@ -1158,12 +1165,20 @@ else
     {
         try
         {
+            // Save current page before refreshing
+            var currentPage = attendancesPagination.CurrentPage;
+            
             await AttendanceService.UpdateAttendanceAsync(attendance.Id, true, attendance.Instrument);
             
             // Refresh the attendance list
             if (selectedRehearsal != null)
             {
                 await ViewAttendances(selectedRehearsal);
+                
+                // Restore the page number after refresh
+                attendancesPagination.CurrentPage = currentPage;
+                UpdatePaginatedAttendances();
+                StateHasChanged();
             }
         }
         catch (Exception ex)
@@ -1372,12 +1387,20 @@ else
 
         try
         {
+            // Save current page before refreshing
+            var currentPage = attendancesPagination.CurrentPage;
+            
             await AttendanceService.DeleteAttendanceAsync(deletingAttendance.Id);
 
             // Refresh the attendance list for the selected rehearsal
             if (selectedRehearsal != null)
             {
                 await ViewAttendances(selectedRehearsal);
+                
+                // Restore the page number after refresh
+                attendancesPagination.GoToPage(currentPage);
+                UpdatePaginatedAttendances();
+                StateHasChanged();
             }
 
             // Refresh my attendances

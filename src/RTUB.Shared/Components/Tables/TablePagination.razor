@@ -83,10 +83,10 @@
                 <select class="form-select form-select-sm d-inline-block w-auto" 
                         value="@PageSize" 
                         @onchange="HandlePageSizeChange">
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
+                    @foreach (var size in PageSizeOptions)
+                    {
+                        <option value="@size">@size</option>
+                    }
                 </select>
             </div>
         </div>
@@ -129,6 +129,12 @@
     /// </summary>
     [Parameter]
     public EventCallback<int> OnPageSizeChanged { get; set; }
+
+    /// <summary>
+    /// Page size options to display in the dropdown. Defaults to standard sizes.
+    /// </summary>
+    [Parameter]
+    public int[] PageSizeOptions { get; set; } = new[] { 10, 25, 50, 100 };
 
     private int TotalPages => TotalItems > 0 ? (int)Math.Ceiling((double)TotalItems / PageSize) : 1;
     private bool HasPreviousPage => CurrentPage > 1;

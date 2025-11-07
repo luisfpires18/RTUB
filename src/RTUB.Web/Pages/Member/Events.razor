@@ -525,6 +525,7 @@ else
                                 TotalItems="@filteredPerformingMembers.Count"
                                 CurrentPage="@performingMembersPagination.CurrentPage"
                                 PageSize="@performingMembersPagination.PageSize"
+                                PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
                                 OnPageChanged="@HandlePerformingMembersPageChange"
                                 OnPageSizeChanged="@HandlePerformingMembersPageSizeChange" />
                         </div>
@@ -590,6 +591,7 @@ else
                                 TotalItems="@filteredLeitoes.Count"
                                 CurrentPage="@leitoesPagination.CurrentPage"
                                 PageSize="@leitoesPagination.PageSize"
+                                PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
                                 OnPageChanged="@HandleLeitoesPageChange"
                                 OnPageSizeChanged="@HandleLeitoesPageSizeChange" />
                         </div>
