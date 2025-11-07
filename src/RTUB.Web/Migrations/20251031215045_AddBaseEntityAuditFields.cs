@@ -203,25 +203,33 @@ namespace RTUB.Migrations
                 type: "TEXT",
                 nullable: true);
 
-            migrationBuilder.AlterColumn<DateTime>(
-                name: "UpdatedAt",
-                table: "Labels",
-                type: "TEXT",
-                nullable: true,
-                oldClrType: typeof(DateTime),
-                oldType: "TEXT");
+            // Manually rebuild Labels table to change UpdatedAt to nullable and add audit fields
+            // Using raw SQL to avoid EF Core's automatic PRAGMA generation within transactions
+            migrationBuilder.Sql(@"
+                CREATE TABLE ""Labels_new"" (
+                    ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Labels"" PRIMARY KEY AUTOINCREMENT,
+                    ""Content"" TEXT NULL,
+                    ""CreatedAt"" TEXT NOT NULL,
+                    ""IsActive"" INTEGER NOT NULL,
+                    ""Reference"" TEXT NULL,
+                    ""Title"" TEXT NULL,
+                    ""UpdatedAt"" TEXT NULL,
+                    ""CreatedBy"" TEXT NULL,
+                    ""UpdatedBy"" TEXT NULL
+                );
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "CreatedBy",
-                table: "Labels",
-                type: "TEXT",
-                nullable: true);
+            migrationBuilder.Sql(@"
+                INSERT INTO ""Labels_new""
+                    (""Id"", ""Content"", ""CreatedAt"", ""IsActive"", ""Reference"", ""Title"", ""UpdatedAt"", ""CreatedBy"", ""UpdatedBy"")
+                SELECT
+                    ""Id"", ""Content"", ""CreatedAt"", ""IsActive"", ""Reference"", ""Title"", ""UpdatedAt"", NULL, NULL
+                FROM ""Labels"";
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "UpdatedBy",
-                table: "Labels",
-                type: "TEXT",
-                nullable: true);
+            migrationBuilder.Sql(@"DROP TABLE ""Labels"";");
+
+            migrationBuilder.Sql(@"ALTER TABLE ""Labels_new"" RENAME TO ""Labels"";");
 
             migrationBuilder.AddColumn<string>(
                 name: "CreatedBy",
@@ -603,15 +611,32 @@ namespace RTUB.Migrations
                 name: "UpdatedBy",
                 table: "Activities");
 
-            migrationBuilder.AlterColumn<DateTime>(
-                name: "UpdatedAt",
-                table: "Labels",
-                type: "TEXT",
-                nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                oldClrType: typeof(DateTime),
-                oldType: "TEXT",
-                oldNullable: true);
+            // Manually rebuild Labels table to revert UpdatedAt to non-nullable and remove audit fields
+            // Using raw SQL to avoid EF Core's automatic PRAGMA generation within transactions
+            migrationBuilder.Sql(@"
+                CREATE TABLE ""Labels_old"" (
+                    ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Labels"" PRIMARY KEY AUTOINCREMENT,
+                    ""Content"" TEXT NULL,
+                    ""CreatedAt"" TEXT NOT NULL,
+                    ""IsActive"" INTEGER NOT NULL,
+                    ""Reference"" TEXT NULL,
+                    ""Title"" TEXT NULL,
+                    ""UpdatedAt"" TEXT NOT NULL
+                );
+            ");
+
+            migrationBuilder.Sql(@"
+                INSERT INTO ""Labels_old""
+                    (""Id"", ""Content"", ""CreatedAt"", ""IsActive"", ""Reference"", ""Title"", ""UpdatedAt"")
+                SELECT
+                    ""Id"", ""Content"", ""CreatedAt"", ""IsActive"", ""Reference"", ""Title"", 
+                    COALESCE(""UpdatedAt"", '0001-01-01 00:00:00')
+                FROM ""Labels"";
+            ");
+
+            migrationBuilder.Sql(@"DROP TABLE ""Labels"";");
+
+            migrationBuilder.Sql(@"ALTER TABLE ""Labels_old"" RENAME TO ""Labels"";");
         }
     }
 }
