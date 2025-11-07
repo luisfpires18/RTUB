@@ -480,100 +480,41 @@ else
                                @bind="enrollmentSearchTerm" @bind:event="oninput" @onkeyup="FilterEnrollments" />
                     </div>
                     
-                    <div class="table-responsive mb-4">
-                        <table class="table table-hover enrollment-table">
-                            <thead>
-                                <tr>
-                                    <th @onclick="() => SortEnrollmentsBy(nameof(ApplicationUser.FirstName))" class="clickable-row">
-                                        Nome
-                                        @if (enrollmentSortHelper.IsActiveSortColumn(nameof(ApplicationUser.FirstName)))
-                                        {
-                                            <i class="bi @enrollmentSortHelper.GetSortIcon(nameof(ApplicationUser.FirstName))"></i>
-                                        }
-                                    </th>
-                                    <th @onclick='() => SortEnrollmentsBy("Category")' class="clickable-row">
-                                        Categoria
-                                        @if (enrollmentSortHelper.IsActiveSortColumn("Category"))
-                                        {
-                                            <i class="bi @enrollmentSortHelper.GetSortIcon("Category")"></i>
-                                        }
-                                    </th>
-                                    <th @onclick='() => SortEnrollmentsBy("Instrument")' class="clickable-row">
-                                        Instrumento
-                                        @if (enrollmentSortHelper.IsActiveSortColumn("Instrument"))
-                                        {
-                                            <i class="bi @enrollmentSortHelper.GetSortIcon("Instrument")"></i>
-                                        }
-                                    </th>
-                                    <th>Notas</th>
-                                    <th @onclick='() => SortEnrollmentsBy("EnrolledAt")' class="clickable-row">
-                                        Inscrito em
-                                        @if (enrollmentSortHelper.IsActiveSortColumn("EnrolledAt"))
-                                        {
-                                            <i class="bi @enrollmentSortHelper.GetSortIcon("EnrolledAt")"></i>
-                                        }
-                                    </th>
-                                    <AuthorizeView Roles="Owner">
-                                        <Authorized>
-                                            <th>Ações</th>
-                                        </Authorized>
-                                    </AuthorizeView>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var enrollment in filteredPerformingMembers)
-                                {
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <img src="@enrollment.User?.ProfilePictureSrc" alt="@enrollment.User?.GetDisplayName()"
-                                                     class="enrollment-avatar me-2" />
-                                                <div>
-                                                    @if (!string.IsNullOrEmpty(enrollment.User?.Nickname))
-                                                    {
-                                                        <div><strong>@enrollment.User.Nickname</strong></div>
-                                                        <div class="text-muted small">@enrollment.User?.FirstName @enrollment.User?.LastName</div>
-                                                    }
-                                                    else
-                                                    {
-                                                        <div><strong>@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}")</strong></div>
-                                                    }
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            @if (enrollment.User != null)
+                    <div class="enrollment-card-grid mb-4">
+                        @foreach (var enrollment in filteredPerformingMembers)
+                        {
+                            <EnrollmentCard 
+                                AvatarUrl="@enrollment.User?.ProfilePictureSrc"
+                                TunaName="@enrollment.User?.Nickname"
+                                FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}")"
+                                InstrumentText="@(enrollment.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(enrollment.Instrument.Value) : "")"
+                                Notes="@enrollment.Notes"
+                                AltText="@enrollment.User?.GetDisplayName()"
+                                ShowEditButton="false"
+                                ShowDeleteButton="@isUserOwner"
+                                OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
+                                DeleteTooltip="Eliminar Inscrição">
+                                <BadgeContent>
+                                    @if (enrollment.User != null)
+                                    {
+                                        <div class="enrollment-card-badges-row">
+                                            @if (enrollment.User.Positions.Contains(Position.Magister))
                                             {
-                                                @if (enrollment.User.Positions.Contains(Position.Magister))
-                                                {
-                                                    <PositionBadge Position="Position.Magister" />
-                                                }
-                                                else if (enrollment.User.Categories.Contains(MemberCategory.Tuno))
-                                                {
-                                                    <CategoryBadge Category="MemberCategory.Tuno" />
-                                                }
-                                                else if (enrollment.User.Categories.Contains(MemberCategory.Caloiro))
-                                                {
-                                                    <CategoryBadge Category="MemberCategory.Caloiro" />
-                                                }
+                                                <PositionBadge Position="Position.Magister" />
                                             }
-                                        </td>
-                                        <td>@(enrollment.Instrument.HasValue? StatusHelper.GetInstrumentDisplay(enrollment.Instrument.Value) : "N/A")</td>
-                                        <td>@(string.IsNullOrWhiteSpace(enrollment.Notes) ? "N/A" : enrollment.Notes)</td>
-                                        <td>@enrollment.EnrolledAt.ToLocalTime().ToString("dd/MM HH:mm")</td>
-                                        <AuthorizeView Roles="Owner">
-                                            <Authorized>
-                                                <td>
-                                                    <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteEnrollmentModal(enrollment)" title="Eliminar Inscrição">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                </td>
-                                            </Authorized>
-                                        </AuthorizeView>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
+                                            else if (enrollment.User.Categories.Contains(MemberCategory.Tuno))
+                                            {
+                                                <CategoryBadge Category="MemberCategory.Tuno" />
+                                            }
+                                            else if (enrollment.User.Categories.Contains(MemberCategory.Caloiro))
+                                            {
+                                                <CategoryBadge Category="MemberCategory.Caloiro" />
+                                            }
+                                        </div>
+                                    }
+                                </BadgeContent>
+                            </EnrollmentCard>
+                        }
                     </div>
 
                     @* Instrument Counts - Horizontal Counter Section *@
@@ -605,60 +546,27 @@ else
                 @if (leitaoMembers.Any())
                 {
                     <h6 class="mb-3 heading-warning">Leitões (@leitaoMembers.Count)</h6>
-                    <div class="table-responsive">
-                        <table class="table table-hover enrollment-table">
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Categoria</th>
-                                    <th>Notas</th>
-                                    <th>Inscrito em</th>
-                                    <AuthorizeView Roles="Owner">
-                                        <Authorized>
-                                            <th>Ações</th>
-                                        </Authorized>
-                                    </AuthorizeView>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var enrollment in leitaoMembers.OrderBy(e => e.User?.FirstName))
-                                {
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <img src="@enrollment.User?.ProfilePictureSrc" alt="@enrollment.User?.GetDisplayName()"
-                                                     class="enrollment-avatar me-2" />
-                                                <div>
-                                                    @if (!string.IsNullOrEmpty(enrollment.User?.Nickname))
-                                                    {
-                                                        <div><strong>@enrollment.User.Nickname</strong></div>
-                                                        <div class="text-muted small">@enrollment.User?.FirstName @enrollment.User?.LastName</div>
-                                                    }
-                                                    else
-                                                    {
-                                                        <div><strong>@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}")</strong></div>
-                                                    }
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <CategoryBadge Category="MemberCategory.Leitao" />
-                                        </td>
-                                        <td>@(string.IsNullOrWhiteSpace(enrollment.Notes) ? "N/A" : enrollment.Notes)</td>
-                                        <td>@enrollment.EnrolledAt.ToLocalTime().ToString("dd/MM HH:mm")</td>
-                                        <AuthorizeView Roles="Owner">
-                                            <Authorized>
-                                                <td>
-                                                    <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteEnrollmentModal(enrollment)" title="Eliminar Inscrição">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                </td>
-                                            </Authorized>
-                                        </AuthorizeView>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
+                    <div class="enrollment-card-grid">
+                        @foreach (var enrollment in leitaoMembers.OrderBy(e => e.User?.FirstName))
+                        {
+                            <EnrollmentCard 
+                                AvatarUrl="@enrollment.User?.ProfilePictureSrc"
+                                TunaName="@enrollment.User?.Nickname"
+                                FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}")"
+                                InstrumentText=""
+                                Notes="@enrollment.Notes"
+                                AltText="@enrollment.User?.GetDisplayName()"
+                                ShowEditButton="false"
+                                ShowDeleteButton="@isUserOwner"
+                                OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
+                                DeleteTooltip="Eliminar Inscrição">
+                                <BadgeContent>
+                                    <div class="enrollment-card-badges-row">
+                                        <CategoryBadge Category="MemberCategory.Leitao" />
+                                    </div>
+                                </BadgeContent>
+                            </EnrollmentCard>
+                        }
                     </div>
                 }
             }
@@ -823,6 +731,7 @@ else
     private bool isEditingEnrollment = false;
     private bool wantToPlay = false; // Toggle for "Quero tocar"
     private bool isUserAdmin = false;
+    private bool isUserOwner = false;
     private bool isTrophyCreateMode = false;
     private Event? editingEvent;
     private Event? deletingEvent;
@@ -936,6 +845,7 @@ else
         {
             currentUser = await UserManager.FindByNameAsync(userName);
             isUserAdmin = authState.User.IsInRole("Admin") || authState.User.IsInRole("Owner");
+            isUserOwner = authState.User.IsInRole("Owner");
         }
     }
 

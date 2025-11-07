@@ -1,0 +1,151 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Enums
+@using RTUB.Application.Helpers
+
+@*
+    EnrollmentCard Component
+    Displays enrollment information in a compact card format
+    Used for both event enrollments and rehearsal attendance
+*@
+
+<div class="enrollment-card">
+    <!-- Edit & Delete buttons in top-right (admin only) -->
+    @if (ShowEditButton)
+    {
+        <button class="enrollment-card-edit-btn" 
+                @onclick="@OnEdit" 
+                @onclick:stopPropagation="true"
+                title="@EditTooltip"
+                aria-label="@EditTooltip">
+            <i class="bi bi-pencil"></i>
+        </button>
+    }
+    @if (ShowDeleteButton)
+    {
+        <button class="enrollment-card-delete-btn" 
+                @onclick="@OnDelete" 
+                @onclick:stopPropagation="true"
+                title="@DeleteTooltip"
+                aria-label="@DeleteTooltip">
+            <i class="bi bi-trash"></i>
+        </button>
+    }
+    @if (ShowApproveButton)
+    {
+        <button class="enrollment-card-approve-btn" 
+                @onclick="@OnApprove" 
+                @onclick:stopPropagation="true"
+                title="@ApproveTooltip"
+                aria-label="@ApproveTooltip">
+            <i class="bi bi-check"></i>
+        </button>
+    }
+
+    <!-- Avatar -->
+    <div class="enrollment-card-image-wrapper">
+        <img src="@AvatarUrl" 
+             alt="@AltText" 
+             class="enrollment-card-image"
+             loading="lazy" />
+    </div>
+
+    <!-- Member Info -->
+    <div class="enrollment-card-content">
+        <!-- Nome de Tuna (primary) -->
+        @if (!string.IsNullOrEmpty(TunaName))
+        {
+            <div class="enrollment-card-tuna-name">@TunaName</div>
+        }
+        
+        <!-- Nome (secondary) -->
+        @if (!string.IsNullOrEmpty(FullName))
+        {
+            <div class="enrollment-card-full-name">@FullName</div>
+        }
+
+        <!-- Badges (Category/Roles) -->
+        <div class="enrollment-card-badges">
+            @BadgeContent
+        </div>
+
+        <!-- Instrumento -->
+        @if (!string.IsNullOrEmpty(InstrumentText))
+        {
+            <div class="enrollment-card-row">
+                <span class="enrollment-card-label">Instrumento:</span>
+                <span class="enrollment-card-value">@InstrumentText</span>
+            </div>
+        }
+
+        <!-- Status (for rehearsal attendance) -->
+        @if (!string.IsNullOrEmpty(StatusText))
+        {
+            <div class="enrollment-card-row">
+                <span class="enrollment-card-label">@StatusLabel</span>
+                <span class="enrollment-card-value">@StatusText</span>
+            </div>
+        }
+
+        <!-- Notas -->
+        <div class="enrollment-card-row enrollment-card-notes">
+            <span class="enrollment-card-label">Notas:</span>
+            <span class="enrollment-card-value">@(string.IsNullOrWhiteSpace(Notes) ? "—" : Notes)</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string AvatarUrl { get; set; } = "";
+
+    [Parameter]
+    public string TunaName { get; set; } = "";
+
+    [Parameter]
+    public string FullName { get; set; } = "";
+
+    [Parameter]
+    public string InstrumentText { get; set; } = "";
+
+    [Parameter]
+    public string Notes { get; set; } = "";
+
+    [Parameter]
+    public string StatusText { get; set; } = "";
+
+    [Parameter]
+    public string StatusLabel { get; set; } = "Estado:";
+
+    [Parameter]
+    public string AltText { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? BadgeContent { get; set; }
+
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    [Parameter]
+    public EventCallback OnApprove { get; set; }
+
+    [Parameter]
+    public bool ShowEditButton { get; set; } = false;
+
+    [Parameter]
+    public bool ShowDeleteButton { get; set; } = false;
+
+    [Parameter]
+    public bool ShowApproveButton { get; set; } = false;
+
+    [Parameter]
+    public string EditTooltip { get; set; } = "Editar Inscrição";
+
+    [Parameter]
+    public string DeleteTooltip { get; set; } = "Eliminar Inscrição";
+
+    [Parameter]
+    public string ApproveTooltip { get; set; } = "Aprovar";
+}
