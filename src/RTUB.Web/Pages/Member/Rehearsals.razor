@@ -93,7 +93,8 @@ else
                                OnMarkAttendance="@(() => MarkAttendance(rehearsal))"
                                OnViewAttendances="@(() => ViewAttendances(rehearsal))"
                                OnEditAttendance="@(() => EditAttendance(rehearsal))"
-                               OnRemoveAttendance="@(() => RemoveAttendance(rehearsal))" />
+                               OnRemoveAttendance="@(() => RemoveAttendance(rehearsal))"
+                               OnViewDetails="@(() => OpenRehearsalDetailsModal(rehearsal))" />
             }
         </div>
         
@@ -142,7 +143,8 @@ else
                                    OnMarkAttendance="@(() => {})"
                                    OnViewAttendances="@(() => ViewAttendances(rehearsal))"
                                    OnEditAttendance="@(() => {})"
-                                   OnRemoveAttendance="@(() => {})" />
+                                   OnRemoveAttendance="@(() => {})"
+                                   OnViewDetails="@(() => OpenRehearsalDetailsModal(rehearsal))" />
                 }
             </div>
             
