@@ -564,6 +564,9 @@ else
                                         <AuthorizeView Roles="Owner">
                                             <Authorized>
                                                 <td>
+                                                    <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditEnrollmentModal(enrollment)" title="Editar Inscrição">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
                                                     <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteEnrollmentModal(enrollment)" title="Eliminar Inscrição">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
@@ -649,6 +652,9 @@ else
                                         <AuthorizeView Roles="Owner">
                                             <Authorized>
                                                 <td>
+                                                    <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditEnrollmentModal(enrollment)" title="Editar Inscrição">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
                                                     <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteEnrollmentModal(enrollment)" title="Eliminar Inscrição">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
