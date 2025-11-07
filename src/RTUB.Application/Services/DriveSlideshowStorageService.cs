@@ -19,6 +19,7 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
     private readonly IAmazonS3 _s3Client;
     private readonly string _bucketName;
     private readonly ILogger<DriveSlideshowStorageService> _logger;
+    private readonly string _environment;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
     private const string SlideshowPathPrefix = "images/slideshows/";
     private const int WebPQuality = 85; // High quality WebP (0-100, where 100 is best quality)
@@ -28,6 +29,11 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
     public DriveSlideshowStorageService(IConfiguration configuration, ILogger<DriveSlideshowStorageService> logger)
     {
         _logger = logger;
+
+        // Get environment name
+        _environment = configuration["ASPNETCORE_ENVIRONMENT"] 
+            ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+            ?? "Production";
 
         // Get write credentials from environment variables or configuration
         // Slideshow storage requires write access to upload/delete images
@@ -328,7 +334,7 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
 
     private string GetObjectKey(string filename)
     {
-        return $"{SlideshowPathPrefix}{filename}";
+        return $"{SlideshowPathPrefix}{_environment}/{filename}";
     }
 
     private string GenerateFilename(int slideshowId, string contentType)
