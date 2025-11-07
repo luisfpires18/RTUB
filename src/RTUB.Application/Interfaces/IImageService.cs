@@ -13,11 +13,6 @@ public interface IImageService
     Task<(byte[] Data, string ContentType)?> GetEventImageAsync(int eventId);
 
     /// <summary>
-    /// Gets slideshow image data
-    /// </summary>
-    Task<(byte[] Data, string ContentType)?> GetSlideshowImageAsync(int slideshowId);
-
-    /// <summary>
     /// Gets album cover image data
     /// </summary>
     Task<(byte[] Data, string ContentType)?> GetAlbumImageAsync(int albumId);
