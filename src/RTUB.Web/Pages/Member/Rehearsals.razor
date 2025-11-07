@@ -214,8 +214,8 @@ else
                                     Notes=""
                                     AltText="@attendance.User?.GetDisplayName()"
                                     ShowEditButton="false"
-                                    ShowDeleteButton="@(isAdmin && attendance.Attended)"
-                                    ShowApproveButton="@(isAdmin && !attendance.Attended)"
+                                    ShowDeleteButton="@(isAdmin && isSelectedRehearsalPast && attendance.Attended)"
+                                    ShowApproveButton="@(isAdmin && isSelectedRehearsalPast && !attendance.Attended)"
                                     OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
                                     OnApprove="@(() => ApproveAttendance(attendance))"
                                     DeleteTooltip="Eliminar"
@@ -236,8 +236,8 @@ else
                             }
                         </div>
 
-                        <!-- Add Member Section (Admin Only) -->
-                        @if (isAdmin)
+                        <!-- Add Member Section (Admin Only for Past Rehearsals) -->
+                        @if (isAdmin && isSelectedRehearsalPast)
                         {
                             <div class="mt-3">
                                 @if (!string.IsNullOrEmpty(addMemberFeedbackMessage))
@@ -660,6 +660,7 @@ else
     private bool showMyAttendancesModal = false;
     
     private Rehearsal? selectedRehearsal;
+    private bool isSelectedRehearsalPast = false;
     private Rehearsal? editingRehearsal;
     private Rehearsal? deletingRehearsal;
     private RehearsalAttendance? deletingAttendance;
@@ -921,6 +922,7 @@ else
     private async Task ViewAttendances(Rehearsal rehearsal)
     {
         selectedRehearsal = rehearsal;
+        isSelectedRehearsalPast = rehearsal.Date.Date < DateTime.Today;
         selectedRehearsalAttendances = (await AttendanceService.GetAttendancesByRehearsalIdAsync(rehearsal.Id)).ToList();
 
         // Load user details for display
@@ -936,8 +938,8 @@ else
         filteredAttendances = selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName).ToList();
         attendanceSearchTerm = "";
 
-        // Load all members for adding if admin
-        if (isAdmin)
+        // Load all members for adding if admin AND it's a past rehearsal
+        if (isAdmin && isSelectedRehearsalPast)
         {
             allMembers = UserManager.Users.ToList();
             filteredAvailableMembers = new List<ApplicationUser>();
@@ -954,6 +956,7 @@ else
     {
         showAttendancesModal = false;
         selectedRehearsal = null;
+        isSelectedRehearsalPast = false;
         selectedRehearsalAttendances = null;
         filteredAttendances = new();
         attendanceSearchTerm = "";
