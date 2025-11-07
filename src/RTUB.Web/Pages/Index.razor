@@ -167,8 +167,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Load slides
-        slides = (await SlideshowService.GetActiveSlideshowsAsync()).ToList();
+        // Load slides with pre-signed URLs from IDrive S3
+        slides = (await SlideshowService.GetActiveSlideshowsWithUrlsAsync()).ToList();
     }
 
     private void SelectSection(string section)
