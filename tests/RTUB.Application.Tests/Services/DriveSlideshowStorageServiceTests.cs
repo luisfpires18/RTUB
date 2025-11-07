@@ -19,8 +19,8 @@ public class DriveSlideshowStorageServiceTests : IDisposable
         _loggerMock = new Mock<ILogger<DriveSlideshowStorageService>>();
 
         // Setup default configuration
-        _configurationMock.Setup(x => x["IDrive:AccessKey"]).Returns("test-access-key");
-        _configurationMock.Setup(x => x["IDrive:SecretKey"]).Returns("test-secret-key");
+        _configurationMock.Setup(x => x["IDrive:WriteAccessKey"]).Returns("test-write-access-key");
+        _configurationMock.Setup(x => x["IDrive:WriteSecretKey"]).Returns("test-write-secret-key");
         _configurationMock.Setup(x => x["IDrive:Endpoint"]).Returns("test.endpoint.com");
         _configurationMock.Setup(x => x["IDrive:Bucket"]).Returns("test-bucket");
     }
@@ -29,7 +29,7 @@ public class DriveSlideshowStorageServiceTests : IDisposable
     public void Constructor_WithMissingAccessKey_ThrowsInvalidOperationException()
     {
         // Arrange
-        _configurationMock.Setup(x => x["IDrive:AccessKey"]).Returns((string?)null);
+        _configurationMock.Setup(x => x["IDrive:WriteAccessKey"]).Returns((string?)null);
 
         // Act & Assert
         var act = () => new DriveSlideshowStorageService(_configurationMock.Object, _loggerMock.Object);
@@ -41,7 +41,7 @@ public class DriveSlideshowStorageServiceTests : IDisposable
     public void Constructor_WithMissingSecretKey_ThrowsInvalidOperationException()
     {
         // Arrange
-        _configurationMock.Setup(x => x["IDrive:SecretKey"]).Returns((string?)null);
+        _configurationMock.Setup(x => x["IDrive:WriteSecretKey"]).Returns((string?)null);
 
         // Act & Assert
         var act = () => new DriveSlideshowStorageService(_configurationMock.Object, _loggerMock.Object);

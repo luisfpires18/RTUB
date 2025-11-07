@@ -23,15 +23,16 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
     {
         _logger = logger;
 
-        // Get credentials from environment variables or configuration
-        var accessKey = configuration["IDrive:AccessKey"];
-        var secretKey = configuration["IDrive:SecretKey"];
+        // Get write credentials from environment variables or configuration
+        // Slideshow storage requires write access to upload/delete images
+        var accessKey = configuration["IDrive:WriteAccessKey"];
+        var secretKey = configuration["IDrive:WriteSecretKey"];
         var endpoint = configuration["IDrive:Endpoint"];
         var bucketName = configuration["IDrive:Bucket"];
 
         if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
         {
-            var errorMsg = "iDrive e2 credentials not configured. Set environment variables.";
+            var errorMsg = "iDrive e2 write credentials not configured. Set IDrive:WriteAccessKey and IDrive:WriteSecretKey.";
             _logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
