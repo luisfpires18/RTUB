@@ -34,7 +34,26 @@ public class SlideshowService : ISlideshowService
 
     public async Task<IEnumerable<Slideshow>> GetAllSlideshowsAsync()
     {
-        return await _context.Slideshows.ToListAsync();
+        var slideshows = await _context.Slideshows.ToListAsync();
+        
+        // Generate pre-signed URLs for slideshows stored in IDrive S3
+        foreach (var slideshow in slideshows)
+        {
+            // If ImageUrl contains a filename (not a full URL and not an API path), get the pre-signed URL
+            if (!string.IsNullOrEmpty(slideshow.ImageUrl) && 
+                !slideshow.ImageUrl.StartsWith("http") && 
+                !slideshow.ImageUrl.StartsWith("/"))
+            {
+                var url = await _slideshowStorageService.GetImageUrlAsync(slideshow.ImageUrl);
+                if (!string.IsNullOrEmpty(url))
+                {
+                    // Temporarily store the generated URL in ImageUrl for rendering
+                    slideshow.ImageUrl = url;
+                }
+            }
+        }
+        
+        return slideshows;
     }
 
     public async Task<IEnumerable<Slideshow>> GetActiveSlideshowsAsync()
