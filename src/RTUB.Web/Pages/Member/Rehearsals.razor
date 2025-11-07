@@ -1,6 +1,7 @@
 @page "/rehearsals"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
 @using RTUB.Application.Interfaces
@@ -211,7 +212,7 @@ else
                         </div>
                         
                         <div class="enrollment-card-grid">
-                            @foreach (var attendance in filteredAttendances)
+                            @foreach (var attendance in paginatedAttendances)
                             {
                                 var instrumentDisplay = attendance.Instrument?.ToString() ?? "—";
                                 <EnrollmentCard 
@@ -243,35 +244,76 @@ else
                                 </EnrollmentCard>
                             }
                         </div>
+                        
+                        <!-- Pagination for attendance cards -->
+                        @if (filteredAttendances.Count > 0)
+                        {
+                            <div class="mt-3">
+                                <TablePagination 
+                                    TotalItems="@filteredAttendances.Count"
+                                    CurrentPage="@attendancesPagination.CurrentPage"
+                                    PageSize="@attendancesPagination.PageSize"
+                                    OnPageChanged="@HandleAttendancesPageChange"
+                                    OnPageSizeChanged="@HandleAttendancesPageSizeChange" />
+                            </div>
+                        }
 
                         <!-- Add Member Section (Admin Only for Past Rehearsals) -->
                         @if (isAdmin && isSelectedRehearsalPast)
                         {
                             <div class="mt-3">
-                                @if (!string.IsNullOrEmpty(addMemberFeedbackMessage))
+                                <!-- Success Alert (auto-dismiss) -->
+                                @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && !addMemberFeedbackIsError)
                                 {
-                                    <div class="alert @(addMemberFeedbackIsError ? "alert-danger" : "alert-success") alert-dismissible fade show">
-                                        @addMemberFeedbackMessage
-                                        <button type="button" class="btn-close" @onclick="ClearAddMemberFeedback"></button>
-                                    </div>
+                                    <Alert Type="Alert.AlertType.Purple" 
+                                           Message="@addMemberFeedbackMessage" 
+                                           Dismissible="true"
+                                           OnDismiss="ClearAddMemberFeedback"
+                                           AdditionalClasses="mb-2" />
                                 }
                                 
+                                <!-- Error Alert (manual dismiss) -->
+                                @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && addMemberFeedbackIsError)
+                                {
+                                    <Alert Type="Alert.AlertType.Error" 
+                                           Message="@addMemberFeedbackMessage" 
+                                           Dismissible="true"
+                                           OnDismiss="ClearAddMemberFeedback"
+                                           AdditionalClasses="mb-2" />
+                                }
+                                
+                                <!-- Collapsible Search Bar -->
                                 @if (showAddMemberDropdown)
                                 {
-                                    <div class="mb-2">
+                                    <div class="mb-2" @onkeydown="HandleAddMemberKeyDown">
                                         <TableSearchBar SearchTerm="@addMemberSearchTerm"
                                                        Placeholder="Pesquisar membro por nome..."
                                                        OnSearchChanged="@HandleAddMemberSearchChanged" />
                                         
                                         @if (filteredAvailableMembers.Any())
                                         {
-                                            <div class="list-group mt-2" style="max-height: 200px; overflow-y: auto;">
-                                                @foreach (var user in filteredAvailableMembers.Take(10))
+                                            <div class="member-list member-list-scrollable mt-2">
+                                                @foreach (var member in filteredAvailableMembers)
                                                 {
-                                                    <button type="button" class="list-group-item list-group-item-action" 
-                                                            @onclick="() => AddMemberToRehearsal(user)">
-                                                        @user.FirstName "@user.Nickname" @user.LastName
-                                                    </button>
+                                                    <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                                         @onclick="() => AddMemberToRehearsal(member)"
+                                                         tabindex="0"
+                                                         @onkeydown="@(async (e) => await HandleMemberItemKeyDown(e, member))">
+                                                        <div class="d-flex align-items-center">
+                                                            <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                                 class="member-avatar-small me-2" />
+                                                            <div>
+                                                                @if (!string.IsNullOrEmpty(member.Nickname))
+                                                                {
+                                                                    <strong>@member.FirstName "@member.Nickname" @member.LastName</strong>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <strong>@member.FirstName @member.LastName</strong>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 }
                                             </div>
                                         }
@@ -695,7 +737,9 @@ else
     private string? editNotes;
     private List<RehearsalAttendance>? selectedRehearsalAttendances;
     private List<RehearsalAttendance> filteredAttendances = new();
+    private List<RehearsalAttendance> paginatedAttendances = new();
     private string attendanceSearchTerm = "";
+    private PaginationHelper<RehearsalAttendance> attendancesPagination = new() { PageSize = 8 };
 
     // Add member to rehearsal functionality
     private bool showAddMemberDropdown = false;
@@ -980,9 +1024,11 @@ else
             }
         }
 
-        // Initialize filtered attendances
+        // Initialize filtered attendances and reset pagination
         filteredAttendances = selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName).ToList();
         attendanceSearchTerm = "";
+        attendancesPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
+        UpdatePaginatedAttendances();
 
         // Load all members for adding if admin AND it's a past rehearsal
         if (isAdmin && isSelectedRehearsalPast)
@@ -1005,7 +1051,9 @@ else
         isSelectedRehearsalPast = false;
         selectedRehearsalAttendances = null;
         filteredAttendances = new();
+        paginatedAttendances = new();
         attendanceSearchTerm = "";
+        attendancesPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
         showAddMemberDropdown = false;
         addMemberSearchTerm = "";
         addMemberFeedbackMessage = "";
@@ -1033,9 +1081,33 @@ else
                     .ThenBy(a => a.User?.FirstName)
                     .ToList();
             }
+            
+            // Reset to page 1 when search changes
+            attendancesPagination.GoToPage(1);
+            UpdatePaginatedAttendances();
         }
         
         await Task.CompletedTask;
+    }
+    
+    private void UpdatePaginatedAttendances()
+    {
+        paginatedAttendances = attendancesPagination.GetPageData(filteredAttendances);
+    }
+    
+    private void HandleAttendancesPageChange(int pageNumber)
+    {
+        attendancesPagination.GoToPage(pageNumber);
+        UpdatePaginatedAttendances();
+        StateHasChanged();
+    }
+    
+    private void HandleAttendancesPageSizeChange(int pageSize)
+    {
+        attendancesPagination.PageSize = pageSize;
+        attendancesPagination.GoToPage(1); // Reset to first page
+        UpdatePaginatedAttendances();
+        StateHasChanged();
     }
 
     private async Task ApproveAttendance(RehearsalAttendance attendance)
@@ -1135,6 +1207,23 @@ else
     {
         addMemberFeedbackMessage = "";
         addMemberFeedbackIsError = false;
+    }
+    
+    private void HandleAddMemberKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            showAddMemberDropdown = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task HandleMemberItemKeyDown(KeyboardEventArgs e, ApplicationUser member)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            await AddMemberToRehearsal(member);
+        }
     }
 
     private void EditAttendance(Rehearsal rehearsal)
@@ -1334,6 +1423,9 @@ else
     private void CloseCreateModal()
     {
         showCreateModal = false;
+        // Clear feedback messages when modal closes
+        createFeedbackMessage = "";
+        createFeedbackIsError = false;
     }
 
     private async Task SaveNewRehearsal()
@@ -1483,6 +1575,9 @@ else
     private void CloseDateRangeModal()
     {
         showDateRangeModal = false;
+        // Clear feedback messages when modal closes
+        rangeFeedbackMessage = "";
+        rangeFeedbackIsError = false;
     }
 
     private async Task CreateRangeRehearsals()
