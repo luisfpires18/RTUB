@@ -39,24 +39,30 @@
                 @if (!string.IsNullOrEmpty(Song.LyricAuthor))
                 {
                     <div class="song-author-row">
-                        <i class="bi bi-pen song-icon"></i>
-                        <span class="song-author-label">Letra:</span>
+                        <div class="song-author-header">
+                            <i class="bi bi-pen song-icon"></i>
+                            <span class="song-author-label">Letra:</span>
+                        </div>
                         <span class="song-author-text" title="@Song.LyricAuthor">@FormatAuthors(Song.LyricAuthor)</span>
                     </div>
                 }
                 @if (!string.IsNullOrEmpty(Song.MusicAuthor))
                 {
                     <div class="song-author-row">
-                        <i class="bi bi-music-note song-icon"></i>
-                        <span class="song-author-label">Música:</span>
+                        <div class="song-author-header">
+                            <i class="bi bi-music-note song-icon"></i>
+                            <span class="song-author-label">Música:</span>
+                        </div>
                         <span class="song-author-text" title="@Song.MusicAuthor">@FormatAuthors(Song.MusicAuthor)</span>
                     </div>
                 }
                 @if (!string.IsNullOrEmpty(Song.Adaptation))
                 {
                     <div class="song-author-row">
-                        <i class="bi bi-arrow-repeat song-icon"></i>
-                        <span class="song-author-label">Adaptação:</span>
+                        <div class="song-author-header">
+                            <i class="bi bi-arrow-repeat song-icon"></i>
+                            <span class="song-author-label">Adaptação:</span>
+                        </div>
                         <span class="song-author-text" title="@Song.Adaptation">@FormatAuthors(Song.Adaptation)</span>
                     </div>
                 }
