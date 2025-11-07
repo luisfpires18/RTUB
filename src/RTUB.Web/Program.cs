@@ -88,8 +88,12 @@ namespace RTUB
                 options.AccessDeniedPath = "/login";
                 options.Cookie.Name = ".RTUB.Auth";
                 options.Cookie.SameSite = SameSiteMode.Lax;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                // Only require HTTPS in production, allow HTTP in development
+                options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() 
+                    ? CookieSecurePolicy.SameAsRequest 
+                    : CookieSecurePolicy.Always;
                 options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true; // Ensure cookie is always allowed
             });
 
             // PDF generation service - moved to Application layer
@@ -332,8 +336,8 @@ namespace RTUB
             // Map API controllers
             app.MapControllers();
             
-            // Map SignalR hubs with authorization
-            app.MapHub<RTUB.Hubs.ChatHub>("/chathub").RequireAuthorization();
+            // Map SignalR hubs (authorization handled by [Authorize] attribute on hub class)
+            app.MapHub<RTUB.Hubs.ChatHub>("/chathub");
 
             app.Run();
         }
