@@ -286,12 +286,24 @@ namespace RTUB
                     // Update last login date (best effort - don't fail login if this fails)
                     try
                     {
-                        user.LastLoginDate = DateTime.UtcNow;
-                        await userManager.UpdateAsync(user);
+                        // Reload user from database to avoid concurrency issues
+                        var freshUser = await userManager.FindByIdAsync(user.Id);
+                        if (freshUser != null)
+                        {
+                            freshUser.LastLoginDate = DateTime.UtcNow;
+                            var updateResult = await userManager.UpdateAsync(freshUser);
+                            if (!updateResult.Succeeded)
+                            {
+                                // Log the specific errors for debugging
+                                var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
+                                Console.WriteLine($"Warning: Failed to update LastLoginDate for user {user.UserName}: {errors}");
+                            }
+                        }
                     }
-                    catch
+                    catch (Exception ex)
                     {
                         // Log error but don't fail login
+                        Console.WriteLine($"Warning: Exception while updating LastLoginDate for user {user.UserName}: {ex.Message}");
                     }
                     
                     // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
