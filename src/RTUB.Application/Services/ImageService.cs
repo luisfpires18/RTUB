@@ -55,28 +55,6 @@ public class ImageService : IImageService
     }
 
     /// <inheritdoc/>
-    public async Task<(byte[] Data, string ContentType)?> GetSlideshowImageAsync(int slideshowId)
-    {
-        var cacheKey = $"slideshow-image-{slideshowId}";
-        
-        if (_cache.TryGetValue<(byte[] Data, string ContentType)>(cacheKey, out var cachedImage))
-        {
-            return cachedImage;
-        }
-        
-        var slideshow = await _context.Slideshows.FindAsync(slideshowId);
-        
-        if (slideshow?.ImageData != null && !string.IsNullOrEmpty(slideshow.ImageContentType))
-        {
-            var result = (slideshow.ImageData, slideshow.ImageContentType);
-            _cache.Set(cacheKey, result, _cacheOptions);
-            return result;
-        }
-
-        return null;
-    }
-
-    /// <inheritdoc/>
     public async Task<(byte[] Data, string ContentType)?> GetAlbumImageAsync(int albumId)
     {
         var cacheKey = $"album-image-{albumId}";
