@@ -394,4 +394,114 @@ public class SongCardTests : TestContext
         // Assert
         callbackInvoked.Should().BeTrue("OnDelete callback should be invoked");
     }
+
+    [Fact]
+    public void SongCard_UsesColumnLayoutForMetadataRows_WhenAuthorsPresent()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+        song.UpdateDetails("Favaios", null, "João Silva", "Maria Santos", null, null);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsOwner, false));
+
+        // Assert - Should have song-author-header divs (column layout)
+        cut.Markup.Should().Contain("song-author-header", "metadata rows should use column layout with header div");
+        cut.Markup.Should().Contain("song-author-row", "metadata rows should use song-author-row class");
+    }
+
+    [Fact]
+    public void SongCard_UsesInlineLayoutForUnknownAuthor()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsOwner, false));
+
+        // Assert - Should use inline class and not have header div
+        cut.Markup.Should().Contain("song-author-row-inline", "unknown author should use inline layout");
+        cut.Markup.Should().Contain("Autor desconhecido", "should display unknown author message");
+        cut.Markup.Should().NotContain("song-author-header", "unknown author should not have header div");
+    }
+
+    [Fact]
+    public void SongCard_MetadataRowsHaveTooltips_WhenAuthorsPresent()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+        song.UpdateDetails("Favaios", null, "João Silva", "Maria Santos", "Pedro Costa", null);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsOwner, false));
+
+        // Assert - All metadata text should have title attributes for tooltips
+        cut.Markup.Should().Contain("title=\"João Silva\"", "lyric author should have tooltip");
+        cut.Markup.Should().Contain("title=\"Maria Santos\"", "music author should have tooltip");
+        cut.Markup.Should().Contain("title=\"Pedro Costa\"", "adaptation should have tooltip");
+    }
+
+    [Fact]
+    public void SongCard_MetadataTextHasNonBreakingSpaces_WhenMultipleAuthors()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+        song.UpdateDetails("Favaios", null, "João Silva, Maria Santos", null, null, null);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsOwner, false));
+
+        // Assert - Should have non-breaking space after comma (represented as &nbsp; or \u00A0)
+        var markup = cut.Markup;
+        markup.Should().Contain("João Silva", "should contain first author name");
+        markup.Should().Contain("Maria Santos", "should contain second author name");
+        // The FormatAuthors method replaces ", " with ",\u00A0"
+        // In HTML this may be rendered as &nbsp; or as the character itself
+    }
+
+    [Fact]
+    public void SongCard_HasTextBoxStyling_ForMetadataRows()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+        song.UpdateDetails("Favaios", null, "João Silva", null, null, null);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsOwner, false));
+
+        // Assert - Should have song-author-row class which includes text box styling
+        cut.Markup.Should().Contain("song-author-row", "should have text box styling class");
+        cut.Markup.Should().Contain("song-author-header", "should have header grouping");
+        cut.Markup.Should().Contain("song-author-text", "should have text styling class");
+    }
+
+    [Fact]
+    public void SongCard_IndentsMetadataText_InColumnLayout()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+        song.UpdateDetails("Favaios", null, "João Silva", "Maria Santos", null, null);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsOwner, false));
+
+        // Assert - Text should be in separate element from header for indentation
+        var markup = cut.Markup;
+        markup.Should().Contain("song-author-header", "should have header for icon and label");
+        markup.Should().Contain("song-author-text", "should have separate text element");
+        markup.Should().Contain("Letra:", "should have label in header");
+        markup.Should().Contain("João Silva", "should have text in separate element");
+    }
 }

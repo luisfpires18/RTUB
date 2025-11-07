@@ -3813,6 +3813,18 @@ th:hover {
   padding: 6px 8px;
 }
 
+/* Single-line variant for unknown author */
+.song-author-row-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  background-color: #1e1e1e;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
 .song-author-header {
   display: flex;
   align-items: center;
@@ -3844,6 +3856,11 @@ th:hover {
   overflow-wrap: anywhere;
   line-height: 1.35;
   margin-left: 1.275rem;
+}
+
+/* Remove left margin for inline variant */
+.song-author-row-inline .song-author-text {
+  margin-left: 0;
 }
 
 /* Actions section at bottom */
