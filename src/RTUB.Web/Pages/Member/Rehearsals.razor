@@ -815,19 +815,46 @@ else
 
     private async Task LoadData()
     {
-        // Load upcoming rehearsals (next 12 months to ensure we get all rehearsals in current fiscal year)
-        var startDate = DateTime.Today;
-        var endDate = DateTime.Today.AddMonths(12);
-        var allRehearsals = await RehearsalService.GetRehearsalsAsync(startDate, endDate);
-        upcomingRehearsals = allRehearsals.Where(r => !r.IsCanceled).OrderBy(r => r.Date).ToList();
+        // Determine the date range based on selected fiscal year
+        DateTime startDate, endDate;
+        
+        if (!string.IsNullOrEmpty(selectedFiscalYear))
+        {
+            // Parse fiscal year (e.g., "2024-2025" -> start: 2024, end: 2025)
+            var parts = selectedFiscalYear.Split('-');
+            if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
+            {
+                startDate = new DateTime(startYear, 9, 1); // September 1st
+                endDate = new DateTime(startYear + 1, 8, 31); // August 31st next year
+            }
+            else
+            {
+                // Fallback to current fiscal year if parsing fails
+                var currentStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+                startDate = new DateTime(currentStartYear, 9, 1);
+                endDate = new DateTime(currentStartYear + 1, 8, 31);
+            }
+        }
+        else
+        {
+            // If no fiscal year selected, load all rehearsals (last 2 years to next 2 years)
+            startDate = DateTime.Today.AddYears(-2);
+            endDate = DateTime.Today.AddYears(2);
+        }
 
-        // Load previous rehearsals for admins (past 6 months)
+        // Load all rehearsals within the fiscal year date range
+        var allRehearsals = await RehearsalService.GetRehearsalsAsync(startDate, endDate);
+        
+        // Split into upcoming and previous
+        upcomingRehearsals = allRehearsals
+            .Where(r => !r.IsCanceled && r.Date >= DateTime.Today)
+            .OrderBy(r => r.Date)
+            .ToList();
+
+        // Load previous rehearsals for admins
         if (isAdmin)
         {
-            var pastStart = DateTime.Today.AddMonths(-6);
-            var pastEnd = DateTime.Today;
-            var allPastRehearsals = await RehearsalService.GetRehearsalsAsync(pastStart, pastEnd);
-            previousRehearsals = allPastRehearsals
+            previousRehearsals = allRehearsals
                 .Where(r => r.Date < DateTime.Today)
                 .OrderByDescending(r => r.Date)
                 .ToList();
@@ -870,21 +897,7 @@ else
     {
         var filtered = upcomingRehearsals.AsEnumerable();
 
-        // Apply fiscal year filter
-        if (!string.IsNullOrEmpty(selectedFiscalYear))
-        {
-            // Parse fiscal year (e.g., "2024-2025" -> start: 2024, end: 2025)
-            var parts = selectedFiscalYear.Split('-');
-            if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
-            {
-                var fiscalStart = new DateTime(startYear, 9, 1); // September 1st
-                var fiscalEnd = new DateTime(startYear + 1, 8, 31); // August 31st next year
-
-                filtered = filtered.Where(r => r.Date >= fiscalStart && r.Date <= fiscalEnd);
-            }
-        }
-
-        // Apply search filter
+        // Apply search filter (fiscal year filter already applied in LoadData)
         searchHelper.SearchTerm = searchTerm;
         filteredUpcomingRehearsals = searchHelper.FilterMultiple(filtered.ToList(), new List<Func<Rehearsal, string>>
         {
@@ -1365,20 +1378,7 @@ else
     {
         var filtered = previousRehearsals.AsEnumerable();
 
-        // Apply fiscal year filter (same as upcoming)
-        if (!string.IsNullOrEmpty(selectedFiscalYear))
-        {
-            var parts = selectedFiscalYear.Split('-');
-            if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
-            {
-                var fiscalStart = new DateTime(startYear, 9, 1); // September 1st
-                var fiscalEnd = new DateTime(startYear + 1, 8, 31); // August 31st next year
-
-                filtered = filtered.Where(r => r.Date >= fiscalStart && r.Date <= fiscalEnd);
-            }
-        }
-
-        // Apply search filter
+        // Apply search filter (fiscal year filter already applied in LoadData)
         previousSearchHelper.SearchTerm = previousRehearsalsSearch;
         filteredPreviousRehearsals = previousSearchHelper.FilterMultiple(
             filtered.ToList(),
