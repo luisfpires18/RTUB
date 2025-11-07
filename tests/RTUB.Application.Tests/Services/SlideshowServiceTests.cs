@@ -12,6 +12,7 @@ public class SlideshowServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly Mock<IImageService> _imageServiceMock;
+    private readonly Mock<ISlideshowStorageService> _slideshowStorageServiceMock;
     private readonly SlideshowService _service;
 
     public SlideshowServiceTests()
@@ -22,7 +23,8 @@ public class SlideshowServiceTests : IDisposable
 
         _context = new ApplicationDbContext(options);
         _imageServiceMock = new Mock<IImageService>();
-        _service = new SlideshowService(_context, _imageServiceMock.Object);
+        _slideshowStorageServiceMock = new Mock<ISlideshowStorageService>();
+        _service = new SlideshowService(_context, _imageServiceMock.Object, _slideshowStorageServiceMock.Object);
     }
 
     [Fact]
@@ -158,17 +160,20 @@ public class SlideshowServiceTests : IDisposable
         var slideshow = await _service.CreateSlideshowAsync("Test", 1);
         var imageData = new byte[] { 1, 2, 3, 4 };
         var contentType = "image/jpeg";
-        var url = "https://example.com/image.jpg";
+        var expectedFilename = "slideshow_1_20240101120000.jpg";
+        
+        _slideshowStorageServiceMock
+            .Setup(x => x.UploadImageAsync(imageData, slideshow.Id, contentType))
+            .ReturnsAsync(expectedFilename);
 
         // Act
-        await _service.SetSlideshowImageAsync(slideshow.Id, imageData, contentType, url);
+        await _service.SetSlideshowImageAsync(slideshow.Id, imageData, contentType);
 
         // Assert
         var updated = await _service.GetSlideshowByIdAsync(slideshow.Id);
-        updated!.ImageData.Should().BeEquivalentTo(imageData);
-        updated.ImageContentType.Should().Be(contentType);
-        updated.ImageUrl.Should().Be(url);
+        updated!.ImageUrl.Should().Be(expectedFilename); // Should contain the filename from S3
         
+        _slideshowStorageServiceMock.Verify(x => x.UploadImageAsync(imageData, slideshow.Id, contentType), Times.Once);
         _imageServiceMock.Verify(x => x.InvalidateSlideshowImageCache(slideshow.Id), Times.Once);
     }
 
