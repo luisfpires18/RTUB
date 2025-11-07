@@ -2,9 +2,14 @@
 @*
     RoleBadge Component
     Displays a Bootstrap badge with the appropriate styling for a user role
+    Supports tap-to-expand on mobile for long role names
 *@
 
-<span class="badge @GetRoleBadgeClass(Role) @AdditionalClasses">
+<span class="badge avatar-card-role-badge @GetRoleBadgeClass(Role) @AdditionalClasses" 
+      tabindex="0"
+      role="button"
+      aria-expanded="false"
+      title="@Role">
     @Role
 </span>
 

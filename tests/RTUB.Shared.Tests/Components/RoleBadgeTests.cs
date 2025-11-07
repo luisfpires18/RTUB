@@ -129,4 +129,46 @@ public class RoleBadgeTests : TestContext
         // Assert
         cut.Markup.Should().StartWith("<span", "badge should render as a span element");
     }
+
+    [Fact]
+    public void RoleBadge_HasAccessibilityAttributes()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<RoleBadge>(parameters => parameters
+            .Add(p => p.Role, "Admin"));
+
+        // Assert
+        cut.Markup.Should().Contain("tabindex=\"0\"", "badge should be keyboard accessible");
+        cut.Markup.Should().Contain("role=\"button\"", "badge should have button role");
+        cut.Markup.Should().Contain("aria-expanded=\"false\"", "badge should have aria-expanded attribute");
+    }
+
+    [Fact]
+    public void RoleBadge_HasTitleAttribute()
+    {
+        // Arrange
+        var role = "Administrator";
+
+        // Act
+        var cut = RenderComponent<RoleBadge>(parameters => parameters
+            .Add(p => p.Role, role));
+
+        // Assert
+        cut.Markup.Should().Contain($"title=\"{role}\"", "badge should have title attribute with role name");
+    }
+
+    [Fact]
+    public void RoleBadge_SupportsLongRoleNames()
+    {
+        // Arrange
+        var longRole = "Very Long Role Name That Should Be Truncated";
+
+        // Act
+        var cut = RenderComponent<RoleBadge>(parameters => parameters
+            .Add(p => p.Role, longRole));
+
+        // Assert
+        cut.Markup.Should().Contain(longRole, "badge should display the full role name");
+        cut.Markup.Should().Contain("title=\"", "badge should have title for long names");
+    }
 }

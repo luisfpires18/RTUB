@@ -5,11 +5,15 @@
 @*
     PositionBadge Component
     Displays a Bootstrap badge with the appropriate styling for a Position
+    Supports tap-to-expand on mobile for long position names
 *@
 
 <span class="badge badge-position avatar-card-role-badge @AdditionalClasses" 
       title="@StatusHelper.GetPositionDisplay(Position)"
-      aria-label="@StatusHelper.GetPositionDisplay(Position)">
+      aria-label="@StatusHelper.GetPositionDisplay(Position)"
+      tabindex="0"
+      role="button"
+      aria-expanded="false">
     @StatusHelper.GetPositionDisplay(Position)
 </span>
 

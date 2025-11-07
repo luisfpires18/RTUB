@@ -217,22 +217,48 @@
     line-height: 1.2;
     display: inline-block;
     position: relative;
+    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
-.avatar-card-role-badge:hover {
-    overflow: visible;
-    white-space: normal;
-    z-index: 10;
-}
-
-/* Mobile: allow two-line wrap for long role names */
-@media (max-width: 767px) {
-    .avatar-card-role-badge {
+/* Desktop hover behavior */
+@media (min-width: 481px) {
+    .avatar-card-role-badge:hover {
+        overflow: visible;
         white-space: normal;
+        z-index: 10;
+        cursor: default;
+    }
+}
+
+/* Mobile: allow wrapping for long role names, disable hover */
+@media (max-width: 480px) {
+    .avatar-card-role-badge {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        line-height: 1.4;
+    }
+
+    /* Expanded state on mobile (tap-to-expand) */
+    .avatar-card-role-badge.expanded {
+        white-space: normal;
+        word-break: break-word;
         overflow: visible;
         text-overflow: clip;
-        max-height: 2.8em;
-        line-height: 1.4;
+        z-index: 10;
+    }
+
+    /* Disable hover effects on mobile */
+    .avatar-card-role-badge:hover {
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .avatar-card-role-badge.expanded:hover {
+        overflow: visible;
+        white-space: normal;
     }
 }
 
