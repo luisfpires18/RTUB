@@ -4145,10 +4145,10 @@ th:hover {
 }
 
 .instrument-counter-box:hover {
-  background-color: rgba(111, 66, 193, 0.15);
+  background-color: rgba(var(--bs-primary-rgb), 0.15);
   border-color: var(--bs-primary);
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(111, 66, 193, 0.2);
+  box-shadow: 0 4px 8px rgba(var(--bs-primary-rgb), 0.2);
 }
 
 .instrument-counter-number {
