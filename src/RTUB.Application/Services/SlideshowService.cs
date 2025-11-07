@@ -35,24 +35,7 @@ public class SlideshowService : ISlideshowService
     public async Task<IEnumerable<Slideshow>> GetAllSlideshowsAsync()
     {
         var slideshows = await _context.Slideshows.ToListAsync();
-        
-        // Generate pre-signed URLs for slideshows stored in IDrive S3
-        foreach (var slideshow in slideshows)
-        {
-            // If ImageUrl contains a filename (not a full URL and not an API path), get the pre-signed URL
-            if (!string.IsNullOrEmpty(slideshow.ImageUrl) && 
-                !slideshow.ImageUrl.StartsWith("http") && 
-                !slideshow.ImageUrl.StartsWith("/"))
-            {
-                var url = await _slideshowStorageService.GetImageUrlAsync(slideshow.ImageUrl);
-                if (!string.IsNullOrEmpty(url))
-                {
-                    // Temporarily store the generated URL in ImageUrl for rendering
-                    slideshow.ImageUrl = url;
-                }
-            }
-        }
-        
+        await GeneratePresignedUrlsForSlideshowsAsync(slideshows);
         return slideshows;
     }
 
@@ -71,7 +54,15 @@ public class SlideshowService : ISlideshowService
             .OrderBy(s => s.Order)
             .ToListAsync();
 
-        // Generate pre-signed URLs for slideshows stored in IDrive S3
+        await GeneratePresignedUrlsForSlideshowsAsync(slideshows);
+        return slideshows;
+    }
+
+    /// <summary>
+    /// Generates pre-signed URLs for slideshows stored in IDrive S3
+    /// </summary>
+    private async Task GeneratePresignedUrlsForSlideshowsAsync(IEnumerable<Slideshow> slideshows)
+    {
         foreach (var slideshow in slideshows)
         {
             // If ImageUrl contains a filename (not a full URL and not an API path), get the pre-signed URL
@@ -87,8 +78,6 @@ public class SlideshowService : ISlideshowService
                 }
             }
         }
-
-        return slideshows;
     }
 
     public async Task<Slideshow> CreateSlideshowAsync(string title, int order, string description = "", int intervalMs = 5000)
@@ -119,26 +108,19 @@ public class SlideshowService : ISlideshowService
         // If imageData is provided, upload to IDrive S3
         if (imageData != null && !string.IsNullOrEmpty(contentType))
         {
-            try
+            // Upload to IDrive S3 and get the filename
+            var filename = await _slideshowStorageService.UploadImageAsync(imageData, id, contentType);
+            
+            // Delete old image from S3 if it exists and is not a database-stored image
+            if (!string.IsNullOrEmpty(slideshow.ImageUrl) && 
+                !slideshow.ImageUrl.StartsWith("http") && 
+                !slideshow.ImageUrl.StartsWith("/"))
             {
-                // Upload to IDrive S3 and get the filename
-                var filename = await _slideshowStorageService.UploadImageAsync(imageData, id, contentType);
-                
-                // Delete old image from S3 if it exists
-                if (!string.IsNullOrEmpty(slideshow.ImageUrl))
-                {
-                    await _slideshowStorageService.DeleteImageAsync(slideshow.ImageUrl);
-                }
-                
-                // Store the filename in the ImageUrl field
-                slideshow.SetImage(null, null, filename);
+                await _slideshowStorageService.DeleteImageAsync(slideshow.ImageUrl);
             }
-            catch (Exception ex)
-            {
-                // If upload fails, fall back to storing in database for backward compatibility
-                slideshow.SetImage(imageData, contentType, url);
-                throw new InvalidOperationException($"Failed to upload image to storage: {ex.Message}", ex);
-            }
+            
+            // Store the filename in the ImageUrl field, clear ImageData
+            slideshow.SetImage(null, null, filename);
         }
         else
         {
