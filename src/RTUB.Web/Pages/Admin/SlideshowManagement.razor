@@ -81,7 +81,8 @@ else
                         <td>
                             @if (!string.IsNullOrEmpty(slide.ImageSrc))
                             {
-                                <img src="@($"{slide.ImageSrc}?v={slide.Id}_{DateTime.UtcNow.Ticks}")" alt="@slide.Title" class="slideshow-thumbnail img-thumbnail" />
+                                var separator = slide.ImageSrc.Contains('?') ? "&" : "?";
+                                <img src="@($"{slide.ImageSrc}{separator}v={slide.Id}_{DateTime.UtcNow.Ticks}")" alt="@slide.Title" class="slideshow-thumbnail img-thumbnail" />
                             }
                         </td>
                         <td>@slide.Title</td>
