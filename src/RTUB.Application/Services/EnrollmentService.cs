@@ -47,25 +47,14 @@ public class EnrollmentService : IEnrollmentService
             .ToListAsync();
     }
 
-    public async Task<Enrollment> CreateEnrollmentAsync(string userId, int eventId, bool attended = false, InstrumentType? instrument = null, string? notes = null)
+    public async Task<Enrollment> CreateEnrollmentAsync(string userId, int eventId, InstrumentType? instrument = null, string? notes = null)
     {
-        var enrollment = Enrollment.Create(userId, eventId, attended);
+        var enrollment = Enrollment.Create(userId, eventId);
         enrollment.Instrument = instrument;
         enrollment.Notes = notes;
         _context.Enrollments.Add(enrollment);
         await _context.SaveChangesAsync();
         return enrollment;
-    }
-
-    public async Task MarkEnrollmentAttendanceAsync(int id, bool attended)
-    {
-        var enrollment = await _context.Enrollments.FindAsync(id);
-        if (enrollment == null)
-            throw new InvalidOperationException($"Enrollment with ID {id} not found");
-
-        enrollment.MarkAttendance(attended);
-        _context.Enrollments.Update(enrollment);
-        await _context.SaveChangesAsync();
     }
 
     public async Task DeleteEnrollmentAsync(int id)

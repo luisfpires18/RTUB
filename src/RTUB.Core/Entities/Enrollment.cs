@@ -14,8 +14,7 @@ public class Enrollment : BaseEntity
     [Required(ErrorMessage = "O ID do evento é obrigatório")]
     [Range(1, int.MaxValue, ErrorMessage = "O ID do evento deve ser maior que 0")]
     public int EventId { get; set; }
-    
-    public bool Attended { get; set; }
+
     public InstrumentType? Instrument { get; set; }
     public string? Notes { get; set; }
     public DateTime EnrolledAt { get; set; } = DateTime.UtcNow;
@@ -27,7 +26,7 @@ public class Enrollment : BaseEntity
     // Private constructor for EF Core
     public Enrollment() { }
 
-    public static Enrollment Create(string userId, int eventId, bool attended = false)
+    public static Enrollment Create(string userId, int eventId)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("O ID do utilizador não pode estar vazio", nameof(userId));
@@ -35,13 +34,7 @@ public class Enrollment : BaseEntity
         return new Enrollment
         {
             UserId = userId,
-            EventId = eventId,
-            Attended = attended
+            EventId = eventId
         };
-    }
-
-    public void MarkAttendance(bool attended)
-    {
-        Attended = attended;
     }
 }

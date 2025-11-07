@@ -24,11 +24,7 @@ public class Instrument : BaseEntity
     
     [Required]
     public InstrumentCondition Condition { get; set; }
-    
-    public DateTime? PurchaseDate { get; set; }
-    
-    public decimal? PurchasePrice { get; set; }
-    
+
     [MaxLength(200)]
     public string? Location { get; set; }
     
@@ -86,11 +82,5 @@ public class Instrument : BaseEntity
     {
         MaintenanceNotes = notes;
         LastMaintenanceDate = date;
-    }
-
-    public void SetPurchaseInfo(DateTime? date, decimal? price)
-    {
-        PurchaseDate = date;
-        PurchasePrice = price;
     }
 }
