@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
 @using RTUB.Shared
 @using RTUB.Core.Enums
 @attribute [Authorize]
@@ -180,49 +181,36 @@ else
                 <div class="modal-body">
                     @if (selectedRehearsalAttendances != null && selectedRehearsalAttendances.Any())
                     {
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Membro</th>
-                                        <th>Instrumento</th>
-                                        <th>Presença (por confirmação)</th>
-                                        <AuthorizeView Roles="Owner">
-                                            <Authorized>
-                                                <th>Ações</th>
-                                            </Authorized>
-                                        </AuthorizeView>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var attendance in selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName))
-                                    {
-                                        <tr>
-                                            <td>@(attendance.User?.Nickname ?? attendance.UserId)</td>
-                                            <td>@(attendance.Instrument?.ToString() ?? "-")</td>
-                                            <td>
-                                                @if (attendance.Attended)
-                                                {
-                                                    <span class="badge bg-success">Aprovado</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-warning">Pendente</span>
-                                                }
-                                            </td>
-                                            <AuthorizeView Roles="Owner">
-                                                <Authorized>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteAttendanceModal(attendance)" title="Eliminar Presença">
-                                                            <i class="bi bi-trash"></i>
-                                                        </button>
-                                                    </td>
-                                                </Authorized>
-                                            </AuthorizeView>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+                        <div class="enrollment-card-grid">
+                            @foreach (var attendance in selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName))
+                            {
+                                var instrumentDisplay = attendance.Instrument?.ToString() ?? "—";
+                                <EnrollmentCard 
+                                    AvatarUrl="@attendance.User?.ProfilePictureSrc"
+                                    TunaName="@attendance.User?.Nickname"
+                                    FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}")"
+                                    InstrumentText="@instrumentDisplay"
+                                    Notes=""
+                                    AltText="@attendance.User?.GetDisplayName()"
+                                    ShowEditButton="false"
+                                    ShowDeleteButton="@isOwner"
+                                    ShowApproveButton="false"
+                                    OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
+                                    DeleteTooltip="Eliminar Presença">
+                                    <BadgeContent>
+                                        <div class="enrollment-card-badges-row">
+                                            @if (attendance.Attended)
+                                            {
+                                                <span class="badge bg-success">Aprovado</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning">Pendente</span>
+                                            }
+                                        </div>
+                                    </BadgeContent>
+                                </EnrollmentCard>
+                            }
                         </div>
                     }
                     else
@@ -319,6 +307,7 @@ else
 @code {
     private bool loading = true;
     private bool isAdmin = false;
+    private bool isOwner = false;
     private string? currentUserId;
 
     private List<Rehearsal> upcomingRehearsals = new();
@@ -362,6 +351,7 @@ else
             {
                 currentUserId = appUser.Id;
                 isAdmin = user.IsInRole("Admin") || user.IsInRole("Owner");
+                isOwner = user.IsInRole("Owner");
             }
         }
 
