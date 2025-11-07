@@ -116,45 +116,6 @@ public class ImagesControllerTests
 
     #endregion
 
-    #region GetSlideshowImage Tests
-
-    [Fact]
-    public async Task GetSlideshowImage_WithValidId_ReturnsFileResult()
-    {
-        // Arrange
-        var slideshowId = 1;
-        var imageData = new byte[] { 5, 6, 7, 8 };
-        var contentType = "image/png";
-        _mockImageService.Setup(s => s.GetSlideshowImageAsync(slideshowId))
-            .ReturnsAsync((imageData, contentType));
-
-        // Act
-        var result = await _controller.GetSlideshowImage(slideshowId);
-
-        // Assert
-        result.Should().BeOfType<FileContentResult>();
-        var fileResult = result as FileContentResult;
-        fileResult!.FileContents.Should().Equal(imageData);
-        fileResult.ContentType.Should().Be(contentType);
-    }
-
-    [Fact]
-    public async Task GetSlideshowImage_WithInvalidId_ReturnsNotFound()
-    {
-        // Arrange
-        var slideshowId = 999;
-        _mockImageService.Setup(s => s.GetSlideshowImageAsync(slideshowId))
-            .ReturnsAsync(((byte[], string)?)null);
-
-        // Act
-        var result = await _controller.GetSlideshowImage(slideshowId);
-
-        // Assert
-        result.Should().BeOfType<NotFoundResult>();
-    }
-
-    #endregion
-
     #region GetAlbumImage Tests
 
     [Fact]
