@@ -4103,10 +4103,11 @@ th:hover {
 
 /* Horizontal Instrument Counter Section */
 .instrument-counter-section {
-  background-color: #000000;
+  background-color: #151516;
   border-radius: 0.5rem;
   padding: 1rem;
   margin: 0;
+  border: 1px solid var(--bs-border-color);
 }
 
 .instrument-counter-header {
@@ -4135,7 +4136,7 @@ th:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #1a1a1b;
+  background-color: #0f0f10;
   border: 1px solid var(--bs-border-color);
   border-radius: 0.375rem;
   padding: 0.75rem 0.5rem;
@@ -4145,7 +4146,6 @@ th:hover {
 }
 
 .instrument-counter-box:hover {
-  background-color: rgba(var(--bs-primary-rgb), 0.15);
   border-color: var(--bs-primary);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(var(--bs-primary-rgb), 0.2);
