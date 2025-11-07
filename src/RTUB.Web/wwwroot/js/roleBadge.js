@@ -6,9 +6,13 @@
 (function () {
     'use strict';
 
+    // Constants
+    const MOBILE_BREAKPOINT = 480;
+    const RESIZE_DEBOUNCE_MS = 250;
+
     // Check if viewport is mobile (≤480px)
     function isMobileView() {
-        return window.innerWidth <= 480;
+        return window.innerWidth <= MOBILE_BREAKPOINT;
     }
 
     // Toggle badge expansion on mobile
@@ -108,7 +112,7 @@
     let resizeTimer;
     window.addEventListener('resize', function() {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(handleResize, 250);
+        resizeTimer = setTimeout(handleResize, RESIZE_DEBOUNCE_MS);
     });
 
     // Export initialization function for Blazor to call after component updates
