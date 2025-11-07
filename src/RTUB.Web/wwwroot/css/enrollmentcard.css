@@ -232,7 +232,8 @@
     }
 
     .enrollment-card-edit-btn,
-    .enrollment-card-delete-btn {
+    .enrollment-card-delete-btn,
+    .enrollment-card-approve-btn {
         width: 26px;
         height: 26px;
         font-size: 0.8rem;
@@ -245,7 +246,8 @@
 
 /* Accessibility */
 .enrollment-card:focus-within .enrollment-card-edit-btn,
-.enrollment-card:focus-within .enrollment-card-delete-btn {
+.enrollment-card:focus-within .enrollment-card-delete-btn,
+.enrollment-card:focus-within .enrollment-card-approve-btn {
     outline: 2px solid #6f42c1;
     outline-offset: 2px;
 }
