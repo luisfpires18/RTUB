@@ -386,7 +386,6 @@ else
 
     private Album? album;
     private List<Song>? songs;
-    private long albumImageVersion = DateTime.UtcNow.Ticks;
 
     private bool showCreateModal = false;
     private bool showEditModal = false;
@@ -415,7 +414,6 @@ else
     protected override async Task OnInitializedAsync()
     {
         album = await AlbumService.GetAlbumByIdAsync(AlbumId);
-        albumImageVersion = DateTime.UtcNow.Ticks;
         await LoadSongs();
         
         // Check if user is Owner
@@ -754,11 +752,7 @@ else
 
     private string GetAlbumImageUrl(string imageSrc)
     {
-        // Add cache-busting parameter to force reload after image update
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
-        {
-            return $"{imageSrc}?v={albumImageVersion}";
-        }
+        // Return URL as-is - ETag-based caching is handled by ImagesController
         return imageSrc ?? string.Empty;
     }
     
