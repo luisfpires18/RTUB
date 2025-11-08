@@ -12,21 +12,21 @@ using SixLabors.ImageSharp.Formats.Webp;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Implementation of slideshow storage service using iDrive e2 (S3-compatible)
+/// Implementation of event storage service using iDrive e2 (S3-compatible)
 /// </summary>
-public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposable
+public class DriveEventStorageService : IEventStorageService, IDisposable
 {
     private readonly IAmazonS3 _s3Client;
     private readonly string _bucketName;
-    private readonly ILogger<DriveSlideshowStorageService> _logger;
+    private readonly ILogger<DriveEventStorageService> _logger;
     private readonly string _environment;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
-    private const string SlideshowPathPrefix = "images/slideshows/";
-    private const int WebPQuality = 100; // High quality WebP (0-100, where 100 is best quality)
-    private const int MaxImageWidth = 1920; // Max width for slideshow images
-    private const int MaxImageHeight = 1080; // Max height for slideshow images
+    private const string EventPathPrefix = "images/events/";
+    private const int WebPQuality = 85; // High quality WebP (0-100, where 100 is best quality)
+    private const int MaxImageWidth = 1920; // Max width for event images
+    private const int MaxImageHeight = 1080; // Max height for event images
 
-    public DriveSlideshowStorageService(IConfiguration configuration, ILogger<DriveSlideshowStorageService> logger)
+    public DriveEventStorageService(IConfiguration configuration, ILogger<DriveEventStorageService> logger)
     {
         _logger = logger;
 
@@ -36,7 +36,7 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
             ?? "Production";
 
         // Get write credentials from environment variables or configuration
-        // Slideshow storage requires write access to upload/delete images
+        // Event storage requires write access to upload/delete images
         var accessKey = configuration["IDrive:WriteAccessKey"];
         var secretKey = configuration["IDrive:WriteSecretKey"];
         var endpoint = configuration["IDrive:Endpoint"];
@@ -75,7 +75,7 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
         _s3Client = new AmazonS3Client(credentials, config);
     }
 
-    public async Task<string> UploadImageAsync(IFormFile file, int slideshowId)
+    public async Task<string> UploadImageAsync(IFormFile file, int eventId)
     {
         if (file == null || file.Length == 0)
         {
@@ -96,12 +96,12 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
                     Size = new Size(MaxImageWidth, MaxImageHeight),
                     Mode = ResizeMode.Max // Maintain aspect ratio
                 }));
-                _logger.LogInformation("Resized slideshow image from {OriginalWidth}x{OriginalHeight} to {NewWidth}x{NewHeight}", 
+                _logger.LogInformation("Resized event image from {OriginalWidth}x{OriginalHeight} to {NewWidth}x{NewHeight}", 
                     image.Width, image.Height, image.Width, image.Height);
             }
 
             // Generate filename with .webp extension
-            var filename = GenerateFilename(slideshowId, "image/webp");
+            var filename = GenerateFilename(eventId, "image/webp");
             var objectKey = GetObjectKey(filename);
 
             // Convert to WebP with high quality
@@ -128,25 +128,25 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
 
             await _s3Client.PutObjectAsync(putRequest);
             
-            _logger.LogInformation("Successfully uploaded slideshow image to S3 as WebP: {ObjectKey}, Size: {Size} bytes", 
+            _logger.LogInformation("Successfully uploaded event image to S3 as WebP: {ObjectKey}, Size: {Size} bytes", 
                 objectKey, fileSize);
             
             return filename;
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error uploading slideshow image for slideshow ID: {SlideshowId}. ErrorCode: {ErrorCode}, Message: {Message}", 
-                slideshowId, ex.ErrorCode, ex.Message);
-            throw new InvalidOperationException($"Failed to upload slideshow image: {ex.Message}", ex);
+            _logger.LogError(ex, "S3 error uploading event image for event ID: {EventId}. ErrorCode: {ErrorCode}, Message: {Message}", 
+                eventId, ex.ErrorCode, ex.Message);
+            throw new InvalidOperationException($"Failed to upload event image: {ex.Message}", ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error uploading slideshow image for slideshow ID: {SlideshowId}", slideshowId);
-            throw new InvalidOperationException($"Failed to upload slideshow image: {ex.Message}", ex);
+            _logger.LogError(ex, "Unexpected error uploading event image for event ID: {EventId}", eventId);
+            throw new InvalidOperationException($"Failed to upload event image: {ex.Message}", ex);
         }
     }
 
-    public async Task<string> UploadImageAsync(byte[] imageData, int slideshowId, string contentType)
+    public async Task<string> UploadImageAsync(byte[] imageData, int eventId, string contentType)
     {
         if (imageData == null || imageData.Length == 0)
         {
@@ -172,12 +172,12 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
                     Size = new Size(MaxImageWidth, MaxImageHeight),
                     Mode = ResizeMode.Max // Maintain aspect ratio
                 }));
-                _logger.LogInformation("Resized slideshow image from {OriginalWidth}x{OriginalHeight} to {NewWidth}x{NewHeight}", 
+                _logger.LogInformation("Resized event image from {OriginalWidth}x{OriginalHeight} to {NewWidth}x{NewHeight}", 
                     image.Width, image.Height, image.Width, image.Height);
             }
 
             // Generate filename with .webp extension
-            var filename = GenerateFilename(slideshowId, "image/webp");
+            var filename = GenerateFilename(eventId, "image/webp");
             var objectKey = GetObjectKey(filename);
 
             // Convert to WebP with high quality
@@ -204,21 +204,21 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
 
             await _s3Client.PutObjectAsync(putRequest);
             
-            _logger.LogInformation("Successfully uploaded slideshow image to S3 as WebP: {ObjectKey}, Size: {Size} bytes", 
+            _logger.LogInformation("Successfully uploaded event image to S3 as WebP: {ObjectKey}, Size: {Size} bytes", 
                 objectKey, fileSize);
             
             return filename;
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error uploading slideshow image for slideshow ID: {SlideshowId}. ErrorCode: {ErrorCode}, Message: {Message}", 
-                slideshowId, ex.ErrorCode, ex.Message);
-            throw new InvalidOperationException($"Failed to upload slideshow image: {ex.Message}", ex);
+            _logger.LogError(ex, "S3 error uploading event image for event ID: {EventId}. ErrorCode: {ErrorCode}, Message: {Message}", 
+                eventId, ex.ErrorCode, ex.Message);
+            throw new InvalidOperationException($"Failed to upload event image: {ex.Message}", ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error uploading slideshow image for slideshow ID: {SlideshowId}", slideshowId);
-            throw new InvalidOperationException($"Failed to upload slideshow image: {ex.Message}", ex);
+            _logger.LogError(ex, "Unexpected error uploading event image for event ID: {EventId}", eventId);
+            throw new InvalidOperationException($"Failed to upload event image: {ex.Message}", ex);
         }
     }
 
@@ -248,13 +248,13 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error generating slideshow image URL for filename: {Filename}. ErrorCode: {ErrorCode}, Message: {Message}", 
+            _logger.LogError(ex, "S3 error generating event image URL for filename: {Filename}. ErrorCode: {ErrorCode}, Message: {Message}", 
                 filename, ex.ErrorCode, ex.Message);
             return Task.FromResult<string?>(null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error generating slideshow image URL for filename: {Filename}", filename);
+            _logger.LogError(ex, "Unexpected error generating event image URL for filename: {Filename}", filename);
             return Task.FromResult<string?>(null);
         }
     }
@@ -278,19 +278,19 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
 
             await _s3Client.DeleteObjectAsync(deleteRequest);
             
-            _logger.LogInformation("Successfully deleted slideshow image from S3: {ObjectKey}", objectKey);
+            _logger.LogInformation("Successfully deleted event image from S3: {ObjectKey}", objectKey);
             
             return true;
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error deleting slideshow image: {Filename}. ErrorCode: {ErrorCode}, Message: {Message}", 
+            _logger.LogError(ex, "S3 error deleting event image: {Filename}. ErrorCode: {ErrorCode}, Message: {Message}", 
                 filename, ex.ErrorCode, ex.Message);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error deleting slideshow image: {Filename}", filename);
+            _logger.LogError(ex, "Unexpected error deleting event image: {Filename}", filename);
             return false;
         }
     }
@@ -321,23 +321,23 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error checking if slideshow image exists: {Filename}. ErrorCode: {ErrorCode}, Message: {Message}", 
+            _logger.LogError(ex, "S3 error checking if event image exists: {Filename}. ErrorCode: {ErrorCode}, Message: {Message}", 
                 filename, ex.ErrorCode, ex.Message);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error checking if slideshow image exists: {Filename}", filename);
+            _logger.LogError(ex, "Unexpected error checking if event image exists: {Filename}", filename);
             return false;
         }
     }
 
     private string GetObjectKey(string filename)
     {
-        return $"{SlideshowPathPrefix}{_environment}/{filename}";
+        return $"{EventPathPrefix}{_environment}/{filename}";
     }
 
-    private string GenerateFilename(int slideshowId, string contentType)
+    private string GenerateFilename(int eventId, string contentType)
     {
         // Extract file extension from content type
         var extension = contentType switch
@@ -351,7 +351,7 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
 
         // Generate filename with timestamp to ensure uniqueness
         var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-        return $"slideshow_{slideshowId}_{timestamp}{extension}";
+        return $"event_{eventId}_{timestamp}{extension}";
     }
 
     public void Dispose()

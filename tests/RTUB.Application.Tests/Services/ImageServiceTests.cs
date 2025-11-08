@@ -36,21 +36,18 @@ public class ImageServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetEventImageAsync_ReturnsImage_WhenEventHasImage()
+    public async Task GetEventImageAsync_ReturnsNull_EventsUseS3Storage()
     {
         // Arrange
         var eventItem = Event.Create("Test Event", DateTime.Now, "Location", EventType.Festival);
-        eventItem.SetImage(new byte[] { 1, 2, 3 }, "image/png");
         _context.Events.Add(eventItem);
         await _context.SaveChangesAsync();
 
         // Act
         var result = await _service.GetEventImageAsync(eventItem.Id);
 
-        // Assert
-        result.Should().NotBeNull();
-        result.Value.Data.Should().BeEquivalentTo(new byte[] { 1, 2, 3 });
-        result.Value.ContentType.Should().Be("image/png");
+        // Assert - Events now use S3 storage, so this should return null
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -69,28 +66,21 @@ public class ImageServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetEventImageAsync_UsesCachedValue_OnSecondCall()
+    public async Task GetEventImageAsync_AlwaysReturnsNull_EventsUseS3()
     {
         // Arrange
         var eventItem = Event.Create("Test Event", DateTime.Now, "Location", EventType.Festival);
-        eventItem.SetImage(new byte[] { 1, 2, 3 }, "image/png");
         _context.Events.Add(eventItem);
         await _context.SaveChangesAsync();
 
         // Act - First call
         await _service.GetEventImageAsync(eventItem.Id);
         
-        // Modify image in database
-        eventItem.SetImage(new byte[] { 4, 5, 6 }, "image/jpeg");
-        await _context.SaveChangesAsync();
-        
-        // Second call should return cached value
+        // Second call should also return null
         var result = await _service.GetEventImageAsync(eventItem.Id);
 
-        // Assert - Still returns original cached value
-        result.Should().NotBeNull();
-        result.Value.Data.Should().BeEquivalentTo(new byte[] { 1, 2, 3 });
-        result.Value.ContentType.Should().Be("image/png");
+        // Assert - Events use S3 storage now
+        result.Should().BeNull();
     }
 
     [Fact]
