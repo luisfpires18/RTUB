@@ -668,18 +668,10 @@ else
            Size="Modal.ModalSize.Default"
            Centered="true">
         <BodyContent>
-            <div class="mb-3">
-                <strong>Data:</strong>
-                <p>@selectedRehearsal.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"))</p>
-            </div>
-            <div class="mb-3">
-                <strong>Local:</strong>
-                <p>@selectedRehearsal.Location</p>
-            </div>
             @if (!string.IsNullOrEmpty(selectedRehearsal.Theme))
             {
                 <div class="mb-3">
-                    <strong>Tema:</strong>
+                    <h6 class="text-muted border-bottom pb-2">Tema</h6>
                     <p>@selectedRehearsal.Theme</p>
                 </div>
             }
