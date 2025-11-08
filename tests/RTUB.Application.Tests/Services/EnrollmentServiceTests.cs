@@ -17,6 +17,7 @@ public class EnrollmentServiceTests : IDisposable
     private readonly EnrollmentService _enrollmentService;
     private readonly EventService _eventService;
     private readonly Mock<IImageService> _mockImageService;
+    private readonly Mock<IEventStorageService> _mockEventStorageService;
 
     public EnrollmentServiceTests()
     {
@@ -27,7 +28,8 @@ public class EnrollmentServiceTests : IDisposable
         _context = new ApplicationDbContext(options);
         _enrollmentService = new EnrollmentService(_context);
         _mockImageService = new Mock<IImageService>();
-        _eventService = new EventService(_context, _mockImageService.Object);
+        _mockEventStorageService = new Mock<IEventStorageService>();
+        _eventService = new EventService(_context, _mockImageService.Object, _mockEventStorageService.Object);
     }
 
     [Fact]

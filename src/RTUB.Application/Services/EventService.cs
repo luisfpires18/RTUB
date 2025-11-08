@@ -16,9 +16,9 @@ public class EventService : IEventService
 {
     private readonly ApplicationDbContext _context;
     private readonly IImageService _imageService;
-    private readonly IEventStorageService? _eventStorageService;
+    private readonly IEventStorageService _eventStorageService;
 
-    public EventService(ApplicationDbContext context, IImageService imageService, IEventStorageService? eventStorageService = null)
+    public EventService(ApplicationDbContext context, IImageService imageService, IEventStorageService eventStorageService)
     {
         _context = context;
         _imageService = imageService;
@@ -91,20 +91,6 @@ public class EventService : IEventService
         await _context.SaveChangesAsync();
     }
 
-    public async Task SetEventImageAsync(int id, byte[]? imageData, string? contentType, string url = "")
-    {
-        var eventEntity = await _context.Events.FindAsync(id);
-        if (eventEntity == null)
-            throw new InvalidOperationException($"Event with ID {id} not found");
-
-        eventEntity.SetImage(imageData, contentType, url);
-        _context.Events.Update(eventEntity);
-        await _context.SaveChangesAsync();
-        
-        // Invalidate the cached image so the new image is served immediately
-        _imageService.InvalidateEventImageCache(id);
-    }
-
     public async Task SetEventS3ImageAsync(int id, string? s3Filename)
     {
         var eventEntity = await _context.Events.FindAsync(id);
@@ -126,7 +112,7 @@ public class EventService : IEventService
             throw new InvalidOperationException($"Event with ID {id} not found");
 
         // Delete S3 image if exists
-        if (!string.IsNullOrEmpty(eventEntity.S3ImageFilename) && _eventStorageService != null)
+        if (!string.IsNullOrEmpty(eventEntity.S3ImageFilename))
         {
             await _eventStorageService.DeleteImageAsync(eventEntity.S3ImageFilename);
         }

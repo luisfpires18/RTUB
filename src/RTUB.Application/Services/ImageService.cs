@@ -42,15 +42,8 @@ public class ImageService : IImageService
             return cachedImage;
         }
         
-        var eventItem = await _context.Events.FindAsync(eventId);
-        
-        if (eventItem?.ImageData != null && !string.IsNullOrEmpty(eventItem.ImageContentType))
-        {
-            var result = (eventItem.ImageData, eventItem.ImageContentType);
-            _cache.Set(cacheKey, result, _cacheOptions);
-            return result;
-        }
-
+        // Event images are now stored in S3, not in the database
+        // This method returns null for events, as images are served directly from S3
         return null;
     }
 

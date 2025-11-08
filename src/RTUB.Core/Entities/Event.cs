@@ -30,13 +30,11 @@ public class Event : BaseEntity
     [Required(ErrorMessage = "O tipo de evento é obrigatório")]
     public EventType Type { get; set; }
     
-    // Image handling - store reference/path, actual storage handled by infrastructure
-    public byte[]? ImageData { get; set; }
-    public string? ImageContentType { get; set; }
-    public string ImageUrl { get; set; } = string.Empty;
-    
-    // S3 Storage - filename in IDrive S3 bucket
+    // S3 Storage - filename in IDrive S3 bucket (WebP format)
     public string? S3ImageFilename { get; set; }
+    
+    // Legacy ImageUrl field - kept for traceability of original photo source
+    public string ImageUrl { get; set; } = string.Empty;
     
     // Navigation properties
     public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
@@ -88,31 +86,18 @@ public class Event : BaseEntity
         EndDate = endDate;
     }
 
-    public void SetImage(byte[]? imageData, string? contentType, string url = "")
-    {
-        ImageData = imageData;
-        ImageContentType = contentType;
-        ImageUrl = url;
-    }
-
     public void SetS3Image(string? s3Filename)
     {
         S3ImageFilename = s3Filename;
-        // Clear old image data when using S3
-        ImageData = null;
-        ImageContentType = null;
     }
 
     public string GetImageSource()
     {
-        // Priority: S3 image > ImageData > ImageUrl
+        // Return S3 image marker if filename exists
         if (!string.IsNullOrEmpty(S3ImageFilename))
-            return $"s3:{S3ImageFilename}"; // Special marker for S3 images
+            return $"s3:{S3ImageFilename}";
         
-        if (ImageData != null && !string.IsNullOrEmpty(ImageContentType))
-            return $"/api/images/event/{Id}";
-        
-        return !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
+        return string.Empty;
     }
     
     // Property alias for backward compatibility
