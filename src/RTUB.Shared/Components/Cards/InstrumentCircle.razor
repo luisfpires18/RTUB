@@ -1,0 +1,87 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@*
+    InstrumentCircle Component
+    Displays instrument information in a circular card format
+    Similar to AvatarCard but specialized for instruments
+*@
+
+<div class="instrument-circle">
+    <!-- Circular Image/Icon -->
+    <div class="instrument-circle-image-wrapper">
+        @if (Instrument.ImageData != null && Instrument.ImageData.Length > 0)
+        {
+            <img src="@ImageUrl" 
+                 alt="@Instrument.Name" 
+                 class="instrument-circle-image"
+                 loading="lazy" />
+        }
+        else
+        {
+            <div class="instrument-circle-placeholder">
+                <i class="bi bi-music-note-beamed instrument-icon-large"></i>
+            </div>
+        }
+    </div>
+
+    <!-- Instrument Info -->
+    <div class="instrument-circle-content">
+        <!-- Name -->
+        <div class="instrument-circle-name">@Instrument.Name</div>
+        
+        <!-- Category -->
+        <div class="instrument-circle-badges">
+            <span class="badge bg-primary">@Instrument.Category</span>
+            <span class="badge @GetConditionBadgeClass(Instrument.Condition)">
+                @GetConditionDisplayName(Instrument.Condition)
+            </span>
+        </div>
+
+        <!-- Additional Info -->
+        @if (!string.IsNullOrEmpty(Instrument.Brand))
+        {
+            <div class="instrument-circle-detail">
+                <strong>Marca:</strong> @Instrument.Brand
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Instrument.Location))
+        {
+            <div class="instrument-circle-detail">
+                <strong>Local:</strong> @Instrument.Location
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Instrument Instrument { get; set; } = null!;
+
+    [Parameter]
+    public string ImageUrl { get; set; } = string.Empty;
+
+    private string GetConditionDisplayName(InstrumentCondition condition)
+    {
+        return condition switch
+        {
+            InstrumentCondition.Excellent => "Óptimo",
+            InstrumentCondition.Good => "Bom",
+            InstrumentCondition.Worn => "Velho",
+            InstrumentCondition.NeedsMaintenance => "Precisa Manutenção",
+            _ => condition.ToString()
+        };
+    }
+
+    private string GetConditionBadgeClass(InstrumentCondition condition)
+    {
+        return condition switch
+        {
+            InstrumentCondition.Excellent => "bg-success",
+            InstrumentCondition.Good => "bg-info",
+            InstrumentCondition.Worn => "bg-warning",
+            InstrumentCondition.NeedsMaintenance => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}

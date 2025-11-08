@@ -1,0 +1,160 @@
+@page "/inventory"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Shared
+@attribute [Authorize]
+@inject IInstrumentService InstrumentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h1>Instrumentos</h1>
+<p class="lead mb-4">Instrumentos da RTUB</p>
+
+@if (loading)
+{
+    <p>A carregar instrumentos...</p>
+}
+else if (!instruments.Any())
+{
+    <EmptyTableState Message="Nenhum instrumento cadastrado ainda."
+                    IconClass="bi-music-note-beamed" />
+}
+else
+{
+    <!-- Stats - 2x2 CSS Grid Centered -->
+    <div class="d-flex justify-content-center mb-4">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; max-width: 700px; width: 100%;">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Total</h6>
+                    <h3 class="card-title">@instruments.Count</h3>
+                </div>
+            </div>
+            @{
+                var statsArray = conditionStats.OrderBy(c => c.Key).ToList();
+                for (int i = 0; i < Math.Min(3, statsArray.Count); i++)
+                {
+                    var stat = statsArray[i];
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h6 class="card-subtitle mb-2 text-muted">@GetConditionDisplayName(stat.Key)</h6>
+                            <h3 class="card-title">@stat.Value</h3>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <select class="form-select" @bind="filterCategory" @bind:after="ApplyFilters">
+                <option value="">Todos os tipos</option>
+                @foreach (var category in categories)
+                {
+                    <option value="@category">@category</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <select class="form-select" @bind="filterCondition" @bind:after="ApplyFilters">
+                <option value="">Todas as condições</option>
+                @foreach (InstrumentCondition condition in Enum.GetValues(typeof(InstrumentCondition)))
+                {
+                    <option value="@condition">@GetConditionDisplayName(condition)</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <!-- Instruments Grid with InstrumentCircle Component -->
+    <div class="row">
+        @foreach (var instrument in filteredInstruments)
+        {
+            <div class="col-md-4 col-lg-2 mb-4">
+                <InstrumentCircle Instrument="@instrument" ImageUrl="@GetImageUrl(instrument.ImageSrc)" />
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool loading = true;
+
+    // Instruments
+    private List<Instrument> instruments = new();
+    private List<Instrument> filteredInstruments = new();
+    private List<string> categories = new();
+    private Dictionary<InstrumentCondition, int> conditionStats = new();
+    private string filterCategory = "";
+    private string filterCondition = "";
+    private long imageVersion = DateTime.UtcNow.Ticks;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoadCategoriesFromEnum();
+        await LoadData();
+    }
+
+    private void LoadCategoriesFromEnum()
+    {
+        categories = Enum.GetValues<InstrumentType>()
+            .Select(e => e.ToString())
+            .ToList();
+    }
+
+    private async Task LoadData()
+    {
+        loading = true;
+
+        var instrumentsList = await InstrumentService.GetAllAsync();
+        instruments = instrumentsList.ToList();
+        filteredInstruments = instruments;
+
+        conditionStats = await InstrumentService.GetConditionStatsAsync();
+
+        imageVersion = DateTime.UtcNow.Ticks;
+
+        loading = false;
+    }
+
+    private void ApplyFilters()
+    {
+        filteredInstruments = instruments;
+
+        if (!string.IsNullOrEmpty(filterCategory))
+        {
+            filteredInstruments = filteredInstruments.Where(i => i.Category == filterCategory).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(filterCondition) && Enum.TryParse<InstrumentCondition>(filterCondition, out var condition))
+        {
+            filteredInstruments = filteredInstruments.Where(i => i.Condition == condition).ToList();
+        }
+    }
+
+    private string GetConditionDisplayName(InstrumentCondition condition)
+    {
+        return condition switch
+        {
+            InstrumentCondition.Excellent => "Óptimo",
+            InstrumentCondition.Good => "Bom",
+            InstrumentCondition.Worn => "Velho",
+            InstrumentCondition.NeedsMaintenance => "Precisa Manutenção",
+            _ => condition.ToString()
+        };
+    }
+
+    private string GetImageUrl(string imageSrc)
+    {
+        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
+        {
+            return $"{imageSrc}?v={imageVersion}";
+        }
+        return imageSrc ?? string.Empty;
+    }
+}
