@@ -43,7 +43,7 @@ else
     <!-- Filter -->
     <div class="row mb-4">
         <div class="col-md-6">
-            <FilterDropdown IconClass="bi-funnel"
+            <FilterDropdown ShowIcon="false"
                           AllItemsLabel="Todos os tipos"
                           Items="@productTypes"
                           @bind-SelectedValue="selectedType"
@@ -86,24 +86,24 @@ else
                         <span class="badge bg-primary mb-2 align-self-start">@product.Type</span>
                         @if (!string.IsNullOrEmpty(product.Description))
                         {
-                            <p class="card-text small flex-grow-1 music-text-secondary">@product.Description</p>
+                            <p class="card-text small flex-grow-1 music-text-secondary" style="white-space: pre-line;">@product.Description</p>
                         }
                         <div class="mt-auto">
-                            <p class="card-text">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
                                 <strong class="fs-5 text-success">@product.Price.ToString("0.00") €</strong>
-                            </p>
-                            @if (product.Stock > 0)
-                            {
-                                <p class="card-text small music-text-secondary">
-                                    <i class="bi bi-box-seam"></i> Em stock: @product.Stock unidades
-                                </p>
-                            }
-                            else
-                            {
-                                <p class="card-text small text-danger">
-                                    <i class="bi bi-x-circle"></i> Esgotado
-                                </p>
-                            }
+                                @if (product.Stock > 0)
+                                {
+                                    <span class="badge bg-light text-dark">
+                                        <i class="bi bi-box-seam"></i> @product.Stock em stock
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-x-circle"></i> Esgotado
+                                    </span>
+                                }
+                            </div>
                             @if (!product.IsPublic)
                             {
                                 <span class="badge bg-warning text-dark mb-2">
@@ -117,12 +117,19 @@ else
                                         }
                                         @if (!outOfStock)
                                         {
-                                            <div class="d-flex gap-1">
+                                            <div class="d-flex flex-column gap-1">
                                                 @if (hasReservation)
                                                 {
                                                     <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenUserReservationModal(product)" title="Ver Reserva">
                                                         <i class="bi bi-eye"></i> Ver Reserva
                                                     </button>
+                                                    <AuthorizeView Roles="Admin,Owner" Context="adminContext">
+                                                        <Authorized>
+                                                            <button class="btn btn-sm btn-dark text-white" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
+                                                                <i class="bi bi-list-check"></i> Ver Reservas
+                                                            </button>
+                                                        </Authorized>
+                                                    </AuthorizeView>
                                                     <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteReservationModal(userReservations[product.Id]!, product)" title="Anular Reserva">
                                                         <i class="bi bi-x-circle"></i> Anular
                                                     </button>
@@ -132,14 +139,14 @@ else
                                                     <button class="btn btn-sm btn-primary" @onclick="() => OpenReservationModal(product)" title="Reservar">
                                                         <i class="bi bi-calendar-check"></i> Reservar
                                                     </button>
+                                                    <AuthorizeView Roles="Admin,Owner" Context="adminContext">
+                                                        <Authorized>
+                                                            <button class="btn btn-sm btn-dark text-white" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
+                                                                <i class="bi bi-list-check"></i> Ver Reservas
+                                                            </button>
+                                                        </Authorized>
+                                                    </AuthorizeView>
                                                 }
-                                                <AuthorizeView Roles="Admin,Owner" Context="adminContext">
-                                                    <Authorized>
-                                                        <button class="btn btn-sm btn-dark text-white" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
-                                                            <i class="bi bi-list-check"></i> Ver Reservas
-                                                        </button>
-                                                    </Authorized>
-                                                </AuthorizeView>
                                             </div>
                                         }
                                     </Authorized>
