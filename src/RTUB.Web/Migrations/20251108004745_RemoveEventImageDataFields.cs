@@ -5,7 +5,7 @@
 namespace RTUB.Migrations
 {
     /// <inheritdoc />
-    public partial class RemoveSlideshowImageDataFields : Migration
+    public partial class RemoveEventImageDataFields : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,33 +15,36 @@ namespace RTUB.Migrations
             
             // Create new table without ImageData and ImageContentType
             migrationBuilder.Sql(@"
-                CREATE TABLE Slideshows_new (
+                CREATE TABLE Events_new (
                     Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                    Title TEXT NOT NULL,
-                    Description TEXT NOT NULL,
-                    ImageUrl TEXT NOT NULL,
-                    [Order] INTEGER NOT NULL,
-                    IntervalMs INTEGER NOT NULL,
-                    IsActive INTEGER NOT NULL,
+                    Name TEXT NOT NULL,
+                    Date TEXT NOT NULL,
+                    EndDate TEXT,
+                    Description TEXT,
+                    Location TEXT NOT NULL,
+                    Type INTEGER NOT NULL,
+                    ImageUrl TEXT,
+                    S3ImageFilename TEXT,
                     CreatedAt TEXT NOT NULL,
-                    UpdatedAt TEXT,
-                    CreatedBy TEXT,
-                    UpdatedBy TEXT
+                    UpdatedAt TEXT
                 );
             ");
 
             // Copy data from old table to new table
             migrationBuilder.Sql(@"
-                INSERT INTO Slideshows_new (Id, Title, Description, ImageUrl, [Order], IntervalMs, IsActive, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy)
-                SELECT Id, Title, Description, ImageUrl, [Order], IntervalMs, IsActive, CreatedAt, UpdatedAt, CreatedBy, UpdatedBy
-                FROM Slideshows;
+                INSERT INTO Events_new (Id, Name, Date, EndDate, Description, Location, Type, ImageUrl, S3ImageFilename, CreatedAt, UpdatedAt)
+                SELECT Id, Name, Date, EndDate, Description, Location, Type, ImageUrl, S3ImageFilename, CreatedAt, UpdatedAt
+                FROM Events;
             ");
 
             // Drop old table
-            migrationBuilder.Sql("DROP TABLE Slideshows;");
+            migrationBuilder.Sql("DROP TABLE Events;");
 
             // Rename new table to original name
-            migrationBuilder.Sql("ALTER TABLE Slideshows_new RENAME TO Slideshows;");
+            migrationBuilder.Sql("ALTER TABLE Events_new RENAME TO Events;");
+
+            // Note: Foreign keys are defined on the referencing tables (Enrollments, EventRepertoire, Trophy)
+            // not on the Events table itself, so they don't need to be recreated here
         }
 
         /// <inheritdoc />
@@ -49,13 +52,14 @@ namespace RTUB.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "ImageContentType",
-                table: "Slideshows",
+                table: "Events",
                 type: "TEXT",
+                maxLength: 100,
                 nullable: true);
 
             migrationBuilder.AddColumn<byte[]>(
                 name: "ImageData",
-                table: "Slideshows",
+                table: "Events",
                 type: "BLOB",
                 nullable: true);
         }

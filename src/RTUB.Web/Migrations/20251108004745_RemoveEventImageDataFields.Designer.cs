@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251108004745_RemoveEventImageDataFields")]
+    partial class RemoveEventImageDataFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
@@ -738,58 +741,6 @@ namespace RTUB.Migrations
                     b.ToTable("Products");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.ProductReservation", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DisplayName")
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("HasSizes")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Size")
-                        .HasMaxLength(10)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserNickname")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("ProductId", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("ProductReservations");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.Rehearsal", b =>
                 {
                     b.Property<int>("Id")
@@ -1379,25 +1330,6 @@ namespace RTUB.Migrations
                     b.Navigation("Event");
 
                     b.Navigation("Song");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.ProductReservation", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.RehearsalAttendance", b =>
