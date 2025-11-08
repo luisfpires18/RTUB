@@ -1,0 +1,235 @@
+@namespace RTUB.Shared.Components.Cards
+@using RTUB.Core.Entities
+@using Microsoft.AspNetCore.Components.Authorization
+
+<div class="card bg-dark border border-purple-700 rounded-3 shadow-sm overflow-hidden product-card">
+    <!-- Media header: fixed 16:9 area -->
+    <div class="product-card-media">
+        @if (IsImageLoading)
+        {
+            <div class="product-card-skeleton">
+                <div class="skeleton-shimmer"></div>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(Product.ImageSrc) && Product.ImageData != null && Product.ImageData.Length > 0)
+        {
+            <img src="@GetImageUrl()" 
+                 class="product-card-image" 
+                 alt="@Product.Name"
+                 @onload="OnImageLoaded"
+                 @onerror="OnImageError" />
+        }
+        else
+        {
+            <div class="product-card-placeholder">
+                <i class="bi bi-bag-fill"></i>
+            </div>
+        }
+        
+        @if (IsAdmin)
+        {
+            <div class="product-card-admin-overlay">
+                <button class="btn btn-square-sm product-btn-edit" 
+                        @onclick="OnEdit" 
+                        @onclick:stopPropagation="true"
+                        title="Editar">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-square-sm product-btn-delete" 
+                        @onclick="OnDelete"
+                        @onclick:stopPropagation="true"
+                        title="Eliminar">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        }
+    </div>
+
+    <!-- Body -->
+    <div class="card-body d-flex flex-column">
+        <h5 class="card-title fw-semibold mb-2">@Product.Name</h5>
+        
+        <span class="badge bg-purple mb-2 align-self-start">@Product.Type</span>
+        
+        <p class="product-price text-success fw-bold mb-2">@Product.Price.ToString("0.00") €</p>
+        
+        <div class="product-stock mb-2">
+            <i class="bi bi-box-seam me-1"></i>
+            @if (Product.Stock > 0)
+            {
+                <span>Em stock: @Product.Stock unidades</span>
+            }
+            else
+            {
+                <span class="text-danger">Sem Stock</span>
+            }
+        </div>
+
+        @if (!Product.IsPublic)
+        {
+            <span class="badge bg-warning text-dark mb-2 align-self-start">
+                <i class="bi bi-lock-fill me-1"></i>Apenas Membros
+            </span>
+        }
+
+        <!-- Actions bar -->
+        @if (CanShowActions())
+        {
+            <div class="product-actions mt-auto">
+                @if (HasReservation)
+                {
+                    <!-- State B: User has reservation -->
+                    <button class="btn btn-primary btn-sm product-action-btn" 
+                            @onclick="OnViewReservation"
+                            title="Ver Reserva">
+                        <i class="bi bi-bookmark-check me-1"></i>Ver Reserva
+                    </button>
+                    <button class="btn btn-danger btn-sm product-action-btn" 
+                            @onclick="OnCancelReservation"
+                            title="Anular Reserva">
+                        <i class="bi bi-x-circle me-1"></i>Anular
+                    </button>
+                    @if (IsAdmin)
+                    {
+                        <button class="btn btn-outline-primary btn-sm product-action-btn" 
+                                @onclick="OnViewReservations"
+                                title="Ver Reservas">
+                            <i class="bi bi-collection me-1"></i>Ver Reservas
+                        </button>
+                    }
+                }
+                else
+                {
+                    <!-- State A: User without reservation -->
+                    @if (Product.Stock > 0)
+                    {
+                        <button class="btn btn-primary btn-sm product-action-btn" 
+                                @onclick="OnReserve"
+                                disabled="@(!CanReserve())"
+                                title="@GetReserveTooltip()">
+                            <i class="bi bi-bookmark-plus me-1"></i>Reservar
+                        </button>
+                    }
+                    @if (IsAdmin)
+                    {
+                        <button class="btn btn-outline-primary btn-sm product-action-btn" 
+                                @onclick="OnViewReservations"
+                                title="Ver Reservas">
+                            <i class="bi bi-collection me-1"></i>Ver Reservas
+                        </button>
+                    }
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Product Product { get; set; } = null!;
+
+    [Parameter]
+    public bool HasReservation { get; set; }
+
+    [Parameter]
+    public bool IsAdmin { get; set; }
+
+    [Parameter]
+    public bool IsAuthenticated { get; set; }
+
+    [Parameter]
+    public bool IsMember { get; set; }
+
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    [Parameter]
+    public EventCallback OnReserve { get; set; }
+
+    [Parameter]
+    public EventCallback OnViewReservation { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelReservation { get; set; }
+
+    [Parameter]
+    public EventCallback OnViewReservations { get; set; }
+
+    [Parameter]
+    public string? ImageVersion { get; set; }
+
+    private bool IsImageLoading { get; set; } = true;
+
+    private void OnImageLoaded()
+    {
+        IsImageLoading = false;
+        StateHasChanged();
+    }
+
+    private void OnImageError()
+    {
+        IsImageLoading = false;
+        StateHasChanged();
+    }
+
+    private string GetImageUrl()
+    {
+        if (!string.IsNullOrEmpty(Product.ImageSrc) && Product.ImageSrc.StartsWith("/api/images/"))
+        {
+            return $"{Product.ImageSrc}?v={ImageVersion ?? DateTime.UtcNow.Ticks.ToString()}";
+        }
+        return Product.ImageSrc ?? string.Empty;
+    }
+
+    private bool CanShowActions()
+    {
+        // Don't show actions if product is not public and user is not a member
+        if (!Product.IsPublic && !IsMember)
+        {
+            return false;
+        }
+        
+        // Show actions if user is authenticated (member)
+        return IsAuthenticated;
+    }
+
+    private bool CanReserve()
+    {
+        // Can reserve if product has stock and user is authenticated
+        if (Product.Stock <= 0)
+        {
+            return false;
+        }
+
+        // If product is not public, user must be a member
+        if (!Product.IsPublic && !IsMember)
+        {
+            return false;
+        }
+
+        return IsAuthenticated;
+    }
+
+    private string GetReserveTooltip()
+    {
+        if (Product.Stock <= 0)
+        {
+            return "Produto esgotado";
+        }
+
+        if (!IsAuthenticated)
+        {
+            return "Deve estar autenticado para reservar";
+        }
+
+        if (!Product.IsPublic && !IsMember)
+        {
+            return "Apenas membros podem reservar";
+        }
+
+        return "Reservar produto";
+    }
+}

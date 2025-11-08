@@ -1,0 +1,40 @@
+/* ReservationCard Component Styles */
+
+.reservation-card {
+    background-color: #1a1a1a;
+    border-color: #2f2f2f;
+}
+
+.reservation-card-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 0.25rem;
+}
+
+.reservation-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.reservation-detail-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.reservation-detail-item i {
+    flex-shrink: 0;
+}
+
+/* Ensure badges are consistent */
+.reservation-card .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.reservation-card .bg-purple {
+    background-color: #6f42c1 !important;
+    color: #ffffff !important;
+}

@@ -1,0 +1,257 @@
+/* ProductCard Component Styles */
+
+/* Card shell */
+.product-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(111, 66, 193, 0.3) !important;
+}
+
+/* Purple border utility */
+.border-purple-700 {
+    border-color: #6f42c1 !important;
+}
+
+/* Purple background badge */
+.bg-purple {
+    background-color: #6f42c1 !important;
+    color: #ffffff !important;
+}
+
+/* Media header - 16:9 aspect ratio */
+.product-card-media {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 aspect ratio */
+    overflow: hidden;
+    background-color: #1a1a1a;
+}
+
+.product-card-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Placeholder when no image */
+.product-card-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #1a1a1a;
+    color: #6f42c1;
+}
+
+.product-card-placeholder i {
+    font-size: 4rem;
+    opacity: 0.5;
+}
+
+/* Skeleton loading state */
+.product-card-skeleton {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-shimmer {
+    width: 100%;
+    height: 100%;
+}
+
+/* Admin overlay with edit and delete buttons */
+.product-card-admin-overlay {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+}
+
+/* Square buttons 36x36 */
+.btn-square-sm {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    border: none;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.btn-square-sm:focus {
+    outline: 2px solid #6f42c1;
+    outline-offset: 2px;
+}
+
+/* Edit button - white */
+.product-btn-edit {
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #000000;
+}
+
+.product-btn-edit:hover {
+    background-color: #ffffff;
+    color: #000000;
+}
+
+/* Delete button - red */
+.product-btn-delete {
+    background-color: rgba(231, 76, 60, 0.9);
+    color: #ffffff;
+}
+
+.product-btn-delete:hover {
+    background-color: #e74c3c;
+    color: #ffffff;
+}
+
+/* Card body */
+.product-card .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Price styling */
+.product-price {
+    font-size: 1.25rem;
+}
+
+/* Stock row */
+.product-stock {
+    font-size: 0.875rem;
+    color: #adb5bd;
+}
+
+/* Actions bar - consistent height, wrap on mobile */
+.product-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.product-action-btn {
+    flex: 1 1 auto;
+    min-width: fit-content;
+    white-space: nowrap;
+    padding: 0.375rem 0.75rem;
+}
+
+/* Make sure buttons in primary state have purple background */
+.product-card .btn-primary {
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+    color: #ffffff;
+}
+
+.product-card .btn-primary:hover:not(:disabled) {
+    background-color: #5a32a3;
+    border-color: #5a32a3;
+}
+
+.product-card .btn-primary:disabled {
+    background-color: #4a2b85;
+    border-color: #4a2b85;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.product-card .btn-outline-primary {
+    border-color: #6f42c1;
+    color: #6f42c1;
+}
+
+.product-card .btn-outline-primary:hover {
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+    color: #ffffff;
+}
+
+/* Focus rings for accessibility */
+.product-action-btn:focus {
+    outline: 2px solid #6f42c1;
+    outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+    .product-action-btn {
+        flex: 1 1 100%;
+        justify-content: center;
+    }
+    
+    .product-card-placeholder i {
+        font-size: 3rem;
+    }
+}
+
+/* Tablet and up - actions stay in row */
+@media (min-width: 768px) {
+    .product-actions {
+        flex-wrap: nowrap;
+    }
+}
+
+/* Ensure consistent card heights in grid */
+.product-card-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 576px) {
+    .product-card-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 768px) {
+    .product-card-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 992px) {
+    .product-card-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (min-width: 1200px) {
+    .product-card-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
