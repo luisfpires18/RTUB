@@ -42,7 +42,7 @@
         else
         {
             <div class="instrument-circle-placeholder">
-                <i class="bi bi-music-note-beamed instrument-icon-large"></i>
+                <i class="bi @GetInstrumentIcon(Instrument.Category) instrument-icon-large"></i>
             </div>
         }
     </div>
@@ -79,7 +79,7 @@
     @if (ShowViewButton)
     {
         <div class="instrument-circle-actions">
-            <button class="btn btn-sm btn-purple w-100" 
+            <button class="btn btn-sm btn-purple" 
                     @onclick="@OnView"
                     title="@ViewTooltip"
                     aria-label="@ViewTooltip">
@@ -147,6 +147,24 @@
             InstrumentCondition.Worn => "bg-warning",
             InstrumentCondition.NeedsMaintenance => "bg-danger",
             _ => "bg-secondary"
+        };
+    }
+
+    private string GetInstrumentIcon(string category)
+    {
+        return category switch
+        {
+            "Guitarra" => "bi-music-note", // Guitar-like icon
+            "Bandolim" => "bi-music-note", // Mandolin (similar to guitar)
+            "Cavaquinho" => "bi-music-note", // Small guitar
+            "Acordeao" => "bi-grid-3x3-gap", // Accordion (grid pattern represents keys)
+            "Fagote" => "bi-subtract", // Bassoon (long vertical instrument)
+            "Flauta" => "bi-dash-lg", // Flute (horizontal line)
+            "Baixo" => "bi-music-note-beamed", // Bass
+            "Percussao" => "bi-circle", // Percussion (drum-like)
+            "Pandeireta" => "bi-record-circle", // Tambourine (circular with dots)
+            "Estandarte" => "bi-flag", // Flag
+            _ => "bi-music-note-beamed" // Default music icon
         };
     }
 }
