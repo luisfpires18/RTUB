@@ -68,7 +68,7 @@ public class EventCardTests : TestContext
     }
 
     [Fact]
-    public void EventCard_RendersDescription_WhenProvided()
+    public void EventCard_DoesNotRenderDescription_DescriptionMovedToDetailsModal()
     {
         // Arrange
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao, "This is a great event!");
@@ -78,8 +78,8 @@ public class EventCardTests : TestContext
             .Add(p => p.Event, eventEntity)
             .Add(p => p.EnrollmentCount, 0));
 
-        // Assert
-        cut.Markup.Should().Contain("This is a great event!", "card should display description");
+        // Assert - Description should NOT be rendered in the card (moved to details modal)
+        cut.Markup.Should().NotContain("This is a great event!", "card should not display description - it's in the details modal");
     }
 
     [Fact]

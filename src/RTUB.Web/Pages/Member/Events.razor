@@ -791,49 +791,6 @@ else
     </FooterContent>
 </Modal>
 
-<!-- Event Details Modal -->
-<DetailsModal Show="@showEventDetailsModal" 
-              ShowChanged="@((bool show) => showEventDetailsModal = show)"
-              Title="Detalhes da Atuação" 
-              HeaderTitle="@(viewingEvent?.Name ?? "")"
-              ImageUrl="@(viewingEvent != null && !string.IsNullOrEmpty(viewingEvent.ImageSrc) ? GetEventImageUrl(viewingEvent.ImageSrc) : null)"
-              IconClass="@(viewingEvent != null && string.IsNullOrEmpty(viewingEvent.ImageSrc) ? "bi-calendar-event" : null)"
-              OnClose="CloseEventDetailsModal">
-    <BadgesContent>
-        @if (viewingEvent != null)
-        {
-            <span class="badge bg-primary">@GetEventTypeDisplay(viewingEvent.Type)</span>
-        }
-    </BadgesContent>
-    <Sections>
-        @if (viewingEvent != null)
-        {
-            <!-- Event Information Section -->
-            <InfoSection SectionTitle="Informação da Atuação" 
-                        IconClass="bi-info-circle-fill" 
-                        CssClass="mb-4">
-                <ProfileField Label="Nome" Value="@viewingEvent.Name" />
-                <ProfileField Label="Tipo" Value="@GetEventTypeDisplay(viewingEvent.Type)" />
-                <ProfileField Label="Data" 
-                            Value="@(viewingEvent.EndDate.HasValue && viewingEvent.EndDate.Value.Date != viewingEvent.Date.Date 
-                                    ? $"{viewingEvent.Date:dd MMM} - {viewingEvent.EndDate.Value:dd MMM yyyy}" 
-                                    : viewingEvent.Date.ToString("dd MMM yyyy"))" />
-                <ProfileField Label="Localização" Value="@viewingEvent.Location" />
-            </InfoSection>
-
-            <!-- Description Section -->
-            @if (!string.IsNullOrEmpty(viewingEvent.Description))
-            {
-                <InfoSection SectionTitle="Descrição" 
-                            IconClass="bi-file-text" 
-                            CssClass="mb-3">
-                    <p class="text-white-full mb-0" style="white-space: pre-line;">@viewingEvent.Description</p>
-                </InfoSection>
-            }
-        }
-    </Sections>
-</DetailsModal>
-
 @code {
     private List<Event>? events;
     private List<Enrollment>? enrollments;
@@ -851,7 +808,6 @@ else
     private bool showTrophyEditModal = false;
     private bool showTrophyDeleteModal = false;
     private bool showDeleteEnrollmentModal = false;
-    private bool showEventDetailsModal = false;
     private bool isCreateMode = false;
     private bool isEditingEnrollment = false;
     private bool wantToPlay = false; // Toggle for "Quero tocar"
@@ -863,7 +819,6 @@ else
     private Event? selectedEvent;
     private Event? selectedEventForRepertoire;
     private Event? selectedEventForTrophies;
-    private Event? viewingEvent;
     private Enrollment? enrollmentForm;
     private Enrollment? removingEnrollment;
     private Enrollment? deletingEnrollment;
@@ -1584,19 +1539,6 @@ else
         {
             Console.WriteLine($"Error deleting enrollment: {ex.Message}");
         }
-    }
-    
-    // Event Details Modal Methods
-    private void OpenEventDetailsModal(Event eventItem)
-    {
-        viewingEvent = eventItem;
-        showEventDetailsModal = true;
-    }
-    
-    private void CloseEventDetailsModal()
-    {
-        showEventDetailsModal = false;
-        viewingEvent = null;
     }
     
     private string GetEventImageUrl(string imageSrc)
