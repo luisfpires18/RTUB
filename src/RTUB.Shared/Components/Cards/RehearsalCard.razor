@@ -68,56 +68,80 @@
 
         @if (!Rehearsal.IsCanceled)
         {
-            <!-- Action buttons row (Ver Detalhes + Ver Presenças) -->
-            <div class="rehearsal-actions-section mt-auto">
-                <div class="d-flex gap-2 align-items-center justify-content-between flex-wrap">
-                    <!-- Ver Detalhes button (purple eye icon) -->
-                    <button class="btn btn-sm btn-purple btn-sm-padded" @onclick="HandleViewDetails" title="Ver Detalhes">
+            <div class="rehearsal-actions-section mt-auto p-2 rounded">
+                <!-- First row: View Details and View Attendances buttons -->
+                <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
+                    <!-- View Details button -->
+                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" 
+                            @onclick="HandleViewDetails" 
+                            title="Ver Detalhes">
                         <i class="bi bi-eye-fill icon-size-1rem"></i>
+                        <span>Ver</span>
                     </button>
-                    
-                    <!-- Ver Presenças button with attendance count -->
-                    <button class="btn btn-sm btn-outline-info btn-sm-padded" @onclick="HandleViewAttendances" title="Ver Presenças">
-                        <i class="bi bi-people icon-size-1rem"></i> @AttendanceCount
+
+                    <!-- View Attendances button -->
+                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
+                            @onclick="HandleViewAttendances" 
+                            title="Ver Presenças">
+                        <i class="bi bi-people icon-size-1rem"></i>
+                        <span>@AttendanceCount</span>
                     </button>
                 </div>
-            </div>
 
-            @if (!IsPastRehearsal)
-            {
-                <!-- User attendance buttons (only for upcoming rehearsals) -->
-                <div class="rehearsal-user-actions mt-2">
-                    <div class="d-flex gap-1 align-items-center justify-content-center flex-wrap">
+                @if (!IsPastRehearsal)
+                {
+                    <!-- Second row: User attendance action buttons -->
+                    <div class="d-flex gap-2 align-items-center justify-content-center">
                         @if (UserAttendance == null)
                         {
-                            <button class="btn btn-sm btn-purple btn-sm-padded" @onclick="HandleMarkAttendance" title="Marcar Presença">
+                            <!-- Mark Attendance button -->
+                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
+                                    @onclick="HandleMarkAttendance" 
+                                    title="Marcar Presença">
                                 <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
+                                <span class="d-none d-sm-inline">Marcar</span>
                             </button>
                         }
                         else
                         {
                             @if (UserAttendance.Attended)
                             {
-                                <button class="btn btn-sm btn-success btn-sm-padded" disabled title="Presença Aprovada">
+                                <!-- Attendance Approved button (disabled, success) -->
+                                <button class="btn btn-sm btn-success d-flex align-items-center gap-1" 
+                                        disabled 
+                                        title="Presença Aprovada">
                                     <i class="bi bi-check-circle-fill icon-size-1rem"></i>
+                                    <span class="d-none d-md-inline">Aprovada</span>
                                 </button>
                             }
                             else
                             {
-                                <button class="btn btn-sm btn-warning btn-sm-padded" disabled title="Presença Pendente">
+                                <!-- Attendance Pending button (disabled, warning) -->
+                                <button class="btn btn-sm btn-warning d-flex align-items-center gap-1" 
+                                        disabled 
+                                        title="Presença Pendente">
                                     <i class="bi bi-clock-fill icon-size-1rem"></i>
+                                    <span class="d-none d-md-inline">Pendente</span>
                                 </button>
                             }
-                            <button class="btn btn-sm btn-light btn-sm-padded" @onclick="HandleEditAttendance" title="Editar Presença">
+                            
+                            <!-- Edit Attendance button (white) -->
+                            <button class="btn btn-sm btn-light d-flex align-items-center" 
+                                    @onclick="HandleEditAttendance" 
+                                    title="Editar Presença">
                                 <i class="bi bi-pencil-fill icon-size-1rem"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger btn-sm-padded" @onclick="HandleRemoveAttendance" title="Remover Presença">
+                            
+                            <!-- Remove Attendance button (red) -->
+                            <button class="btn btn-sm btn-danger d-flex align-items-center" 
+                                    @onclick="HandleRemoveAttendance" 
+                                    title="Remover Presença">
                                 <i class="bi bi-x-circle-fill icon-size-1rem"></i>
                             </button>
                         }
                     </div>
-                </div>
-            }
+                }
+            </div>
         }
     </div>
 </div>
