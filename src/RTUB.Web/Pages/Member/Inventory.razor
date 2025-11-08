@@ -238,12 +238,12 @@ else
             <div class="mb-3">
                 <label class="form-label">Imagem</label>
                 <InputFile class="form-control file-input-dark" OnChange="HandleInstrumentImageUpload" accept="image/*" />
-                @if (!string.IsNullOrEmpty(instrument.ImageSrc) && uploadedInstrumentImagePath == null && instrument.ImageData != null && instrument.ImageData.Length > 0)
+                @if (!string.IsNullOrEmpty(instrument.ImageUrl) && uploadedInstrumentImagePath == null)
                 {
                     <div class="mt-2">
                         <small class="text-muted">Imagem atual</small>
                         <br />
-                        <img src="@GetImageUrl(instrument.ImageSrc)" alt="Preview" class="img-thumbnail mt-1 slideshow-preview" />
+                        <img src="@instrument.ImageUrl" alt="Preview" class="img-thumbnail mt-1 slideshow-preview" />
                     </div>
                 }
                 @if (uploadedInstrumentImagePath != null)
@@ -475,6 +475,8 @@ else
         }
     }
 
+    private byte[]? tempInstrumentCroppedImageData = null;
+
     private void OnImageCropped(byte[] croppedImageData)
     {
         try
@@ -483,8 +485,8 @@ else
             {
                 if (editingInstrument != null)
                 {
-                    editingInstrument.ImageData = croppedImageData;
-                    editingInstrument.ImageContentType = "image/jpeg";
+                    // Store cropped image temporarily until save
+                    tempInstrumentCroppedImageData = croppedImageData;
                     uploadedInstrumentImagePath = "uploaded";
                 }
                 

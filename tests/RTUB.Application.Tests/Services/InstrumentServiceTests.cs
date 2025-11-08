@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -17,6 +18,8 @@ public class InstrumentServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly Mock<IImageService> _imageServiceMock;
+    private readonly Mock<IInstrumentStorageService> _mockInstrumentStorageService;
+    private readonly Mock<ILogger<InstrumentService>> _mockLogger;
     private readonly InstrumentService _service;
 
     public InstrumentServiceTests()
@@ -27,7 +30,9 @@ public class InstrumentServiceTests : IDisposable
 
         _context = new ApplicationDbContext(options);
         _imageServiceMock = new Mock<IImageService>();
-        _service = new InstrumentService(_context, _imageServiceMock.Object);
+        _mockInstrumentStorageService = new Mock<IInstrumentStorageService>();
+        _mockLogger = new Mock<ILogger<InstrumentService>>();
+        _service = new InstrumentService(_context, _imageServiceMock.Object, _mockInstrumentStorageService.Object, _mockLogger.Object);
     }
 
     [Fact]

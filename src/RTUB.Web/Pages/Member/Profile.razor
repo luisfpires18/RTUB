@@ -16,6 +16,7 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IImageService ImageService
+@inject IUserProfileService UserProfileService
 @inject IJSRuntime JSRuntime
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject IRoleAssignmentService RoleAssignmentService
@@ -546,14 +547,12 @@ else
         {
             if (user != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                user.ProfilePictureData = croppedImageData;
-                user.ProfilePictureContentType = "image/jpeg";
-
+                // Use UserProfileService to upload to S3
                 await SetAuditContextToCurrentUser();
-                await UserManager.UpdateAsync(user);
+                await UserProfileService.UpdateProfilePictureAsync(user.Id, croppedImageData, "image/jpeg");
                 
-                // CRITICAL: Clear server-side image cache to ensure fresh image is served
-                ImageService.InvalidateProfileImageCache(user.Id);
+                // Reload user to get updated S3ImageFilename
+                user = await UserManager.FindByIdAsync(user.Id);
                 
                 // Update cache-bust parameter to force image reload
                 profilePictureVersion = DateTime.UtcNow.Ticks;

@@ -6,6 +6,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -14,6 +15,8 @@ public class UserProfileServiceTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<IImageService> _mockImageService;
+    private readonly Mock<IProfileStorageService> _mockProfileStorageService;
+    private readonly Mock<ILogger<UserProfileService>> _mockLogger;
     private readonly UserProfileService _service;
 
     public UserProfileServiceTests()
@@ -30,8 +33,15 @@ public class UserProfileServiceTests : IDisposable
             userStoreMock.Object, null, null, null, null, null, null, null, null);
         
         _mockImageService = new Mock<IImageService>();
+        _mockProfileStorageService = new Mock<IProfileStorageService>();
+        _mockLogger = new Mock<ILogger<UserProfileService>>();
         
-        _service = new UserProfileService(_mockUserManager.Object, _context, _mockImageService.Object);
+        _service = new UserProfileService(
+            _mockUserManager.Object, 
+            _context, 
+            _mockImageService.Object,
+            _mockProfileStorageService.Object,
+            _mockLogger.Object);
     }
 
     [Fact]
@@ -130,19 +140,24 @@ public class UserProfileServiceTests : IDisposable
         var user = new ApplicationUser { Id = userId, UserName = "testuser" };
         var imageData = new byte[] { 1, 2, 3, 4 };
         var contentType = "image/jpeg";
+        var s3Filename = "testuser_20240101120000.webp";
 
         _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
         _mockUserManager.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
+        _mockProfileStorageService.Setup(x => x.UploadImageAsync(imageData, It.IsAny<string>(), contentType))
+            .ReturnsAsync(s3Filename);
 
         // Act
         await _service.UpdateProfilePictureAsync(userId, imageData, contentType);
 
         // Assert
-        user.ProfilePictureData.Should().Equal(imageData);
-        user.ProfilePictureContentType.Should().Be(contentType);
+        user.S3ImageFilename.Should().Be(s3Filename);
+        user.ProfilePictureData.Should().BeNull(); // Should be cleared since stored in S3
+        user.ProfilePictureContentType.Should().BeNull();
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
         _mockImageService.Verify(x => x.InvalidateProfileImageCache(userId), Times.Once);
+        _mockProfileStorageService.Verify(x => x.UploadImageAsync(imageData, It.IsAny<string>(), contentType), Times.Once);
     }
 
     [Fact]

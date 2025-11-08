@@ -33,12 +33,11 @@ public class Instrument : BaseEntity
     
     public DateTime? LastMaintenanceDate { get; set; }
     
-    // Image
-    public byte[]? ImageData { get; set; }
-    public string? ImageContentType { get; set; }
+    // Image URL - stores the full S3 URL for instrument image
+    public string? ImageUrl { get; set; }
 
     // Helper property
-    public string ImageSrc => $"/api/images/instrument/{Id}";
+    public string ImageSrc => !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
 
     // Private constructor for EF Core
     private Instrument() { }

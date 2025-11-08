@@ -3,6 +3,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
+using Microsoft.Extensions.Logging;
 
 
 namespace RTUB.Application.Services;
@@ -16,12 +17,21 @@ public class UserProfileService : IUserProfileService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _context;
     private readonly IImageService _imageService;
+    private readonly IProfileStorageService _profileStorageService;
+    private readonly ILogger<UserProfileService> _logger;
 
-    public UserProfileService(UserManager<ApplicationUser> userManager, ApplicationDbContext context, IImageService imageService)
+    public UserProfileService(
+        UserManager<ApplicationUser> userManager, 
+        ApplicationDbContext context, 
+        IImageService imageService,
+        IProfileStorageService profileStorageService,
+        ILogger<UserProfileService> logger)
     {
         _userManager = userManager;
         _context = context;
         _imageService = imageService;
+        _profileStorageService = profileStorageService;
+        _logger = logger;
     }
 
     public async Task<ApplicationUser?> GetUserByIdAsync(string userId)
@@ -50,15 +60,50 @@ public class UserProfileService : IUserProfileService
         if (user == null)
             throw new InvalidOperationException($"User with ID {userId} not found");
 
-        user.ProfilePictureData = imageData;
-        user.ProfilePictureContentType = contentType;
-
-        var result = await _userManager.UpdateAsync(user);
-        if (!result.Succeeded)
-            throw new InvalidOperationException("Failed to update profile picture");
-        
-        // Invalidate the cached profile image so the new image is served immediately
-        _imageService.InvalidateProfileImageCache(userId);
+        try
+        {
+            // Upload to S3 storage
+            var username = user.UserName ?? user.Email ?? userId;
+            var s3Filename = await _profileStorageService.UploadImageAsync(imageData, username, contentType);
+            
+            // Delete old S3 image if it exists
+            if (!string.IsNullOrEmpty(user.S3ImageFilename))
+            {
+                await _profileStorageService.DeleteImageAsync(user.S3ImageFilename);
+            }
+            
+            // Update user with S3 filename and clear database-stored image
+            user.S3ImageFilename = s3Filename;
+            user.ProfilePictureData = null; // Clear database storage
+            user.ProfilePictureContentType = null;
+            
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+                throw new InvalidOperationException("Failed to update profile picture");
+            
+            // Invalidate the cached profile image so the new image is served immediately
+            _imageService.InvalidateProfileImageCache(userId);
+            
+            _logger.LogInformation("Successfully uploaded profile picture to S3 for user {UserId}, filename: {Filename}", 
+                userId, s3Filename);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upload profile picture to S3 for user {UserId}", userId);
+            
+            // Fall back to database storage if S3 upload fails
+            user.ProfilePictureData = imageData;
+            user.ProfilePictureContentType = contentType;
+            
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+                throw new InvalidOperationException("Failed to update profile picture");
+            
+            // Invalidate the cached profile image so the new image is served immediately
+            _imageService.InvalidateProfileImageCache(userId);
+            
+            _logger.LogWarning("Fell back to database storage for profile picture for user {UserId}", userId);
+        }
     }
 
     public async Task UpdateUserInfoAsync(string userId, string firstName, string lastName, string? nickname, DateTime? dateOfBirth, string? phoneContact)
