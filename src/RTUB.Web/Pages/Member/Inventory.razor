@@ -405,10 +405,7 @@ else
             return;
         }
         
-        // Create with temporary placeholder to bypass factory validation
-        // User must fill in actual name before saving
-        editingInstrument = Instrument.Create(categories.First(), "___", InstrumentCondition.Good);
-        editingInstrument.Name = ""; // Clear immediately for user input
+        editingInstrument = Instrument.CreateEmpty();
         isInstrumentCreateMode = true;
         uploadedInstrumentImagePath = null;
         showInstrumentEditModal = true;

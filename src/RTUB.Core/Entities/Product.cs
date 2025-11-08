@@ -40,6 +40,23 @@ public class Product : BaseEntity
     // Private constructor for EF Core
     private Product() { }
 
+    /// <summary>
+    /// Creates an empty Product instance for form initialization.
+    /// Properties must be filled before saving.
+    /// </summary>
+    public static Product CreateEmpty()
+    {
+        return new Product
+        {
+            Name = string.Empty,
+            Type = string.Empty,
+            Price = 0,
+            Stock = 0,
+            IsAvailable = true,
+            IsPublic = true
+        };
+    }
+
     public static Product Create(string name, string type, decimal price, int stock = 0)
     {
         if (string.IsNullOrWhiteSpace(name))

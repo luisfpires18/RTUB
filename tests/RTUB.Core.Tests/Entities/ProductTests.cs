@@ -211,4 +211,20 @@ public class ProductTests
         // Assert
         imageSrc.Should().Contain("/api/images/product/");
     }
+
+    [Fact]
+    public void CreateEmpty_CreatesProductWithEmptyFields()
+    {
+        // Act
+        var product = Product.CreateEmpty();
+
+        // Assert
+        product.Should().NotBeNull();
+        product.Name.Should().Be(string.Empty);
+        product.Type.Should().Be(string.Empty);
+        product.Price.Should().Be(0);
+        product.Stock.Should().Be(0);
+        product.IsAvailable.Should().BeTrue();
+        product.IsPublic.Should().BeTrue();
+    }
 }

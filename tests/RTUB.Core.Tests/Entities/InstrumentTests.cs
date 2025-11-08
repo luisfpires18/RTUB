@@ -131,4 +131,17 @@ public class InstrumentTests
         // Assert
         imageSrc.Should().Contain("/api/images/instrument/");
     }
+
+    [Fact]
+    public void CreateEmpty_CreatesInstrumentWithEmptyFields()
+    {
+        // Act
+        var instrument = Instrument.CreateEmpty();
+
+        // Assert
+        instrument.Should().NotBeNull();
+        instrument.Category.Should().Be(string.Empty);
+        instrument.Name.Should().Be(string.Empty);
+        instrument.Condition.Should().Be(InstrumentCondition.Good);
+    }
 }

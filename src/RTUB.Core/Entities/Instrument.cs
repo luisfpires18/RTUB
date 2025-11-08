@@ -43,6 +43,20 @@ public class Instrument : BaseEntity
     // Private constructor for EF Core
     private Instrument() { }
 
+    /// <summary>
+    /// Creates an empty Instrument instance for form initialization.
+    /// Properties must be filled before saving.
+    /// </summary>
+    public static Instrument CreateEmpty()
+    {
+        return new Instrument
+        {
+            Category = string.Empty,
+            Name = string.Empty,
+            Condition = InstrumentCondition.Good
+        };
+    }
+
     public static Instrument Create(string category, string name, InstrumentCondition condition)
     {
         if (string.IsNullOrWhiteSpace(category))
