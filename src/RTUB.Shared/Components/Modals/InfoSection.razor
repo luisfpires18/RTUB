@@ -1,0 +1,46 @@
+@namespace RTUB.Shared
+@* 
+    Reusable Info Section Component
+    Used within DetailsModal for displaying grouped information
+*@
+
+<div class="modal-info-section @(string.IsNullOrEmpty(CssClass) ? "" : CssClass)">
+    <div class="modal-section-header">
+        <h6 class="modal-section-title">
+            @if (!string.IsNullOrEmpty(IconClass))
+            {
+                <i class="bi @IconClass me-2 text-primary"></i>
+            }
+            @SectionTitle
+        </h6>
+    </div>
+    <div class="modal-section-body">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Title of the information section
+    /// </summary>
+    [Parameter]
+    public string SectionTitle { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional icon class (e.g., "bi-info-circle-fill")
+    /// </summary>
+    [Parameter]
+    public string? IconClass { get; set; }
+
+    /// <summary>
+    /// Additional CSS class for the section
+    /// </summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Content of the section
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

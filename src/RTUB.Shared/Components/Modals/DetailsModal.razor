@@ -1,0 +1,159 @@
+@namespace RTUB.Shared
+@* 
+    Reusable Details Modal Component
+    Used for displaying detailed information in a consistent format across the application
+*@
+
+@if (Show)
+{
+    <Modal Show="@Show" 
+           ShowChanged="@((bool show) => OnShowChanged(show))"
+           Title="@Title" 
+           Size="Modal.ModalSize.Large"
+           Centered="true">
+        <BodyContent>
+            <!-- Centered Header Section -->
+            <div class="text-center mb-4">
+                @if (ImageContent != null)
+                {
+                    @ImageContent
+                }
+                else if (!string.IsNullOrEmpty(ImageUrl))
+                {
+                    <img src="@ImageUrl" alt="@HeaderTitle"
+                         class="mb-3" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 3px solid var(--bs-primary);" />
+                }
+                else if (!string.IsNullOrEmpty(IconClass))
+                {
+                    <div class="mb-3" style="width: 200px; height: 200px; border-radius: 50%; background: linear-gradient(135deg, rgba(111, 66, 193, 0.2), rgba(111, 66, 193, 0.05)); display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 3px solid var(--bs-primary);">
+                        <i class="bi @IconClass" style="font-size: 4rem; color: rgba(255, 255, 255, 0.5);"></i>
+                    </div>
+                }
+                
+                <h4 class="mb-2">@HeaderTitle</h4>
+                
+                <!-- Badges centered below name -->
+                @if (BadgesContent != null)
+                {
+                    <div class="d-flex justify-content-center flex-wrap gap-1 mb-2">
+                        @BadgesContent
+                    </div>
+                }
+            </div>
+
+            <div class="mb-3"></div>
+
+            <!-- Information Sections -->
+            @if (Sections != null)
+            {
+                @Sections
+            }
+            
+            @if (BodyContent != null)
+            {
+                @BodyContent
+            }
+        </BodyContent>
+        <FooterContent>
+            @if (FooterContent != null)
+            {
+                @FooterContent
+            }
+            else
+            {
+                <button type="button" class="btn btn-secondary" @onclick="Close">Fechar</button>
+            }
+        </FooterContent>
+    </Modal>
+}
+
+@code {
+    /// <summary>
+    /// Controls whether the modal is visible
+    /// </summary>
+    [Parameter]
+    public bool Show { get; set; }
+
+    /// <summary>
+    /// Event callback when Show state changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> ShowChanged { get; set; }
+
+    /// <summary>
+    /// Modal title displayed in header
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Header title displayed in the centered header section
+    /// </summary>
+    [Parameter]
+    public string HeaderTitle { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional image URL to display in header
+    /// </summary>
+    [Parameter]
+    public string? ImageUrl { get; set; }
+
+    /// <summary>
+    /// Optional custom image content (RenderFragment)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ImageContent { get; set; }
+
+    /// <summary>
+    /// Optional icon class (e.g., "bi-music-note-beamed") if no image is provided
+    /// </summary>
+    [Parameter]
+    public string? IconClass { get; set; }
+
+    /// <summary>
+    /// Optional badges content to display below header title
+    /// </summary>
+    [Parameter]
+    public RenderFragment? BadgesContent { get; set; }
+
+    /// <summary>
+    /// Information sections content
+    /// </summary>
+    [Parameter]
+    public RenderFragment? Sections { get; set; }
+
+    /// <summary>
+    /// Additional body content
+    /// </summary>
+    [Parameter]
+    public RenderFragment? BodyContent { get; set; }
+
+    /// <summary>
+    /// Footer content (buttons, actions, etc.)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? FooterContent { get; set; }
+
+    /// <summary>
+    /// Event callback when modal is closed
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private async Task Close()
+    {
+        Show = false;
+        await ShowChanged.InvokeAsync(false);
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task OnShowChanged(bool show)
+    {
+        Show = show;
+        await ShowChanged.InvokeAsync(show);
+        if (!show)
+        {
+            await OnClose.InvokeAsync();
+        }
+    }
+}

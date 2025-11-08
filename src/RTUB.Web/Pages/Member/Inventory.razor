@@ -64,13 +64,11 @@ else
     <!-- Filters -->
     <div class="row mb-3">
         <div class="col-md-4">
-            <select class="form-select" @bind="filterCategory" @bind:after="ApplyFilters">
-                <option value="">Todos os tipos</option>
-                @foreach (var category in categories)
-                {
-                    <option value="@category">@category</option>
-                }
-            </select>
+            <FilterDropdown ShowIcon="false"
+                          AllItemsLabel="Todos os tipos"
+                          Items="@categories"
+                          @bind-SelectedValue="filterCategory"
+                          OnChange="ApplyFilters" />
         </div>
         <div class="col-md-4">
             <select class="form-select" @bind="filterCondition" @bind:after="ApplyFilters">
@@ -112,81 +110,50 @@ else
 }
 
 <!-- Details Modal -->
-<Modal Show="@showViewDetailsModal" 
-       ShowChanged="@((bool show) => showViewDetailsModal = show)"
-       Title="Detalhes do Instrumento" 
-       Size="Modal.ModalSize.Large"
-       Centered="true">
-    <BodyContent>
+<DetailsModal Show="@showViewDetailsModal" 
+              ShowChanged="@((bool show) => showViewDetailsModal = show)"
+              Title="Detalhes do Instrumento" 
+              HeaderTitle="@(viewingInstrument?.Name ?? "")"
+              ImageUrl="@(viewingInstrument != null && viewingInstrument.ImageData != null && viewingInstrument.ImageData.Length > 0 ? GetImageUrl(viewingInstrument.ImageSrc) : null)"
+              IconClass="@(viewingInstrument != null && (viewingInstrument.ImageData == null || viewingInstrument.ImageData.Length == 0) ? "bi-music-note-beamed" : null)"
+              OnClose="CloseViewDetailsModal">
+    <BadgesContent>
         @if (viewingInstrument != null)
         {
-            <!-- Centered Header Section -->
-            <div class="text-center mb-4">
-                @if (viewingInstrument.ImageData != null && viewingInstrument.ImageData.Length > 0)
-                {
-                    <img src="@GetImageUrl(viewingInstrument.ImageSrc)" alt="@viewingInstrument.Name"
-                         class="mb-3" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 3px solid var(--bs-primary);" />
-                }
-                else
-                {
-                    <div class="mb-3" style="width: 200px; height: 200px; border-radius: 50%; background: linear-gradient(135deg, rgba(111, 66, 193, 0.2), rgba(111, 66, 193, 0.05)); display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 3px solid var(--bs-primary);">
-                        <i class="bi bi-music-note-beamed" style="font-size: 4rem; color: rgba(255, 255, 255, 0.5);"></i>
-                    </div>
-                }
-                
-                <h4 class="mb-2">@viewingInstrument.Name</h4>
-                
-                <!-- Badges centered below name -->
-                <div class="d-flex justify-content-center flex-wrap gap-1 mb-2">
-                    <span class="badge bg-primary">@viewingInstrument.Category</span>
-                    <span class="badge @GetConditionBadgeClass(viewingInstrument.Condition)">
-                        @GetConditionDisplayName(viewingInstrument.Condition)
-                    </span>
-                </div>
-            </div>
-
-            <div class="mb-3"></div>
-
+            <span class="badge bg-primary">@viewingInstrument.Category</span>
+            <span class="badge @GetConditionBadgeClass(viewingInstrument.Condition)">
+                @GetConditionDisplayName(viewingInstrument.Condition)
+            </span>
+        }
+    </BadgesContent>
+    <Sections>
+        @if (viewingInstrument != null)
+        {
             <!-- Instrument Information Section -->
-            <div class="modal-info-section mb-4">
-                <div class="modal-section-header">
-                    <h6 class="modal-section-title">
-                        <i class="bi bi-info-circle-fill me-2 text-primary"></i>
-                        Informações do Instrumento
-                    </h6>
-                </div>
-                <div class="modal-section-body">
-                    <ProfileField Label="Tipo" Value="@viewingInstrument.Category" />
-                    <ProfileField Label="Marca" Value="@viewingInstrument.Brand" />
-                    <ProfileField Label="Número de Série" Value="@viewingInstrument.SerialNumber" />
-                    <ProfileField Label="Localização" Value="@viewingInstrument.Location" />
-                    <ProfileField Label="Condição" Value="@GetConditionDisplayName(viewingInstrument.Condition)" />
-                    <ProfileField Label="Data Última Manutenção" 
-                                Value="@(viewingInstrument.LastMaintenanceDate.HasValue ? viewingInstrument.LastMaintenanceDate.Value.ToString("dd/MM/yyyy") : null)" />
-                </div>
-            </div>
+            <InfoSection SectionTitle="Informações do Instrumento" 
+                        IconClass="bi-info-circle-fill" 
+                        CssClass="mb-4">
+                <ProfileField Label="Tipo" Value="@viewingInstrument.Category" />
+                <ProfileField Label="Marca" Value="@viewingInstrument.Brand" />
+                <ProfileField Label="Número de Série" Value="@viewingInstrument.SerialNumber" />
+                <ProfileField Label="Localização" Value="@viewingInstrument.Location" />
+                <ProfileField Label="Condição" Value="@GetConditionDisplayName(viewingInstrument.Condition)" />
+                <ProfileField Label="Data Última Manutenção" 
+                            Value="@(viewingInstrument.LastMaintenanceDate.HasValue ? viewingInstrument.LastMaintenanceDate.Value.ToString("dd/MM/yyyy") : null)" />
+            </InfoSection>
 
             <!-- Maintenance Notes Section -->
             @if (!string.IsNullOrEmpty(viewingInstrument.MaintenanceNotes))
             {
-                <div class="modal-info-section mb-3">
-                    <div class="modal-section-header">
-                        <h6 class="modal-section-title">
-                            <i class="bi bi-wrench me-2 text-primary"></i>
-                            Notas de Manutenção
-                        </h6>
-                    </div>
-                    <div class="modal-section-body">
-                        <p class="text-white-full mb-0">@viewingInstrument.MaintenanceNotes</p>
-                    </div>
-                </div>
+                <InfoSection SectionTitle="Notas de Manutenção" 
+                            IconClass="bi-wrench" 
+                            CssClass="mb-3">
+                    <p class="text-white-full mb-0">@viewingInstrument.MaintenanceNotes</p>
+                </InfoSection>
             }
         }
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseViewDetailsModal">Fechar</button>
-    </FooterContent>
-</Modal>
+    </Sections>
+</DetailsModal>
 
 <!-- CRUD Modals for Instruments -->
 <CrudModalManager TEntity="Instrument"

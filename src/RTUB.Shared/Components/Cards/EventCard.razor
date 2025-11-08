@@ -55,26 +55,29 @@
                 </small>
             </p>
         }
-        @if (!string.IsNullOrEmpty(Event.Description))
-        {
-            <p class="card-text flex-grow-1 mb-2">@Event.Description</p>
-        }
 
         @if (!IsPastEvent)
         {
             <div class="enrollment-section mt-auto p-2 rounded">
-                <!-- First row: View and Repertoire buttons -->
+                <!-- First row: Details, View and Repertoire buttons - equal size -->
                 <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
+                    <!-- View Details button -->
+                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
+                            @onclick="OnViewDetails" 
+                            title="Ver Detalhes">
+                        <i class="bi bi-eye icon-size-1rem"></i>
+                    </button>
+
                     <!-- View Enrollments button -->
-                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
+                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
                             @onclick="OnViewEnrollments" 
                             title="Ver Inscrições">
                         <i class="bi bi-people icon-size-1rem"></i>
-                        <span>@EnrollmentCount</span>
+                        <span class="ms-1">@EnrollmentCount</span>
                     </button>
 
                     <!-- Watch Repertoire button -->
-                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center" 
+                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center event-action-btn" 
                             @onclick="OnWatchRepertoire" 
                             title="Ver Repertório">
                         <i class="bi bi-music-note-list icon-size-1rem"></i>
@@ -195,4 +198,17 @@
     /// </summary>
     [Parameter]
     public EventCallback OnWatchRepertoire { get; set; }
+
+    /// <summary>
+    /// Callback when the view details button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewDetails { get; set; }
 }
+
+<style>
+    .event-action-btn {
+        min-width: 48px;
+        height: 32px;
+    }
+</style>

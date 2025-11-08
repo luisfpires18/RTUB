@@ -1,0 +1,80 @@
+@namespace RTUB.Shared
+@* 
+    Reusable Filter Dropdown Component
+    Used for filtering lists with a consistent design across the application
+*@
+
+<div class="input-group">
+    @if (ShowIcon)
+    {
+        <span class="input-group-text bg-white">
+            <i class="bi @IconClass text-dark"></i>
+        </span>
+    }
+    <select class="form-select" @bind="CurrentValue" @bind:after="OnValueChanged">
+        <option value="">@AllItemsLabel</option>
+        @if (Items != null)
+        {
+            @foreach (var item in Items)
+            {
+                <option value="@item">@item</option>
+            }
+        }
+    </select>
+</div>
+
+@code {
+    /// <summary>
+    /// Whether to show the icon
+    /// </summary>
+    [Parameter]
+    public bool ShowIcon { get; set; } = true;
+
+    /// <summary>
+    /// Icon class for the filter (e.g., "bi-funnel")
+    /// </summary>
+    [Parameter]
+    public string IconClass { get; set; } = "bi-funnel";
+
+    /// <summary>
+    /// Label for "all items" option
+    /// </summary>
+    [Parameter]
+    public string AllItemsLabel { get; set; } = "Todos";
+
+    /// <summary>
+    /// List of items to display in dropdown
+    /// </summary>
+    [Parameter]
+    public List<string> Items { get; set; } = new();
+
+    /// <summary>
+    /// Currently selected value
+    /// </summary>
+    [Parameter]
+    public string SelectedValue { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Event callback when selection changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> SelectedValueChanged { get; set; }
+
+    /// <summary>
+    /// Additional action to perform after value changes
+    /// </summary>
+    [Parameter]
+    public EventCallback OnChange { get; set; }
+
+    private string CurrentValue
+    {
+        get => SelectedValue;
+        set => SelectedValue = value;
+    }
+
+    private async Task OnValueChanged()
+    {
+        await SelectedValueChanged.InvokeAsync(SelectedValue);
+        await OnChange.InvokeAsync();
+    }
+}
