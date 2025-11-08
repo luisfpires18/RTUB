@@ -78,6 +78,14 @@ else
                                         <i class="bi bi-trash music-icon-delete"></i>
                                     </button>
                                 </div>
+                                @if (!product.IsPublic)
+                                {
+                                    <div class="position-absolute bottom-0 end-0 m-2">
+                                        <button class="btn btn-sm btn-light text-dark" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
+                                            <i class="bi bi-list-check"></i> Ver Reservas
+                                        </button>
+                                    </div>
+                                }
                             </Authorized>
                         </AuthorizeView>
                     </div>
@@ -132,26 +140,12 @@ else
                                                     <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteReservationModal(userReservations[product.Id]!, product)" title="Anular">
                                                         <i class="bi bi-x-circle"></i> Anular
                                                     </button>
-                                                    <AuthorizeView Roles="Admin,Owner" Context="adminContext">
-                                                        <Authorized>
-                                                            <button class="btn btn-sm btn-light text-dark" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
-                                                                <i class="bi bi-list-check"></i> Ver Reservas
-                                                            </button>
-                                                        </Authorized>
-                                                    </AuthorizeView>
                                                 }
                                                 else
                                                 {
                                                     <button class="btn btn-sm btn-primary" @onclick="() => OpenReservationModal(product)" title="Reservar">
                                                         <i class="bi bi-calendar-check"></i> Reservar
                                                     </button>
-                                                    <AuthorizeView Roles="Admin,Owner" Context="adminContext">
-                                                        <Authorized>
-                                                            <button class="btn btn-sm btn-light text-dark" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
-                                                                <i class="bi bi-list-check"></i> Ver Reservas
-                                                            </button>
-                                                        </Authorized>
-                                                    </AuthorizeView>
                                                 }
                                             }
                                         </div>
