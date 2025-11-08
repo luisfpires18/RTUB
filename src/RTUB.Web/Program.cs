@@ -118,6 +118,7 @@ namespace RTUB
             services.AddSingleton<ILyricStorageService, DriveLyricStorageService>();
             services.AddSingleton<IDocumentStorageService, DriveDocumentStorageService>();
             services.AddSingleton<ISlideshowStorageService, DriveSlideshowStorageService>();
+            services.AddSingleton<IEventStorageService, DriveEventStorageService>();
             
             // --------- Inventory & Shop Services ---------
             services.AddScoped<IInstrumentService, InstrumentService>();
@@ -213,16 +214,17 @@ namespace RTUB
                 app.UseExceptionHandler("/Error");
                 app.UseHsts();
             }
-
-            // Only use HTTPS redirection in development
-            // In production (Azure App Service), HTTPS is handled at the load balancer level
+            
             if (app.Environment.IsDevelopment())
             {
+                // Only use HTTPS redirection in development
+                // In production (Azure App Service), HTTPS is handled at the load balancer level
                 app.UseHttpsRedirection();
-            }
 
-            // Enable response compression (must be before UseStaticFiles)
-            app.UseResponseCompression();
+                // Enable response compression (must be before UseStaticFiles)
+                app.UseResponseCompression();
+
+            }
 
             // Enable response caching
             app.UseResponseCaching();

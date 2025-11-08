@@ -20,6 +20,7 @@ public class EventRepertoireServiceTests : IDisposable
     private readonly AlbumService _albumService;
     private readonly SongService _songService;
     private readonly Mock<IImageService> _mockImageService;
+    private readonly Mock<IEventStorageService> _mockEventStorageService;
     private readonly DateTime _testEventDate = new DateTime(2025, 12, 31, 20, 0, 0);
 
     public EventRepertoireServiceTests()
@@ -31,7 +32,8 @@ public class EventRepertoireServiceTests : IDisposable
         _context = new ApplicationDbContext(options);
         _repertoireService = new EventRepertoireService(_context);
         _mockImageService = new Mock<IImageService>();
-        _eventService = new EventService(_context, _mockImageService.Object);
+        _mockEventStorageService = new Mock<IEventStorageService>();
+        _eventService = new EventService(_context, _mockImageService.Object, _mockEventStorageService.Object);
         _albumService = new AlbumService(_context, _mockImageService.Object);
         _songService = new SongService(_context);
     }
