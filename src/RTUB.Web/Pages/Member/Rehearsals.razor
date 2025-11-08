@@ -660,45 +660,41 @@ else
 }
 
 <!-- Ver Detalhes Modal -->
-@if (selectedRehearsal != null)
+@if (selectedRehearsal != null && showRehearsalDetailsModal)
 {
-    <div class="modal fade" id="ViewRehearsalDetailsModal" tabindex="-1" aria-labelledby="ViewRehearsalDetailsModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="ViewRehearsalDetailsModalLabel">Detalhes do Ensaio</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <strong>Data:</strong>
-                        <p>@selectedRehearsal.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"))</p>
-                    </div>
-                    <div class="mb-3">
-                        <strong>Local:</strong>
-                        <p>@selectedRehearsal.Location</p>
-                    </div>
-                    @if (!string.IsNullOrEmpty(selectedRehearsal.Theme))
-                    {
-                        <div class="mb-3">
-                            <strong>Tema:</strong>
-                            <p>@selectedRehearsal.Theme</p>
-                        </div>
-                    }
-                    @if (!string.IsNullOrEmpty(selectedRehearsal.Notes))
-                    {
-                        <div class="mb-3">
-                            <strong>Notas:</strong>
-                            <p style="white-space: pre-wrap;">@selectedRehearsal.Notes</p>
-                        </div>
-                    }
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                </div>
+    <Modal Show="@showRehearsalDetailsModal"
+           ShowChanged="@((bool show) => showRehearsalDetailsModal = show)"
+           Title="Detalhes do Ensaio"
+           Size="Modal.ModalSize.Default"
+           Centered="true">
+        <BodyContent>
+            <div class="mb-3">
+                <strong>Data:</strong>
+                <p>@selectedRehearsal.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"))</p>
             </div>
-        </div>
-    </div>
+            <div class="mb-3">
+                <strong>Local:</strong>
+                <p>@selectedRehearsal.Location</p>
+            </div>
+            @if (!string.IsNullOrEmpty(selectedRehearsal.Theme))
+            {
+                <div class="mb-3">
+                    <strong>Tema:</strong>
+                    <p>@selectedRehearsal.Theme</p>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(selectedRehearsal.Notes))
+            {
+                <div class="mb-3">
+                    <strong>Notas:</strong>
+                    <p style="white-space: pre-wrap;">@selectedRehearsal.Notes</p>
+                </div>
+            }
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseRehearsalDetailsModal">Fechar</button>
+        </FooterContent>
+    </Modal>
 }
 
 <!-- Minhas Presenças Modal -->
@@ -804,6 +800,7 @@ else
     private bool showStatsModal = false;
     private bool showDateRangeModal = false;
     private bool showMyAttendancesModal = false;
+    private bool showRehearsalDetailsModal = false;
     
     private Rehearsal? selectedRehearsal;
     private bool isSelectedRehearsalPast = false;
@@ -1769,10 +1766,15 @@ else
     }
 
     // Rehearsal Details Modal methods
-    private async Task OpenRehearsalDetailsModal(Rehearsal rehearsal)
+    private void OpenRehearsalDetailsModal(Rehearsal rehearsal)
     {
         selectedRehearsal = rehearsal;
-        await JSRuntime.InvokeVoidAsync("eval", "$('#ViewRehearsalDetailsModal').modal('show')");
+        showRehearsalDetailsModal = true;
+    }
+
+    private void CloseRehearsalDetailsModal()
+    {
+        showRehearsalDetailsModal = false;
     }
 
     private class UserAttendanceStats

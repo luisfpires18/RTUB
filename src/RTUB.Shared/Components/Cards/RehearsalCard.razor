@@ -70,14 +70,14 @@
         {
             <!-- Action buttons row (Ver Detalhes + Ver Presenças) -->
             <div class="rehearsal-actions-section mt-auto">
-                <div class="d-flex gap-2 align-items-center justify-content-between flex-wrap">
+                <div class="d-flex gap-2 align-items-center flex-wrap">
                     <!-- Ver Detalhes button (purple eye icon) -->
-                    <button class="btn btn-sm btn-purple btn-sm-padded" @onclick="HandleViewDetails" title="Ver Detalhes">
+                    <button class="btn btn-sm btn-purple btn-sm-padded flex-fill" @onclick="HandleViewDetails" title="Ver Detalhes">
                         <i class="bi bi-eye-fill icon-size-1rem"></i>
                     </button>
                     
                     <!-- Ver Presenças button with attendance count -->
-                    <button class="btn btn-sm btn-outline-info btn-sm-padded" @onclick="HandleViewAttendances" title="Ver Presenças">
+                    <button class="btn btn-sm btn-outline-info btn-sm-padded flex-fill" @onclick="HandleViewAttendances" title="Ver Presenças">
                         <i class="bi bi-people icon-size-1rem"></i> @AttendanceCount
                     </button>
                 </div>
