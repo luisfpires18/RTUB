@@ -323,6 +323,8 @@ else
             {
                 croppedImageData = croppedData;
                 uploadedImagePath = "uploaded";
+                // Set a temporary placeholder so validation passes
+                editingSlide.ImageUrl = "pending-upload";
                 StateHasChanged();
             }
         }
@@ -342,18 +344,8 @@ else
     {
         if (editingSlide == null) return;
 
-        // Set a temporary ImageUrl value if image data is ready to upload
-        // This allows validation to pass while the actual S3 upload happens after entity creation
-        string? originalImageUrl = editingSlide.ImageUrl;
-        if (croppedImageData != null && string.IsNullOrEmpty(editingSlide.ImageUrl))
-        {
-            editingSlide.ImageUrl = "pending-upload";
-        }
-        else if (croppedImageData == null && string.IsNullOrEmpty(editingSlide.ImageUrl))
-        {
-            // No image data and no existing URL - validation will fail as expected
-            // This ensures the form shows validation error when no image is provided
-        }
+        // Note: ImageUrl is already set to "pending-upload" in OnImageCropped when image is cropped
+        // If no image is uploaded, ImageUrl remains empty and validation will fail as expected
 
         if (isCreateMode)
         {
