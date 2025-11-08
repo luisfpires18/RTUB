@@ -109,42 +109,45 @@ else
                                 <span class="badge bg-warning text-dark mb-2">
                                     <i class="bi bi-lock-fill"></i> Apenas Membros
                                 </span>
-                                @if (product.Stock == 0)
-                                {
-                                    <div class="alert alert-warning py-2 px-3 mb-2 small">
-                                        <i class="bi bi-exclamation-triangle"></i> Sem stock
-                                    </div>
-                                }
                                 <AuthorizeView>
                                     <Authorized>
-                                        <div class="d-flex gap-1">
-                                            @{
-                                                var hasReservation = userReservations.ContainsKey(product.Id) && userReservations[product.Id] != null;
-                                                var outOfStock = product.Stock == 0;
-                                            }
-                                            @if (hasReservation)
-                                            {
-                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenUserReservationModal(product)" title="Ver Reserva">
-                                                    <i class="bi bi-eye"></i> Ver Reserva
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => OpenDeleteReservationModal(userReservations[product.Id]!, product)" title="Anular Reserva">
-                                                    <i class="bi bi-x-circle"></i> Anular
-                                                </button>
-                                            }
-                                            else
-                                            {
-                                                <button class="btn btn-sm btn-primary" @onclick="() => OpenReservationModal(product)" title="@(outOfStock ? "Sem stock disponível" : "Reservar")" disabled="@outOfStock">
-                                                    <i class="bi bi-calendar-check"></i> Reservar
-                                                </button>
-                                            }
-                                            <AuthorizeView Roles="Admin,Owner" Context="adminContext">
-                                                <Authorized>
-                                                    <button class="btn btn-sm btn-dark text-white" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
-                                                        <i class="bi bi-list-check"></i> Ver Reservas
+                                        @{
+                                            var hasReservation = userReservations.ContainsKey(product.Id) && userReservations[product.Id] != null;
+                                            var outOfStock = product.Stock == 0;
+                                        }
+                                        @if (outOfStock)
+                                        {
+                                            <p class="card-text small text-danger">
+                                                <i class="bi bi-x-circle"></i> Esgotado
+                                            </p>
+                                        }
+                                        else
+                                        {
+                                            <div class="d-flex gap-1">
+                                                @if (hasReservation)
+                                                {
+                                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenUserReservationModal(product)" title="Ver Reserva">
+                                                        <i class="bi bi-eye"></i> Ver Reserva
                                                     </button>
-                                                </Authorized>
-                                            </AuthorizeView>
-                                        </div>
+                                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => OpenDeleteReservationModal(userReservations[product.Id]!, product)" title="Anular Reserva">
+                                                        <i class="bi bi-x-circle"></i> Anular
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-sm btn-primary" @onclick="() => OpenReservationModal(product)" title="Reservar">
+                                                        <i class="bi bi-calendar-check"></i> Reservar
+                                                    </button>
+                                                }
+                                                <AuthorizeView Roles="Admin,Owner" Context="adminContext">
+                                                    <Authorized>
+                                                        <button class="btn btn-sm btn-dark text-white" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
+                                                            <i class="bi bi-list-check"></i> Ver Reservas
+                                                        </button>
+                                                    </Authorized>
+                                                </AuthorizeView>
+                                            </div>
+                                        }
                                     </Authorized>
                                 </AuthorizeView>
                             }
@@ -273,33 +276,17 @@ else
     <BodyContent>
         @if (selectedProduct != null)
         {
-            <!-- Product Information Card with Purple Theme -->
-            <div class="card card-purple-no-border mb-4">
-                <div class="card-body text-center">
-                    @if (selectedProduct.ImageData != null && selectedProduct.ImageData.Length > 0)
-                    {
-                        <img src="@GetProductImageUrl(selectedProduct.ImageSrc)" alt="@selectedProduct.Name" 
-                             class="mb-3" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px;" />
-                    }
-                    else
-                    {
-                        <div class="mb-3 d-inline-flex align-items-center justify-content-center" 
-                             style="width: 120px; height: 120px; background: rgba(255, 255, 255, 0.1); border-radius: 8px;">
-                            <i class="bi bi-bag-fill" style="font-size: 3rem; color: rgba(255, 255, 255, 0.5);"></i>
-                        </div>
-                    }
-                    <h5 class="text-white mb-2">@selectedProduct.Name</h5>
-                    <div class="d-flex justify-content-center gap-2 mb-2">
-                        <span class="badge bg-light text-dark">@selectedProduct.Type</span>
-                        <span class="badge bg-light text-dark">@selectedProduct.Price.ToString("0.00") €</span>
-                    </div>
-                    @if (selectedProduct.Stock > 0)
-                    {
-                        <p class="text-white-opacity mb-0 small">
-                            <i class="bi bi-box-seam"></i> @selectedProduct.Stock unidades disponíveis
-                        </p>
-                    }
-                </div>
+            <!-- Product Information -->
+            <div class="mb-3 pb-3 border-bottom">
+                <h5 class="mb-1">@selectedProduct.Name</h5>
+                <p class="text-muted mb-1">@selectedProduct.Type</p>
+                <p class="text-success fw-bold mb-1">@selectedProduct.Price.ToString("0.00") €</p>
+                @if (selectedProduct.Stock > 0)
+                {
+                    <p class="text-muted mb-0 small">
+                        <i class="bi bi-box-seam"></i> @selectedProduct.Stock unidades disponíveis
+                    </p>
+                }
             </div>
             
             <EditForm Model="reservationModel" OnValidSubmit="SaveReservation">
@@ -384,8 +371,10 @@ else
             }
             else if (!productReservations.Any())
             {
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> Não existem reservas para este produto.
+                <div class="card card-purple-no-border">
+                    <div class="card-body text-center text-white">
+                        <i class="bi bi-info-circle me-2"></i> Não existem reservas para este produto.
+                    </div>
                 </div>
             }
             else
@@ -431,34 +420,51 @@ else
 </Modal>
 
 <!-- View User Reservation Modal -->
-<Modal Title="Minha Reserva" 
-       @bind-Show="showUserReservationModal"
-       Size="Modal.ModalSize.Default">
-    <BodyContent>
-        @if (selectedProduct != null && userReservation != null)
+<DetailsModal Show="@showUserReservationModal" 
+              ShowChanged="@((bool show) => showUserReservationModal = show)"
+              Title="Minha Reserva" 
+              HeaderTitle="@(selectedProduct?.Name ?? "")"
+              IconClass="bi-bag-fill"
+              OnClose="CloseUserReservationModal">
+    <BadgesContent>
+        @if (selectedProduct != null)
         {
-            <ReservationCard 
-                ProductName="@selectedProduct.Name"
-                ProductType="@selectedProduct.Type"
-                ProductPrice="@selectedProduct.Price.ToString("0.00")"
-                Username="@userReservation.UserNickname"
-                DisplayName="@userReservation.DisplayName"
-                Size="@userReservation.Size"
-                ReservationDate="@userReservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
-                ShowDeleteButton="false" />
+            <span class="badge bg-primary">@selectedProduct.Type</span>
+            <span class="badge bg-success">@selectedProduct.Price.ToString("0.00") €</span>
         }
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseUserReservationModal">Fechar</button>
-    </FooterContent>
-</Modal>
+    </BadgesContent>
+    <Sections>
+        @if (userReservation != null)
+        {
+            <InfoSection SectionTitle="Informação da Reserva" 
+                        IconClass="bi-info-circle-fill" 
+                        CssClass="mb-3">
+                <ProfileField Label="Reservado por" Value="@userReservation.UserNickname" />
+                @if (!string.IsNullOrEmpty(userReservation.DisplayName))
+                {
+                    <ProfileField Label="Nome para apresentação" Value="@userReservation.DisplayName" />
+                }
+                @if (!string.IsNullOrEmpty(userReservation.Size))
+                {
+                    <ProfileField Label="Tamanho" Value="@userReservation.Size" />
+                }
+                <ProfileField Label="Data da reserva" Value="@userReservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")" />
+            </InfoSection>
+        }
+    </Sections>
+</DetailsModal>
 
 <!-- Delete Reservation Confirmation Modal -->
-<Modal Title="Anular Reserva" 
-       @bind-Show="showDeleteReservationModal"
-       Size="Modal.ModalSize.Default">
+<ConfirmDialog Show="@showDeleteReservationModal"
+               ShowChanged="@((bool show) => showDeleteReservationModal = show)"
+               Title="Anular Reserva"
+               ConfirmText="Anular Reserva"
+               ConfirmButtonClass="btn-danger"
+               CancelText="Cancelar"
+               OnConfirm="ConfirmDeleteReservation"
+               OnCancel="CloseDeleteReservationModal">
     <BodyContent>
-        @if (deletingReservation != null)
+        @if (deletingReservation != null && selectedProduct != null)
         {
             <div class="card card-purple-no-border mb-3">
                 <div class="card-body">
@@ -467,8 +473,8 @@ else
                         Tem a certeza que deseja anular esta reserva?
                     </h6>
                     <div class="text-white-opacity">
-                        <p class="mb-2"><strong>Produto:</strong> @(selectedProduct?.Name ?? "N/A")</p>
-                        <p class="mb-2"><strong>Tipo:</strong> @(selectedProduct?.Type ?? "N/A")</p>
+                        <p class="mb-2"><strong>Produto:</strong> @selectedProduct.Name</p>
+                        <p class="mb-2"><strong>Tipo:</strong> @selectedProduct.Type</p>
                         <p class="mb-0"><strong>Data da Reserva:</strong> @deletingReservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
                     </div>
                 </div>
@@ -476,13 +482,7 @@ else
             <p class="text-muted small">Esta ação não pode ser revertida.</p>
         }
     </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteReservationModal">Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteReservation">
-            <i class="bi bi-trash"></i> Anular Reserva
-        </button>
-    </FooterContent>
-</Modal>
+</ConfirmDialog>
 
 @code {
     private List<Product> products = new();

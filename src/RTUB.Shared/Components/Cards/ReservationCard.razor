@@ -11,14 +11,14 @@
         <div class="border-top pt-3 mb-3">
             <div class="mb-2">
                 <small class="text-muted d-block">Reservado por:</small>
-                <strong class="text-dark">@Username</strong>
+                <strong>@Username</strong>
             </div>
             
             @if (!string.IsNullOrEmpty(DisplayName))
             {
                 <div class="mb-2">
                     <small class="text-muted d-block">Nome para apresentação:</small>
-                    <span class="text-dark">@DisplayName</span>
+                    <span>@DisplayName</span>
                 </div>
             }
             
@@ -32,7 +32,7 @@
             
             <div class="mb-0">
                 <small class="text-muted d-block">Data da reserva:</small>
-                <span class="text-dark">
+                <span>
                     <i class="bi bi-calendar-check"></i> @ReservationDate
                 </span>
             </div>
