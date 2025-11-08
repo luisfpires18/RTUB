@@ -17,9 +17,7 @@ public class Album : BaseEntity
     [Range(1900, 2100, ErrorMessage = "O ano deve estar entre 1900 e 2100")]
     public int? Year { get; set; }
     
-    // Image handling
-    public byte[]? CoverImageData { get; set; }
-    public string? CoverImageContentType { get; set; }
+    // Image URL - stores the full S3 URL for cover image
     public string? CoverImageUrl { get; set; }
     
     // Navigation property
@@ -57,18 +55,13 @@ public class Album : BaseEntity
         Description = description;
     }
 
-    public void SetCoverImage(byte[]? imageData, string? contentType, string? url = null)
+    public void SetCoverImageUrl(string? url)
     {
-        CoverImageData = imageData;
-        CoverImageContentType = contentType;
         CoverImageUrl = url;
     }
 
     public string GetCoverImageSource()
     {
-        if (CoverImageData != null && !string.IsNullOrEmpty(CoverImageContentType))
-            return $"/api/images/album/{Id}";
-        
         return !string.IsNullOrEmpty(CoverImageUrl) ? CoverImageUrl : "";
     }
     

@@ -206,8 +206,6 @@ else
             Title = album.Title,
             Description = album.Description,
             Year = album.Year,
-            CoverImageData = album.CoverImageData,
-            CoverImageContentType = album.CoverImageContentType,
             CoverImageUrl = album.CoverImageUrl
         };
         uploadedImagePath = null;
@@ -242,14 +240,16 @@ else
         }
     }
 
+    private byte[]? tempCroppedImageData = null;
+    
     private void OnImageCropped(byte[] croppedImageData)
     {
         try
         {
             if (editingAlbum != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                editingAlbum.CoverImageData = croppedImageData;
-                editingAlbum.CoverImageContentType = "image/jpeg";
+                // Store cropped image temporarily until save
+                tempCroppedImageData = croppedImageData;
                 uploadedImagePath = "uploaded";
                 
                 // Update cache-bust parameter to force image reload after save
@@ -290,12 +290,12 @@ else
                 editingAlbum.Description ?? string.Empty
             );
 
-            if (editingAlbum.CoverImageData != null)
+            if (tempCroppedImageData != null)
             {
                 await AlbumService.SetAlbumCoverAsync(
                     newAlbum.Id,
-                    editingAlbum.CoverImageData,
-                    editingAlbum.CoverImageContentType
+                    tempCroppedImageData,
+                    "image/jpeg"
                 );
             }
         }
@@ -309,12 +309,12 @@ else
             );
 
             // Only update image if a new one was uploaded
-            if (editingAlbum.CoverImageData != null && uploadedImagePath != null)
+            if (tempCroppedImageData != null && uploadedImagePath != null)
             {
                 await AlbumService.SetAlbumCoverAsync(
                     editingAlbum.Id,
-                    editingAlbum.CoverImageData,
-                    editingAlbum.CoverImageContentType
+                    tempCroppedImageData,
+                    "image/jpeg"
                 );
             }
         }

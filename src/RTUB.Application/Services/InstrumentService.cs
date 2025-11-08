@@ -3,6 +3,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace RTUB.Application.Services;
 
@@ -13,11 +14,19 @@ public class InstrumentService : IInstrumentService
 {
     private readonly ApplicationDbContext _context;
     private readonly IImageService _imageService;
+    private readonly IInstrumentStorageService _instrumentStorageService;
+    private readonly ILogger<InstrumentService> _logger;
 
-    public InstrumentService(ApplicationDbContext context, IImageService imageService)
+    public InstrumentService(
+        ApplicationDbContext context, 
+        IImageService imageService,
+        IInstrumentStorageService instrumentStorageService,
+        ILogger<InstrumentService> logger)
     {
         _context = context;
         _imageService = imageService;
+        _instrumentStorageService = instrumentStorageService;
+        _logger = logger;
     }
 
     public async Task<Instrument?> GetByIdAsync(int id)
@@ -78,6 +87,17 @@ public class InstrumentService : IInstrumentService
         var instrument = await _context.Instruments.FindAsync(id);
         if (instrument != null)
         {
+            // Delete S3 image if exists
+            if (!string.IsNullOrEmpty(instrument.ImageUrl))
+            {
+                // Extract filename from URL and delete from S3
+                var filename = ExtractFilenameFromUrl(instrument.ImageUrl);
+                if (!string.IsNullOrEmpty(filename))
+                {
+                    await _instrumentStorageService.DeleteImageAsync(filename);
+                }
+            }
+
             _context.Instruments.Remove(instrument);
             await _context.SaveChangesAsync();
         }
@@ -97,5 +117,23 @@ public class InstrumentService : IInstrumentService
             .GroupBy(i => i.Category)
             .Select(g => new { Category = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Category, x => x.Count);
+    }
+
+    private string? ExtractFilenameFromUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+            return null;
+
+        try
+        {
+            // Extract filename from URL path (last segment after the last '/')
+            var uri = new Uri(url);
+            var segments = uri.AbsolutePath.Split('/');
+            return segments.Length > 0 ? segments[^1] : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
