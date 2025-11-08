@@ -934,8 +934,16 @@ else
             Description = eventItem.Description,
             Location = eventItem.Location,
             Type = eventItem.Type,
-            CreatedAt = eventItem.CreatedAt
+            CreatedAt = eventItem.CreatedAt,
+            S3ImageFilename = eventItem.S3ImageFilename
         };
+        
+        // Resolve S3 URL for the editing event if needed
+        if (!string.IsNullOrEmpty(eventItem.S3ImageFilename) && !s3ImageUrlCache.ContainsKey(eventItem.S3ImageFilename))
+        {
+            _ = ResolveEditingEventImageUrl(eventItem.S3ImageFilename);
+        }
+        
         showEditModal = true;
     }
 
@@ -1507,6 +1515,23 @@ else
                     Console.WriteLine($"Error resolving S3 image URL for {evt.S3ImageFilename}: {ex.Message}");
                 }
             }
+        }
+    }
+    
+    private async Task ResolveEditingEventImageUrl(string s3Filename)
+    {
+        try
+        {
+            var url = await EventStorageService.GetImageUrlAsync(s3Filename);
+            if (!string.IsNullOrEmpty(url))
+            {
+                s3ImageUrlCache[s3Filename] = url;
+                StateHasChanged(); // Trigger UI update to show the image
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error resolving S3 image URL for editing event: {ex.Message}");
         }
     }
     
