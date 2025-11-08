@@ -43,36 +43,132 @@ else
         @foreach (var eventItem in events)
         {
             <div class="col-md-4 mb-4">
-                <AuthorizeView>
-                    <Authorized>
-                        @{
-                            var userEnrollment = GetUserEnrollment(eventItem.Id);
-                            var isAdmin = context.User.IsInRole("Admin") || context.User.IsInRole("Owner");
+                <div class="card event-card h-100">
+                    <div class="position-relative">
+                        @if (!string.IsNullOrEmpty(eventItem.ImageSrc))
+                        {
+                            <img src="@GetEventImageUrl(eventItem.ImageSrc)" class="card-img-top event-image" alt="@eventItem.Name">
                         }
-                        <EventCard Event="@eventItem"
-                                   UserEnrollment="@userEnrollment"
-                                   EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
-                                   IsAdmin="@isAdmin"
-                                   IsPastEvent="false"
-                                   OnEdit="@(() => OpenEditModal(eventItem))"
-                                   OnDelete="@(() => OpenDeleteModal(eventItem))"
-                                   OnEnroll="@(() => OpenEnrollModal(eventItem))"
-                                   OnViewEnrollments="@(() => OpenEnrollmentListModal(eventItem))"
-                                   OnEditEnrollment="@(() => OpenEditEnrollmentModal(userEnrollment))"
-                                   OnRemoveEnrollment="@(() => OpenRemoveEnrollmentModal(userEnrollment))"
-                                   OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
-                                   OnViewDetails="@(() => OpenEventDetailsModal(eventItem))" />
-                    </Authorized>
-                    <NotAuthorized>
-                        <EventCard Event="@eventItem"
-                                   EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
-                                   IsAdmin="false"
-                                   IsPastEvent="false"
-                                   OnViewEnrollments="@(() => OpenEnrollmentListModal(eventItem))"
-                                   OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
-                                   OnViewDetails="@(() => OpenEventDetailsModal(eventItem))" />
-                    </NotAuthorized>
-                </AuthorizeView>
+                        else
+                        {
+                            <div class="card-img-top event-image-placeholder">
+                                <i class="bi bi-calendar-event music-icon-large"></i>
+                            </div>
+                        }
+                        <AuthorizeView Roles="Admin,Owner">
+                            <Authorized>
+                                <div class="admin-overlay">
+                                    <button class="btn btn-sm music-btn-edit" @onclick="() => OpenEditModal(eventItem)" title="Editar">
+                                        <i class="bi bi-pencil music-icon-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm music-btn-delete" @onclick="() => OpenDeleteModal(eventItem)" title="Eliminar">
+                                        <i class="bi bi-trash music-icon-delete"></i>
+                                    </button>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
+                    <div class="card-body d-flex flex-column p-3">
+                        <h5 class="card-title mb-2">@eventItem.Name</h5>
+                        <p class="card-text text-light-theme mb-2">
+                            <small>
+                                <i class="bi bi-calendar me-1"></i>
+                                @if (eventItem.EndDate.HasValue && eventItem.EndDate.Value.Date != eventItem.Date.Date)
+                                {
+                                    <span>@eventItem.Date.ToString("dd MMM") - @eventItem.EndDate.Value.ToString("dd MMM yyyy")</span>
+                                }
+                                else
+                                {
+                                    <span>@eventItem.Date.ToString("dd MMM yyyy")</span>
+                                }
+                            </small>
+                        </p>
+                        @if (!string.IsNullOrEmpty(eventItem.Location))
+                        {
+                            <p class="card-text text-light-theme mb-2">
+                                <small>
+                                    <i class="bi bi-geo-alt me-1"></i> @eventItem.Location
+                                </small>
+                            </p>
+                        }
+                        @if (!string.IsNullOrEmpty(eventItem.Description))
+                        {
+                            <p class="card-text flex-grow-1 mb-2">@eventItem.Description</p>
+                        }
+
+                        <AuthorizeView>
+                            <Authorized>
+                                @{
+                                    var userEnrollment = GetUserEnrollment(eventItem.Id);
+                                }
+                                <div class="enrollment-section mt-auto p-2 rounded">
+                                    <!-- First row: View Details, View Enrollments and Repertoire buttons -->
+                                    <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
+                                        <!-- Ver Detalhes button -->
+                                        <button class="btn btn-sm btn-outline-info d-flex align-items-center" 
+                                                @onclick="() => OpenEventDetailsModal(eventItem)" 
+                                                title="Ver Detalhes">
+                                            <i class="bi bi-eye icon-size-1rem"></i>
+                                        </button>
+
+                                        <!-- View Enrollments button -->
+                                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
+                                                @onclick="() => OpenEnrollmentListModal(eventItem)" 
+                                                title="Ver Inscrições">
+                                            <i class="bi bi-people icon-size-1rem"></i>
+                                            <span>@GetEnrollmentCount(eventItem.Id)</span>
+                                        </button>
+
+                                        <!-- Watch Repertoire button -->
+                                        <button class="btn btn-sm btn-outline-primary d-flex align-items-center" 
+                                                @onclick="() => OpenRepertoireModal(eventItem)" 
+                                                title="Ver Repertório">
+                                            <i class="bi bi-music-note-list icon-size-1rem"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- Second row: Enrollment action buttons -->
+                                    <div class="d-flex gap-2 align-items-center justify-content-center">
+                                        @if (userEnrollment == null)
+                                        {
+                                            <!-- Enroll button -->
+                                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
+                                                    @onclick="() => OpenEnrollModal(eventItem)" 
+                                                    title="Inscrever neste evento">
+                                                <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
+                                                <span class="d-none d-sm-inline">Inscrever</span>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <!-- Enrolled status button (disabled, purple) -->
+                                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
+                                                    disabled 
+                                                    title="Inscrito">
+                                                <i class="bi bi-check-circle-fill icon-size-1rem"></i>
+                                                <span class="d-none d-md-inline">Inscrito</span>
+                                            </button>
+                                            
+                                            <!-- Edit enrollment button (white) -->
+                                            <button class="btn btn-sm btn-light d-flex align-items-center" 
+                                                    @onclick="() => OpenEditEnrollmentModal(userEnrollment)" 
+                                                    title="Editar Inscrição">
+                                                <i class="bi bi-pencil-fill icon-size-1rem"></i>
+                                            </button>
+                                            
+                                            <!-- Remove enrollment button (red) -->
+                                            <button class="btn btn-sm btn-danger d-flex align-items-center" 
+                                                    @onclick="() => OpenRemoveEnrollmentModal(userEnrollment)" 
+                                                    title="Anular Inscrição">
+                                                <i class="bi bi-x-circle-fill icon-size-1rem"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
+                </div>
             </div>
         }
     </div>
@@ -163,6 +259,13 @@ else
                                 <div class="admin-section mt-auto p-2 rounded">
                                     <small class="text-muted d-block mb-2 text-center"><i class="bi bi-clock-history"></i> Evento Passado</small>
                                     <div class="d-flex gap-2 justify-content-center flex-wrap">
+                                        <!-- Ver Detalhes button -->
+                                        <button class="btn btn-sm btn-outline-info d-flex align-items-center" 
+                                                @onclick="() => OpenEventDetailsModal(eventItem)" 
+                                                title="Ver Detalhes">
+                                            <i class="bi bi-eye icon-size-1rem"></i>
+                                        </button>
+
                                         <!-- View Enrollments button -->
                                         <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
                                                 @onclick="() => OpenEnrollmentListModal(eventItem)" 
@@ -688,6 +791,49 @@ else
     </FooterContent>
 </Modal>
 
+<!-- Event Details Modal -->
+<DetailsModal Show="@showEventDetailsModal" 
+              ShowChanged="@((bool show) => showEventDetailsModal = show)"
+              Title="Detalhes da Atuação" 
+              HeaderTitle="@(viewingEvent?.Name ?? "")"
+              ImageUrl="@(viewingEvent != null && !string.IsNullOrEmpty(viewingEvent.ImageSrc) ? GetEventImageUrl(viewingEvent.ImageSrc) : null)"
+              IconClass="@(viewingEvent != null && string.IsNullOrEmpty(viewingEvent.ImageSrc) ? "bi-calendar-event" : null)"
+              OnClose="CloseEventDetailsModal">
+    <BadgesContent>
+        @if (viewingEvent != null)
+        {
+            <span class="badge bg-primary">@GetEventTypeDisplay(viewingEvent.Type)</span>
+        }
+    </BadgesContent>
+    <Sections>
+        @if (viewingEvent != null)
+        {
+            <!-- Event Information Section -->
+            <InfoSection SectionTitle="Informação da Atuação" 
+                        IconClass="bi-info-circle-fill" 
+                        CssClass="mb-4">
+                <ProfileField Label="Nome" Value="@viewingEvent.Name" />
+                <ProfileField Label="Tipo" Value="@GetEventTypeDisplay(viewingEvent.Type)" />
+                <ProfileField Label="Data" 
+                            Value="@(viewingEvent.EndDate.HasValue && viewingEvent.EndDate.Value.Date != viewingEvent.Date.Date 
+                                    ? $"{viewingEvent.Date:dd MMM} - {viewingEvent.EndDate.Value:dd MMM yyyy}" 
+                                    : viewingEvent.Date.ToString("dd MMM yyyy"))" />
+                <ProfileField Label="Localização" Value="@viewingEvent.Location" />
+            </InfoSection>
+
+            <!-- Description Section -->
+            @if (!string.IsNullOrEmpty(viewingEvent.Description))
+            {
+                <InfoSection SectionTitle="Descrição" 
+                            IconClass="bi-file-text" 
+                            CssClass="mb-3">
+                    <p class="text-white-full mb-0" style="white-space: pre-line;">@viewingEvent.Description</p>
+                </InfoSection>
+            }
+        }
+    </Sections>
+</DetailsModal>
+
 @code {
     private List<Event>? events;
     private List<Enrollment>? enrollments;
@@ -705,6 +851,7 @@ else
     private bool showTrophyEditModal = false;
     private bool showTrophyDeleteModal = false;
     private bool showDeleteEnrollmentModal = false;
+    private bool showEventDetailsModal = false;
     private bool isCreateMode = false;
     private bool isEditingEnrollment = false;
     private bool wantToPlay = false; // Toggle for "Quero tocar"
@@ -716,6 +863,7 @@ else
     private Event? selectedEvent;
     private Event? selectedEventForRepertoire;
     private Event? selectedEventForTrophies;
+    private Event? viewingEvent;
     private Enrollment? enrollmentForm;
     private Enrollment? removingEnrollment;
     private Enrollment? deletingEnrollment;
@@ -1436,6 +1584,19 @@ else
         {
             Console.WriteLine($"Error deleting enrollment: {ex.Message}");
         }
+    }
+    
+    // Event Details Modal Methods
+    private void OpenEventDetailsModal(Event eventItem)
+    {
+        viewingEvent = eventItem;
+        showEventDetailsModal = true;
+    }
+    
+    private void CloseEventDetailsModal()
+    {
+        showEventDetailsModal = false;
+        viewingEvent = null;
     }
     
     private string GetEventImageUrl(string imageSrc)
