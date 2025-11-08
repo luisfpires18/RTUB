@@ -43,6 +43,7 @@ public class ApplicationUser : IdentityUser
     // Image handling
     public byte[]? ProfilePictureData { get; set; }
     public string? ProfilePictureContentType { get; set; }
+    public string? S3ImageFilename { get; set; } // IDrive S3 storage filename for profile picture
     
     // Positions and Categories (stored as JSON)
     public string? PositionsJson { get; set; }

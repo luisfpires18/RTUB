@@ -32,9 +32,9 @@
 
     <!-- Circular Image/Icon -->
     <div class="instrument-circle-image-wrapper">
-        @if (Instrument.ImageData != null && Instrument.ImageData.Length > 0)
+        @if (!string.IsNullOrEmpty(Instrument.ImageUrl))
         {
-            <img src="@ImageUrl" 
+            <img src="@Instrument.ImageUrl" 
                  alt="@Instrument.Name" 
                  class="instrument-circle-image"
                  loading="lazy" />

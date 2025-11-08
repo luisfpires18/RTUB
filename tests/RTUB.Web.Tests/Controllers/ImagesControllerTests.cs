@@ -7,6 +7,8 @@ using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Controllers;
 using Xunit;
+using Microsoft.AspNetCore.Identity;
+using RTUB.Core.Entities;
 
 namespace RTUB.Web.Tests.Controllers;
 
@@ -18,6 +20,8 @@ public class ImagesControllerTests
     private readonly Mock<IImageService> _mockImageService;
     private readonly Mock<IWebHostEnvironment> _mockEnvironment;
     private readonly Mock<IConfiguration> _mockConfiguration;
+    private readonly Mock<IProfileStorageService> _mockProfileStorageService;
+    private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly ImagesController _controller;
 
     public ImagesControllerTests()
@@ -25,6 +29,12 @@ public class ImagesControllerTests
         _mockImageService = new Mock<IImageService>();
         _mockEnvironment = new Mock<IWebHostEnvironment>();
         _mockConfiguration = new Mock<IConfiguration>();
+        _mockProfileStorageService = new Mock<IProfileStorageService>();
+        
+        // Mock UserManager
+        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
+        _mockUserManager = new Mock<UserManager<ApplicationUser>>(
+            userStoreMock.Object, null, null, null, null, null, null, null, null);
         
         // Setup configuration section for ImageCaching
         var mockConfigSection = new Mock<IConfigurationSection>();
@@ -35,7 +45,9 @@ public class ImagesControllerTests
         _controller = new ImagesController(
             _mockImageService.Object,
             _mockEnvironment.Object,
-            _mockConfiguration.Object);
+            _mockConfiguration.Object,
+            _mockProfileStorageService.Object,
+            _mockUserManager.Object);
 
         // Setup controller context with headers
         _controller.ControllerContext = new ControllerContext
