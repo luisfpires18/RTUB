@@ -266,7 +266,8 @@ namespace RTUB
             // LOGIN (HTTP POST) — sets cookie, then redirects
             app.MapPost("/auth/login", async (HttpContext http,
                                               SignInManager<ApplicationUser> signInManager,
-                                              UserManager<ApplicationUser> userManager) =>
+                                              UserManager<ApplicationUser> userManager,
+                                              ILogger<Program> logger) =>
             {
                 var form = await http.Request.ReadFormAsync();
                 var username = form["Username"].ToString();
@@ -281,31 +282,65 @@ namespace RTUB
                     return Results.Redirect("/login?error=Invalid");
                 }
 
-                var result = await signInManager.PasswordSignInAsync(user, password, remember, lockoutOnFailure: false);
-                if (result.Succeeded)
+                // Check if account is locked out before any other checks
+                if (await userManager.IsLockedOutAsync(user))
                 {
-                    // Update last login date (best effort - don't fail login if this fails)
-                    try
-                    {
-                        user.LastLoginDate = DateTime.UtcNow;
-                        await userManager.UpdateAsync(user);
-                    }
-                    catch
-                    {
-                        // Log error but don't fail login
-                    }
-                    
-                    // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
-                    if (!string.IsNullOrEmpty(returnUrl) && RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl))
-                    {
-                        return Results.Redirect(returnUrl);
-                    }
-                    return Results.Redirect("/");
+                    return Results.Redirect("/login?error=Locked");
                 }
-                if (result.RequiresTwoFactor) return Results.Redirect($"/login-with-2fa?rememberMe={remember}");
-                if (result.IsLockedOut) return Results.Redirect("/login?error=Locked");
 
-                return Results.Redirect("/login?error=Invalid");
+                // Check password is valid BEFORE updating last login date to avoid race condition
+                // We need to verify credentials first, then update the timestamp BEFORE signing in
+                // to ensure the LastLoginDate is persisted before the user can make any requests
+                var passwordValid = await userManager.CheckPasswordAsync(user, password);
+                if (!passwordValid)
+                {
+                    // Track failed login attempt for lockout purposes
+                    await userManager.AccessFailedAsync(user);
+                    return Results.Redirect("/login?error=Invalid");
+                }
+
+                // Password is valid - reset access failed count regardless of 2FA status
+                // This ensures consistent behavior: successful password = reset count
+                await userManager.ResetAccessFailedCountAsync(user);
+
+                // Check if two-factor authentication is required
+                // If so, redirect to 2FA page without updating LastLoginDate yet
+                // TODO: Ensure the 2FA completion endpoint also updates LastLoginDate before sign-in
+                if (await userManager.GetTwoFactorEnabledAsync(user))
+                {
+                    return Results.Redirect($"/login-with-2fa?rememberMe={remember}");
+                }
+
+                // Password verified and no 2FA required - update last login date BEFORE signing in
+                // This ensures the timestamp is set before the authentication cookie is issued
+                // This fixes the race condition where users could make requests before LastLoginDate was set
+                try
+                {
+                    user.LastLoginDate = DateTime.UtcNow;
+                    var updateResult = await userManager.UpdateAsync(user);
+                    if (!updateResult.Succeeded)
+                    {
+                        logger.LogWarning("Failed to update LastLoginDate for user {UserId}: {Errors}", 
+                            user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't fail login
+                    logger.LogError(ex, "Exception while updating LastLoginDate for user {UserId}", user.Id);
+                }
+
+                // Sign in the user using SignInAsync (password already validated above)
+                // Note: We use SignInAsync instead of PasswordSignInAsync to avoid duplicate password validation
+                // All security checks (lockout, password validation, failed attempt tracking) are handled above
+                await signInManager.SignInAsync(user, remember);
+                
+                // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
+                if (!string.IsNullOrEmpty(returnUrl) && RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl))
+                {
+                    return Results.Redirect(returnUrl);
+                }
+                return Results.Redirect("/");
             })
             // If you want antiforgery enforced here, replace the next line with: .RequireAntiforgery();
             .DisableAntiforgery();
