@@ -343,4 +343,145 @@ public class RehearsalCardTests : TestContext
         // Assert
         callbackInvoked.Should().BeTrue("OnMarkAttendance callback should be invoked");
     }
+
+    [Fact]
+    public void RehearsalCard_ViewDetailsButton_HasTextLabel()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert
+        cut.Markup.Should().Contain("Ver", "View Details button should have 'Ver' text label");
+        cut.Markup.Should().Contain("bi-eye-fill", "View Details button should have eye icon");
+        cut.Markup.Should().Contain("btn-outline-primary", "View Details button should have primary outline style");
+    }
+
+    [Fact]
+    public void RehearsalCard_ViewAttendancesButton_HasAttendanceCount()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 8));
+
+        // Assert
+        cut.Markup.Should().Contain("8", "View Attendances button should display attendance count");
+        cut.Markup.Should().Contain("bi-people", "View Attendances button should have people icon");
+        cut.Markup.Should().Contain("btn-outline-secondary", "View Attendances button should have secondary outline style");
+    }
+
+    [Fact]
+    public void RehearsalCard_ViewButtons_AreSameSize()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert
+        var buttons = cut.FindAll("button").Where(b => 
+            b.ClassList.Contains("btn-outline-primary") || b.ClassList.Contains("btn-outline-secondary")).ToList();
+        
+        buttons.Should().HaveCount(2, "should have two view buttons");
+        buttons.All(b => b.ClassList.Contains("gap-1")).Should().BeTrue("both buttons should have gap-1 class for consistent sizing");
+    }
+
+    [Fact]
+    public void RehearsalCard_InvokesOnViewDetails_WhenViewDetailsButtonClicked()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        bool callbackInvoked = false;
+
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 5)
+            .Add(p => p.OnViewDetails, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act
+        var viewDetailsButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-outline-primary"));
+        viewDetailsButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("OnViewDetails callback should be invoked");
+    }
+
+    [Fact]
+    public void RehearsalCard_InvokesOnViewAttendances_WhenViewAttendancesButtonClicked()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        bool callbackInvoked = false;
+
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.AttendanceCount, 5)
+            .Add(p => p.OnViewAttendances, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act
+        var viewAttendancesButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-outline-secondary"));
+        viewAttendancesButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("OnViewAttendances callback should be invoked");
+    }
+
+    [Fact]
+    public void RehearsalCard_InvokesOnEditAttendance_WhenEditButtonClicked()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+        bool callbackInvoked = false;
+
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 1)
+            .Add(p => p.OnEditAttendance, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act
+        var editButton = cut.FindAll("button").First(b => 
+            b.ClassList.Contains("btn-light") && b.InnerHtml.Contains("bi-pencil-fill"));
+        editButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("OnEditAttendance callback should be invoked");
+    }
+
+    [Fact]
+    public void RehearsalCard_InvokesOnRemoveAttendance_WhenRemoveButtonClicked()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+        var attendance = RehearsalAttendance.Create(1, "user123");
+        bool callbackInvoked = false;
+
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.UserAttendance, attendance)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.AttendanceCount, 1)
+            .Add(p => p.OnRemoveAttendance, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act
+        var removeButton = cut.FindAll("button").First(b => 
+            b.ClassList.Contains("btn-danger") && b.InnerHtml.Contains("bi-x-circle-fill"));
+        removeButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("OnRemoveAttendance callback should be invoked");
+    }
 }
