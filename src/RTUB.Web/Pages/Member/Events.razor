@@ -642,35 +642,44 @@ else
 {
     <DetailsModal Show="@showEventDetailsModal"
                   ShowChanged="@((bool show) => showEventDetailsModal = show)"
-                  Title="@selectedEvent.Name"
-                  IconClass="bi-calendar-event">
+                  Title="Detalhes da Atuação"
+                  HeaderTitle="@(selectedEvent?.Name ?? "")"
+                  ImageUrl="@(selectedEvent != null && !string.IsNullOrEmpty(selectedEvent.ImageSrc) ? selectedEvent.ImageSrc : null)"
+                  IconClass="@(selectedEvent != null && string.IsNullOrEmpty(selectedEvent.ImageSrc) ? "bi-calendar-event" : null)"
+                  OnClose="@(() => showEventDetailsModal = false)">
         <BadgesContent>
-            <span class="badge bg-primary me-1">
-                <i class="bi bi-calendar me-1"></i>
-                @if (selectedEvent.EndDate.HasValue && selectedEvent.EndDate.Value.Date != selectedEvent.Date.Date)
-                {
-                    <span>@selectedEvent.Date.ToString("dd MMM") - @selectedEvent.EndDate.Value.ToString("dd MMM yyyy")</span>
-                }
-                else
-                {
-                    <span>@selectedEvent.Date.ToString("dd MMM yyyy")</span>
-                }
-            </span>
-            @if (!string.IsNullOrEmpty(selectedEvent.Location))
+            @if (selectedEvent != null)
             {
-                <span class="badge bg-secondary">
-                    <i class="bi bi-geo-alt me-1"></i>@selectedEvent.Location
-                </span>
+                <span class="badge bg-primary">@GetEventTypeDisplay(selectedEvent.Type)</span>
             }
         </BadgesContent>
-        <BodyContent>
-            @if (!string.IsNullOrEmpty(selectedEvent.Description))
+        <Sections>
+            @if (selectedEvent != null)
             {
-                <InfoSection SectionTitle="Descrição" IconClass="bi-info-circle">
-                    <div style="white-space: pre-line;">@selectedEvent.Description</div>
+                <!-- Event Information Section -->
+                <InfoSection SectionTitle="Informação da Atuação" 
+                            IconClass="bi-info-circle-fill" 
+                            CssClass="mb-4">
+                    <ProfileField Label="Nome" Value="@selectedEvent.Name" />
+                    <ProfileField Label="Tipo" Value="@GetEventTypeDisplay(selectedEvent.Type)" />
+                    <ProfileField Label="Data" 
+                                Value="@(selectedEvent.EndDate.HasValue && selectedEvent.EndDate.Value.Date != selectedEvent.Date.Date 
+                                        ? $"{selectedEvent.Date:dd MMM} - {selectedEvent.EndDate.Value:dd MMM yyyy}" 
+                                        : selectedEvent.Date.ToString("dd MMM yyyy"))" />
+                    <ProfileField Label="Localização" Value="@selectedEvent.Location" />
                 </InfoSection>
+
+                <!-- Description Section -->
+                @if (!string.IsNullOrEmpty(selectedEvent.Description))
+                {
+                    <InfoSection SectionTitle="Descrição" 
+                                IconClass="bi-file-text" 
+                                CssClass="mb-3">
+                        <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedEvent.Description</p>
+                    </InfoSection>
+                }
             }
-        </BodyContent>
+        </Sections>
     </DetailsModal>
 }
 
