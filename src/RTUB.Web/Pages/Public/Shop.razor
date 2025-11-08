@@ -43,16 +43,11 @@ else
     <!-- Filter -->
     <div class="row mb-4">
         <div class="col-md-6">
-            <div class="input-group">
-                <span class="input-group-text bg-white"><i class="bi bi-funnel text-dark"></i></span>
-                <select class="form-select" @bind="selectedType" @bind:after="FilterProducts">
-                    <option value="">Todos os tipos</option>
-                    @foreach (var type in productTypes)
-                    {
-                        <option value="@type">@type</option>
-                    }
-                </select>
-            </div>
+            <FilterDropdown IconClass="bi-funnel"
+                          AllItemsLabel="Todos os tipos"
+                          Items="@productTypes"
+                          @bind-SelectedValue="selectedType"
+                          OnChange="FilterProducts" />
         </div>
     </div>
 

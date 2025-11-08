@@ -64,13 +64,11 @@ else
     <!-- Filters -->
     <div class="row mb-3">
         <div class="col-md-4">
-            <select class="form-select" @bind="filterCategory" @bind:after="ApplyFilters">
-                <option value="">Todos os tipos</option>
-                @foreach (var category in categories)
-                {
-                    <option value="@category">@category</option>
-                }
-            </select>
+            <FilterDropdown ShowIcon="false"
+                          AllItemsLabel="Todos os tipos"
+                          Items="@categories"
+                          @bind-SelectedValue="filterCategory"
+                          OnChange="ApplyFilters" />
         </div>
         <div class="col-md-4">
             <select class="form-select" @bind="filterCondition" @bind:after="ApplyFilters">
