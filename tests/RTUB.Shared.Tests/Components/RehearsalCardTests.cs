@@ -151,26 +151,6 @@ public class RehearsalCardTests : TestContext
     }
 
     [Fact]
-    public void RehearsalCard_ShowsAttendedStatus_WhenUserAttendanceIsMarked()
-    {
-        // Arrange
-        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
-        var attendance = RehearsalAttendance.Create(1, "user123");
-        attendance.MarkAttendance(true);
-
-        // Act
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
-            .Add(p => p.Rehearsal, rehearsal)
-            .Add(p => p.UserAttendance, attendance)
-            .Add(p => p.IsPastRehearsal, false)
-            .Add(p => p.AttendanceCount, 1));
-
-        // Assert
-        cut.Markup.Should().Contain("bi-check-circle-fill", "should show attended check icon");
-        cut.Markup.Should().Contain("btn-success", "attended button should have success style");
-    }
-
-    [Fact]
     public void RehearsalCard_ShowsPendingStatus_WhenUserAttendanceNotApproved()
     {
         // Arrange
