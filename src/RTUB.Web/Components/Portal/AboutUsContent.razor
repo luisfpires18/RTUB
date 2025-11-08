@@ -36,48 +36,12 @@
             @foreach (var evt in previousEvents)
             {
                 <div class="col-md-4">
-                    <div class="card h-100 portal-event-card">
-                        <div class="position-relative">
-                            @if (!string.IsNullOrEmpty(evt.ImageSrc))
-                            {
-                                <img src="@evt.ImageSrc" class="card-img-top portal-event-image" alt="@evt.Name">
-                            }
-                            else
-                            {
-                                <div class="card-img-top portal-event-placeholder">
-                                    <i class="bi bi-calendar-event portal-icon-large"></i>
-                                </div>
-                            }
-                            @if (evt.Type == EventType.Festival)
-                            {
-                                <div class="position-absolute top-0 end-0 p-2">
-                                    <button class="btn btn-warning btn-sm" @onclick="() => OpenTrophyModal(evt)" title="Ver Prémios">
-                                        <i class="bi bi-trophy-fill"></i>
-                                    </button>
-                                </div>
-                            }
-                        </div>
-                        <div class="card-body">
-                            <h5 class="card-title">@evt.Name</h5>
-                            <p class="card-text mb-2 portal-card-text">
-                                <i class="bi bi-calendar-event me-1"></i>
-                                @if (evt.EndDate.HasValue && evt.EndDate.Value.Date != evt.Date.Date)
-                                {
-                                    <span>@evt.Date.ToString("dd MMM") - @evt.EndDate.Value.ToString("dd MMM yyyy")</span>
-                                }
-                                else
-                                {
-                                    <span>@evt.Date.ToString("dd MMM yyyy")</span>
-                                }
-                            </p>
-                            @if (!string.IsNullOrEmpty(evt.Location))
-                            {
-                                <p class="card-text mb-2 portal-card-text">
-                                    <i class="bi bi-geo-alt"></i> @evt.Location
-                                </p>
-                            }
-                        </div>
-                    </div>
+                    <EventCard Event="@evt"
+                               EnrollmentCount="0"
+                               IsAdmin="false"
+                               IsPastEvent="true"
+                               ShowButtons="false"
+                               ShowTrophyCorner="true" />
                 </div>
             }
         </div>

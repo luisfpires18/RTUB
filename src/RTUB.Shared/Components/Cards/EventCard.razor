@@ -6,9 +6,9 @@
 
 <div class="card event-card h-100">
     <div class="position-relative">
-        @if (!string.IsNullOrEmpty(Event.ImageSrc))
+        @if (!string.IsNullOrEmpty(ImageUrl) || !string.IsNullOrEmpty(Event.ImageSrc))
         {
-            <img src="@Event.ImageSrc" class="card-img-top event-image" alt="@Event.Name">
+            <img src="@(ImageUrl ?? Event.ImageSrc)" class="card-img-top event-image" alt="@Event.Name">
         }
         else
         {
@@ -16,6 +16,17 @@
                 <i class="bi bi-calendar-event music-icon-large"></i>
             </div>
         }
+        
+        @* Trophy corner badge for AboutUsContent (Festival events only) *@
+        @if (ShowTrophyCorner && Event.Type == EventType.Festival)
+        {
+            <div class="position-absolute top-0 end-0 p-2">
+                <div class="badge bg-warning text-dark">
+                    <i class="bi bi-trophy-fill"></i>
+                </div>
+            </div>
+        }
+        
         @if (IsAdmin)
         {
             <div class="admin-overlay">
@@ -56,72 +67,114 @@
             </p>
         }
 
-        @if (!IsPastEvent)
+        @if (ShowButtons)
         {
-            <div class="enrollment-section mt-auto p-2 rounded">
-                <!-- First row: Details, View and Repertoire buttons - equal size -->
-                <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
-                    <!-- View Details button -->
-                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
-                            @onclick="OnViewDetails" 
-                            title="Ver Detalhes">
-                        <i class="bi bi-eye icon-size-1rem"></i>
-                    </button>
+            @if (!IsPastEvent)
+            {
+                <div class="enrollment-section mt-auto p-2 rounded">
+                    <!-- First row: Details, View and Repertoire buttons - equal size -->
+                    <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
+                        <!-- View Details button -->
+                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
+                                @onclick="OnViewDetails" 
+                                title="Ver Detalhes">
+                            <i class="bi bi-eye icon-size-1rem"></i>
+                        </button>
 
-                    <!-- View Enrollments button -->
-                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
-                            @onclick="OnViewEnrollments" 
-                            title="Ver Inscrições">
-                        <i class="bi bi-people icon-size-1rem"></i>
-                        <span class="ms-1">@EnrollmentCount</span>
-                    </button>
+                        <!-- View Enrollments button -->
+                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
+                                @onclick="OnViewEnrollments" 
+                                title="Ver Inscrições">
+                            <i class="bi bi-people icon-size-1rem"></i>
+                            <span class="ms-1">@EnrollmentCount</span>
+                        </button>
 
-                    <!-- Watch Repertoire button -->
-                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center event-action-btn" 
-                            @onclick="OnWatchRepertoire" 
-                            title="Ver Repertório">
-                        <i class="bi bi-music-note-list icon-size-1rem"></i>
-                    </button>
+                        <!-- Watch Repertoire button -->
+                        <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center event-action-btn" 
+                                @onclick="OnWatchRepertoire" 
+                                title="Ver Repertório">
+                            <i class="bi bi-music-note-list icon-size-1rem"></i>
+                        </button>
+                    </div>
+
+                    <!-- Second row: Enrollment action buttons -->
+                    <div class="d-flex gap-2 align-items-center justify-content-center">
+                        @if (UserEnrollment == null)
+                        {
+                            <!-- Enroll button -->
+                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
+                                    @onclick="OnEnroll" 
+                                    title="Inscrever neste evento">
+                                <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
+                                <span class="d-none d-sm-inline">Inscrever</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <!-- Enrolled status button (disabled, purple) -->
+                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
+                                    disabled 
+                                    title="Inscrito">
+                                <i class="bi bi-check-circle-fill icon-size-1rem"></i>
+                                <span class="d-none d-md-inline">Inscrito</span>
+                            </button>
+                            
+                            <!-- Edit enrollment button (white) -->
+                            <button class="btn btn-sm btn-light d-flex align-items-center" 
+                                    @onclick="OnEditEnrollment" 
+                                    title="Editar Inscrição">
+                                <i class="bi bi-pencil-fill icon-size-1rem"></i>
+                            </button>
+                            
+                            <!-- Remove enrollment button (red) -->
+                            <button class="btn btn-sm btn-danger d-flex align-items-center" 
+                                    @onclick="OnRemoveEnrollment" 
+                                    title="Anular Inscrição">
+                                <i class="bi bi-x-circle-fill icon-size-1rem"></i>
+                            </button>
+                        }
+                    </div>
                 </div>
+            }
+            else
+            {
+                <!-- Past event buttons -->
+                <div class="enrollment-section mt-auto p-2 rounded">
+                    <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
+                        <!-- View Details button -->
+                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
+                                @onclick="OnViewDetails" 
+                                title="Ver Detalhes">
+                            <i class="bi bi-eye icon-size-1rem"></i>
+                        </button>
 
-                <!-- Second row: Enrollment action buttons -->
-                <div class="d-flex gap-2 align-items-center justify-content-center">
-                    @if (UserEnrollment == null)
-                    {
-                        <!-- Enroll button -->
-                        <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
-                                @onclick="OnEnroll" 
-                                title="Inscrever neste evento">
-                            <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
-                            <span class="d-none d-sm-inline">Inscrever</span>
+                        <!-- View Enrollments button -->
+                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
+                                @onclick="OnViewEnrollments" 
+                                title="Ver Inscrições">
+                            <i class="bi bi-people icon-size-1rem"></i>
+                            <span class="ms-1">@EnrollmentCount</span>
                         </button>
-                    }
-                    else
-                    {
-                        <!-- Enrolled status button (disabled, purple) -->
-                        <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
-                                disabled 
-                                title="Inscrito">
-                            <i class="bi bi-check-circle-fill icon-size-1rem"></i>
-                            <span class="d-none d-md-inline">Inscrito</span>
+
+                        <!-- Watch Repertoire button -->
+                        <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center event-action-btn" 
+                                @onclick="OnWatchRepertoire" 
+                                title="Ver Repertório">
+                            <i class="bi bi-music-note-list icon-size-1rem"></i>
                         </button>
-                        
-                        <!-- Edit enrollment button (white) -->
-                        <button class="btn btn-sm btn-light d-flex align-items-center" 
-                                @onclick="OnEditEnrollment" 
-                                title="Editar Inscrição">
-                            <i class="bi bi-pencil-fill icon-size-1rem"></i>
-                        </button>
-                        
-                        <!-- Remove enrollment button (red) -->
-                        <button class="btn btn-sm btn-danger d-flex align-items-center" 
-                                @onclick="OnRemoveEnrollment" 
-                                title="Anular Inscrição">
-                            <i class="bi bi-x-circle-fill icon-size-1rem"></i>
-                        </button>
-                    }
+
+                        <!-- Trophy button (for Festival events only) -->
+                        @if (ShowTrophy && Event.Type == EventType.Festival)
+                        {
+                            <button class="btn btn-sm btn-warning d-flex align-items-center justify-content-center event-action-btn" 
+                                    @onclick="OnViewTrophies" 
+                                    title="Ver Prémios">
+                                <i class="bi bi-trophy-fill icon-size-1rem"></i>
+                            </button>
+                        }
+                    </div>
                 </div>
-            </div>
+            }
         }
     </div>
 </div>
@@ -204,6 +257,36 @@
     /// </summary>
     [Parameter]
     public EventCallback OnViewDetails { get; set; }
+
+    /// <summary>
+    /// Callback when the view trophies button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewTrophies { get; set; }
+
+    /// <summary>
+    /// Optional image URL to display (supports cache-busting)
+    /// </summary>
+    [Parameter]
+    public string? ImageUrl { get; set; }
+
+    /// <summary>
+    /// Whether to show the trophy button in action section (for past events)
+    /// </summary>
+    [Parameter]
+    public bool ShowTrophy { get; set; }
+
+    /// <summary>
+    /// Whether to show trophy corner badge (for AboutUsContent)
+    /// </summary>
+    [Parameter]
+    public bool ShowTrophyCorner { get; set; }
+
+    /// <summary>
+    /// Whether to show action buttons (default: true, false for public portal)
+    /// </summary>
+    [Parameter]
+    public bool ShowButtons { get; set; } = true;
 }
 
 <style>

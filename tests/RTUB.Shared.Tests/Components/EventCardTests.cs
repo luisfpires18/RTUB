@@ -167,8 +167,9 @@ public class EventCardTests : TestContext
             .Add(p => p.IsPastEvent, true)
             .Add(p => p.EnrollmentCount, 5));
 
-        // Assert
-        cut.Markup.Should().NotContain("enrollment-section", "enrollment section should not appear for past events");
+        // Assert - Past events should show button section (details, enrollments, repertoire), but not enrollment action buttons
+        cut.Markup.Should().Contain("enrollment-section", "past events should show view buttons section");
+        cut.Markup.Should().NotContain("Inscrever", "past events should not show enroll button");
     }
 
     [Fact]
