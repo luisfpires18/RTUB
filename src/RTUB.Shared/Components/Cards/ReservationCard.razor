@@ -1,24 +1,46 @@
 @using RTUB.Core.Entities
 
-<div class="card mb-3">
+<div class="card h-100 shadow-sm">
     <div class="card-body">
-        <h6 class="card-title">@ProductName</h6>
-        <p class="text-muted small mb-2">@ProductType - @ProductPrice €</p>
-        <p class="mb-2"><strong>@Username</strong></p>
-        <hr class="my-2" />
-        @if (!string.IsNullOrEmpty(DisplayName))
-        {
-            <p class="mb-1"><small class="text-muted">Nome para apresentação:</small> @DisplayName</p>
-        }
-        @if (!string.IsNullOrEmpty(Size))
-        {
-            <p class="mb-1"><small class="text-muted">Tamanho:</small> @Size</p>
-        }
-        <p class="mb-1"><small class="text-muted">Data:</small> @ReservationDate</p>
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="card-title mb-0">@ProductName</h6>
+            <span class="badge bg-primary">@ProductType</span>
+        </div>
+        <p class="text-success fw-bold mb-3">@ProductPrice €</p>
+        
+        <div class="border-top pt-3 mb-3">
+            <div class="mb-2">
+                <small class="text-muted d-block">Reservado por:</small>
+                <strong class="text-dark">@Username</strong>
+            </div>
+            
+            @if (!string.IsNullOrEmpty(DisplayName))
+            {
+                <div class="mb-2">
+                    <small class="text-muted d-block">Nome para apresentação:</small>
+                    <span class="text-dark">@DisplayName</span>
+                </div>
+            }
+            
+            @if (!string.IsNullOrEmpty(Size))
+            {
+                <div class="mb-2">
+                    <small class="text-muted d-block">Tamanho:</small>
+                    <span class="badge bg-secondary">@Size</span>
+                </div>
+            }
+            
+            <div class="mb-0">
+                <small class="text-muted d-block">Data da reserva:</small>
+                <span class="text-dark">
+                    <i class="bi bi-calendar-check"></i> @ReservationDate
+                </span>
+            </div>
+        </div>
+        
         @if (ShowDeleteButton)
         {
-            <hr class="my-2" />
-            <button class="btn btn-sm btn-danger w-100" @onclick="OnDelete">
+            <button class="btn btn-sm btn-danger w-100 mt-2" @onclick="OnDelete">
                 <i class="bi bi-trash"></i> Eliminar Reserva
             </button>
         }
