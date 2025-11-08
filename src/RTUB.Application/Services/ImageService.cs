@@ -50,23 +50,10 @@ public class ImageService : IImageService
     /// <inheritdoc/>
     public async Task<(byte[] Data, string ContentType)?> GetAlbumImageAsync(int albumId)
     {
-        var cacheKey = $"album-image-{albumId}";
-        
-        if (_cache.TryGetValue<(byte[] Data, string ContentType)>(cacheKey, out var cachedImage))
-        {
-            return cachedImage;
-        }
-        
-        var album = await _context.Albums.FindAsync(albumId);
-        
-        if (album?.CoverImageData != null && !string.IsNullOrEmpty(album.CoverImageContentType))
-        {
-            var result = (album.CoverImageData, album.CoverImageContentType);
-            _cache.Set(cacheKey, result, _cacheOptions);
-            return result;
-        }
-
-        return null;
+        // Albums now use S3 storage - images are served directly from S3 URLs
+        // This method returns null to indicate no blob data is available
+        // The album's CoverImageUrl should be used instead
+        return await Task.FromResult<(byte[] Data, string ContentType)?>(null);
     }
 
     /// <inheritdoc/>
@@ -94,23 +81,10 @@ public class ImageService : IImageService
     /// <inheritdoc/>
     public async Task<(byte[] Data, string ContentType)?> GetInstrumentImageAsync(int instrumentId)
     {
-        var cacheKey = $"instrument-image-{instrumentId}";
-        
-        if (_cache.TryGetValue<(byte[] Data, string ContentType)>(cacheKey, out var cachedImage))
-        {
-            return cachedImage;
-        }
-        
-        var instrument = await _context.Instruments.FindAsync(instrumentId);
-        
-        if (instrument?.ImageData != null && !string.IsNullOrEmpty(instrument.ImageContentType))
-        {
-            var result = (instrument.ImageData, instrument.ImageContentType);
-            _cache.Set(cacheKey, result, _cacheOptions);
-            return result;
-        }
-        
-        return null;
+        // Instruments now use S3 storage - images are served directly from S3 URLs
+        // This method returns null to indicate no blob data is available
+        // The instrument's ImageUrl should be used instead
+        return await Task.FromResult<(byte[] Data, string ContentType)?>(null);
     }
 
     /// <inheritdoc/>

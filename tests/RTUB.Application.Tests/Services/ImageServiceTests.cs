@@ -84,22 +84,19 @@ public class ImageServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAlbumImageAsync_ReturnsImage_WhenAlbumHasImage()
+    public async Task GetAlbumImageAsync_ReturnsNull_WhenAlbumUsesS3()
     {
         // Arrange
         var album = Album.Create("Test Album", 2023);
-        album.CoverImageData = new byte[] { 10, 11, 12 };
-        album.CoverImageContentType = "image/png";
+        album.CoverImageUrl = "https://example.com/album.webp";
         _context.Albums.Add(album);
         await _context.SaveChangesAsync();
 
         // Act
         var result = await _service.GetAlbumImageAsync(album.Id);
 
-        // Assert
-        result.Should().NotBeNull();
-        result.Value.Data.Should().BeEquivalentTo(new byte[] { 10, 11, 12 });
-        result.Value.ContentType.Should().Be("image/png");
+        // Assert - Albums use S3 storage now
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -141,22 +138,19 @@ public class ImageServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetInstrumentImageAsync_ReturnsImage_WhenInstrumentHasImage()
+    public async Task GetInstrumentImageAsync_ReturnsNull_WhenInstrumentUsesS3()
     {
         // Arrange
         var instrument = Instrument.Create("Strings", "Guitar", InstrumentCondition.Good);
-        instrument.ImageData = new byte[] { 16, 17, 18 };
-        instrument.ImageContentType = "image/png";
+        instrument.ImageUrl = "https://example.com/instrument.webp";
         _context.Instruments.Add(instrument);
         await _context.SaveChangesAsync();
 
         // Act
         var result = await _service.GetInstrumentImageAsync(instrument.Id);
 
-        // Assert
-        result.Should().NotBeNull();
-        result.Value.Data.Should().BeEquivalentTo(new byte[] { 16, 17, 18 });
-        result.Value.ContentType.Should().Be("image/png");
+        // Assert - Instruments use S3 storage now
+        result.Should().BeNull();
     }
 
     [Fact]
