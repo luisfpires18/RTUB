@@ -178,7 +178,7 @@ public class AlbumServiceTests : IDisposable
         var url = "https://example.com/cover.jpg";
 
         // Act
-        await _albumService.SetCoverImageUrlAsync(album.Id, url);
+        await _albumService.SetAlbumCoverAsync(album.Id, null, null, url);
         var updated = await _albumService.GetAlbumByIdAsync(album.Id);
 
         // Assert
@@ -186,13 +186,13 @@ public class AlbumServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task SetCoverImageUrlAsync_WithInvalidId_ThrowsException()
+    public async Task SetAlbumCoverAsync_WithInvalidId_ThrowsException()
     {
         // Arrange
         var url = "https://example.com/cover.jpg";
 
         // Act & Assert
-        var act = async () => await _albumService.SetCoverImageUrlAsync(999, url);
+        var act = async () => await _albumService.SetAlbumCoverAsync(999, null, null, url);
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*not found*");
     }
