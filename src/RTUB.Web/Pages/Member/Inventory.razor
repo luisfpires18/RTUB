@@ -405,7 +405,8 @@ else
             return;
         }
         
-        editingInstrument = Instrument.Create(categories.First(), "", InstrumentCondition.Good);
+        editingInstrument = Instrument.Create(categories.First(), " ", InstrumentCondition.Good);
+        editingInstrument.Name = ""; // Clear the name after creation for user to fill
         isInstrumentCreateMode = true;
         uploadedInstrumentImagePath = null;
         showInstrumentEditModal = true;
