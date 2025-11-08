@@ -104,26 +104,13 @@
                         }
                         else
                         {
-                            @if (UserAttendance.Attended)
-                            {
-                                <!-- Attendance Approved button (disabled, success) -->
-                                <button class="btn btn-sm btn-success d-flex align-items-center gap-1" 
-                                        disabled 
-                                        title="Presença Aprovada">
-                                    <i class="bi bi-check-circle-fill icon-size-1rem"></i>
-                                    <span class="d-none d-md-inline">Aprovada</span>
-                                </button>
-                            }
-                            else
-                            {
-                                <!-- Attendance Pending button (disabled, warning) -->
-                                <button class="btn btn-sm btn-warning d-flex align-items-center gap-1" 
-                                        disabled 
-                                        title="Presença Pendente">
-                                    <i class="bi bi-clock-fill icon-size-1rem"></i>
-                                    <span class="d-none d-md-inline">Pendente</span>
-                                </button>
-                            }
+                            <!-- Attendance Pending button (disabled, warning) -->
+                            <button class="btn btn-sm btn-warning d-flex align-items-center gap-1" 
+                                    disabled 
+                                    title="Presença Pendente">
+                                <i class="bi bi-clock-fill icon-size-1rem"></i>
+                                <span class="d-none d-md-inline"></span>
+                            </button>
                             
                             <!-- Edit Attendance button (white) -->
                             <button class="btn btn-sm btn-light d-flex align-items-center" 

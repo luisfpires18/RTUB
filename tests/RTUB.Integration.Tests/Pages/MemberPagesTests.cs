@@ -81,6 +81,34 @@ public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
     #endregion
 
+    #region Inventory Page Tests
+
+    [Fact]
+    public async Task InventoryPage_WithoutAuth_RedirectsToLogin()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/inventory");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location?.ToString().Should().Contain("/login");
+    }
+
+    [Fact]
+    public async Task InventoryPage_RedirectsWithReturnUrl()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/inventory");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        var location = response.Headers.Location?.ToString();
+        location.Should().Contain("/login");
+        location.Should().Contain("ReturnUrl");
+    }
+
+    #endregion
+
     #region Profile Page Tests
 
     [Fact]

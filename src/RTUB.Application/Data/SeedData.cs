@@ -90,7 +90,5 @@ public static partial class SeedData
         await SeedEventsAsync(dbContext);
 
         await SeedMusicAsync(dbContext);
-
-        await SeedInventoryAsync(dbContext);
     }
 }

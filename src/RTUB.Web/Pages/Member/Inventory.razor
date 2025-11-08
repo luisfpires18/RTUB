@@ -1,0 +1,575 @@
+@page "/inventory"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Shared
+@attribute [Authorize]
+@inject IInstrumentService InstrumentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h1>Instrumentos</h1>
+<p class="lead mb-4">Instrumentos da RTUB</p>
+
+<!-- Add Button (Admin/Owner only) -->
+<AuthorizeView Roles="Admin,Owner">
+    <Authorized>
+        <div class="mb-3">
+            <button class="btn btn-success" @onclick="OpenCreateInstrumentModal" title="Novo Instrumento" disabled="@(loading || !categories.Any())">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@if (loading)
+{
+    <p>A carregar instrumentos...</p>
+}
+else if (!instruments.Any())
+{
+    <EmptyTableState Message="Nenhum instrumento cadastrado ainda."
+                    IconClass="bi-music-note-beamed" />
+}
+else
+{
+    <!-- Stats - 2x2 CSS Grid Centered -->
+    <div class="d-flex justify-content-center mb-4">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; max-width: 700px; width: 100%;">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Total</h6>
+                    <h3 class="card-title">@instruments.Count</h3>
+                </div>
+            </div>
+            @{
+                var statsArray = conditionStats.OrderBy(c => c.Key).ToList();
+                for (int i = 0; i < Math.Min(3, statsArray.Count); i++)
+                {
+                    var stat = statsArray[i];
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h6 class="card-subtitle mb-2 text-muted">@GetConditionDisplayName(stat.Key)</h6>
+                            <h3 class="card-title">@stat.Value</h3>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <select class="form-select" @bind="filterCategory" @bind:after="ApplyFilters">
+                <option value="">Todos os tipos</option>
+                @foreach (var category in categories)
+                {
+                    <option value="@category">@category</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <select class="form-select" @bind="filterCondition" @bind:after="ApplyFilters">
+                <option value="">Todas as condições</option>
+                @foreach (InstrumentCondition condition in Enum.GetValues(typeof(InstrumentCondition)))
+                {
+                    <option value="@condition">@GetConditionDisplayName(condition)</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <!-- Instruments Grid with InstrumentCircle Component -->
+    <div class="row">
+        @foreach (var instrument in filteredInstruments)
+        {
+            <div class="col-md-4 col-lg-2 mb-4">
+                <AuthorizeView Roles="Admin,Owner">
+                    <Authorized>
+                        <InstrumentCircle Instrument="@instrument" 
+                                        ImageUrl="@GetImageUrl(instrument.ImageSrc)"
+                                        ShowViewButton="true"
+                                        ShowEditButton="true"
+                                        ShowDeleteButton="true"
+                                        OnView="@(() => OpenViewDetailsModal(instrument))"
+                                        OnEdit="@(() => OpenEditInstrumentModal(instrument))"
+                                        OnDelete="@(() => OpenDeleteInstrumentModal(instrument))" />
+                    </Authorized>
+                    <NotAuthorized>
+                        <InstrumentCircle Instrument="@instrument" 
+                                        ImageUrl="@GetImageUrl(instrument.ImageSrc)"
+                                        ShowViewButton="true"
+                                        OnView="@(() => OpenViewDetailsModal(instrument))" />
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        }
+    </div>
+}
+
+<!-- Details Modal -->
+<Modal Show="@showViewDetailsModal" 
+       ShowChanged="@((bool show) => showViewDetailsModal = show)"
+       Title="Detalhes do Instrumento" 
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (viewingInstrument != null)
+        {
+            <!-- Centered Header Section -->
+            <div class="text-center mb-4">
+                @if (viewingInstrument.ImageData != null && viewingInstrument.ImageData.Length > 0)
+                {
+                    <img src="@GetImageUrl(viewingInstrument.ImageSrc)" alt="@viewingInstrument.Name"
+                         class="mb-3" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 3px solid var(--bs-primary);" />
+                }
+                else
+                {
+                    <div class="mb-3" style="width: 200px; height: 200px; border-radius: 50%; background: linear-gradient(135deg, rgba(111, 66, 193, 0.2), rgba(111, 66, 193, 0.05)); display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 3px solid var(--bs-primary);">
+                        <i class="bi bi-music-note-beamed" style="font-size: 4rem; color: rgba(255, 255, 255, 0.5);"></i>
+                    </div>
+                }
+                
+                <h4 class="mb-2">@viewingInstrument.Name</h4>
+                
+                <!-- Badges centered below name -->
+                <div class="d-flex justify-content-center flex-wrap gap-1 mb-2">
+                    <span class="badge bg-primary">@viewingInstrument.Category</span>
+                    <span class="badge @GetConditionBadgeClass(viewingInstrument.Condition)">
+                        @GetConditionDisplayName(viewingInstrument.Condition)
+                    </span>
+                </div>
+            </div>
+
+            <div class="mb-3"></div>
+
+            <!-- Instrument Information Section -->
+            <div class="modal-info-section mb-4">
+                <div class="modal-section-header">
+                    <h6 class="modal-section-title">
+                        <i class="bi bi-info-circle-fill me-2 text-primary"></i>
+                        Informações do Instrumento
+                    </h6>
+                </div>
+                <div class="modal-section-body">
+                    <ProfileField Label="Tipo" Value="@viewingInstrument.Category" />
+                    <ProfileField Label="Marca" Value="@viewingInstrument.Brand" />
+                    <ProfileField Label="Número de Série" Value="@viewingInstrument.SerialNumber" />
+                    <ProfileField Label="Localização" Value="@viewingInstrument.Location" />
+                    <ProfileField Label="Condição" Value="@GetConditionDisplayName(viewingInstrument.Condition)" />
+                    <ProfileField Label="Data Última Manutenção" 
+                                Value="@(viewingInstrument.LastMaintenanceDate.HasValue ? viewingInstrument.LastMaintenanceDate.Value.ToString("dd/MM/yyyy") : null)" />
+                </div>
+            </div>
+
+            <!-- Maintenance Notes Section -->
+            @if (!string.IsNullOrEmpty(viewingInstrument.MaintenanceNotes))
+            {
+                <div class="modal-info-section mb-3">
+                    <div class="modal-section-header">
+                        <h6 class="modal-section-title">
+                            <i class="bi bi-wrench me-2 text-primary"></i>
+                            Notas de Manutenção
+                        </h6>
+                    </div>
+                    <div class="modal-section-body">
+                        <p class="text-white-full mb-0">@viewingInstrument.MaintenanceNotes</p>
+                    </div>
+                </div>
+            }
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseViewDetailsModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
+<!-- CRUD Modals for Instruments -->
+<CrudModalManager TEntity="Instrument"
+                  ShowEditModal="@showInstrumentEditModal"
+                  ShowEditModalChanged="@((value) => showInstrumentEditModal = value)"
+                  IsCreateMode="@isInstrumentCreateMode"
+                  EditingEntity="@editingInstrument"
+                  CreateTitle="Novo Instrumento"
+                  EditTitle="Editar Instrumento"
+                  ModalSize="Modal.ModalSize.Large"
+                  OnSave="SaveInstrument"
+                  OnEditModalClosed="CloseInstrumentEditModal"
+                  ShowDeleteModal="@showInstrumentDeleteModal"
+                  ShowDeleteModalChanged="@((value) => showInstrumentDeleteModal = value)"
+                  DeletingEntity="@deletingInstrument"
+                  DeleteTitle="Confirmar Eliminação"
+                  OnDelete="DeleteInstrument"
+                  OnDeleteModalClosed="CloseInstrumentDeleteModal">
+    <EditFormContent Context="instrument">
+        <EditForm Model="instrument" OnValidSubmit="SaveInstrument">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Nome *</label>
+                    <InputText class="form-control" @bind-Value="instrument.Name" />
+                    <ValidationMessage For="@(() => instrument.Name)" class="text-danger" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Tipo *</label>
+                    <InputSelect class="form-select" @bind-Value="instrument.Category">
+                        <option value="">Selecione...</option>
+                        @foreach (var category in categories)
+                        {
+                            <option value="@category">@category</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => instrument.Category)" class="text-danger" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Marca</label>
+                    <InputText class="form-control" @bind-Value="instrument.Brand" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Número de Série</label>
+                    <InputText class="form-control" @bind-Value="instrument.SerialNumber" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Condição *</label>
+                    <InputSelect class="form-select" @bind-Value="instrument.Condition">
+                        @foreach (InstrumentCondition condition in Enum.GetValues(typeof(InstrumentCondition)))
+                        {
+                            <option value="@condition">@GetConditionDisplayName(condition)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Localização</label>
+                    <InputText class="form-control" @bind-Value="instrument.Location" />
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Data Última Manutenção</label>
+                    <InputDate class="form-control" @bind-Value="instrument.LastMaintenanceDate" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Notas de Manutenção</label>
+                    <InputTextArea class="form-control" @bind-Value="instrument.MaintenanceNotes" rows="3" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Imagem</label>
+                <InputFile class="form-control file-input-dark" OnChange="HandleInstrumentImageUpload" accept="image/*" />
+                @if (!string.IsNullOrEmpty(instrument.ImageSrc) && uploadedInstrumentImagePath == null && instrument.ImageData != null && instrument.ImageData.Length > 0)
+                {
+                    <div class="mt-2">
+                        <small class="text-muted">Imagem atual</small>
+                        <br />
+                        <img src="@GetImageUrl(instrument.ImageSrc)" alt="Preview" class="img-thumbnail mt-1 slideshow-preview" />
+                    </div>
+                }
+                @if (uploadedInstrumentImagePath != null)
+                {
+                    <div class="mt-2">
+                        <small class="text-success">Nova imagem carregada com sucesso!</small>
+                    </div>
+                }
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="() => showInstrumentEditModal = false">Cancelar</button>
+                <button type="submit" class="btn btn-success">Guardar</button>
+            </div>
+        </EditForm>
+    </EditFormContent>
+    <EditFormFooterContent>
+        <!-- Footer is now inside the form -->
+    </EditFormFooterContent>
+    <DeleteConfirmationContent Context="instrument">
+        <p>Tem a certeza que deseja eliminar o instrumento <strong>@instrument.Name</strong>?</p>
+        <p class="text-muted small">Esta ação não pode ser revertida.</p>
+    </DeleteConfirmationContent>
+</CrudModalManager>
+
+<!-- Image Cropper Component -->
+<ImageCropper @ref="imageCropper"
+              ShowModal="showCropperModal"
+              ShowModalChanged="OnCropperModalChanged"
+              OnImageCropped="OnImageCropped"
+              AspectRatio="1.0"
+              AspectRatioHelp="Inventory images are displayed in 1:1 aspect ratio (square) for consistent presentation"
+              ImageFormat="image/jpeg"
+              ImageQuality="0.85" />
+
+@code {
+    private bool loading = true;
+
+    // Instruments
+    private List<Instrument> instruments = new();
+    private List<Instrument> filteredInstruments = new();
+    private List<string> categories = new();
+    private Dictionary<InstrumentCondition, int> conditionStats = new();
+    private string filterCategory = "";
+    private string filterCondition = "";
+    private long imageVersion = DateTime.UtcNow.Ticks;
+
+    // Details Modal State
+    private bool showViewDetailsModal = false;
+    private Instrument? viewingInstrument;
+
+    // CRUD Modal State
+    private bool showInstrumentEditModal = false;
+    private bool showInstrumentDeleteModal = false;
+    private bool isInstrumentCreateMode = false;
+    private Instrument? editingInstrument;
+    private Instrument? deletingInstrument;
+
+    // Image Cropper
+    private bool showCropperModal = false;
+    private ImageCropper? imageCropper;
+    private IBrowserFile? selectedFile;
+    private string? uploadedInstrumentImagePath;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoadCategoriesFromEnum();
+        await LoadData();
+    }
+
+    private void LoadCategoriesFromEnum()
+    {
+        categories = Enum.GetValues<InstrumentType>()
+            .Select(e => e.ToString())
+            .ToList();
+    }
+
+    private async Task LoadData()
+    {
+        loading = true;
+
+        var instrumentsList = await InstrumentService.GetAllAsync();
+        instruments = instrumentsList.ToList();
+        filteredInstruments = instruments;
+
+        conditionStats = await InstrumentService.GetConditionStatsAsync();
+
+        imageVersion = DateTime.UtcNow.Ticks;
+
+        loading = false;
+    }
+
+    private void ApplyFilters()
+    {
+        filteredInstruments = instruments;
+
+        if (!string.IsNullOrEmpty(filterCategory))
+        {
+            filteredInstruments = filteredInstruments.Where(i => i.Category == filterCategory).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(filterCondition) && Enum.TryParse<InstrumentCondition>(filterCondition, out var condition))
+        {
+            filteredInstruments = filteredInstruments.Where(i => i.Condition == condition).ToList();
+        }
+    }
+
+    // Details Modal Methods
+    private void OpenViewDetailsModal(Instrument instrument)
+    {
+        viewingInstrument = instrument;
+        showViewDetailsModal = true;
+    }
+
+    private void CloseViewDetailsModal()
+    {
+        showViewDetailsModal = false;
+        viewingInstrument = null;
+    }
+
+    // CRUD Modal Methods
+    private void OpenCreateInstrumentModal()
+    {
+        if (!categories.Any())
+        {
+            StateHasChanged();
+            return;
+        }
+        
+        // Create with temporary placeholder to bypass factory validation
+        // User must fill in actual name before saving
+        editingInstrument = Instrument.Create(categories.First(), "___", InstrumentCondition.Good);
+        editingInstrument.Name = ""; // Clear immediately for user input
+        isInstrumentCreateMode = true;
+        uploadedInstrumentImagePath = null;
+        showInstrumentEditModal = true;
+    }
+
+    private void OpenEditInstrumentModal(Instrument instrument)
+    {
+        editingInstrument = instrument;
+        isInstrumentCreateMode = false;
+        uploadedInstrumentImagePath = null;
+        showInstrumentEditModal = true;
+    }
+
+    private void OpenDeleteInstrumentModal(Instrument instrument)
+    {
+        deletingInstrument = instrument;
+        showInstrumentDeleteModal = true;
+    }
+
+    private async Task SaveInstrument()
+    {
+        if (editingInstrument == null) return;
+
+        try
+        {
+            if (isInstrumentCreateMode)
+            {
+                await InstrumentService.CreateAsync(editingInstrument);
+            }
+            else
+            {
+                await InstrumentService.UpdateAsync(editingInstrument);
+            }
+
+            await LoadData();
+            showInstrumentEditModal = false;
+            uploadedInstrumentImagePath = null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving instrument: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteInstrument()
+    {
+        if (deletingInstrument == null) return;
+
+        try
+        {
+            await InstrumentService.DeleteAsync(deletingInstrument.Id);
+            await LoadData();
+            showInstrumentDeleteModal = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting instrument: {ex.Message}");
+        }
+    }
+
+    private void CloseInstrumentEditModal()
+    {
+        showInstrumentEditModal = false;
+        editingInstrument = null;
+        uploadedInstrumentImagePath = null;
+    }
+
+    private void CloseInstrumentDeleteModal()
+    {
+        showInstrumentDeleteModal = false;
+        deletingInstrument = null;
+    }
+
+    // Image Upload Methods
+    private async Task HandleInstrumentImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var imageFile = e.File;
+            if (imageFile != null)
+            {
+                var maxFileSize = 10 * 1024 * 1024;
+                if (imageFile.Size > maxFileSize)
+                {
+                    return;
+                }
+
+                selectedFile = imageFile;
+
+                if (imageCropper != null)
+                {
+                    await imageCropper.LoadImageAsync(selectedFile);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Handle error silently or show message
+        }
+    }
+
+    private void OnImageCropped(byte[] croppedImageData)
+    {
+        try
+        {
+            if (croppedImageData != null && croppedImageData.Length > 0)
+            {
+                if (editingInstrument != null)
+                {
+                    editingInstrument.ImageData = croppedImageData;
+                    editingInstrument.ImageContentType = "image/jpeg";
+                    uploadedInstrumentImagePath = "uploaded";
+                }
+                
+                imageVersion = DateTime.UtcNow.Ticks;
+                
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    private void OnCropperModalChanged(bool isOpen)
+    {
+        showCropperModal = isOpen;
+        StateHasChanged();
+    }
+
+    private string GetConditionDisplayName(InstrumentCondition condition)
+    {
+        return condition switch
+        {
+            InstrumentCondition.Excellent => "Óptimo",
+            InstrumentCondition.Good => "Bom",
+            InstrumentCondition.Worn => "Velho",
+            InstrumentCondition.NeedsMaintenance => "Precisa Manutenção",
+            _ => condition.ToString()
+        };
+    }
+
+    private string GetConditionBadgeClass(InstrumentCondition condition)
+    {
+        return condition switch
+        {
+            InstrumentCondition.Excellent => "bg-success",
+            InstrumentCondition.Good => "bg-info",
+            InstrumentCondition.Worn => "bg-warning",
+            InstrumentCondition.NeedsMaintenance => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetImageUrl(string imageSrc)
+    {
+        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
+        {
+            return $"{imageSrc}?v={imageVersion}";
+        }
+        return imageSrc ?? string.Empty;
+    }
+}

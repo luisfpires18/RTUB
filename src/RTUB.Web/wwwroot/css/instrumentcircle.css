@@ -1,0 +1,180 @@
+/* InstrumentCircle Component Styles */
+/* Circular card for displaying instrument information */
+
+/* Instrument Circle */
+.instrument-circle {
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 100%;
+    padding: 1rem;
+}
+
+.instrument-circle:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(111, 66, 193, 0.3);
+}
+
+/* Top-right action buttons */
+.instrument-circle-edit-btn,
+.instrument-circle-delete-btn {
+    position: absolute;
+    top: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.instrument-circle-edit-btn {
+    right: 3rem;
+    color: #333;
+}
+
+.instrument-circle-delete-btn {
+    right: 0.5rem;
+    background-color: rgba(220, 53, 69, 0.95);
+    color: white;
+}
+
+.instrument-circle-edit-btn:hover,
+.instrument-circle-edit-btn:focus {
+    background-color: white;
+    transform: scale(1.1);
+}
+
+.instrument-circle-delete-btn:hover,
+.instrument-circle-delete-btn:focus {
+    background-color: rgb(200, 35, 51);
+    transform: scale(1.1);
+}
+
+.instrument-circle-edit-btn:focus,
+.instrument-circle-delete-btn:focus {
+    outline: 2px solid #6f42c1;
+    outline-offset: 2px;
+}
+
+/* Circular Image Wrapper */
+.instrument-circle-image-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 140px;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem auto;
+    border-radius: 50%;
+}
+
+.instrument-circle-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;
+}
+
+.instrument-circle-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(111, 66, 193, 0.2), rgba(111, 66, 193, 0.05));
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.instrument-icon-large {
+    font-size: 3rem;
+}
+
+/* Card Content */
+.instrument-circle-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex-grow: 1;
+    text-align: center;
+}
+
+.instrument-circle-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #e2e2e2;
+    line-height: 1.3;
+    margin-bottom: 0.25rem;
+}
+
+.instrument-circle-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+}
+
+.instrument-circle-badges .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.instrument-circle-detail {
+    font-size: 0.85rem;
+    color: #b0b0b0;
+    line-height: 1.4;
+}
+
+/* View button at bottom */
+.instrument-circle-actions {
+    padding: 0 1rem 1rem 1rem;
+    margin-top: 0.5rem;
+    display: flex;
+    justify-content: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+    .instrument-circle-image-wrapper {
+        max-width: 110px;
+    }
+
+    .instrument-circle {
+        padding: 0.75rem;
+    }
+
+    .instrument-circle-name {
+        font-size: 1rem;
+    }
+
+    .instrument-icon-large {
+        font-size: 2.5rem;
+    }
+
+    .instrument-circle-edit-btn,
+    .instrument-circle-delete-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.85rem;
+    }
+
+    .instrument-circle-edit-btn {
+        right: 2.5rem;
+    }
+}
