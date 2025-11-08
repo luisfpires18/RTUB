@@ -1,0 +1,55 @@
+@using RTUB.Core.Entities
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h6 class="card-title">@ProductName</h6>
+        <p class="text-muted small mb-2">@ProductType - @ProductPrice €</p>
+        <p class="mb-2"><strong>@Username</strong></p>
+        <hr class="my-2" />
+        @if (!string.IsNullOrEmpty(DisplayName))
+        {
+            <p class="mb-1"><small class="text-muted">Nome para apresentação:</small> @DisplayName</p>
+        }
+        @if (!string.IsNullOrEmpty(Size))
+        {
+            <p class="mb-1"><small class="text-muted">Tamanho:</small> @Size</p>
+        }
+        <p class="mb-1"><small class="text-muted">Data:</small> @ReservationDate</p>
+        @if (ShowDeleteButton)
+        {
+            <hr class="my-2" />
+            <button class="btn btn-sm btn-danger w-100" @onclick="OnDelete">
+                <i class="bi bi-trash"></i> Eliminar Reserva
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string ProductName { get; set; } = string.Empty;
+    
+    [Parameter]
+    public string ProductType { get; set; } = string.Empty;
+    
+    [Parameter]
+    public string ProductPrice { get; set; } = string.Empty;
+    
+    [Parameter]
+    public string Username { get; set; } = string.Empty;
+    
+    [Parameter]
+    public string? DisplayName { get; set; }
+    
+    [Parameter]
+    public string? Size { get; set; }
+    
+    [Parameter]
+    public string ReservationDate { get; set; } = string.Empty;
+    
+    [Parameter]
+    public bool ShowDeleteButton { get; set; }
+    
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+}

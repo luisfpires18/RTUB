@@ -7,6 +7,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Shared
+@using RTUB.Shared.Components.Cards
 @inject IProductService ProductService
 @inject IProductReservationService ProductReservationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -115,19 +116,36 @@ else
                                 </span>
                                 <AuthorizeView>
                                     <Authorized>
-                                        <button class="btn btn-sm btn-primary w-100" @onclick="() => OpenReservationModal(product)">
-                                            <i class="bi bi-calendar-check"></i> Reservar
-                                        </button>
+                                        <div class="d-flex gap-1">
+                                            @{
+                                                var hasReservation = userReservations.ContainsKey(product.Id) && userReservations[product.Id] != null;
+                                            }
+                                            @if (hasReservation)
+                                            {
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenUserReservationModal(product)" title="Ver Reserva">
+                                                    <i class="bi bi-eye"></i> Ver Reserva
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => OpenDeleteReservationModal(userReservations[product.Id]!)" title="Anular Reserva">
+                                                    <i class="bi bi-x-circle"></i> Anular
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-primary" @onclick="() => OpenReservationModal(product)" title="Reservar">
+                                                    <i class="bi bi-calendar-check"></i> Reservar
+                                                </button>
+                                            }
+                                            <AuthorizeView Roles="Admin,Owner" Context="adminContext">
+                                                <Authorized>
+                                                    <button class="btn btn-sm btn-dark text-white" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
+                                                        <i class="bi bi-list-check"></i> Ver Reservas
+                                                    </button>
+                                                </Authorized>
+                                            </AuthorizeView>
+                                        </div>
                                     </Authorized>
                                 </AuthorizeView>
                             }
-                            <AuthorizeView Roles="Admin,Owner">
-                                <Authorized>
-                                    <button class="btn btn-sm btn-info w-100 mt-2" @onclick="() => OpenViewReservationsModal(product)">
-                                        <i class="bi bi-list-check"></i> Ver Reservas
-                                    </button>
-                                </Authorized>
-                            </AuthorizeView>
                         </div>
                     </div>
                 </div>
@@ -320,18 +338,13 @@ else
     </BodyContent>
 </Modal>
 
-<!-- View Reservations Modal -->
+<!-- View Reservations Modal (Admin/Owner) -->
 <Modal Title="Reservas do Produto" 
        @bind-Show="showViewReservationsModal"
        Size="Modal.ModalSize.Large">
     <BodyContent>
         @if (selectedProduct != null)
         {
-            <div class="mb-3">
-                <h5>@selectedProduct.Name</h5>
-                <p class="text-muted">@selectedProduct.Type - @selectedProduct.Price.ToString("0.00") €</p>
-            </div>
-            
             @if (loadingReservations)
             {
                 <p>A carregar reservas...</p>
@@ -344,34 +357,88 @@ else
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Utilizador</th>
-                                <th>Nome para Apresentação</th>
-                                <th>Tamanho</th>
-                                <th>Data</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var reservation in productReservations)
-                            {
-                                <tr>
-                                    <td>@reservation.UserNickname</td>
-                                    <td>@(reservation.DisplayName ?? "-")</td>
-                                    <td>@(reservation.Size ?? "-")</td>
-                                    <td>@reservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                <div class="row">
+                    @foreach (var reservation in productReservations)
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <AuthorizeView Roles="Owner">
+                                <Authorized>
+                                    <ReservationCard 
+                                        ProductName="@selectedProduct.Name"
+                                        ProductType="@selectedProduct.Type"
+                                        ProductPrice="@selectedProduct.Price.ToString("0.00")"
+                                        Username="@reservation.UserNickname"
+                                        DisplayName="@reservation.DisplayName"
+                                        Size="@reservation.Size"
+                                        ReservationDate="@reservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                        ShowDeleteButton="true"
+                                        OnDelete="@(() => DeleteReservationFromAdmin(reservation))" />
+                                </Authorized>
+                                <NotAuthorized>
+                                    <ReservationCard 
+                                        ProductName="@selectedProduct.Name"
+                                        ProductType="@selectedProduct.Type"
+                                        ProductPrice="@selectedProduct.Price.ToString("0.00")"
+                                        Username="@reservation.UserNickname"
+                                        DisplayName="@reservation.DisplayName"
+                                        Size="@reservation.Size"
+                                        ReservationDate="@reservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                        ShowDeleteButton="false" />
+                                </NotAuthorized>
+                            </AuthorizeView>
+                        </div>
+                    }
                 </div>
             }
         }
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseViewReservationsModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
+<!-- View User Reservation Modal -->
+<Modal Title="Minha Reserva" 
+       @bind-Show="showUserReservationModal"
+       Size="Modal.ModalSize.Default">
+    <BodyContent>
+        @if (selectedProduct != null && userReservation != null)
+        {
+            <ReservationCard 
+                ProductName="@selectedProduct.Name"
+                ProductType="@selectedProduct.Type"
+                ProductPrice="@selectedProduct.Price.ToString("0.00")"
+                Username="@userReservation.UserNickname"
+                DisplayName="@userReservation.DisplayName"
+                Size="@userReservation.Size"
+                ReservationDate="@userReservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                ShowDeleteButton="false" />
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseUserReservationModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
+<!-- Delete Reservation Confirmation Modal -->
+<Modal Title="Anular Reserva" 
+       @bind-Show="showDeleteReservationModal"
+       Size="Modal.ModalSize.Default">
+    <BodyContent>
+        @if (deletingReservation != null)
+        {
+            <p>Tem a certeza que deseja anular esta reserva?</p>
+            <div class="alert alert-warning">
+                <strong>Produto:</strong> @(selectedProduct?.Name ?? "N/A")<br />
+                <strong>Data:</strong> @deletingReservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteReservationModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteReservation">
+            <i class="bi bi-trash"></i> Anular Reserva
+        </button>
     </FooterContent>
 </Modal>
 
@@ -405,10 +472,22 @@ else
     private string? reservationError;
     private string? reservationSuccess;
     
-    // View Reservations Modal State
+    // View Reservations Modal State (Admin)
     private bool showViewReservationsModal = false;
     private bool loadingReservations = false;
     private List<ProductReservation> productReservations = new();
+    
+    // View User Reservation Detail Modal
+    private bool showUserReservationModal = false;
+    private ProductReservation? userReservation;
+    
+    // Delete Reservation Confirmation Modal
+    private bool showDeleteReservationModal = false;
+    private ProductReservation? deletingReservation;
+    
+    // Track user's reservations for each product
+    private Dictionary<int, ProductReservation?> userReservations = new();
+    private string? currentUserId;
     
     // Model for reservation form
     private class ReservationModel
@@ -430,6 +509,7 @@ else
         // Check if user is authenticated (member)
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         isMember = authState.User.Identity?.IsAuthenticated ?? false;
+        currentUserId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         
         // Load products based on membership
         var allProducts = isMember 
@@ -439,6 +519,20 @@ else
         products = allProducts.OrderBy(p => p.Type).ThenBy(p => p.Name).ToList();
         productTypes = products.Select(p => p.Type).Distinct().OrderBy(t => t).ToList();
         FilterProducts();
+        
+        // Load user's reservations for all products
+        if (isMember && !string.IsNullOrEmpty(currentUserId))
+        {
+            try
+            {
+                var userReservationsList = await ProductReservationService.GetByUserIdAsync(currentUserId);
+                userReservations = userReservationsList.ToDictionary(r => r.ProductId, r => (ProductReservation?)r);
+            }
+            catch
+            {
+                userReservations = new Dictionary<int, ProductReservation?>();
+            }
+        }
         
         // Refresh cache-bust parameter
         productImageVersion = DateTime.UtcNow.Ticks;
@@ -663,6 +757,9 @@ else
             
             reservationSuccess = "Reserva criada com sucesso!";
             
+            // Update local cache
+            userReservations[selectedProduct.Id] = reservation;
+            
             // Close modal after a short delay
             await Task.Delay(1500);
             CloseReservationModal();
@@ -709,5 +806,84 @@ else
         showViewReservationsModal = false;
         selectedProduct = null;
         productReservations = new List<ProductReservation>();
+    }
+    
+    // User Reservation View Methods
+    private void OpenUserReservationModal(Product product)
+    {
+        selectedProduct = product;
+        if (userReservations.ContainsKey(product.Id))
+        {
+            userReservation = userReservations[product.Id];
+            showUserReservationModal = true;
+        }
+    }
+    
+    private void CloseUserReservationModal()
+    {
+        showUserReservationModal = false;
+        selectedProduct = null;
+        userReservation = null;
+    }
+    
+    // Delete Reservation Methods
+    private void OpenDeleteReservationModal(ProductReservation reservation)
+    {
+        deletingReservation = reservation;
+        showDeleteReservationModal = true;
+    }
+    
+    private void CloseDeleteReservationModal()
+    {
+        showDeleteReservationModal = false;
+        deletingReservation = null;
+    }
+    
+    private async Task ConfirmDeleteReservation()
+    {
+        if (deletingReservation == null) return;
+        
+        try
+        {
+            await ProductReservationService.DeleteAsync(deletingReservation.Id);
+            
+            // Update local cache
+            if (selectedProduct != null && userReservations.ContainsKey(selectedProduct.Id))
+            {
+                userReservations[selectedProduct.Id] = null;
+            }
+            
+            CloseDeleteReservationModal();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting reservation: {ex.Message}");
+        }
+    }
+    
+    // Admin Delete Reservation Method
+    private async Task DeleteReservationFromAdmin(ProductReservation reservation)
+    {
+        try
+        {
+            await ProductReservationService.DeleteAsync(reservation.Id);
+            
+            // Reload reservations for the product
+            if (selectedProduct != null)
+            {
+                var reservations = await ProductReservationService.GetByProductIdAsync(selectedProduct.Id);
+                productReservations = reservations.ToList();
+                
+                // Update user cache if it's the current user's reservation
+                if (reservation.UserId == currentUserId && userReservations.ContainsKey(selectedProduct.Id))
+                {
+                    userReservations[selectedProduct.Id] = null;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting reservation: {ex.Message}");
+        }
     }
 }
