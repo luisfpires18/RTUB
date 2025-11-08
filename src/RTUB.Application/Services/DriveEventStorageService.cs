@@ -21,7 +21,7 @@ public class DriveEventStorageService : IEventStorageService, IDisposable
     private readonly ILogger<DriveEventStorageService> _logger;
     private readonly string _environment;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
-    private const string EventPathPrefix = "images/slideshows/";
+    private const string EventPathPrefix = "images/events/";
     private const int WebPQuality = 85; // High quality WebP (0-100, where 100 is best quality)
     private const int MaxImageWidth = 1920; // Max width for event images
     private const int MaxImageHeight = 1080; // Max height for event images

@@ -22,7 +22,7 @@ public class DriveSlideshowStorageService : ISlideshowStorageService, IDisposabl
     private readonly string _environment;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
     private const string SlideshowPathPrefix = "images/slideshows/";
-    private const int WebPQuality = 85; // High quality WebP (0-100, where 100 is best quality)
+    private const int WebPQuality = 100; // High quality WebP (0-100, where 100 is best quality)
     private const int MaxImageWidth = 1920; // Max width for slideshow images
     private const int MaxImageHeight = 1080; // Max height for slideshow images
 
