@@ -52,30 +52,16 @@ public class ImageService : IImageService
     {
         // Albums now use S3 storage - images are served directly from S3 URLs
         // This method returns null to indicate no blob data is available
-        // The album's CoverImageUrl should be used instead
+        // The album's ImageUrl should be used instead
         return await Task.FromResult<(byte[] Data, string ContentType)?>(null);
     }
 
     /// <inheritdoc/>
     public async Task<(byte[] Data, string ContentType)?> GetProfileImageAsync(string userId)
     {
-        var cacheKey = $"profile-image-{userId}";
-        
-        if (_cache.TryGetValue<(byte[] Data, string ContentType)>(cacheKey, out var cachedImage))
-        {
-            return cachedImage;
-        }
-        
-        var user = await _userManager.FindByIdAsync(userId);
-        
-        if (user?.ProfilePictureData != null && !string.IsNullOrEmpty(user.ProfilePictureContentType))
-        {
-            var result = (user.ProfilePictureData, user.ProfilePictureContentType);
-            _cache.Set(cacheKey, result, _cacheOptions);
-            return result;
-        }
-
-        return null;
+        // Profile pictures now use S3 storage - images are served directly from S3 URLs
+        // This method returns null to indicate no blob data is available
+        return await Task.FromResult<(byte[] Data, string ContentType)?>(null);
     }
 
     /// <inheritdoc/>
@@ -90,23 +76,9 @@ public class ImageService : IImageService
     /// <inheritdoc/>
     public async Task<(byte[] Data, string ContentType)?> GetProductImageAsync(int productId)
     {
-        var cacheKey = $"product-image-{productId}";
-        
-        if (_cache.TryGetValue<(byte[] Data, string ContentType)>(cacheKey, out var cachedImage))
-        {
-            return cachedImage;
-        }
-        
-        var product = await _context.Products.FindAsync(productId);
-        
-        if (product?.ImageData != null && !string.IsNullOrEmpty(product.ImageContentType))
-        {
-            var result = (product.ImageData, product.ImageContentType);
-            _cache.Set(cacheKey, result, _cacheOptions);
-            return result;
-        }
-        
-        return null;
+        // Products now use S3 storage with direct URLs - no database image data
+        // Return null to indicate image should be served from ImageUrl property
+        return await Task.FromResult<(byte[] Data, string ContentType)?>(null);
     }
 
     /// <inheritdoc/>

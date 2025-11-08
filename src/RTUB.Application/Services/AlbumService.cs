@@ -75,10 +75,10 @@ public class AlbumService : IAlbumService
             throw new InvalidOperationException($"Album with ID {id} not found");
 
         // Delete S3 image if exists
-        if (!string.IsNullOrEmpty(album.CoverImageUrl))
+        if (!string.IsNullOrEmpty(album.ImageUrl))
         {
             // Extract filename from URL and delete from S3
-            var filename = ExtractFilenameFromUrl(album.CoverImageUrl);
+            var filename = ExtractFilenameFromUrl(album.ImageUrl);
             if (!string.IsNullOrEmpty(filename))
             {
                 await _albumStorageService.DeleteImageAsync(filename);
@@ -100,10 +100,10 @@ public class AlbumService : IAlbumService
         {
             // STRATEGY: Replace-Before-Upload
             // Step 1: Delete old image BEFORE uploading new one
-            if (!string.IsNullOrEmpty(album.CoverImageUrl))
+            if (!string.IsNullOrEmpty(album.ImageUrl))
             {
                 // Extract filename and delete from S3
-                var oldFilename = ExtractFilenameFromUrl(album.CoverImageUrl);
+                var oldFilename = ExtractFilenameFromUrl(album.ImageUrl);
                 if (!string.IsNullOrEmpty(oldFilename))
                 {
                     _logger.LogInformation("Deleting old album cover from S3: {Filename}", oldFilename);
@@ -117,13 +117,13 @@ public class AlbumService : IAlbumService
             // Step 3: Get the public URL from the storage service
             var imageUrl = await _albumStorageService.GetImageUrlAsync(filename);
             
-            // Step 4: Store the full URL in the CoverImageUrl field
-            album.SetCoverImageUrl(imageUrl);
+            // Step 4: Store the full URL in the ImageUrl field
+            album.SetImageUrl(imageUrl);
         }
         else if (!string.IsNullOrEmpty(url))
         {
             // If no imageData provided, just update the URL
-            album.SetCoverImageUrl(url);
+            album.SetImageUrl(url);
         }
         
         _context.Albums.Update(album);

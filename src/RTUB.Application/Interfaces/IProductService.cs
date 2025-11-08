@@ -15,6 +15,7 @@ public interface IProductService
     Task<Product> CreateAsync(Product product);
     Task UpdateAsync(Product product);
     Task DeleteAsync(int id);
+    Task SetProductImageAsync(int id, byte[]? imageData, string? contentType);
     Task<Dictionary<string, int>> GetTypeStatsAsync();
     Task<decimal> GetTotalInventoryValueAsync();
 }

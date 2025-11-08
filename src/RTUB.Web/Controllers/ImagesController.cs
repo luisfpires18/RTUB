@@ -95,10 +95,10 @@ public class ImagesController : ControllerBase
     {
         // Check if user has an S3-stored profile picture
         var user = await _userManager.FindByIdAsync(id);
-        if (user != null && !string.IsNullOrEmpty(user.S3ImageFilename))
+        if (user != null && !string.IsNullOrEmpty(user.ImageUrl))
         {
             // Get pre-signed URL from S3
-            var s3Url = await _profileStorageService.GetImageUrlAsync(user.S3ImageFilename);
+            var s3Url = await _profileStorageService.GetImageUrlAsync(user.ImageUrl);
             if (!string.IsNullOrEmpty(s3Url))
             {
                 // Redirect to S3 URL

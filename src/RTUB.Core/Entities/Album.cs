@@ -17,8 +17,8 @@ public class Album : BaseEntity
     [Range(1900, 2100, ErrorMessage = "O ano deve estar entre 1900 e 2100")]
     public int? Year { get; set; }
     
-    // Image URL - stores the full S3 URL for cover image
-    public string? CoverImageUrl { get; set; }
+    // Image URL - stores the full S3 URL for album cover image
+    public string? ImageUrl { get; set; }
     
     // Navigation property
     public virtual ICollection<Song> Songs { get; set; } = new List<Song>();
@@ -55,16 +55,17 @@ public class Album : BaseEntity
         Description = description;
     }
 
-    public void SetCoverImageUrl(string? url)
+    public void SetImageUrl(string? url)
     {
-        CoverImageUrl = url;
+        ImageUrl = url;
     }
 
-    public string GetCoverImageSource()
+    public string GetImageSource()
     {
-        return !string.IsNullOrEmpty(CoverImageUrl) ? CoverImageUrl : "";
+        return !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
     }
     
-    // Property alias for backward compatibility
-    public string CoverImageSrc => GetCoverImageSource();
+    // Property aliases for backward compatibility
+    public string ImageSrc => GetImageSource();
+    public string CoverImageSrc => GetImageSource();
 }
