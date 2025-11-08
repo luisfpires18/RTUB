@@ -6,6 +6,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -14,6 +15,8 @@ public class UserProfileServiceTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<IImageService> _mockImageService;
+    private readonly Mock<IProfileStorageService> _mockProfileStorageService;
+    private readonly Mock<ILogger<UserProfileService>> _mockLogger;
     private readonly UserProfileService _service;
 
     public UserProfileServiceTests()
@@ -30,8 +33,15 @@ public class UserProfileServiceTests : IDisposable
             userStoreMock.Object, null, null, null, null, null, null, null, null);
         
         _mockImageService = new Mock<IImageService>();
+        _mockProfileStorageService = new Mock<IProfileStorageService>();
+        _mockLogger = new Mock<ILogger<UserProfileService>>();
         
-        _service = new UserProfileService(_mockUserManager.Object, _context, _mockImageService.Object);
+        _service = new UserProfileService(
+            _mockUserManager.Object, 
+            _context, 
+            _mockImageService.Object,
+            _mockProfileStorageService.Object,
+            _mockLogger.Object);
     }
 
     [Fact]

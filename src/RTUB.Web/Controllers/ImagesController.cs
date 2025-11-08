@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using RTUB.Application.Interfaces;
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.Identity;
+using RTUB.Core.Entities;
 
 namespace RTUB.Controllers;
 
@@ -12,13 +14,22 @@ public class ImagesController : ControllerBase
     private readonly IWebHostEnvironment _environment;
     private readonly IConfiguration _configuration;
     private readonly int _cacheDurationInSeconds;
+    private readonly IProfileStorageService _profileStorageService;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public ImagesController(IImageService imageService, IWebHostEnvironment environment, IConfiguration configuration)
+    public ImagesController(
+        IImageService imageService, 
+        IWebHostEnvironment environment, 
+        IConfiguration configuration,
+        IProfileStorageService profileStorageService,
+        UserManager<ApplicationUser> userManager)
     {
         _imageService = imageService;
         _environment = environment;
         _configuration = configuration;
         _cacheDurationInSeconds = configuration.GetValue<int>("ImageCaching:CacheDurationInSeconds", 86400); // Default 24 hours
+        _profileStorageService = profileStorageService;
+        _userManager = userManager;
     }
 
     /// <summary>
@@ -82,6 +93,20 @@ public class ImagesController : ControllerBase
     [HttpGet("profile/{id}")]
     public async Task<IActionResult> GetProfileImage(string id)
     {
+        // Check if user has an S3-stored profile picture
+        var user = await _userManager.FindByIdAsync(id);
+        if (user != null && !string.IsNullOrEmpty(user.S3ImageFilename))
+        {
+            // Get pre-signed URL from S3
+            var s3Url = await _profileStorageService.GetImageUrlAsync(user.S3ImageFilename);
+            if (!string.IsNullOrEmpty(s3Url))
+            {
+                // Redirect to S3 URL
+                return Redirect(s3Url);
+            }
+        }
+
+        // Fall back to database-stored image
         var imageData = await _imageService.GetProfileImageAsync(id);
 
         // If user has a profile picture, return it with caching
