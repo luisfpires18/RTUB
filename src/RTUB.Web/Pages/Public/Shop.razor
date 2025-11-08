@@ -83,27 +83,28 @@ else
                     </div>
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title music-text-light">@product.Name</h5>
-                        <span class="badge bg-primary mb-2 align-self-start">@product.Type</span>
-                        @if (!string.IsNullOrEmpty(product.Description))
-                        {
-                            <p class="card-text small flex-grow-1 music-text-secondary" style="white-space: pre-line;">@product.Description</p>
-                        }
+                        <div class="mb-2">
+                            <span class="badge bg-primary me-1">@product.Type</span>
+                            @if (product.Stock > 0)
+                            {
+                                <span class="badge bg-light text-dark">
+                                    <i class="bi bi-box-seam"></i> @product.Stock em stock
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle"></i> Esgotado
+                                </span>
+                            }
+                        </div>
                         <div class="mt-auto">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <strong class="fs-5 text-success">@product.Price.ToString("0.00") €</strong>
-                                @if (product.Stock > 0)
-                                {
-                                    <span class="badge bg-light text-dark">
-                                        <i class="bi bi-box-seam"></i> @product.Stock em stock
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-danger">
-                                        <i class="bi bi-x-circle"></i> Esgotado
-                                    </span>
-                                }
-                            </div>
+                            <p class="card-text mb-2">
+                                <strong class="fs-5 text-white">@product.Price.ToString("0.00") €</strong>
+                            </p>
+                            <button class="btn btn-sm btn-outline-secondary w-100 mb-2" @onclick="() => OpenProductDetailsModal(product)" title="Ver Detalhes">
+                                <i class="bi bi-eye"></i> Ver Detalhes
+                            </button>
                             @if (!product.IsPublic)
                             {
                                 <span class="badge bg-warning text-dark mb-2">
@@ -117,37 +118,37 @@ else
                                         }
                                         @if (!outOfStock)
                                         {
-                                            <div class="d-flex flex-column gap-1">
-                                                @if (hasReservation)
-                                                {
+                                            @if (hasReservation)
+                                            {
+                                                <div class="d-flex gap-1 mb-1">
                                                     <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenUserReservationModal(product)" title="Ver Reserva">
                                                         <i class="bi bi-eye"></i> Ver Reserva
                                                     </button>
-                                                    <AuthorizeView Roles="Admin,Owner" Context="adminContext">
-                                                        <Authorized>
-                                                            <button class="btn btn-sm btn-dark text-white" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
-                                                                <i class="bi bi-list-check"></i> Ver Reservas
-                                                            </button>
-                                                        </Authorized>
-                                                    </AuthorizeView>
                                                     <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteReservationModal(userReservations[product.Id]!, product)" title="Anular Reserva">
                                                         <i class="bi bi-x-circle"></i> Anular
                                                     </button>
-                                                }
-                                                else
-                                                {
-                                                    <button class="btn btn-sm btn-primary" @onclick="() => OpenReservationModal(product)" title="Reservar">
-                                                        <i class="bi bi-calendar-check"></i> Reservar
-                                                    </button>
-                                                    <AuthorizeView Roles="Admin,Owner" Context="adminContext">
-                                                        <Authorized>
-                                                            <button class="btn btn-sm btn-dark text-white" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
-                                                                <i class="bi bi-list-check"></i> Ver Reservas
-                                                            </button>
-                                                        </Authorized>
-                                                    </AuthorizeView>
-                                                }
-                                            </div>
+                                                </div>
+                                                <AuthorizeView Roles="Admin,Owner" Context="adminContext">
+                                                    <Authorized>
+                                                        <button class="btn btn-sm btn-dark text-white w-100" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
+                                                            <i class="bi bi-list-check"></i> Ver Reservas
+                                                        </button>
+                                                    </Authorized>
+                                                </AuthorizeView>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-primary w-100 mb-1" @onclick="() => OpenReservationModal(product)" title="Reservar">
+                                                    <i class="bi bi-calendar-check"></i> Reservar
+                                                </button>
+                                                <AuthorizeView Roles="Admin,Owner" Context="adminContext">
+                                                    <Authorized>
+                                                        <button class="btn btn-sm btn-dark text-white w-100" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
+                                                            <i class="bi bi-list-check"></i> Ver Reservas
+                                                        </button>
+                                                    </Authorized>
+                                                </AuthorizeView>
+                                            }
                                         }
                                     </Authorized>
                                 </AuthorizeView>
@@ -455,6 +456,62 @@ else
     </Sections>
 </DetailsModal>
 
+<!-- Product Details Modal -->
+<DetailsModal Show="@showProductDetailsModal" 
+              ShowChanged="@((bool show) => showProductDetailsModal = show)"
+              Title="Detalhes do Produto" 
+              HeaderTitle="@(viewingProduct?.Name ?? "")"
+              ImageUrl="@(viewingProduct != null && viewingProduct.ImageData != null && viewingProduct.ImageData.Length > 0 ? GetProductImageUrl(viewingProduct.ImageSrc) : null)"
+              IconClass="@(viewingProduct != null && (viewingProduct.ImageData == null || viewingProduct.ImageData.Length == 0) ? "bi-bag-fill" : null)"
+              OnClose="CloseProductDetailsModal">
+    <BadgesContent>
+        @if (viewingProduct != null)
+        {
+            <span class="badge bg-primary">@viewingProduct.Type</span>
+            <span class="badge bg-success">@viewingProduct.Price.ToString("0.00") €</span>
+            @if (viewingProduct.Stock > 0)
+            {
+                <span class="badge bg-light text-dark">
+                    <i class="bi bi-box-seam"></i> @viewingProduct.Stock em stock
+                </span>
+            }
+            else
+            {
+                <span class="badge bg-danger">
+                    <i class="bi bi-x-circle"></i> Esgotado
+                </span>
+            }
+        }
+    </BadgesContent>
+    <Sections>
+        @if (viewingProduct != null)
+        {
+            <InfoSection SectionTitle="Informação do Produto" 
+                        IconClass="bi-info-circle-fill" 
+                        CssClass="mb-4">
+                <ProfileField Label="Nome" Value="@viewingProduct.Name" />
+                <ProfileField Label="Tipo" Value="@viewingProduct.Type" />
+                <ProfileField Label="Preço" Value="@($"{viewingProduct.Price:0.00} €")" />
+                <ProfileField Label="Stock" Value="@viewingProduct.Stock.ToString()" />
+                <ProfileField Label="Disponível" Value="@(viewingProduct.IsAvailable ? "Sim" : "Não")" />
+                @if (!viewingProduct.IsPublic)
+                {
+                    <ProfileField Label="Visibilidade" Value="Apenas Membros" />
+                }
+            </InfoSection>
+
+            @if (!string.IsNullOrEmpty(viewingProduct.Description))
+            {
+                <InfoSection SectionTitle="Descrição" 
+                            IconClass="bi-file-text" 
+                            CssClass="mb-3">
+                    <p class="text-white-full mb-0" style="white-space: pre-line;">@viewingProduct.Description</p>
+                </InfoSection>
+            }
+        }
+    </Sections>
+</DetailsModal>
+
 <!-- Delete Reservation Confirmation Modal -->
 <ConfirmDialog Show="@showDeleteReservationModal"
                ShowChanged="@((bool show) => showDeleteReservationModal = show)"
@@ -539,6 +596,10 @@ else
     // View User Reservation Detail Modal
     private bool showUserReservationModal = false;
     private ProductReservation? userReservation;
+    
+    // Product Details Modal
+    private bool showProductDetailsModal = false;
+    private Product? viewingProduct;
     
     // Delete Reservation Confirmation Modal
     private bool showDeleteReservationModal = false;
@@ -869,6 +930,19 @@ else
         showViewReservationsModal = false;
         selectedProduct = null;
         productReservations = new List<ProductReservation>();
+    }
+    
+    // Product Details Modal Methods
+    private void OpenProductDetailsModal(Product product)
+    {
+        viewingProduct = product;
+        showProductDetailsModal = true;
+    }
+    
+    private void CloseProductDetailsModal()
+    {
+        showProductDetailsModal = false;
+        viewingProduct = null;
     }
     
     // User Reservation View Methods
