@@ -18,6 +18,8 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
     private readonly AlbumService _albumService;
     private readonly Mock<IImageService> _mockImageService;
 
+    private readonly Mock<IAlbumStorageService> _mockAlbumStorageService;
+    private readonly Mock<ILogger<AlbumService>> _mockLogger;
     public SongYouTubeUrlPersistenceTests()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -27,7 +29,9 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         _context = new ApplicationDbContext(options);
         _songService = new SongService(_context);
         _mockImageService = new Mock<IImageService>();
-        _albumService = new AlbumService(_context, _mockImageService.Object);
+        _mockAlbumStorageService = new Mock<IAlbumStorageService>();
+        _mockLogger = new Mock<ILogger<AlbumService>>();
+        _albumService = new AlbumService(_context, _mockImageService.Object, _mockAlbumStorageService.Object, _mockLogger.Object);
     }
 
     [Fact]

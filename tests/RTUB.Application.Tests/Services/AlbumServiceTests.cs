@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -16,6 +17,8 @@ public class AlbumServiceTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly AlbumService _albumService;
     private readonly Mock<IImageService> _mockImageService;
+    private readonly Mock<IAlbumStorageService> _mockAlbumStorageService;
+    private readonly Mock<ILogger<AlbumService>> _mockLogger;
 
     public AlbumServiceTests()
     {
@@ -25,7 +28,9 @@ public class AlbumServiceTests : IDisposable
 
         _context = new ApplicationDbContext(options);
         _mockImageService = new Mock<IImageService>();
-        _albumService = new AlbumService(_context, _mockImageService.Object);
+        _mockAlbumStorageService = new Mock<IAlbumStorageService>();
+        _mockLogger = new Mock<ILogger<AlbumService>>();
+        _albumService = new AlbumService(_context, _mockImageService.Object, _mockAlbumStorageService.Object, _mockLogger.Object);
     }
 
     [Fact]
@@ -166,32 +171,28 @@ public class AlbumServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task SetAlbumCoverAsync_SetsImageData()
+    public async Task SetAlbumCoverAsync_SetsImageUrl()
     {
         // Arrange
         var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var imageData = new byte[] { 1, 2, 3, 4, 5 };
-        var contentType = "image/jpeg";
         var url = "https://example.com/cover.jpg";
 
         // Act
-        await _albumService.SetAlbumCoverAsync(album.Id, imageData, contentType, url);
+        await _albumService.SetCoverImageUrlAsync(album.Id, url);
         var updated = await _albumService.GetAlbumByIdAsync(album.Id);
 
         // Assert
-        updated!.CoverImageData.Should().BeEquivalentTo(imageData);
-        updated.CoverImageContentType.Should().Be(contentType);
-        updated.CoverImageUrl.Should().Be(url);
+        updated!.CoverImageUrl.Should().Be(url);
     }
 
     [Fact]
-    public async Task SetAlbumCoverAsync_WithInvalidId_ThrowsException()
+    public async Task SetCoverImageUrlAsync_WithInvalidId_ThrowsException()
     {
         // Arrange
-        var imageData = new byte[] { 1, 2, 3 };
+        var url = "https://example.com/cover.jpg";
 
         // Act & Assert
-        var act = async () => await _albumService.SetAlbumCoverAsync(999, imageData, "image/jpeg");
+        var act = async () => await _albumService.SetCoverImageUrlAsync(999, url);
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*not found*");
     }

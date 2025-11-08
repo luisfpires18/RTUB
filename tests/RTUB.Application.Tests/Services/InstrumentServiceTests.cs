@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
