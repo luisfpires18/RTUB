@@ -60,95 +60,38 @@ else
     <div class="row">
         @foreach (var product in filteredProducts)
         {
-            <div class="col-md-4 col-lg-2 mb-4">
-                <div class="card album-card h-100">
-                    <div class="position-relative">
-                        @if (product.ImageData != null && product.ImageData.Length > 0)
-                        {
-                            <img src="@GetProductImageUrl(product.ImageSrc)" class="card-img-top shop-square-image" alt="@product.Name">
-                        }
-                        else
-                        {
-                            <div class="card-img-top shop-square-placeholder">
-                                <i class="bi bi-bag-fill music-icon-large"></i>
-                            </div>
-                        }
-                        <AuthorizeView Roles="Admin,Owner">
-                            <Authorized>
-                                <div class="admin-overlay">
-                                    <button class="btn btn-sm music-btn-edit" @onclick="() => OpenEditProductModal(product)" title="Editar">
-                                        <i class="bi bi-pencil music-icon-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm music-btn-delete" @onclick="() => OpenDeleteProductModal(product)" title="Eliminar">
-                                        <i class="bi bi-trash music-icon-delete"></i>
-                                    </button>
-                                </div>
-                            </Authorized>
-                        </AuthorizeView>
-                    </div>
-                    <div class="card-body d-flex flex-column">
-                        <h5 class="card-title music-text-light">@product.Name</h5>
-                        <span class="badge bg-primary mb-2 align-self-start">@product.Type</span>
-                        @if (!string.IsNullOrEmpty(product.Description))
-                        {
-                            <p class="card-text small flex-grow-1 music-text-secondary">@product.Description</p>
-                        }
-                        <div class="mt-auto">
-                            <p class="card-text">
-                                <strong class="fs-5 text-success">@product.Price.ToString("0.00") €</strong>
-                            </p>
-                            @if (product.Stock > 0)
-                            {
-                                <p class="card-text small music-text-secondary">
-                                    <i class="bi bi-box-seam"></i> Em stock: @product.Stock unidades
-                                </p>
-                            }
-                            else
-                            {
-                                <p class="card-text small text-danger">
-                                    <i class="bi bi-x-circle"></i> Esgotado
-                                </p>
-                            }
-                            @if (!product.IsPublic)
-                            {
-                                <span class="badge bg-warning text-dark mb-2">
-                                    <i class="bi bi-lock-fill"></i> Apenas Membros
-                                </span>
-                                <AuthorizeView>
-                                    <Authorized>
-                                        <div class="d-flex gap-1">
-                                            @{
-                                                var hasReservation = userReservations.ContainsKey(product.Id) && userReservations[product.Id] != null;
-                                            }
-                                            @if (hasReservation)
-                                            {
-                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenUserReservationModal(product)" title="Ver Reserva">
-                                                    <i class="bi bi-eye"></i> Ver Reserva
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => OpenDeleteReservationModal(userReservations[product.Id]!)" title="Anular Reserva">
-                                                    <i class="bi bi-x-circle"></i> Anular
-                                                </button>
-                                            }
-                                            else
-                                            {
-                                                <button class="btn btn-sm btn-primary" @onclick="() => OpenReservationModal(product)" title="Reservar">
-                                                    <i class="bi bi-calendar-check"></i> Reservar
-                                                </button>
-                                            }
-                                            <AuthorizeView Roles="Admin,Owner" Context="adminContext">
-                                                <Authorized>
-                                                    <button class="btn btn-sm btn-dark text-white" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
-                                                        <i class="bi bi-list-check"></i> Ver Reservas
-                                                    </button>
-                                                </Authorized>
-                                            </AuthorizeView>
-                                        </div>
-                                    </Authorized>
-                                </AuthorizeView>
-                            }
-                        </div>
-                    </div>
-                </div>
+            var hasReservation = userReservations.ContainsKey(product.Id) && userReservations[product.Id] != null;
+            
+            <div class="col-md-4 col-lg-3 col-xl-2 mb-4">
+                <AuthorizeView Roles="Admin,Owner">
+                    <Authorized Context="adminAuth">
+                        <ProductCard 
+                            Product="@product"
+                            HasReservation="@hasReservation"
+                            IsAdmin="true"
+                            IsAuthenticated="@isMember"
+                            IsMember="@isMember"
+                            OnEdit="@(() => OpenEditProductModal(product))"
+                            OnDelete="@(() => OpenDeleteProductModal(product))"
+                            OnReserve="@(() => OpenReservationModal(product))"
+                            OnViewReservation="@(() => OpenUserReservationModal(product))"
+                            OnCancelReservation="@(() => OpenDeleteReservationModal(userReservations[product.Id]!))"
+                            OnViewReservations="@(() => OpenViewReservationsModal(product))"
+                            ImageVersion="@productImageVersion.ToString()" />
+                    </Authorized>
+                    <NotAuthorized>
+                        <ProductCard 
+                            Product="@product"
+                            HasReservation="@hasReservation"
+                            IsAdmin="false"
+                            IsAuthenticated="@isMember"
+                            IsMember="@isMember"
+                            OnReserve="@(() => OpenReservationModal(product))"
+                            OnViewReservation="@(() => OpenUserReservationModal(product))"
+                            OnCancelReservation="@(() => OpenDeleteReservationModal(userReservations[product.Id]!))"
+                            ImageVersion="@productImageVersion.ToString()" />
+                    </NotAuthorized>
+                </AuthorizeView>
             </div>
         }
     </div>
@@ -367,6 +310,7 @@ else
                                         ProductName="@selectedProduct.Name"
                                         ProductType="@selectedProduct.Type"
                                         ProductPrice="@selectedProduct.Price.ToString("0.00")"
+                                        ProductImageUrl="@GetProductImageUrl(selectedProduct.ImageSrc)"
                                         Username="@reservation.UserNickname"
                                         DisplayName="@reservation.DisplayName"
                                         Size="@reservation.Size"
@@ -379,6 +323,7 @@ else
                                         ProductName="@selectedProduct.Name"
                                         ProductType="@selectedProduct.Type"
                                         ProductPrice="@selectedProduct.Price.ToString("0.00")"
+                                        ProductImageUrl="@GetProductImageUrl(selectedProduct.ImageSrc)"
                                         Username="@reservation.UserNickname"
                                         DisplayName="@reservation.DisplayName"
                                         Size="@reservation.Size"
@@ -408,6 +353,7 @@ else
                 ProductName="@selectedProduct.Name"
                 ProductType="@selectedProduct.Type"
                 ProductPrice="@selectedProduct.Price.ToString("0.00")"
+                ProductImageUrl="@GetProductImageUrl(selectedProduct.ImageSrc)"
                 Username="@userReservation.UserNickname"
                 DisplayName="@userReservation.DisplayName"
                 Size="@userReservation.Size"
