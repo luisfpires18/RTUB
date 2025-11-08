@@ -40,8 +40,10 @@
                                EnrollmentCount="0"
                                IsAdmin="false"
                                IsPastEvent="true"
-                               ShowButtons="false"
                                ShowTrophy="true"
+                               OnViewDetails="@(() => {})"
+                               OnViewEnrollments="@(() => {})"
+                               OnWatchRepertoire="@(() => {})"
                                OnViewTrophies="@(() => OpenTrophyModal(evt))" />
                 </div>
             }
@@ -112,7 +114,7 @@
                 @foreach (var trophy in eventTrophies)
                 {
                     <div class="col-md-4 col-sm-6">
-                        <div class="card h-100 text-center p-3" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.05)); border: 2px solid rgba(255, 193, 7, 0.3);">
+                        <div class="card h-100 text-center p-3 trophy-card" style="background-color: #151516; border: 2px solid #2f2f2f; transition: border-color 0.2s ease, box-shadow 0.2s ease;">
                             <div class="card-body d-flex flex-column align-items-center justify-content-center">
                                 <i class="bi bi-trophy-fill text-warning mb-3" style="font-size: 3rem;"></i>
                                 <h5 class="card-title mb-0">@trophy.Name</h5>
