@@ -1,9 +1,12 @@
 @page "/rehearsals"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
 @using RTUB.Shared
 @using RTUB.Core.Enums
 @attribute [Authorize]
@@ -13,15 +16,35 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 <h1>Ensaios</h1>
 <p>Ensaios regulares da tuna (Terças e Quintas, 21:00-00:00).</p>
+
+<!-- Header Controls -->
+<div class="mb-3">
+    @if (isAdmin)
+    {
+        <button class="btn btn-success me-2" @onclick="OpenCreateSingleModal" title="Criar Ensaio (Data Específica)">
+            <i class="bi bi-plus-lg"></i>
+        </button>
+        <button class="btn btn-sm btn-light me-2" @onclick="OpenDateRangeModal" title="Criar Ensaios (Intervalo)">
+            <i class="bi bi-calendar-range"></i>
+        </button>
+        <button class="btn btn-outline-primary me-2" @onclick="OpenStatsModal" title="Ver Estatísticas">
+            <i class="bi bi-bar-chart"></i> Estatísticas
+        </button>
+    }
+    <button class="btn btn-outline-secondary" @onclick="OpenMyAttendancesModal" title="Minhas Presenças">
+        <i class="bi bi-calendar-check"></i> Minhas Presenças
+    </button>
+</div>
 
 <!-- Filter Controls -->
 <div class="row mb-3">
     <div class="col-md-4">
         <label class="form-label">Ano Fiscal</label>
-        <select class="form-select" @bind="selectedFiscalYear" @bind:after="FilterRehearsals">
+        <select class="form-select" @bind="selectedFiscalYear" @bind:after="OnFiscalYearChanged">
             <option value="">Todos os anos</option>
             @foreach (var year in fiscalYears)
             {
@@ -56,7 +79,7 @@ else
     else
     {
         <div class="rehearsal-grid">
-            @foreach (var rehearsal in filteredUpcomingRehearsals)
+            @foreach (var rehearsal in paginatedUpcomingRehearsals)
             {
                 var userAttendance = GetUserAttendance(rehearsal.Id);
                 var attendanceCount = rehearsal.Attendances.Count();
@@ -71,64 +94,70 @@ else
                                OnMarkAttendance="@(() => MarkAttendance(rehearsal))"
                                OnViewAttendances="@(() => ViewAttendances(rehearsal))"
                                OnEditAttendance="@(() => EditAttendance(rehearsal))"
-                               OnRemoveAttendance="@(() => RemoveAttendance(rehearsal))" />
+                               OnRemoveAttendance="@(() => RemoveAttendance(rehearsal))"
+                               OnViewDetails="@(() => OpenRehearsalDetailsModal(rehearsal))" />
             }
         </div>
+        
+        <!-- Pagination for upcoming rehearsals -->
+        <TablePagination CurrentPage="@upcomingRehearsalsPagination.CurrentPage"
+                        PageSize="@upcomingRehearsalsPagination.PageSize"
+                        TotalItems="@filteredUpcomingRehearsals.Count"
+                        ItemLabel="ensaios"
+                        PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                        OnPageChanged="@HandleUpcomingRehearsalsPageChange"
+                        OnPageSizeChanged="@HandleUpcomingRehearsalsPageSizeChange" />
     }
-
-    <!-- My Recent Attendance Section -->
-    <h3 class="mt-5 mb-3">Minhas Presenças Recentes</h3>
-
-    @if (myAttendances == null || !myAttendances.Any())
+    
+    <!-- Previous Rehearsals Section (Admin Only) -->
+    @if (isAdmin)
     {
-        <div class="card shadow-sm card-purple-no-border">
-            <h5 class="card-title text-white"><i class="bi bi-info-circle"></i> Sem presenças registadas</h5>
+        <h3 class="mt-5 mb-3">Ensaios Anteriores</h3>
+        
+        <!-- Search for previous rehearsals -->
+        <div class="mb-3">
+            <TableSearchBar SearchTerm="@previousRehearsalsSearch"
+                           Placeholder="Pesquisar ensaio anterior..."
+                           OnSearchChanged="@HandlePreviousRehearsalsSearchChanged" />
         </div>
-    }
-    else
-    {
-        <div class="card">
-            <div class="card-body">
-                <p class="mb-3">
-                    <strong>Taxa de Presença (últimos 10 ensaios):</strong>
-                    <span class="badge bg-primary">@attendanceCount / @totalRecentRehearsals ensaios</span>
-                    @if (totalRecentRehearsals > 0)
-                    {
-                        <span class="ms-2">(@(Math.Round((double)attendanceCount / totalRecentRehearsals * 100, 1))%)</span>
-                    }
-                </p>
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Instrumento</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var attendance in myAttendances.Where(a => a.Rehearsal != null && a.Rehearsal.Date < DateTime.Today).OrderByDescending(a => a.Rehearsal!.Date).Take(10))
-                            {
-                                <tr>
-                                    <td>@attendance.Rehearsal?.Date.ToString("dd MMM yyyy")</td>
-                                    <td>@(attendance.Instrument?.ToString() ?? "-")</td>
-                                    <td>
-                                        @if (attendance.Attended)
-                                        {
-                                            <span class="badge bg-success">Aprovado</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-warning">Pendente</span>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+        
+        @if (filteredPreviousRehearsals == null || !filteredPreviousRehearsals.Any())
+        {
+            <div class="card shadow-sm card-purple-no-border">
+                <h5 class="card-title text-white"><i class="bi bi-info-circle"></i> Nenhum ensaio anterior encontrado</h5>
             </div>
-        </div>
+        }
+        else
+        {
+            <div class="rehearsal-grid">
+                @foreach (var rehearsal in paginatedPreviousRehearsals)
+                {
+                    var attendanceCount = rehearsal.Attendances.Count();
+                    
+                    <RehearsalCard Rehearsal="@rehearsal"
+                                   UserAttendance="null"
+                                   AttendanceCount="@attendanceCount"
+                                   IsAdmin="@isAdmin"
+                                   IsPastRehearsal="true"
+                                   OnEdit="@(() => OpenEditModal(rehearsal))"
+                                   OnDelete="@(() => OpenDeleteModal(rehearsal))"
+                                   OnMarkAttendance="@(() => {})"
+                                   OnViewAttendances="@(() => ViewAttendances(rehearsal))"
+                                   OnEditAttendance="@(() => {})"
+                                   OnRemoveAttendance="@(() => {})"
+                                   OnViewDetails="@(() => OpenRehearsalDetailsModal(rehearsal))" />
+                }
+            </div>
+            
+            <!-- Pagination for previous rehearsals -->
+            <TablePagination CurrentPage="@previousRehearsalsPagination.CurrentPage"
+                            PageSize="@previousRehearsalsPagination.PageSize"
+                            TotalItems="@filteredPreviousRehearsals.Count"
+                            ItemLabel="ensaios"
+                            PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                            OnPageChanged="@HandlePreviousRehearsalsPageChange"
+                            OnPageSizeChanged="@HandlePreviousRehearsalsPageSizeChange" />
+        }
     }
 }
 
@@ -180,50 +209,164 @@ else
                 <div class="modal-body">
                     @if (selectedRehearsalAttendances != null && selectedRehearsalAttendances.Any())
                     {
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Membro</th>
-                                        <th>Instrumento</th>
-                                        <th>Presença (por confirmação)</th>
-                                        <AuthorizeView Roles="Owner">
-                                            <Authorized>
-                                                <th>Ações</th>
-                                            </Authorized>
-                                        </AuthorizeView>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var attendance in selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName))
-                                    {
-                                        <tr>
-                                            <td>@(attendance.User?.Nickname ?? attendance.UserId)</td>
-                                            <td>@(attendance.Instrument?.ToString() ?? "-")</td>
-                                            <td>
-                                                @if (attendance.Attended)
-                                                {
-                                                    <span class="badge bg-success">Aprovado</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-warning">Pendente</span>
-                                                }
-                                            </td>
-                                            <AuthorizeView Roles="Owner">
-                                                <Authorized>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteAttendanceModal(attendance)" title="Eliminar Presença">
-                                                            <i class="bi bi-trash"></i>
-                                                        </button>
-                                                    </td>
-                                                </Authorized>
-                                            </AuthorizeView>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+                        <!-- Search Bar -->
+                        <div class="mb-3">
+                            <TableSearchBar SearchTerm="@attendanceSearchTerm"
+                                           Placeholder="Pesquisar por nome..."
+                                           OnSearchChanged="@HandleAttendanceSearchChanged" />
                         </div>
+                        
+                        <div class="enrollment-card-grid">
+                            @foreach (var attendance in paginatedAttendances)
+                            {
+                                var instrumentDisplay = attendance.Instrument?.ToString() ?? "—";
+                                <EnrollmentCard 
+                                    AvatarUrl="@attendance.User?.ProfilePictureSrc"
+                                    TunaName="@attendance.User?.Nickname"
+                                    FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}")"
+                                    InstrumentText="@instrumentDisplay"
+                                    Notes=""
+                                    AltText="@attendance.User?.GetDisplayName()"
+                                    ShowEditButton="false"
+                                    ShowDeleteButton="@(isOwner && isSelectedRehearsalPast && attendance.Attended)"
+                                    ShowApproveButton="@(isAdmin && isSelectedRehearsalPast && !attendance.Attended)"
+                                    ShowCancelButton="@(isAdmin && isSelectedRehearsalPast && !attendance.Attended)"
+                                    OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
+                                    OnApprove="@(() => ApproveAttendance(attendance))"
+                                    OnCancel="@(() => OpenDeleteAttendanceModal(attendance))"
+                                    DeleteTooltip="Eliminar"
+                                    ApproveTooltip="Aprovar"
+                                    CancelTooltip="Cancelar">
+                                    <BadgeContent>
+                                        <div class="enrollment-card-badges-row">
+                                            @if (attendance.Attended)
+                                            {
+                                                <span class="badge bg-success">Aprovado</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning">Pendente</span>
+                                            }
+                                        </div>
+                                    </BadgeContent>
+                                </EnrollmentCard>
+                            }
+                        </div>
+                        
+                        <!-- Pagination for attendance cards -->
+                        @if (filteredAttendances.Count > 0)
+                        {
+                            <div class="mt-3">
+                                <TablePagination 
+                                    TotalItems="@filteredAttendances.Count"
+                                    CurrentPage="@attendancesPagination.CurrentPage"
+                                    PageSize="@attendancesPagination.PageSize"
+                                    PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
+                                    OnPageChanged="@HandleAttendancesPageChange"
+                                    OnPageSizeChanged="@HandleAttendancesPageSizeChange" />
+                            </div>
+                        }
+
+                        @* Instrument Counts - Horizontal Counter Section *@
+                        var instrumentCounts = new Dictionary<InstrumentType, int>();
+                        foreach (var inst in Enum.GetValues<InstrumentType>())
+                        {
+                            instrumentCounts[inst] = selectedRehearsalAttendances.Count(a => a.Instrument == inst);
+                        }
+
+                        @if (instrumentCounts.Any(x => x.Value > 0))
+                        {
+                            <div class="mt-3 mb-4">
+                                <div class="instrument-counter-section">
+                                    <div class="instrument-counter-header">
+                                        <i class="bi bi-music-note-beamed"></i>
+                                        <span>Instrumentos</span>
+                                    </div>
+                                    <div class="instrument-counter-grid">
+                                        @foreach (var kvp in instrumentCounts.Where(x => x.Value > 0).OrderByDescending(x => x.Value))
+                                        {
+                                            <div class="instrument-counter-box">
+                                                <div class="instrument-counter-number">@kvp.Value</div>
+                                                <div class="instrument-counter-label">@StatusHelper.GetInstrumentDisplay(kvp.Key)</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Add Member Section (Admin Only for Past Rehearsals) -->
+                        @if (isAdmin && isSelectedRehearsalPast)
+                        {
+                            <div class="mt-3">
+                                <!-- Success Alert (auto-dismiss) -->
+                                @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && !addMemberFeedbackIsError)
+                                {
+                                    <Alert Type="Alert.AlertType.Purple" 
+                                           Message="@addMemberFeedbackMessage" 
+                                           Dismissible="true"
+                                           OnDismiss="ClearAddMemberFeedback"
+                                           AdditionalClasses="mb-2" />
+                                }
+                                
+                                <!-- Error Alert (manual dismiss) -->
+                                @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && addMemberFeedbackIsError)
+                                {
+                                    <Alert Type="Alert.AlertType.Error" 
+                                           Message="@addMemberFeedbackMessage" 
+                                           Dismissible="true"
+                                           OnDismiss="ClearAddMemberFeedback"
+                                           AdditionalClasses="mb-2" />
+                                }
+                                
+                                <!-- Collapsible Search Bar -->
+                                @if (showAddMemberDropdown)
+                                {
+                                    <div class="mb-2" @onkeydown="HandleAddMemberKeyDown">
+                                        <TableSearchBar SearchTerm="@addMemberSearchTerm"
+                                                       Placeholder="Pesquisar membro por nome..."
+                                                       OnSearchChanged="@HandleAddMemberSearchChanged" />
+                                        
+                                        @if (filteredAvailableMembers.Any())
+                                        {
+                                            <div class="member-list member-list-scrollable mt-2">
+                                                @foreach (var member in filteredAvailableMembers)
+                                                {
+                                                    <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                                         @onclick="() => AddMemberToRehearsal(member)"
+                                                         tabindex="0"
+                                                         @onkeydown="@(async (e) => await HandleMemberItemKeyDown(e, member))">
+                                                        <div class="d-flex align-items-center">
+                                                            <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                                 class="member-avatar-small me-2" />
+                                                            <div>
+                                                                @if (!string.IsNullOrEmpty(member.Nickname))
+                                                                {
+                                                                    <strong>@member.FirstName "@member.Nickname" @member.LastName</strong>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <strong>@member.FirstName @member.LastName</strong>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <p class="text-muted mt-2">Nenhum membro encontrado.</p>
+                                        }
+                                    </div>
+                                }
+                                
+                                <button class="btn btn-sm btn-outline-primary" @onclick="ToggleAddMemberDropdown">
+                                    <i class="bi bi-@(showAddMemberDropdown ? "x" : "plus")-circle"></i> 
+                                    @(showAddMemberDropdown ? "Cancelar" : "Adicionar Membro")
+                                </button>
+                            </div>
+                        }
                     }
                     else
                     {
@@ -316,16 +459,333 @@ else
     </div>
 }
 
+<!-- Create Single Rehearsal Modal (Admin Only) -->
+@if (showCreateModal && isAdmin)
+{
+    <Modal Show="@showCreateModal"
+           ShowChanged="@((bool show) => showCreateModal = show)"
+           Title="Criar Ensaio"
+           Size="Modal.ModalSize.Default"
+           Centered="true">
+        <BodyContent>
+            @if (!string.IsNullOrEmpty(createFeedbackMessage))
+            {
+                <div class="alert @(createFeedbackIsError ? "alert-danger" : "alert-success") alert-dismissible fade show">
+                    @createFeedbackMessage
+                    <button type="button" class="btn-close" @onclick="@(() => createFeedbackMessage = "")"></button>
+                </div>
+            }
+            <div class="mb-3">
+                <label class="form-label">Data <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" @bind="createDate" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Localização <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" @bind="createLocation" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Tema (Opcional)</label>
+                <input type="text" class="form-control" @bind="createTheme" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Notas (Opcional)</label>
+                <textarea class="form-control" rows="3" @bind="createNotes"></textarea>
+            </div>
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseCreateModal">Cancelar</button>
+            <button type="button" class="btn btn-primary" @onclick="SaveNewRehearsal">Criar</button>
+        </FooterContent>
+    </Modal>
+}
+
+<!-- Statistics Modal (Admin Only) -->
+@if (showStatsModal && isAdmin)
+{
+    <Modal Show="@showStatsModal"
+           ShowChanged="@((bool show) => showStatsModal = show)"
+           Title="Estatísticas de Presenças"
+           Size="Modal.ModalSize.Large"
+           Centered="true">
+        <BodyContent>
+            <div class="mb-3">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Data Início</label>
+                        <input type="date" class="form-control" @bind="statsStartDate" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Data Fim</label>
+                        <input type="date" class="form-control" @bind="statsEndDate" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary w-100 d-block" @onclick="LoadStats">Carregar Estatísticas</button>
+                    </div>
+                </div>
+            </div>
+
+            @if (attendanceStatsUsers != null && attendanceStatsUsers.Any())
+            {
+                <!-- Search Bar -->
+                <div class="mb-3">
+                    <TableSearchBar SearchTerm="@statsSearchTerm"
+                                   Placeholder="Pesquisar por nome..."
+                                   OnSearchChanged="@HandleStatsSearchChanged" />
+                </div>
+
+                @if (!filteredStatsUsers.Any())
+                {
+                    <EmptyTableState 
+                        Message="Nenhum membro encontrado com os critérios de pesquisa." 
+                        IconClass="bi-search" />
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th @onclick="() => SortStatsBy(nameof(UserAttendanceStats.UserName))" class="clickable-row">
+                                        Membro
+                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserAttendanceStats.UserName)))
+                                        {
+                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.UserName))"></i>
+                                        }
+                                    </th>
+                                    <th @onclick="() => SortStatsBy(nameof(UserAttendanceStats.Count))" class="clickable-row">
+                                        Total de Presenças
+                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserAttendanceStats.Count)))
+                                        {
+                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.Count))"></i>
+                                        }
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var stat in paginatedStatsUsers)
+                                {
+                                    <tr>
+                                        <td>@stat.UserName</td>
+                                        <td>@stat.Count</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <TablePagination CurrentPage="@statsPaginationHelper.CurrentPage"
+                                    PageSize="@statsPaginationHelper.PageSize"
+                                    TotalItems="@filteredStatsUsers.Count"
+                                    ItemLabel="membros"
+                                    PageSizeOptions="@(new[] { 5, 10, 15, 20 })"
+                                    OnPageChanged="@HandleStatsPageChange"
+                                    OnPageSizeChanged="@HandleStatsPageSizeChange" />
+                }
+            }
+            else if (attendanceStatsUsers != null)
+            {
+                <EmptyTableState 
+                    Message="Sem dados para o período selecionado." 
+                    IconClass="bi-info-circle" />
+            }
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseStatsModal">Fechar</button>
+        </FooterContent>
+    </Modal>
+}
+
+<!-- Date Range Modal (Admin Only) -->
+@if (showDateRangeModal && isAdmin)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Criar Ensaios (Intervalo)</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDateRangeModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(rangeFeedbackMessage))
+                    {
+                        <div class="alert @(rangeFeedbackIsError ? "alert-danger" : "alert-success") alert-dismissible fade show">
+                            @rangeFeedbackMessage
+                            <button type="button" class="btn-close" @onclick="@(() => rangeFeedbackMessage = "")"></button>
+                        </div>
+                    }
+                    <div class="mb-3">
+                        <label class="form-label">Data Início</label>
+                        <input type="date" class="form-control" @bind="rangeStartDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data Fim</label>
+                        <input type="date" class="form-control" @bind="rangeEndDate" max="@maxRangeDate.ToString("yyyy-MM-dd")" />
+                    </div>
+                    @if (rangeEndDate.Date < rangeStartDate.Date)
+                    {
+                        <div class="alert alert-danger">
+                            A data de fim não pode ser anterior à data de início.
+                        </div>
+                    }
+                    @if ((rangeEndDate.Date - rangeStartDate.Date).TotalDays > 90)
+                    {
+                        <div class="alert alert-warning">
+                            O período máximo é de 3 meses.
+                        </div>
+                    }
+                    <div class="mb-3">
+                        <label class="form-label">Localização</label>
+                        <input type="text" class="form-control" @bind="rangeLocation" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tema (Opcional)</label>
+                        <input type="text" class="form-control" @bind="rangeTheme" />
+                    </div>
+                    <p class="text-muted">
+                        <small>Serão criados ensaios às Terças e Quintas no intervalo selecionado.</small>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDateRangeModal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="CreateRangeRehearsals" 
+                            disabled="@(rangeEndDate.Date < rangeStartDate.Date || (rangeEndDate.Date - rangeStartDate.Date).TotalDays > 90)">
+                        Criar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Ver Detalhes Modal -->
+@if (selectedRehearsal != null)
+{
+    <div class="modal fade" id="ViewRehearsalDetailsModal" tabindex="-1" aria-labelledby="ViewRehearsalDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="ViewRehearsalDetailsModalLabel">Detalhes do Ensaio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <strong>Data:</strong>
+                        <p>@selectedRehearsal.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"))</p>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Local:</strong>
+                        <p>@selectedRehearsal.Location</p>
+                    </div>
+                    @if (!string.IsNullOrEmpty(selectedRehearsal.Theme))
+                    {
+                        <div class="mb-3">
+                            <strong>Tema:</strong>
+                            <p>@selectedRehearsal.Theme</p>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(selectedRehearsal.Notes))
+                    {
+                        <div class="mb-3">
+                            <strong>Notas:</strong>
+                            <p style="white-space: pre-wrap;">@selectedRehearsal.Notes</p>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Minhas Presenças Modal -->
+@if (showMyAttendancesModal)
+{
+    <Modal Show="@showMyAttendancesModal"
+           ShowChanged="@((bool show) => showMyAttendancesModal = show)"
+           Title="Minhas Presenças Recentes"
+           Size="Modal.ModalSize.Large"
+           Centered="true">
+        <BodyContent>
+            @if (myAttendances == null || !myAttendances.Any())
+            {
+                <EmptyTableState 
+                    Message="Sem presenças registadas." 
+                    IconClass="bi-info-circle" />
+            }
+            else
+            {
+                <div class="mb-3">
+                    <strong>Taxa de Presença (últimos 10 ensaios):</strong>
+                    <span class="badge bg-primary">@attendanceCount / @totalRecentRehearsals ensaios</span>
+                    @if (totalRecentRehearsals > 0)
+                    {
+                        <span class="ms-2">(@(Math.Round((double)attendanceCount / totalRecentRehearsals * 100, 1))%)</span>
+                    }
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Instrumento</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var attendance in myAttendances.Where(a => a.Rehearsal != null && a.Rehearsal.Date < DateTime.Today).OrderByDescending(a => a.Rehearsal!.Date).Take(10))
+                            {
+                                <tr>
+                                    <td>@attendance.Rehearsal?.Date.ToString("dd MMM yyyy")</td>
+                                    <td>@(attendance.Instrument?.ToString() ?? "-")</td>
+                                    <td>
+                                        @if (attendance.Attended)
+                                        {
+                                            <span class="badge bg-success">Aprovado</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning">Pendente</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseMyAttendancesModal">Fechar</button>
+        </FooterContent>
+    </Modal>
+}
+
 @code {
     private bool loading = true;
+    private bool isInitializing = true;
     private bool isAdmin = false;
+    private bool isOwner = false;
     private string? currentUserId;
 
     private List<Rehearsal> upcomingRehearsals = new();
     private List<Rehearsal> filteredUpcomingRehearsals = new();
+    private List<Rehearsal> paginatedUpcomingRehearsals = new();
+    private PaginationHelper<Rehearsal> upcomingRehearsalsPagination = new() { PageSize = 12 };
     private List<RehearsalAttendance> myAttendances = new();
     private int attendanceCount = 0;
     private int totalRecentRehearsals = 0;
+
+    // Previous rehearsals (admin only)
+    private List<Rehearsal> previousRehearsals = new();
+    private List<Rehearsal> filteredPreviousRehearsals = new();
+    private List<Rehearsal> paginatedPreviousRehearsals = new();
+    private string previousRehearsalsSearch = "";
+    private SearchHelper<Rehearsal> previousSearchHelper = new();
+    private PaginationHelper<Rehearsal> previousRehearsalsPagination = new() { PageSize = 12 };
 
     // Fiscal year filtering
     private List<string> fiscalYears = new();
@@ -334,12 +794,19 @@ else
     private string searchTerm = "";
     private SearchHelper<Rehearsal> searchHelper = new();
 
+    // Modals
     private bool showAttendanceModal = false;
     private bool showAttendancesModal = false;
     private bool showEditModal = false;
     private bool showDeleteModal = false;
     private bool showDeleteAttendanceModal = false;
+    private bool showCreateModal = false;
+    private bool showStatsModal = false;
+    private bool showDateRangeModal = false;
+    private bool showMyAttendancesModal = false;
+    
     private Rehearsal? selectedRehearsal;
+    private bool isSelectedRehearsalPast = false;
     private Rehearsal? editingRehearsal;
     private Rehearsal? deletingRehearsal;
     private RehearsalAttendance? deletingAttendance;
@@ -349,6 +816,45 @@ else
     private string? editTheme;
     private string? editNotes;
     private List<RehearsalAttendance>? selectedRehearsalAttendances;
+    private List<RehearsalAttendance> filteredAttendances = new();
+    private List<RehearsalAttendance> paginatedAttendances = new();
+    private string attendanceSearchTerm = "";
+    private PaginationHelper<RehearsalAttendance> attendancesPagination = new() { PageSize = 8 };
+
+    // Add member to rehearsal functionality
+    private bool showAddMemberDropdown = false;
+    private string addMemberSearchTerm = "";
+    private string addMemberFeedbackMessage = "";
+    private bool addMemberFeedbackIsError = false;
+    private List<ApplicationUser> allMembers = new();
+    private List<ApplicationUser> filteredAvailableMembers = new();
+
+    // Create rehearsal
+    private DateTime createDate = DateTime.Today.AddDays(1);
+    private string createLocation = "Centro Académico";
+    private string? createTheme;
+    private string? createNotes;
+    private string createFeedbackMessage = "";
+    private bool createFeedbackIsError = false;
+
+    // Range rehearsals
+    private DateTime rangeStartDate = DateTime.Today;
+    private DateTime rangeEndDate = DateTime.Today.AddMonths(1);
+    private DateTime maxRangeDate => DateTime.Today.AddMonths(3);
+    private string rangeLocation = "Centro Académico";
+    private string? rangeTheme;
+    private string rangeFeedbackMessage = "";
+    private bool rangeFeedbackIsError = false;
+
+    // Stats data
+    private DateTime statsStartDate = DateTime.Today.AddDays(-30);
+    private DateTime statsEndDate = DateTime.Today;
+    private List<UserAttendanceStats>? attendanceStatsUsers;
+    private List<UserAttendanceStats> filteredStatsUsers = new();
+    private List<UserAttendanceStats> paginatedStatsUsers = new();
+    private string statsSearchTerm = string.Empty;
+    private SortableTableHelper<UserAttendanceStats> statsSortHelper = new() { SortColumn = nameof(UserAttendanceStats.Count), SortAscending = false };
+    private PaginationHelper<UserAttendanceStats> statsPaginationHelper = new() { PageSize = 10 };
 
     protected override async Task OnInitializedAsync()
     {
@@ -362,6 +868,7 @@ else
             {
                 currentUserId = appUser.Id;
                 isAdmin = user.IsInRole("Admin") || user.IsInRole("Owner");
+                isOwner = user.IsInRole("Owner");
             }
         }
 
@@ -370,20 +877,68 @@ else
         fiscalYears = allFiscalYears.Select(fy => fy.GetFiscalYearString()).OrderByDescending(y => y).ToList();
         currentFiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
 
-        // Set default to current fiscal year
-        selectedFiscalYear = currentFiscalYear;
+        // Read URL parameters
+        var uri = new Uri(Navigation.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        
+        // Fiscal year from URL or default to current
+        selectedFiscalYear = query.TryGetValue("fy", out var fy) ? fy.ToString() : currentFiscalYear;
+        
+        // Search terms from URL
+        searchTerm = query.TryGetValue("qNext", out var qNext) ? qNext.ToString() : "";
+        previousRehearsalsSearch = query.TryGetValue("qPrev", out var qPrev) ? qPrev.ToString() : "";
 
         await LoadData();
         loading = false;
+        isInitializing = false;
     }
 
     private async Task LoadData()
     {
-        // Load upcoming rehearsals (next 30 days)
-        var startDate = DateTime.Today;
-        var endDate = DateTime.Today.AddDays(30);
+        // Determine the date range based on selected fiscal year
+        DateTime startDate, endDate;
+        
+        if (!string.IsNullOrEmpty(selectedFiscalYear))
+        {
+            // Parse fiscal year (e.g., "2024-2025" -> start: 2024, end: 2025)
+            var parts = selectedFiscalYear.Split('-');
+            if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
+            {
+                startDate = new DateTime(startYear, 9, 1); // September 1st
+                endDate = new DateTime(startYear + 1, 8, 31); // August 31st next year
+            }
+            else
+            {
+                // Fallback to current fiscal year if parsing fails
+                var currentStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+                startDate = new DateTime(currentStartYear, 9, 1);
+                endDate = new DateTime(currentStartYear + 1, 8, 31);
+            }
+        }
+        else
+        {
+            // If no fiscal year selected, load all rehearsals (last 2 years to next 2 years)
+            startDate = DateTime.Today.AddYears(-2);
+            endDate = DateTime.Today.AddYears(2);
+        }
+
+        // Load all rehearsals within the fiscal year date range
         var allRehearsals = await RehearsalService.GetRehearsalsAsync(startDate, endDate);
-        upcomingRehearsals = allRehearsals.Where(r => !r.IsCanceled).OrderBy(r => r.Date).ToList();
+        
+        // Split into upcoming and previous
+        upcomingRehearsals = allRehearsals
+            .Where(r => !r.IsCanceled && r.Date >= DateTime.Today)
+            .OrderBy(r => r.Date)
+            .ToList();
+
+        // Load previous rehearsals for admins
+        if (isAdmin)
+        {
+            previousRehearsals = allRehearsals
+                .Where(r => r.Date < DateTime.Today)
+                .OrderByDescending(r => r.Date)
+                .ToList();
+        }
 
         // Load user's recent attendances
         if (currentUserId != null)
@@ -412,27 +967,23 @@ else
         }
 
         FilterRehearsals();
+        if (isAdmin)
+        {
+            FilterPreviousRehearsals();
+        }
+    }
+
+    private async Task OnFiscalYearChanged()
+    {
+        // Reload data when fiscal year changes
+        await LoadData();
     }
 
     private void FilterRehearsals()
     {
         var filtered = upcomingRehearsals.AsEnumerable();
 
-        // Apply fiscal year filter
-        if (!string.IsNullOrEmpty(selectedFiscalYear))
-        {
-            // Parse fiscal year (e.g., "2024-2025" -> start: 2024, end: 2025)
-            var parts = selectedFiscalYear.Split('-');
-            if (parts.Length == 2 && int.TryParse(parts[0], out int startYear))
-            {
-                var fiscalStart = new DateTime(startYear, 9, 1); // September 1st
-                var fiscalEnd = new DateTime(startYear + 1, 8, 31); // August 31st next year
-
-                filtered = filtered.Where(r => r.Date >= fiscalStart && r.Date <= fiscalEnd);
-            }
-        }
-
-        // Apply search filter
+        // Apply search filter (fiscal year filter already applied in LoadData)
         searchHelper.SearchTerm = searchTerm;
         filteredUpcomingRehearsals = searchHelper.FilterMultiple(filtered.ToList(), new List<Func<Rehearsal, string>>
         {
@@ -440,12 +991,39 @@ else
             r => r.Location ?? "",
             r => r.Notes ?? ""
         });
+
+        // Apply pagination to upcoming rehearsals
+        paginatedUpcomingRehearsals = upcomingRehearsalsPagination.GetPageData(filteredUpcomingRehearsals);
+
+        // Also filter previous rehearsals if admin
+        if (isAdmin)
+        {
+            FilterPreviousRehearsals();
+        }
+
+        // Update URL state
+        UpdateUrlState();
     }
 
     private async Task HandleSearchChanged(string search)
     {
         searchTerm = search;
         FilterRehearsals();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleUpcomingRehearsalsPageChange(int newPage)
+    {
+        upcomingRehearsalsPagination.GoToPage(newPage);
+        paginatedUpcomingRehearsals = upcomingRehearsalsPagination.GetPageData(filteredUpcomingRehearsals);
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleUpcomingRehearsalsPageSizeChange(int newPageSize)
+    {
+        upcomingRehearsalsPagination.PageSize = newPageSize;
+        upcomingRehearsalsPagination.Reset();
+        paginatedUpcomingRehearsals = upcomingRehearsalsPagination.GetPageData(filteredUpcomingRehearsals);
         await Task.CompletedTask;
     }
 
@@ -498,9 +1076,42 @@ else
         StateHasChanged();
     }
 
+    private void UpdateUrlState()
+    {
+        // Don't update URL during initialization to avoid redirect loop
+        if (isInitializing)
+        {
+            return;
+        }
+
+        var queryParams = new List<string>();
+        
+        // Add fiscal year if not default
+        if (!string.IsNullOrEmpty(selectedFiscalYear) && selectedFiscalYear != currentFiscalYear)
+        {
+            queryParams.Add($"fy={Uri.EscapeDataString(selectedFiscalYear)}");
+        }
+        
+        // Add search terms if not empty
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            queryParams.Add($"qNext={Uri.EscapeDataString(searchTerm)}");
+        }
+        
+        if (!string.IsNullOrWhiteSpace(previousRehearsalsSearch))
+        {
+            queryParams.Add($"qPrev={Uri.EscapeDataString(previousRehearsalsSearch)}");
+        }
+        
+        var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+        var newUrl = Navigation.ToAbsoluteUri("/rehearsals" + queryString).ToString();
+        Navigation.NavigateTo(newUrl, false); // false = don't force reload
+    }
+
     private async Task ViewAttendances(Rehearsal rehearsal)
     {
         selectedRehearsal = rehearsal;
+        isSelectedRehearsalPast = rehearsal.Date.Date < DateTime.Today;
         selectedRehearsalAttendances = (await AttendanceService.GetAttendancesByRehearsalIdAsync(rehearsal.Id)).ToList();
 
         // Load user details for display
@@ -512,6 +1123,22 @@ else
             }
         }
 
+        // Initialize filtered attendances and reset pagination
+        filteredAttendances = selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName).ToList();
+        attendanceSearchTerm = "";
+        attendancesPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
+        UpdatePaginatedAttendances();
+
+        // Load all members for adding if admin AND it's a past rehearsal
+        if (isAdmin && isSelectedRehearsalPast)
+        {
+            allMembers = UserManager.Users.ToList();
+            filteredAvailableMembers = new List<ApplicationUser>();
+            showAddMemberDropdown = false;
+            addMemberSearchTerm = "";
+            addMemberFeedbackMessage = "";
+        }
+
         showAttendancesModal = true;
         StateHasChanged();
     }
@@ -520,8 +1147,204 @@ else
     {
         showAttendancesModal = false;
         selectedRehearsal = null;
+        isSelectedRehearsalPast = false;
         selectedRehearsalAttendances = null;
+        filteredAttendances = new();
+        paginatedAttendances = new();
+        attendanceSearchTerm = "";
+        attendancesPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
+        showAddMemberDropdown = false;
+        addMemberSearchTerm = "";
+        addMemberFeedbackMessage = "";
         StateHasChanged();
+    }
+
+    private async Task HandleAttendanceSearchChanged(string searchTerm)
+    {
+        attendanceSearchTerm = searchTerm;
+        
+        if (selectedRehearsalAttendances != null)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                filteredAttendances = selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName).ToList();
+            }
+            else
+            {
+                var search = searchTerm.ToLower();
+                filteredAttendances = selectedRehearsalAttendances
+                    .Where(a => (a.User?.FirstName?.ToLower().Contains(search) ?? false) ||
+                               (a.User?.LastName?.ToLower().Contains(search) ?? false) ||
+                               (a.User?.Nickname?.ToLower().Contains(search) ?? false))
+                    .OrderByDescending(a => a.Attended)
+                    .ThenBy(a => a.User?.FirstName)
+                    .ToList();
+            }
+            
+            // Reset to page 1 when search changes
+            attendancesPagination.GoToPage(1);
+            UpdatePaginatedAttendances();
+        }
+        
+        await Task.CompletedTask;
+    }
+    
+    private void UpdatePaginatedAttendances()
+    {
+        paginatedAttendances = attendancesPagination.GetPageData(filteredAttendances);
+    }
+    
+    private void HandleAttendancesPageChange(int pageNumber)
+    {
+        attendancesPagination.GoToPage(pageNumber);
+        UpdatePaginatedAttendances();
+        StateHasChanged();
+    }
+    
+    private void HandleAttendancesPageSizeChange(int pageSize)
+    {
+        attendancesPagination.PageSize = pageSize;
+        attendancesPagination.GoToPage(1); // Reset to first page
+        UpdatePaginatedAttendances();
+        StateHasChanged();
+    }
+
+    private async Task ApproveAttendance(RehearsalAttendance attendance)
+    {
+        try
+        {
+            // Save current page before refreshing
+            var currentPage = attendancesPagination.CurrentPage;
+            
+            await AttendanceService.UpdateAttendanceAsync(attendance.Id, true, attendance.Instrument);
+            
+            // Refresh the attendance list
+            if (selectedRehearsal != null)
+            {
+                await ViewAttendances(selectedRehearsal);
+                
+                // Restore the page number after refresh
+                attendancesPagination.CurrentPage = currentPage;
+                UpdatePaginatedAttendances();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error approving attendance: {ex.Message}");
+        }
+    }
+
+    private void ToggleAddMemberDropdown()
+    {
+        showAddMemberDropdown = !showAddMemberDropdown;
+        if (showAddMemberDropdown)
+        {
+            addMemberSearchTerm = "";
+            FilterAvailableMembers();
+        }
+        else
+        {
+            addMemberFeedbackMessage = "";
+        }
+    }
+
+    private async Task HandleAddMemberSearchChanged(string searchTerm)
+    {
+        addMemberSearchTerm = searchTerm;
+        FilterAvailableMembers();
+        await Task.CompletedTask;
+    }
+
+    private void FilterAvailableMembers()
+    {
+        if (selectedRehearsalAttendances == null)
+        {
+            filteredAvailableMembers = new List<ApplicationUser>();
+            return;
+        }
+
+        // Get list of user IDs already in attendance
+        var attendingUserIds = selectedRehearsalAttendances.Select(a => a.UserId).ToHashSet();
+
+        // Filter members who are not already attending
+        var available = allMembers.Where(u => !attendingUserIds.Contains(u.Id));
+
+        if (string.IsNullOrWhiteSpace(addMemberSearchTerm))
+        {
+            filteredAvailableMembers = available.OrderBy(u => u.FirstName).ToList();
+        }
+        else
+        {
+            var search = addMemberSearchTerm.ToLower();
+            filteredAvailableMembers = available
+                .Where(u => (u.FirstName?.ToLower().Contains(search) ?? false) ||
+                           (u.LastName?.ToLower().Contains(search) ?? false) ||
+                           (u.Nickname?.ToLower().Contains(search) ?? false))
+                .OrderBy(u => u.FirstName)
+                .ToList();
+        }
+    }
+
+    private async Task AddMemberToRehearsal(ApplicationUser user)
+    {
+        if (selectedRehearsal == null) return;
+
+        try
+        {
+            // For past rehearsals, mark as attended (approved) immediately
+            bool attended = isSelectedRehearsalPast;
+            await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, user.Id, null, null);
+            
+            // If it's a past rehearsal, immediately approve the attendance
+            if (isSelectedRehearsalPast)
+            {
+                // Get the just-created attendance and update it to approved
+                var newAttendances = await AttendanceService.GetAttendancesByRehearsalIdAsync(selectedRehearsal.Id);
+                var newAttendance = newAttendances.FirstOrDefault(a => a.UserId == user.Id);
+                if (newAttendance != null && !newAttendance.Attended)
+                {
+                    await AttendanceService.UpdateAttendanceAsync(newAttendance.Id, true, newAttendance.Instrument);
+                }
+            }
+            
+            addMemberFeedbackMessage = $"Presença de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";
+            addMemberFeedbackIsError = false;
+            
+            // Refresh attendance list
+            await ViewAttendances(selectedRehearsal);
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            addMemberFeedbackMessage = $"Erro ao adicionar membro: {ex.Message}";
+            addMemberFeedbackIsError = true;
+            Console.WriteLine($"Error adding member: {ex.Message}");
+        }
+    }
+
+    private void ClearAddMemberFeedback()
+    {
+        addMemberFeedbackMessage = "";
+        addMemberFeedbackIsError = false;
+    }
+    
+    private void HandleAddMemberKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            showAddMemberDropdown = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task HandleMemberItemKeyDown(KeyboardEventArgs e, ApplicationUser member)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            await AddMemberToRehearsal(member);
+        }
     }
 
     private void EditAttendance(Rehearsal rehearsal)
@@ -612,21 +1435,20 @@ else
 
         try
         {
+            // Save current page before refreshing
+            var currentPage = attendancesPagination.CurrentPage;
+            
             await AttendanceService.DeleteAttendanceAsync(deletingAttendance.Id);
 
             // Refresh the attendance list for the selected rehearsal
             if (selectedRehearsal != null)
             {
-                selectedRehearsalAttendances = (await AttendanceService.GetAttendancesByRehearsalIdAsync(selectedRehearsal.Id)).ToList();
-
-                // Load user details for display
-                foreach (var attendance in selectedRehearsalAttendances)
-                {
-                    if (attendance.User == null)
-                    {
-                        attendance.User = await UserManager.FindByIdAsync(attendance.UserId);
-                    }
-                }
+                await ViewAttendances(selectedRehearsal);
+                
+                // Restore the page number after refresh
+                attendancesPagination.GoToPage(currentPage);
+                UpdatePaginatedAttendances();
+                StateHasChanged();
             }
 
             // Refresh my attendances
@@ -651,5 +1473,312 @@ else
     {
         // Admin function - navigate to admin page
         Navigation.NavigateTo("/admin/rehearsals");
+    }
+
+    // Previous rehearsals filtering and pagination
+    private void FilterPreviousRehearsals()
+    {
+        var filtered = previousRehearsals.AsEnumerable();
+
+        // Apply search filter (fiscal year filter already applied in LoadData)
+        previousSearchHelper.SearchTerm = previousRehearsalsSearch;
+        filteredPreviousRehearsals = previousSearchHelper.FilterMultiple(
+            filtered.ToList(),
+            new List<Func<Rehearsal, string>>
+            {
+                r => r.Theme ?? "",
+                r => r.Location ?? ""
+            }
+        );
+
+        paginatedPreviousRehearsals = previousRehearsalsPagination.GetPageData(filteredPreviousRehearsals);
+    }
+
+    private async Task HandlePreviousRehearsalsSearchChanged(string searchTerm)
+    {
+        previousRehearsalsSearch = searchTerm;
+        FilterPreviousRehearsals();
+        UpdateUrlState();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandlePreviousRehearsalsPageChange(int newPage)
+    {
+        previousRehearsalsPagination.GoToPage(newPage);
+        paginatedPreviousRehearsals = previousRehearsalsPagination.GetPageData(filteredPreviousRehearsals);
+        await Task.CompletedTask;
+    }
+
+    private async Task HandlePreviousRehearsalsPageSizeChange(int newPageSize)
+    {
+        previousRehearsalsPagination.PageSize = newPageSize;
+        previousRehearsalsPagination.Reset();
+        paginatedPreviousRehearsals = previousRehearsalsPagination.GetPageData(filteredPreviousRehearsals);
+        await Task.CompletedTask;
+    }
+
+    // Create modal methods
+    private void OpenCreateSingleModal()
+    {
+        createDate = DateTime.Today.AddDays(1);
+        createLocation = "Centro Académico";
+        createTheme = null;
+        createNotes = null;
+        showCreateModal = true;
+    }
+
+    private void CloseCreateModal()
+    {
+        showCreateModal = false;
+        // Clear feedback messages when modal closes
+        createFeedbackMessage = "";
+        createFeedbackIsError = false;
+    }
+
+    private async Task SaveNewRehearsal()
+    {
+        try
+        {
+            createFeedbackMessage = "";
+            createFeedbackIsError = false;
+            
+            // Check if rehearsal already exists on this date
+            var existingRehearsal = await RehearsalService.GetRehearsalByDateAsync(createDate);
+            if (existingRehearsal != null)
+            {
+                createFeedbackMessage = $"Já existe um ensaio marcado para {createDate.ToString("dd/MM/yyyy")}.";
+                createFeedbackIsError = true;
+                StateHasChanged();
+                return;
+            }
+
+            await RehearsalService.CreateRehearsalAsync(createDate, createLocation, createTheme);
+            await LoadData();
+            CloseCreateModal();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            createFeedbackMessage = $"Erro ao criar ensaio: {ex.Message}";
+            createFeedbackIsError = true;
+            StateHasChanged();
+        }
+    }
+
+    // Statistics modal methods
+    private void OpenStatsModal()
+    {
+        showStatsModal = true;
+    }
+
+    private void CloseStatsModal()
+    {
+        showStatsModal = false;
+    }
+
+    private async Task LoadStats()
+    {
+        try
+        {
+            var stats = await AttendanceService.GetAttendanceStatsAsync(statsStartDate, statsEndDate);
+            attendanceStatsUsers = new List<UserAttendanceStats>();
+            
+            foreach (var stat in stats)
+            {
+                var user = await UserManager.FindByIdAsync(stat.Key);
+                if (user != null)
+                {
+                    attendanceStatsUsers.Add(new UserAttendanceStats
+                    {
+                        UserId = stat.Key,
+                        UserName = $"{user.FirstName} \"{user.Nickname}\"",
+                        Count = stat.Value
+                    });
+                }
+            }
+            
+            FilterStats();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading stats: {ex.Message}");
+            attendanceStatsUsers = new List<UserAttendanceStats>();
+        }
+    }
+
+    private void FilterStats()
+    {
+        if (attendanceStatsUsers == null)
+        {
+            filteredStatsUsers = new List<UserAttendanceStats>();
+            paginatedStatsUsers = new List<UserAttendanceStats>();
+            return;
+        }
+
+        // Apply search
+        if (string.IsNullOrWhiteSpace(statsSearchTerm))
+        {
+            filteredStatsUsers = attendanceStatsUsers.ToList();
+        }
+        else
+        {
+            var search = statsSearchTerm.ToLower();
+            filteredStatsUsers = attendanceStatsUsers
+                .Where(s => s.UserName.ToLower().Contains(search))
+                .ToList();
+        }
+
+        // Apply sorting
+        var columnSelectors = new Dictionary<string, Func<UserAttendanceStats, IComparable>>
+        {
+            { nameof(UserAttendanceStats.UserName), s => s.UserName },
+            { nameof(UserAttendanceStats.Count), s => s.Count }
+        };
+        filteredStatsUsers = statsSortHelper.ApplySort(filteredStatsUsers, columnSelectors);
+
+        // Apply pagination
+        paginatedStatsUsers = statsPaginationHelper.GetPageData(filteredStatsUsers);
+    }
+
+    private async Task HandleStatsSearchChanged(string searchTerm)
+    {
+        statsSearchTerm = searchTerm;
+        FilterStats();
+        await Task.CompletedTask;
+    }
+
+    private void SortStatsBy(string columnName)
+    {
+        statsSortHelper.ChangeSortColumn(columnName);
+        FilterStats();
+    }
+
+    private async Task HandleStatsPageChange(int newPage)
+    {
+        statsPaginationHelper.GoToPage(newPage);
+        paginatedStatsUsers = statsPaginationHelper.GetPageData(filteredStatsUsers);
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleStatsPageSizeChange(int newPageSize)
+    {
+        statsPaginationHelper.PageSize = newPageSize;
+        statsPaginationHelper.Reset();
+        paginatedStatsUsers = statsPaginationHelper.GetPageData(filteredStatsUsers);
+        await Task.CompletedTask;
+    }
+
+    // Date Range Modal methods
+    private void OpenDateRangeModal()
+    {
+        rangeStartDate = DateTime.Today;
+        rangeEndDate = DateTime.Today.AddMonths(1);
+        rangeLocation = "Centro Académico";
+        rangeTheme = null;
+        showDateRangeModal = true;
+    }
+
+    private void CloseDateRangeModal()
+    {
+        showDateRangeModal = false;
+        // Clear feedback messages when modal closes
+        rangeFeedbackMessage = "";
+        rangeFeedbackIsError = false;
+    }
+
+    private async Task CreateRangeRehearsals()
+    {
+        try
+        {
+            rangeFeedbackMessage = "";
+            rangeFeedbackIsError = false;
+            
+            var currentDate = rangeStartDate;
+            int created = 0;
+            int skipped = 0;
+            
+            while (currentDate <= rangeEndDate)
+            {
+                // Tuesday = 2, Thursday = 4
+                if (currentDate.DayOfWeek == DayOfWeek.Tuesday || currentDate.DayOfWeek == DayOfWeek.Thursday)
+                {
+                    // Check if rehearsal already exists on this date
+                    var existingRehearsal = await RehearsalService.GetRehearsalByDateAsync(currentDate);
+                    if (existingRehearsal == null)
+                    {
+                        await RehearsalService.CreateRehearsalAsync(currentDate, rangeLocation, rangeTheme);
+                        created++;
+                    }
+                    else
+                    {
+                        skipped++;
+                    }
+                }
+                currentDate = currentDate.AddDays(1);
+            }
+
+            if (created > 0 && skipped > 0)
+            {
+                rangeFeedbackMessage = $"Criados {created} ensaios. {skipped} datas foram ignoradas por já terem ensaios marcados.";
+                rangeFeedbackIsError = false;
+            }
+            else if (created > 0)
+            {
+                rangeFeedbackMessage = $"Criados {created} ensaios com sucesso!";
+                rangeFeedbackIsError = false;
+                await LoadData();
+                // Close modal after a short delay to show success message
+                await Task.Delay(1500);
+                CloseDateRangeModal();
+            }
+            else if (skipped > 0)
+            {
+                rangeFeedbackMessage = $"Todas as {skipped} datas já tinham ensaios marcados. Nenhum ensaio foi criado.";
+                rangeFeedbackIsError = true;
+            }
+            else
+            {
+                rangeFeedbackMessage = "Nenhum ensaio foi criado. Verifique o intervalo de datas selecionado.";
+                rangeFeedbackIsError = true;
+            }
+            
+            if (created > 0)
+            {
+                await LoadData();
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            rangeFeedbackMessage = $"Erro ao criar ensaios: {ex.Message}";
+            rangeFeedbackIsError = true;
+            StateHasChanged();
+        }
+    }
+
+    // My Attendances Modal methods
+    private void OpenMyAttendancesModal()
+    {
+        showMyAttendancesModal = true;
+    }
+
+    private void CloseMyAttendancesModal()
+    {
+        showMyAttendancesModal = false;
+    }
+
+    // Rehearsal Details Modal methods
+    private async Task OpenRehearsalDetailsModal(Rehearsal rehearsal)
+    {
+        selectedRehearsal = rehearsal;
+        await JSRuntime.InvokeVoidAsync("eval", "$('#ViewRehearsalDetailsModal').modal('show')");
+    }
+
+    private class UserAttendanceStats
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public int Count { get; set; }
     }
 }
