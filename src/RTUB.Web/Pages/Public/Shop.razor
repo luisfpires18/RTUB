@@ -115,13 +115,7 @@ else
                                             var hasReservation = userReservations.ContainsKey(product.Id) && userReservations[product.Id] != null;
                                             var outOfStock = product.Stock == 0;
                                         }
-                                        @if (outOfStock)
-                                        {
-                                            <p class="card-text small text-danger">
-                                                <i class="bi bi-x-circle"></i> Esgotado
-                                            </p>
-                                        }
-                                        else
+                                        @if (!outOfStock)
                                         {
                                             <div class="d-flex gap-1">
                                                 @if (hasReservation)
@@ -129,7 +123,7 @@ else
                                                     <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenUserReservationModal(product)" title="Ver Reserva">
                                                         <i class="bi bi-eye"></i> Ver Reserva
                                                     </button>
-                                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => OpenDeleteReservationModal(userReservations[product.Id]!, product)" title="Anular Reserva">
+                                                    <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteReservationModal(userReservations[product.Id]!, product)" title="Anular Reserva">
                                                         <i class="bi bi-x-circle"></i> Anular
                                                     </button>
                                                 }
@@ -394,7 +388,7 @@ else
                                         Size="@reservation.Size"
                                         ReservationDate="@reservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
                                         ShowDeleteButton="true"
-                                        OnDelete="@(() => DeleteReservationFromAdmin(reservation))" />
+                                        OnDelete="@(() => OpenAdminDeleteReservationModal(reservation))" />
                                 </Authorized>
                                 <NotAuthorized>
                                     <ReservationCard 
@@ -466,18 +460,34 @@ else
     <BodyContent>
         @if (deletingReservation != null && selectedProduct != null)
         {
-            <div class="card card-purple-no-border mb-3">
-                <div class="card-body">
-                    <h6 class="text-white mb-3">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        Tem a certeza que deseja anular esta reserva?
-                    </h6>
-                    <div class="text-white-opacity">
-                        <p class="mb-2"><strong>Produto:</strong> @selectedProduct.Name</p>
-                        <p class="mb-2"><strong>Tipo:</strong> @selectedProduct.Type</p>
-                        <p class="mb-0"><strong>Data da Reserva:</strong> @deletingReservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
-                    </div>
-                </div>
+            <p>Tem a certeza que deseja anular esta reserva?</p>
+            <div class="mb-3">
+                <p class="mb-1"><strong>Produto:</strong> @selectedProduct.Name</p>
+                <p class="mb-1"><strong>Tipo:</strong> @selectedProduct.Type</p>
+                <p class="mb-0"><strong>Data da Reserva:</strong> @deletingReservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+            </div>
+            <p class="text-muted small">Esta ação não pode ser revertida.</p>
+        }
+    </BodyContent>
+</ConfirmDialog>
+
+<!-- Admin Delete Reservation Confirmation Modal -->
+<ConfirmDialog Show="@showAdminDeleteReservationModal"
+               ShowChanged="@((bool show) => showAdminDeleteReservationModal = show)"
+               Title="Eliminar Reserva"
+               ConfirmText="Eliminar Reserva"
+               ConfirmButtonClass="btn-danger"
+               CancelText="Cancelar"
+               OnConfirm="ConfirmAdminDeleteReservation"
+               OnCancel="CloseAdminDeleteReservationModal">
+    <BodyContent>
+        @if (deletingAdminReservation != null && selectedProduct != null)
+        {
+            <p>Tem a certeza que deseja eliminar esta reserva?</p>
+            <div class="mb-3">
+                <p class="mb-1"><strong>Produto:</strong> @selectedProduct.Name</p>
+                <p class="mb-1"><strong>Utilizador:</strong> @deletingAdminReservation.UserNickname</p>
+                <p class="mb-0"><strong>Data da Reserva:</strong> @deletingAdminReservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
             </div>
             <p class="text-muted small">Esta ação não pode ser revertida.</p>
         }
@@ -526,6 +536,10 @@ else
     // Delete Reservation Confirmation Modal
     private bool showDeleteReservationModal = false;
     private ProductReservation? deletingReservation;
+    
+    // Admin Delete Reservation Confirmation Modal
+    private bool showAdminDeleteReservationModal = false;
+    private ProductReservation? deletingAdminReservation;
     
     // Track user's reservations for each product
     private Dictionary<int, ProductReservation?> userReservations = new();
@@ -907,12 +921,26 @@ else
         }
     }
     
-    // Admin Delete Reservation Method
-    private async Task DeleteReservationFromAdmin(ProductReservation reservation)
+    // Admin Delete Reservation Methods
+    private void OpenAdminDeleteReservationModal(ProductReservation reservation)
     {
+        deletingAdminReservation = reservation;
+        showAdminDeleteReservationModal = true;
+    }
+    
+    private void CloseAdminDeleteReservationModal()
+    {
+        showAdminDeleteReservationModal = false;
+        deletingAdminReservation = null;
+    }
+    
+    private async Task ConfirmAdminDeleteReservation()
+    {
+        if (deletingAdminReservation == null) return;
+        
         try
         {
-            await ProductReservationService.DeleteAsync(reservation.Id);
+            await ProductReservationService.DeleteAsync(deletingAdminReservation.Id);
             
             // Reload reservations for the product
             if (selectedProduct != null)
@@ -921,11 +949,14 @@ else
                 productReservations = reservations.ToList();
                 
                 // Update user cache if it's the current user's reservation
-                if (reservation.UserId == currentUserId && userReservations.ContainsKey(selectedProduct.Id))
+                if (deletingAdminReservation.UserId == currentUserId && userReservations.ContainsKey(selectedProduct.Id))
                 {
                     userReservations[selectedProduct.Id] = null;
                 }
             }
+            
+            CloseAdminDeleteReservationModal();
+            StateHasChanged();
         }
         catch (Exception ex)
         {
