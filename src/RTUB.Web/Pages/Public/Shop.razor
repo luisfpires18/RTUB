@@ -461,7 +461,11 @@ else
     // Product Modal Methods
     private void OpenCreateProductModal()
     {
-        editingProduct = Product.Create("", "", 0, 0);
+        editingProduct = Product.Create(" ", " ", 0.01m, 0);
+        // Clear the prefilled values to make form appear empty
+        editingProduct.Name = string.Empty;
+        editingProduct.Type = string.Empty;
+        editingProduct.Price = 0;
         isProductCreateMode = true;
         uploadedImagePath = null;
         showProductEditModal = true;
