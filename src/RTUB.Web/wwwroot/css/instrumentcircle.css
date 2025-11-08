@@ -21,7 +21,6 @@
 }
 
 /* Top-right action buttons */
-.instrument-circle-view-btn,
 .instrument-circle-edit-btn,
 .instrument-circle-delete-btn {
     position: absolute;
@@ -40,12 +39,6 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.instrument-circle-view-btn {
-    right: 5.5rem;
-    background-color: rgba(111, 66, 193, 0.95);
-    color: white;
-}
-
 .instrument-circle-edit-btn {
     right: 3rem;
     color: #333;
@@ -55,12 +48,6 @@
     right: 0.5rem;
     background-color: rgba(220, 53, 69, 0.95);
     color: white;
-}
-
-.instrument-circle-view-btn:hover,
-.instrument-circle-view-btn:focus {
-    background-color: rgb(95, 46, 173);
-    transform: scale(1.1);
 }
 
 .instrument-circle-edit-btn:hover,
@@ -75,7 +62,6 @@
     transform: scale(1.1);
 }
 
-.instrument-circle-view-btn:focus,
 .instrument-circle-edit-btn:focus,
 .instrument-circle-delete-btn:focus {
     outline: 2px solid #6f42c1;
@@ -155,6 +141,11 @@
     line-height: 1.4;
 }
 
+/* View button at bottom */
+.instrument-circle-actions {
+    padding: 0 1rem 1rem 1rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 767px) {
     .instrument-circle-image-wrapper {
@@ -173,16 +164,11 @@
         font-size: 2.5rem;
     }
 
-    .instrument-circle-view-btn,
     .instrument-circle-edit-btn,
     .instrument-circle-delete-btn {
         width: 28px;
         height: 28px;
         font-size: 0.85rem;
-    }
-
-    .instrument-circle-view-btn {
-        right: 4.5rem;
     }
 
     .instrument-circle-edit-btn {

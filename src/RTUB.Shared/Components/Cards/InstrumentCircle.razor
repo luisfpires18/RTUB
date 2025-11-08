@@ -8,17 +8,7 @@
 *@
 
 <div class="instrument-circle">
-    <!-- Action buttons in top-right -->
-    @if (ShowViewButton)
-    {
-        <button class="instrument-circle-view-btn" 
-                @onclick="@OnView" 
-                @onclick:stopPropagation="true"
-                title="@ViewTooltip"
-                aria-label="@ViewTooltip">
-            <i class="bi bi-eye"></i>
-        </button>
-    }
+    <!-- Edit & Delete buttons in top-right -->
     @if (ShowEditButton)
     {
         <button class="instrument-circle-edit-btn" 
@@ -84,6 +74,19 @@
             </div>
         }
     </div>
+
+    <!-- View button below the card -->
+    @if (ShowViewButton)
+    {
+        <div class="instrument-circle-actions">
+            <button class="btn btn-sm btn-purple w-100" 
+                    @onclick="@OnView"
+                    title="@ViewTooltip"
+                    aria-label="@ViewTooltip">
+                <i class="bi bi-eye"></i> @ViewButtonText
+            </button>
+        </div>
+    }
 </div>
 
 @code {
@@ -113,6 +116,9 @@
 
     [Parameter]
     public string ViewTooltip { get; set; } = "Ver Detalhes";
+
+    [Parameter]
+    public string ViewButtonText { get; set; } = "Ver Detalhes";
 
     [Parameter]
     public string EditTooltip { get; set; } = "Editar";
