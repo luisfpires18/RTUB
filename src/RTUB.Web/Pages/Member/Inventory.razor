@@ -257,7 +257,11 @@ else
             </div>
 
             <div class="row mb-3">
-                <div class="col-md-12">
+                <div class="col-md-6">
+                    <label class="form-label">Data Última Manutenção</label>
+                    <InputDate class="form-control" @bind-Value="instrument.LastMaintenanceDate" />
+                </div>
+                <div class="col-md-6">
                     <label class="form-label">Notas de Manutenção</label>
                     <InputTextArea class="form-control" @bind-Value="instrument.MaintenanceNotes" rows="3" />
                 </div>
