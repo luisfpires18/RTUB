@@ -35,6 +35,9 @@ public class Event : BaseEntity
     public string? ImageContentType { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
     
+    // S3 Storage - filename in IDrive S3 bucket
+    public string? S3ImageFilename { get; set; }
+    
     // Navigation properties
     public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
     public virtual ICollection<EventRepertoire> RepertoireSongs { get; set; } = new List<EventRepertoire>();
@@ -92,8 +95,20 @@ public class Event : BaseEntity
         ImageUrl = url;
     }
 
+    public void SetS3Image(string? s3Filename)
+    {
+        S3ImageFilename = s3Filename;
+        // Clear old image data when using S3
+        ImageData = null;
+        ImageContentType = null;
+    }
+
     public string GetImageSource()
     {
+        // Priority: S3 image > ImageData > ImageUrl
+        if (!string.IsNullOrEmpty(S3ImageFilename))
+            return $"s3:{S3ImageFilename}"; // Special marker for S3 images
+        
         if (ImageData != null && !string.IsNullOrEmpty(ImageContentType))
             return $"/api/images/event/{Id}";
         

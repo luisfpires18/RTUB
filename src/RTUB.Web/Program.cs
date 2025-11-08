@@ -118,6 +118,7 @@ namespace RTUB
             services.AddSingleton<ILyricStorageService, DriveLyricStorageService>();
             services.AddSingleton<IDocumentStorageService, DriveDocumentStorageService>();
             services.AddSingleton<ISlideshowStorageService, DriveSlideshowStorageService>();
+            services.AddSingleton<IEventStorageService, DriveEventStorageService>();
             
             // --------- Inventory & Shop Services ---------
             services.AddScoped<IInstrumentService, InstrumentService>();

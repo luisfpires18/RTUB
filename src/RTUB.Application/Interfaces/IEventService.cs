@@ -17,5 +17,6 @@ public interface IEventService
     Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "");
     Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, DateTime? endDate = null);
     Task SetEventImageAsync(int id, byte[]? imageData, string? contentType, string url = "");
+    Task SetEventS3ImageAsync(int id, string? s3Filename);
     Task DeleteEventAsync(int id);
 }
