@@ -8,6 +8,38 @@
 *@
 
 <div class="instrument-circle">
+    <!-- Action buttons in top-right -->
+    @if (ShowViewButton)
+    {
+        <button class="instrument-circle-view-btn" 
+                @onclick="@OnView" 
+                @onclick:stopPropagation="true"
+                title="@ViewTooltip"
+                aria-label="@ViewTooltip">
+            <i class="bi bi-eye"></i>
+        </button>
+    }
+    @if (ShowEditButton)
+    {
+        <button class="instrument-circle-edit-btn" 
+                @onclick="@OnEdit" 
+                @onclick:stopPropagation="true"
+                title="@EditTooltip"
+                aria-label="@EditTooltip">
+            <i class="bi bi-pencil"></i>
+        </button>
+    }
+    @if (ShowDeleteButton)
+    {
+        <button class="instrument-circle-delete-btn" 
+                @onclick="@OnDelete" 
+                @onclick:stopPropagation="true"
+                title="@DeleteTooltip"
+                aria-label="@DeleteTooltip">
+            <i class="bi bi-trash"></i>
+        </button>
+    }
+
     <!-- Circular Image/Icon -->
     <div class="instrument-circle-image-wrapper">
         @if (Instrument.ImageData != null && Instrument.ImageData.Length > 0)
@@ -60,6 +92,33 @@
 
     [Parameter]
     public string ImageUrl { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnView { get; set; }
+
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    [Parameter]
+    public bool ShowViewButton { get; set; } = false;
+
+    [Parameter]
+    public bool ShowEditButton { get; set; } = false;
+
+    [Parameter]
+    public bool ShowDeleteButton { get; set; } = false;
+
+    [Parameter]
+    public string ViewTooltip { get; set; } = "Ver Detalhes";
+
+    [Parameter]
+    public string EditTooltip { get; set; } = "Editar";
+
+    [Parameter]
+    public string DeleteTooltip { get; set; } = "Eliminar";
 
     private string GetConditionDisplayName(InstrumentCondition condition)
     {
