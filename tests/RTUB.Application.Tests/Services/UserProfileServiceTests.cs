@@ -140,19 +140,24 @@ public class UserProfileServiceTests : IDisposable
         var user = new ApplicationUser { Id = userId, UserName = "testuser" };
         var imageData = new byte[] { 1, 2, 3, 4 };
         var contentType = "image/jpeg";
+        var s3Filename = "testuser_20240101120000.webp";
 
         _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
         _mockUserManager.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
+        _mockProfileStorageService.Setup(x => x.UploadImageAsync(imageData, It.IsAny<string>(), contentType))
+            .ReturnsAsync(s3Filename);
 
         // Act
         await _service.UpdateProfilePictureAsync(userId, imageData, contentType);
 
         // Assert
-        user.ProfilePictureData.Should().Equal(imageData);
-        user.ProfilePictureContentType.Should().Be(contentType);
+        user.S3ImageFilename.Should().Be(s3Filename);
+        user.ProfilePictureData.Should().BeNull(); // Should be cleared since stored in S3
+        user.ProfilePictureContentType.Should().BeNull();
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
         _mockImageService.Verify(x => x.InvalidateProfileImageCache(userId), Times.Once);
+        _mockProfileStorageService.Verify(x => x.UploadImageAsync(imageData, It.IsAny<string>(), contentType), Times.Once);
     }
 
     [Fact]
