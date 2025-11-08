@@ -97,21 +97,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
     #endregion
 
-    #region Rehearsal Management Tests
-
-    [Fact]
-    public async Task RehearsalManagementPage_WithoutAuth_RedirectsToLogin()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/admin/rehearsals");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/login");
-    }
-
-    #endregion
-
     #region Authorization Tests
 
     [Theory]
@@ -119,7 +104,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     [InlineData("/admin/roles")]
     [InlineData("/admin/slideshow-management")]
     [InlineData("/admin/requests")]
-    [InlineData("/admin/rehearsals")]
     public async Task AdminPages_RequireAuthentication(string url)
     {
         // Arrange & Act
@@ -141,8 +125,7 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
             "/admin/finance",
             "/admin/roles",
             "/admin/slideshow-management",
-            "/admin/requests",
-            "/admin/rehearsals",
+            "/admin/requests"
         };
 
         // Act & Assert

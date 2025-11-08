@@ -35,7 +35,7 @@ public class ProfilePageTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public class ProfilePageTests : IClassFixture<WebApplicationFactory<Program>>
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
         var location = response.Headers.Location?.ToString();
-        location.Should().Contain("/Account/Login");
+        location.Should().Contain("/login");
         location.Should().Contain("ReturnUrl=%2Fprofile");
     }
 
