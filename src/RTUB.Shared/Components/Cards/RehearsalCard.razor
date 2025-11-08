@@ -72,10 +72,11 @@
                 <!-- First row: View Details and View Attendances buttons -->
                 <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
                     <!-- View Details button -->
-                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center" 
+                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" 
                             @onclick="HandleViewDetails" 
                             title="Ver Detalhes">
                         <i class="bi bi-eye-fill icon-size-1rem"></i>
+                        <span>Ver</span>
                     </button>
 
                     <!-- View Attendances button -->
@@ -103,13 +104,26 @@
                         }
                         else
                         {
+                            @if (UserAttendance.Attended)
+                            {
+                                <!-- Attendance Approved button (disabled, success) -->
+                                <button class="btn btn-sm btn-success d-flex align-items-center gap-1" 
+                                        disabled 
+                                        title="Presença Aprovada">
+                                    <i class="bi bi-check-circle-fill icon-size-1rem"></i>
+                                    <span class="d-none d-md-inline">Aprovada</span>
+                                </button>
+                            }
+                            else
+                            {
                                 <!-- Attendance Pending button (disabled, warning) -->
                                 <button class="btn btn-sm btn-warning d-flex align-items-center gap-1" 
                                         disabled 
                                         title="Presença Pendente">
                                     <i class="bi bi-clock-fill icon-size-1rem"></i>
-                                    <span class="d-none d-md-inline"></span>
+                                    <span class="d-none d-md-inline">Pendente</span>
                                 </button>
+                            }
                             
                             <!-- Edit Attendance button (white) -->
                             <button class="btn btn-sm btn-light d-flex align-items-center" 
