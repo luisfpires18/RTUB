@@ -105,22 +105,25 @@ else
                                     <!-- First row: View Details, View Enrollments and Repertoire buttons -->
                                     <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
                                         <!-- Ver Detalhes button -->
-                                        <button class="btn btn-sm btn-outline-info d-flex align-items-center" 
+                                        <button class="btn btn-sm btn-outline-info d-flex align-items-center justify-content-center" 
+                                                style="width: 48px; height: 32px;"
                                                 @onclick="() => OpenEventDetailsModal(eventItem)" 
                                                 title="Ver Detalhes">
                                             <i class="bi bi-eye icon-size-1rem"></i>
                                         </button>
 
                                         <!-- View Enrollments button -->
-                                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
+                                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center" 
+                                                style="width: 48px; height: 32px;"
                                                 @onclick="() => OpenEnrollmentListModal(eventItem)" 
                                                 title="Ver Inscrições">
                                             <i class="bi bi-people icon-size-1rem"></i>
-                                            <span>@GetEnrollmentCount(eventItem.Id)</span>
+                                            <span class="ms-1">@GetEnrollmentCount(eventItem.Id)</span>
                                         </button>
 
                                         <!-- Watch Repertoire button -->
-                                        <button class="btn btn-sm btn-outline-primary d-flex align-items-center" 
+                                        <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" 
+                                                style="width: 48px; height: 32px;"
                                                 @onclick="() => OpenRepertoireModal(eventItem)" 
                                                 title="Ver Repertório">
                                             <i class="bi bi-music-note-list icon-size-1rem"></i>
