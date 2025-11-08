@@ -102,9 +102,11 @@ else
                             <p class="card-text mb-2">
                                 <strong class="fs-5 text-white">@product.Price.ToString("0.00") €</strong>
                             </p>
-                            <button class="btn btn-sm btn-outline-secondary w-100 mb-2" @onclick="() => OpenProductDetailsModal(product)" title="Ver Detalhes">
-                                <i class="bi bi-eye"></i> Ver Detalhes
-                            </button>
+                            <div class="d-flex justify-content-center mb-2">
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => OpenProductDetailsModal(product)" title="Ver Detalhes">
+                                    <i class="bi bi-eye"></i> Ver Detalhes
+                                </button>
+                            </div>
                             @if (!product.IsPublic)
                             {
                                 <span class="badge bg-warning text-dark mb-2">
@@ -120,7 +122,7 @@ else
                                         {
                                             @if (hasReservation)
                                             {
-                                                <div class="d-flex gap-1 mb-1">
+                                                <div class="d-flex justify-content-center gap-1 mb-1">
                                                     <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenUserReservationModal(product)" title="Ver Reserva">
                                                         <i class="bi bi-eye"></i> Ver Reserva
                                                     </button>
@@ -130,9 +132,11 @@ else
                                                 </div>
                                                 <AuthorizeView Roles="Admin,Owner" Context="adminContext">
                                                     <Authorized>
-                                                        <button class="btn btn-sm btn-dark text-white w-100" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
-                                                            <i class="bi bi-list-check"></i> Ver Reservas
-                                                        </button>
+                                                        <div class="d-flex justify-content-center">
+                                                            <button class="btn btn-sm btn-light text-dark" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
+                                                                <i class="bi bi-list-check"></i> Ver Reservas
+                                                            </button>
+                                                        </div>
                                                     </Authorized>
                                                 </AuthorizeView>
                                             }
@@ -143,9 +147,11 @@ else
                                                 </button>
                                                 <AuthorizeView Roles="Admin,Owner" Context="adminContext">
                                                     <Authorized>
-                                                        <button class="btn btn-sm btn-dark text-white w-100" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
-                                                            <i class="bi bi-list-check"></i> Ver Reservas
-                                                        </button>
+                                                        <div class="d-flex justify-content-center">
+                                                            <button class="btn btn-sm btn-light text-dark" @onclick="() => OpenViewReservationsModal(product)" title="Ver Reservas">
+                                                                <i class="bi bi-list-check"></i> Ver Reservas
+                                                            </button>
+                                                        </div>
                                                     </Authorized>
                                                 </AuthorizeView>
                                             }
