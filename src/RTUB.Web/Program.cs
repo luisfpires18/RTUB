@@ -121,6 +121,7 @@ namespace RTUB
             // --------- Inventory & Shop Services ---------
             services.AddScoped<IInstrumentService, InstrumentService>();
             services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<IProductReservationService, ProductReservationService>();
             services.AddScoped<ITrophyService, TrophyService>();
 
             // ---------- Blazor + Authentication ----------

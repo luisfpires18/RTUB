@@ -1,4 +1,5 @@
 @page "/shop"
+@attribute [Authorize]
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -7,6 +8,7 @@
 @using RTUB.Core.Entities
 @using RTUB.Shared
 @inject IProductService ProductService
+@inject IProductReservationService ProductReservationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Loja RTUB</h1>
@@ -21,13 +23,6 @@
         </div>
     </Authorized>
 </AuthorizeView>
-
-<!-- Info message about purchasing -->
-<div class="alert alert-purple mb-4">
-    <i class="bi bi-info-circle"></i> 
-    <strong>Como comprar:</strong> Para adquirir qualquer produto, por favor envie um pedido através da nossa 
-    <a href="/requests" class="alert-link text-white">página de pedidos</a> indicando o produto pretendido.
-</div>
 
 @if (loading)
 {
@@ -115,10 +110,24 @@ else
                             }
                             @if (!product.IsPublic)
                             {
-                                <span class="badge bg-warning text-dark">
+                                <span class="badge bg-warning text-dark mb-2">
                                     <i class="bi bi-lock-fill"></i> Apenas Membros
                                 </span>
+                                <AuthorizeView>
+                                    <Authorized>
+                                        <button class="btn btn-sm btn-primary w-100" @onclick="() => OpenReservationModal(product)">
+                                            <i class="bi bi-calendar-check"></i> Reservar
+                                        </button>
+                                    </Authorized>
+                                </AuthorizeView>
                             }
+                            <AuthorizeView Roles="Admin,Owner">
+                                <Authorized>
+                                    <button class="btn btn-sm btn-info w-100 mt-2" @onclick="() => OpenViewReservationsModal(product)">
+                                        <i class="bi bi-list-check"></i> Ver Reservas
+                                    </button>
+                                </Authorized>
+                            </AuthorizeView>
                         </div>
                     </div>
                 </div>
@@ -237,6 +246,135 @@ else
               ImageFormat="image/jpeg"
               ImageQuality="0.85" />
 
+<!-- Reservation Modal -->
+<Modal Title="Reservar Produto" 
+       @bind-Show="showReservationModal"
+       Size="Modal.ModalSize.Default">
+    <BodyContent>
+        @if (selectedProduct != null)
+        {
+            <div class="mb-3">
+                <h5>@selectedProduct.Name</h5>
+                <p class="text-muted">@selectedProduct.Type - @selectedProduct.Price.ToString("0.00") €</p>
+            </div>
+            
+            <EditForm Model="reservationModel" OnValidSubmit="SaveReservation">
+                <DataAnnotationsValidator />
+                
+                <div class="mb-3">
+                    <label class="form-label">Nome para Apresentação (opcional)</label>
+                    <InputText class="form-control" @bind-Value="reservationModel.DisplayName" 
+                               placeholder="Como quer que o nome apareça no produto" />
+                </div>
+                
+                <div class="form-check mb-3">
+                    <InputCheckbox class="form-check-input" id="hasSizes" @bind-Value="reservationModel.HasSizes" />
+                    <label class="form-check-label" for="hasSizes">
+                        Este produto tem tamanhos
+                    </label>
+                </div>
+                
+                @if (reservationModel.HasSizes)
+                {
+                    <div class="mb-3">
+                        <label class="form-label">Tamanho *</label>
+                        <InputSelect class="form-select" @bind-Value="reservationModel.Size">
+                            <option value="">Selecione o tamanho</option>
+                            <option value="XS">XS</option>
+                            <option value="S">S</option>
+                            <option value="M">M</option>
+                            <option value="L">L</option>
+                            <option value="XL">XL</option>
+                            <option value="XXL">XXL</option>
+                            <option value="XXXL">XXXL</option>
+                        </InputSelect>
+                        @if (reservationModel.HasSizes && string.IsNullOrWhiteSpace(reservationModel.Size))
+                        {
+                            <div class="text-danger small mt-1">O tamanho é obrigatório quando o produto tem tamanhos</div>
+                        }
+                    </div>
+                }
+                
+                @if (!string.IsNullOrEmpty(reservationError))
+                {
+                    <div class="alert alert-danger">@reservationError</div>
+                }
+                
+                @if (!string.IsNullOrEmpty(reservationSuccess))
+                {
+                    <div class="alert alert-success">@reservationSuccess</div>
+                }
+                
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseReservationModal" disabled="@savingReservation">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" disabled="@savingReservation">
+                        @if (savingReservation)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Reservar
+                    </button>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+</Modal>
+
+<!-- View Reservations Modal -->
+<Modal Title="Reservas do Produto" 
+       @bind-Show="showViewReservationsModal"
+       Size="Modal.ModalSize.Large">
+    <BodyContent>
+        @if (selectedProduct != null)
+        {
+            <div class="mb-3">
+                <h5>@selectedProduct.Name</h5>
+                <p class="text-muted">@selectedProduct.Type - @selectedProduct.Price.ToString("0.00") €</p>
+            </div>
+            
+            @if (loadingReservations)
+            {
+                <p>A carregar reservas...</p>
+            }
+            else if (!productReservations.Any())
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Não existem reservas para este produto.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Utilizador</th>
+                                <th>Nome para Apresentação</th>
+                                <th>Tamanho</th>
+                                <th>Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var reservation in productReservations)
+                            {
+                                <tr>
+                                    <td>@reservation.UserNickname</td>
+                                    <td>@(reservation.DisplayName ?? "-")</td>
+                                    <td>@(reservation.Size ?? "-")</td>
+                                    <td>@reservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseViewReservationsModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
 @code {
     private List<Product> products = new();
     private List<Product> filteredProducts = new();
@@ -258,6 +396,27 @@ else
     private IBrowserFile? selectedFile;
     private string? uploadedImagePath;
     private long productImageVersion = DateTime.UtcNow.Ticks;
+
+    // Reservation Modal State
+    private bool showReservationModal = false;
+    private bool savingReservation = false;
+    private Product? selectedProduct;
+    private ReservationModel reservationModel = new();
+    private string? reservationError;
+    private string? reservationSuccess;
+    
+    // View Reservations Modal State
+    private bool showViewReservationsModal = false;
+    private bool loadingReservations = false;
+    private List<ProductReservation> productReservations = new();
+    
+    // Model for reservation form
+    private class ReservationModel
+    {
+        public string? DisplayName { get; set; }
+        public bool HasSizes { get; set; }
+        public string? Size { get; set; }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -302,7 +461,7 @@ else
     // Product Modal Methods
     private void OpenCreateProductModal()
     {
-        editingProduct = Product.Create("Novo Produto", "Tipo", 1.00m, 0);
+        editingProduct = Product.Create("", "", 0, 0);
         isProductCreateMode = true;
         uploadedImagePath = null;
         showProductEditModal = true;
@@ -443,5 +602,112 @@ else
             return $"{imageSrc}?v={productImageVersion}";
         }
         return imageSrc ?? string.Empty;
+    }
+    
+    // Reservation Methods
+    private void OpenReservationModal(Product product)
+    {
+        selectedProduct = product;
+        reservationModel = new ReservationModel();
+        reservationError = null;
+        reservationSuccess = null;
+        showReservationModal = true;
+    }
+    
+    private void CloseReservationModal()
+    {
+        showReservationModal = false;
+        selectedProduct = null;
+        reservationModel = new ReservationModel();
+        reservationError = null;
+        reservationSuccess = null;
+    }
+    
+    private async Task SaveReservation()
+    {
+        if (selectedProduct == null) return;
+        
+        // Validate size if HasSizes is true
+        if (reservationModel.HasSizes && string.IsNullOrWhiteSpace(reservationModel.Size))
+        {
+            reservationError = "O tamanho é obrigatório quando o produto tem tamanhos";
+            return;
+        }
+        
+        savingReservation = true;
+        reservationError = null;
+        reservationSuccess = null;
+        
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var userNickname = authState.User.Identity?.Name ?? "Unknown";
+            
+            if (string.IsNullOrEmpty(userId))
+            {
+                reservationError = "Não foi possível obter o utilizador atual";
+                return;
+            }
+            
+            var reservation = ProductReservation.Create(
+                selectedProduct.Id,
+                userId,
+                userNickname,
+                reservationModel.HasSizes,
+                reservationModel.Size,
+                reservationModel.DisplayName
+            );
+            
+            await ProductReservationService.CreateAsync(reservation);
+            
+            reservationSuccess = "Reserva criada com sucesso!";
+            
+            // Close modal after a short delay
+            await Task.Delay(1500);
+            CloseReservationModal();
+        }
+        catch (InvalidOperationException ex)
+        {
+            reservationError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            reservationError = "Erro ao criar reserva. Por favor, tente novamente.";
+            Console.WriteLine($"Error creating reservation: {ex.Message}");
+        }
+        finally
+        {
+            savingReservation = false;
+        }
+    }
+    
+    private async Task OpenViewReservationsModal(Product product)
+    {
+        selectedProduct = product;
+        loadingReservations = true;
+        showViewReservationsModal = true;
+        
+        try
+        {
+            var reservations = await ProductReservationService.GetByProductIdAsync(product.Id);
+            productReservations = reservations.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading reservations: {ex.Message}");
+            productReservations = new List<ProductReservation>();
+        }
+        finally
+        {
+            loadingReservations = false;
+        }
+    }
+    
+    private void CloseViewReservationsModal()
+    {
+        showViewReservationsModal = false;
+        selectedProduct = null;
+        productReservations = new List<ProductReservation>();
     }
 }

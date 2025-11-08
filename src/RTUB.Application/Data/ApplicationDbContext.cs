@@ -57,6 +57,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Inventory & Shop DbSets
     public DbSet<Instrument> Instruments { get; set; }
     public DbSet<Product> Products { get; set; }
+    public DbSet<ProductReservation> ProductReservations { get; set; }
     public DbSet<Trophy> Trophies { get; set; }
     
     // Audit Log DbSet
