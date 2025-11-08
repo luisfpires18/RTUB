@@ -52,21 +52,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
     #endregion
 
-    #region Inventory Page Tests
-
-    [Fact]
-    public async Task InventoryPage_WithoutAuth_RedirectsToLogin()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/admin/inventory");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/login");
-    }
-
-    #endregion
-
     #region Slideshow Management Tests
 
     [Fact]
@@ -132,7 +117,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     [Theory]
     [InlineData("/admin/finance")]
     [InlineData("/admin/roles")]
-    [InlineData("/admin/inventory")]
     [InlineData("/admin/slideshow-management")]
     [InlineData("/admin/requests")]
     [InlineData("/admin/rehearsals")]
@@ -156,7 +140,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
         {
             "/admin/finance",
             "/admin/roles",
-            "/admin/inventory",
             "/admin/slideshow-management",
             "/admin/requests",
             "/admin/rehearsals",
@@ -179,7 +162,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
         {
             "/admin/finance",
             "/admin/roles",
-            "/admin/inventory",
             "/admin/slideshow-management"
         };
 
