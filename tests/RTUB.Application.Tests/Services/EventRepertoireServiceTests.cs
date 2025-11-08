@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Services;
 using RTUB.Core.Enums;
 
@@ -20,6 +21,8 @@ public class EventRepertoireServiceTests : IDisposable
     private readonly AlbumService _albumService;
     private readonly SongService _songService;
     private readonly Mock<IImageService> _mockImageService;
+    private readonly Mock<IAlbumStorageService> _mockAlbumStorageService;
+    private readonly Mock<ILogger<AlbumService>> _mockLogger;
     private readonly Mock<IEventStorageService> _mockEventStorageService;
     private readonly DateTime _testEventDate = new DateTime(2025, 12, 31, 20, 0, 0);
 
@@ -34,7 +37,9 @@ public class EventRepertoireServiceTests : IDisposable
         _mockImageService = new Mock<IImageService>();
         _mockEventStorageService = new Mock<IEventStorageService>();
         _eventService = new EventService(_context, _mockImageService.Object, _mockEventStorageService.Object);
-        _albumService = new AlbumService(_context, _mockImageService.Object);
+        _mockAlbumStorageService = new Mock<IAlbumStorageService>();
+        _mockLogger = new Mock<ILogger<AlbumService>>();
+        _albumService = new AlbumService(_context, _mockImageService.Object, _mockAlbumStorageService.Object, _mockLogger.Object);
         _songService = new SongService(_context);
     }
 

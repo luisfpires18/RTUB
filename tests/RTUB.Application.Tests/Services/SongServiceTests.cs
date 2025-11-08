@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Services;
 
 namespace RTUB.Application.Tests.Services;
@@ -17,6 +18,8 @@ public class SongServiceTests : IDisposable
     private readonly SongService _songService;
     private readonly AlbumService _albumService;
     private readonly Mock<IImageService> _mockImageService;
+    private readonly Mock<IAlbumStorageService> _mockAlbumStorageService;
+    private readonly Mock<ILogger<AlbumService>> _mockLogger;
 
     public SongServiceTests()
     {
@@ -27,7 +30,9 @@ public class SongServiceTests : IDisposable
         _context = new ApplicationDbContext(options);
         _songService = new SongService(_context);
         _mockImageService = new Mock<IImageService>();
-        _albumService = new AlbumService(_context, _mockImageService.Object);
+        _mockAlbumStorageService = new Mock<IAlbumStorageService>();
+        _mockLogger = new Mock<ILogger<AlbumService>>();
+        _albumService = new AlbumService(_context, _mockImageService.Object, _mockAlbumStorageService.Object, _mockLogger.Object);
     }
 
     [Fact]
