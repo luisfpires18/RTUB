@@ -1,0 +1,273 @@
+/* EnrollmentCard Component Styles */
+/* Compact card for displaying enrollment information */
+
+/* Grid Container */
+.enrollment-card-grid {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Responsive columns */
+/* Mobile: 1 column */
+@media (max-width: 767px) {
+    .enrollment-card-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Tablet: 2 columns */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .enrollment-card-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Desktop: 3 columns */
+@media (min-width: 1024px) and (max-width: 1399px) {
+    .enrollment-card-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Large Desktop: 4 columns */
+@media (min-width: 1400px) {
+    .enrollment-card-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Enrollment Card */
+.enrollment-card {
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 100%;
+}
+
+.enrollment-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.25);
+}
+
+/* Top-right action buttons */
+.enrollment-card-edit-btn,
+.enrollment-card-delete-btn,
+.enrollment-card-approve-btn,
+.enrollment-card-cancel-btn {
+    position: absolute;
+    top: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    font-size: 0.875rem;
+}
+
+.enrollment-card-edit-btn {
+    right: 2.5rem;
+    color: #333;
+}
+
+.enrollment-card-delete-btn {
+    right: 0.5rem;
+    background-color: rgba(220, 53, 69, 0.95);
+    color: white;
+}
+
+.enrollment-card-approve-btn {
+    right: 3rem;
+    background-color: rgba(40, 167, 69, 0.95);
+    color: white;
+}
+
+.enrollment-card-cancel-btn {
+    right: 0.5rem;
+    background-color: rgba(220, 53, 69, 0.95);
+    color: white;
+}
+
+.enrollment-card-edit-btn:hover,
+.enrollment-card-edit-btn:focus {
+    background-color: white;
+    transform: scale(1.1);
+}
+
+.enrollment-card-delete-btn:hover,
+.enrollment-card-delete-btn:focus {
+    background-color: rgb(200, 35, 51);
+    transform: scale(1.1);
+}
+
+.enrollment-card-approve-btn:hover,
+.enrollment-card-approve-btn:focus {
+    background-color: rgb(33, 136, 56);
+    transform: scale(1.1);
+}
+
+.enrollment-card-cancel-btn:hover,
+.enrollment-card-cancel-btn:focus {
+    background-color: rgb(200, 35, 51);
+    transform: scale(1.1);
+}
+
+.enrollment-card-edit-btn:focus,
+.enrollment-card-delete-btn:focus,
+.enrollment-card-approve-btn:focus,
+.enrollment-card-cancel-btn:focus {
+    outline: 2px solid #6f42c1;
+    outline-offset: 2px;
+}
+
+/* Avatar Image */
+.enrollment-card-image-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 56px;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0.75rem auto 0 auto;
+    border-radius: 50%;
+}
+
+.enrollment-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;
+}
+
+/* Card Content */
+.enrollment-card-content {
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    flex-grow: 1;
+}
+
+.enrollment-card-tuna-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #e2e2e2;
+    text-align: center;
+    line-height: 1.3;
+}
+
+.enrollment-card-full-name {
+    font-size: 0.8rem;
+    color: #b0b0b0;
+    text-align: center;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+}
+
+.enrollment-card-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 0.375rem;
+}
+
+.enrollment-card-badges-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: center;
+    width: 100%;
+}
+
+/* Info Rows */
+.enrollment-card-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    font-size: 0.8rem;
+    line-height: 1.3;
+}
+
+.enrollment-card-label {
+    color: #a0a0a0;
+    font-weight: 500;
+}
+
+.enrollment-card-value {
+    color: #e2e2e2;
+}
+
+/* Notes row with text wrapping */
+.enrollment-card-notes .enrollment-card-value {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    max-width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+    .enrollment-card-image-wrapper {
+        max-width: 48px;
+    }
+
+    .enrollment-card-content {
+        padding: 0.625rem;
+    }
+
+    .enrollment-card-tuna-name {
+        font-size: 0.9rem;
+    }
+
+    .enrollment-card-full-name {
+        font-size: 0.75rem;
+    }
+
+    .enrollment-card-row {
+        font-size: 0.75rem;
+    }
+
+    .enrollment-card-edit-btn,
+    .enrollment-card-delete-btn,
+    .enrollment-card-approve-btn,
+    .enrollment-card-cancel-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 0.8rem;
+    }
+
+    .enrollment-card-edit-btn {
+        right: 2.25rem;
+    }
+
+    .enrollment-card-approve-btn {
+        right: 2.75rem;
+    }
+}
+
+/* Accessibility */
+.enrollment-card:focus-within .enrollment-card-edit-btn,
+.enrollment-card:focus-within .enrollment-card-delete-btn,
+.enrollment-card:focus-within .enrollment-card-approve-btn,
+.enrollment-card:focus-within .enrollment-card-cancel-btn {
+    outline: 2px solid #6f42c1;
+    outline-offset: 2px;
+}

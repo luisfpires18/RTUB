@@ -367,63 +367,38 @@ else
                                            OnSearchChanged="@HandleAttendanceSearchChanged" />
                         </div>
                         
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Membro</th>
-                                        <th>Instrumento</th>
-                                        <th>Presença (por aprovação)</th>
-                                        <th>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var attendance in filteredAttendances)
-                                    {
-                                        <tr>
-                                            <td>
-                                                @if (!string.IsNullOrEmpty(attendance.User?.Nickname))
-                                                {
-                                                    <text>@attendance.User.Nickname</text>
-                                                }
-                                                else if (attendance.User != null)
-                                                {
-                                                    <text>@attendance.User.FirstName @attendance.User.LastName</text>
-                                                }
-                                                else
-                                                {
-                                                    <text>@attendance.UserId</text>
-                                                }
-                                            </td>
-                                            <td>@(attendance.Instrument?.ToString() ?? "-")</td>
-                                            <td>
-                                                @if (attendance.Attended)
-                                                {
-                                                    <span class="badge bg-success">Aprovado</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-warning">Pendente</span>
-                                                }
-                                            </td>
-                                            <td>
-                                            @if (!attendance.Attended)
+                        <div class="enrollment-card-grid">
+                            @foreach (var attendance in filteredAttendances)
+                            {
+                                var instrumentDisplay = attendance.Instrument?.ToString() ?? "—";
+                                <EnrollmentCard 
+                                    AvatarUrl="@attendance.User?.ProfilePictureSrc"
+                                    TunaName="@attendance.User?.Nickname"
+                                    FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}")"
+                                    InstrumentText="@instrumentDisplay"
+                                    Notes=""
+                                    AltText="@attendance.User?.GetDisplayName()"
+                                    ShowEditButton="false"
+                                    ShowDeleteButton="@attendance.Attended"
+                                    ShowApproveButton="@(!attendance.Attended)"
+                                    OnDelete="@(() => OpenDeleteAttendanceConfirmation(attendance))"
+                                    OnApprove="@(() => ApproveAttendance(attendance))"
+                                    DeleteTooltip="Eliminar"
+                                    ApproveTooltip="Aprovar">
+                                    <BadgeContent>
+                                        <div class="enrollment-card-badges-row">
+                                            @if (attendance.Attended)
                                             {
-                                                <button class="btn btn-sm btn-success" @onclick="() => ApproveAttendance(attendance)">
-                                                    <i class="bi bi-check"></i> Aprovar
-                                                </button>
+                                                <span class="badge bg-success">Aprovado</span>
                                             }
                                             else
                                             {
-                                                <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteAttendanceConfirmation(attendance)" title="Eliminar">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
+                                                <span class="badge bg-warning">Pendente</span>
                                             }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
+                                        </div>
+                                    </BadgeContent>
+                                </EnrollmentCard>
+                            }
                         </div>
                         
                         <!-- Add Member Section (Bottom Right) -->
