@@ -19,16 +19,12 @@ public class ProductReservationService : IProductReservationService
 
     public async Task<ProductReservation?> GetByIdAsync(int id)
     {
-        return await _context.ProductReservations
-            .Include(r => r.Product)
-            .Include(r => r.User)
-            .FirstOrDefaultAsync(r => r.Id == id);
+        return await _context.ProductReservations.FindAsync(id);
     }
 
     public async Task<IEnumerable<ProductReservation>> GetByProductIdAsync(int productId)
     {
         return await _context.ProductReservations
-            .Include(r => r.User)
             .Where(r => r.ProductId == productId)
             .OrderBy(r => r.CreatedAt)
             .ToListAsync();
@@ -37,7 +33,6 @@ public class ProductReservationService : IProductReservationService
     public async Task<IEnumerable<ProductReservation>> GetByUserIdAsync(string userId)
     {
         return await _context.ProductReservations
-            .Include(r => r.Product)
             .Where(r => r.UserId == userId)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
