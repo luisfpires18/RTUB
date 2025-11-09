@@ -81,16 +81,9 @@ else
                         <td>
                             @if (!string.IsNullOrEmpty(slide.ImageSrc))
                             {
-                                // Don't add cache-busting to pre-signed S3 URLs as it invalidates the signature
-                                // Pre-signed URLs already have expiration built-in
-                                var imageUrl = slide.ImageSrc;
-                                if (!imageUrl.StartsWith("http"))
-                                {
-                                    // Only add cache-busting for non-S3 images (e.g., /api/images/)
-                                    var separator = imageUrl.Contains('?') ? "&" : "?";
-                                    imageUrl = $"{imageUrl}{separator}v={slide.Id}_{DateTime.UtcNow.Ticks}";
-                                }
-                                <img src="@imageUrl" alt="@slide.Title" class="slideshow-thumbnail img-thumbnail" />
+                                // Images are served directly from S3 with public URLs
+                                // ETag-based caching is handled by the browser and S3
+                                <img src="@slide.ImageSrc" alt="@slide.Title" class="slideshow-thumbnail img-thumbnail" />
                             }
                         </td>
                         <td>@slide.Title</td>
@@ -214,7 +207,6 @@ else
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
-    private long slideImageVersion = DateTime.UtcNow.Ticks;
 
     protected override async Task OnInitializedAsync()
     {
@@ -400,7 +392,6 @@ else
         }
 
         await RefreshDataAsync();
-        slideImageVersion = DateTime.UtcNow.Ticks; // Update cache-bust parameter
         CloseEditModal();
     }
 
@@ -423,11 +414,8 @@ else
 
     private string GetSlideshowImageUrl(string imageSrc)
     {
-        // Add cache-busting parameter to force reload after image update
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
-        {
-            return $"{imageSrc}?v={slideImageVersion}";
-        }
+        // Return URL as-is - images are served directly from S3 with public URLs
+        // ETag-based caching is handled by the browser and S3
         return imageSrc ?? string.Empty;
     }
 }

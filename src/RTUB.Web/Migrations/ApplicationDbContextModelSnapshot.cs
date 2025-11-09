@@ -179,7 +179,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("ReportId");
 
-                    b.ToTable("Activities");
+                    b.ToTable("Activities", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Album", b =>
@@ -187,6 +187,13 @@ namespace RTUB.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("CoverImageContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("CoverImageData")
+                        .HasColumnType("BLOB");
 
                     b.Property<string>("CoverImageUrl")
                         .HasMaxLength(500)
@@ -218,7 +225,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Albums");
+                    b.ToTable("Albums", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.ApplicationUser", b =>
@@ -323,9 +330,6 @@ namespace RTUB.Migrations
                     b.Property<bool>("RequirePasswordChange")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("S3ImageFilename")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("TEXT");
 
@@ -404,7 +408,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AuditLogs");
+                    b.ToTable("AuditLogs", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Enrollment", b =>
@@ -447,7 +451,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Enrollments");
+                    b.ToTable("Enrollments", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Event", b =>
@@ -473,6 +477,13 @@ namespace RTUB.Migrations
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ImageContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("ImageData")
+                        .HasColumnType("BLOB");
+
                     b.Property<string>("ImageUrl")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -488,10 +499,6 @@ namespace RTUB.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("S3ImageFilename")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("Type")
                         .HasColumnType("INTEGER");
 
@@ -503,7 +510,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Events");
+                    b.ToTable("Events", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.EventRepertoire", b =>
@@ -539,7 +546,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("SongId");
 
-                    b.ToTable("EventRepertoires");
+                    b.ToTable("EventRepertoires", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.FiscalYear", b =>
@@ -568,7 +575,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("FiscalYears");
+                    b.ToTable("FiscalYears", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Instrument", b =>
@@ -595,8 +602,11 @@ namespace RTUB.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ImageUrl")
+                    b.Property<string>("ImageContentType")
                         .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("ImageData")
+                        .HasColumnType("BLOB");
 
                     b.Property<DateTime?>("LastMaintenanceDate")
                         .HasColumnType("TEXT");
@@ -626,7 +636,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Instruments");
+                    b.ToTable("Instruments", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Label", b =>
@@ -667,7 +677,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Labels");
+                    b.ToTable("Labels", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Product", b =>
@@ -686,8 +696,11 @@ namespace RTUB.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ImageUrl")
+                    b.Property<string>("ImageContentType")
                         .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("ImageData")
+                        .HasColumnType("BLOB");
 
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("INTEGER");
@@ -719,7 +732,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.ProductReservation", b =>
@@ -771,7 +784,7 @@ namespace RTUB.Migrations
                     b.HasIndex("ProductId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("ProductReservations");
+                    b.ToTable("ProductReservations", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Rehearsal", b =>
@@ -821,7 +834,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("Date");
 
-                    b.ToTable("Rehearsals");
+                    b.ToTable("Rehearsals", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.RehearsalAttendance", b =>
@@ -869,7 +882,7 @@ namespace RTUB.Migrations
                     b.HasIndex("RehearsalId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("RehearsalAttendances");
+                    b.ToTable("RehearsalAttendances", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Report", b =>
@@ -911,7 +924,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Reports");
+                    b.ToTable("Reports", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Request", b =>
@@ -976,7 +989,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Requests");
+                    b.ToTable("Requests", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.RoleAssignment", b =>
@@ -1017,7 +1030,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RoleAssignments");
+                    b.ToTable("RoleAssignments", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Slideshow", b =>
@@ -1036,6 +1049,12 @@ namespace RTUB.Migrations
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("ImageContentType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("ImageData")
+                        .HasColumnType("BLOB");
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()
@@ -1063,7 +1082,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Slideshows");
+                    b.ToTable("Slideshows", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Song", b =>
@@ -1125,7 +1144,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("AlbumId");
 
-                    b.ToTable("Songs");
+                    b.ToTable("Songs", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.SongYouTubeUrl", b =>
@@ -1210,7 +1229,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("ActivityId");
 
-                    b.ToTable("Transactions");
+                    b.ToTable("Transactions", (string)null);
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Trophy", b =>
@@ -1243,7 +1262,7 @@ namespace RTUB.Migrations
 
                     b.HasIndex("EventId");
 
-                    b.ToTable("Trophies");
+                    b.ToTable("Trophies", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
