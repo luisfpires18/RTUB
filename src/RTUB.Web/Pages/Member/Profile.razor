@@ -283,6 +283,41 @@ else
                 </EditContent>
             </ProfileSection>
 
+            <!-- Section 3: Notifications (Email Preferences) -->
+            <ProfileSection Title="Notificações"
+                          Icon="bi-envelope-fill"
+                          IsCollapsible="true"
+                          IsExpanded="@sectionsExpanded["notifications"]"
+                          IsEditing="false"
+                          ShowEditButton="false">
+                <ChildContent>
+                    @if (!string.IsNullOrEmpty(subscriptionMessage))
+                    {
+                        <Alert Message="@subscriptionMessage" 
+                               Type="@(subscriptionSuccess ? Alert.AlertType.Success : Alert.AlertType.Error)" 
+                               Dismissible="true"
+                               OnDismiss="@(() => subscriptionMessage = null)" 
+                               AdditionalClasses="mb-3" />
+                    }
+                    <div class="profile-field">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" 
+                                           type="checkbox" 
+                                           id="emailNotificationCheckbox"
+                                           checked="@user.Subscribed" 
+                                           @onchange="OnSubscribedChanged" />
+                                    <label class="form-check-label text-white-full" for="emailNotificationCheckbox">
+                                        Pretendo ser notificado por email de novas atuações.
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </ChildContent>
+            </ProfileSection>
+
         </div>
     </div>
 }
@@ -375,7 +410,8 @@ else
     private Dictionary<string, bool> sectionsExpanded = new()
     {
         { "personal", true },
-        { "tuna", true }
+        { "tuna", true },
+        { "notifications", true }
     };
     
     // Mentor search variables
@@ -383,6 +419,10 @@ else
     private List<ApplicationUser> filteredMentors = new();
     private SearchHelper<ApplicationUser> mentorSearchHelper = new();
     private ApplicationUser? selectedMentorCache = null;
+    
+    // Notification subscription state
+    private string? subscriptionMessage;
+    private bool subscriptionSuccess;
 
     public class ChangePasswordModel
     {
@@ -795,6 +835,51 @@ else
         // If mentor is null but user has a MentorId, the mentor might not have loaded
         // Return null to show "Não definido"
         return null;
+    }
+
+    private async Task OnSubscribedChanged(ChangeEventArgs e)
+    {
+        if (user == null) return;
+
+        subscriptionMessage = null;
+        subscriptionSuccess = false;
+
+        try
+        {
+            var newValue = e.Value is bool boolValue ? boolValue : false;
+            user.Subscribed = newValue;
+
+            await SetAuditContextToCurrentUser();
+            var result = await UserManager.UpdateAsync(user);
+
+            if (result.Succeeded)
+            {
+                subscriptionSuccess = true;
+                subscriptionMessage = newValue 
+                    ? "Notificações por email ativadas com sucesso."
+                    : "Notificações por email desativadas com sucesso.";
+                
+                // Clear message after 3 seconds
+                StateHasChanged();
+                await Task.Delay(3000);
+                subscriptionMessage = null;
+                StateHasChanged();
+            }
+            else
+            {
+                subscriptionSuccess = false;
+                subscriptionMessage = "Erro ao atualizar preferências de notificação.";
+                // Revert the change
+                user.Subscribed = !newValue;
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            subscriptionSuccess = false;
+            subscriptionMessage = "Erro ao atualizar preferências de notificação.";
+            StateHasChanged();
+        }
     }
 
     private async Task SetAuditContextToCurrentUser()

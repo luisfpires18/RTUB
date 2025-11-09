@@ -11,6 +11,7 @@
 @inject IEventService EventService
 @inject IEnrollmentService EnrollmentService
 @inject ITrophyService TrophyService
+@inject IEmailNotificationService EmailNotificationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IWebHostEnvironment Environment
@@ -58,6 +59,7 @@ else
                                    IsPastEvent="false"
                                    OnEdit="@(() => OpenEditModal(eventItem))"
                                    OnDelete="@(() => OpenDeleteModal(eventItem))"
+                                   OnSendEmail="@(() => OpenEmailNotificationModal(eventItem))"
                                    OnEnroll="@(() => OpenEnrollModal(eventItem))"
                                    OnEditEnrollment="@(() => { if (userEnrollment != null) OpenEditEnrollmentModal(userEnrollment); })"
                                    OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
@@ -644,6 +646,75 @@ else
     </FooterContent>
 </Modal>
 
+<!-- Email Notification Confirmation Modal -->
+<ConfirmDialog Show="@showEmailNotificationModal"
+               ShowChanged="@((bool show) => showEmailNotificationModal = show)"
+               Title="Enviar notificação desta atuação?"
+               ConfirmText="Sim"
+               CancelText="Não"
+               ConfirmButtonClass="btn-primary"
+               OnConfirm="@SendEventNotification"
+               OnCancel="@CloseEmailNotificationModal"
+               Size="Modal.ModalSize.Large">
+    <BodyContent>
+        @if (selectedEventForEmail != null)
+        {
+            <div class="mb-3">
+                <h6 class="text-white-full">Detalhes do Evento:</h6>
+                <div class="event-summary p-3 rounded bg-dark">
+                    <div><strong>Título:</strong> @selectedEventForEmail.Name</div>
+                    <div><strong>Data:</strong> @selectedEventForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"))</div>
+                    <div><strong>Local:</strong> @selectedEventForEmail.Location</div>
+                </div>
+            </div>
+
+            @if (emailLoadingSubscribers)
+            {
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">A carregar...</span>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(emailErrorMessage))
+            {
+                <Alert Message="@emailErrorMessage" 
+                       Type="Alert.AlertType.Error" 
+                       Dismissible="true"
+                       OnDismiss="@(() => emailErrorMessage = null)" />
+            }
+            else
+            {
+                <div class="mb-3">
+                    <span class="badge bg-purple text-white p-2">
+                        @($"{subscribedUsersCount} / {totalUsersCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")
+                    </span>
+                </div>
+
+                @if (subscribedUsers != null && subscribedUsers.Any())
+                {
+                    <div class="mb-3">
+                        <h6 class="text-white-full mb-2">Membros que irão receber:</h6>
+                        <div class="subscriber-list" style="max-height: 300px; overflow-y: auto;">
+                            @foreach (var user in subscribedUsers)
+                            {
+                                <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                                    @(user.Nickname ?? $"{user.FirstName} {user.LastName}")
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <Alert Message="Nenhum membro subscrito às notificações por email." 
+                           Type="Alert.AlertType.Warning" />
+                }
+            }
+        }
+    </BodyContent>
+</ConfirmDialog>
+
 @code {
     private List<Event>? events;
     private List<Enrollment>? enrollments;
@@ -661,6 +732,7 @@ else
     private bool showTrophyEditModal = false;
     private bool showTrophyDeleteModal = false;
     private bool showDeleteEnrollmentModal = false;
+    private bool showEmailNotificationModal = false;
     private bool isCreateMode = false;
     private bool isEditingEnrollment = false;
     private bool wantToPlay = false; // Toggle for "Quero tocar"
@@ -672,6 +744,7 @@ else
     private Event? selectedEvent;
     private Event? selectedEventForRepertoire;
     private Event? selectedEventForTrophies;
+    private Event? selectedEventForEmail;
     private Enrollment? enrollmentForm;
     private Enrollment? removingEnrollment;
     private Enrollment? deletingEnrollment;
@@ -706,6 +779,14 @@ else
     private PaginationHelper<Enrollment> leitoesPagination = new() { PageSize = 8 };
     private List<Enrollment> paginatedPerformingMembers => performingMembersPagination.GetPageData(filteredPerformingMembers ?? new List<Enrollment>());
     private List<Enrollment> paginatedLeitoes => leitoesPagination.GetPageData(filteredLeitoes ?? new List<Enrollment>());
+    
+    // Email notification modal variables
+    private List<ApplicationUser>? subscribedUsers;
+    private int subscribedUsersCount = 0;
+    private int totalUsersCount = 0;
+    private bool emailLoadingSubscribers = false;
+    private bool emailSending = false;
+    private string? emailErrorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1431,6 +1512,105 @@ else
             return $"{imageSrc}?v={eventImageVersion}";
         }
         return imageSrc ?? string.Empty;
+    }
+
+    // Email notification methods
+    private async Task OpenEmailNotificationModal(Event eventItem)
+    {
+        selectedEventForEmail = eventItem;
+        emailLoadingSubscribers = true;
+        emailErrorMessage = null;
+        showEmailNotificationModal = true;
+        StateHasChanged();
+
+        try
+        {
+            // Get all users with Subscribed = true and EmailConfirmed = true
+            var allUsers = UserManager.Users.ToList();
+            subscribedUsers = allUsers
+                .Where(u => u.Subscribed && u.EmailConfirmed)
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .ToList();
+            
+            subscribedUsersCount = subscribedUsers.Count;
+            totalUsersCount = allUsers.Count(u => u.EmailConfirmed);
+        }
+        catch (Exception ex)
+        {
+            emailErrorMessage = $"Erro ao carregar membros: {ex.Message}";
+        }
+        finally
+        {
+            emailLoadingSubscribers = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseEmailNotificationModal()
+    {
+        showEmailNotificationModal = false;
+        selectedEventForEmail = null;
+        subscribedUsers = null;
+        subscribedUsersCount = 0;
+        totalUsersCount = 0;
+        emailErrorMessage = null;
+    }
+
+    private async Task SendEventNotification()
+    {
+        if (selectedEventForEmail == null || subscribedUsers == null || !subscribedUsers.Any())
+        {
+            CloseEmailNotificationModal();
+            return;
+        }
+
+        emailSending = true;
+        StateHasChanged();
+
+        try
+        {
+            // Get the event link (absolute URL)
+            var baseUri = Navigation.BaseUri.TrimEnd('/');
+            var eventLink = $"{baseUri}/events";
+
+            // Get recipient emails
+            var recipientEmails = subscribedUsers
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .Select(u => u.Email!)
+                .ToList();
+
+            // Send the email
+            var (success, count, errorMessage) = await EmailNotificationService.SendEventNotificationAsync(
+                selectedEventForEmail.Id,
+                selectedEventForEmail.Name,
+                selectedEventForEmail.Date,
+                selectedEventForEmail.Location,
+                eventLink,
+                recipientEmails
+            );
+
+            if (success)
+            {
+                // Close modal on success
+                CloseEmailNotificationModal();
+                
+                // Could show a success toast here if implemented
+                // For now, just close the modal
+            }
+            else
+            {
+                emailErrorMessage = errorMessage ?? "Erro ao enviar notificação.";
+            }
+        }
+        catch (Exception ex)
+        {
+            emailErrorMessage = $"Erro ao enviar notificação: {ex.Message}";
+        }
+        finally
+        {
+            emailSending = false;
+            StateHasChanged();
+        }
     }
 }
 

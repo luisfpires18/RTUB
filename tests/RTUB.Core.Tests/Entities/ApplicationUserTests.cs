@@ -139,4 +139,40 @@ public class ApplicationUserTests
         user.City.Should().Be(city);
         user.Degree.Should().Be(degree);
     }
+
+    [Fact]
+    public void Subscribed_DefaultsToFalse()
+    {
+        // Arrange & Act
+        var user = new ApplicationUser();
+
+        // Assert
+        user.Subscribed.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Subscribed_CanBeSetToTrue()
+    {
+        // Arrange
+        var user = new ApplicationUser();
+
+        // Act
+        user.Subscribed = true;
+
+        // Assert
+        user.Subscribed.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Subscribed_CanBeSetToFalse()
+    {
+        // Arrange
+        var user = new ApplicationUser { Subscribed = true };
+
+        // Act
+        user.Subscribed = false;
+
+        // Assert
+        user.Subscribed.Should().BeFalse();
+    }
 }

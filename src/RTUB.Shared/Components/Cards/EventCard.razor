@@ -41,6 +41,18 @@
                     <i class="bi bi-trash music-icon-delete"></i>
                 </button>
             </div>
+            
+            @* Email notification button in bottom-right corner *@
+            @if (!IsPastEvent)
+            {
+                <div class="position-absolute bottom-0 end-0 p-2">
+                    <button class="btn btn-sm btn-primary music-btn-email" 
+                            @onclick="OnSendEmail" 
+                            title="Notificar por email">
+                        <i class="bi bi-envelope-fill"></i>
+                    </button>
+                </div>
+            }
         }
     </div>
     <div class="card-body d-flex flex-column p-3">
@@ -239,6 +251,12 @@
     public EventCallback OnDelete { get; set; }
 
     /// <summary>
+    /// Callback when the send email button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSendEmail { get; set; }
+
+    /// <summary>
     /// Callback when the enroll button is clicked
     /// </summary>
     [Parameter]
@@ -315,5 +333,19 @@
     .event-action-btn {
         min-width: 48px;
         height: 32px;
+    }
+    
+    .music-btn-email {
+        background: rgba(106, 27, 154, 0.9);
+        border: none;
+        color: white;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.25rem;
+        transition: all 0.3s ease;
+    }
+    
+    .music-btn-email:hover {
+        background: rgba(106, 27, 154, 1);
+        transform: scale(1.05);
     }
 </style>
