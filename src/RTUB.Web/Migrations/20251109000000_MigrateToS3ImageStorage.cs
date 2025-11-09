@@ -10,23 +10,7 @@ namespace RTUB.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // ===== STEP 1: Add ImageUrl fields for entities that need them =====
-            
-            // Add ImageUrl to Events
-            migrationBuilder.AddColumn<string>(
-                name: "ImageUrl",
-                table: "Events",
-                type: "TEXT",
-                nullable: true);
-
-            // Add ImageUrl to ApplicationUser (AspNetUsers)
-            migrationBuilder.AddColumn<string>(
-                name: "ImageUrl",
-                table: "AspNetUsers",
-                type: "TEXT",
-                nullable: true);
-
-            // ===== STEP 2: Remove ImageData blob columns using table recreation =====
+            // ===== STEP 1: Remove ImageData blob columns using table recreation =====
             // This approach works smoothly with SQLite and avoids PRAGMA foreign_keys issues
             
             // --- Slideshows: Remove ImageData and ImageContentType ---
@@ -155,7 +139,7 @@ namespace RTUB.Migrations
             migrationBuilder.Sql("DROP TABLE Instruments;");
             migrationBuilder.Sql("ALTER TABLE Instruments_new RENAME TO Instruments;");
 
-            // ===== STEP 3: Remove ProfilePictureData blob columns from AspNetUsers =====
+            // ===== STEP 2: Remove ProfilePictureData blob columns from AspNetUsers =====
             // Drop ProfilePictureData and ProfilePictureContentType columns (S3 only now)
             migrationBuilder.DropColumn(
                 name: "ProfilePictureData",
@@ -169,15 +153,9 @@ namespace RTUB.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Remove ImageUrl fields
-            migrationBuilder.DropColumn(
-                name: "ImageUrl",
-                table: "Events");
-
-            migrationBuilder.DropColumn(
-                name: "ImageUrl",
-                table: "AspNetUsers");
-
+            // Note: ImageUrl columns in Events and AspNetUsers already existed before this migration
+            // so we don't drop them in the Down method
+            
             // Restore blob columns for Slideshows
             migrationBuilder.AddColumn<string>(
                 name: "ImageContentType",
