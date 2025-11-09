@@ -21,7 +21,7 @@
     <Authorized>
         <div class="mb-3">
             <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Evento">
-                <i class="bi bi-plus-lg"></i>
+                <i class="bi bi-plus-lg"></i> Adicionar
             </button>
         </div>
     </Authorized>
@@ -534,7 +534,7 @@ else
             <Authorized>
                 <div class="mb-3">
                     <button class="btn btn-success btn-sm" @onclick="OpenCreateTrophyModal">
-                        <i class="bi bi-plus-lg"></i> Adicionar Troféu
+                        <i class="bi bi-plus-lg"></i> Adicionar Prémio
                     </button>
                 </div>
             </Authorized>
@@ -542,7 +542,7 @@ else
 
         @if (eventTrophies == null || !eventTrophies.Any())
         {
-            <EmptyTableState Message="Nenhum troféu conquistado neste evento."
+            <EmptyTableState Message="Nenhum prémio conquistado neste evento."
                             IconClass="bi-trophy" />
         }
         else
@@ -582,7 +582,7 @@ else
 <!-- Trophy Edit Modal -->
 <Modal Show="@showTrophyEditModal"
        ShowChanged="@((bool show) => showTrophyEditModal = show)"
-       Title="@(isTrophyCreateMode ? "Adicionar Troféu" : "Editar Troféu")"
+       Title="@(isTrophyCreateMode ? "Adicionar Prémio" : "Editar Prémio")"
        Size="Modal.ModalSize.Default"
        Centered="true">
     <BodyContent>
@@ -593,7 +593,7 @@ else
                 <ValidationSummary class="text-danger" />
 
                 <div class="mb-3">
-                    <label class="form-label">Nome do Troféu</label>
+                    <label class="form-label">Nome do Prémio</label>
                     <InputText class="form-control" @bind-Value="editingTrophy.Name" placeholder="Ex: 1º Lugar, Melhor Apresentação..." />
                 </div>
 
@@ -613,7 +613,7 @@ else
        Size="Modal.ModalSize.Default"
        Centered="true">
     <BodyContent>
-        <p>Tem a certeza que deseja eliminar o troféu <strong>@deletingTrophy?.Name</strong>?</p>
+        <p>Tem a certeza que deseja eliminar o prémio <strong>@deletingTrophy?.Name</strong>?</p>
         <p class="text-muted small">Esta ação não pode ser revertida.</p>
     </BodyContent>
     <FooterContent>

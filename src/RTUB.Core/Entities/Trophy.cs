@@ -49,9 +49,9 @@ public class Trophy : BaseEntity
     private static void ValidateName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("O nome do troféu não pode estar vazio", nameof(name));
+            throw new ArgumentException("O nome do prémio não pode estar vazio", nameof(name));
 
         if (name.Length > 200)
-            throw new ArgumentException("O nome do troféu não pode exceder 200 caracteres", nameof(name));
+            throw new ArgumentException("O nome do prémio não pode exceder 200 caracteres", nameof(name));
     }
 }

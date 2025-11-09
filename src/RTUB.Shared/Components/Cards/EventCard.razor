@@ -77,7 +77,7 @@
                         <button class="btn btn-sm btn-warning d-flex align-items-center justify-content-center event-action-btn" 
                                 @onclick="OnViewTrophies" 
                                 title="Ver Prémios">
-                            <i class="bi bi-trophy-fill icon-size-1rem"></i>
+                            <i class="bi bi-trophy-fill icon-size-1rem me-1"></i> Prémios
                         </button>
                     </div>
                 </div>
@@ -94,7 +94,7 @@
                         <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
                                 @onclick="OnViewDetails" 
                                 title="Ver Detalhes">
-                            <i class="bi bi-eye icon-size-1rem"></i>
+                            <i class="bi bi-eye icon-size-1rem me-1"></i> Detalhes
                         </button>
 
                         <!-- View Enrollments button -->
@@ -102,14 +102,14 @@
                                 @onclick="OnViewEnrollments" 
                                 title="Ver Inscrições">
                             <i class="bi bi-people icon-size-1rem"></i>
-                            <span class="ms-1">@EnrollmentCount</span>
+                            <span class="ms-1 me-1">@EnrollmentCount </span> Participantes
                         </button>
 
                         <!-- Watch Repertoire button -->
                         <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center event-action-btn" 
                                 @onclick="OnWatchRepertoire" 
                                 title="Ver Repertório">
-                            <i class="bi bi-music-note-list icon-size-1rem"></i>
+                            <i class="bi bi-music-note-list icon-size-1rem me-1"></i> Repertório
                         </button>
                     </div>
 
@@ -122,7 +122,7 @@
                                     @onclick="OnEnroll" 
                                     title="Inscrever neste evento">
                                 <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
-                                <span class="d-none d-sm-inline">Inscrever</span>
+                                <span class="d-none d-sm-inline me-1">Inscrever</span>
                             </button>
                         }
                         else
@@ -132,21 +132,21 @@
                                     disabled 
                                     title="Inscrito">
                                 <i class="bi bi-check-circle-fill icon-size-1rem"></i>
-                                <span class="d-none d-md-inline">Inscrito</span>
+                                <span class="d-none d-md-inline me-1">Inscrito</span>
                             </button>
                             
                             <!-- Edit enrollment button (white) -->
                             <button class="btn btn-sm btn-light d-flex align-items-center" 
                                     @onclick="OnEditEnrollment" 
                                     title="Editar Inscrição">
-                                <i class="bi bi-pencil-fill icon-size-1rem"></i>
+                                <i class="bi bi-pencil-fill icon-size-1rem me-1"></i> Editar
                             </button>
                             
                             <!-- Remove enrollment button (red) -->
                             <button class="btn btn-sm btn-danger d-flex align-items-center" 
                                     @onclick="OnRemoveEnrollment" 
                                     title="Anular Inscrição">
-                                <i class="bi bi-x-circle-fill icon-size-1rem"></i>
+                                <i class="bi bi-x-circle-fill icon-size-1rem me-1"></i> Cancelar
                             </button>
                         }
                     </div>
@@ -161,7 +161,7 @@
                         <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
                                 @onclick="OnViewDetails" 
                                 title="Ver Detalhes">
-                            <i class="bi bi-eye icon-size-1rem"></i>
+                            <i class="bi bi-eye icon-size-1rem me-1"></i> Detalhes
                         </button>
 
                         <!-- View Enrollments button -->
@@ -169,14 +169,14 @@
                                 @onclick="OnViewEnrollments" 
                                 title="Ver Inscrições">
                             <i class="bi bi-people icon-size-1rem"></i>
-                            <span class="ms-1">@EnrollmentCount</span>
+                            <span class="ms-1 me-1">@EnrollmentCount</span> Participantes
                         </button>
 
                         <!-- Watch Repertoire button -->
                         <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center event-action-btn" 
                                 @onclick="OnWatchRepertoire" 
                                 title="Ver Repertório">
-                            <i class="bi bi-music-note-list icon-size-1rem"></i>
+                            <i class="bi bi-music-note-list icon-size-1rem me-1"></i> Repertório
                         </button>
 
                         <!-- Trophy button (for Festival events only) -->
@@ -185,7 +185,7 @@
                             <button class="btn btn-sm btn-warning d-flex align-items-center justify-content-center event-action-btn" 
                                     @onclick="OnViewTrophies" 
                                     title="Ver Prémios">
-                                <i class="bi bi-trophy-fill icon-size-1rem"></i>
+                                <i class="bi bi-trophy-fill icon-size-1rem me-1"></i> Prémios
                             </button>
                         }
                     </div>
