@@ -221,7 +221,6 @@ public class ImagesControllerTests
     {
         // Arrange
         var userId = "user123";
-        var defaultImagePath = "/test/path/wwwroot/images/profile-pic.webp";
         var defaultImageData = new byte[] { 20, 21, 22, 23 };
 
         _mockImageService.Setup(s => s.GetProfileImageAsync(userId))
