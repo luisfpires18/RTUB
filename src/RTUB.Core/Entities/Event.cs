@@ -31,9 +31,7 @@ public class Event : BaseEntity
     public EventType Type { get; set; }
     
     // Image handling - store reference/path, actual storage handled by infrastructure
-    public byte[]? ImageData { get; set; }
-    public string? ImageContentType { get; set; }
-    public string ImageUrl { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
     
     // Navigation properties
     public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
@@ -85,18 +83,13 @@ public class Event : BaseEntity
         EndDate = endDate;
     }
 
-    public void SetImage(byte[]? imageData, string? contentType, string url = "")
+    public void SetImage(string? url)
     {
-        ImageData = imageData;
-        ImageContentType = contentType;
         ImageUrl = url;
     }
 
     public string GetImageSource()
     {
-        if (ImageData != null && !string.IsNullOrEmpty(ImageContentType))
-            return $"/api/images/event/{Id}";
-        
         return !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
     }
     

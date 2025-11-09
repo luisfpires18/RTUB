@@ -18,9 +18,7 @@ public class Album : BaseEntity
     public int? Year { get; set; }
     
     // Image handling
-    public byte[]? CoverImageData { get; set; }
-    public string? CoverImageContentType { get; set; }
-    public string? CoverImageUrl { get; set; }
+    public string? ImageUrl { get; set; }
     
     // Navigation property
     public virtual ICollection<Song> Songs { get; set; } = new List<Song>();
@@ -57,19 +55,14 @@ public class Album : BaseEntity
         Description = description;
     }
 
-    public void SetCoverImage(byte[]? imageData, string? contentType, string? url = null)
+    public void SetCoverImage(string? url)
     {
-        CoverImageData = imageData;
-        CoverImageContentType = contentType;
-        CoverImageUrl = url;
+        ImageUrl = url;
     }
 
     public string GetCoverImageSource()
     {
-        if (CoverImageData != null && !string.IsNullOrEmpty(CoverImageContentType))
-            return $"/api/images/album/{Id}";
-        
-        return !string.IsNullOrEmpty(CoverImageUrl) ? CoverImageUrl : "";
+        return !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
     }
     
     // Property alias for backward compatibility

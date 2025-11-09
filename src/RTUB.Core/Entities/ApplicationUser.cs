@@ -44,8 +44,7 @@ public class ApplicationUser : IdentityUser
     public ApplicationUser? Mentor { get; set; }
     
     // Image handling
-    public byte[]? ProfilePictureData { get; set; }
-    public string? ProfilePictureContentType { get; set; }
+    public string? ImageUrl { get; set; }
     
     // Positions and Categories (stored as JSON)
     public string? PositionsJson { get; set; }
@@ -120,5 +119,5 @@ public class ApplicationUser : IdentityUser
         }
     }
     
-    public string ProfilePictureSrc => $"/api/images/profile/{Id}";
+    public string ProfilePictureSrc => !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
 }
