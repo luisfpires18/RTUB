@@ -6,7 +6,7 @@ using Xunit;
 namespace RTUB.Integration.Tests.Pages;
 
 /// <summary>
-/// Integration tests for Public pages (Shop, Requests, OrgaosSociais)
+/// Integration tests for Public pages (Requests, OrgaosSociais)
 /// </summary>
 public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
 {
@@ -21,42 +21,6 @@ public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
             AllowAutoRedirect = false
         });
     }
-
-    #region Shop Page Tests
-
-    [Fact]
-    public async Task ShopPage_ReturnsSuccessStatusCode()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/shop");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task ShopPage_ContainsExpectedContent()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/shop");
-        var content = await response.Content.ReadAsStringAsync();
-
-        // Assert
-        response.IsSuccessStatusCode.Should().BeTrue();
-        content.Should().Contain("Loja", "page should display Shop/Loja title");
-    }
-
-    [Fact]
-    public async Task ShopPage_HasCorrectContentType()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/shop");
-
-        // Assert
-        response.Content.Headers.ContentType?.MediaType.Should().Be("text/html");
-    }
-
-    #endregion
 
     #region Requests Page Tests
 
@@ -139,13 +103,11 @@ public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
         var homeResponse = await _client.GetAsync("/");
 
         // Act - Navigate to each public page
-        var shopResponse = await _client.GetAsync("/shop");
         var requestsResponse = await _client.GetAsync("/requests");
         var rolesResponse = await _client.GetAsync("/roles");
 
         // Assert
         homeResponse.IsSuccessStatusCode.Should().BeTrue();
-        shopResponse.IsSuccessStatusCode.Should().BeTrue();
         requestsResponse.IsSuccessStatusCode.Should().BeTrue();
         rolesResponse.IsSuccessStatusCode.Should().BeTrue();
     }
@@ -154,12 +116,10 @@ public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task PublicPages_NavigationBetweenPages_Works()
     {
         // Arrange & Act - Navigate through public pages in sequence
-        var shopResponse = await _client.GetAsync("/shop");
         var requestsResponse = await _client.GetAsync("/requests");
         var rolesResponse = await _client.GetAsync("/roles");
 
         // Assert
-        shopResponse.IsSuccessStatusCode.Should().BeTrue();
         requestsResponse.IsSuccessStatusCode.Should().BeTrue();
         rolesResponse.IsSuccessStatusCode.Should().BeTrue();
     }

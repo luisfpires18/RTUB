@@ -35,18 +35,6 @@ public class DataWorkflowTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
-    public async Task ShopPage_DisplaysProductInformation()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/shop");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Length.Should().BeGreaterThan(500, "shop page should have content");
-    }
-
-    [Fact]
     public async Task RequestsPage_IsAccessibleAndFunctional()
     {
         // Arrange & Act
@@ -63,7 +51,7 @@ public class DataWorkflowTests : IClassFixture<WebApplicationFactory<Program>>
     {
         // Test that multiple page loads don't cause issues
         // Arrange
-        var urls = new[] { "/", "/music", "/shop", "/requests" };
+        var urls = new[] { "/", "/music", "/requests" };
 
         // Act - Load each page multiple times
         foreach (var url in urls)
@@ -103,7 +91,6 @@ public class DataWorkflowTests : IClassFixture<WebApplicationFactory<Program>>
 
     [Theory]
     [InlineData("/music")]
-    [InlineData("/shop")]
     [InlineData("/")]
     public async Task PublicPages_HaveConsistentResponse(string url)
     {
@@ -130,7 +117,6 @@ public class DataWorkflowTests : IClassFixture<WebApplicationFactory<Program>>
         {
             "/",
             "/music",
-            "/shop",
             "/requests",
             "/roles"
         };

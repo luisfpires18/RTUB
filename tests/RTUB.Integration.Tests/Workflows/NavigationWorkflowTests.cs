@@ -32,7 +32,6 @@ public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Progr
         var homeResponse = await _client.GetAsync("/");
         var musicResponse = await _client.GetAsync("/music");
         var eventsResponse = await _client.GetAsync("/events");
-        var shopResponse = await _client.GetAsync("/shop");
         var rolesResponse = await _client.GetAsync("/roles");
         var requestsResponse = await _client.GetAsync("/requests");
 
@@ -40,7 +39,6 @@ public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Progr
         homeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         musicResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         eventsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        shopResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         rolesResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         requestsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
     }
@@ -133,7 +131,6 @@ public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Progr
             "/",
             "/music",
             "/events",
-            "/shop",
             "/roles",
             "/requests",
             "/login"
@@ -183,7 +180,7 @@ public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Progr
     public async Task NavigationPerformance_MultiplePageLoads_Complete()
     {
         // Arrange
-        var pages = new[] { "/", "/music", "/events", "/shop" };
+        var pages = new[] { "/", "/music", "/events" };
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
         // Act - Load multiple pages
@@ -204,7 +201,7 @@ public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Progr
     public async Task ConcurrentPageLoads_HandleMultipleRequests()
     {
         // Arrange
-        var pages = new[] { "/", "/music", "/events", "/shop", "/roles" };
+        var pages = new[] { "/", "/music", "/events", "/roles" };
 
         // Act - Load pages concurrently
         var tasks = pages.Select(page => _client.GetAsync(page)).ToArray();
