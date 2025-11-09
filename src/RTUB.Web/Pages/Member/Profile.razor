@@ -566,14 +566,23 @@ else
                 await Task.Delay(100);
                 
                 // Notify MainLayout and other components that profile picture has been updated
+                // (This won't work due to Blazor scoping issues, but kept for potential future fixes)
                 ProfilePictureUpdateService.NotifyProfilePictureUpdated();
                 
-                // Wait for Blazor to update the DOM with new ?v= parameter.
-                // The @key attribute should force element recreation, but we wait
-                // to ensure DOM updates are complete before JS manipulation.
-                // Using 150ms to account for varying server load and rendering time.
-                await Task.Delay(150);
+                // Use JavaScript to directly update the navbar avatar as a fallback
+                // This works reliably across render contexts
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("profilePictureRefresh.refreshNavbarAvatar");
+                    Console.WriteLine("[Profile.razor] Called JavaScript to refresh navbar avatar");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Profile.razor] Failed to call JavaScript: {ex.Message}");
+                }
                 
+                // Wait for Blazor to update the DOM with new ?v= parameter.
+                await Task.Delay(150);
                 
                 await Task.Delay(1500);
                 uploadMessage = null;
