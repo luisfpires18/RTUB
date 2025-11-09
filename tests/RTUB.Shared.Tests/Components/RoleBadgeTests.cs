@@ -46,26 +46,25 @@ public class RoleBadgeTests : TestContext
     }
 
     [Fact]
-    public void RoleBadge_AppliesWarningClass_ForAdminRole()
+    public void RoleBadge_AppliesSuccessClass_ForAdminRole()
     {
         // Arrange & Act
         var cut = RenderComponent<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Admin"));
 
         // Assert
-        cut.Markup.Should().Contain("bg-warning", "Admin role should have warning background");
-        cut.Markup.Should().Contain("text-dark", "Admin role should have dark text");
+        cut.Markup.Should().Contain("bg-success", "Admin role should have success (green) background");
     }
 
     [Fact]
-    public void RoleBadge_AppliesPrimaryClass_ForMemberRole()
+    public void RoleBadge_AppliesBlueClass_ForMemberRole()
     {
         // Arrange & Act
         var cut = RenderComponent<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Member"));
 
         // Assert
-        cut.Markup.Should().Contain("bg-primary", "Member role should have primary background");
+        cut.Markup.Should().Contain("bg-blue", "Member role should have blue background");
     }
 
     [Fact]
@@ -107,8 +106,8 @@ public class RoleBadgeTests : TestContext
 
     [Theory]
     [InlineData("Owner", "bg-danger")]
-    [InlineData("Admin", "bg-warning")]
-    [InlineData("Member", "bg-primary")]
+    [InlineData("Admin", "bg-success")]
+    [InlineData("Member", "bg-blue")]
     public void RoleBadge_AppliesCorrectClass_ForEachRole(string role, string expectedClass)
     {
         // Arrange & Act

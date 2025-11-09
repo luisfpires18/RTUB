@@ -20,9 +20,17 @@
   --bs-success: #00bc8c;
   --bs-warning: #f39c12;
   --bs-danger: #e74c3c;
+  --bs-blue: #0066ff; /* Custom blue for Member role */
+  --bs-blue-rgb: 0, 102, 255;
   /* Override Bootstrap's secondary color to white */
   --bs-secondary-color: #ffffff !important;
   --bs-secondary-color-rgb: 255, 255, 255;
+}
+
+/* Custom badge color for blue (Member role) */
+.bg-blue {
+  background-color: var(--bs-blue) !important;
+  color: white !important;
 }
 
 /* Better touch interactions for all devices */
