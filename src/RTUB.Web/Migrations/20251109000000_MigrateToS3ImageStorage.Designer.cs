@@ -11,7 +11,7 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251108000000_MigrateToS3ImageStorage")]
+    [Migration("20251109000000_MigrateToS3ImageStorage")]
     partial class MigrateToS3ImageStorage
     {
         /// <inheritdoc />
