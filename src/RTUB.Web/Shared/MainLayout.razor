@@ -250,6 +250,17 @@
                 // Check if it's a hash change only (same path)
                 bool isHashChangeOnly = oldUri.GetLeftPart(UriPartial.Path) == newUri.GetLeftPart(UriPartial.Path);
                 
+                // Reload user when navigating away from profile page (avatar may have changed)
+                if (_lastLocation.Contains("/profile", StringComparison.OrdinalIgnoreCase) && 
+                    !newLocation.Contains("/profile", StringComparison.OrdinalIgnoreCase))
+                {
+                    _ = InvokeAsync(async () =>
+                    {
+                        await LoadCurrentUser();
+                        StateHasChanged();
+                    });
+                }
+                
                 // Only scroll if it's not a hash-only change and not the first render
                 if (!isHashChangeOnly && !_isFirstRender)
                 {

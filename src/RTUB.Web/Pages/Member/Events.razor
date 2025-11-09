@@ -755,6 +755,7 @@ else
     private string dateValidationError = string.Empty;
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
+    private long eventImageVersion = DateTime.UtcNow.Ticks;
     private ImageUploadManager? imageUploadManager;
 
     // Previous events (admin only)
@@ -827,6 +828,7 @@ else
     private async Task LoadEvents()
     {
         events = (await EventService.GetUpcomingEventsAsync(100)).ToList();
+        eventImageVersion = DateTime.UtcNow.Ticks;
     }
 
     private async Task LoadEnrollments()
@@ -991,6 +993,8 @@ else
                 editingEvent.ImageData = croppedImageData;
                 editingEvent.ImageContentType = "image/jpeg";
                 uploadedImagePath = "uploaded";
+                
+                eventImageVersion = DateTime.UtcNow.Ticks;
                 
                 StateHasChanged();
             }
@@ -1501,6 +1505,10 @@ else
     
     private string GetEventImageUrl(string imageSrc)
     {
+        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
+        {
+            return $"{imageSrc}?v={eventImageVersion}";
+        }
         return imageSrc ?? string.Empty;
     }
 

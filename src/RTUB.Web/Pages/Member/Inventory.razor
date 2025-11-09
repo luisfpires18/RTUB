@@ -289,6 +289,7 @@ else
     private Dictionary<InstrumentCondition, int> conditionStats = new();
     private string filterCategory = "";
     private string filterCondition = "";
+    private long imageVersion = DateTime.UtcNow.Ticks;
 
     // Details Modal State
     private bool showViewDetailsModal = false;
@@ -329,6 +330,8 @@ else
         filteredInstruments = instruments;
 
         conditionStats = await InstrumentService.GetConditionStatsAsync();
+
+        imageVersion = DateTime.UtcNow.Ticks;
 
         loading = false;
     }
@@ -485,6 +488,8 @@ else
                     uploadedInstrumentImagePath = "uploaded";
                 }
                 
+                imageVersion = DateTime.UtcNow.Ticks;
+                
                 StateHasChanged();
             }
         }
@@ -502,6 +507,10 @@ else
 
     private string GetImageUrl(string imageSrc)
     {
+        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
+        {
+            return $"{imageSrc}?v={imageVersion}";
+        }
         return imageSrc ?? string.Empty;
     }
 }
