@@ -4660,19 +4660,3 @@ th:hover {
     flex-wrap: wrap;
   }
 }
-
-/* Fiscal Year dropdown icon styling */
-.fiscal-year-icon {
-  padding: 6px 8px;
-  border-right: 1px solid #dee2e6;
-}
-
-.fiscal-year-icon i.text-purple {
-  color: var(--rtub-purple, #800080);
-  font-size: 18px;
-  transition: filter 0.2s ease;
-}
-
-.fiscal-year-icon:hover i.text-purple {
-  filter: drop-shadow(0 0 4px rgba(128, 0, 128, 0.5));
-}

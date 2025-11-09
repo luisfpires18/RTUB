@@ -30,24 +30,19 @@
     </Authorized>
 </AuthorizeView>
 
-@* FY Dropdown with custom styling *@
+@* FY Dropdown without icon *@
 <div class="row mb-4">
     <div class="col-md-6">
         @if (fiscalYears.Any())
         {
-            <div class="input-group">
-                <span class="input-group-text bg-white fiscal-year-icon">
-                    <i class="bi bi-calendar3 text-purple"></i>
-                </span>
-                <select class="form-select" @bind="selectedFiscalYear" @bind:after="OnFiscalYearChanged">
-                    <option value="" disabled>Selecionar Ano Lectivo</option>
-                    @foreach (var year in fiscalYears)
-                    {
-                        var isCurrent = year == currentFiscalYearString;
-                        <option value="@year">@year@(isCurrent ? " (Ano ativo)" : "")</option>
-                    }
-                </select>
-            </div>
+            <select class="form-select" @bind="selectedFiscalYear" @bind:after="OnFiscalYearChanged">
+                <option value="" disabled>Selecionar Ano Lectivo</option>
+                @foreach (var year in fiscalYears)
+                {
+                    var isCurrent = year == currentFiscalYearString;
+                    <option value="@year">@year@(isCurrent ? " (Ano ativo)" : "")</option>
+                }
+            </select>
         }
     </div>
 </div>
