@@ -8,6 +8,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components
+@using RTUB.Shared
 @inject IRoleAssignmentService RoleAssignmentService
 @inject IFiscalYearService FiscalYearService
 @inject UserManager<ApplicationUser> UserManager
@@ -17,30 +18,33 @@
 @inject RTUB.Application.Services.AuditContext AuditContext
 
 <h1 class="portal-title">Órgãos Sociais</h1>
-<p class="text-center mb-4">Seleciona o ano fiscal para ver quem liderou.</p>
 
-@* Controls row: FY Dropdown + Admin Add button *@
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <div class="fy-dropdown-container">
+@* Admin Add button (top-left, green) *@
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <div class="mb-3">
+            <button class="btn btn-success mb-2" @onclick="OpenCreateFiscalYearModal" title="Adicionar Ano Fiscal">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@* FY Dropdown using FilterDropdown component *@
+<div class="row mb-4">
+    <div class="col-md-6">
         @if (fiscalYears.Any())
         {
-            <select class="form-select fy-selector" @bind="selectedFiscalYear" @bind:after="OnFiscalYearChanged">
-                @foreach (var year in fiscalYears)
-                {
-                    var isCurrent = year == currentFiscalYearString;
-                    <option value="@year">@year@(isCurrent ? " (Ano ativo)" : "")</option>
-                }
-            </select>
+            <FilterDropdown 
+                Items="@fiscalYears"
+                SelectedValue="@selectedFiscalYear"
+                SelectedValueChanged="@((value) => { selectedFiscalYear = value; })"
+                OnChange="@OnFiscalYearChanged"
+                AllItemsLabel="Selecionar Ano Fiscal"
+                ShowIcon="true"
+                IconClass="bi-calendar" />
         }
     </div>
-    
-    <AuthorizeView Roles="Admin">
-        <Authorized>
-            <button class="btn btn-primary btn-add-role" @onclick="OpenCreateFiscalYearModal">
-                <i class="bi bi-plus-lg"></i> Adicionar
-            </button>
-        </Authorized>
-    </AuthorizeView>
 </div>
 
 @* RGI Section - Visible only to MEMBER and ADMIN *@
@@ -685,7 +689,6 @@ else
 }
 
 <!-- RGI PDF Modal -->
-@using RTUB.Shared
 <Modal Show="@showRgiModal" 
        ShowChanged="@((value) => showRgiModal = value)"
        Title="Regulamentos Gerais Internos (RGI)" 
@@ -895,6 +898,7 @@ else
     private void LoadAllMembers()
     {
         allMembers = UserManager.Users
+            .Where(u => !u.IsLeitao())  // Filter out Leitão members
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
             .ToList();

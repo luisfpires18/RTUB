@@ -94,14 +94,14 @@ public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Progr
     {
         // Arrange & Act - User tries to access admin pages
         var financeResponse = await _client.GetAsync("/admin/finance");
-        var rolesResponse = await _client.GetAsync("/admin/roles");
+        var slideshowResponse = await _client.GetAsync("/admin/slideshow-management");
 
         // Assert - Should redirect to login
         financeResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        rolesResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        slideshowResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
 
         financeResponse.Headers.Location?.ToString().Should().Contain("/login");
-        rolesResponse.Headers.Location?.ToString().Should().Contain("/login");
+        slideshowResponse.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion

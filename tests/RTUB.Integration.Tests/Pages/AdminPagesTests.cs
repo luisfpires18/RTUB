@@ -40,14 +40,13 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     #region Roles Page Tests
 
     [Fact]
-    public async Task RolesPage_WithoutAuth_RedirectsToLogin()
+    public async Task RolesPage_WithoutAuth_ReturnsNotFound()
     {
-        // Arrange & Act
+        // Arrange & Act - /admin/roles has been removed, consolidated into /roles
         var response = await _client.GetAsync("/admin/roles");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/login");
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     #endregion
@@ -101,7 +100,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
 
     [Theory]
     [InlineData("/admin/finance")]
-    [InlineData("/admin/roles")]
     [InlineData("/admin/slideshow-management")]
     [InlineData("/admin/requests")]
     public async Task AdminPages_RequireAuthentication(string url)
@@ -123,7 +121,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
         var adminUrls = new[]
         {
             "/admin/finance",
-            "/admin/roles",
             "/admin/slideshow-management",
             "/admin/requests"
         };
@@ -144,7 +141,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
         var adminUrls = new[]
         {
             "/admin/finance",
-            "/admin/roles",
             "/admin/slideshow-management"
         };
 

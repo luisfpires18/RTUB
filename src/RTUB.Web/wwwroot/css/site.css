@@ -4641,39 +4641,7 @@ th:hover {
   opacity: 1;
 }
 
-/* Roles page - FY selector and admin controls */
-.fy-dropdown-container {
-  min-width: 200px;
-}
-
-.fy-selector {
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 14px;
-  border: 2px solid var(--rtub-purple);
-  background-color: white;
-  color: var(--rtub-purple);
-  font-weight: 500;
-}
-
-.fy-selector:focus {
-  border-color: var(--rtub-purple);
-  box-shadow: 0 0 0 0.2rem rgba(128, 0, 128, 0.25);
-}
-
-.btn-add-role {
-  border-radius: 20px;
-  padding: 8px 20px;
-  font-weight: 500;
-  background-color: var(--rtub-purple);
-  border-color: var(--rtub-purple);
-}
-
-.btn-add-role:hover {
-  background-color: #6b1a6b;
-  border-color: #6b1a6b;
-}
-
+/* Roles page - Admin action chips */
 .admin-action-chips {
   display: flex;
   gap: 8px;
@@ -4688,19 +4656,6 @@ th:hover {
 
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
-  .fy-dropdown-container {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-  
-  .fy-selector {
-    width: 100%;
-  }
-  
-  .btn-add-role {
-    width: 100%;
-  }
-  
   .admin-action-chips {
     flex-wrap: wrap;
   }
