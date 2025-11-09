@@ -25,10 +25,10 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     #region Finance Page Tests
 
     [Fact]
-    public async Task FinancePage_WithoutAuth_RedirectsToLogin()
+    public async Task NewFinancePage_WithoutAuth_RedirectsToLogin()
     {
-        // Arrange & Act
-        var response = await _client.GetAsync("/admin/finance");
+        // Arrange & Act - New /finance page requires authentication
+        var response = await _client.GetAsync("/finance");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
@@ -99,7 +99,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     #region Authorization Tests
 
     [Theory]
-    [InlineData("/admin/finance")]
     [InlineData("/admin/slideshow-management")]
     [InlineData("/admin/requests")]
     public async Task AdminPages_RequireAuthentication(string url)
@@ -117,10 +116,9 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task AdminPages_AllRequireAuthenticationInSequence()
     {
-        // Arrange
+        // Arrange - Updated to use new finance route
         var adminUrls = new[]
         {
-            "/admin/finance",
             "/admin/slideshow-management",
             "/admin/requests"
         };
@@ -137,10 +135,8 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task AdminNavigation_ThroughAllAdminPages_Works()
     {
-        // Arrange
         var adminUrls = new[]
         {
-            "/admin/finance",
             "/admin/slideshow-management"
         };
 

@@ -63,4 +63,16 @@ public class Report : BaseEntity
         IsPublished = false;
         PublishedAt = null;
     }
+
+    /// <summary>
+    /// Checks if this report is for the current fiscal year
+    /// Fiscal year runs from September to August (Sept-Aug cycle)
+    /// </summary>
+    /// <returns>True if the report is for the current fiscal year, false otherwise</returns>
+    public bool IsCurrentFiscalYear()
+    {
+        var today = DateTime.Today;
+        var currentFiscalYearStartYear = today.Month >= 9 ? today.Year : today.Year - 1;
+        return Year == currentFiscalYearStartYear;
+    }
 }

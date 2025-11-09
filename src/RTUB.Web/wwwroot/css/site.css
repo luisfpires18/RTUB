@@ -4660,3 +4660,60 @@ th:hover {
     flex-wrap: wrap;
   }
 }
+
+/* =====================================================
+   Finance Module Styles
+   ===================================================== */
+
+/* Finance report card grid layout */
+.finance-report-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    align-items: stretch;
+}
+
+/* Ensure grid items stretch to fill height but not width */
+.finance-report-grid > div {
+    display: flex;
+    flex-direction: column;
+    max-width: 600px; /* Prevent cards from becoming too wide */
+}
+
+/* Report cards fill their container */
+.finance-report-grid .report-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Card body fills available space and uses flexbox */
+.finance-report-grid .report-card .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Responsive adjustments for tablet */
+@media (min-width: 768px) and (max-width: 991px) {
+    .finance-report-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .finance-report-grid > div {
+        max-width: 100%; /* Allow full width on tablet for 2-column layout */
+    }
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 767px) {
+    .finance-report-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .finance-report-grid > div {
+        max-width: 100%; /* Allow full width on mobile */
+    }
+}

@@ -93,14 +93,11 @@ public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Progr
     public async Task UnauthorizedUserJourney_AttemptsToAccessAdminArea()
     {
         // Arrange & Act - User tries to access admin pages
-        var financeResponse = await _client.GetAsync("/admin/finance");
         var slideshowResponse = await _client.GetAsync("/admin/slideshow-management");
 
         // Assert - Should redirect to login
-        financeResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
         slideshowResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
 
-        financeResponse.Headers.Location?.ToString().Should().Contain("/login");
         slideshowResponse.Headers.Location?.ToString().Should().Contain("/login");
     }
 

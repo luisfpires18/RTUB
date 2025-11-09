@@ -1,15 +1,21 @@
-@page "/admin/finance/report/{ReportId:int}"
+@page "/finance/report/{ReportId:int}"
+@namespace RTUB.Pages.Member
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
 @using RTUB.Shared
-@attribute [Authorize(Roles = "Admin")]
+@using ReportEntity = RTUB.Core.Entities.Report
+@attribute [Authorize]
 @inject IReportService ReportService
 @inject IActivityService ActivityService
 @inject ITransactionService TransactionService
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
 
 @if (report == null)
 {
@@ -81,7 +87,7 @@ else
 
   <h3>Atividades</h3>
 
-    @if (!report.IsPublished)
+    @if (!report.IsPublished && isAdmin)
     {
         <div class="mb-3">
             <button class="btn btn-success" @onclick="OpenCreateActivityModal" title="Nova Atividade">
@@ -138,7 +144,7 @@ else
     <h5 class="text-danger">€@activity.TotalExpenses.ToString("N2")</h5>
      </div>
         <div class="col-md-4">
-   @if (!report.IsPublished)
+   @if (!report.IsPublished && isAdmin)
                  {
          <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditActivityModal(activity)">
       <i class="bi bi-pencil"></i> Editar
@@ -151,7 +157,7 @@ else
         </div>
 
    <h6>Transações</h6>
-   @if (!report.IsPublished)
+   @if (!report.IsPublished && isAdmin)
           {
           <button class="btn btn-sm btn-success mb-2" @onclick="() => OpenCreateTransactionModal(activity.Id)">
           <i class="bi bi-plus"></i> Nova Transação
@@ -218,7 +224,7 @@ else
                        CurrentSortColumn="@tableState.SortColumn"
                        IsSortAscending="@(!tableState.SortDescending)"
                        OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
-        @if (!report.IsPublished)
+        @if (!report.IsPublished && isAdmin)
             {
             <th>Ações</th>
      }
@@ -239,13 +245,13 @@ else
     <td class="@(transaction.Type == "Income" ? "text-success" : "text-danger")">
         @(transaction.Type == "Income" ? "+" : "-")€@transaction.Amount.ToString("N2")
     </td>
-          @if (!report.IsPublished)
+          @if (!report.IsPublished && isAdmin)
         {
              <td>
-            <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditTransactionModal(transaction)">
+            <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditTransactionModal(transaction)" aria-label="Editar transação">
     <i class="bi bi-pencil"></i>
     </button>
-      <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteTransactionModal(transaction)">
+      <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteTransactionModal(transaction)" aria-label="Eliminar transação">
     <i class="bi bi-trash"></i>
            </button>
               </td>
@@ -389,7 +395,7 @@ else
     [Parameter]
     public int ReportId { get; set; }
 
-    private Report? report;
+    private ReportEntity? report;
     private List<Activity>? activities;
     private List<Transaction>? allTransactions;
 
@@ -413,6 +419,10 @@ else
 
     // Transaction table state per activity
     private Dictionary<int, TransactionTableState> activityTableStates = new Dictionary<int, TransactionTableState>();
+
+    private bool isAdmin = false;
+    private bool isOwner = false;
+    private string currentUserId = "";
 
     private class TransactionTableState
     {
@@ -441,6 +451,22 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // Get current user and roles
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            isAdmin = user.IsInRole("Admin");
+            isOwner = user.IsInRole("Owner");
+            
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                currentUserId = appUser.Id;
+            }
+        }
+        
     report = await ReportService.GetReportByIdAsync(ReportId);
         await LoadTransactions(); // Load transactions FIRST
      await LoadActivities();    // Then load activities (which recalculates totals using transactions)
@@ -629,7 +655,7 @@ state.CurrentPage = newPage;
 
     private void GoBack()
     {
-        NavigationManager.NavigateTo("/admin/finance");
+        NavigationManager.NavigateTo("/finance");
     }
 
     // Activity CRUD
@@ -805,4 +831,3 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
         CloseDeleteTransactionModal();
     }
 }
-

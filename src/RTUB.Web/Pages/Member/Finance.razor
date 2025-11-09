@@ -1,150 +1,112 @@
-@page "/admin/finance"
+@page "/finance"
+@namespace RTUB.Pages.Member
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
-@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
 @using RTUB.Shared
-@attribute [Authorize(Roles = "Admin")]
-@inherits CrudTablePageBase<Report>
+@using ReportEntity = RTUB.Core.Entities.Report
+@attribute [Authorize]
+@inherits CrudTablePageBase<ReportEntity>
 @inject IReportService ReportService
 @inject IActivityService ActivityService
 @inject ITransactionService TransactionService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject RTUB.Application.Services.ReportPdfService PdfService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
 
 <h1>Finanças</h1>
 <p class="lead mb-4">Relatórios financeiros anuais.</p>
 
-<div class="mb-3">
-    <button class="btn btn-success mb-2" @onclick="OpenCreateModal" title="Adicionar Relatório">
-        <i class="bi bi-plus-lg"></i>
-    </button>
-</div>
-
-<div class="row mb-3">
-    <div class="col-md-6">
-        <TableSearchBar 
-            SearchTerm="@SearchTerm"
-            OnSearchChanged="UpdateSearch"
-            Placeholder="Pesquisar por título ou ano..." />
+@if (isLeitao)
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        Esta página não está disponível para a categoria Leitão.
     </div>
-</div>
-
-@if (AllItems == null)
-{
-    <p>A carregar relatórios...</p>
-}
-else if (!PaginatedItems.Any())
-{
-    <EmptyTableState 
-        Message="Nenhum relatório criado ainda" 
-        IconClass="bi-info-circle" />
 }
 else
 {
-    <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <SortableTableHeader 
-                        HeaderText="Título" 
-                        SortColumn="@nameof(Report.Title)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Ano" 
-                        SortColumn="@nameof(Report.Year)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Receitas" 
-                        SortColumn="@nameof(Report.TotalIncome)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Despesas" 
-                        SortColumn="@nameof(Report.TotalExpenses)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Saldo" 
-                        SortColumn="@nameof(Report.FinalBalance)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Estado" 
-                        SortColumn="@nameof(Report.IsPublished)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var report in PaginatedItems)
-                {
-                    <tr class="clickable-row" @onclick="() => ViewReport(report.Id)">
-                        <td>@report.Title</td>
-                        <td>@($"{report.Year}-{report.Year + 1}")</td>
-                        <td class="text-success">€@report.TotalIncome.ToString("N2")</td>
-                        <td class="text-danger">€@report.TotalExpenses.ToString("N2")</td>
-                        <td class="@(report.FinalBalance >= 0 ? "text-success" : "text-danger")">
-                            €@report.FinalBalance.ToString("N2")
-                        </td>
-                        <td>
-                            @if (report.IsPublished)
-                            {
-                                <span class="badge bg-success">Publicado</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-warning">Rascunho</span>
-                            }
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-primary me-1" @onclick:stopPropagation="true" @onclick="() => DownloadReport(report)" title="Download PDF">
-                                <i class="bi bi-download"></i>
-                            </button>
-                            <AuthorizeView Roles="Owner" Context="ownerContext">
-                                <Authorized>
-                                    @if (!report.IsPublished)
-                                    {
-                                        <button class="btn btn-sm btn-success me-1" @onclick:stopPropagation="true" @onclick="() => OpenPublishModal(report)" title="Publicar Relatório">
-                                            <i class="bi bi-check-circle"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-danger" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(report)">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    }
-                                </Authorized>
-                            </AuthorizeView>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <div class="mb-3">
+                <button class="btn btn-success mb-2" @onclick="OpenCreateModal" title="Adicionar Relatório">
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <TableSearchBar 
+                SearchTerm="@SearchTerm"
+                OnSearchChanged="UpdateSearch"
+                Placeholder="Pesquisar por título ou ano..." />
+        </div>
     </div>
 
-    <!-- Pagination -->
-    <TablePagination 
-        CurrentPage="@PaginationHelper.CurrentPage"
-        PageSize="@PaginationHelper.PageSize"
-        TotalItems="@FilteredItems.Count"
-        ItemLabel="relatórios"
-        OnPageChanged="ChangePage"
-        OnPageSizeChanged="ChangePageSize" />
+    @if (AllItems == null)
+    {
+        <p>A carregar relatórios...</p>
+    }
+    else if (!FilteredItems.Any())
+    {
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <EmptyTableState 
+                    Message="Sem relatórios financeiros" 
+                    IconClass="bi-info-circle" />
+                <div class="text-center mt-3">
+                    <button class="btn btn-success" @onclick="OpenCreateModal">
+                        <i class="bi bi-plus-lg"></i> Novo Relatório
+                    </button>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <EmptyTableState 
+                    Message="Sem relatórios financeiros" 
+                    IconClass="bi-info-circle" />
+            </NotAuthorized>
+        </AuthorizeView>
+    }
+    else
+    {
+        <div class="finance-report-grid">
+            @foreach (var report in PaginatedItems)
+            {
+                <div>
+                    <ReportCard 
+                        Report="@report"
+                        IsAdmin="@isAdmin"
+                        IsOwner="@isOwner"
+                        OnCardClick="@(() => ViewReport(report.Id))"
+                        OnDownload="@(() => DownloadReport(report))"
+                        OnPublish="@(() => OpenPublishModal(report))"
+                        OnDelete="@(() => OpenDeleteModal(report))" />
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        <TablePagination 
+            CurrentPage="@PaginationHelper.CurrentPage"
+            PageSize="@PaginationHelper.PageSize"
+            TotalItems="@FilteredItems.Count"
+            ItemLabel="relatórios"
+            PageSizeOptions="@(new[] { 3, 6, 9, 12, 15 })"
+            OnPageChanged="ChangePage"
+            OnPageSizeChanged="ChangePageSize" />
+    }
 }
 
-<!-- Create/Edit Report Modal -->
+<!-- Create/Edit ReportEntity Modal -->
 <Modal Show="@showEditModal" 
        ShowChanged="@((value) => showEditModal = value)"
        Title="@(isCreateMode ? "Novo Relatório" : "Editar Relatório")" 
@@ -180,9 +142,11 @@ else
        Centered="true"
        OnClose="@CloseDeleteModal">
     <BodyContent>
-        <p>Tem certeza que deseja eliminar este relatório?</p>
-        <p class="text-danger"><strong>Aviso:</strong> Todas as atividades e transações associadas a este relatório serão também eliminadas!</p>
-        <p class="text-muted">Esta ação não pode ser desfeita.</p>
+        @if (deletingReport != null)
+        {
+            <p>Eliminar relatório <strong>@deletingReport.Title</strong>?</p>
+            <p class="text-danger"><strong>Esta ação é irreversível.</strong></p>
+        }
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
@@ -197,9 +161,10 @@ else
        Centered="true"
        OnClose="@ClosePublishModal">
     <BodyContent>
-        <p>Tem certeza que deseja publicar este relatório?</p>
-        <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> Após publicado, o relatório ficará em modo somente leitura (não poderá ser editado ou eliminado).</p>
-        <p class="text-info"><i class="bi bi-info-circle"></i> Poderá fazer download do PDF a qualquer momento.</p>
+        @if (publishingReport != null)
+        {
+            <p>Publicar relatório <strong>@publishingReport.Title</strong> do ano <strong>@($"{publishingReport.Year}-{publishingReport.Year + 1}")</strong>?</p>
+        }
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="ClosePublishModal">Cancelar</button>
@@ -214,47 +179,86 @@ else
     private bool showDeleteModal = false;
     private bool showPublishModal = false;
     private bool isCreateMode = false;
-    private Report? editingReport;
-    private Report? deletingReport;
-    private Report? publishingReport;
+    private ReportEntity? editingReport;
+    private ReportEntity? deletingReport;
+    private ReportEntity? publishingReport;
 
     private string currentFiscalYear = "";
     private List<string> availableFiscalYears = new();
     private string selectedFiscalYearForReport = "";
     private int fiscalYearInput = DateTime.Now.Year;
     private string errorMessage = "";
+    
+    private bool isAdmin = false;
+    private bool isOwner = false;
+    private bool isLeitao = false;
+    private string currentUserId = "";
 
     protected override async Task OnInitializedAsync()
     {
-        SortHelper.SortColumn = nameof(Report.Year);
+        // Set custom page size for finance reports
+        PaginationHelper.PageSize = 3;
+        
+        SortHelper.SortColumn = nameof(ReportEntity.Year);
         SortHelper.SortAscending = false;
         CalculateCurrentFiscalYear();
         GenerateAvailableFiscalYears();
-        await LoadItemsAsync();
-        ApplyFiltersAndPagination();
+        
+        // Get current user and roles
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            isAdmin = user.IsInRole("Admin");
+            isOwner = user.IsInRole("Owner");
+            
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                currentUserId = appUser.Id;
+                isLeitao = appUser.IsLeitao();
+            }
+        }
+        
+        // Only load data if not Leitao
+        if (!isLeitao)
+        {
+            await LoadItemsAsync();
+            ApplyFiltersAndPagination();
+        }
     }
 
     protected override async Task LoadItemsAsync()
     {
+        var reports = (await ReportService.GetAllReportsAsync()).ToList();
+        
+        // Ensure financial data is up-to-date for each report
+        foreach (var report in reports)
+        {
+            await ReportService.RecalculateReportFinancialsAsync(report.Id);
+        }
+        
+        // Reload reports with updated financials
         AllItems = (await ReportService.GetAllReportsAsync()).ToList();
     }
 
-    protected override Dictionary<string, Func<Report, IComparable>> GetSortColumnSelectors()
+    protected override Dictionary<string, Func<ReportEntity, IComparable>> GetSortColumnSelectors()
     {
-        return new Dictionary<string, Func<Report, IComparable>>
+        return new Dictionary<string, Func<ReportEntity, IComparable>>
         {
-            [nameof(Report.Title)] = r => r.Title ?? "",
-            [nameof(Report.Year)] = r => r.Year,
-            [nameof(Report.TotalIncome)] = r => r.TotalIncome,
-            [nameof(Report.TotalExpenses)] = r => r.TotalExpenses,
-            [nameof(Report.FinalBalance)] = r => r.FinalBalance,
-            [nameof(Report.IsPublished)] = r => r.IsPublished ? 1 : 0
+            [nameof(ReportEntity.Title)] = r => r.Title ?? "",
+            [nameof(ReportEntity.Year)] = r => r.Year,
+            [nameof(ReportEntity.TotalIncome)] = r => r.TotalIncome,
+            [nameof(ReportEntity.TotalExpenses)] = r => r.TotalExpenses,
+            [nameof(ReportEntity.FinalBalance)] = r => r.FinalBalance,
+            [nameof(ReportEntity.IsPublished)] = r => r.IsPublished ? 1 : 0
         };
     }
 
-    protected override List<Func<Report, string>> GetSearchSelectors()
+    protected override List<Func<ReportEntity, string>> GetSearchSelectors()
     {
-        return new List<Func<Report, string>>
+        return new List<Func<ReportEntity, string>>
         {
             r => r.Title ?? "",
             r => r.Year.ToString(),
@@ -302,7 +306,7 @@ else
 
     private void ViewReport(int reportId)
     {
-        NavigationManager.NavigateTo($"/admin/finance/report/{reportId}");
+        NavigationManager.NavigateTo($"/finance/report/{reportId}");
     }
 
     private void OpenCreateModal()
@@ -313,28 +317,9 @@ else
         // Default to current fiscal year start year
         int fiscalYearInput = FiscalYearHelper.GetCurrentFiscalYearStartYear();
 
-        editingReport = new Report
+        editingReport = new ReportEntity
         {
             Title = "Placeholder" // Temporary title to pass validation, will be auto-generated in SaveReport
-        };
-        showEditModal = true;
-    }
-
-    private void OpenEditModal(Report report)
-    {
-        isCreateMode = false;
-        errorMessage = "";
-        selectedFiscalYearForReport = $"{report.Year}-{report.Year + 1}";
-        editingReport = new Report
-        {
-            Id = report.Id,
-            Title = report.Title,
-            Year = report.Year,
-            Summary = report.Summary,
-            IsPublished = report.IsPublished,
-            TotalIncome = report.TotalIncome,
-            TotalExpenses = report.TotalExpenses,
-            FinalBalance = report.FinalBalance
         };
         showEditModal = true;
     }
@@ -406,7 +391,7 @@ else
         CloseEditModal();
     }
 
-    private void OpenDeleteModal(Report report)
+    private void OpenDeleteModal(ReportEntity report)
     {
         deletingReport = report;
         showDeleteModal = true;
@@ -422,13 +407,20 @@ else
     {
         if (deletingReport == null) return;
 
-        await ReportService.DeleteReportAsync(deletingReport.Id);
-        await RefreshDataAsync();
+        try
+        {
+            await ReportService.DeleteReportAsync(deletingReport.Id);
+            await RefreshDataAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao eliminar relatório: {ex.Message}";
+        }
 
         CloseDeleteModal();
     }
 
-    private void OpenPublishModal(Report report)
+    private void OpenPublishModal(ReportEntity report)
     {
         publishingReport = report;
         showPublishModal = true;
@@ -444,13 +436,20 @@ else
     {
         if (publishingReport == null) return;
 
-        await ReportService.PublishReportAsync(publishingReport.Id);
-        await RefreshDataAsync();
+        try
+        {
+            await ReportService.PublishReportAsync(publishingReport.Id);
+            await RefreshDataAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao publicar relatório: {ex.Message}";
+        }
 
         ClosePublishModal();
     }
 
-    private async Task DownloadReport(Report report)
+    private async Task DownloadReport(ReportEntity report)
     {
         try
         {
@@ -487,4 +486,3 @@ else
         }
     }
 }
-
