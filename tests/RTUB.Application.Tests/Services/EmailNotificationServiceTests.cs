@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Enums;
 using Xunit;
@@ -14,6 +15,7 @@ public class EmailNotificationServiceTests : IDisposable
     private readonly Mock<ILogger<EmailNotificationService>> _mockLogger;
     private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly IMemoryCache _cache;
+    private readonly Mock<IEmailTemplateRenderer> _mockTemplateRenderer;
     private readonly EmailNotificationService _service;
 
     public EmailNotificationServiceTests()
@@ -21,13 +23,28 @@ public class EmailNotificationServiceTests : IDisposable
         _mockLogger = new Mock<ILogger<EmailNotificationService>>();
         _mockConfiguration = new Mock<IConfiguration>();
         _cache = new MemoryCache(new MemoryCacheOptions());
+        _mockTemplateRenderer = new Mock<IEmailTemplateRenderer>();
 
         // Setup default configuration (SMTP not configured)
         _mockConfiguration.Setup(x => x["EmailSettings:RecipientEmail"]).Returns("jeans@rtub.pt");
         _mockConfiguration.Setup(x => x["EmailSettings:SmtpServer"]).Returns((string?)null);
         _mockConfiguration.Setup(x => x["EmailSettings:SmtpPassword"]).Returns((string?)null);
 
-        _service = new EmailNotificationService(_mockLogger.Object, _mockConfiguration.Object, _cache);
+        // Setup template renderer to return dummy HTML
+        _mockTemplateRenderer.Setup(x => x.RenderNewRequestNotificationAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>()))
+            .ReturnsAsync("Test email body");
+        
+        _mockTemplateRenderer.Setup(x => x.RenderWelcomeEmailAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync("Test welcome email");
+        
+        _mockTemplateRenderer.Setup(x => x.RenderEventNotificationAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync("Test event email");
+
+        _service = new EmailNotificationService(_mockLogger.Object, _mockConfiguration.Object, _cache, _mockTemplateRenderer.Object);
     }
 
     [Fact]

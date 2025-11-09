@@ -1,0 +1,15 @@
+@model RTUB.Web.EmailTemplates.Models.NewRequestNotificationModel
+
+Novo Pedido de Atuação Recebido
+
+Nome: @Model.RequestName
+Email: @Model.RequestEmail
+Telefone: @Model.Phone
+Tipo de Evento: @Model.EventType
+Data: @Model.DateInfo
+Localização: @Model.Location
+
+Informações Adicionais:
+@Model.Message
+
+Submetido em: @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")

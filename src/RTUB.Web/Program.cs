@@ -93,6 +93,10 @@ namespace RTUB
 
             // Email sender for Identity (forgot password, etc.)
             services.AddScoped<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, RTUB.Application.Services.EmailSender>();
+            
+            // Email template services
+            services.AddScoped<RTUB.Web.Services.IEmailTemplateService, RTUB.Web.Services.EmailTemplateService>();
+            services.AddScoped<RTUB.Application.Interfaces.IEmailTemplateRenderer, RTUB.Web.Services.RazorEmailTemplateRenderer>();
 
             // --------- Application Services (Direct DbContext access) ---------
             services.AddScoped<IEventService, EventService>();

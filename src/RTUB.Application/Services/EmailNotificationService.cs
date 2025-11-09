@@ -16,15 +16,18 @@ public class EmailNotificationService : IEmailNotificationService
     private readonly ILogger<EmailNotificationService> _logger;
     private readonly IConfiguration _configuration;
     private readonly IMemoryCache _cache;
+    private readonly IEmailTemplateRenderer _templateRenderer;
 
     public EmailNotificationService(
         ILogger<EmailNotificationService> logger,
         IConfiguration configuration,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        IEmailTemplateRenderer templateRenderer)
     {
         _logger = logger;
         _configuration = configuration;
         _cache = cache;
+        _templateRenderer = templateRenderer;
     }
 
     /// <summary>
@@ -105,21 +108,15 @@ public class EmailNotificationService : IEmailNotificationService
                 ? $"De {preferredDate:dd/MM/yyyy} até {preferredEndDate:dd/MM/yyyy}"
                 : preferredDate.ToString("dd/MM/yyyy");
 
-            var body = $@"
-Novo Pedido de Atuação Recebido
-
-Nome: {requestName}
-Email: {requestEmail}
-Telefone: {phone}
-Tipo de Evento: {eventType}
-Data: {dateInfo}
-Localização: {location}
-
-Informações Adicionais:
-{message}
-
-Submetido em: {createdAt:dd/MM/yyyy HH:mm}
-";
+            var body = await _templateRenderer.RenderNewRequestNotificationAsync(
+                requestName,
+                requestEmail,
+                phone,
+                eventType,
+                dateInfo,
+                location,
+                message,
+                createdAt);
 
             // Check if SMTP is configured
             if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
@@ -193,27 +190,10 @@ Submetido em: {createdAt:dd/MM/yyyy HH:mm}
 
             var subject = "Bem-vindo à RTUB - Credenciais de Acesso";
 
-            var body = $@"
-Olá {firstName},
-
-Bem-vindo à RTUB!
-
-A sua conta foi criada com sucesso. Aqui estão as suas credenciais de acesso:
-
-Nome de Utilizador: {normalizedUserName}
-Palavra-passe: {password}
-
-Por favor, aceda ao sistema em https://rtub.azurewebsites.net/ e altere a sua palavra-passe no seu perfil assim que possível.
-
-Para alterar a palavra-passe:
-1. Faça login com as credenciais acima
-2. Vá para o seu Perfil
-3. Clique em ""Alterar Palavra-passe""
-4. Introduza a palavra-passe atual e escolha uma nova
-
-Cumprimentos,
-RTUB
-";
+            var body = await _templateRenderer.RenderWelcomeEmailAsync(
+                normalizedUserName,
+                firstName,
+                password);
 
             // Check if SMTP is configured
             if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
@@ -304,19 +284,11 @@ RTUB
             var dateFormatted = eventDate.ToString("dddd, dd 'de' MMMM 'de' yyyy", 
                 new System.Globalization.CultureInfo("pt-PT"));
 
-            var body = $@"
-Olá!
-Há uma nova atuação agendada: {eventTitle}
-📅 {dateFormatted}
-📍 {eventLocation}
-Consulta os detalhes no site e confirma a tua presença se fores.
-{eventLink}
-
-Se não quiseres receber notificações por email, podes alterar as tuas preferências no teu perfil, desmarcando a opção ""Pretendo ser notificado por email de novas atuações.""
-
-Obrigado,
-Saudações RTUBianas
-";
+            var body = await _templateRenderer.RenderEventNotificationAsync(
+                eventTitle,
+                dateFormatted,
+                eventLocation,
+                eventLink);
 
             // Send email via SMTP
             using var smtpClient = new SmtpClient(smtpServer, smtpPort)

@@ -1,0 +1,21 @@
+@model RTUB.Web.EmailTemplates.Models.WelcomeEmailModel
+
+Olá @Model.FirstName,
+
+Bem-vindo à RTUB!
+
+A sua conta foi criada com sucesso. Aqui estão as suas credenciais de acesso:
+
+Nome de Utilizador: @Model.UserName
+Palavra-passe: @Model.Password
+
+Por favor, aceda ao sistema em https://rtub.azurewebsites.net/ e altere a sua palavra-passe no seu perfil assim que possível.
+
+Para alterar a palavra-passe:
+1. Faça login com as credenciais acima
+2. Vá para o seu Perfil
+3. Clique em "Alterar Palavra-passe"
+4. Introduza a palavra-passe atual e escolha uma nova
+
+Cumprimentos,
+RTUB
