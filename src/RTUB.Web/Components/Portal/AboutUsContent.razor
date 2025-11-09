@@ -36,48 +36,12 @@
             @foreach (var evt in previousEvents)
             {
                 <div class="col-md-4">
-                    <div class="card h-100 portal-event-card">
-                        <div class="position-relative">
-                            @if (!string.IsNullOrEmpty(evt.ImageSrc))
-                            {
-                                <img src="@evt.ImageSrc" class="card-img-top portal-event-image" alt="@evt.Name">
-                            }
-                            else
-                            {
-                                <div class="card-img-top portal-event-placeholder">
-                                    <i class="bi bi-calendar-event portal-icon-large"></i>
-                                </div>
-                            }
-                            @if (evt.Type == EventType.Festival)
-                            {
-                                <div class="position-absolute top-0 end-0 p-2">
-                                    <button class="btn btn-warning btn-sm" @onclick="() => OpenTrophyModal(evt)" title="Ver Prémios">
-                                        <i class="bi bi-trophy-fill"></i>
-                                    </button>
-                                </div>
-                            }
-                        </div>
-                        <div class="card-body">
-                            <h5 class="card-title">@evt.Name</h5>
-                            <p class="card-text mb-2 portal-card-text">
-                                <i class="bi bi-calendar-event me-1"></i>
-                                @if (evt.EndDate.HasValue && evt.EndDate.Value.Date != evt.Date.Date)
-                                {
-                                    <span>@evt.Date.ToString("dd MMM") - @evt.EndDate.Value.ToString("dd MMM yyyy")</span>
-                                }
-                                else
-                                {
-                                    <span>@evt.Date.ToString("dd MMM yyyy")</span>
-                                }
-                            </p>
-                            @if (!string.IsNullOrEmpty(evt.Location))
-                            {
-                                <p class="card-text mb-2 portal-card-text">
-                                    <i class="bi bi-geo-alt"></i> @evt.Location
-                                </p>
-                            }
-                        </div>
-                    </div>
+                    <EventCard Event="@evt"
+                               EnrollmentCount="0"
+                               IsAdmin="false"
+                               IsPastEvent="true"
+                               ShowOnlyTrophy="true"
+                               OnViewTrophies="@(() => OpenTrophyModal(evt))" />
                 </div>
             }
         </div>
@@ -138,17 +102,21 @@
     <BodyContent>
         @if (eventTrophies == null || !eventTrophies.Any())
         {
-            <EmptyTableState Message="Nenhum troféu conquistado neste evento."
+            <EmptyTableState Message="Nenhum prémio conquistado neste evento."
                             IconClass="bi-trophy" />
         }
         else
         {
-            <div class="list-group">
+            <div class="row g-3">
                 @foreach (var trophy in eventTrophies)
                 {
-                    <div class="list-group-item">
-                        <i class="bi bi-trophy-fill text-warning me-2"></i>
-                        <strong>@trophy.Name</strong>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="card h-100 text-center p-3 trophy-card" style="background-color: #151516; border: 2px solid #2f2f2f; transition: border-color 0.2s ease, box-shadow 0.2s ease;">
+                            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                                <i class="bi bi-trophy-fill text-warning mb-3" style="font-size: 3rem;"></i>
+                                <h5 class="card-title mb-0">@trophy.Name</h5>
+                            </div>
+                        </div>
                     </div>
                 }
             </div>

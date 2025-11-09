@@ -4242,3 +4242,9 @@ th:hover {
     min-width: 75px;
   }
 }
+
+/* Trophy card hover effect */
+.trophy-card:hover {
+  border-color: #6f42c1 !important;
+  box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3) !important;
+}
