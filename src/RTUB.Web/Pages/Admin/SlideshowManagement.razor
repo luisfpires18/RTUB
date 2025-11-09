@@ -81,7 +81,7 @@ else
                         <td>
                             @if (!string.IsNullOrEmpty(slide.ImageSrc))
                             {
-                                <img src="@($"{slide.ImageSrc}?v={slide.Id}_{DateTime.UtcNow.Ticks}")" alt="@slide.Title" class="slideshow-thumbnail img-thumbnail" />
+                                <img src="@slide.ImageSrc" alt="@slide.Title" class="slideshow-thumbnail img-thumbnail" />
                             }
                         </td>
                         <td>@slide.Title</td>
@@ -205,7 +205,6 @@ else
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
-    private long slideImageVersion = DateTime.UtcNow.Ticks;
 
     protected override async Task OnInitializedAsync()
     {
@@ -384,7 +383,6 @@ else
         }
 
         await RefreshDataAsync();
-        slideImageVersion = DateTime.UtcNow.Ticks; // Update cache-bust parameter
         CloseEditModal();
     }
 
@@ -407,11 +405,6 @@ else
 
     private string GetSlideshowImageUrl(string imageSrc)
     {
-        // Add cache-busting parameter to force reload after image update
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
-        {
-            return $"{imageSrc}?v={slideImageVersion}";
-        }
         return imageSrc ?? string.Empty;
     }
 }

@@ -567,15 +567,7 @@ else
                 // Using 150ms to account for varying server load and rendering time.
                 await Task.Delay(150);
                 
-                // Force browser to reload images by updating cache-bust parameter
-                // This is a safety measure in case the @key recreation doesn't
-                // trigger a proper image reload in all browsers.
-                try
-                {
-                    await JSRuntime.InvokeVoidAsync("imageRefresh.forceRefresh", ".avatar, .navbar-avatar");
-                }
-                catch { /* Ignore JS errors */ }
-
+                
                 await Task.Delay(1500);
                 uploadMessage = null;
             }
