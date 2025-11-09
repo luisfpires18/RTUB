@@ -100,8 +100,8 @@
             @if (!IsPastEvent)
             {
                 <div class="enrollment-section mt-auto p-2 rounded">
-                    <!-- All buttons in a single scrollable row -->
-                    <div class="event-buttons-container">
+                    <!-- Event buttons row -->
+                    <div class="event-buttons-container mb-2">
                         <!-- View Details button -->
                         <button class="btn event-icon-btn btn-outline-secondary" 
                                 @onclick="OnViewDetails" 
@@ -109,12 +109,12 @@
                             <i class="bi bi-eye"></i>
                         </button>
 
-                        <!-- View Enrollments button -->
+                        <!-- View Enrollments button with centered count -->
                         <button class="btn event-icon-btn btn-outline-secondary" 
                                 @onclick="OnViewEnrollments" 
                                 title="Participantes">
                             <i class="bi bi-people"></i>
-                            <span class="enrollment-count">@EnrollmentCount</span>
+                            <span class="enrollment-count-centered">@EnrollmentCount</span>
                         </button>
 
                         <!-- Watch Repertoire button -->
@@ -123,7 +123,10 @@
                                 title="Repertório">
                             <i class="bi bi-music-note-list"></i>
                         </button>
+                    </div>
 
+                    <!-- Enrollment action buttons row -->
+                    <div class="event-buttons-container">
                         @if (UserEnrollment == null)
                         {
                             <!-- Enroll button -->
@@ -133,7 +136,7 @@
                                 <i class="bi bi-plus-circle-fill"></i>
                             </button>
                         }
-                        else
+                        else if (UserEnrollment.WillAttend)
                         {
                             <!-- Enrolled status button (disabled, purple) -->
                             <button class="btn event-icon-btn btn-purple" 
@@ -156,6 +159,22 @@
                                 <i class="bi bi-x-circle-fill"></i>
                             </button>
                         }
+                        else
+                        {
+                            <!-- Not attending status button (disabled, red) -->
+                            <button class="btn event-icon-btn btn-danger" 
+                                    disabled 
+                                    title="Não vou">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                            
+                            <!-- Edit enrollment button (white) -->
+                            <button class="btn event-icon-btn btn-light" 
+                                    @onclick="OnEditEnrollment" 
+                                    title="Editar Inscrição">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                        }
                     </div>
                 </div>
             }
@@ -171,12 +190,12 @@
                             <i class="bi bi-eye"></i>
                         </button>
 
-                        <!-- View Enrollments button -->
+                        <!-- View Enrollments button with centered count -->
                         <button class="btn event-icon-btn btn-outline-secondary" 
                                 @onclick="OnViewEnrollments" 
                                 title="Participantes">
                             <i class="bi bi-people"></i>
-                            <span class="enrollment-count">@EnrollmentCount</span>
+                            <span class="enrollment-count-centered">@EnrollmentCount</span>
                         </button>
 
                         <!-- Watch Repertoire button -->
@@ -379,7 +398,7 @@
         line-height: 1;
     }
     
-    /* Enrollment count badge */
+    /* Enrollment count badge (top-right corner - legacy, kept for compatibility) */
     .event-icon-btn .enrollment-count {
         position: absolute;
         top: -4px;
@@ -394,6 +413,18 @@
         text-align: center;
         line-height: 1.2;
         border: 2px solid var(--bs-body-bg);
+    }
+    
+    /* Enrollment count centered on button */
+    .event-icon-btn .enrollment-count-centered {
+        position: absolute;
+        bottom: 2px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: inherit;
+        font-size: 0.7rem;
+        font-weight: 700;
+        line-height: 1;
     }
     
     /* Button hover effects */

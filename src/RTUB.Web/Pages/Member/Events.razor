@@ -256,37 +256,65 @@ else
                 <DataAnnotationsValidator />
                 <ValidationSummary class="text-danger" />
 
-                @* Only show "Quero tocar" toggle for non-Leitão members *@
-                @if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao))
-                {
-                    <div class="mb-3 form-check form-switch">
-                        <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayToggle"
-                               checked="@wantToPlay"
-                               @onchange="@((ChangeEventArgs e) => OnWantToPlayChanged((bool)e.Value!))">
-                        <label class="form-check-label form-check-label-white-clickable" for="wantToPlayToggle">
-                            Quero tocar
-                        </label>
+                @* Will Attend Selection *@
+                <div class="mb-4">
+                    <label class="form-label text-white-full">Vais participar?</label>
+                    <div class="d-flex gap-2">
+                        <button type="button" 
+                                class="btn @(enrollmentForm.WillAttend ? "btn-success" : "btn-outline-secondary") flex-fill"
+                                @onclick="() => enrollmentForm.WillAttend = true">
+                            <i class="bi bi-check-circle me-1"></i> Vou
+                        </button>
+                        <button type="button" 
+                                class="btn @(!enrollmentForm.WillAttend ? "btn-danger" : "btn-outline-secondary") flex-fill"
+                                @onclick="() => enrollmentForm.WillAttend = false">
+                            <i class="bi bi-x-circle me-1"></i> Não vou
+                        </button>
                     </div>
-
-                    @if (wantToPlay)
-                    {
-                        <div class="mb-3">
-                            <label class="form-label text-white-full">Instrumento *</label>
-                            <InputSelect class="form-select form-select-dark" @bind-Value="enrollmentForm.Instrument">
-                                <option value="">Selecionar...</option>
-                                @foreach (var instrument in Enum.GetValues<InstrumentType>())
-                                {
-                                    <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
-                                }
-                            </InputSelect>
-                        </div>
-                    }
-                }
-
-                <div class="mb-3">
-                    <label class="form-label text-white-full">Notas (opcional)</label>
-                    <InputTextArea class="form-control" rows="4" @bind-Value="enrollmentForm.Notes" placeholder="Informações adicionais..." />
                 </div>
+
+                @* Only show instrument and details if attending *@
+                @if (enrollmentForm.WillAttend)
+                {
+                    @* Only show "Quero tocar" toggle for non-Leitão members *@
+                    @if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao))
+                    {
+                        <div class="mb-3 form-check form-switch">
+                            <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayToggle"
+                                   checked="@wantToPlay"
+                                   @onchange="@((ChangeEventArgs e) => OnWantToPlayChanged((bool)e.Value!))">
+                            <label class="form-check-label form-check-label-white-clickable" for="wantToPlayToggle">
+                                Quero tocar
+                            </label>
+                        </div>
+
+                        @if (wantToPlay)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label text-white-full">Instrumento *</label>
+                                <InputSelect class="form-select form-select-dark" @bind-Value="enrollmentForm.Instrument">
+                                    <option value="">Selecionar...</option>
+                                    @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                                    {
+                                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        }
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label text-white-full">Notas (opcional)</label>
+                        <InputTextArea class="form-control" rows="4" @bind-Value="enrollmentForm.Notes" placeholder="Informações adicionais..." />
+                    </div>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-white-full">Motivo (opcional)</label>
+                        <InputTextArea class="form-control" rows="4" @bind-Value="enrollmentForm.Notes" placeholder="Por que não podes participar?" />
+                    </div>
+                }
 
                 <div class="d-flex justify-content-end gap-2">
                     <button type="button" class="btn btn-secondary" @onclick="CloseEnrollModal">Cancelar</button>
@@ -327,8 +355,9 @@ else
             }
             else
             {
-                var performingMembers = eventEnrollments.Where(e => e.User != null && !e.User.Categories.Contains(MemberCategory.Leitao)).ToList();
-                var leitaoMembers = eventEnrollments.Where(e => e.User != null && e.User.Categories.Contains(MemberCategory.Leitao)).ToList();
+                var performingMembers = eventEnrollments.Where(e => e.User != null && e.WillAttend && !e.User.Categories.Contains(MemberCategory.Leitao)).ToList();
+                var leitaoMembers = eventEnrollments.Where(e => e.User != null && e.WillAttend && e.User.Categories.Contains(MemberCategory.Leitao)).ToList();
+                var notAttendingMembers = eventEnrollments.Where(e => e.User != null && !e.WillAttend).ToList();
 
                 @if (performingMembers.Any())
                 {
@@ -456,6 +485,51 @@ else
                                 OnPageSizeChanged="@HandleLeitoesPageSizeChange" />
                         </div>
                     }
+                }
+
+                @if (notAttendingMembers.Any())
+                {
+                    <h6 class="mb-3 mt-4 heading-danger">Não vão participar (@notAttendingMembers.Count)</h6>
+                    <div class="enrollment-card-grid">
+                        @foreach (var enrollment in notAttendingMembers)
+                        {
+                            <EnrollmentCard 
+                                AvatarUrl="@enrollment.User?.ProfilePictureSrc"
+                                TunaName="@enrollment.User?.Nickname"
+                                FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}")"
+                                InstrumentText=""
+                                Notes="@enrollment.Notes"
+                                AltText="@enrollment.User?.GetDisplayName()"
+                                ShowEditButton="false"
+                                ShowDeleteButton="@isUserOwner"
+                                OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
+                                DeleteTooltip="Eliminar Inscrição">
+                                <BadgeContent>
+                                    @if (enrollment.User != null)
+                                    {
+                                        <div class="enrollment-card-badges-row">
+                                            @if (enrollment.User.Positions.Contains(Position.Magister))
+                                            {
+                                                <PositionBadge Position="Position.Magister" />
+                                            }
+                                            else if (enrollment.User.Categories.Contains(MemberCategory.Tuno))
+                                            {
+                                                <CategoryBadge Category="MemberCategory.Tuno" />
+                                            }
+                                            else if (enrollment.User.Categories.Contains(MemberCategory.Caloiro))
+                                            {
+                                                <CategoryBadge Category="MemberCategory.Caloiro" />
+                                            }
+                                            else if (enrollment.User.Categories.Contains(MemberCategory.Leitao))
+                                            {
+                                                <CategoryBadge Category="MemberCategory.Leitao" />
+                                            }
+                                        </div>
+                                    }
+                                </BadgeContent>
+                            </EnrollmentCard>
+                        }
+                    </div>
                 }
             }
         </BodyContent>
@@ -1135,7 +1209,8 @@ else
             UserId = enrollment.UserId,
             EventId = enrollment.EventId,
             Instrument = enrollment.Instrument,
-            Notes = enrollment.Notes
+            Notes = enrollment.Notes,
+            WillAttend = enrollment.WillAttend
         };
         showEnrollModal = true;
     }
@@ -1174,7 +1249,8 @@ else
                     enrollmentForm.UserId,
                     enrollmentForm.EventId,
                     enrollmentForm.Instrument,
-                    enrollmentForm.Notes
+                    enrollmentForm.Notes,
+                    enrollmentForm.WillAttend
                 );
             }
         }
@@ -1184,7 +1260,8 @@ else
                 enrollmentForm.UserId,
                 enrollmentForm.EventId,
                 enrollmentForm.Instrument,
-                enrollmentForm.Notes
+                enrollmentForm.Notes,
+                enrollmentForm.WillAttend
             );
         }
 
@@ -1249,11 +1326,11 @@ else
         }
         
         var performingMembers = eventEnrollments
-            .Where(e => e.User != null && !e.User.Categories.Contains(MemberCategory.Leitao))
+            .Where(e => e.User != null && e.WillAttend && !e.User.Categories.Contains(MemberCategory.Leitao))
             .ToList();
         
         var leitaoMembers = eventEnrollments
-            .Where(e => e.User != null && e.User.Categories.Contains(MemberCategory.Leitao))
+            .Where(e => e.User != null && e.WillAttend && e.User.Categories.Contains(MemberCategory.Leitao))
             .ToList();
         
         // Apply search filter to performing members
