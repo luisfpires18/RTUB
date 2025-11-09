@@ -58,7 +58,7 @@ else
             <div class="col-md-4 col-lg-2 mb-4">
                 <div class="card album-card h-100">
                     <div class="position-relative">
-                        @if (product.ImageData != null && product.ImageData.Length > 0)
+                        @if (!string.IsNullOrEmpty(product.ImageUrl))
                         {
                             <img src="@GetProductImageUrl(product.ImageSrc)" class="card-img-top shop-square-image" alt="@product.Name">
                         }
@@ -244,7 +244,7 @@ else
             <div class="mb-3">
                 <label class="form-label">Imagem do Produto</label>
                 <InputFile class="form-control file-input-dark" OnChange="HandleImageUpload" accept="image/*" />
-                @if (!string.IsNullOrEmpty(product.ImageSrc) && uploadedImagePath == null && product.ImageData != null && product.ImageData.Length > 0)
+                @if (!string.IsNullOrEmpty(product.ImageUrl) && uploadedImagePath == null)
                 {
                     <div class="mt-2">
                         <small class="text-muted">Imagem atual</small>
@@ -475,8 +475,8 @@ else
               ShowChanged="@((bool show) => showProductDetailsModal = show)"
               Title="Detalhes do Produto" 
               HeaderTitle="@(viewingProduct?.Name ?? "")"
-              ImageUrl="@(viewingProduct != null && viewingProduct.ImageData != null && viewingProduct.ImageData.Length > 0 ? GetProductImageUrl(viewingProduct.ImageSrc) : null)"
-              IconClass="@(viewingProduct != null && (viewingProduct.ImageData == null || viewingProduct.ImageData.Length == 0) ? "bi-bag-fill" : null)"
+              ImageUrl="@(viewingProduct != null && !string.IsNullOrEmpty(viewingProduct.ImageUrl) ? GetProductImageUrl(viewingProduct.ImageSrc) : null)"
+              IconClass="@(viewingProduct != null && string.IsNullOrEmpty(viewingProduct.ImageUrl) ? "bi-bag-fill" : null)"
               OnClose="CloseProductDetailsModal">
     <BadgesContent>
         @if (viewingProduct != null)
@@ -592,6 +592,7 @@ else
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private string? uploadedImagePath;
+    private byte[]? tempCroppedImageData = null;
 
     // Reservation Modal State
     private bool showReservationModal = false;
@@ -720,16 +721,36 @@ else
             
             if (isProductCreateMode)
             {
-                await ProductService.CreateAsync(editingProduct);
+                var newProduct = await ProductService.CreateAsync(editingProduct);
+
+                if (tempCroppedImageData != null)
+                {
+                    await ProductService.SetProductImageAsync(
+                        newProduct.Id,
+                        tempCroppedImageData,
+                        "image/jpeg"
+                    );
+                }
             }
             else
             {
                 await ProductService.UpdateAsync(editingProduct);
+
+                // Only update image if a new one was uploaded
+                if (tempCroppedImageData != null && uploadedImagePath != null)
+                {
+                    await ProductService.SetProductImageAsync(
+                        editingProduct.Id,
+                        tempCroppedImageData,
+                        "image/jpeg"
+                    );
+                }
             }
             
             await LoadProducts();
             showProductEditModal = false;
             uploadedImagePath = null;
+            tempCroppedImageData = null;
         }
         catch (Exception ex)
         {
@@ -758,6 +779,7 @@ else
         showProductEditModal = false;
         editingProduct = null;
         uploadedImagePath = null;
+        tempCroppedImageData = null;
     }
 
     private void CloseProductDeleteModal()
@@ -800,8 +822,8 @@ else
         {
             if (editingProduct != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                editingProduct.ImageData = croppedImageData;
-                editingProduct.ImageContentType = "image/jpeg";
+                // Store cropped image temporarily until save
+                tempCroppedImageData = croppedImageData;
                 uploadedImagePath = "uploaded";
                 
                 StateHasChanged();

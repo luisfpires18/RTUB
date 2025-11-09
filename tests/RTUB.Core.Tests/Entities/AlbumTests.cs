@@ -72,56 +72,56 @@ public class AlbumTests
     }
 
     [Fact]
-    public void SetCoverImageUrl_SetsUrlCorrectly()
+    public void SetImageUrl_SetsUrlCorrectly()
     {
         // Arrange
         var album = Album.Create("Test Album", 2020);
         var url = "https://example.com/cover.jpg";
 
         // Act
-        album.SetCoverImageUrl(url);
+        album.SetImageUrl(url);
 
         // Assert
-        album.CoverImageUrl.Should().Be(url);
+        album.ImageUrl.Should().Be(url);
     }
 
     [Fact]
-    public void GetCoverImageSource_WithUrl_ReturnsUrl()
+    public void GetImageSource_WithUrl_ReturnsUrl()
     {
         // Arrange
         var album = Album.Create("Test Album", 2020);
         var url = "https://example.com/cover.jpg";
-        album.SetCoverImageUrl(url);
+        album.SetImageUrl(url);
 
         // Act
-        var result = album.GetCoverImageSource();
+        var result = album.GetImageSource();
 
         // Assert
         result.Should().Be(url);
     }
 
     [Fact]
-    public void GetCoverImageSource_WithNoImage_ReturnsEmpty()
+    public void GetImageSource_WithNoImage_ReturnsEmpty()
     {
         // Arrange
         var album = Album.Create("Test Album", 2020);
 
         // Act
-        var result = album.GetCoverImageSource();
+        var result = album.GetImageSource();
 
         // Assert
         result.Should().BeEmpty();
     }
 
     [Fact]
-    public void CoverImageSrc_UsesGetCoverImageSource()
+    public void CoverImageSrc_UsesGetImageSource()
     {
         // Arrange
         var album = Album.Create("Test Album", 2020);
         var url = "https://example.com/album.jpg";
-        album.SetCoverImageUrl(url);
+        album.SetImageUrl(url);
 
         // Act & Assert
-        album.CoverImageSrc.Should().Be(album.GetCoverImageSource());
+        album.CoverImageSrc.Should().Be(album.GetImageSource());
     }
 }

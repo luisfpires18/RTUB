@@ -88,7 +88,7 @@ public class ImageServiceTests : IDisposable
     {
         // Arrange
         var album = Album.Create("Test Album", 2023);
-        album.CoverImageUrl = "https://example.com/album.webp";
+        album.ImageUrl = "https://example.com/album.webp";
         _context.Albums.Add(album);
         await _context.SaveChangesAsync();
 
@@ -100,15 +100,14 @@ public class ImageServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetProfileImageAsync_ReturnsImage_WhenUserHasImage()
+    public async Task GetProfileImageAsync_ReturnsNull_ProfilesUseS3Storage()
     {
         // Arrange
         var user = new ApplicationUser 
         { 
             Id = "user123",
             UserName = "testuser",
-            ProfilePictureData = new byte[] { 13, 14, 15 },
-            ProfilePictureContentType = "image/jpeg"
+            ImageUrl = "https://s3.example.com/profile.webp"
         };
 
         _mockUserManager.Setup(x => x.FindByIdAsync("user123"))
@@ -117,10 +116,8 @@ public class ImageServiceTests : IDisposable
         // Act
         var result = await _service.GetProfileImageAsync("user123");
 
-        // Assert
-        result.Should().NotBeNull();
-        result.Value.Data.Should().BeEquivalentTo(new byte[] { 13, 14, 15 });
-        result.Value.ContentType.Should().Be("image/jpeg");
+        // Assert - Profile pictures now use S3, so this returns null
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -154,22 +151,19 @@ public class ImageServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetProductImageAsync_ReturnsImage_WhenProductHasImage()
+    public async Task GetProductImageAsync_ReturnsNull_WhenProductUsesS3Storage()
     {
         // Arrange
         var product = Product.Create("T-Shirt", "Merchandise", 15.99m);
-        product.ImageData = new byte[] { 19, 20, 21 };
-        product.ImageContentType = "image/png";
+        product.SetImageUrl("https://example.com/product.jpg");
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
 
         // Act
         var result = await _service.GetProductImageAsync(product.Id);
 
-        // Assert
-        result.Should().NotBeNull();
-        result.Value.Data.Should().BeEquivalentTo(new byte[] { 19, 20, 21 });
-        result.Value.ContentType.Should().Be("image/png");
+        // Assert - Products use S3 storage now
+        result.Should().BeNull();
     }
 
     [Fact]

@@ -115,8 +115,8 @@ else
               ShowChanged="@((bool show) => showViewDetailsModal = show)"
               Title="Detalhes do Instrumento" 
               HeaderTitle="@(viewingInstrument?.Name ?? "")"
-              ImageUrl="@(viewingInstrument != null && !string.IsNullOrEmpty(viewingInstrument.ImageSrc) ? GetImageUrl(viewingInstrument.ImageSrc) : null)"
-              IconClass="@(viewingInstrument != null && string.IsNullOrEmpty(viewingInstrument.ImageSrc) ? "bi-music-note-beamed" : null)"
+              ImageUrl="@(viewingInstrument != null && !string.IsNullOrEmpty(viewingInstrument.ImageUrl) ? GetImageUrl(viewingInstrument.ImageSrc) : null)"
+              IconClass="@(viewingInstrument != null && string.IsNullOrEmpty(viewingInstrument.ImageUrl) ? "bi-music-note-beamed" : null)"
               OnClose="CloseViewDetailsModal">
     <BadgesContent>
         @if (viewingInstrument != null)
@@ -398,16 +398,36 @@ else
         {
             if (isInstrumentCreateMode)
             {
-                await InstrumentService.CreateAsync(editingInstrument);
+                var newInstrument = await InstrumentService.CreateAsync(editingInstrument);
+
+                if (tempInstrumentCroppedImageData != null)
+                {
+                    await InstrumentService.SetInstrumentImageAsync(
+                        newInstrument.Id,
+                        tempInstrumentCroppedImageData,
+                        "image/jpeg"
+                    );
+                }
             }
             else
             {
                 await InstrumentService.UpdateAsync(editingInstrument);
+
+                // Only update image if a new one was uploaded
+                if (tempInstrumentCroppedImageData != null && uploadedInstrumentImagePath != null)
+                {
+                    await InstrumentService.SetInstrumentImageAsync(
+                        editingInstrument.Id,
+                        tempInstrumentCroppedImageData,
+                        "image/jpeg"
+                    );
+                }
             }
 
             await LoadData();
             showInstrumentEditModal = false;
             uploadedInstrumentImagePath = null;
+            tempInstrumentCroppedImageData = null;
         }
         catch (Exception ex)
         {
@@ -436,6 +456,7 @@ else
         showInstrumentEditModal = false;
         editingInstrument = null;
         uploadedInstrumentImagePath = null;
+        tempInstrumentCroppedImageData = null;
     }
 
     private void CloseInstrumentDeleteModal()

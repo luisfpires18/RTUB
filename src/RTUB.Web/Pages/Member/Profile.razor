@@ -511,7 +511,7 @@ else
                 await SetAuditContextToCurrentUser();
                 await UserProfileService.UpdateProfilePictureAsync(user.Id, croppedImageData, "image/jpeg");
                 
-                // Reload user to get updated S3ImageFilename
+                // Reload user to get updated ImageUrl
                 user = await UserManager.FindByIdAsync(user.Id);
                 
                 // Update cache-bust parameter to force image reload

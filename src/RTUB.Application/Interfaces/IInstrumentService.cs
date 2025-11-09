@@ -16,6 +16,7 @@ public interface IInstrumentService
     Task<Instrument> CreateAsync(Instrument instrument);
     Task UpdateAsync(Instrument instrument);
     Task DeleteAsync(int id);
+    Task SetInstrumentImageAsync(int id, byte[]? imageData, string? contentType);
     Task<Dictionary<InstrumentCondition, int>> GetConditionStatsAsync();
     Task<Dictionary<string, int>> GetCategoryStatsAsync();
 }

@@ -30,11 +30,8 @@ public class Event : BaseEntity
     [Required(ErrorMessage = "O tipo de evento é obrigatório")]
     public EventType Type { get; set; }
     
-    // S3 Storage - filename in IDrive S3 bucket (WebP format)
-    public string? S3ImageFilename { get; set; }
-    
-    // Legacy ImageUrl field - kept for traceability of original photo source
-    public string ImageUrl { get; set; } = string.Empty;
+    // Image URL - stores the full S3 URL or filename for event image
+    public string? ImageUrl { get; set; }
     
     // Navigation properties
     public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
@@ -86,18 +83,14 @@ public class Event : BaseEntity
         EndDate = endDate;
     }
 
-    public void SetS3Image(string? s3Filename)
+    public void SetImageUrl(string? url)
     {
-        S3ImageFilename = s3Filename;
+        ImageUrl = url;
     }
 
     public string GetImageSource()
     {
-        // Return S3 image marker if filename exists
-        if (!string.IsNullOrEmpty(S3ImageFilename))
-            return $"s3:{S3ImageFilename}";
-        
-        return string.Empty;
+        return !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
     }
     
     // Property alias for backward compatibility
