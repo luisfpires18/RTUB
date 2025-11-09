@@ -81,15 +81,9 @@ else
                         <td>
                             @if (!string.IsNullOrEmpty(slide.ImageSrc))
                             {
-                                // Don't add cache-busting to pre-signed S3 URLs as it invalidates the signature
-                                // Pre-signed URLs already have expiration built-in
+                                // No cache-busting - ETag-based caching is handled by ImagesController
+                                // This ensures image updates are seen immediately while still getting 304 responses
                                 var imageUrl = slide.ImageSrc;
-                                if (!imageUrl.StartsWith("http"))
-                                {
-                                    // Only add cache-busting for non-S3 images (e.g., /api/images/)
-                                    var separator = imageUrl.Contains('?') ? "&" : "?";
-                                    imageUrl = $"{imageUrl}{separator}v={slide.Id}_{DateTime.UtcNow.Ticks}";
-                                }
                                 <img src="@imageUrl" alt="@slide.Title" class="slideshow-thumbnail img-thumbnail" />
                             }
                         </td>
@@ -214,7 +208,6 @@ else
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
-    private long slideImageVersion = DateTime.UtcNow.Ticks;
 
     protected override async Task OnInitializedAsync()
     {
@@ -400,7 +393,6 @@ else
         }
 
         await RefreshDataAsync();
-        slideImageVersion = DateTime.UtcNow.Ticks; // Update cache-bust parameter
         CloseEditModal();
     }
 
@@ -423,11 +415,7 @@ else
 
     private string GetSlideshowImageUrl(string imageSrc)
     {
-        // Add cache-busting parameter to force reload after image update
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
-        {
-            return $"{imageSrc}?v={slideImageVersion}";
-        }
+        // Return URL as-is - ETag-based caching is handled by ImagesController
         return imageSrc ?? string.Empty;
     }
 }

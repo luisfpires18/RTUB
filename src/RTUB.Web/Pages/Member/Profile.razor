@@ -48,7 +48,6 @@ else
 
     <!-- Profile Header Card -->
     <ProfileHeader User="@user" 
-                   ProfilePictureVersion="@profilePictureVersion"
                    OnChangePassword="@OpenChangePasswordModal"
                    OnUploadPhoto="@OpenUploadModal" />
 
@@ -369,7 +368,6 @@ else
     private ChangePasswordModel passwordModel = new();
     private string? ChangePasswordMessage;
     private bool ChangePasswordSucceeded;
-    private long profilePictureVersion = DateTime.UtcNow.Ticks;
     
     // Section editing state
     private string? editingSection = null;
@@ -514,21 +512,10 @@ else
                 // Reload user to get updated S3ImageFilename
                 user = await UserManager.FindByIdAsync(user.Id);
                 
-                // Update cache-bust parameter to force image reload
-                profilePictureVersion = DateTime.UtcNow.Ticks;
-                
                 uploadMessage = "Foto de perfil atualizada com sucesso!";
                 StateHasChanged();
                 
-                // Wait for Blazor to update the DOM with new ?v= parameter.
-                // The @key attribute should force element recreation, but we wait
-                // to ensure DOM updates are complete before JS manipulation.
-                // Using 150ms to account for varying server load and rendering time.
-                await Task.Delay(150);
-                
-                // Force browser to reload images by updating cache-bust parameter
-                // This is a safety measure in case the @key recreation doesn't
-                // trigger a proper image reload in all browsers.
+                // No need for manual cache-busting - ETag-based caching handled by ImagesController
                 try
                 {
                     await JSRuntime.InvokeVoidAsync("imageRefresh.forceRefresh", ".avatar, .navbar-avatar");
@@ -549,11 +536,7 @@ else
     {
         if (user == null) return "/images/default-avatar.png";
         
-        // Add cache-busting parameter to force reload after image update
-        if (!string.IsNullOrEmpty(user.ProfilePictureSrc) && user.ProfilePictureSrc.StartsWith("/api/images/"))
-        {
-            return $"{user.ProfilePictureSrc}?v={profilePictureVersion}";
-        }
+        // Return URL as-is - ETag-based caching is handled by ImagesController
         return user.ProfilePictureSrc ?? "/images/default-avatar.png";
     }
 

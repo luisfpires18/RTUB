@@ -372,6 +372,7 @@ else
         editingInstrument = Instrument.CreateEmpty();
         isInstrumentCreateMode = true;
         uploadedInstrumentImagePath = null;
+        tempInstrumentCroppedImageData = null;
         showInstrumentEditModal = true;
     }
 
@@ -380,6 +381,7 @@ else
         editingInstrument = instrument;
         isInstrumentCreateMode = false;
         uploadedInstrumentImagePath = null;
+        tempInstrumentCroppedImageData = null;
         showInstrumentEditModal = true;
     }
 
@@ -397,16 +399,37 @@ else
         {
             if (isInstrumentCreateMode)
             {
-                await InstrumentService.CreateAsync(editingInstrument);
+                var newInstrument = await InstrumentService.CreateAsync(editingInstrument);
+
+                // Upload image if one was selected
+                if (tempInstrumentCroppedImageData != null)
+                {
+                    await InstrumentService.SetInstrumentImageAsync(
+                        newInstrument.Id,
+                        tempInstrumentCroppedImageData,
+                        "image/jpeg"
+                    );
+                }
             }
             else
             {
                 await InstrumentService.UpdateAsync(editingInstrument);
+
+                // Only update image if a new one was uploaded
+                if (tempInstrumentCroppedImageData != null && uploadedInstrumentImagePath != null)
+                {
+                    await InstrumentService.SetInstrumentImageAsync(
+                        editingInstrument.Id,
+                        tempInstrumentCroppedImageData,
+                        "image/jpeg"
+                    );
+                }
             }
 
             await LoadData();
             showInstrumentEditModal = false;
             uploadedInstrumentImagePath = null;
+            tempInstrumentCroppedImageData = null;
         }
         catch (Exception ex)
         {
@@ -435,6 +458,7 @@ else
         showInstrumentEditModal = false;
         editingInstrument = null;
         uploadedInstrumentImagePath = null;
+        tempInstrumentCroppedImageData = null;
     }
 
     private void CloseInstrumentDeleteModal()

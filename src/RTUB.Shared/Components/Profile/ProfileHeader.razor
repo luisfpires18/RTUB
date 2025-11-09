@@ -73,9 +73,6 @@
     public ApplicationUser User { get; set; } = null!;
 
     [Parameter]
-    public long ProfilePictureVersion { get; set; }
-
-    [Parameter]
     public EventCallback OnChangePassword { get; set; }
 
     [Parameter]
@@ -85,10 +82,7 @@
     {
         if (User == null) return "/images/default-avatar.png";
         
-        if (!string.IsNullOrEmpty(User.ProfilePictureSrc) && User.ProfilePictureSrc.StartsWith("/api/images/"))
-        {
-            return $"{User.ProfilePictureSrc}?v={ProfilePictureVersion}";
-        }
+        // Return URL as-is - ETag-based caching is handled by ImagesController
         return User.ProfilePictureSrc ?? "/images/default-avatar.png";
     }
 
