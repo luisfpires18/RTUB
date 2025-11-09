@@ -592,7 +592,6 @@ else
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private string? uploadedImagePath;
-    private long productImageVersion = DateTime.UtcNow.Ticks;
 
     // Reservation Modal State
     private bool showReservationModal = false;
@@ -671,9 +670,6 @@ else
                 userReservations = new Dictionary<int, ProductReservation?>();
             }
         }
-        
-        // Refresh cache-bust parameter
-        productImageVersion = DateTime.UtcNow.Ticks;
         
         loading = false;
     }
@@ -808,9 +804,6 @@ else
                 editingProduct.ImageContentType = "image/jpeg";
                 uploadedImagePath = "uploaded";
                 
-                // Update cache-bust parameter to force image reload after save
-                productImageVersion = DateTime.UtcNow.Ticks;
-                
                 StateHasChanged();
             }
         }
@@ -828,11 +821,7 @@ else
     
     private string GetProductImageUrl(string imageSrc)
     {
-        // Add cache-busting parameter to force reload after image update
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
-        {
-            return $"{imageSrc}?v={productImageVersion}";
-        }
+        // Return URL as-is - ETag-based caching is handled by ImagesController
         return imageSrc ?? string.Empty;
     }
     
