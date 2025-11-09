@@ -129,7 +129,7 @@ public class InstrumentTests
         var imageSrc = instrument.ImageSrc;
 
         // Assert
-        imageSrc.Should().Contain("/api/images/instrument/");
+        imageSrc.Should().BeEmpty();
     }
 
     [Fact]

@@ -200,7 +200,7 @@ public class ProductTests
     }
 
     [Fact]
-    public void ImageSrc_ReturnsCorrectPath()
+    public void ImageSrc_ReturnsEmptyWhenNoImageUrl()
     {
         // Arrange
         var product = Product.Create("Album 2023", "Album", 10.00m);
@@ -209,7 +209,7 @@ public class ProductTests
         var imageSrc = product.ImageSrc;
 
         // Assert
-        imageSrc.Should().Contain("/api/images/product/");
+        imageSrc.Should().BeEmpty();
     }
 
     [Fact]
