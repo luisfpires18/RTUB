@@ -96,4 +96,9 @@ public class Instrument : BaseEntity
         MaintenanceNotes = notes;
         LastMaintenanceDate = date;
     }
+
+    public void SetImageUrl(string? url)
+    {
+        ImageUrl = url;
+    }
 }

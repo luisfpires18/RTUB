@@ -30,12 +30,11 @@ public class Product : BaseEntity
     
     public bool IsPublic { get; set; } = true;
     
-    // Image
-    public byte[]? ImageData { get; set; }
-    public string? ImageContentType { get; set; }
+    // Image URL - stores the full S3 URL for product image
+    public string? ImageUrl { get; set; }
 
     // Helper property
-    public string ImageSrc => $"/api/images/product/{Id}";
+    public string ImageSrc => !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
 
     // Private constructor for EF Core
     private Product() { }
@@ -136,5 +135,10 @@ public class Product : BaseEntity
     public void SetPublicVisibility(bool isPublic)
     {
         IsPublic = isPublic;
+    }
+
+    public void SetImageUrl(string? url)
+    {
+        ImageUrl = url;
     }
 }
