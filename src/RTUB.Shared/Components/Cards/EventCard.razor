@@ -88,8 +88,8 @@
             @if (!IsPastEvent)
             {
                 <div class="enrollment-section mt-auto p-2 rounded">
-                    <!-- First row: Details, View and Repertoire buttons - equal size -->
-                    <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
+                    <!-- First row: Details, View and Repertoire buttons - equal size, wrap on mobile -->
+                    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-center mb-2">
                         <!-- View Details button -->
                         <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
                                 @onclick="OnViewDetails" 
@@ -113,37 +113,37 @@
                         </button>
                     </div>
 
-                    <!-- Second row: Enrollment action buttons -->
-                    <div class="d-flex gap-2 align-items-center justify-content-center">
+                    <!-- Second row: Enrollment action buttons, wrap on mobile -->
+                    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-center">
                         @if (UserEnrollment == null)
                         {
                             <!-- Enroll button -->
-                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
+                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1 event-enroll-btn" 
                                     @onclick="OnEnroll" 
                                     title="Inscrever neste evento">
                                 <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
-                                <span class="d-none d-sm-inline me-1">Inscrever</span>
+                                <span class="me-1">Inscrever</span>
                             </button>
                         }
                         else
                         {
                             <!-- Enrolled status button (disabled, purple) -->
-                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
+                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1 event-enroll-btn" 
                                     disabled 
                                     title="Inscrito">
                                 <i class="bi bi-check-circle-fill icon-size-1rem"></i>
-                                <span class="d-none d-md-inline me-1">Inscrito</span>
+                                <span class="me-1">Inscrito</span>
                             </button>
                             
                             <!-- Edit enrollment button (white) -->
-                            <button class="btn btn-sm btn-light d-flex align-items-center" 
+                            <button class="btn btn-sm btn-light d-flex align-items-center event-secondary-btn" 
                                     @onclick="OnEditEnrollment" 
                                     title="Editar Inscrição">
                                 <i class="bi bi-pencil-fill icon-size-1rem me-1"></i> Editar
                             </button>
                             
                             <!-- Remove enrollment button (red) -->
-                            <button class="btn btn-sm btn-danger d-flex align-items-center" 
+                            <button class="btn btn-sm btn-danger d-flex align-items-center event-secondary-btn" 
                                     @onclick="OnRemoveEnrollment" 
                                     title="Anular Inscrição">
                                 <i class="bi bi-x-circle-fill icon-size-1rem me-1"></i> Cancelar
@@ -156,7 +156,7 @@
             {
                 <!-- Past event buttons -->
                 <div class="enrollment-section mt-auto p-2 rounded">
-                    <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
+                    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-center mb-2">
                         <!-- View Details button -->
                         <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
                                 @onclick="OnViewDetails" 
@@ -315,5 +315,36 @@
     .event-action-btn {
         min-width: 48px;
         height: 32px;
+        flex: 1 1 auto;
+        max-width: 150px;
+    }
+
+    .event-enroll-btn {
+        min-width: 110px;
+        flex: 1 1 auto;
+    }
+
+    .event-secondary-btn {
+        min-width: 90px;
+        flex: 0 1 auto;
+    }
+
+    /* Mobile responsiveness */
+    @@media (max-width: 576px) {
+        .event-action-btn {
+            min-width: 100%;
+            flex: 1 1 100%;
+            max-width: none;
+        }
+
+        .event-enroll-btn {
+            min-width: 100%;
+            flex: 1 1 100%;
+        }
+
+        .event-secondary-btn {
+            min-width: calc(50% - 0.25rem);
+            flex: 1 1 calc(50% - 0.25rem);
+        }
     }
 </style>

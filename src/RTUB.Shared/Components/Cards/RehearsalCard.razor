@@ -70,9 +70,9 @@
         {
             <div class="rehearsal-actions-section mt-auto p-2 rounded">
                 <!-- First row: View Details and View Attendances buttons -->
-                <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
+                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-center mb-2">
                     <!-- View Details button -->
-                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" 
+                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 rehearsal-action-btn" 
                             @onclick="HandleViewDetails" 
                             title="Ver Detalhes">
                         <i class="bi bi-eye-fill icon-size-1rem"></i>
@@ -80,7 +80,7 @@
                     </button>
 
                     <!-- View Attendances button -->
-                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
+                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 rehearsal-action-btn" 
                             @onclick="HandleViewAttendances" 
                             title="Ver Presenças">
                         <i class="bi bi-people icon-size-1rem"></i>
@@ -91,39 +91,41 @@
                 @if (!IsPastRehearsal)
                 {
                     <!-- Second row: User attendance action buttons -->
-                    <div class="d-flex gap-2 align-items-center justify-content-center">
+                    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-center">
                         @if (UserAttendance == null)
                         {
                             <!-- Mark Attendance button -->
-                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
+                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1 rehearsal-mark-btn" 
                                     @onclick="HandleMarkAttendance" 
                                     title="Marcar Presença">
                                 <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
-                                <span class="d-none d-sm-inline">Marcar</span>
+                                <span>Marcar</span>
                             </button>
                         }
                         else
                         {
                             <!-- Attendance Pending button (disabled, warning) -->
-                            <button class="btn btn-sm btn-warning d-flex align-items-center gap-1" 
+                            <button class="btn btn-sm btn-warning d-flex align-items-center gap-1 rehearsal-status-btn" 
                                     disabled 
                                     title="Presença Pendente">
                                 <i class="bi bi-clock-fill icon-size-1rem"></i>
-                                <span class="d-none d-md-inline"></span>
+                                <span>Pendente</span>
                             </button>
                             
                             <!-- Edit Attendance button (white) -->
-                            <button class="btn btn-sm btn-light d-flex align-items-center" 
+                            <button class="btn btn-sm btn-light d-flex align-items-center rehearsal-edit-btn" 
                                     @onclick="HandleEditAttendance" 
                                     title="Editar Presença">
                                 <i class="bi bi-pencil-fill icon-size-1rem"></i>
+                                <span class="d-none d-sm-inline ms-1">Editar</span>
                             </button>
                             
                             <!-- Remove Attendance button (red) -->
-                            <button class="btn btn-sm btn-danger d-flex align-items-center" 
+                            <button class="btn btn-sm btn-danger d-flex align-items-center rehearsal-remove-btn" 
                                     @onclick="HandleRemoveAttendance" 
                                     title="Remover Presença">
                                 <i class="bi bi-x-circle-fill icon-size-1rem"></i>
+                                <span class="d-none d-sm-inline ms-1">Remover</span>
                             </button>
                         }
                     </div>
@@ -279,3 +281,50 @@
         };
     }
 }
+
+<style>
+    .rehearsal-action-btn {
+        min-width: 80px;
+        flex: 1 1 auto;
+    }
+
+    .rehearsal-mark-btn {
+        min-width: 110px;
+        flex: 1 1 auto;
+    }
+
+    .rehearsal-status-btn {
+        min-width: 110px;
+        flex: 1 1 auto;
+    }
+
+    .rehearsal-edit-btn,
+    .rehearsal-remove-btn {
+        min-width: 44px;
+        flex: 0 1 auto;
+    }
+
+    /* Mobile responsiveness */
+    @@media (max-width: 576px) {
+        .rehearsal-action-btn {
+            min-width: calc(50% - 0.25rem);
+            flex: 1 1 calc(50% - 0.25rem);
+        }
+
+        .rehearsal-mark-btn {
+            min-width: 100%;
+            flex: 1 1 100%;
+        }
+
+        .rehearsal-status-btn {
+            min-width: 100%;
+            flex: 1 1 100%;
+        }
+
+        .rehearsal-edit-btn,
+        .rehearsal-remove-btn {
+            min-width: calc(50% - 0.25rem);
+            flex: 1 1 calc(50% - 0.25rem);
+        }
+    }
+</style>

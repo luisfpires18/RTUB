@@ -449,6 +449,33 @@ a:hover, a:focus {
     overflow-y: auto;
   }
 
+  /* Improve modal footer buttons on mobile - wrap and stack */
+  .modal-footer {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .modal-footer .btn {
+    min-width: calc(50% - 0.25rem);
+    flex: 1 1 calc(50% - 0.25rem);
+  }
+
+  /* If there are more than 2 buttons, make them full width */
+  .modal-footer .btn:only-child {
+    min-width: 100%;
+    flex: 1 1 100%;
+  }
+
+  /* Modal body form buttons - ensure they wrap nicely */
+  .modal-body .d-flex.gap-2 {
+    flex-wrap: wrap;
+  }
+
+  .modal-body .d-flex.gap-2 .btn {
+    min-width: calc(50% - 0.25rem);
+    flex: 1 1 calc(50% - 0.25rem);
+  }
+
   /* Avatar sizing for mobile */
   .avatar {
     width: 150px;
@@ -3130,6 +3157,12 @@ th:hover {
   .modal-footer {
     padding: 0.75rem;
     gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .modal-footer .btn {
+    min-width: calc(50% - 0.25rem);
+    flex: 1 1 calc(50% - 0.25rem);
   }
 
   /* Make sure icons in buttons are properly sized */
