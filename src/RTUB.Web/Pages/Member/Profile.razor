@@ -19,6 +19,7 @@
 @inject IJSRuntime JSRuntime
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject IRoleAssignmentService RoleAssignmentService
+@inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 
 <h1 class="text-center mb-4">Meu Perfil</h1>
 
@@ -557,6 +558,9 @@ else
                 
                 // Update cache-bust parameter to force image reload
                 profilePictureVersion = DateTime.UtcNow.Ticks;
+                
+                // Notify MainLayout and other components that profile picture has been updated
+                ProfilePictureUpdateService.NotifyProfilePictureUpdated();
                 
                 uploadMessage = "Foto de perfil atualizada com sucesso!";
                 StateHasChanged();

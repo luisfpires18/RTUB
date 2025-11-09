@@ -123,6 +123,9 @@ namespace RTUB
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<IProductReservationService, ProductReservationService>();
             services.AddScoped<ITrophyService, TrophyService>();
+            
+            // --------- UI State Services ---------
+            services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
 
             // ---------- Blazor + Authentication ----------
             services.AddRazorComponents()

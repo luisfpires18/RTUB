@@ -11,6 +11,7 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
 @inject IJSRuntime JSRuntime
+@inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 @implements IDisposable
 
 <nav class="navbar navbar-expand-lg navbar-dark border-bottom navbar-main">
@@ -213,6 +214,9 @@
     {
         await LoadCurrentUser();
         
+        // Subscribe to profile picture updates
+        ProfilePictureUpdateService.OnProfilePictureUpdated += HandleProfilePictureUpdated;
+        
         // Subscribe to location changes
         NavigationManager.LocationChanged += HandleLocationChanged;
         _lastLocation = NavigationManager.Uri;
@@ -326,9 +330,18 @@
         return currentUser.ProfilePictureSrc ?? "/images/default-avatar.png";
     }
 
+    private async void HandleProfilePictureUpdated()
+    {
+        // Reload user data and update version when profile picture is updated
+        await LoadCurrentUser();
+        profilePictureVersion = DateTime.UtcNow.Ticks;
+        await InvokeAsync(StateHasChanged);
+    }
+
     public void Dispose()
     {
         NavigationManager.LocationChanged -= HandleLocationChanged;
+        ProfilePictureUpdateService.OnProfilePictureUpdated -= HandleProfilePictureUpdated;
         _debounceTimer?.Dispose();
     }
 }
