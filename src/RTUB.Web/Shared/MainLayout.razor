@@ -330,12 +330,20 @@
         return currentUser.ProfilePictureSrc ?? "/images/default-avatar.png";
     }
 
-    private async void HandleProfilePictureUpdated()
+    private void HandleProfilePictureUpdated()
     {
+        Console.WriteLine($"[MainLayout] HandleProfilePictureUpdated called at {DateTime.Now:HH:mm:ss.fff}");
+        
         // Reload user data and update version when profile picture is updated
-        await LoadCurrentUser();
-        profilePictureVersion = DateTime.UtcNow.Ticks;
-        await InvokeAsync(StateHasChanged);
+        _ = InvokeAsync(async () =>
+        {
+            Console.WriteLine($"[MainLayout] Reloading user data at {DateTime.Now:HH:mm:ss.fff}");
+            await LoadCurrentUser();
+            profilePictureVersion = DateTime.UtcNow.Ticks;
+            Console.WriteLine($"[MainLayout] Updated profilePictureVersion to {profilePictureVersion}");
+            StateHasChanged();
+            Console.WriteLine($"[MainLayout] StateHasChanged called at {DateTime.Now:HH:mm:ss.fff}");
+        });
     }
 
     public void Dispose()

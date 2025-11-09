@@ -9,6 +9,8 @@ public class ProfilePictureUpdateService
 
     public void NotifyProfilePictureUpdated()
     {
+        Console.WriteLine($"[ProfilePictureUpdateService] NotifyProfilePictureUpdated called at {DateTime.Now:HH:mm:ss.fff}");
+        Console.WriteLine($"[ProfilePictureUpdateService] Subscribers count: {OnProfilePictureUpdated?.GetInvocationList().Length ?? 0}");
         OnProfilePictureUpdated?.Invoke();
     }
 }

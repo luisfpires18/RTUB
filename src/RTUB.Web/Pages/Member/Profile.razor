@@ -559,11 +559,14 @@ else
                 // Update cache-bust parameter to force image reload
                 profilePictureVersion = DateTime.UtcNow.Ticks;
                 
-                // Notify MainLayout and other components that profile picture has been updated
-                ProfilePictureUpdateService.NotifyProfilePictureUpdated();
-                
                 uploadMessage = "Foto de perfil atualizada com sucesso!";
                 StateHasChanged();
+                
+                // Wait a moment to ensure database and cache updates are complete
+                await Task.Delay(100);
+                
+                // Notify MainLayout and other components that profile picture has been updated
+                ProfilePictureUpdateService.NotifyProfilePictureUpdated();
                 
                 // Wait for Blazor to update the DOM with new ?v= parameter.
                 // The @key attribute should force element recreation, but we wait
