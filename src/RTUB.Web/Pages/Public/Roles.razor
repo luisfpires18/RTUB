@@ -7,12 +7,41 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components
 @inject IRoleAssignmentService RoleAssignmentService
+@inject IFiscalYearService FiscalYearService
 @inject UserManager<ApplicationUser> UserManager
 @inject IDocumentStorageService DocumentStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject RTUB.Application.Services.AuditContext AuditContext
 
-<h1 class="portal-title">Órgãos Sociais  @currentFiscalYearString</h1>
+<h1 class="portal-title">Órgãos Sociais</h1>
+<p class="text-center mb-4">Seleciona o ano fiscal para ver quem liderou.</p>
+
+@* Controls row: FY Dropdown + Admin Add button *@
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div class="fy-dropdown-container">
+        @if (fiscalYears.Any())
+        {
+            <select class="form-select fy-selector" @bind="selectedFiscalYear" @bind:after="OnFiscalYearChanged">
+                @foreach (var year in fiscalYears)
+                {
+                    var isCurrent = year == currentFiscalYearString;
+                    <option value="@year">@year@(isCurrent ? " (Ano ativo)" : "")</option>
+                }
+            </select>
+        }
+    </div>
+    
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <button class="btn btn-primary btn-add-role" @onclick="OpenCreateFiscalYearModal">
+                <i class="bi bi-plus-lg"></i> Adicionar
+            </button>
+        </Authorized>
+    </AuthorizeView>
+</div>
 
 @* RGI Section - Visible only to MEMBER and ADMIN *@
 <AuthorizeView Roles="Member,Admin">
@@ -48,7 +77,7 @@ else
                 }
                 
                 @* Magister *@
-                <div class="text-center mb-4">
+                <div class="text-center mb-4 position-relative">
                     <div class="position-title mb-2">MAGISTER</div>
                     @if (magister != null)
                     {
@@ -63,11 +92,29 @@ else
                             {
                                 <div class="text-light-theme">@magister.User.FirstName @magister.User.LastName</div>
                             }
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-action-chips mt-2">
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveAssignment(magister.Id)" title="Remover">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         </div>
                     }
                     else
                     {
                         <div class="not-available-text">N/D</div>
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                <div class="admin-action-chips mt-2">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.Magister, "Magister"))" title="Adicionar">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
                     }
                 </div>
 
@@ -461,28 +508,208 @@ else
     </FooterContent>
 </Modal>
 
+<!-- Create Fiscal Year Modal (Admin only) -->
+<Modal Show="@showCreateFiscalYearModal" 
+       ShowChanged="@((bool show) => showCreateFiscalYearModal = show)"
+       Title="Criar Novo Ano Fiscal" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+        <div class="mb-3">
+            <label class="form-label">Ano de Início</label>
+            <input type="number" class="form-control" @bind="newStartYear" min="1900" max="2100" />
+            <small class="text-muted">O ano fiscal será criado automaticamente como @newStartYear-@(newStartYear + 1)</small>
+        </div>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseCreateFiscalYearModal">Cancelar</button>
+        <button type="button" class="btn btn-primary" @onclick="CreateFiscalYear">Criar</button>
+    </FooterContent>
+</Modal>
+
+<!-- Assign Member Modal (Admin only) -->
+<Modal Show="@showAssignMemberModal" 
+       ShowChanged="@((bool show) => showAssignMemberModal = show)"
+       Title="@("Atribuir Membro ao Cargo: " + selectedPositionName)" 
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+        <div class="mb-3">
+            <label class="form-label">Pesquisar Membro</label>
+            <input type="text" class="form-control" placeholder="Inserir nome, email ou tuna name..."
+                   @bind="memberSearchTerm" @bind:event="oninput" @onkeyup="FilterMembers" />
+        </div>
+        @if (filteredMembers.Any())
+        {
+            <div class="member-list member-list-scrollable">
+                @foreach (var member in filteredMembers.Take(20))
+                {
+                    <div class="member-item p-2 mb-2 border rounded clickable-row"
+                         @onclick="() => SelectMember(member)">
+                        <div class="d-flex align-items-center">
+                            <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                 class="member-avatar-small me-2" />
+                            <div>
+                                @if (!string.IsNullOrEmpty(member.Nickname))
+                                {
+                                    <div><strong>@member.Nickname</strong></div>
+                                    <div class="text-muted small">@member.FirstName @member.LastName</div>
+                                }
+                                else
+                                {
+                                    <div><strong>@member.FirstName @member.LastName</strong></div>
+                                }
+                                <div class="text-muted small">@member.Email</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(memberSearchTerm))
+        {
+            <Alert Type="Alert.AlertType.Purple" Message="Nenhum membro encontrado." />
+        }
+
+        @if (selectedMember != null)
+        {
+            <Alert Type="Alert.AlertType.Purple" Message="@($"Membro Selecionado: {selectedMember.GetDisplayName()}")" AdditionalClasses="mt-3" />
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseAssignMemberModal">Cancelar</button>
+        <button type="button" class="btn btn-primary" @onclick="SaveAssignment"
+                disabled="@(selectedMember == null)">Atribuir</button>
+    </FooterContent>
+</Modal>
+
 @code {
     private int currentFiscalYearStartYear;
     private string currentFiscalYearString = "";
     private List<RoleAssignment> roleAssignments = new();
+    private List<string> fiscalYears = new();
+    private string selectedFiscalYear = "";
     private bool isLoading = true;
+    private bool isAdmin = false;
     
     // RGI PDF state
     private bool showRgiModal = false;
     private bool isLoadingRgi = false;
     private string? rgiPdfUrl;
+    
+    // Admin modal state
+    private bool showCreateFiscalYearModal = false;
+    private bool showAssignMemberModal = false;
+    private int newStartYear = DateTime.Now.Year;
+    private string errorMessage = "";
+    
+    private Position? selectedPosition;
+    private string selectedPositionName = "";
+    private string memberSearchTerm = "";
+    private ApplicationUser? selectedMember;
+    private List<ApplicationUser> allMembers = new();
+    private List<ApplicationUser> filteredMembers = new();
+    
+    // Helper for multi-word search
+    private SearchHelper<ApplicationUser> searchHelper = new();
 
     protected override async Task OnInitializedAsync()
     {
         currentFiscalYearStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
         currentFiscalYearString = FiscalYearHelper.GetCurrentFiscalYearString();
         
+        // Check if user is admin
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isAdmin = authState.User.IsInRole("Admin");
+        
+        // Load fiscal years
+        await LoadFiscalYears();
+        
+        // Load all members for admin
+        if (isAdmin)
+        {
+            LoadAllMembers();
+        }
+        
+        // Handle URL query parameter ?fy=
+        var uri = new Uri(NavigationManager.Uri);
+        var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var fyParam = queryParams["fy"];
+        
+        if (!string.IsNullOrEmpty(fyParam) && fiscalYears.Contains(fyParam))
+        {
+            selectedFiscalYear = fyParam;
+        }
+        else if (fiscalYears.Contains(currentFiscalYearString))
+        {
+            selectedFiscalYear = currentFiscalYearString;
+        }
+        else if (fiscalYears.Any())
+        {
+            selectedFiscalYear = fiscalYears.First();
+        }
+        
+        await LoadRoleAssignments();
+        
+        // Handle ?manage=1 query parameter (redirect from /admin/roles)
+        var manageParam = queryParams["manage"];
+        if (manageParam == "1" && isAdmin)
+        {
+            OpenCreateFiscalYearModal();
+        }
+    }
+    
+    private async Task LoadFiscalYears()
+    {
+        var years = (await FiscalYearService.GetAllFiscalYearsAsync())
+            .OrderByDescending(y => y.StartYear)
+            .ToList();
+
+        fiscalYears = years.Select(y => y.FiscalYearString).ToList();
+    }
+    
+    private void LoadAllMembers()
+    {
+        allMembers = UserManager.Users
+            .OrderBy(u => u.FirstName)
+            .ThenBy(u => u.LastName)
+            .ToList();
+    }
+    
+    private async Task LoadRoleAssignments()
+    {
+        if (string.IsNullOrEmpty(selectedFiscalYear))
+        {
+            roleAssignments = new();
+            isLoading = false;
+            return;
+        }
+        
+        isLoading = true;
+        StateHasChanged();
+        
+        var parts = selectedFiscalYear.Split('-');
+        if (parts.Length != 2 || !int.TryParse(parts[0], out var startYear) || !int.TryParse(parts[1], out var endYear))
+        {
+            roleAssignments = new();
+            isLoading = false;
+            return;
+        }
+        
         // Get all role assignments
         var allAssignments = await RoleAssignmentService.GetAllRoleAssignmentsAsync();
         
-        // Filter to current fiscal year
+        // Filter to selected fiscal year
         roleAssignments = allAssignments
-            .Where(ra => ra.StartYear == currentFiscalYearStartYear)
+            .Where(ra => ra.StartYear == startYear && ra.EndYear == endYear)
             .ToList();
 
         // Load all user data at once to avoid N+1 queries
@@ -508,6 +735,13 @@ else
         }
 
         isLoading = false;
+    }
+    
+    private async Task OnFiscalYearChanged()
+    {
+        // Update URL with query parameter
+        NavigationManager.NavigateTo($"/roles?fy={selectedFiscalYear}", forceLoad: false);
+        await LoadRoleAssignments();
     }
 
     private RoleAssignment? GetRoleAssignment(Position position)
@@ -542,6 +776,242 @@ else
         showRgiModal = false;
         isLoadingRgi = false;
         rgiPdfUrl = null;
+    }
+    
+    // Admin modal methods
+    private void OpenCreateFiscalYearModal()
+    {
+        newStartYear = DateTime.Now.Year;
+        errorMessage = "";
+        showCreateFiscalYearModal = true;
+    }
+
+    private void CloseCreateFiscalYearModal()
+    {
+        showCreateFiscalYearModal = false;
+        errorMessage = "";
+    }
+
+    private async Task CreateFiscalYear()
+    {
+        errorMessage = "";
+
+        try
+        {
+            // Create fiscal year via service (validation is done in the service)
+            var newFiscalYear = await FiscalYearService.CreateFiscalYearAsync(newStartYear);
+
+            // Reload fiscal years and select the new one
+            await LoadFiscalYears();
+            selectedFiscalYear = newFiscalYear.FiscalYearString;
+            await LoadRoleAssignments();
+            CloseCreateFiscalYearModal();
+        }
+        catch (InvalidOperationException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private void OpenAssignMemberModal(Position position, string displayName)
+    {
+        selectedPosition = position;
+        selectedPositionName = displayName;
+        memberSearchTerm = "";
+        selectedMember = null;
+        filteredMembers.Clear();
+        errorMessage = "";
+        showAssignMemberModal = true;
+    }
+
+    private void CloseAssignMemberModal()
+    {
+        showAssignMemberModal = false;
+        selectedPosition = null;
+        selectedPositionName = "";
+        memberSearchTerm = "";
+        selectedMember = null;
+        filteredMembers.Clear();
+        errorMessage = "";
+    }
+
+    private void FilterMembers()
+    {
+        if (string.IsNullOrEmpty(memberSearchTerm))
+        {
+            filteredMembers.Clear();
+            return;
+        }
+
+        // Use SearchHelper for multi-word search support
+        searchHelper.SearchTerm = memberSearchTerm;
+        filteredMembers = searchHelper.FilterMultiple(allMembers, new List<Func<ApplicationUser, string>>
+        {
+            u => u.FirstName ?? "",
+            u => u.LastName ?? "",
+            u => u.Nickname ?? "",
+            u => u.Email ?? ""
+        });
+    }
+
+    private void SelectMember(ApplicationUser member)
+    {
+        selectedMember = member;
+    }
+
+    private async Task SaveAssignment()
+    {
+        if (selectedMember == null || selectedPosition == null || string.IsNullOrEmpty(selectedFiscalYear))
+            return;
+
+        errorMessage = "";
+
+        // Check if member is LEITAO
+        if (selectedMember.IsLeitao())
+        {
+            errorMessage = "Não é possível atribuir cargos a membros LEITÃO.";
+            return;
+        }
+
+        // President positions that Caloiro cannot hold
+        var presidentPositions = new[]
+        {
+            Position.Magister,
+            Position.PresidenteMesaAssembleia,
+            Position.PresidenteConselhoFiscal,
+            Position.PresidenteConselhoVeteranos
+        };
+
+        // Check if member is CALOIRO and trying to assign a President position
+        if (selectedMember.IsCaloiro() &&
+            presidentPositions.Contains(selectedPosition.Value))
+        {
+            errorMessage = "CALOIRO não pode ser atribuído a cargos de Presidente.";
+            return;
+        }
+
+        // Check if position is Presidente do Conselho de Veteranos and member is not Tuno Veterano
+        if (selectedPosition.Value == Position.PresidenteConselhoVeteranos)
+        {
+            var isTunoVeterano = selectedMember.IsTuno() && selectedMember.QualifiesForVeterano();
+
+            if (!isTunoVeterano)
+            {
+                errorMessage = "Presidente do Conselho de Veteranos deve ser TUNO VETERANO (mínimo 2 anos como Tuno).";
+                return;
+            }
+        }
+
+        var parts = selectedFiscalYear.Split('-');
+        if (parts.Length != 2 || !int.TryParse(parts[0], out var startYear) || !int.TryParse(parts[1], out var endYear))
+        {
+            errorMessage = "Ano fiscal inválido.";
+            return;
+        }
+
+        // Check if this position is already assigned for this fiscal year
+        var existing = (await RoleAssignmentService.GetAllRoleAssignmentsAsync())
+            .FirstOrDefault(r => r.Position == selectedPosition.Value &&
+                                 r.StartYear == startYear &&
+                                 r.EndYear == endYear);
+
+        if (existing != null)
+        {
+            errorMessage = "Este cargo já está atribuído para este ano fiscal.";
+            return;
+        }
+
+        // Check if member already has a position assigned in this fiscal year
+        var memberHasAssignment = (await RoleAssignmentService.GetRoleAssignmentsByUserIdAsync(selectedMember.Id))
+            .Any(r => r.StartYear == startYear && r.EndYear == endYear);
+
+        if (memberHasAssignment)
+        {
+            errorMessage = "Este membro já tem um cargo atribuído para este ano fiscal.";
+            return;
+        }
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUserId = UserManager.GetUserId(authState.User);
+
+        await RoleAssignmentService.CreateRoleAssignmentAsync(
+            selectedMember.Id,
+            selectedPosition.Value,
+            startYear,
+            endYear,
+            null,
+            currentUserId
+        );
+
+        // Update user's current Positions property and promote to Admin ONLY if fiscal year is current
+        int currentFiscalStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+
+        bool isFiscalYearCurrent = (startYear == currentFiscalStartYear);
+
+        var user = await UserManager.FindByIdAsync(selectedMember.Id);
+        if (user != null && isFiscalYearCurrent)
+        {
+            var positions = user.Positions.ToList();
+            if (!positions.Contains(selectedPosition.Value))
+            {
+                positions.Add(selectedPosition.Value);
+                user.Positions = positions;
+                await SetAuditContextToCurrentUser();
+                await UserManager.UpdateAsync(user);
+            }
+
+            // Promote user from Member to Admin role
+            var currentRoles = await UserManager.GetRolesAsync(user);
+            if (!currentRoles.Contains("Admin"))
+            {
+                // Remove Member role if present
+                if (currentRoles.Contains("Member"))
+                {
+                    await UserManager.RemoveFromRoleAsync(user, "Member");
+                }
+                // Add Admin role
+                await UserManager.AddToRoleAsync(user, "Admin");
+            }
+        }
+
+        await LoadRoleAssignments();
+        CloseAssignMemberModal();
+    }
+
+    private async Task RemoveAssignment(int assignmentId)
+    {
+        // Get assignment details before deleting
+        var assignment = await RoleAssignmentService.GetRoleAssignmentByIdAsync(assignmentId);
+        if (assignment == null) return;
+
+        await RoleAssignmentService.DeleteRoleAssignmentAsync(assignmentId);
+
+        // Remove from user's current Positions property ONLY if fiscal year is current
+        int currentFiscalStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        bool isFiscalYearCurrent = (assignment.StartYear == currentFiscalStartYear);
+
+        var user = await UserManager.FindByIdAsync(assignment.UserId);
+        if (user != null && isFiscalYearCurrent)
+        {
+            var positions = user.Positions.ToList();
+            if (positions.Contains(assignment.Position))
+            {
+                positions.Remove(assignment.Position);
+                user.Positions = positions;
+                await SetAuditContextToCurrentUser();
+                await UserManager.UpdateAsync(user);
+            }
+        }
+
+        await LoadRoleAssignments();
+    }
+
+    private async Task SetAuditContextToCurrentUser()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userName = authState.User.Identity?.Name;
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        AuditContext.SetUser(userName, userId);
     }
 }
 
