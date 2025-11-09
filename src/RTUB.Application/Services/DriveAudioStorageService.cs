@@ -147,8 +147,8 @@ public class DriveAudioStorageService : IAudioStorageService, IDisposable
         var normalizedAlbum = S3KeyNormalizer.NormalizeForS3Key(albumTitle);
         var normalizedSong = S3KeyNormalizer.NormalizeForS3Key(songTitle);
 
-        // Construct the full key path: album_folder/song_name.mp3
-        var objectKey = $"{normalizedAlbum}/{normalizedSong}.mp3";
+        // Construct the full key path: albums/album_folder/song_name.mp3
+        var objectKey = $"albums/{normalizedAlbum}/{normalizedSong}.mp3";
 
         return objectKey;
     }
