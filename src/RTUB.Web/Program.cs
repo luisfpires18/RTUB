@@ -121,13 +121,29 @@ namespace RTUB
             services.AddSingleton<ILyricStorageService, DriveLyricStorageService>();
             services.AddSingleton<IDocumentStorageService, DriveDocumentStorageService>();
             
-            // Images moved to Cloudflare R2
-            services.AddSingleton<ISlideshowStorageService, CloudflareSlideshowStorageService>();
-            services.AddSingleton<IEventStorageService, CloudflareEventStorageService>();
-            services.AddSingleton<IProfileStorageService, CloudflareProfileStorageService>();
-            services.AddSingleton<IAlbumStorageService, CloudflareAlbumStorageService>();
-            services.AddSingleton<IInstrumentStorageService, CloudflareInstrumentStorageService>();
-            services.AddSingleton<IProductStorageService, CloudflareProductStorageService>();
+            // Images: Use Cloudflare R2 if configured, otherwise fall back to iDrive
+            var useCloudflare = !string.IsNullOrEmpty(builder.Configuration["Cloudflare:R2:AccountId"]);
+            
+            if (useCloudflare)
+            {
+                // Cloudflare R2 for images
+                services.AddSingleton<ISlideshowStorageService, CloudflareSlideshowStorageService>();
+                services.AddSingleton<IEventStorageService, CloudflareEventStorageService>();
+                services.AddSingleton<IProfileStorageService, CloudflareProfileStorageService>();
+                services.AddSingleton<IAlbumStorageService, CloudflareAlbumStorageService>();
+                services.AddSingleton<IInstrumentStorageService, CloudflareInstrumentStorageService>();
+                services.AddSingleton<IProductStorageService, CloudflareProductStorageService>();
+            }
+            else
+            {
+                // iDrive for images (fallback)
+                services.AddSingleton<ISlideshowStorageService, DriveSlideshowStorageService>();
+                services.AddSingleton<IEventStorageService, DriveEventStorageService>();
+                services.AddSingleton<IProfileStorageService, DriveProfileStorageService>();
+                services.AddSingleton<IAlbumStorageService, DriveAlbumStorageService>();
+                services.AddSingleton<IInstrumentStorageService, DriveInstrumentStorageService>();
+                services.AddSingleton<IProductStorageService, DriveProductStorageService>();
+            }
             
             // --------- Inventory & Shop Services ---------
             services.AddScoped<IInstrumentService, InstrumentService>();
@@ -196,12 +212,23 @@ namespace RTUB
             services.AddControllers();
 
             var app = builder.Build();
+            
+            // Log which storage provider is being used for images
+            var logger = app.Services.GetRequiredService<ILogger<Program>>();
+            if (useCloudflare)
+            {
+                logger.LogInformation("Image storage configured: Cloudflare R2");
+            }
+            else
+            {
+                logger.LogInformation("Image storage configured: iDrive (Cloudflare not configured - using fallback)");
+            }
 
             // ---------- Migrate + seed ----------
             using (var scope = app.Services.CreateScope())
             {
                 var sp = scope.ServiceProvider;
-                var logger = sp.GetRequiredService<ILogger<Program>>();
+                var scopeLogger = sp.GetRequiredService<ILogger<Program>>();
                 
                 try
                 {

@@ -1,5 +1,14 @@
 # Migration from iDrive to Cloudflare R2 for Images
 
+## ⚠️ Important: Optional Migration
+
+**The application works without Cloudflare configuration!** If you don't configure Cloudflare R2, the app automatically falls back to using iDrive for image storage. This means:
+
+- ✅ App continues working with iDrive (no breaking changes)
+- ✅ Migration is completely optional
+- ✅ You can test and configure Cloudflare at your own pace
+- ✅ Easy rollback - just remove Cloudflare configuration
+
 ## Overview
 
 This migration moves **image storage only** from iDrive e2 to Cloudflare R2, while keeping documents, audio files, and lyrics on iDrive.
