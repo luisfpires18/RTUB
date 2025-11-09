@@ -50,4 +50,22 @@ public interface IEmailNotificationService
     /// <param name="firstName">The first name of the member</param>
     /// <param name="password">The generated password</param>
     Task SendWelcomeEmailAsync(string userName, string email, string firstName, string password);
+
+    /// <summary>
+    /// Sends event notification emails to subscribed members
+    /// </summary>
+    /// <param name="eventId">The event ID</param>
+    /// <param name="eventTitle">The event title</param>
+    /// <param name="eventDate">The event date</param>
+    /// <param name="eventLocation">The event location</param>
+    /// <param name="eventLink">Absolute link to the event</param>
+    /// <param name="recipientEmails">List of recipient email addresses</param>
+    /// <returns>Tuple with success flag and count of emails sent</returns>
+    Task<(bool success, int count, string? errorMessage)> SendEventNotificationAsync(
+        int eventId, 
+        string eventTitle, 
+        DateTime eventDate, 
+        string eventLocation, 
+        string eventLink, 
+        List<string> recipientEmails);
 }

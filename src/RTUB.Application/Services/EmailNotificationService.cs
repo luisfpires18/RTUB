@@ -248,6 +248,118 @@ RTUB
         }
     }
 
+    /// <inheritdoc/>
+    public async Task<(bool success, int count, string? errorMessage)> SendEventNotificationAsync(
+        int eventId,
+        string eventTitle,
+        DateTime eventDate,
+        string eventLocation,
+        string eventLink,
+        List<string> recipientEmails)
+    {
+        // Rate limit: Prevent duplicate emails for the same event within 5 minutes
+        var rateLimitKey = $"email-event-{eventId}";
+        if (ShouldRateLimitEmail(rateLimitKey))
+        {
+            return (false, 0, "Email já enviado recentemente para este evento.");
+        }
+
+        try
+        {
+            // Get email settings from configuration
+            var smtpServer = _configuration["EmailSettings:SmtpServer"];
+            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
+            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
+            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
+            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
+            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
+            var enableSsl = enableSslStr != "false"; // Default to true
+
+            // Validate required email settings
+            if (string.IsNullOrEmpty(senderEmail))
+            {
+                _logger.LogError("SenderEmail is not configured in EmailSettings");
+                return (false, 0, "Configuração de email não está completa.");
+            }
+
+            // Check if SMTP is configured
+            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
+            {
+                _logger.LogWarning("SMTP not configured, skipping event notification email");
+                return (false, 0, "Servidor de email não configurado.");
+            }
+
+            // Validate recipients
+            if (recipientEmails == null || !recipientEmails.Any())
+            {
+                _logger.LogWarning("No recipient emails provided for event notification");
+                return (false, 0, "Nenhum destinatário encontrado.");
+            }
+
+            var subject = $"Nova atuação: {eventTitle} — {eventDate:dd MMM yyyy}";
+
+            // Format date in PT-PT format
+            var dateFormatted = eventDate.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", 
+                new System.Globalization.CultureInfo("pt-PT"));
+
+            var body = $@"
+Olá!
+
+Há uma nova atuação agendada: {eventTitle}
+📅 {dateFormatted}
+📍 {eventLocation}
+
+Consulta os detalhes no site e confirma a tua presença se fores.
+{eventLink}
+
+Obrigado,
+RTUB
+";
+
+            // Send email via SMTP
+            using var smtpClient = new SmtpClient(smtpServer, smtpPort)
+            {
+                Credentials = new NetworkCredential(smtpUsername, smtpPassword),
+                EnableSsl = enableSsl,
+                Timeout = 30000 // 30 second timeout for batch emails
+            };
+
+            var mailMessage = new MailMessage
+            {
+                From = new MailAddress(senderEmail, senderName),
+                Subject = subject,
+                Body = body,
+                IsBodyHtml = false
+            };
+
+            // Add all recipients as BCC to hide recipient list
+            foreach (var email in recipientEmails)
+            {
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    mailMessage.Bcc.Add(email);
+                }
+            }
+
+            // Add sender as the To address (required by some SMTP servers)
+            mailMessage.To.Add(senderEmail);
+
+            await smtpClient.SendMailAsync(mailMessage);
+            
+            _logger.LogInformation("Event notification email successfully sent for event {EventId} to {RecipientCount} members", 
+                eventId, recipientEmails.Count);
+
+            return (true, recipientEmails.Count, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending event notification email for event {EventId}", eventId);
+            return (false, 0, $"Erro ao enviar email: {ex.Message}");
+        }
+    }
+
     // Helper methods for email body generation (to be implemented when actual email sending is added)
     // private string BuildStatusChangeEmailBody(string name, int requestId, RequestStatus oldStatus, RequestStatus newStatus) { ... }
     // private string BuildNewRequestEmailBody(string name, string email, string eventType, int requestId) { ... }
