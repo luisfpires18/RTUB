@@ -85,11 +85,11 @@
             @if (Event.Type == EventType.Festival)
             {
                 <div class="enrollment-section mt-auto p-2 rounded">
-                    <div class="d-flex gap-2 align-items-center justify-content-center">
-                        <button class="btn btn-sm btn-warning d-flex align-items-center justify-content-center event-action-btn" 
+                    <div class="event-buttons-container">
+                        <button class="btn event-icon-btn btn-warning" 
                                 @onclick="OnViewTrophies" 
-                                title="Ver Prémios">
-                            <i class="bi bi-trophy-fill icon-size-1rem me-1"></i> Prémios
+                                title="Prémios">
+                            <i class="bi bi-trophy-fill"></i>
                         </button>
                     </div>
                 </div>
@@ -100,65 +100,79 @@
             @if (!IsPastEvent)
             {
                 <div class="enrollment-section mt-auto p-2 rounded">
-                    <!-- First row: Details, View and Repertoire buttons - equal size -->
-                    <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
+                    <!-- Event buttons row -->
+                    <div class="event-buttons-container mb-2">
                         <!-- View Details button -->
-                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
+                        <button class="btn event-icon-btn btn-outline-secondary" 
                                 @onclick="OnViewDetails" 
-                                title="Ver Detalhes">
-                            <i class="bi bi-eye icon-size-1rem me-1"></i> Detalhes
+                                title="Detalhes">
+                            <i class="bi bi-eye"></i>
                         </button>
 
-                        <!-- View Enrollments button -->
-                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
+                        <!-- View Enrollments button with centered count -->
+                        <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
                                 @onclick="OnViewEnrollments" 
-                                title="Ver Inscrições">
-                            <i class="bi bi-people icon-size-1rem"></i>
-                            <span class="ms-1 me-1">@EnrollmentCount </span> Participantes
+                                title="Participantes">
+                            <i class="bi bi-people"></i>
+                            <span class="enrollment-count-centered">@EnrollmentCount</span>
                         </button>
 
                         <!-- Watch Repertoire button -->
-                        <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center event-action-btn" 
+                        <button class="btn event-icon-btn btn-outline-primary" 
                                 @onclick="OnWatchRepertoire" 
-                                title="Ver Repertório">
-                            <i class="bi bi-music-note-list icon-size-1rem me-1"></i> Repertório
+                                title="Repertório">
+                            <i class="bi bi-music-note-list"></i>
                         </button>
                     </div>
 
-                    <!-- Second row: Enrollment action buttons -->
-                    <div class="d-flex gap-2 align-items-center justify-content-center">
+                    <!-- Enrollment action buttons row -->
+                    <div class="event-buttons-container">
                         @if (UserEnrollment == null)
                         {
                             <!-- Enroll button -->
-                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
+                            <button class="btn event-icon-btn btn-purple" 
                                     @onclick="OnEnroll" 
-                                    title="Inscrever neste evento">
-                                <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
-                                <span class="d-none d-sm-inline me-1">Inscrever</span>
+                                    title="Inscrever">
+                                <i class="bi bi-plus-circle-fill"></i>
+                            </button>
+                        }
+                        else if (UserEnrollment.WillAttend)
+                        {
+                            <!-- Enrolled status button (disabled, purple) -->
+                            <button class="btn event-icon-btn btn-purple" 
+                                    disabled 
+                                    title="Inscrito">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </button>
+                            
+                            <!-- Edit enrollment button (white) -->
+                            <button class="btn event-icon-btn btn-light" 
+                                    @onclick="OnEditEnrollment" 
+                                    title="Editar Inscrição">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            
+                            <!-- Remove enrollment button (red) -->
+                            <button class="btn event-icon-btn btn-danger" 
+                                    @onclick="OnRemoveEnrollment" 
+                                    title="Cancelar Inscrição">
+                                <i class="bi bi-x-circle-fill"></i>
                             </button>
                         }
                         else
                         {
-                            <!-- Enrolled status button (disabled, purple) -->
-                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
+                            <!-- Not attending status button (disabled, red) -->
+                            <button class="btn event-icon-btn btn-danger" 
                                     disabled 
-                                    title="Inscrito">
-                                <i class="bi bi-check-circle-fill icon-size-1rem"></i>
-                                <span class="d-none d-md-inline me-1">Inscrito</span>
+                                    title="Não vou">
+                                <i class="bi bi-x-circle-fill"></i>
                             </button>
                             
                             <!-- Edit enrollment button (white) -->
-                            <button class="btn btn-sm btn-light d-flex align-items-center" 
+                            <button class="btn event-icon-btn btn-light" 
                                     @onclick="OnEditEnrollment" 
                                     title="Editar Inscrição">
-                                <i class="bi bi-pencil-fill icon-size-1rem me-1"></i> Editar
-                            </button>
-                            
-                            <!-- Remove enrollment button (red) -->
-                            <button class="btn btn-sm btn-danger d-flex align-items-center" 
-                                    @onclick="OnRemoveEnrollment" 
-                                    title="Anular Inscrição">
-                                <i class="bi bi-x-circle-fill icon-size-1rem me-1"></i> Cancelar
+                                <i class="bi bi-pencil-fill"></i>
                             </button>
                         }
                     </div>
@@ -168,36 +182,36 @@
             {
                 <!-- Past event buttons -->
                 <div class="enrollment-section mt-auto p-2 rounded">
-                    <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
+                    <div class="event-buttons-container">
                         <!-- View Details button -->
-                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
+                        <button class="btn event-icon-btn btn-outline-secondary" 
                                 @onclick="OnViewDetails" 
-                                title="Ver Detalhes">
-                            <i class="bi bi-eye icon-size-1rem me-1"></i> Detalhes
+                                title="Detalhes">
+                            <i class="bi bi-eye"></i>
                         </button>
 
-                        <!-- View Enrollments button -->
-                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center event-action-btn" 
+                        <!-- View Enrollments button with centered count -->
+                        <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
                                 @onclick="OnViewEnrollments" 
-                                title="Ver Inscrições">
-                            <i class="bi bi-people icon-size-1rem"></i>
-                            <span class="ms-1 me-1">@EnrollmentCount</span> Participantes
+                                title="Participantes">
+                            <i class="bi bi-people"></i>
+                            <span class="enrollment-count-centered">@EnrollmentCount</span>
                         </button>
 
                         <!-- Watch Repertoire button -->
-                        <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center event-action-btn" 
+                        <button class="btn event-icon-btn btn-outline-primary" 
                                 @onclick="OnWatchRepertoire" 
-                                title="Ver Repertório">
-                            <i class="bi bi-music-note-list icon-size-1rem me-1"></i> Repertório
+                                title="Repertório">
+                            <i class="bi bi-music-note-list"></i>
                         </button>
 
                         <!-- Trophy button (for Festival events only) -->
                         @if (ShowTrophy && Event.Type == EventType.Festival)
                         {
-                            <button class="btn btn-sm btn-warning d-flex align-items-center justify-content-center event-action-btn" 
+                            <button class="btn event-icon-btn btn-warning" 
                                     @onclick="OnViewTrophies" 
-                                    title="Ver Prémios">
-                                <i class="bi bi-trophy-fill icon-size-1rem me-1"></i> Prémios
+                                    title="Prémios">
+                                <i class="bi bi-trophy-fill"></i>
                             </button>
                         }
                     </div>
@@ -330,9 +344,112 @@
 }
 
 <style>
-    .event-action-btn {
-        min-width: 48px;
-        height: 32px;
+    /* Horizontal scrollable container for buttons */
+    .event-buttons-container {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        justify-content: center;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        padding: 0.25rem 0;
+    }
+    
+    /* Hide scrollbar for cleaner look */
+    .event-buttons-container::-webkit-scrollbar {
+        height: 4px;
+    }
+    
+    .event-buttons-container::-webkit-scrollbar-track {
+        background: rgba(111, 66, 193, 0.1);
+        border-radius: 2px;
+    }
+    
+    .event-buttons-container::-webkit-scrollbar-thumb {
+        background: rgba(111, 66, 193, 0.3);
+        border-radius: 2px;
+    }
+    
+    .event-buttons-container::-webkit-scrollbar-thumb:hover {
+        background: rgba(111, 66, 193, 0.5);
+    }
+    
+    /* Icon-only square buttons */
+    .event-icon-btn {
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+        min-height: 52px;
+        padding: 0;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        border-radius: 0.75rem;
+        position: relative;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+    }
+    
+    .event-icon-btn i {
+        font-size: 1.25rem;
+        line-height: 1;
+    }
+    
+    /* Enrollment count badge (top-right corner - legacy, kept for compatibility) */
+    .event-icon-btn .enrollment-count {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        background-color: #6f42c1;
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 2px 5px;
+        border-radius: 10px;
+        min-width: 18px;
+        text-align: center;
+        line-height: 1.2;
+        border: 2px solid var(--bs-body-bg);
+    }
+    
+    /* Enrollment count to the right of icon */
+    .event-icon-btn .enrollment-count-centered {
+        position: relative;
+        color: inherit;
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    /* Participants button with count needs to be wider */
+    .event-icon-btn-with-count {
+        width: auto;
+        min-width: 52px;
+        padding: 0 0.5rem;
+    }
+    
+    /* Button hover effects */
+    .event-icon-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .event-icon-btn:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+    
+    /* Mobile adjustments */
+    @@media (max-width: 768px) {
+        .event-buttons-container {
+            justify-content: flex-start;
+            padding-left: 0.25rem;
+            padding-right: 0.25rem;
+        }
     }
     
     .music-btn-email {

@@ -15,6 +15,7 @@ public class Enrollment : BaseEntity
     [Range(1, int.MaxValue, ErrorMessage = "O ID do evento deve ser maior que 0")]
     public int EventId { get; set; }
 
+    public bool WillAttend { get; set; } = true;
     public InstrumentType? Instrument { get; set; }
     public string? Notes { get; set; }
     public DateTime EnrolledAt { get; set; } = DateTime.UtcNow;
