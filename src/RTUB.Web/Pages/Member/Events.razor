@@ -684,7 +684,6 @@ else
     private string dateValidationError = string.Empty;
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
-    private long eventImageVersion = DateTime.UtcNow.Ticks;
     private ImageUploadManager? imageUploadManager;
 
     // Previous events (admin only)
@@ -753,7 +752,6 @@ else
     {
         events = (await EventService.GetUpcomingEventsAsync(100)).ToList();
         await ResolveS3ImageUrls(events);
-        eventImageVersion = DateTime.UtcNow.Ticks; // Refresh cache-bust parameter
     }
 
     private async Task LoadEnrollments()
@@ -923,9 +921,6 @@ else
             {
                 tempImageData = croppedImageData;
                 uploadedImagePath = "uploaded";
-                
-                // Update cache-bust parameter to force image reload after save
-                eventImageVersion = DateTime.UtcNow.Ticks;
                 
                 StateHasChanged();
             }
@@ -1494,11 +1489,7 @@ else
             return string.Empty;
         }
         
-        // Add cache-busting parameter to force reload after image update
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
-        {
-            return $"{imageSrc}?v={eventImageVersion}";
-        }
+        // Return URL as-is - ETag-based caching is handled by ImagesController
         return imageSrc ?? string.Empty;
     }
 }

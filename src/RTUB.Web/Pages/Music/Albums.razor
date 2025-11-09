@@ -162,7 +162,6 @@ else
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
-    private long albumImageVersion = DateTime.UtcNow.Ticks;
 
     protected override async Task OnInitializedAsync()
     {
@@ -173,7 +172,6 @@ else
     {
         albums = (await AlbumService.GetAllAlbumsAsync()).OrderBy(a => a.Year).ToList();
         allSongs = (await SongService.GetAllSongsAsync()).ToList();
-        albumImageVersion = DateTime.UtcNow.Ticks; // Refresh cache-bust parameter
     }
 
     private int GetSongCount(int albumId)
@@ -251,9 +249,6 @@ else
                 // Store cropped image temporarily until save
                 tempCroppedImageData = croppedImageData;
                 uploadedImagePath = "uploaded";
-                
-                // Update cache-bust parameter to force image reload after save
-                albumImageVersion = DateTime.UtcNow.Ticks;
                 
                 StateHasChanged();
             }
@@ -356,11 +351,7 @@ else
     
     private string GetAlbumImageUrl(string imageSrc)
     {
-        // Add cache-busting parameter to force reload after image update
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
-        {
-            return $"{imageSrc}?v={albumImageVersion}";
-        }
+        // Return URL as-is - ETag-based caching is handled by ImagesController
         return imageSrc ?? string.Empty;
     }
 }
