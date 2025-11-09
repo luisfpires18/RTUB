@@ -114,7 +114,7 @@
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 @if (currentUser != null)
                                 {
-                                    <img src="@currentUser.ProfilePictureSrc" alt="@currentUser.Nickname" class="navbar-avatar me-2" />
+                                    <img src="@GetNavbarAvatarUrl()" alt="@currentUser.Nickname" class="navbar-avatar me-2" />
                                     <span>@currentUser.Nickname</span>
                                 }
                             </a>
@@ -207,6 +207,7 @@
     private string? _lastLocation;
     private System.Threading.Timer? _debounceTimer;
     private bool _isFirstRender = true;
+    private long profilePictureVersion = DateTime.UtcNow.Ticks;
 
     protected override async Task OnInitializedAsync()
     {
@@ -257,6 +258,7 @@
                     _ = InvokeAsync(async () =>
                     {
                         await LoadCurrentUser();
+                        profilePictureVersion = DateTime.UtcNow.Ticks;
                         StateHasChanged();
                     });
                 }
@@ -311,6 +313,17 @@
                 currentUser = await UserManager.FindByIdAsync(nameIdentifierClaim);
             }
         }
+    }
+
+    private string GetNavbarAvatarUrl()
+    {
+        if (currentUser == null) return "/images/default-avatar.png";
+        
+        if (!string.IsNullOrEmpty(currentUser.ProfilePictureSrc) && currentUser.ProfilePictureSrc.StartsWith("/api/images/"))
+        {
+            return $"{currentUser.ProfilePictureSrc}?v={profilePictureVersion}";
+        }
+        return currentUser.ProfilePictureSrc ?? "/images/default-avatar.png";
     }
 
     public void Dispose()

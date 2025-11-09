@@ -31,10 +31,16 @@
 </AuthorizeView>
 
 @* FY Dropdown without icon *@
-<div class="row mb-4">
-    <div class="col-md-6">
-        @if (fiscalYears.Any())
-        {
+@if (!fiscalYears.Any())
+{
+    <EmptyTableState Message="Nenhum ano fiscal criado ainda"
+                    SubMessage="Não existem anos fiscais para mostrar."
+                    IconClass="bi-calendar-x" />
+}
+else
+{
+    <div class="row mb-4">
+        <div class="col-md-6">
             <select class="form-select" @bind="selectedFiscalYear" @bind:after="OnFiscalYearChanged">
                 <option value="" disabled>Selecionar Ano Lectivo</option>
                 @foreach (var year in fiscalYears)
@@ -43,34 +49,27 @@
                     <option value="@year">@year@(isCurrent ? " (Ano ativo)" : "")</option>
                 }
             </select>
-        }
-        else
-        {
-            <EmptyTableState Message="Nenhum ano fiscal criado ainda"
-                            SubMessage="Não existem anos fiscais para mostrar."
-                            IconClass="bi-calendar-x" />
-        }
-    </div>
-</div>
-
-@* RGI Section - Visible only to MEMBER and ADMIN *@
-<AuthorizeView Roles="Member,Admin">
-    <section class="mb-4">
-        <div class="text-center">
-            <h4 class="mb-3">Verifica os regulamentos gerais internos</h4>
-            <button class="btn btn-primary btn-lg" @onclick="OpenRgiModal">
-                Abrir RGI
-            </button>
         </div>
-    </section>
-</AuthorizeView>
+    </div>
 
-@if (isLoading)
-{
-    <p>A carregar...</p>
-}
-else
-{
+    @* RGI Section - Visible only to MEMBER and ADMIN *@
+    <AuthorizeView Roles="Member,Admin">
+        <section class="mb-4">
+            <div class="text-center">
+                <h4 class="mb-3">Verifica os regulamentos gerais internos</h4>
+                <button class="btn btn-primary btn-lg" @onclick="OpenRgiModal">
+                    Abrir RGI
+                </button>
+            </div>
+        </section>
+    </AuthorizeView>
+
+    @if (isLoading)
+    {
+        <p>A carregar...</p>
+    }
+    else
+    {
     <!-- Direção -->
     <section class="mb-4">
         <div class="card shadow-sm portal-governing-body-card">
@@ -692,6 +691,7 @@ else
             </div>
         </div>
     </section>
+    }
 }
 
 <!-- RGI PDF Modal -->
