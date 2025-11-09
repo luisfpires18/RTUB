@@ -12,12 +12,10 @@ namespace RTUB.Application.Services;
 public class InstrumentService : IInstrumentService
 {
     private readonly ApplicationDbContext _context;
-    private readonly IImageService _imageService;
 
-    public InstrumentService(ApplicationDbContext context, IImageService imageService)
+    public InstrumentService(ApplicationDbContext context)
     {
         _context = context;
-        _imageService = imageService;
     }
 
     public async Task<Instrument?> GetByIdAsync(int id)
@@ -70,7 +68,6 @@ public class InstrumentService : IInstrumentService
         await _context.SaveChangesAsync();
         
         // Invalidate the cached instrument image so the new image is served immediately
-        _imageService.InvalidateInstrumentImageCache(instrument.Id);
     }
 
     public async Task DeleteAsync(int id)
