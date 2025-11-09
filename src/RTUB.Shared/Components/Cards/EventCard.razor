@@ -110,7 +110,7 @@
                         </button>
 
                         <!-- View Enrollments button with centered count -->
-                        <button class="btn event-icon-btn btn-outline-secondary" 
+                        <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
                                 @onclick="OnViewEnrollments" 
                                 title="Participantes">
                             <i class="bi bi-people"></i>
@@ -191,7 +191,7 @@
                         </button>
 
                         <!-- View Enrollments button with centered count -->
-                        <button class="btn event-icon-btn btn-outline-secondary" 
+                        <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
                                 @onclick="OnViewEnrollments" 
                                 title="Participantes">
                             <i class="bi bi-people"></i>
@@ -384,9 +384,10 @@
         min-height: 52px;
         padding: 0;
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
         justify-content: center;
+        gap: 0.25rem;
         border-radius: 0.75rem;
         position: relative;
         flex-shrink: 0;
@@ -415,16 +416,20 @@
         border: 2px solid var(--bs-body-bg);
     }
     
-    /* Enrollment count centered on button */
+    /* Enrollment count to the right of icon */
     .event-icon-btn .enrollment-count-centered {
-        position: absolute;
-        bottom: 2px;
-        left: 50%;
-        transform: translateX(-50%);
+        position: relative;
         color: inherit;
-        font-size: 0.7rem;
+        font-size: 1.25rem;
         font-weight: 700;
         line-height: 1;
+    }
+    
+    /* Participants button with count needs to be wider */
+    .event-icon-btn-with-count {
+        width: auto;
+        min-width: 52px;
+        padding: 0 0.5rem;
     }
     
     /* Button hover effects */
