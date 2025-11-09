@@ -1,4 +1,4 @@
-@page "/requests"
+@page "/request"
 @rendermode InteractiveServer
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
 @using RTUB.Core.Enums
@@ -7,12 +7,13 @@
 @using RTUB.Shared
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
+@using RequestEntity = RTUB.Core.Entities.Request
 @inject IRequestService RequestService
 @inject IEmailNotificationService EmailNotificationService
 @inject ILabelService LabelService
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
-@inject ILogger<Requests> Logger
+@inject ILogger<Request> Logger
 
 
 <h1>Pedidos</h1>
@@ -228,7 +229,7 @@
 </Modal>
 
 @code {
-    private Request request = new();
+    private RequestEntity request = new();
     private bool isSubmitting = false;
     private bool showSuccessMessage = false;
     private string errorMessage = string.Empty;
@@ -372,7 +373,7 @@
             );
 
             showSuccessMessage = true;
-            request = new Request { PreferredDate = DateTime.Today.AddDays(1) };
+            request = new RequestEntity { PreferredDate = DateTime.Today.AddDays(1) };
             StateHasChanged();
 
             // Scroll to top to show success message
@@ -402,7 +403,7 @@
 
     private void ResetForm()
     {
-        request = new Request { PreferredDate = DateTime.Today.AddDays(1) };
+        request = new RequestEntity { PreferredDate = DateTime.Today.AddDays(1) };
         errorMessage = string.Empty;
         showSuccessMessage = false;
         dateValidationError = string.Empty;
