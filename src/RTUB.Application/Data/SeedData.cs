@@ -19,11 +19,10 @@ public static partial class SeedData
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         
-        // Try to get environment from multiple sources
-        var environment = configuration["ASPNETCORE_ENVIRONMENT"] 
-            ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") 
-            ?? "Development";
-        var isProduction = environment.Equals("Production", StringComparison.OrdinalIgnoreCase);
+        if (await dbContext.Users.AnyAsync())
+        {
+            return; // Data already exists, skip seeding
+        }
 
         // Ensure roles exist (OWNER, ADMIN, and MEMBER)
         string[] roles = new[] { "Owner", "Admin", "Member" };
@@ -33,14 +32,6 @@ public static partial class SeedData
             {
                 await roleManager.CreateAsync(new IdentityRole(role));
             }
-        }
-
-        // Check if there's any OWNER already
-        var existingOwners = await userManager.GetUsersInRoleAsync("Owner");
-        if (existingOwners.Any())
-        {
-            // Skip seed if owner already exists
-            return;
         }
 
         // Create default OWNER user with username "rtub"
@@ -73,12 +64,6 @@ public static partial class SeedData
             {
                 throw new Exception($"Unable to create owner user: {string.Join(", ", result.Errors)}");
             }
-        }
-
-        // Skip everything else if production
-        if (isProduction)
-        {
-            return;
         }
 
         await SeedSlideshowsAsync(dbContext);
