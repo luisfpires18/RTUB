@@ -339,8 +339,22 @@ else
 
     private void CreateEventFromRequest()
     {
-        // TODO: Navigate to event creation page or open event creation modal
-        // For now, just close the dialog
+        if (approvingRequest != null)
+        {
+            // Navigate to events page with query parameters to pre-fill the modal
+            var queryParams = new Dictionary<string, object?>
+            {
+                ["create"] = "true",
+                ["title"] = approvingRequest.EventType,
+                ["location"] = approvingRequest.Location,
+                ["date"] = approvingRequest.PreferredDate.ToString("yyyy-MM-dd"),
+                ["requestId"] = approvingRequest.Id
+            };
+            
+            var uri = Navigation.GetUriWithQueryParameters("/events", queryParams);
+            Navigation.NavigateTo(uri);
+        }
+        
         showCreateEventDialog = false;
         approvingRequest = null;
     }

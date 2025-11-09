@@ -4608,3 +4608,35 @@ th:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* Admin overlay for RequestCard (top-right positioning) */
+.request-admin-overlay {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+.request-card:hover .request-admin-overlay {
+  opacity: 1;
+}
+
+/* Admin overlay for LabelCard (top-right positioning) */
+.label-admin-overlay {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+.label-card:hover .label-admin-overlay {
+  opacity: 1;
+}

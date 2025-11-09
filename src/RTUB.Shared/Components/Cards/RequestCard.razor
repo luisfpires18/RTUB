@@ -10,6 +10,14 @@
 
 <div class="card request-card h-100">
     <div class="position-relative">
+        @if (IsOwner)
+        {
+            <div class="request-admin-overlay">
+                <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
+                    <i class="bi bi-trash music-icon-delete"></i>
+                </button>
+            </div>
+        }
         <div class="request-icon-header">
             <div class="request-icon-circle">
                 <i class="bi bi-envelope-fill"></i>
@@ -69,16 +77,6 @@
                     <i class="bi bi-eye-fill"></i>
                     <span>Ver Detalhes</span>
                 </button>
-
-                <!-- Delete button (Owner only) -->
-                @if (IsOwner)
-                {
-                    <button class="btn btn-sm btn-danger d-flex align-items-center" 
-                            @onclick="HandleDelete" 
-                            title="Eliminar">
-                        <i class="bi bi-trash-fill"></i>
-                    </button>
-                }
             </div>
         </div>
     </div>

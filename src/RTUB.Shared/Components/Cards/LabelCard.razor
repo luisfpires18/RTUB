@@ -8,6 +8,14 @@
 
 <div class="card label-card h-100">
     <div class="position-relative">
+        <div class="label-admin-overlay">
+            <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
+                <i class="bi bi-pencil music-icon-edit"></i>
+            </button>
+            <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
+                <i class="bi bi-trash music-icon-delete"></i>
+            </button>
+        </div>
         <div class="label-header">
             <div class="label-icon-circle">
                 <i class="bi bi-tag-fill"></i>
@@ -54,21 +62,7 @@
                         @onclick="HandleViewDetails" 
                         title="Ver Detalhes">
                     <i class="bi bi-eye-fill"></i>
-                    <span>Ver</span>
-                </button>
-
-                <!-- Edit button -->
-                <button class="btn btn-sm btn-light label-action-btn" 
-                        @onclick="HandleEdit" 
-                        title="Editar">
-                    <i class="bi bi-pencil-fill"></i>
-                </button>
-
-                <!-- Delete button -->
-                <button class="btn btn-sm btn-danger label-action-btn" 
-                        @onclick="HandleDelete" 
-                        title="Eliminar">
-                    <i class="bi bi-trash-fill"></i>
+                    <span>Detalhes</span>
                 </button>
             </div>
         </div>
