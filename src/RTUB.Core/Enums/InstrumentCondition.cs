@@ -21,7 +21,12 @@ public enum InstrumentCondition
     Worn,
     
     /// <summary>
-    /// Precisa Manutenção - Needs maintenance (Red)
+    /// Precisa Manutenção - Needs maintenance (Yellow)
     /// </summary>
-    NeedsMaintenance
+    NeedsMaintenance,
+    
+    /// <summary>
+    /// Perdido - Lost (Red)
+    /// </summary>
+    Lost
 }

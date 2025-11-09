@@ -1,6 +1,7 @@
 @namespace RTUB.Shared
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
+@using RTUB.Core.Helpers
 @*
     InstrumentCircle Component
     Displays instrument information in a circular card format
@@ -55,8 +56,8 @@
         <!-- Category -->
         <div class="instrument-circle-badges">
             <span class="badge bg-primary">@Instrument.Category</span>
-            <span class="badge @GetConditionBadgeClass(Instrument.Condition)">
-                @GetConditionDisplayName(Instrument.Condition)
+            <span class="badge @InstrumentConditionHelper.GetBadgeClass(Instrument.Condition)">
+                @InstrumentConditionHelper.GetDisplayName(Instrument.Condition)
             </span>
         </div>
 
@@ -125,30 +126,6 @@
 
     [Parameter]
     public string DeleteTooltip { get; set; } = "Eliminar";
-
-    private string GetConditionDisplayName(InstrumentCondition condition)
-    {
-        return condition switch
-        {
-            InstrumentCondition.Excellent => "Óptimo",
-            InstrumentCondition.Good => "Bom",
-            InstrumentCondition.Worn => "Velho",
-            InstrumentCondition.NeedsMaintenance => "Precisa Manutenção",
-            _ => condition.ToString()
-        };
-    }
-
-    private string GetConditionBadgeClass(InstrumentCondition condition)
-    {
-        return condition switch
-        {
-            InstrumentCondition.Excellent => "bg-success",
-            InstrumentCondition.Good => "bg-info",
-            InstrumentCondition.Worn => "bg-warning",
-            InstrumentCondition.NeedsMaintenance => "bg-danger",
-            _ => "bg-secondary"
-        };
-    }
 
     private string GetInstrumentIcon(string category)
     {

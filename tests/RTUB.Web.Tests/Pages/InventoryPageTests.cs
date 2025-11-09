@@ -73,6 +73,7 @@ public class InventoryPageTests
     [InlineData(InstrumentCondition.Good, "Bom")]
     [InlineData(InstrumentCondition.Worn, "Velho")]
     [InlineData(InstrumentCondition.NeedsMaintenance, "Precisa Manutenção")]
+    [InlineData(InstrumentCondition.Lost, "Perdido")]
     public void GetConditionDisplayName_ReturnsCorrectPortugueseName(InstrumentCondition condition, string expectedName)
     {
         // Arrange & Act
@@ -86,7 +87,8 @@ public class InventoryPageTests
     [InlineData(InstrumentCondition.Excellent, "bg-success")]
     [InlineData(InstrumentCondition.Good, "bg-info")]
     [InlineData(InstrumentCondition.Worn, "bg-warning")]
-    [InlineData(InstrumentCondition.NeedsMaintenance, "bg-danger")]
+    [InlineData(InstrumentCondition.NeedsMaintenance, "bg-warning")]
+    [InlineData(InstrumentCondition.Lost, "bg-danger")]
     public void GetConditionBadgeClass_ReturnsCorrectCssClass(InstrumentCondition condition, string expectedClass)
     {
         // Arrange & Act
@@ -105,6 +107,7 @@ public class InventoryPageTests
             InstrumentCondition.Good => "Bom",
             InstrumentCondition.Worn => "Velho",
             InstrumentCondition.NeedsMaintenance => "Precisa Manutenção",
+            InstrumentCondition.Lost => "Perdido",
             _ => condition.ToString()
         };
     }
@@ -116,7 +119,8 @@ public class InventoryPageTests
             InstrumentCondition.Excellent => "bg-success",
             InstrumentCondition.Good => "bg-info",
             InstrumentCondition.Worn => "bg-warning",
-            InstrumentCondition.NeedsMaintenance => "bg-danger",
+            InstrumentCondition.NeedsMaintenance => "bg-warning",
+            InstrumentCondition.Lost => "bg-danger",
             _ => "bg-secondary"
         };
     }
