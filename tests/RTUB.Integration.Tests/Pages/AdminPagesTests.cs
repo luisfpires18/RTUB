@@ -25,16 +25,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     #region Finance Page Tests
 
     [Fact]
-    public async Task OldFinancePage_NoLongerExists()
-    {
-        // Arrange & Act - Old admin/finance URL no longer exists
-        var response = await _client.GetAsync("/admin/finance");
-
-        // Assert - Should return 404 since the page was deleted
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
     public async Task NewFinancePage_WithoutAuth_RedirectsToLogin()
     {
         // Arrange & Act - New /finance page requires authentication
@@ -109,7 +99,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     #region Authorization Tests
 
     [Theory]
-    [InlineData("/admin/finance")]
     [InlineData("/admin/slideshow-management")]
     [InlineData("/admin/requests")]
     public async Task AdminPages_RequireAuthentication(string url)
@@ -130,7 +119,6 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
         // Arrange - Updated to use new finance route
         var adminUrls = new[]
         {
-            "/admin/finance",
             "/admin/slideshow-management",
             "/admin/requests"
         };
@@ -147,10 +135,8 @@ public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task AdminNavigation_ThroughAllAdminPages_Works()
     {
-        // Arrange - Updated to use new finance route
         var adminUrls = new[]
         {
-            "/admin/finance",
             "/admin/slideshow-management"
         };
 

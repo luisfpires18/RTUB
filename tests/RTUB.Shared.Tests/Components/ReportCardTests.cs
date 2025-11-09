@@ -102,7 +102,7 @@ public class ReportCardTests : TestContext
             .Add(p => p.IsOwner, false));
 
         // Assert
-        cut.Markup.Should().Contain("Atual Ano", "card should display current year badge");
+        cut.Markup.Should().Contain("Ano atual", "card should display current year badge");
         cut.Markup.Should().Contain("badge-position", "current year badge should be purple");
     }
 

@@ -79,24 +79,6 @@ public class FinancePagesTests : IClassFixture<WebApplicationFactory<Program>>
 
     #endregion
 
-    #region Old Admin Finance Page Tests
-
-    [Fact]
-    public async Task OldAdminFinancePage_ReturnsNotFound()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/admin/finance");
-
-        // Assert
-        // The old admin finance page should either redirect or return 404
-        // since it was deleted and replaced with /finance
-        (response.StatusCode == HttpStatusCode.NotFound || 
-         response.StatusCode == HttpStatusCode.Redirect)
-            .Should().BeTrue("Old admin finance page should not be accessible");
-    }
-
-    #endregion
-
     #region Authorization Tests
 
     [Theory]

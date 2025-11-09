@@ -51,13 +51,13 @@
                         <li class="nav-item"><NavLink class="nav-link" href="/member/hierarchy"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/member/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
                     </Authorized>
                 </AuthorizeView>
 
                 <AuthorizeView Roles="Admin">
                     <Authorized>
-                        <li class="nav-item"><NavLink class="nav-link" href="/member/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
-                        <li class="nav-item"><NavLink class="nav-link" href="/admin/finance"><i class="bi bi-cash-stack"></i> Finanças</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/admin/slideshow-management"><i class="bi bi-images"></i> Imagens</NavLink></li>
                     </Authorized>
                 </AuthorizeView>
