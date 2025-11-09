@@ -107,7 +107,7 @@ namespace RTUB
             services.AddScoped<IActivityService, ActivityService>();
             services.AddScoped<IEnrollmentService, EnrollmentService>();
             services.AddScoped<IUserProfileService, UserProfileService>();
-            services.AddScoped<IImageService, ImageService>();
+            services.AddScoped<IImageStorageService, CloudflareImageStorageService>();
             services.AddScoped<IEmailNotificationService, EmailNotificationService>();
             services.AddScoped<IFiscalYearService, FiscalYearService>();
             services.AddScoped<IEventRepertoireService, EventRepertoireService>();
