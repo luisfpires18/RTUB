@@ -10,6 +10,7 @@
 @using RTUB.Shared.Components.Cards
 @inject IProductService ProductService
 @inject IProductReservationService ProductReservationService
+@inject IImageService ImageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Loja RTUB</h1>
@@ -592,7 +593,7 @@ else
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private string? uploadedImagePath;
-    private long productImageVersion = DateTime.UtcNow.Ticks;
+    private int imageRefreshTrigger = 0;
 
     // Reservation Modal State
     private bool showReservationModal = false;
@@ -672,8 +673,6 @@ else
             }
         }
         
-        productImageVersion = DateTime.UtcNow.Ticks;
-        
         loading = false;
     }
 
@@ -728,6 +727,15 @@ else
             else
             {
                 await ProductService.UpdateAsync(editingProduct);
+                
+                // Invalidate server-side cache if image was updated
+                if (editingProduct.ImageData != null && uploadedImagePath != null)
+                {
+                    ImageService.InvalidateProductImageCache(editingProduct.Id);
+                    
+                    // Increment trigger to force browser to re-fetch the image
+                    imageRefreshTrigger++;
+                }
             }
             
             await LoadProducts();
@@ -807,8 +815,6 @@ else
                 editingProduct.ImageContentType = "image/jpeg";
                 uploadedImagePath = "uploaded";
                 
-                productImageVersion = DateTime.UtcNow.Ticks;
-                
                 StateHasChanged();
             }
         }
@@ -826,11 +832,16 @@ else
     
     private string GetProductImageUrl(string imageSrc)
     {
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
+        if (string.IsNullOrEmpty(imageSrc)) return string.Empty;
+        
+        // Add refresh trigger only when an image has been updated
+        // This forces browser to re-fetch after edits while maintaining ETag caching
+        if (imageRefreshTrigger > 0 && imageSrc.StartsWith("/api/images/"))
         {
-            return $"{imageSrc}?v={productImageVersion}";
+            return $"{imageSrc}?r={imageRefreshTrigger}";
         }
-        return imageSrc ?? string.Empty;
+        
+        return imageSrc;
     }
     
     // Reservation Methods

@@ -12,6 +12,7 @@
 @inject IEnrollmentService EnrollmentService
 @inject ITrophyService TrophyService
 @inject IEmailNotificationService EmailNotificationService
+@inject IImageService ImageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IWebHostEnvironment Environment
@@ -755,8 +756,8 @@ else
     private string dateValidationError = string.Empty;
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
-    private long eventImageVersion = DateTime.UtcNow.Ticks;
     private ImageUploadManager? imageUploadManager;
+    private int imageRefreshTrigger = 0;
 
     // Previous events (admin only)
     private List<Event>? allPreviousEvents;
@@ -828,7 +829,6 @@ else
     private async Task LoadEvents()
     {
         events = (await EventService.GetUpcomingEventsAsync(100)).ToList();
-        eventImageVersion = DateTime.UtcNow.Ticks;
     }
 
     private async Task LoadEnrollments()
@@ -994,8 +994,6 @@ else
                 editingEvent.ImageContentType = "image/jpeg";
                 uploadedImagePath = "uploaded";
                 
-                eventImageVersion = DateTime.UtcNow.Ticks;
-                
                 StateHasChanged();
             }
         }
@@ -1071,6 +1069,12 @@ else
                     editingEvent.ImageData,
                     editingEvent.ImageContentType
                 );
+                
+                // Invalidate server-side cache to ensure new image is served
+                ImageService.InvalidateEventImageCache(editingEvent.Id);
+                
+                // Increment trigger to force browser to re-fetch the image
+                imageRefreshTrigger++;
             }
         }
 
@@ -1505,11 +1509,16 @@ else
     
     private string GetEventImageUrl(string imageSrc)
     {
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
+        if (string.IsNullOrEmpty(imageSrc)) return string.Empty;
+        
+        // Add refresh trigger only when an image has been updated
+        // This forces browser to re-fetch after edits while maintaining ETag caching
+        if (imageRefreshTrigger > 0 && imageSrc.StartsWith("/api/images/"))
         {
-            return $"{imageSrc}?v={eventImageVersion}";
+            return $"{imageSrc}?r={imageRefreshTrigger}";
         }
-        return imageSrc ?? string.Empty;
+        
+        return imageSrc;
     }
 
     // Email notification methods

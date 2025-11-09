@@ -48,7 +48,7 @@ else
 
     <!-- Profile Header Card -->
     <ProfileHeader User="@user" 
-                   ProfilePictureVersion="@profilePictureVersion"
+                   ImageRefreshTrigger="@imageRefreshTrigger"
                    OnChangePassword="@OpenChangePasswordModal"
                    OnUploadPhoto="@OpenUploadModal" />
 
@@ -404,7 +404,7 @@ else
     private ChangePasswordModel passwordModel = new();
     private string? ChangePasswordMessage;
     private bool ChangePasswordSucceeded;
-    private long profilePictureVersion = DateTime.UtcNow.Ticks;
+    private int imageRefreshTrigger = 0;
     
     // Section editing state
     private string? editingSection = null;
@@ -556,8 +556,8 @@ else
                 // CRITICAL: Clear server-side image cache to ensure fresh image is served
                 ImageService.InvalidateProfileImageCache(user.Id);
                 
-                // Update cache-bust parameter to force image reload
-                profilePictureVersion = DateTime.UtcNow.Ticks;
+                // Increment trigger to force browser to re-fetch the image
+                imageRefreshTrigger++;
                 
                 uploadMessage = "Foto de perfil atualizada com sucesso!";
                 StateHasChanged();
@@ -581,7 +581,7 @@ else
                     Console.WriteLine($"[Profile.razor] Failed to call JavaScript: {ex.Message}");
                 }
                 
-                // Wait for Blazor to update the DOM with new ?v= parameter.
+                // Wait for Blazor to update the DOM.
                 await Task.Delay(150);
                 
                 await Task.Delay(1500);
@@ -598,12 +598,16 @@ else
     {
         if (user == null) return "/images/default-avatar.png";
         
-        // Add cache-busting parameter to force reload after image update
-        if (!string.IsNullOrEmpty(user.ProfilePictureSrc) && user.ProfilePictureSrc.StartsWith("/api/images/"))
+        var src = user.ProfilePictureSrc ?? "/images/default-avatar.png";
+        
+        // Add refresh trigger only when an image has been updated
+        // This forces browser to re-fetch after edits while maintaining ETag caching
+        if (imageRefreshTrigger > 0 && src.StartsWith("/api/images/"))
         {
-            return $"{user.ProfilePictureSrc}?v={profilePictureVersion}";
+            return $"{src}?r={imageRefreshTrigger}";
         }
-        return user.ProfilePictureSrc ?? "/images/default-avatar.png";
+        
+        return src;
     }
 
     private void OnCropperModalChanged(bool isOpen)

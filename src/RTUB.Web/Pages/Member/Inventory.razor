@@ -10,6 +10,7 @@
 @using RTUB.Shared
 @attribute [Authorize]
 @inject IInstrumentService InstrumentService
+@inject IImageService ImageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Instrumentos</h1>
@@ -289,7 +290,6 @@ else
     private Dictionary<InstrumentCondition, int> conditionStats = new();
     private string filterCategory = "";
     private string filterCondition = "";
-    private long imageVersion = DateTime.UtcNow.Ticks;
 
     // Details Modal State
     private bool showViewDetailsModal = false;
@@ -307,6 +307,7 @@ else
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private string? uploadedInstrumentImagePath;
+    private int imageRefreshTrigger = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -330,8 +331,6 @@ else
         filteredInstruments = instruments;
 
         conditionStats = await InstrumentService.GetConditionStatsAsync();
-
-        imageVersion = DateTime.UtcNow.Ticks;
 
         loading = false;
     }
@@ -406,6 +405,15 @@ else
             else
             {
                 await InstrumentService.UpdateAsync(editingInstrument);
+                
+                // Invalidate server-side cache if image was updated
+                if (editingInstrument.ImageData != null && uploadedInstrumentImagePath != null)
+                {
+                    ImageService.InvalidateInstrumentImageCache(editingInstrument.Id);
+                    
+                    // Increment trigger to force browser to re-fetch the image
+                    imageRefreshTrigger++;
+                }
             }
 
             await LoadData();
@@ -488,8 +496,6 @@ else
                     uploadedInstrumentImagePath = "uploaded";
                 }
                 
-                imageVersion = DateTime.UtcNow.Ticks;
-                
                 StateHasChanged();
             }
         }
@@ -507,10 +513,15 @@ else
 
     private string GetImageUrl(string imageSrc)
     {
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
+        if (string.IsNullOrEmpty(imageSrc)) return string.Empty;
+        
+        // Add refresh trigger only when an image has been updated
+        // This forces browser to re-fetch after edits while maintaining ETag caching
+        if (imageRefreshTrigger > 0 && imageSrc.StartsWith("/api/images/"))
         {
-            return $"{imageSrc}?v={imageVersion}";
+            return $"{imageSrc}?r={imageRefreshTrigger}";
         }
-        return imageSrc ?? string.Empty;
+        
+        return imageSrc;
     }
 }

@@ -73,7 +73,7 @@
     public ApplicationUser User { get; set; } = null!;
 
     [Parameter]
-    public long ProfilePictureVersion { get; set; }
+    public int ImageRefreshTrigger { get; set; }
 
     [Parameter]
     public EventCallback OnChangePassword { get; set; }
@@ -85,11 +85,16 @@
     {
         if (User == null) return "/images/default-avatar.png";
         
-        if (!string.IsNullOrEmpty(User.ProfilePictureSrc) && User.ProfilePictureSrc.StartsWith("/api/images/"))
+        var src = User.ProfilePictureSrc ?? "/images/default-avatar.png";
+        
+        // Add refresh trigger only when an image has been updated
+        // This forces browser to re-fetch after edits while maintaining ETag caching
+        if (ImageRefreshTrigger > 0 && src.StartsWith("/api/images/"))
         {
-            return $"{User.ProfilePictureSrc}?v={ProfilePictureVersion}";
+            return $"{src}?r={ImageRefreshTrigger}";
         }
-        return User.ProfilePictureSrc ?? "/images/default-avatar.png";
+        
+        return src;
     }
 
     private string GetDisplayName()
