@@ -60,17 +60,20 @@ public class UserProfileService : IUserProfileService
         if (user == null)
             throw new InvalidOperationException($"User with ID {userId} not found");
 
-        // Upload to S3 storage
-        var username = user.UserName ?? user.Email ?? userId;
-        var s3Filename = await _profileStorageService.UploadImageAsync(imageData, username, contentType);
-        
-        // Delete old S3 image if it exists
+        // STRATEGY: Delete-Before-Upload
+        // Step 1: Delete old S3 image BEFORE uploading new one to avoid storing trash
         if (!string.IsNullOrEmpty(user.ImageUrl))
         {
+            _logger.LogInformation("Deleting old profile picture from S3 for user {UserId}: {Filename}", 
+                userId, user.ImageUrl);
             await _profileStorageService.DeleteImageAsync(user.ImageUrl);
         }
         
-        // Update user with S3 filename
+        // Step 2: Upload new image to S3 storage
+        var username = user.UserName ?? user.Email ?? userId;
+        var s3Filename = await _profileStorageService.UploadImageAsync(imageData, username, contentType);
+        
+        // Step 3: Update user with S3 filename
         user.ImageUrl = s3Filename;
         
         var result = await _userManager.UpdateAsync(user);
