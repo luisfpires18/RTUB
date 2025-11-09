@@ -67,7 +67,23 @@
             </p>
         }
 
-        @if (ShowButtons)
+        @if (ShowOnlyTrophy)
+        {
+            <!-- Show only trophy button (for public portal) -->
+            @if (Event.Type == EventType.Festival)
+            {
+                <div class="enrollment-section mt-auto p-2 rounded">
+                    <div class="d-flex gap-2 align-items-center justify-content-center">
+                        <button class="btn btn-sm btn-warning d-flex align-items-center justify-content-center event-action-btn" 
+                                @onclick="OnViewTrophies" 
+                                title="Ver Prémios">
+                            <i class="bi bi-trophy-fill icon-size-1rem"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        }
+        else if (ShowButtons)
         {
             @if (!IsPastEvent)
             {
@@ -287,6 +303,12 @@
     /// </summary>
     [Parameter]
     public bool ShowButtons { get; set; } = true;
+
+    /// <summary>
+    /// Whether to show only the trophy button (for public portal with trophies)
+    /// </summary>
+    [Parameter]
+    public bool ShowOnlyTrophy { get; set; }
 }
 
 <style>
