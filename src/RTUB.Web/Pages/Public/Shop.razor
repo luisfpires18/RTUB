@@ -592,7 +592,6 @@ else
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private string? uploadedImagePath;
-    private long productImageVersion = DateTime.UtcNow.Ticks;
 
     // Reservation Modal State
     private bool showReservationModal = false;
@@ -671,8 +670,6 @@ else
                 userReservations = new Dictionary<int, ProductReservation?>();
             }
         }
-        
-        productImageVersion = DateTime.UtcNow.Ticks;
         
         loading = false;
     }
@@ -807,8 +804,6 @@ else
                 editingProduct.ImageContentType = "image/jpeg";
                 uploadedImagePath = "uploaded";
                 
-                productImageVersion = DateTime.UtcNow.Ticks;
-                
                 StateHasChanged();
             }
         }
@@ -826,10 +821,6 @@ else
     
     private string GetProductImageUrl(string imageSrc)
     {
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
-        {
-            return $"{imageSrc}?v={productImageVersion}";
-        }
         return imageSrc ?? string.Empty;
     }
     

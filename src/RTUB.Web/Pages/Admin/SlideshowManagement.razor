@@ -205,7 +205,6 @@ else
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
-    private long slideImageVersion = DateTime.UtcNow.Ticks;
 
     protected override async Task OnInitializedAsync()
     {
@@ -384,7 +383,6 @@ else
         }
 
         await RefreshDataAsync();
-        slideImageVersion = DateTime.UtcNow.Ticks;
         CloseEditModal();
     }
 
@@ -407,10 +405,6 @@ else
 
     private string GetSlideshowImageUrl(string imageSrc)
     {
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
-        {
-            return $"{imageSrc}?v={slideImageVersion}";
-        }
         return imageSrc ?? string.Empty;
     }
 }

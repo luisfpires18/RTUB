@@ -73,9 +73,6 @@
     public ApplicationUser User { get; set; } = null!;
 
     [Parameter]
-    public long ProfilePictureVersion { get; set; }
-
-    [Parameter]
     public EventCallback OnChangePassword { get; set; }
 
     [Parameter]
@@ -84,11 +81,6 @@
     private string GetProfilePictureUrl()
     {
         if (User == null) return "/images/default-avatar.png";
-        
-        if (!string.IsNullOrEmpty(User.ProfilePictureSrc) && User.ProfilePictureSrc.StartsWith("/api/images/"))
-        {
-            return $"{User.ProfilePictureSrc}?v={ProfilePictureVersion}";
-        }
         return User.ProfilePictureSrc ?? "/images/default-avatar.png";
     }
 

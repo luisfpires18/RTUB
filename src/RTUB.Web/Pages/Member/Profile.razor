@@ -48,7 +48,6 @@ else
 
     <!-- Profile Header Card -->
     <ProfileHeader User="@user" 
-                   ProfilePictureVersion="@profilePictureVersion"
                    OnChangePassword="@OpenChangePasswordModal"
                    OnUploadPhoto="@OpenUploadModal" />
 
@@ -404,7 +403,6 @@ else
     private ChangePasswordModel passwordModel = new();
     private string? ChangePasswordMessage;
     private bool ChangePasswordSucceeded;
-    private long profilePictureVersion = DateTime.UtcNow.Ticks;
     
     // Section editing state
     private string? editingSection = null;
@@ -556,9 +554,6 @@ else
                 // CRITICAL: Clear server-side image cache to ensure fresh image is served
                 ImageService.InvalidateProfileImageCache(user.Id);
                 
-                // Update cache-bust parameter to force image reload
-                profilePictureVersion = DateTime.UtcNow.Ticks;
-                
                 uploadMessage = "Foto de perfil atualizada com sucesso!";
                 StateHasChanged();
                 
@@ -581,7 +576,7 @@ else
                     Console.WriteLine($"[Profile.razor] Failed to call JavaScript: {ex.Message}");
                 }
                 
-                // Wait for Blazor to update the DOM with new ?v= parameter.
+                // Wait for Blazor to update the DOM.
                 await Task.Delay(150);
                 
                 await Task.Delay(1500);
@@ -597,12 +592,6 @@ else
     private string GetProfilePictureUrl()
     {
         if (user == null) return "/images/default-avatar.png";
-        
-        // Add cache-busting parameter to force reload after image update
-        if (!string.IsNullOrEmpty(user.ProfilePictureSrc) && user.ProfilePictureSrc.StartsWith("/api/images/"))
-        {
-            return $"{user.ProfilePictureSrc}?v={profilePictureVersion}";
-        }
         return user.ProfilePictureSrc ?? "/images/default-avatar.png";
     }
 

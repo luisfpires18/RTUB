@@ -162,7 +162,6 @@ else
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
-    private long albumImageVersion = DateTime.UtcNow.Ticks;
 
     protected override async Task OnInitializedAsync()
     {
@@ -173,7 +172,6 @@ else
     {
         albums = (await AlbumService.GetAllAlbumsAsync()).OrderBy(a => a.Year).ToList();
         allSongs = (await SongService.GetAllSongsAsync()).ToList();
-        albumImageVersion = DateTime.UtcNow.Ticks;
     }
 
     private int GetSongCount(int albumId)
@@ -251,8 +249,6 @@ else
                 editingAlbum.CoverImageData = croppedImageData;
                 editingAlbum.CoverImageContentType = "image/jpeg";
                 uploadedImagePath = "uploaded";
-                
-                albumImageVersion = DateTime.UtcNow.Ticks;
                 
                 StateHasChanged();
             }
@@ -355,10 +351,6 @@ else
     
     private string GetAlbumImageUrl(string imageSrc)
     {
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
-        {
-            return $"{imageSrc}?v={albumImageVersion}";
-        }
         return imageSrc ?? string.Empty;
     }
 }
