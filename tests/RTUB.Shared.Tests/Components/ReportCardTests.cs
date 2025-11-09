@@ -130,7 +130,10 @@ public class ReportCardTests : TestContext
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
-        report.UpdateFinancials(5000m, 3000m);
+        var activity = Activity.Create(1, "Test Activity");
+        activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 5000m, "Income", 1));
+        activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 3000m, "Expense", 1));
+        report.Activities.Add(activity);
 
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
@@ -152,7 +155,10 @@ public class ReportCardTests : TestContext
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
-        report.UpdateFinancials(5000m, 3000m);
+        var activity = Activity.Create(1, "Test Activity");
+        activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 5000m, "Income", 1));
+        activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 3000m, "Expense", 1));
+        report.Activities.Add(activity);
 
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
@@ -169,7 +175,10 @@ public class ReportCardTests : TestContext
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
-        report.UpdateFinancials(2000m, 3000m);
+        var activity = Activity.Create(1, "Test Activity");
+        activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 2000m, "Income", 1));
+        activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 3000m, "Expense", 1));
+        report.Activities.Add(activity);
 
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
@@ -253,7 +262,10 @@ public class ReportCardTests : TestContext
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
-        report.UpdateFinancials(5000m, 3000m);
+        var activity = Activity.Create(1, "Test Activity");
+        activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 5000m, "Income", 1));
+        activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 3000m, "Expense", 1));
+        report.Activities.Add(activity);
 
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters

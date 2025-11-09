@@ -20,17 +20,28 @@ public class ReportService : IReportService
 
     public async Task<Report?> GetReportByIdAsync(int id)
     {
-        return await _context.Reports.FindAsync(id);
+        // Include Activities and Transactions for computed properties
+        return await _context.Reports
+            .Include(r => r.Activities)
+                .ThenInclude(a => a.Transactions)
+            .FirstOrDefaultAsync(r => r.Id == id);
     }
 
     public async Task<IEnumerable<Report>> GetAllReportsAsync()
     {
-        return await _context.Reports.ToListAsync();
+        // Include Activities and Transactions for computed properties
+        return await _context.Reports
+            .Include(r => r.Activities)
+                .ThenInclude(a => a.Transactions)
+            .ToListAsync();
     }
 
     public async Task<IEnumerable<Report>> GetPublishedReportsAsync()
     {
+        // Include Activities and Transactions for computed properties
         return await _context.Reports
+            .Include(r => r.Activities)
+                .ThenInclude(a => a.Transactions)
             .Where(r => r.IsPublished)
             .OrderByDescending(r => r.Year)
             .ToListAsync();
@@ -79,27 +90,25 @@ public class ReportService : IReportService
 
     public async Task<byte[]> GenerateReportPdfAsync(int reportId)
     {
-        var report = await _context.Reports.FindAsync(reportId);
+        var report = await _context.Reports
+            .Include(r => r.Activities)
+                .ThenInclude(a => a.Transactions)
+            .FirstOrDefaultAsync(r => r.Id == reportId);
+            
         if (report == null)
             throw new InvalidOperationException($"Report with ID {reportId} not found");
 
-        var activities = await _context.Activities
-            .Where(a => a.ReportId == reportId)
-            .OrderBy(a => a.Name)
-            .ToListAsync();
+        var activities = report.Activities.OrderBy(a => a.Name).ToList();
         var allTransactions = new List<(Activity activity, List<Transaction> transactions)>();
 
         foreach (var activity in activities)
         {
-            var transactions = (await _context.Transactions
-            .Where(t => t.ActivityId == activity.Id)
-            .OrderBy(t => t.Date)
-            .ToListAsync()).ToList();
+            var transactions = activity.Transactions.OrderBy(t => t.Date).ToList();
             allTransactions.Add((activity, transactions));
         }
 
         // Generate PDF using business logic
-        var pdfData = GeneratePdf(report, activities.ToList(), allTransactions);
+        var pdfData = GeneratePdf(report, activities, allTransactions);
         
         report.SetPdfData(pdfData);
         _context.Reports.Update(report);
@@ -108,65 +117,27 @@ public class ReportService : IReportService
         return pdfData;
     }
 
-    public async Task RecalculateReportFinancialsAsync(int reportId)
-    {
-        var report = await _context.Reports.FindAsync(reportId);
-        if (report == null)
-            throw new InvalidOperationException($"Report with ID {reportId} not found");
-
-        // Get all transactions through activities for this specific report
-        var activities = await _context.Activities
-            .Where(a => a.ReportId == reportId)
-            .OrderBy(a => a.Name)
-            .ToListAsync();
-        var allTransactions = new List<Transaction>();
-
-        foreach (var activity in activities)
-        {
-            var transactions = await _context.Transactions
-            .Where(t => t.ActivityId == activity.Id)
-            .OrderBy(t => t.Date)
-            .ToListAsync();
-            allTransactions.AddRange(transactions);
-        }
-
-        // Calculate totals
-        var totalIncome = allTransactions.Where(t => t.Type == "Income").Sum(t => t.Amount);
-        var totalExpenses = allTransactions.Where(t => t.Type == "Expense").Sum(t => t.Amount);
-
-        // Update report (FinalBalance is calculated automatically in UpdateFinancials)
-        report.UpdateFinancials(totalIncome, totalExpenses);
-        _context.Reports.Update(report);
-        await _context.SaveChangesAsync();
-    }
-
     public async Task DeleteReportAsync(int reportId)
     {
-        var report = await _context.Reports.FindAsync(reportId);
+        var report = await _context.Reports
+            .Include(r => r.Activities)
+                .ThenInclude(a => a.Transactions)
+            .FirstOrDefaultAsync(r => r.Id == reportId);
+            
         if (report == null)
             throw new InvalidOperationException($"Report with ID {reportId} not found");
 
-        // Get all activities for this report
-        var activities = await _context.Activities
-            .Where(a => a.ReportId == reportId)
-            .OrderBy(a => a.Name)
-            .ToListAsync();
-
         // Delete all transactions for each activity
-        foreach (var activity in activities)
+        foreach (var activity in report.Activities)
         {
-            var transactions = await _context.Transactions
-            .Where(t => t.ActivityId == activity.Id)
-            .OrderBy(t => t.Date)
-            .ToListAsync();
-            foreach (var transaction in transactions)
+            foreach (var transaction in activity.Transactions)
             {
                 _context.Transactions.Remove(transaction);
             }
         }
 
         // Delete all activities
-        foreach (var activity in activities)
+        foreach (var activity in report.Activities)
         {
             _context.Activities.Remove(activity);
         }
@@ -210,7 +181,7 @@ public class ReportService : IReportService
                 // Content
                 page.Content().PaddingVertical(1, Unit.Centimetre).Column(column =>
                 {
-                    // Financial Summary
+                    // Financial Summary - calculate from transactions
                     var totalIncome = allTransactions.SelectMany(x => x.transactions).Where(t => t.Type == "Income").Sum(t => t.Amount);
                     var totalExpenses = allTransactions.SelectMany(x => x.transactions).Where(t => t.Type == "Expense").Sum(t => t.Amount);
                     var balance = totalIncome - totalExpenses;

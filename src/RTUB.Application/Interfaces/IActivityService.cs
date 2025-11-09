@@ -13,6 +13,5 @@ public interface IActivityService
     Task<IEnumerable<Activity>> GetActivitiesByReportIdAsync(int reportId);
     Task<Activity> CreateActivityAsync(int reportId, string name, string? description = null);
     Task UpdateActivityAsync(int id, string name, string? description);
-    Task RecalculateActivityFinancialsAsync(int id);
     Task DeleteActivityAsync(int id);
 }

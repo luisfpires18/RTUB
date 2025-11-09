@@ -16,13 +16,15 @@ public class Activity : BaseEntity
     public string Name { get; set; } = string.Empty;
     [MaxLength(1000, ErrorMessage = "A descrição não pode exceder 1000 caracteres")]
     public string? Description { get; set; }
-    public decimal TotalIncome { get; set; }
-    public decimal TotalExpenses { get; set; }
-    public decimal Balance { get; set; }
     
     // Navigation properties
     public virtual Report? Report { get; set; }
     public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
+
+    // Computed properties - calculate from transactions (source of truth)
+    public decimal TotalIncome => Transactions.Where(t => t.Type == "Income").Sum(t => t.Amount);
+    public decimal TotalExpenses => Transactions.Where(t => t.Type == "Expense").Sum(t => t.Amount);
+    public decimal Balance => TotalIncome - TotalExpenses;
 
     // Private constructor for EF Core
     public Activity() { }
@@ -47,12 +49,5 @@ public class Activity : BaseEntity
 
         Name = name;
         Description = description;
-    }
-
-    public void RecalculateFinancials()
-    {
-        TotalIncome = Transactions.Where(t => t.Type == "Income").Sum(t => t.Amount);
-        TotalExpenses = Transactions.Where(t => t.Type == "Expense").Sum(t => t.Amount);
-        Balance = TotalIncome - TotalExpenses;
     }
 }

@@ -7,13 +7,24 @@ public class Report : BaseEntity
 {
     public string Title { get; set; } = string.Empty;
     public int Year { get; set; }
-    public decimal TotalIncome { get; set; }
-    public decimal TotalExpenses { get; set; }
-    public decimal FinalBalance { get; set; }
     public string? Summary { get; set; }
     public byte[]? PdfData { get; set; }
     public DateTime? PublishedAt { get; set; }
     public bool IsPublished { get; set; }
+
+    // Navigation properties
+    public virtual ICollection<Activity> Activities { get; set; } = new List<Activity>();
+
+    // Computed properties - calculate from transactions (source of truth)
+    public decimal TotalIncome => Activities.SelectMany(a => a.Transactions)
+        .Where(t => t.Type == "Income")
+        .Sum(t => t.Amount);
+
+    public decimal TotalExpenses => Activities.SelectMany(a => a.Transactions)
+        .Where(t => t.Type == "Expense")
+        .Sum(t => t.Amount);
+
+    public decimal FinalBalance => TotalIncome - TotalExpenses;
 
     // Private constructor for EF Core
     public Report() { }
@@ -30,13 +41,6 @@ public class Report : BaseEntity
             Summary = summary,
             IsPublished = false
         };
-    }
-
-    public void UpdateFinancials(decimal totalIncome, decimal totalExpenses)
-    {
-        TotalIncome = totalIncome;
-        TotalExpenses = totalExpenses;
-        FinalBalance = totalIncome - totalExpenses;
     }
 
     public void UpdateSummary(string? summary)

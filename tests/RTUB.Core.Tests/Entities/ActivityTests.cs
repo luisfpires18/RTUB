@@ -94,22 +94,19 @@ public class ActivityTests
     }
 
     [Fact]
-    public void RecalculateFinancials_WithNoTransactions_ShouldHaveZeroValues()
+    public void ComputedFinancials_WithNoTransactions_ShouldHaveZeroValues()
     {
         // Arrange
         var activity = Activity.Create(1, "Activity");
 
-        // Act
-        activity.RecalculateFinancials();
-
-        // Assert
+        // Assert - computed properties work immediately
         activity.TotalIncome.Should().Be(0);
         activity.TotalExpenses.Should().Be(0);
         activity.Balance.Should().Be(0);
     }
 
     [Fact]
-    public void RecalculateFinancials_WithTransactions_ShouldCalculateCorrectly()
+    public void ComputedFinancials_WithTransactions_ShouldCalculateCorrectly()
     {
         // Arrange
         var activity = Activity.Create(1, "Activity");
@@ -127,42 +124,33 @@ public class ActivityTests
             activity.Transactions.Add(transaction);
         }
 
-        // Act
-        activity.RecalculateFinancials();
-
-        // Assert
+        // Assert - computed properties calculate on access
         activity.TotalIncome.Should().Be(150.00m);
         activity.TotalExpenses.Should().Be(50.00m);
         activity.Balance.Should().Be(100.00m);
     }
 
     [Fact]
-    public void RecalculateFinancials_WithOnlyIncome_ShouldCalculateCorrectly()
+    public void ComputedFinancials_WithOnlyIncome_ShouldCalculateCorrectly()
     {
         // Arrange
         var activity = Activity.Create(1, "Activity");
         activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 200.00m, "Income", 1));
 
-        // Act
-        activity.RecalculateFinancials();
-
-        // Assert
+        // Assert - computed properties calculate on access
         activity.TotalIncome.Should().Be(200.00m);
         activity.TotalExpenses.Should().Be(0);
         activity.Balance.Should().Be(200.00m);
     }
 
     [Fact]
-    public void RecalculateFinancials_WithOnlyExpenses_ShouldCalculateCorrectly()
+    public void ComputedFinancials_WithOnlyExpenses_ShouldCalculateCorrectly()
     {
         // Arrange
         var activity = Activity.Create(1, "Activity");
         activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 75.00m, "Expense", 1));
 
-        // Act
-        activity.RecalculateFinancials();
-
-        // Assert
+        // Assert - computed properties calculate on access
         activity.TotalIncome.Should().Be(0);
         activity.TotalExpenses.Should().Be(75.00m);
         activity.Balance.Should().Be(-75.00m);

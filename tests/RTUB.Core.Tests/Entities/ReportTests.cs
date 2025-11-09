@@ -43,34 +43,40 @@ public class ReportTests
     }
 
     [Fact]
-    public void UpdateFinancials_CalculatesFinalBalance()
+    public void ComputedFinancials_CalculatesFinalBalanceFromActivities()
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
-        var totalIncome = 5000m;
-        var totalExpenses = 3000m;
+        
+        // Add activities with transactions
+        var activity1 = Activity.Create(1, "Activity 1");
+        activity1.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 3000m, "Income", 1));
+        activity1.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 1000m, "Expense", 1));
+        
+        var activity2 = Activity.Create(1, "Activity 2");
+        activity2.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 2000m, "Income", 1));
+        activity2.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 2000m, "Expense", 1));
+        
+        report.Activities.Add(activity1);
+        report.Activities.Add(activity2);
 
-        // Act
-        report.UpdateFinancials(totalIncome, totalExpenses);
-
-        // Assert
-        report.TotalIncome.Should().Be(totalIncome);
-        report.TotalExpenses.Should().Be(totalExpenses);
+        // Assert - computed properties calculate from transactions
+        report.TotalIncome.Should().Be(5000m);
+        report.TotalExpenses.Should().Be(3000m);
         report.FinalBalance.Should().Be(2000m);
     }
 
     [Fact]
-    public void UpdateFinancials_WithNegativeBalance_CalculatesCorrectly()
+    public void ComputedFinancials_WithNegativeBalance_CalculatesCorrectly()
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
-        var totalIncome = 2000m;
-        var totalExpenses = 3000m;
+        var activity = Activity.Create(1, "Activity");
+        activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 2000m, "Income", 1));
+        activity.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 3000m, "Expense", 1));
+        report.Activities.Add(activity);
 
-        // Act
-        report.UpdateFinancials(totalIncome, totalExpenses);
-
-        // Assert
+        // Assert - computed property calculates negative balance
         report.FinalBalance.Should().Be(-1000m);
     }
 

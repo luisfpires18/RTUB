@@ -118,27 +118,8 @@ public static partial class SeedData
             await dbContext.Transactions.AddRangeAsync(tx);
             await dbContext.SaveChangesAsync();
 
-            // Recalculate per-activity
-            var allActivities = await dbContext.Activities
-                .Include(a => a.Transactions)
-                .Where(a => a.ReportId == reportCurr.Id || a.ReportId == reportPrev.Id)
-                .ToListAsync();
-
-            foreach (var a in allActivities)
-                a.RecalculateFinancials();
-
-            await dbContext.SaveChangesAsync();
-
-            // Update each report totals
-            foreach (var rep in new[] { reportPrev, reportCurr })
-            {
-                var repActs = allActivities.Where(a => a.ReportId == rep.Id).ToList();
-                var totalIncome = repActs.Sum(a => a.TotalIncome);
-                var totalExpenses = repActs.Sum(a => a.TotalExpenses);
-                rep.UpdateFinancials(totalIncome, totalExpenses);
-            }
-
-            await dbContext.SaveChangesAsync();
+            // No need to recalculate - financial values are computed properties now
+            // Transactions are the source of truth
         }
     }
 }
