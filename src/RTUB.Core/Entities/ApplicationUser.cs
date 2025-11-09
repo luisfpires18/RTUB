@@ -37,7 +37,7 @@ public class ApplicationUser : IdentityUser
     public DateTime? LastLoginDate { get; set; }
     
     // Email notification preferences
-    public bool Subscribed { get; set; } = false;
+    public bool Subscribed { get; set; } = true
     
     // Mentor/Padrinho relationship
     public string? MentorId { get; set; }
