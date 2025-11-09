@@ -35,9 +35,9 @@ public class ApplicationUser : IdentityUser
     public InstrumentType? MainInstrument { get; set; }
     public bool RequirePasswordChange { get; set; } = false;
     public DateTime? LastLoginDate { get; set; }
-    
+
     // Email notification preferences
-    public bool Subscribed { get; set; } = true
+    public bool Subscribed { get; set; } = true;
     
     // Mentor/Padrinho relationship
     public string? MentorId { get; set; }
