@@ -1,5 +1,6 @@
 @page "/roles"
 @rendermode InteractiveServer
+@using RTUB.Core.Extensions
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
@@ -86,7 +87,7 @@ else
                     @if (magister != null)
                     {
                         <div class="d-flex flex-column align-items-center">
-                            <img src="@magister.User!.ProfilePictureSrc" alt="@magister.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                            <img src="@magister.User!.GetProfilePictureUrl()" alt="@magister.User.GetDisplayName()" class="member-avatar-large mb-2" />
                             @if (!string.IsNullOrEmpty(magister.User.Nickname))
                             {
                                 <div class="text-light-theme">@magister.User.Nickname</div>
@@ -128,7 +129,7 @@ else
                     @if (viceMagister != null)
                     {
                         <div class="d-flex flex-column align-items-center">
-                            <img src="@viceMagister.User!.ProfilePictureSrc" alt="@viceMagister.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                            <img src="@viceMagister.User!.GetProfilePictureUrl()" alt="@viceMagister.User.GetDisplayName()" class="member-avatar-large mb-2" />
                             @if (!string.IsNullOrEmpty(viceMagister.User.Nickname))
                             {
                                 <div class="text-light-theme">@viceMagister.User.Nickname</div>
@@ -171,7 +172,7 @@ else
                         @if (secretario != null)
                         {
                             <div class="d-flex flex-column align-items-center">
-                                <img src="@secretario.User!.ProfilePictureSrc" alt="@secretario.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                <img src="@secretario.User!.GetProfilePictureUrl()" alt="@secretario.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                 @if (!string.IsNullOrEmpty(secretario.User.Nickname))
                                 {
                                     <div class="text-light-theme">@secretario.User.Nickname</div>
@@ -211,7 +212,7 @@ else
                         @if (tesoureiro1 != null)
                         {
                             <div class="d-flex flex-column align-items-center">
-                                <img src="@tesoureiro1.User!.ProfilePictureSrc" alt="@tesoureiro1.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                <img src="@tesoureiro1.User!.GetProfilePictureUrl()" alt="@tesoureiro1.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                 @if (!string.IsNullOrEmpty(tesoureiro1.User.Nickname))
                                 {
                                     <div class="text-light-theme">@tesoureiro1.User.Nickname</div>
@@ -251,7 +252,7 @@ else
                         @if (tesoureiro2 != null)
                         {
                             <div class="d-flex flex-column align-items-center">
-                                <img src="@tesoureiro2.User!.ProfilePictureSrc" alt="@tesoureiro2.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                <img src="@tesoureiro2.User!.GetProfilePictureUrl()" alt="@tesoureiro2.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                 @if (!string.IsNullOrEmpty(tesoureiro2.User.Nickname))
                                 {
                                     <div class="text-light-theme">@tesoureiro2.User.Nickname</div>
@@ -310,7 +311,7 @@ else
                     @if (presidenteMA != null)
                     {
                         <div class="d-flex flex-column align-items-center">
-                            <img src="@presidenteMA.User!.ProfilePictureSrc" alt="@presidenteMA.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                            <img src="@presidenteMA.User!.GetProfilePictureUrl()" alt="@presidenteMA.User.GetDisplayName()" class="member-avatar-large mb-2" />
                             @if (!string.IsNullOrEmpty(presidenteMA.User.Nickname))
                             {
                                 <div class="text-light-theme">@presidenteMA.User.Nickname</div>
@@ -353,7 +354,7 @@ else
                         @if (secretario1MA != null)
                         {
                             <div class="d-flex flex-column align-items-center">
-                                <img src="@secretario1MA.User!.ProfilePictureSrc" alt="@secretario1MA.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                <img src="@secretario1MA.User!.GetProfilePictureUrl()" alt="@secretario1MA.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                 @if (!string.IsNullOrEmpty(secretario1MA.User.Nickname))
                                 {
                                     <div class="text-light-theme">@secretario1MA.User.Nickname</div>
@@ -393,7 +394,7 @@ else
                         @if (secretario2MA != null)
                         {
                             <div class="d-flex flex-column align-items-center">
-                                <img src="@secretario2MA.User!.ProfilePictureSrc" alt="@secretario2MA.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                <img src="@secretario2MA.User!.GetProfilePictureUrl()" alt="@secretario2MA.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                 @if (!string.IsNullOrEmpty(secretario2MA.User.Nickname))
                                 {
                                     <div class="text-light-theme">@secretario2MA.User.Nickname</div>
@@ -452,7 +453,7 @@ else
                     @if (presidenteCF != null)
                     {
                         <div class="d-flex flex-column align-items-center">
-                            <img src="@presidenteCF.User!.ProfilePictureSrc" alt="@presidenteCF.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                            <img src="@presidenteCF.User!.GetProfilePictureUrl()" alt="@presidenteCF.User.GetDisplayName()" class="member-avatar-large mb-2" />
                             @if (!string.IsNullOrEmpty(presidenteCF.User.Nickname))
                             {
                                 <div class="text-light-theme">@presidenteCF.User.Nickname</div>
@@ -495,7 +496,7 @@ else
                         @if (relator1CF != null)
                         {
                             <div class="d-flex flex-column align-items-center">
-                                <img src="@relator1CF.User!.ProfilePictureSrc" alt="@relator1CF.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                <img src="@relator1CF.User!.GetProfilePictureUrl()" alt="@relator1CF.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                 @if (!string.IsNullOrEmpty(relator1CF.User.Nickname))
                                 {
                                     <div class="text-light-theme">@relator1CF.User.Nickname</div>
@@ -535,7 +536,7 @@ else
                         @if (relator2CF != null)
                         {
                             <div class="d-flex flex-column align-items-center">
-                                <img src="@relator2CF.User!.ProfilePictureSrc" alt="@relator2CF.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                <img src="@relator2CF.User!.GetProfilePictureUrl()" alt="@relator2CF.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                 @if (!string.IsNullOrEmpty(relator2CF.User.Nickname))
                                 {
                                     <div class="text-light-theme">@relator2CF.User.Nickname</div>
@@ -592,7 +593,7 @@ else
                     @if (presidenteCV != null)
                     {
                         <div class="d-flex flex-column align-items-center">
-                            <img src="@presidenteCV.User!.ProfilePictureSrc" alt="@presidenteCV.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                            <img src="@presidenteCV.User!.GetProfilePictureUrl()" alt="@presidenteCV.User.GetDisplayName()" class="member-avatar-large mb-2" />
                             @if (!string.IsNullOrEmpty(presidenteCV.User.Nickname))
                             {
                                 <div class="text-light-theme">@presidenteCV.User.Nickname</div>
@@ -648,7 +649,7 @@ else
                     @if (ensaiador != null)
                     {
                         <div class="d-flex flex-column align-items-center">
-                            <img src="@ensaiador.User!.ProfilePictureSrc" alt="@ensaiador.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                            <img src="@ensaiador.User!.GetProfilePictureUrl()" alt="@ensaiador.User.GetDisplayName()" class="member-avatar-large mb-2" />
                             @if (!string.IsNullOrEmpty(ensaiador.User.Nickname))
                             {
                                 <div class="text-light-theme">@ensaiador.User.Nickname</div>

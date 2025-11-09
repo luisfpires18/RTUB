@@ -21,6 +21,7 @@ public abstract class BaseDriveStorageService : IDisposable
     protected readonly string Environment;
     protected readonly string Endpoint;
     protected readonly ILogger Logger;
+    protected readonly int UrlExpirationHours; // Pre-signed URL expiration in hours
 
     /// <summary>
     /// Path prefix for this storage service (e.g., "images/profile/", "images/events/")
@@ -61,6 +62,9 @@ public abstract class BaseDriveStorageService : IDisposable
         var secretKey = configuration["IDrive:WriteSecretKey"];
         var endpoint = configuration["IDrive:Endpoint"];
         var bucketName = configuration["IDrive:Bucket"];
+        
+        // Get URL expiration in hours (default: 24 hours)
+        UrlExpirationHours = configuration.GetValue<int>("IDrive:UrlExpirationHours", 24);
 
         if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
         {
@@ -140,8 +144,8 @@ public abstract class BaseDriveStorageService : IDisposable
             BucketName = BucketName,
             Key = objectKey,
             InputStream = outputStream,
-            ContentType = "image/webp",
-            CannedACL = S3CannedACL.PublicRead // Make publicly readable
+            ContentType = "image/webp"
+            // Note: Not using CannedACL.PublicRead - access is controlled via pre-signed URLs
         };
 
         await S3Client.PutObjectAsync(putRequest);
@@ -149,33 +153,80 @@ public abstract class BaseDriveStorageService : IDisposable
         Logger.LogInformation("Successfully uploaded {EntityName} image to S3 as WebP: {ObjectKey}, Size: {Size} bytes", 
             EntityName, objectKey, fileSize);
         
-        // Return direct public URL (no expiration)
-        var publicUrl = $"https://{Endpoint}/{BucketName}/{objectKey}";
-        return publicUrl;
+        // Return the filename (not a URL) - URLs are generated on-demand via GetImageUrlAsync
+        return filename;
     }
 
     /// <summary>
-    /// Gets the direct public URL for an image.
+    /// Gets a pre-signed URL for an image that expires after the configured time.
+    /// Handles both filenames and legacy full URLs stored in the database.
     /// Returns null if filename is null or empty.
     /// </summary>
-    public Task<string?> GetImageUrlAsync(string filename)
+    public Task<string?> GetImageUrlAsync(string filenameOrUrl)
     {
-        if (string.IsNullOrEmpty(filename))
+        if (string.IsNullOrEmpty(filenameOrUrl))
         {
             return Task.FromResult<string?>(null);
         }
 
         try
         {
-            var objectKey = GetObjectKey(filename);
+            // Check if this is already a full URL (legacy data)
+            if (filenameOrUrl.StartsWith("http://") || filenameOrUrl.StartsWith("https://"))
+            {
+                // Extract filename from URL
+                // URL format: https://endpoint/bucket/path/to/file.webp
+                var uri = new Uri(filenameOrUrl);
+                var pathParts = uri.AbsolutePath.TrimStart('/').Split('/');
+                
+                // Skip bucket name and reconstruct the object key
+                if (pathParts.Length > 1)
+                {
+                    // The object key is everything after the bucket name
+                    var legacyObjectKey = string.Join("/", pathParts.Skip(1));
+                    
+                    // Generate pre-signed URL
+                    var legacyRequest = new GetPreSignedUrlRequest
+                    {
+                        BucketName = BucketName,
+                        Key = legacyObjectKey,
+                        Expires = DateTime.UtcNow.AddHours(UrlExpirationHours)
+                    };
+
+                    var legacyPreSignedUrl = S3Client.GetPreSignedURL(legacyRequest);
+                    
+                    Logger.LogDebug("Generated pre-signed URL for {EntityName} image from legacy URL: {Original}, expires in {Hours} hours", 
+                        EntityName, filenameOrUrl, UrlExpirationHours);
+                    
+                    return Task.FromResult<string?>(legacyPreSignedUrl);
+                }
+                else
+                {
+                    Logger.LogWarning("Could not extract object key from legacy URL: {Url}", filenameOrUrl);
+                    return Task.FromResult<string?>(null);
+                }
+            }
             
-            // Return direct public URL (no expiration, no pre-signing needed)
-            var publicUrl = $"https://{Endpoint}/{BucketName}/{objectKey}";
-            return Task.FromResult<string?>(publicUrl);
+            // This is a filename, generate object key and pre-signed URL
+            var objectKey = GetObjectKey(filenameOrUrl);
+            
+            var presignRequest = new GetPreSignedUrlRequest
+            {
+                BucketName = BucketName,
+                Key = objectKey,
+                Expires = DateTime.UtcNow.AddHours(UrlExpirationHours)
+            };
+
+            var presignedUrl = S3Client.GetPreSignedURL(presignRequest);
+            
+            Logger.LogDebug("Generated pre-signed URL for {EntityName} image: {Filename}, expires in {Hours} hours", 
+                EntityName, filenameOrUrl, UrlExpirationHours);
+            
+            return Task.FromResult<string?>(presignedUrl);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Unexpected error generating {EntityName} image URL for filename: {Filename}", EntityName, filename);
+            Logger.LogError(ex, "Error generating pre-signed URL for {EntityName} image: {FilenameOrUrl}", EntityName, filenameOrUrl);
             return Task.FromResult<string?>(null);
         }
     }

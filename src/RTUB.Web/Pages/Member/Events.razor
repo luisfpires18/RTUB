@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
+@using RTUB.Core.Extensions
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
@@ -344,7 +345,7 @@ else
                         @foreach (var enrollment in paginatedPerformingMembers)
                         {
                             <EnrollmentCard 
-                                AvatarUrl="@enrollment.User?.ProfilePictureSrc"
+                                AvatarUrl="@enrollment.User?.GetProfilePictureUrl()"
                                 TunaName="@enrollment.User?.Nickname"
                                 FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}")"
                                 InstrumentText="@(enrollment.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(enrollment.Instrument.Value) : "")"
@@ -424,7 +425,7 @@ else
                         @foreach (var enrollment in paginatedLeitoes)
                         {
                             <EnrollmentCard 
-                                AvatarUrl="@enrollment.User?.ProfilePictureSrc"
+                                AvatarUrl="@enrollment.User?.GetProfilePictureUrl()"
                                 TunaName="@enrollment.User?.Nickname"
                                 FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}")"
                                 InstrumentText=""

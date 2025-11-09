@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.Components.Forms
 @using System.ComponentModel.DataAnnotations
+@using RTUB.Core.Extensions
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Shared
@@ -213,7 +214,7 @@ else
                                                 <div class="member-item p-2 mb-2 border rounded clickable-row"
                                                      @onclick="() => SelectMentor(mentorItem)">
                                                     <div class="d-flex align-items-center">
-                                                        <img src="@mentorItem.ProfilePictureSrc" alt="@mentorItem.GetDisplayName()"
+                                                        <img src="@mentorItem.GetProfilePictureUrl()" alt="@mentorItem.GetDisplayName()"
                                                              class="member-avatar-small me-2" />
                                                         <div>
                                                             @if (!string.IsNullOrEmpty(mentorItem.Nickname))
@@ -588,13 +589,7 @@ else
     private string GetProfilePictureUrl()
     {
         if (user == null) return "/images/default-avatar.png";
-        
-        // Add cache-busting parameter to force reload after image update
-        if (!string.IsNullOrEmpty(user.ProfilePictureSrc) && user.ProfilePictureSrc.StartsWith("/api/images/"))
-        {
-            return $"{user.ProfilePictureSrc}?v={profilePictureVersion}";
-        }
-        return user.ProfilePictureSrc ?? "/images/default-avatar.png";
+        return user.GetProfilePictureUrl();
     }
 
     private void OnCropperModalChanged(bool isOpen)

@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
+@using RTUB.Core.Extensions
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
@@ -221,7 +222,7 @@ else
                             {
                                 var instrumentDisplay = attendance.Instrument?.ToString() ?? "—";
                                 <EnrollmentCard 
-                                    AvatarUrl="@attendance.User?.ProfilePictureSrc"
+                                    AvatarUrl="@attendance.User?.GetProfilePictureUrl()"
                                     TunaName="@attendance.User?.Nickname"
                                     FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}")"
                                     InstrumentText="@instrumentDisplay"
@@ -337,7 +338,7 @@ else
                                                          tabindex="0"
                                                          @onkeydown="@(async (e) => await HandleMemberItemKeyDown(e, member))">
                                                         <div class="d-flex align-items-center">
-                                                            <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                            <img src="@member.GetProfilePictureUrl()" alt="@member.GetDisplayName()"
                                                                  class="member-avatar-small me-2" />
                                                             <div>
                                                                 @if (!string.IsNullOrEmpty(member.Nickname))

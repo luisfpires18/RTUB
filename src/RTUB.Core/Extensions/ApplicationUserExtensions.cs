@@ -19,4 +19,19 @@ public static class ApplicationUserExtensions
         
         return $"{user.FirstName} {user.LastName}";
     }
+
+    /// <summary>
+    /// Gets the profile picture URL with fallback to default avatar if not set
+    /// </summary>
+    /// <param name="user">The application user</param>
+    /// <returns>Profile picture URL or default avatar path</returns>
+    public static string GetProfilePictureUrl(this ApplicationUser user)
+    {
+        if (user == null)
+            return "/images/default-avatar.png";
+        
+        return !string.IsNullOrEmpty(user.ProfilePictureSrc) 
+            ? user.ProfilePictureSrc 
+            : "/images/default-avatar.png";
+    }
 }

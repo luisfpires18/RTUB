@@ -1,6 +1,7 @@
 @namespace RTUB.Shared
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
+@using RTUB.Core.Extensions
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 
@@ -17,7 +18,7 @@
                 <div class="text-center">
                     <!-- Avatar -->
                     <div class="profile-avatar-wrapper profile-avatar-large mx-auto mb-3">
-                        <img src="@GetProfilePictureUrl()" alt="Foto de Perfil" class="profile-avatar" />
+                        <img src="@User.GetProfilePictureUrl()" alt="Foto de Perfil" class="profile-avatar" />
                     </div>
                     
                     <!-- Name and Badges -->
@@ -80,17 +81,6 @@
 
     [Parameter]
     public EventCallback OnUploadPhoto { get; set; }
-
-    private string GetProfilePictureUrl()
-    {
-        if (User == null) return "/images/default-avatar.png";
-        
-        if (!string.IsNullOrEmpty(User.ProfilePictureSrc) && User.ProfilePictureSrc.StartsWith("/api/images/"))
-        {
-            return $"{User.ProfilePictureSrc}?v={ProfilePictureVersion}";
-        }
-        return User.ProfilePictureSrc ?? "/images/default-avatar.png";
-    }
 
     private string GetDisplayName()
     {

@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
+@using RTUB.Core.Extensions
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
@@ -83,7 +84,7 @@ else
         <div class="avatar-card-grid">
             @foreach (var user in paginatedRegularMembers)
             {
-                <AvatarCard AvatarUrl="@user.ProfilePictureSrc"
+                <AvatarCard AvatarUrl="@user.GetProfilePictureUrl()"
                            TunaName="@user.Nickname"
                            FullName="@($"{user.FirstName} {user.LastName}")"
                            InstrumentText="@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : "")"
@@ -147,7 +148,7 @@ else
         <div class="avatar-card-grid">
             @foreach (var user in paginatedLeitoes)
             {
-                <AvatarCard AvatarUrl="@user.ProfilePictureSrc"
+                <AvatarCard AvatarUrl="@user.GetProfilePictureUrl()"
                            TunaName="@user.Nickname"
                            FullName="@($"{user.FirstName} {user.LastName}")"
                            InstrumentText="@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : "")"
@@ -308,7 +309,7 @@ else
                             <div class="member-item p-2 mb-2 border rounded clickable-row"
                                  @onclick="() => SelectMentor(mentor)">
                                 <div class="d-flex align-items-center">
-                                    <img src="@mentor.ProfilePictureSrc" alt="@mentor.GetDisplayName()"
+                                    <img src="@mentor.GetProfilePictureUrl()" alt="@mentor.GetDisplayName()"
                                          class="member-avatar-small me-2" />
                                     <div>
                                         @if (!string.IsNullOrEmpty(mentor.Nickname))
@@ -384,7 +385,7 @@ else
         <BodyContent>
             <!-- Centered Header Section -->
             <div class="text-center mb-4">
-                <img src="@viewingUser.ProfilePictureSrc" alt="@viewingUser.GetDisplayName()"
+                <img src="@viewingUser.GetProfilePictureUrl()" alt="@viewingUser.GetDisplayName()"
                      class="member-avatar-large mb-3" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--bs-primary);" />
                 
                 @if (!string.IsNullOrEmpty(viewingUser.Nickname))

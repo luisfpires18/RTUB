@@ -119,5 +119,9 @@ public class ApplicationUser : IdentityUser
         }
     }
     
-    public string ProfilePictureSrc => $"/api/images/profile/{Id}";
+    /// <summary>
+    /// Gets the profile picture source URL. Returns the S3 ImageUrl if available, otherwise returns a default avatar.
+    /// Note: Default avatar fallback is handled in the UI layer.
+    /// </summary>
+    public string ProfilePictureSrc => !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
 }
