@@ -142,6 +142,7 @@ else
                             PageSize="@paginationHelper.PageSize"
                             TotalItems="@(filteredPreviousEvents?.Count ?? 0)"
                             ItemLabel="eventos"
+                            PageSizeOptions="@(new[] { 3, 6, 9, 12, 15 })"
                             OnPageChanged="@HandlePreviousEventsPageChange"
                             OnPageSizeChanged="@HandlePreviousEventsPageSizeChange" />
         }
@@ -689,7 +690,7 @@ else
     
     // Helper instances for previous events
     private SearchHelper<Event> searchHelper = new();
-    private PaginationHelper<Event> paginationHelper = new() { PageSize = 9 };
+    private PaginationHelper<Event> paginationHelper = new() { PageSize = 6 };
     private List<Event> paginatedPreviousEvents => paginationHelper.GetPageData(filteredPreviousEvents ?? new List<Event>());
     
     // Enrollment modal filter variables
