@@ -11,12 +11,12 @@ namespace RTUB.Integration.Tests.Pages;
 /// <summary>
 /// Integration tests for Profile page functionality including edit operations and data persistence
 /// </summary>
-public class ProfilePageTests : IClassFixture<WebApplicationFactory<Program>>
+public class ProfilePageTests : IClassFixture<RTUBWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly RTUBWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public ProfilePageTests(WebApplicationFactory<Program> factory)
+    public ProfilePageTests(RTUBWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions

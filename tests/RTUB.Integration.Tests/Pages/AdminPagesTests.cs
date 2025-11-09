@@ -8,12 +8,12 @@ namespace RTUB.Integration.Tests.Pages;
 /// <summary>
 /// Integration tests for Admin pages (requires Admin role)
 /// </summary>
-public class AdminPagesTests : IClassFixture<WebApplicationFactory<Program>>
+public class AdminPagesTests : IClassFixture<RTUBWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly RTUBWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public AdminPagesTests(WebApplicationFactory<Program> factory)
+    public AdminPagesTests(RTUBWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions

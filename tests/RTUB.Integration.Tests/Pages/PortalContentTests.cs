@@ -8,12 +8,12 @@ namespace RTUB.Integration.Tests.Pages;
 /// <summary>
 /// Integration tests for Portal content pages (About Us, History, etc.)
 /// </summary>
-public class PortalContentTests : IClassFixture<WebApplicationFactory<Program>>
+public class PortalContentTests : IClassFixture<RTUBWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly RTUBWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public PortalContentTests(WebApplicationFactory<Program> factory)
+    public PortalContentTests(RTUBWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions

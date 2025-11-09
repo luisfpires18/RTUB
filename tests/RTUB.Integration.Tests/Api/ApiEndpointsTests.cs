@@ -8,12 +8,12 @@ namespace RTUB.Integration.Tests.Api;
 /// <summary>
 /// Integration tests for API endpoints
 /// </summary>
-public class ApiEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+public class ApiEndpointsTests : IClassFixture<RTUBWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly RTUBWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public ApiEndpointsTests(WebApplicationFactory<Program> factory)
+    public ApiEndpointsTests(RTUBWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions

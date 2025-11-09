@@ -8,12 +8,12 @@ namespace RTUB.Integration.Tests.Pages;
 /// <summary>
 /// Integration tests for Public pages (Requests, OrgaosSociais)
 /// </summary>
-public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
+public class PublicPagesTests : IClassFixture<RTUBWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly RTUBWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public PublicPagesTests(WebApplicationFactory<Program> factory)
+    public PublicPagesTests(RTUBWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions

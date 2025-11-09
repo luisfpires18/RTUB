@@ -9,12 +9,12 @@ namespace RTUB.Integration.Tests.Pages;
 /// Integration tests for Shop page (requires authentication)
 /// Tests that /shop requires login and redirects unauthenticated users
 /// </summary>
-public class ShopPageTests : IClassFixture<WebApplicationFactory<Program>>
+public class ShopPageTests : IClassFixture<RTUBWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly RTUBWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public ShopPageTests(WebApplicationFactory<Program> factory)
+    public ShopPageTests(RTUBWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions

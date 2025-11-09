@@ -1,0 +1,32 @@
+{
+  "UseSqlServer": false,
+  "EmailSettings": {
+    "SmtpServer": "smtp.example.com",
+    "SmtpPort": "587",
+    "SmtpUsername": "your-email@example.com",
+    "SmtpPassword": "your-password",
+    "SenderEmail": "noreply@example.com",
+    "SenderName": "RTUB",
+    "RecipientEmail": "admin@example.com",
+    "EnableSsl": "true"
+  },
+  "ImageCaching": {
+    "CacheDurationInSeconds": 86400
+  },
+  "IDrive": {
+    "Endpoint": "s3.eu-west-4.idrivee2.com",
+    "Bucket": "rtub",
+    "AccessKey": "your-access-key",
+    "SecretKey": "your-secret-key",
+    "WriteAccessKey": "your-write-access-key",
+    "WriteSecretKey": "your-write-secret-key"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}

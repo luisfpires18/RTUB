@@ -9,12 +9,12 @@ namespace RTUB.Integration.Tests.Pages;
 /// Integration tests for Member pages (requires authentication)
 /// Tests page accessibility and content without full authentication
 /// </summary>
-public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
+public class MemberPagesTests : IClassFixture<RTUBWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly RTUBWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public MemberPagesTests(WebApplicationFactory<Program> factory)
+    public MemberPagesTests(RTUBWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions

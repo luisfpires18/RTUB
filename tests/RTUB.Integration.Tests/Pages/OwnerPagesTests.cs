@@ -8,12 +8,12 @@ namespace RTUB.Integration.Tests.Pages;
 /// <summary>
 /// Integration tests for Owner pages (requires Owner role)
 /// </summary>
-public class OwnerPagesTests : IClassFixture<WebApplicationFactory<Program>>
+public class OwnerPagesTests : IClassFixture<RTUBWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly RTUBWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public OwnerPagesTests(WebApplicationFactory<Program> factory)
+    public OwnerPagesTests(RTUBWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions

@@ -9,11 +9,11 @@ namespace RTUB.Integration.Tests;
 /// Integration tests for authentication workflows
 /// Tests the complete authentication flow from HTTP requests to database
 /// </summary>
-public class AuthenticationTests : IClassFixture<WebApplicationFactory<Program>>
+public class AuthenticationTests : IClassFixture<RTUBWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly RTUBWebApplicationFactory _factory;
 
-    public AuthenticationTests(WebApplicationFactory<Program> factory)
+    public AuthenticationTests(RTUBWebApplicationFactory factory)
     {
         _factory = factory;
     }

@@ -9,12 +9,12 @@ namespace RTUB.Integration.Tests.Workflows;
 /// Integration tests for complete navigation workflows through the site
 /// Tests realistic user journeys through multiple pages
 /// </summary>
-public class NavigationWorkflowTests : IClassFixture<WebApplicationFactory<Program>>
+public class NavigationWorkflowTests : IClassFixture<RTUBWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly RTUBWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public NavigationWorkflowTests(WebApplicationFactory<Program> factory)
+    public NavigationWorkflowTests(RTUBWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions

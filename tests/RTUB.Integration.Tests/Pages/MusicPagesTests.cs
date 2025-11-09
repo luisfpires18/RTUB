@@ -9,12 +9,12 @@ namespace RTUB.Integration.Tests.Pages;
 /// Integration tests for Music pages (Albums and Songs)
 /// Tests the complete workflow from HTTP requests through the application
 /// </summary>
-public class MusicPagesTests : IClassFixture<WebApplicationFactory<Program>>
+public class MusicPagesTests : IClassFixture<RTUBWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly RTUBWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public MusicPagesTests(WebApplicationFactory<Program> factory)
+    public MusicPagesTests(RTUBWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
