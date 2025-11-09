@@ -301,21 +301,21 @@ RTUB
             var subject = $"Nova atuação: {eventTitle} — {eventDate:dd MMM yyyy}";
 
             // Format date in PT-PT format
-            var dateFormatted = eventDate.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", 
+            var dateFormatted = eventDate.ToString("dddd, dd 'de' MMMM 'de' yyyy", 
                 new System.Globalization.CultureInfo("pt-PT"));
 
             var body = $@"
 Olá!
-
 Há uma nova atuação agendada: {eventTitle}
 📅 {dateFormatted}
 📍 {eventLocation}
-
 Consulta os detalhes no site e confirma a tua presença se fores.
 {eventLink}
 
+Se não quiseres receber notificações por email, podes alterar as tuas preferências no teu perfil, desmarcando a opção ""Pretendo ser notificado por email de novas atuações.""
+
 Obrigado,
-RTUB
+Saudações RTUBianas
 ";
 
             // Send email via SMTP
