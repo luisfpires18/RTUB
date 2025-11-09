@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Mail;
+using System.Text;
 
 namespace RTUB.Application.Services;
 
@@ -60,7 +61,9 @@ public class EmailSender : IEmailSender
                 From = new MailAddress(senderEmail, senderName),
                 Subject = subject,
                 Body = htmlMessage,
-                IsBodyHtml = true
+                IsBodyHtml = true,
+                BodyEncoding = Encoding.UTF8,
+                SubjectEncoding = Encoding.UTF8
             };
             mailMessage.To.Add(email);
 

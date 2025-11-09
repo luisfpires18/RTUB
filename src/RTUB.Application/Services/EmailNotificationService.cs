@@ -5,6 +5,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Enums;
 using System.Net;
 using System.Net.Mail;
+using System.Text;
 
 namespace RTUB.Application.Services;
 
@@ -137,7 +138,9 @@ public class EmailNotificationService : IEmailNotificationService
                 From = new MailAddress(senderEmail, senderName),
                 Subject = subject,
                 Body = body,
-                IsBodyHtml = false
+                IsBodyHtml = false,
+                BodyEncoding = Encoding.UTF8,
+                SubjectEncoding = Encoding.UTF8
             };
 
             mailMessage.To.Add(recipientEmail);
@@ -214,7 +217,9 @@ public class EmailNotificationService : IEmailNotificationService
                 From = new MailAddress(senderEmail, senderName ?? "RTUB"),
                 Subject = subject,
                 Body = body,
-                IsBodyHtml = false
+                IsBodyHtml = false,
+                BodyEncoding = Encoding.UTF8,
+                SubjectEncoding = Encoding.UTF8
             };
             mailMessage.To.Add(email);
 
@@ -303,7 +308,9 @@ public class EmailNotificationService : IEmailNotificationService
                 From = new MailAddress(senderEmail, senderName),
                 Subject = subject,
                 Body = body,
-                IsBodyHtml = false
+                IsBodyHtml = false,
+                BodyEncoding = Encoding.UTF8,
+                SubjectEncoding = Encoding.UTF8
             };
 
             // Add all recipients as BCC to hide recipient list
