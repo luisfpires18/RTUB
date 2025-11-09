@@ -117,10 +117,14 @@ else
                         CssClass="mb-4">
                 <ProfileField Label="Nome" Value="@selectedRequest.Name" />
                 <ProfileField Label="Email">
-                    <a href="mailto:@selectedRequest.Email" class="text-decoration-none text-primary">@selectedRequest.Email</a>
+                    <ValueContent>
+                        <a href="mailto:@selectedRequest.Email" class="text-decoration-none text-primary">@selectedRequest.Email</a>
+                    </ValueContent>
                 </ProfileField>
                 <ProfileField Label="Telefone">
-                    <a href="tel:@selectedRequest.Phone" class="text-decoration-none text-primary">@selectedRequest.Phone</a>
+                    <ValueContent>
+                        <a href="tel:@selectedRequest.Phone" class="text-decoration-none text-primary">@selectedRequest.Phone</a>
+                    </ValueContent>
                 </ProfileField>
             </InfoSection>
 

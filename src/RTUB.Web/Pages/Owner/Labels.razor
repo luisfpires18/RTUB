@@ -89,7 +89,9 @@ else
                         IconClass="bi-info-circle-fill" 
                         CssClass="mb-4">
                 <ProfileField Label="Referência">
-                    <code class="bg-dark px-2 py-1 rounded">@viewingLabel.Reference</code>
+                    <ValueContent>
+                        <code class="bg-dark px-2 py-1 rounded">@viewingLabel.Reference</code>
+                    </ValueContent>
                 </ProfileField>
                 <ProfileField Label="Título" Value="@viewingLabel.Title" />
                 <ProfileField Label="Última Atualização" Value="@(viewingLabel.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? viewingLabel.CreatedAt.ToString("dd/MM/yyyy HH:mm"))" />
