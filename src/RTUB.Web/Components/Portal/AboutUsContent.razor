@@ -159,19 +159,19 @@
         
         foreach (var evt in previousEvents)
         {
-            if (!string.IsNullOrEmpty(evt.S3ImageFilename))
+            if (!string.IsNullOrEmpty(evt.ImageUrl))
             {
                 try
                 {
-                    var url = await EventStorageService.GetImageUrlAsync(evt.S3ImageFilename);
+                    var url = await EventStorageService.GetImageUrlAsync(evt.ImageUrl);
                     if (!string.IsNullOrEmpty(url))
                     {
-                        s3ImageUrlCache[evt.S3ImageFilename] = url;
+                        s3ImageUrlCache[evt.ImageUrl] = url;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError(ex, "Error resolving S3 image URL for {Filename}", evt.S3ImageFilename);
+                    Logger.LogError(ex, "Error resolving S3 image URL for {Filename}", evt.ImageUrl);
                 }
             }
         }
@@ -180,9 +180,9 @@
     private string GetEventImageUrl(Event evt)
     {
         // Handle S3 images
-        if (!string.IsNullOrEmpty(evt.S3ImageFilename))
+        if (!string.IsNullOrEmpty(evt.ImageUrl))
         {
-            if (s3ImageUrlCache.TryGetValue(evt.S3ImageFilename, out var cachedUrl))
+            if (s3ImageUrlCache.TryGetValue(evt.ImageUrl, out var cachedUrl))
             {
                 return cachedUrl;
             }

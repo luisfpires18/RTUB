@@ -25,7 +25,7 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
             .IsRequired()
             .HasMaxLength(200);
         
-        builder.Property(e => e.S3ImageFilename)
+        builder.Property(e => e.ImageUrl)
             .HasMaxLength(500);
         
         builder.Property(e => e.ImageUrl)

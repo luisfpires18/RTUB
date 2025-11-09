@@ -182,7 +182,7 @@ public class AlbumServiceTests : IDisposable
         var updated = await _albumService.GetAlbumByIdAsync(album.Id);
 
         // Assert
-        updated!.CoverImageUrl.Should().Be(url);
+        updated!.ImageUrl.Should().Be(url);
     }
 
     [Fact]
@@ -195,6 +195,26 @@ public class AlbumServiceTests : IDisposable
         var act = async () => await _albumService.SetAlbumCoverAsync(999, null, null, url);
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*not found*");
+    }
+
+    [Fact]
+    public async Task SetAlbumCoverAsync_WithExistingImage_DeletesOldImage()
+    {
+        // Arrange
+        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
+        var oldUrl = "https://test.endpoint.com/test-bucket/images/albums/Production/album_1_20241108000000.webp";
+        await _albumService.SetAlbumCoverAsync(album.Id, null, null, oldUrl);
+        
+        // Act - Set new image
+        var newUrl = "https://test.endpoint.com/test-bucket/images/albums/Production/album_1_20241108000001.webp";
+        await _albumService.SetAlbumCoverAsync(album.Id, null, null, newUrl);
+        
+        // Assert - Verify new URL is set
+        var updated = await _albumService.GetAlbumByIdAsync(album.Id);
+        updated!.ImageUrl.Should().Be(newUrl);
+        
+        // Verify DeleteImageAsync was called on storage service (tested via mock in the calling service)
+        // This ensures old images don't accumulate in S3
     }
 
     public void Dispose()

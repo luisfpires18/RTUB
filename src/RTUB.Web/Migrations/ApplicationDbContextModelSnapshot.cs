@@ -188,13 +188,6 @@ namespace RTUB.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("CoverImageContentType")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<byte[]>("CoverImageData")
-                        .HasColumnType("BLOB");
-
                     b.Property<string>("CoverImageUrl")
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
@@ -602,11 +595,8 @@ namespace RTUB.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ImageContentType")
+                    b.Property<string>("ImageUrl")
                         .HasColumnType("TEXT");
-
-                    b.Property<byte[]>("ImageData")
-                        .HasColumnType("BLOB");
 
                     b.Property<DateTime?>("LastMaintenanceDate")
                         .HasColumnType("TEXT");
@@ -696,11 +686,8 @@ namespace RTUB.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ImageContentType")
+                    b.Property<string>("ImageUrl")
                         .HasColumnType("TEXT");
-
-                    b.Property<byte[]>("ImageData")
-                        .HasColumnType("BLOB");
 
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("INTEGER");

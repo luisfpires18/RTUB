@@ -97,7 +97,7 @@ public class EventService : IEventService
         if (eventEntity == null)
             throw new InvalidOperationException($"Event with ID {id} not found");
 
-        eventEntity.SetS3Image(s3Filename);
+        eventEntity.SetImageUrl(s3Filename);
         _context.Events.Update(eventEntity);
         await _context.SaveChangesAsync();
         
@@ -112,9 +112,9 @@ public class EventService : IEventService
             throw new InvalidOperationException($"Event with ID {id} not found");
 
         // Delete S3 image if exists
-        if (!string.IsNullOrEmpty(eventEntity.S3ImageFilename))
+        if (!string.IsNullOrEmpty(eventEntity.ImageUrl))
         {
-            await _eventStorageService.DeleteImageAsync(eventEntity.S3ImageFilename);
+            await _eventStorageService.DeleteImageAsync(eventEntity.ImageUrl);
         }
 
         _context.Events.Remove(eventEntity);

@@ -82,6 +82,45 @@ public class InstrumentService : IInstrumentService
         _imageService.InvalidateInstrumentImageCache(instrument.Id);
     }
 
+    public async Task SetInstrumentImageAsync(int id, byte[]? imageData, string? contentType)
+    {
+        var instrument = await _context.Instruments.FindAsync(id);
+        if (instrument == null)
+            throw new InvalidOperationException($"Instrument with ID {id} not found");
+
+        // If imageData is provided, upload to IDrive S3
+        if (imageData != null && !string.IsNullOrEmpty(contentType))
+        {
+            // STRATEGY: Replace-Before-Upload
+            // Step 1: Delete old image BEFORE uploading new one
+            if (!string.IsNullOrEmpty(instrument.ImageUrl))
+            {
+                // Extract filename and delete from S3
+                var oldFilename = ExtractFilenameFromUrl(instrument.ImageUrl);
+                if (!string.IsNullOrEmpty(oldFilename))
+                {
+                    _logger.LogInformation("Deleting old instrument image from S3: {Filename}", oldFilename);
+                    await _instrumentStorageService.DeleteImageAsync(oldFilename);
+                }
+            }
+            
+            // Step 2: Upload new image to IDrive S3 and get the filename
+            var filename = await _instrumentStorageService.UploadImageAsync(imageData, id, contentType);
+            
+            // Step 3: Get the public URL from the storage service
+            var imageUrl = await _instrumentStorageService.GetImageUrlAsync(filename);
+            
+            // Step 4: Store the full URL in the ImageUrl field
+            instrument.SetImageUrl(imageUrl);
+        }
+        
+        _context.Instruments.Update(instrument);
+        await _context.SaveChangesAsync();
+        
+        // Invalidate the cached instrument image so the new image is served immediately
+        _imageService.InvalidateInstrumentImageCache(id);
+    }
+
     public async Task DeleteAsync(int id)
     {
         var instrument = await _context.Instruments.FindAsync(id);
