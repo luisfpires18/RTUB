@@ -30,19 +30,24 @@
     </Authorized>
 </AuthorizeView>
 
-@* FY Dropdown using FilterDropdown component *@
+@* FY Dropdown with custom styling *@
 <div class="row mb-4">
     <div class="col-md-6">
         @if (fiscalYears.Any())
         {
-            <FilterDropdown 
-                Items="@fiscalYears"
-                SelectedValue="@selectedFiscalYear"
-                SelectedValueChanged="@((value) => { selectedFiscalYear = value; })"
-                OnChange="@OnFiscalYearChanged"
-                AllItemsLabel="Selecionar Ano Fiscal"
-                ShowIcon="true"
-                IconClass="bi-calendar" />
+            <div class="input-group">
+                <span class="input-group-text bg-white fiscal-year-icon">
+                    <i class="bi bi-calendar3 text-purple"></i>
+                </span>
+                <select class="form-select" @bind="selectedFiscalYear" @bind:after="OnFiscalYearChanged">
+                    <option value="" disabled>Selecionar Ano Lectivo</option>
+                    @foreach (var year in fiscalYears)
+                    {
+                        var isCurrent = year == currentFiscalYearString;
+                        <option value="@year">@year@(isCurrent ? " (Ano ativo)" : "")</option>
+                    }
+                </select>
+            </div>
         }
     </div>
 </div>
@@ -898,9 +903,10 @@ else
     private void LoadAllMembers()
     {
         allMembers = UserManager.Users
-            .Where(u => !u.IsLeitao())  // Filter out Leitão members
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
+            .ToList()  // Materialize query first
+            .Where(u => !u.IsLeitao())  // Then filter in memory
             .ToList();
     }
     
