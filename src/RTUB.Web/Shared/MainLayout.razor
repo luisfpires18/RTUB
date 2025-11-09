@@ -60,7 +60,7 @@
                         <li class="nav-item"><NavLink class="nav-link" href="/admin/slideshow-management"><i class="bi bi-images"></i> Imagens</NavLink></li>
                     </Authorized>
                 </AuthorizeView>
-
+                
                 <AuthorizeView Roles="Owner">
                     <Authorized>
                         <li class="nav-item dropdown">
@@ -69,8 +69,8 @@
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="ownerDropdown">
                                 <li><NavLink class="dropdown-item" href="/owner/user-roles"><i class="bi bi-people"></i> Funções</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/owner/labels"><i class="bi bi-tag"></i> Conteúdo</NavLink></li>
                                 <li><NavLink class="dropdown-item" href="/owner/tracing"><i class="bi bi-shield-check"></i> Tracing</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/owner/labels"><i class="bi bi-tag"></i> Conteúdo</NavLink></li>
                             </ul>
                         </li>
                     </Authorized>
