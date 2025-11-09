@@ -5,6 +5,7 @@
       "SecretAccessKey": "your-r2-secret-access-key",
       "AccountId": "your-cloudflare-account-id",
       "Bucket": "rtub-images",
+      "Endpoint": "https://your-account-id.eu.r2.cloudflarestorage.com",
       "PublicDomain": "images.yourdomain.com"
     }
   },

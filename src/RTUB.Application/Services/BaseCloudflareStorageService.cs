@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Formats.Webp;
+using System.Net;
 
 namespace RTUB.Application.Services;
 
@@ -63,6 +64,7 @@ public abstract class BaseCloudflareStorageService : IDisposable
         var accountId = configuration["Cloudflare:R2:AccountId"];
         var bucketName = configuration["Cloudflare:R2:Bucket"];
         var publicDomain = configuration["Cloudflare:R2:PublicDomain"]; // e.g., "images.yourdomain.com"
+        var endpoint = configuration["Cloudflare:R2:Endpoint"]; // e.g., "https://00fbdee91927b8a2bcf2fb30b3b21dfb.eu.r2.cloudflarestorage.com" or leave empty for auto
 
         if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
         {
@@ -90,13 +92,26 @@ public abstract class BaseCloudflareStorageService : IDisposable
         PublicDomain = publicDomain ?? string.Empty;
 
         var credentials = new BasicAWSCredentials(accessKey, secretKey);
+        
+        // Use custom endpoint if provided, otherwise construct default
+        var serviceUrl = !string.IsNullOrEmpty(endpoint) 
+            ? endpoint 
+            : $"https://{accountId}.r2.cloudflarestorage.com";
+        
+        // Configure for Cloudflare R2 with proper settings
         var config = new AmazonS3Config
         {
-            ServiceURL = $"https://{accountId}.r2.cloudflarestorage.com",
-            ForcePathStyle = true // Required for S3-compatible services
+            ServiceURL = serviceUrl,
+            ForcePathStyle = true, // Required for S3-compatible services
+            UseHttp = false, // Ensure HTTPS is used
+            MaxErrorRetry = 3,
+            Timeout = TimeSpan.FromMinutes(5)
         };
 
         S3Client = new AmazonS3Client(credentials, config);
+        
+        Logger.LogInformation("Initialized Cloudflare R2 client for {EntityName} storage. Endpoint: {Endpoint}, Bucket: {Bucket}", 
+            EntityName, serviceUrl, BucketName);
     }
 
     /// <summary>
@@ -195,7 +210,7 @@ public abstract class BaseCloudflareStorageService : IDisposable
 
     /// <summary>
     /// Constructs the public URL for an object key.
-    /// Uses custom domain if configured, otherwise falls back to R2.dev subdomain.
+    /// Uses custom domain if configured, otherwise generates a pre-signed URL.
     /// </summary>
     private string GetPublicUrl(string objectKey)
     {
@@ -206,11 +221,26 @@ public abstract class BaseCloudflareStorageService : IDisposable
         }
         else
         {
-            // Use R2.dev public subdomain (bucket must have public access enabled)
-            // Format: https://pub-<hash>.r2.dev/path/to/file.webp
-            // Note: User needs to enable public access and provide the pub domain
-            Logger.LogWarning("Cloudflare:R2:PublicDomain not configured. Images may not be accessible.");
-            return $"https://pub-{BucketName}.r2.dev/{objectKey}";
+            // No public domain configured - generate pre-signed URL
+            // Pre-signed URLs work without requiring bucket to be public
+            try
+            {
+                var request = new GetPreSignedUrlRequest
+                {
+                    BucketName = BucketName,
+                    Key = objectKey,
+                    Expires = DateTime.UtcNow.AddHours(24 * 365) // 1 year expiration
+                };
+                
+                var preSignedUrl = S3Client.GetPreSignedURL(request);
+                return preSignedUrl;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error generating pre-signed URL for {EntityName} image: {ObjectKey}", EntityName, objectKey);
+                // Fallback to a placeholder - this won't work but prevents crashes
+                return $"https://{AccountId}.r2.cloudflarestorage.com/{BucketName}/{objectKey}";
+            }
         }
     }
 
