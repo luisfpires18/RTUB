@@ -16,7 +16,7 @@
 <h1>Gestão de Pedidos</h1>
 <p class="lead mb-4 lead-light">Gerir todos os pedidos submetidos através do website.</p>
 
-<!-- Search and Filter Controls -->
+<!-- Search Controls -->
 <div class="row mb-3">
     <div class="col-md-6">
         <TableSearchBar 
@@ -26,42 +26,12 @@
     </div>
 </div>
 
-<!-- Filter and Stats -->
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="btn-group" role="group" aria-label="Status filter">
-            <button type="button" class="btn @(filterStatus == null ? "btn-primary" : "btn-outline-primary")" @onclick='() => SetFilterStatus(null)'>
-                Todos (@(AllItems?.Count ?? 0))
-            </button>
-            <button type="button" class="btn @(filterStatus == RequestStatus.Pending ? "btn-warning" : "btn-outline-warning")" @onclick='() => SetFilterStatus(RequestStatus.Pending)'>
-                Pendentes (@(AllItems?.Count(r => r.Status == RequestStatus.Pending) ?? 0))
-            </button>
-            <button type="button" class="btn @(filterStatus == RequestStatus.Analysing ? "btn-info" : "btn-outline-info")" @onclick='() => SetFilterStatus(RequestStatus.Analysing)'>
-                Em Análise (@(AllItems?.Count(r => r.Status == RequestStatus.Analysing) ?? 0))
-            </button>
-            <button type="button" class="btn @(filterStatus == RequestStatus.Confirmed ? "btn-success" : "btn-outline-success")" @onclick='() => SetFilterStatus(RequestStatus.Confirmed)'>
-                Confirmados (@(AllItems?.Count(r => r.Status == RequestStatus.Confirmed) ?? 0))
-            </button>
-            <button type="button" class="btn @(filterStatus == RequestStatus.Rejected ? "btn-danger" : "btn-outline-danger")" @onclick='() => SetFilterStatus(RequestStatus.Rejected)'>
-                Rejeitados (@(AllItems?.Count(r => r.Status == RequestStatus.Rejected) ?? 0))
-            </button>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-12 text-end">
-        <button class="btn btn-outline-secondary" @onclick="async () => await RefreshDataAsync()">
-            <i class="bi bi-arrow-clockwise"></i> Atualizar
-        </button>
-    </div>
-</div>
-
-<!-- Requests Grid -->
-@if (PaginatedItems.Any())
+<!-- Pending Requests Grid -->
+<h3 class="mt-4 mb-3">Pedidos Pendentes</h3>
+@if (PendingRequests.Any())
 {
     <div class="request-grid">
-        @foreach (var req in PaginatedItems)
+        @foreach (var req in PaginatedPendingRequests)
         {
             <AuthorizeView Roles="Owner">
                 <Authorized Context="ownerContext">
@@ -80,23 +50,64 @@
         }
     </div>
 
-    <!-- Pagination -->
+    <!-- Pagination for Pending -->
     <TablePagination 
-        CurrentPage="@PaginationHelper.CurrentPage"
-        PageSize="@PaginationHelper.PageSize"
-        TotalItems="@FilteredItems.Count"
-        ItemLabel="pedidos"
-        PageSizeOptions="@(new[] { 6, 12, 18, 24, 30 })"
-        OnPageChanged="ChangePage"
-        OnPageSizeChanged="ChangePageSize" />
+        CurrentPage="@pendingPagination.CurrentPage"
+        PageSize="@pendingPagination.PageSize"
+        TotalItems="@PendingRequests.Count"
+        ItemLabel="pedidos pendentes"
+        PageSizeOptions="@(new[] { 4, 8, 12, 16, 20 })"
+        OnPageChanged="@((page) => { pendingPagination.GoToPage(page); UpdatePendingPagination(); })"
+        OnPageSizeChanged="@((size) => { pendingPagination.PageSize = size; pendingPagination.Reset(); UpdatePendingPagination(); })" />
 }
 else
 {
     <EmptyTableState 
-        Message="@($"Nenhum pedido {GetFilterStatusText()} encontrado.")" 
+        Message="Nenhum pedido pendente encontrado." 
         IconClass="bi-info-circle" />
 }
-<!-- View/Edit Modal using DetailsModal -->
+
+<!-- Answered Requests Grid -->
+<h3 class="mt-5 mb-3">Pedidos Respondidos</h3>
+@if (AnsweredRequests.Any())
+{
+    <div class="request-grid">
+        @foreach (var req in PaginatedAnsweredRequests)
+        {
+            <AuthorizeView Roles="Owner">
+                <Authorized Context="ownerContext">
+                    <RequestCard Request="@req"
+                                IsOwner="true"
+                                OnViewDetails="@(() => ViewRequest(req))"
+                                OnDelete="@(() => OpenDeleteModal(req))" />
+                </Authorized>
+                <NotAuthorized>
+                    <RequestCard Request="@req"
+                                IsOwner="false"
+                                OnViewDetails="@(() => ViewRequest(req))"
+                                OnDelete="@(() => {})" />
+                </NotAuthorized>
+            </AuthorizeView>
+        }
+    </div>
+
+    <!-- Pagination for Answered -->
+    <TablePagination 
+        CurrentPage="@answeredPagination.CurrentPage"
+        PageSize="@answeredPagination.PageSize"
+        TotalItems="@AnsweredRequests.Count"
+        ItemLabel="pedidos respondidos"
+        PageSizeOptions="@(new[] { 4, 8, 12, 16, 20 })"
+        OnPageChanged="@((page) => { answeredPagination.GoToPage(page); UpdateAnsweredPagination(); })"
+        OnPageSizeChanged="@((size) => { answeredPagination.PageSize = size; answeredPagination.Reset(); UpdateAnsweredPagination(); })" />
+}
+else
+{
+    <EmptyTableState 
+        Message="Nenhum pedido respondido encontrado." 
+        IconClass="bi-info-circle" />
+}
+<!-- View Details Modal using DetailsModal -->
 <DetailsModal Show="@(selectedRequest != null)" 
               ShowChanged="@((bool show) => { if (!show) CloseModal(); })" 
               Title="Detalhes do Pedido"
@@ -116,16 +127,8 @@ else
                         IconClass="bi-person-fill" 
                         CssClass="mb-4">
                 <ProfileField Label="Nome" Value="@selectedRequest.Name" />
-                <ProfileField Label="Email">
-                    <ValueContent>
-                        <a href="mailto:@selectedRequest.Email" class="text-decoration-none text-primary">@selectedRequest.Email</a>
-                    </ValueContent>
-                </ProfileField>
-                <ProfileField Label="Telefone">
-                    <ValueContent>
-                        <a href="tel:@selectedRequest.Phone" class="text-decoration-none text-primary">@selectedRequest.Phone</a>
-                    </ValueContent>
-                </ProfileField>
+                <ProfileField Label="Email" Value="@selectedRequest.Email" />
+                <ProfileField Label="Telefone" Value="@selectedRequest.Phone" />
             </InfoSection>
 
             <!-- Event Information Section -->
@@ -135,6 +138,7 @@ else
                 <ProfileField Label="Tipo de Evento" Value="@selectedRequest.EventType" />
                 <ProfileField Label="Data Preferida" Value="@selectedRequest.PreferredDate.ToPortugueseShortDate()" />
                 <ProfileField Label="Localização" Value="@selectedRequest.Location" />
+                <ProfileField Label="Submetido" Value="@selectedRequest.CreatedAt.ToPortugueseDateTime()" />
             </InfoSection>
 
             <!-- Additional Information Section -->
@@ -146,58 +150,98 @@ else
                     <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedRequest.Message</p>
                 </InfoSection>
             }
-
-            <!-- Status Management Section -->
-            <InfoSection SectionTitle="Gestão de Estado" 
-                        IconClass="bi-sliders" 
-                        CssClass="mb-3">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Estado</label>
-                    <InputSelect class="form-select" @bind-Value="selectedRequest.Status">
-                        <option value="@RequestStatus.Pending">Pendente</option>
-                        <option value="@RequestStatus.Analysing">Em Análise</option>
-                        <option value="@RequestStatus.Confirmed">Confirmado</option>
-                        <option value="@RequestStatus.Rejected">Rejeitado</option>
-                    </InputSelect>
-                </div>
-                <ProfileField Label="Submetido" Value="@selectedRequest.CreatedAt.ToPortugueseDateTime()" />
-            </InfoSection>
         }
     </Sections>
     <FooterContent>
+        @if (selectedRequest != null && selectedRequest.Status == RequestStatus.Pending)
+        {
+            <button type="button" class="btn btn-success" @onclick="@(() => OpenApproveModal(selectedRequest))">
+                <i class="bi bi-check-circle"></i> Aprovar
+            </button>
+            <button type="button" class="btn btn-danger" @onclick="@(() => OpenRejectModal(selectedRequest))">
+                <i class="bi bi-x-circle"></i> Rejeitar
+            </button>
+        }
         <button type="button" class="btn btn-secondary" @onclick="CloseModal">Fechar</button>
-        <button type="button" class="btn btn-primary" @onclick="SaveChanges">
-            <i class="bi bi-save"></i> Guardar Alterações
-        </button>
     </FooterContent>
 </DetailsModal>
 
-<!-- Delete Confirmation Modal -->
-<Modal Show="@(deletingRequest != null)" ShowChanged="@((bool show) => { if (!show) CloseDeleteModal(); })" 
-       Title="Confirmar Eliminação" Size="Modal.ModalSize.Default">
+<!-- Approve Confirmation Dialog -->
+<ConfirmDialog Show="@showApproveDialog"
+               ShowChanged="@((bool show) => showApproveDialog = show)"
+               Title="Aprovar Pedido"
+               Message="@($"Deseja aprovar o pedido de {approvingRequest?.Name}?")"
+               ConfirmText="Aprovar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-success"
+               OnConfirm="ConfirmApprove"
+               OnCancel="@(() => { showApproveDialog = false; approvingRequest = null; })" />
+
+<!-- Create Event Dialog -->
+<ConfirmDialog Show="@showCreateEventDialog"
+               ShowChanged="@((bool show) => showCreateEventDialog = show)"
+               Title="Criar Evento"
+               Message="@($"Pedido aprovado! Deseja criar um evento associado a este pedido?")"
+               ConfirmText="Sim"
+               CancelText="Não"
+               ConfirmButtonClass="btn-primary"
+               OnConfirm="CreateEventFromRequest"
+               OnCancel="@(() => { showCreateEventDialog = false; approvingRequest = null; })" />
+
+<!-- Reject Confirmation Dialog -->
+<ConfirmDialog Show="@showRejectDialog"
+               ShowChanged="@((bool show) => showRejectDialog = show)"
+               Title="Rejeitar Pedido"
+               WarningMessage="Esta ação não pode ser revertida."
+               ConfirmText="Rejeitar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmReject"
+               OnCancel="@(() => { showRejectDialog = false; rejectingRequest = null; })">
     <BodyContent>
-        @if (deletingRequest != null)
-        {
-            <p>Tem a certeza que pretende eliminar o pedido de <strong>@deletingRequest.Name</strong>?</p>
-            <p class="text-muted">Esta ação não pode ser revertida.</p>
-        }
+        <p>Tem a certeza que pretende rejeitar o pedido de <strong>@rejectingRequest?.Name</strong>?</p>
     </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="DeleteRequest">Eliminar</button>
-    </FooterContent>
-</Modal>
+</ConfirmDialog>
+
+<!-- Delete Confirmation Modal -->
+<ConfirmDialog Show="@(deletingRequest != null)"
+               ShowChanged="@((bool show) => { if (!show) CloseDeleteModal(); })"
+               Title="Confirmar Eliminação"
+               WarningMessage="Esta ação não pode ser revertida."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="DeleteRequest"
+               OnCancel="CloseDeleteModal">
+    <BodyContent>
+        <p>Tem a certeza que pretende eliminar o pedido de <strong>@deletingRequest?.Name</strong>?</p>
+    </BodyContent>
+</ConfirmDialog>
 
 @code {
-    private RequestStatus? filterStatus = null;
     private Request? selectedRequest = null;
     private Request? deletingRequest = null;
+    private Request? approvingRequest = null;
+    private Request? rejectingRequest = null;
+    
+    private bool showApproveDialog = false;
+    private bool showCreateEventDialog = false;
+    private bool showRejectDialog = false;
+
+    // Separate lists for pending and answered requests
+    private List<Request> PendingRequests = new();
+    private List<Request> AnsweredRequests = new();
+    private List<Request> PaginatedPendingRequests = new();
+    private List<Request> PaginatedAnsweredRequests = new();
+    
+    // Separate pagination helpers
+    private PaginationHelper<Request> pendingPagination = new() { PageSize = 4 };
+    private PaginationHelper<Request> answeredPagination = new() { PageSize = 4 };
 
     protected override async Task OnInitializedAsync()
     {
         SortHelper.SortColumn = nameof(Request.CreatedAt);
         SortHelper.SortAscending = false;
-        PaginationHelper.PageSize = 6; // Set default page size to 6
         await LoadItemsAsync();
         ApplyFiltersAndPagination();
     }
@@ -233,25 +277,34 @@ else
         };
     }
 
-    // Override to add custom status filtering
     protected override void ApplyFiltersAndPagination()
     {
         if (AllItems == null) return;
 
-        // Apply status filter first
-        var items = filterStatus != null 
-            ? AllItems.Where(r => r.Status == filterStatus).ToList()
-            : AllItems;
-
         // Apply search filter
         SearchHelper.SearchTerm = SearchTerm;
-        FilteredItems = SearchHelper.FilterMultiple(items, GetSearchSelectors());
+        FilteredItems = SearchHelper.FilterMultiple(AllItems, GetSearchSelectors());
 
         // Apply sorting
         FilteredItems = SortHelper.ApplySort(FilteredItems, GetSortColumnSelectors());
 
-        // Apply pagination
-        UpdatePagination();
+        // Separate into pending and answered
+        PendingRequests = FilteredItems.Where(r => r.Status == RequestStatus.Pending).ToList();
+        AnsweredRequests = FilteredItems.Where(r => r.Status == RequestStatus.Confirmed || r.Status == RequestStatus.Rejected).ToList();
+
+        // Update pagination for both grids
+        UpdatePendingPagination();
+        UpdateAnsweredPagination();
+    }
+
+    private void UpdatePendingPagination()
+    {
+        PaginatedPendingRequests = pendingPagination.GetPageData(PendingRequests);
+    }
+
+    private void UpdateAnsweredPagination()
+    {
+        PaginatedAnsweredRequests = answeredPagination.GetPageData(AnsweredRequests);
     }
 
     private void ViewRequest(Request request)
@@ -264,26 +317,50 @@ else
         selectedRequest = null;
     }
 
-    private async Task SaveChanges()
+    private void OpenApproveModal(Request request)
     {
-        if (selectedRequest != null)
+        approvingRequest = request;
+        showApproveDialog = true;
+    }
+
+    private async Task ConfirmApprove()
+    {
+        if (approvingRequest != null)
         {
-            await RequestService.UpdateRequestStatusAsync(selectedRequest.Id, selectedRequest.Status);
+            await RequestService.UpdateRequestStatusAsync(approvingRequest.Id, RequestStatus.Confirmed);
             await RefreshDataAsync();
+            showApproveDialog = false;
             CloseModal();
+            
+            // Show create event dialog
+            showCreateEventDialog = true;
         }
     }
 
-    private string GetFilterStatusText()
+    private void CreateEventFromRequest()
     {
-        return filterStatus == null ? "" : StatusHelper.GetFilterStatusText(filterStatus);
+        // TODO: Navigate to event creation page or open event creation modal
+        // For now, just close the dialog
+        showCreateEventDialog = false;
+        approvingRequest = null;
     }
 
-    private void SetFilterStatus(RequestStatus? status)
+    private void OpenRejectModal(Request request)
     {
-        filterStatus = status;
-        PaginationHelper.Reset();
-        ApplyFiltersAndPagination();
+        rejectingRequest = request;
+        showRejectDialog = true;
+    }
+
+    private async Task ConfirmReject()
+    {
+        if (rejectingRequest != null)
+        {
+            await RequestService.UpdateRequestStatusAsync(rejectingRequest.Id, RequestStatus.Rejected);
+            await RefreshDataAsync();
+            showRejectDialog = false;
+            rejectingRequest = null;
+            CloseModal();
+        }
     }
     
     private void OpenDeleteModal(Request request)
