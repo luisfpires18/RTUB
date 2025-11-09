@@ -10,6 +10,7 @@
 @using RTUB.Shared
 @attribute [Authorize]
 @inject IInstrumentService InstrumentService
+@inject IImageService ImageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Instrumentos</h1>
@@ -403,6 +404,12 @@ else
             else
             {
                 await InstrumentService.UpdateAsync(editingInstrument);
+                
+                // Invalidate server-side cache if image was updated
+                if (editingInstrument.ImageData != null && uploadedInstrumentImagePath != null)
+                {
+                    ImageService.InvalidateInstrumentImageCache(editingInstrument.Id);
+                }
             }
 
             await LoadData();

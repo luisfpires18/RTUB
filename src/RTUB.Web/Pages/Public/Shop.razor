@@ -10,6 +10,7 @@
 @using RTUB.Shared.Components.Cards
 @inject IProductService ProductService
 @inject IProductReservationService ProductReservationService
+@inject IImageService ImageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Loja RTUB</h1>
@@ -725,6 +726,12 @@ else
             else
             {
                 await ProductService.UpdateAsync(editingProduct);
+                
+                // Invalidate server-side cache if image was updated
+                if (editingProduct.ImageData != null && uploadedImagePath != null)
+                {
+                    ImageService.InvalidateProductImageCache(editingProduct.Id);
+                }
             }
             
             await LoadProducts();

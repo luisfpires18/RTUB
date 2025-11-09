@@ -12,6 +12,7 @@
 @inject IEnrollmentService EnrollmentService
 @inject ITrophyService TrophyService
 @inject IEmailNotificationService EmailNotificationService
+@inject IImageService ImageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IWebHostEnvironment Environment
@@ -1067,6 +1068,9 @@ else
                     editingEvent.ImageData,
                     editingEvent.ImageContentType
                 );
+                
+                // Invalidate server-side cache to ensure new image is served
+                ImageService.InvalidateEventImageCache(editingEvent.Id);
             }
         }
 

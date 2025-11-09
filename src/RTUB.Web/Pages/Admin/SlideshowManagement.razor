@@ -9,6 +9,7 @@
 @attribute [Authorize(Roles = "Admin")]
 @inherits CrudTablePageBase<Slideshow>
 @inject ISlideshowService SlideshowService
+@inject IImageService ImageService
 @inject IWebHostEnvironment Environment
 
 <h1>Gestão de Apresentação</h1>
@@ -370,6 +371,9 @@ else
                     editingSlide.ImageData,
                     editingSlide.ImageContentType
                 );
+                
+                // Invalidate server-side cache to ensure new image is served
+                ImageService.InvalidateSlideshowImageCache(editingSlide.Id);
             }
 
             if (editingSlide.IsActive)
