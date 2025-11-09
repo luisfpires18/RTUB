@@ -156,18 +156,29 @@ public abstract class BaseDriveStorageService : IDisposable
 
     /// <summary>
     /// Gets the direct public URL for an image.
+    /// If the input is already a full URL, returns it as-is.
+    /// Otherwise, constructs the URL from the filename.
     /// Returns null if filename is null or empty.
     /// </summary>
-    public Task<string?> GetImageUrlAsync(string filename)
+    public Task<string?> GetImageUrlAsync(string filenameOrUrl)
     {
-        if (string.IsNullOrEmpty(filename))
+        if (string.IsNullOrEmpty(filenameOrUrl))
         {
             return Task.FromResult<string?>(null);
         }
 
         try
         {
-            var objectKey = GetObjectKey(filename);
+            // Check if the input is already a full URL
+            if (filenameOrUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || 
+                filenameOrUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                // Already a full URL, return it as-is
+                return Task.FromResult<string?>(filenameOrUrl);
+            }
+            
+            // It's a filename, construct the full URL
+            var objectKey = GetObjectKey(filenameOrUrl);
             
             // Return direct public URL (no expiration, no pre-signing needed)
             var publicUrl = $"https://{Endpoint}/{BucketName}/{objectKey}";
@@ -175,7 +186,7 @@ public abstract class BaseDriveStorageService : IDisposable
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Unexpected error generating {EntityName} image URL for filename: {Filename}", EntityName, filename);
+            Logger.LogError(ex, "Unexpected error generating {EntityName} image URL for filename: {FilenameOrUrl}", EntityName, filenameOrUrl);
             return Task.FromResult<string?>(null);
         }
     }
