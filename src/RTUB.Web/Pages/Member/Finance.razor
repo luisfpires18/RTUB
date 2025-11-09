@@ -298,7 +298,18 @@ else
 
     private void ViewReport(int reportId)
     {
-        NavigationManager.NavigateTo($"/finance/report/{reportId}");
+        try
+        {
+            NavigationManager.NavigateTo($"/finance/report/{reportId}");
+        }
+        catch (TaskCanceledException)
+        {
+            // User navigated away - benign
+        }
+        catch (Microsoft.JSInterop.JSDisconnectedException)
+        {
+            // Circuit disconnected - benign
+        }
     }
 
     private void OpenCreateModal()

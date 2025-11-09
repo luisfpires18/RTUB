@@ -29,6 +29,14 @@ namespace RTUB
                 {
                     return false; // Don't log circuit TaskCanceledException errors
                 }
+                
+                // Suppress TaskCanceledException errors from RemoteNavigationManager (benign navigation cancellations)
+                if (category == "Microsoft.AspNetCore.Components.Server.Circuits.RemoteNavigationManager" &&
+                    level == LogLevel.Error)
+                {
+                    return false; // Don't log navigation TaskCanceledException errors
+                }
+                
                 return true; // Log everything else
             });
 
