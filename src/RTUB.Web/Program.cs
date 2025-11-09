@@ -114,15 +114,20 @@ namespace RTUB
             services.AddScoped<IRehearsalService, RehearsalService>();
             services.AddScoped<IRehearsalAttendanceService, RehearsalAttendanceService>();
             services.AddScoped<IAuditLogService, AuditLogService>();
+            
+            // Storage Services
+            // Audio, Lyrics, Documents stay on iDrive
             services.AddSingleton<IAudioStorageService, DriveAudioStorageService>();
             services.AddSingleton<ILyricStorageService, DriveLyricStorageService>();
             services.AddSingleton<IDocumentStorageService, DriveDocumentStorageService>();
-            services.AddSingleton<ISlideshowStorageService, DriveSlideshowStorageService>();
-            services.AddSingleton<IEventStorageService, DriveEventStorageService>();
-            services.AddSingleton<IProfileStorageService, DriveProfileStorageService>();
-            services.AddSingleton<IAlbumStorageService, DriveAlbumStorageService>();
-            services.AddSingleton<IInstrumentStorageService, DriveInstrumentStorageService>();
-            services.AddSingleton<IProductStorageService, DriveProductStorageService>();
+            
+            // Images moved to Cloudflare R2
+            services.AddSingleton<ISlideshowStorageService, CloudflareSlideshowStorageService>();
+            services.AddSingleton<IEventStorageService, CloudflareEventStorageService>();
+            services.AddSingleton<IProfileStorageService, CloudflareProfileStorageService>();
+            services.AddSingleton<IAlbumStorageService, CloudflareAlbumStorageService>();
+            services.AddSingleton<IInstrumentStorageService, CloudflareInstrumentStorageService>();
+            services.AddSingleton<IProductStorageService, CloudflareProductStorageService>();
             
             // --------- Inventory & Shop Services ---------
             services.AddScoped<IInstrumentService, InstrumentService>();

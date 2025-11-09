@@ -1,0 +1,17 @@
+{
+  "Cloudflare": {
+    "R2": {
+      "AccessKeyId": "your-r2-access-key-id",
+      "SecretAccessKey": "your-r2-secret-access-key",
+      "AccountId": "your-cloudflare-account-id",
+      "Bucket": "rtub-images",
+      "PublicDomain": "images.yourdomain.com"
+    }
+  },
+  "IDrive": {
+    "WriteAccessKey": "your-idrive-write-access-key",
+    "WriteSecretKey": "your-idrive-write-secret-key",
+    "Endpoint": "s3.eu-west-4.idrivee2.com",
+    "Bucket": "rtub"
+  }
+}
