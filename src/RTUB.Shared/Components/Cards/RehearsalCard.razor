@@ -91,7 +91,7 @@
                 @if (!IsPastRehearsal)
                 {
                     <!-- Second row: User attendance action buttons -->
-                    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-center">
+                    <div class="d-flex gap-2 align-items-center justify-content-center">
                         @if (UserAttendance == null)
                         {
                             <!-- Mark Attendance button -->
@@ -290,12 +290,10 @@
 
     .rehearsal-mark-btn {
         min-width: 110px;
-        flex: 1 1 auto;
     }
 
     .rehearsal-status-btn {
         min-width: 110px;
-        flex: 1 1 auto;
     }
 
     .rehearsal-edit-btn,
@@ -309,16 +307,6 @@
         .rehearsal-action-btn {
             min-width: calc(50% - 0.25rem);
             flex: 1 1 calc(50% - 0.25rem);
-        }
-
-        .rehearsal-mark-btn {
-            min-width: 100%;
-            flex: 1 1 100%;
-        }
-
-        .rehearsal-status-btn {
-            min-width: 100%;
-            flex: 1 1 100%;
         }
 
         .rehearsal-edit-btn,
