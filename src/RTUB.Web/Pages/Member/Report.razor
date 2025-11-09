@@ -1,0 +1,833 @@
+@page "/finance/report/{ReportId:int}"
+@namespace RTUB.Pages.Member
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Extensions
+@using RTUB.Shared
+@using ReportEntity = RTUB.Core.Entities.Report
+@attribute [Authorize]
+@inject IReportService ReportService
+@inject IActivityService ActivityService
+@inject ITransactionService TransactionService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+
+@if (report == null)
+{
+    <p>A carregar...</p>
+}
+else
+{
+    <div class="mb-4">
+   <button class="btn btn-outline-light btn-sm mb-3" @onclick="GoBack">
+        <i class="bi bi-arrow-left"></i>
+        </button>
+
+        <h1>@report.Title</h1>
+        <p class="text-light-theme">Ano Fiscal: @report.Year</p>
+
+        @if (report.IsPublished)
+        {
+      <div class="alert alert-warning">
+        <i class="bi bi-lock"></i> <strong>Relatório Publicado - Somente Leitura</strong>
+      <p class="mb-0">Este relatório foi publicado e não pode ser modificado.</p>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(report.Summary))
+        {
+       <div class="alert alert-info">
+      @report.Summary
+  </div>
+        }
+
+   <!-- Summary Cards - 2x2 Grid -->
+<div class="summary-cards-container mb-4">
+       <div class="row g-2">
+      <div class="col-6 col-sm-6 col-md-6">
+              <div class="card text-center summary-card">
+  <div class="card-body py-2">
+          <small class="card-title d-block mb-1 text-light-theme">Receitas</small>
+       <h5 class="text-success mb-0">€@totalIncome.ToString("N2")</h5>
+        </div>
+      </div>
+                </div>
+           <div class="col-6 col-sm-6 col-md-6">
+         <div class="card text-center summary-card">
+            <div class="card-body py-2">
+       <small class="card-title d-block mb-1 text-light-theme">Despesas</small>
+       <h5 class="text-danger mb-0">€@totalExpenses.ToString("N2")</h5>
+    </div>
+    </div>
+         </div>
+   <div class="col-6 col-sm-6 col-md-6">
+        <div class="card text-center summary-card">
+            <div class="card-body py-2">
+   <small class="card-title d-block mb-1 text-light-theme">Saldo</small>
+                   <h5 class="@(balance >= 0 ? "text-success" : "text-danger") mb-0">€@balance.ToString("N2")</h5>
+     </div>
+ </div>
+      </div>
+      <div class="col-6 col-sm-6 col-md-6">
+      <div class="card text-center summary-card">
+    <div class="card-body py-2">
+ <small class="card-title d-block mb-1 text-light-theme">Atividades</small>
+       <h5 class="mb-0">@(activities?.Count ?? 0)</h5>
+             </div>
+  </div>
+        </div>
+         </div>
+        </div>
+    </div>
+
+  <h3>Atividades</h3>
+
+    @if (!report.IsPublished && isAdmin)
+    {
+        <div class="mb-3">
+            <button class="btn btn-success" @onclick="OpenCreateActivityModal" title="Nova Atividade">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+    }
+
+@if (activities == null)
+    {
+  <p>A carregar atividades...</p>
+    }
+    else if (!activities.Any())
+    {
+        <EmptyTableState Message="Nenhuma atividade criada ainda."
+                        IconClass="bi-calendar-event" />
+    }
+    else
+    {
+        <div class="accordion" id="activitiesAccordion">
+          @foreach (var activity in activities.OrderBy(a => a.Name))
+       {
+                <div class="accordion-item mb-2">
+               <h2 class="accordion-header" id="heading@activity.Id">
+  <button class="accordion-button @(expandedActivityIds.Contains(activity.Id) ? "" : "collapsed") d-flex justify-content-between align-items-center activity-highlight"
+             type="button"
+           @onclick="@(() => ToggleAccordion(activity.Id))"
+             aria-expanded="@(expandedActivityIds.Contains(activity.Id) ? "true" : "false")"
+       aria-controls="collapse@activity.Id">
+    <div class="flex-grow-1">
+        <strong class="text-white-full">@activity.Name</strong>
+                </div>
+ <div class="ms-3">
+         <span class="badge @(activity.Balance >= 0 ? "bg-success" : "bg-danger") me-2">
+                  Saldo: €@activity.Balance.ToString("N2")
+   </span>
+             </div>
+         </button>
+        </h2>
+           <div id="collapse@activity.Id" class="accordion-collapse collapse @(expandedActivityIds.Contains(activity.Id) ? "show" : "")" aria-labelledby="heading@activity.Id">
+      <div class="accordion-body">
+   @if (!string.IsNullOrEmpty(activity.Description))
+        {
+  <p class="text-light-theme">@activity.Description</p>
+    }
+
+<div class="row mb-3">
+   <div class="col-md-4">
+               <small class="text-light-theme">Receitas:</small>
+         <h5 class="text-success">€@activity.TotalIncome.ToString("N2")</h5>
+         </div>
+            <div class="col-md-4">
+   <small class="text-light-theme">Despesas:</small>
+    <h5 class="text-danger">€@activity.TotalExpenses.ToString("N2")</h5>
+     </div>
+        <div class="col-md-4">
+   @if (!report.IsPublished && isAdmin)
+                 {
+         <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditActivityModal(activity)">
+      <i class="bi bi-pencil"></i> Editar
+            </button>
+         <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteActivityModal(activity)">
+        <i class="bi bi-trash"></i> Eliminar
+         </button>
+}
+      </div>
+        </div>
+
+   <h6>Transações</h6>
+   @if (!report.IsPublished && isAdmin)
+          {
+          <button class="btn btn-sm btn-success mb-2" @onclick="() => OpenCreateTransactionModal(activity.Id)">
+          <i class="bi bi-plus"></i> Nova Transação
+     </button>
+    }
+
+         @{
+               var activityTransactions = GetActivityTransactions(activity.Id);
+  var filteredTransactions = GetFilteredSortedPaginatedTransactions(activity.Id);
+     var tableState = GetTableState(activity.Id);
+              var totalPages = GetTotalPages(activity.Id);
+  var filteredCount = GetFilteredTransactionCount(activity.Id);
+            }
+
+        @if (!activityTransactions.Any())
+            {
+      <p class="text-white-full"><em>Sem transações</em></p>
+   }
+    else
+        {
+    <!-- Search Box -->
+     <TableSearchBar SearchTerm="@tableState.SearchTerm"
+                    Placeholder="Pesquisar transações..."
+                    OnSearchChanged="@(term => HandleTransactionSearch(activity.Id, term))" />
+     @if (!string.IsNullOrWhiteSpace(tableState.SearchTerm))
+         {
+           <small class="text-muted d-block mb-2">A mostrar @filteredCount de @activityTransactions.Count transações</small>
+          }
+
+   @if (filteredCount == 0)
+    {
+        <EmptyTableState Message="Nenhuma transação encontrada"
+                        IconClass="bi-search"
+                        SubMessage="Tente ajustar os filtros de pesquisa." />
+       }
+        else
+            {
+         <div class="table-responsive">
+      <table class="table table-sm table-striped">
+    <thead>
+  <tr>
+   <SortableTableHeader HeaderText="Data"
+                       SortColumn="Date"
+                       CurrentSortColumn="@tableState.SortColumn"
+                       IsSortAscending="@(!tableState.SortDescending)"
+                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
+   <SortableTableHeader HeaderText="Descrição"
+                       SortColumn="Description"
+                       CurrentSortColumn="@tableState.SortColumn"
+                       IsSortAscending="@(!tableState.SortDescending)"
+                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
+   <SortableTableHeader HeaderText="Categoria"
+                       SortColumn="Category"
+                       CurrentSortColumn="@tableState.SortColumn"
+                       IsSortAscending="@(!tableState.SortDescending)"
+                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
+   <SortableTableHeader HeaderText="Tipo"
+                       SortColumn="Type"
+                       CurrentSortColumn="@tableState.SortColumn"
+                       IsSortAscending="@(!tableState.SortDescending)"
+                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
+   <SortableTableHeader HeaderText="Valor"
+                       SortColumn="Amount"
+                       CurrentSortColumn="@tableState.SortColumn"
+                       IsSortAscending="@(!tableState.SortDescending)"
+                       OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
+        @if (!report.IsPublished && isAdmin)
+            {
+            <th>Ações</th>
+     }
+      </tr>
+         </thead>
+       <tbody>
+       @foreach (var transaction in filteredTransactions)
+   {
+         <tr>
+ <td>@transaction.Date.ToString("dd/MM/yyyy")</td>
+      <td>@transaction.Description</td>
+           <td>@transaction.Category</td>
+       <td>
+  <span class="badge @(transaction.Type == "Income" ? "bg-success" : "bg-danger")">
+      @(transaction.Type == "Income" ? "Receita" : "Despesa")
+    </span>
+             </td>
+    <td class="@(transaction.Type == "Income" ? "text-success" : "text-danger")">
+        @(transaction.Type == "Income" ? "+" : "-")€@transaction.Amount.ToString("N2")
+    </td>
+          @if (!report.IsPublished && isAdmin)
+        {
+             <td>
+            <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditTransactionModal(transaction)" aria-label="Editar transação">
+    <i class="bi bi-pencil"></i>
+    </button>
+      <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteTransactionModal(transaction)" aria-label="Eliminar transação">
+    <i class="bi bi-trash"></i>
+           </button>
+              </td>
+          }
+ </tr>
+      }
+         </tbody>
+</table>
+   </div>
+
+  <!-- Pagination -->
+         @if (totalPages > 1)
+        {
+            <TablePagination CurrentPage="@tableState.CurrentPage"
+                            PageSize="@TransactionTableState.PageSize"
+                            TotalItems="@GetFilteredTransactionCount(activity.Id)"
+                            ItemLabel="transações"
+                            OnPageChanged="@(page => HandleTransactionPageChange(activity.Id, page))"
+                            OnPageSizeChanged="@(_ => Task.CompletedTask)" />
+         }
+ }
+         }
+   </div>
+             </div>
+        </div>
+      }
+        </div>
+    }
+}
+
+<!-- Activity Create/Edit Modal -->
+<Modal Show="@showActivityModal" 
+       ShowChanged="@((bool show) => showActivityModal = show)"
+       Title="@(isCreateActivityMode ? "Nova Atividade" : "Editar Atividade")" 
+       Centered="true"
+       ShowCloseButton="true">
+    <BodyContent>
+      <EditForm Model="editingActivity" OnValidSubmit="SaveActivity">
+            <DataAnnotationsValidator />
+<ValidationSummary class="text-danger" />
+
+    <div class="mb-3">
+                <label class="form-label">Nome</label>
+       <InputText class="form-control" @bind-Value="editingActivity!.Name" placeholder="Inserir nome..." />
+            </div>
+
+<div class="mb-3">
+    <label class="form-label">Descrição (opcional)</label>
+                <InputTextArea class="form-control" rows="3" @bind-Value="editingActivity!.Description" />
+    </div>
+
+            <div class="d-flex justify-content-end gap-2">
+       <button type="button" class="btn btn-secondary" @onclick="CloseActivityModal">Cancelar</button>
+     <button type="submit" class="btn btn-success">Guardar</button>
+    </div>
+        </EditForm>
+    </BodyContent>
+</Modal>
+
+<!-- Transaction Create/Edit Modal -->
+<Modal Show="@showTransactionModal" 
+   ShowChanged="@((bool show) => showTransactionModal = show)"
+       Title="@(isCreateTransactionMode ? "Nova Transação" : "Editar Transação")" 
+       Centered="true"
+    ShowCloseButton="true">
+    <BodyContent>
+        <EditForm Model="editingTransaction" OnValidSubmit="SaveTransaction">
+            <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" />
+
+       <div class="mb-3">
+           <label class="form-label">Data</label>
+           <InputDate class="form-control" @bind-Value="editingTransaction!.Date" />
+ </div>
+
+       <div class="mb-3">
+         <label class="form-label">Descrição</label>
+    <InputText class="form-control" @bind-Value="editingTransaction!.Description" />
+     </div>
+
+            <div class="mb-3">
+       <label class="form-label">Categoria</label>
+      <InputText class="form-control" @bind-Value="editingTransaction!.Category" placeholder="Inserir categoria..." />
+        </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo</label>
+          <InputSelect class="form-select" @bind-Value="editingTransaction!.Type">
+           <option value="Income">Receita</option>
+        <option value="Expense">Despesa</option>
+        </InputSelect>
+  </div>
+
+         <div class="mb-3">
+  <label class="form-label">Valor (€)</label>
+           <InputNumber class="form-control" @bind-Value="editingTransaction!.Amount" step="0.01" />
+            </div>
+
+       <div class="d-flex justify-content-end gap-2">
+           <button type="button" class="btn btn-secondary" @onclick="CloseTransactionModal">Cancelar</button>
+        <button type="submit" class="btn btn-success">Guardar</button>
+         </div>
+        </EditForm>
+    </BodyContent>
+</Modal>
+
+<!-- Delete Activity Confirmation Modal -->
+<Modal Show="@showDeleteActivityModal" 
+   ShowChanged="@((bool show) => showDeleteActivityModal = show)"
+     Title="Confirmar Eliminação" 
+ Centered="true"
+       ShowCloseButton="true">
+ <BodyContent>
+      <p>Tem certeza que deseja eliminar a atividade <strong>@deletingActivity?.Name</strong>?</p>
+        <p class="text-danger"><strong>Aviso:</strong> Todas as transações associadas serão também eliminadas!</p>
+        <p class="text-muted">Esta ação não pode ser desfeita.</p>
+    </BodyContent>
+    <FooterContent>
+    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteActivityModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="DeleteActivity">Eliminar</button>
+    </FooterContent>
+</Modal>
+
+<!-- Delete Transaction Confirmation Modal -->
+<Modal Show="@showDeleteTransactionModal" 
+       ShowChanged="@((bool show) => showDeleteTransactionModal = show)"
+       Title="Confirmar Eliminação" 
+       Centered="true"
+       ShowCloseButton="true">
+  <BodyContent>
+   <p>Tem certeza que deseja eliminar esta transação?</p>
+      <p class="text-muted">Esta ação não pode ser desfeita.</p>
+    </BodyContent>
+    <FooterContent>
+     <button type="button" class="btn btn-secondary" @onclick="CloseDeleteTransactionModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="DeleteTransaction">Eliminar</button>
+    </FooterContent>
+</Modal>
+
+@code {
+    [Parameter]
+    public int ReportId { get; set; }
+
+    private ReportEntity? report;
+    private List<Activity>? activities;
+    private List<Transaction>? allTransactions;
+
+    private bool showActivityModal = false;
+    private bool showTransactionModal = false;
+    private bool showDeleteActivityModal = false;
+    private bool showDeleteTransactionModal = false;
+
+    private bool isCreateActivityMode = false;
+    private bool isCreateTransactionMode = false;
+
+    private Activity? editingActivity;
+    private Transaction? editingTransaction;
+    private Activity? deletingActivity;
+    private Transaction? deletingTransaction;
+
+    private int currentActivityId = 0;
+
+    // Accordion state - allows multiple activities to be open
+    private HashSet<int> expandedActivityIds = new HashSet<int>();
+
+    // Transaction table state per activity
+    private Dictionary<int, TransactionTableState> activityTableStates = new Dictionary<int, TransactionTableState>();
+
+    private bool isAdmin = false;
+    private bool isOwner = false;
+    private string currentUserId = "";
+
+    private class TransactionTableState
+    {
+        public string SearchTerm { get; set; } = string.Empty;
+        public string SortColumn { get; set; } = "Date";
+        public bool SortDescending { get; set; } = true;
+        public int CurrentPage { get; set; } = 1;
+    public const int PageSize = 10;
+    }
+
+    private decimal totalIncome => activities?.Sum(a => a.TotalIncome) ?? 0;
+    private decimal totalExpenses => activities?.Sum(a => a.TotalExpenses) ?? 0;
+    private decimal balance => totalIncome - totalExpenses;
+
+    private void ToggleAccordion(int activityId)
+    {
+        if (expandedActivityIds.Contains(activityId))
+    {
+            expandedActivityIds.Remove(activityId); // Close if already open
+        }
+      else
+        {
+     expandedActivityIds.Add(activityId); // Open this one (keep others open)
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get current user and roles
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            isAdmin = user.IsInRole("Admin");
+            isOwner = user.IsInRole("Owner");
+            
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                currentUserId = appUser.Id;
+            }
+        }
+        
+    report = await ReportService.GetReportByIdAsync(ReportId);
+        await LoadTransactions(); // Load transactions FIRST
+     await LoadActivities();    // Then load activities (which recalculates totals using transactions)
+  }
+
+    private async Task LoadActivities()
+    {
+        if (report == null) return;
+
+        var allActivities = await ActivityService.GetActivitiesByReportIdAsync(ReportId);
+        activities = allActivities.ToList();
+    }
+
+    private async Task LoadTransactions()
+    {
+        // Load all transactions (ActivityService already filters by report)
+var allActivityTransactions = new List<Transaction>();
+        
+    // Since we need all transactions for the report, we get them via activities
+        var reportActivities = await ActivityService.GetActivitiesByReportIdAsync(ReportId);
+        foreach (var activity in reportActivities)
+      {
+            var activityTransactions = await TransactionService.GetTransactionsByActivityIdAsync(activity.Id);
+            allActivityTransactions.AddRange(activityTransactions);
+      }
+        
+        allTransactions = allActivityTransactions.OrderByDescending(t => t.Date).ToList();
+    }
+
+    private List<Transaction> GetActivityTransactions(int activityId)
+    {
+  return allTransactions?.Where(t => t.ActivityId == activityId).ToList() ?? new List<Transaction>();
+  }
+
+    private TransactionTableState GetTableState(int activityId)
+    {
+        if (!activityTableStates.ContainsKey(activityId))
+        {
+      activityTableStates[activityId] = new TransactionTableState();
+    }
+ return activityTableStates[activityId];
+    }
+
+  private List<Transaction> GetFilteredSortedPaginatedTransactions(int activityId)
+    {
+    var state = GetTableState(activityId);
+        var transactions = GetActivityTransactions(activityId);
+
+        // Filter
+        if (!string.IsNullOrWhiteSpace(state.SearchTerm))
+  {
+     var search = state.SearchTerm.ToLower();
+            transactions = transactions
+    .Where(t =>
+       (t.Description?.ToLower().Contains(search) ?? false) ||
+   (t.Category?.ToLower().Contains(search) ?? false))
+      .ToList();
+        }
+
+        // Sort
+        transactions = state.SortColumn switch
+        {
+            "Date" => state.SortDescending
+            ? transactions.OrderByDescending(t => t.Date).ToList()
+          : transactions.OrderBy(t => t.Date).ToList(),
+            "Description" => state.SortDescending
+    ? transactions.OrderByDescending(t => t.Description).ToList()
+     : transactions.OrderBy(t => t.Description).ToList(),
+            "Category" => state.SortDescending
+          ? transactions.OrderByDescending(t => t.Category).ToList()
+      : transactions.OrderBy(t => t.Category).ToList(),
+    "Type" => state.SortDescending
+    ? transactions.OrderByDescending(t => t.Type).ToList()
+                : transactions.OrderBy(t => t.Type).ToList(),
+          "Amount" => state.SortDescending
+        ? transactions.OrderByDescending(t => t.Amount).ToList()
+  : transactions.OrderBy(t => t.Amount).ToList(),
+        _ => transactions.OrderByDescending(t => t.Date).ToList()
+  };
+
+        // Paginate
+      return transactions
+        .Skip((state.CurrentPage - 1) * TransactionTableState.PageSize)
+ .Take(TransactionTableState.PageSize)
+            .ToList();
+    }
+
+    private void SetSearch(int activityId, string value)
+    {
+ var state = GetTableState(activityId);
+        state.SearchTerm = value;
+        state.CurrentPage = 1; // Reset to first page when searching
+    }
+
+    private async Task HandleTransactionSearch(int activityId, string searchTerm)
+    {
+        SetSearch(activityId, searchTerm);
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleTransactionSort(int activityId, string column)
+    {
+        ToggleSort(activityId, column);
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleTransactionPageChange(int activityId, int newPage)
+    {
+        ChangePage(activityId, newPage);
+        await Task.CompletedTask;
+    }
+
+    private void ToggleSort(int activityId, string column)
+    {
+ var state = GetTableState(activityId);
+if (state.SortColumn == column)
+        {
+            state.SortDescending = !state.SortDescending;
+        }
+        else
+        {
+            state.SortColumn = column;
+            state.SortDescending = true;
+        }
+    }
+
+  private void ChangePage(int activityId, int newPage)
+    {
+        var state = GetTableState(activityId);
+  var totalPages = GetTotalPages(activityId);
+    if (newPage < 1 || newPage > totalPages) return;
+state.CurrentPage = newPage;
+    }
+
+    private int GetTotalPages(int activityId)
+    {
+        var state = GetTableState(activityId);
+        var transactions = GetActivityTransactions(activityId);
+
+     // Apply search filter to get accurate count
+        if (!string.IsNullOrWhiteSpace(state.SearchTerm))
+        {
+    var search = state.SearchTerm.ToLower();
+    transactions = transactions
+   .Where(t =>
+           (t.Description?.ToLower().Contains(search) ?? false) ||
+    (t.Category?.ToLower().Contains(search) ?? false))
+   .ToList();
+        }
+
+     return transactions.Count > 0
+    ? (int)Math.Ceiling(transactions.Count / (double)TransactionTableState.PageSize)
+        : 0;
+    }
+
+    private int GetFilteredTransactionCount(int activityId)
+    {
+        var state = GetTableState(activityId);
+        var transactions = GetActivityTransactions(activityId);
+
+   if (!string.IsNullOrWhiteSpace(state.SearchTerm))
+        {
+            var search = state.SearchTerm.ToLower();
+ transactions = transactions
+      .Where(t =>
+          (t.Description?.ToLower().Contains(search) ?? false) ||
+       (t.Category?.ToLower().Contains(search) ?? false))
+        .ToList();
+        }
+
+        return transactions.Count;
+    }
+
+    private async Task RecalculateActivityTotals(int activityId)
+    {
+        var activity = activities?.FirstOrDefault(a => a.Id == activityId);
+        if (activity == null) return;
+
+  var transactions = GetActivityTransactions(activityId);
+        activity.TotalIncome = transactions.Where(t => t.Type == "Income").Sum(t => t.Amount);
+        activity.TotalExpenses = transactions.Where(t => t.Type == "Expense").Sum(t => t.Amount);
+        activity.Balance = activity.TotalIncome - activity.TotalExpenses;
+
+      await ActivityService.RecalculateActivityFinancialsAsync(activityId);
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/finance");
+    }
+
+    // Activity CRUD
+    private void OpenCreateActivityModal()
+    {
+        isCreateActivityMode = true;
+        editingActivity = new Activity
+        {
+       ReportId = ReportId,
+        Name = string.Empty
+        };
+        showActivityModal = true;
+    }
+
+    private void OpenEditActivityModal(Activity activity)
+    {
+        isCreateActivityMode = false;
+        editingActivity = new Activity
+        {
+     Id = activity.Id,
+            ReportId = activity.ReportId,
+   Name = activity.Name,
+            Description = activity.Description
+        };
+        showActivityModal = true;
+    }
+
+    private void CloseActivityModal()
+    {
+        showActivityModal = false;
+        editingActivity = null;
+    }
+
+    private async Task SaveActivity()
+    {
+  if (editingActivity == null) return;
+
+        if (isCreateActivityMode)
+        {
+await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editingActivity.Description);
+        }
+   else
+        {
+  await ActivityService.UpdateActivityAsync(editingActivity.Id, editingActivity.Name, editingActivity.Description);
+        }
+
+        await LoadActivities();
+        CloseActivityModal();
+    }
+
+    private void OpenDeleteActivityModal(Activity activity)
+ {
+        deletingActivity = activity;
+        showDeleteActivityModal = true;
+    }
+
+    private void CloseDeleteActivityModal()
+    {
+        showDeleteActivityModal = false;
+        deletingActivity = null;
+    }
+
+    private async Task DeleteActivity()
+    {
+        if (deletingActivity == null) return;
+
+        await ActivityService.DeleteActivityAsync(deletingActivity.Id);
+        
+  await LoadActivities();
+        await LoadTransactions();
+     CloseDeleteActivityModal();
+    }
+
+    // Transaction CRUD
+    private void OpenCreateTransactionModal(int activityId)
+    {
+        isCreateTransactionMode = true;
+    currentActivityId = activityId;
+      editingTransaction = new Transaction
+     {
+       ActivityId = activityId,
+    Date = DateTime.Today,
+     Type = "Expense"
+        };
+        showTransactionModal = true;
+    }
+
+    private void OpenEditTransactionModal(Transaction transaction)
+    {
+        isCreateTransactionMode = false;
+        currentActivityId = transaction.ActivityId ?? 0;
+  editingTransaction = new Transaction
+        {
+        Id = transaction.Id,
+            ActivityId = transaction.ActivityId,
+            Date = transaction.Date,
+         Description = transaction.Description,
+    Category = transaction.Category,
+  Amount = transaction.Amount,
+         Type = transaction.Type
+      };
+        showTransactionModal = true;
+    }
+
+    private void CloseTransactionModal()
+    {
+        showTransactionModal = false;
+      editingTransaction = null;
+        currentActivityId = 0;
+    }
+
+    private async Task SaveTransaction()
+    {
+        if (editingTransaction == null) return;
+
+        if (isCreateTransactionMode)
+        {
+       await TransactionService.CreateTransactionAsync(
+   editingTransaction.Date,
+        editingTransaction.Description ?? string.Empty,
+   editingTransaction.Category ?? string.Empty,
+        editingTransaction.Amount,
+        editingTransaction.Type,
+  editingTransaction.ActivityId
+   );
+        }
+        else
+        {
+  await TransactionService.UpdateTransactionAsync(
+     editingTransaction.Id,
+    editingTransaction.Date,
+  editingTransaction.Description ?? string.Empty,
+     editingTransaction.Category ?? string.Empty,
+       editingTransaction.Amount,
+        editingTransaction.Type
+            );
+        }
+
+        await LoadTransactions(); // Reload transactions first
+   await RecalculateActivityTotals(currentActivityId);
+        await LoadActivities(); // Reload activities with updated totals
+   CloseTransactionModal();
+    }
+
+    private void OpenDeleteTransactionModal(Transaction transaction)
+    {
+        deletingTransaction = transaction;
+    showDeleteTransactionModal = true;
+    }
+
+  private void CloseDeleteTransactionModal()
+    {
+   showDeleteTransactionModal = false;
+  deletingTransaction = null;
+    }
+
+    private async Task DeleteTransaction()
+    {
+    if (deletingTransaction == null) return;
+
+        var activityId = deletingTransaction.ActivityId ?? 0;
+        await TransactionService.DeleteTransactionAsync(deletingTransaction.Id);
+
+        await LoadTransactions(); // Reload transactions first
+
+        if (activityId > 0)
+      {
+       await RecalculateActivityTotals(activityId);
+   }
+
+        await LoadActivities(); // Reload activities with updated totals
+
+        CloseDeleteTransactionModal();
+    }
+}

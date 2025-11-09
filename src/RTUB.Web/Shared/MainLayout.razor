@@ -31,6 +31,10 @@
                     <Authorized>
                         <li class="nav-item"><NavLink class="nav-link" href="/rehearsals"><i class="bi bi-music-note-list"></i> Ensaios</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/inventory"><i class="bi bi-music-note"></i> Instrumentos</NavLink></li>
+                        @if (currentUser != null && !currentUser.IsLeitao())
+                        {
+                            <li class="nav-item"><NavLink class="nav-link" href="/finance"><i class="bi bi-cash-stack"></i> Finanças</NavLink></li>
+                        }
                     </Authorized>
                 </AuthorizeView>
 

@@ -155,4 +155,67 @@ public class ReportTests
         report.IsPublished.Should().BeFalse();
         report.PublishedAt.Should().BeNull();
     }
+
+    [Fact]
+    public void IsCurrentFiscalYear_WhenReportIsCurrentYear_ReturnsTrue()
+    {
+        // Arrange - Get current fiscal year start year
+        var today = DateTime.Today;
+        var currentFiscalYearStartYear = today.Month >= 9 ? today.Year : today.Year - 1;
+        var report = Report.Create("Current Year Report", currentFiscalYearStartYear);
+
+        // Act
+        var result = report.IsCurrentFiscalYear();
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsCurrentFiscalYear_WhenReportIsNotCurrentYear_ReturnsFalse()
+    {
+        // Arrange - Get a year that's definitely not current
+        var today = DateTime.Today;
+        var currentFiscalYearStartYear = today.Month >= 9 ? today.Year : today.Year - 1;
+        var pastYear = currentFiscalYearStartYear - 2;
+        var report = Report.Create("Past Year Report", pastYear);
+
+        // Act
+        var result = report.IsCurrentFiscalYear();
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsCurrentFiscalYear_WhenReportIsLastYear_ReturnsFalse()
+    {
+        // Arrange
+        var today = DateTime.Today;
+        var currentFiscalYearStartYear = today.Month >= 9 ? today.Year : today.Year - 1;
+        var lastYear = currentFiscalYearStartYear - 1;
+        var report = Report.Create("Last Year Report", lastYear);
+
+        // Act
+        var result = report.IsCurrentFiscalYear();
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsCurrentFiscalYear_WhenReportIsNextYear_ReturnsFalse()
+    {
+        // Arrange
+        var today = DateTime.Today;
+        var currentFiscalYearStartYear = today.Month >= 9 ? today.Year : today.Year - 1;
+        var nextYear = currentFiscalYearStartYear + 1;
+        var report = Report.Create("Next Year Report", nextYear);
+
+        // Act
+        var result = report.IsCurrentFiscalYear();
+
+        // Assert
+        result.Should().BeFalse();
+    }
 }
