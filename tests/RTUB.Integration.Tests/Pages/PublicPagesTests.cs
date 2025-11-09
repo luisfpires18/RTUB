@@ -92,6 +92,52 @@ public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
         response.Content.Headers.ContentType?.MediaType.Should().Be("text/html");
     }
 
+    [Fact]
+    public async Task RolesPage_WithFiscalYearParam_ReturnsSuccess()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/roles?fy=2024-2025");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task RolesPage_WithManageParam_ReturnsSuccess()
+    {
+        // Arrange & Act - manage=1 parameter (would open fiscal year modal for admins)
+        var response = await _client.GetAsync("/roles?manage=1");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task RolesPage_HasFiscalYearDropdown()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/roles");
+        var content = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+        content.Should().Contain("select", "page should have fiscal year dropdown select element");
+    }
+
+    [Fact]
+    public async Task RolesPage_ContainsPositionSections()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/roles");
+        var content = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+        content.Should().Contain("DIREÇÃO", "page should have Direção section");
+        content.Should().Contain("MESA DE ASSEMBLEIA", "page should have Mesa section");
+        content.Should().Contain("CONSELHO FISCAL", "page should have Conselho Fiscal section");
+    }
+
     #endregion
 
     #region Navigation Tests
