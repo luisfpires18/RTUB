@@ -6,6 +6,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
+@using RTUB.Core.Helpers
 @using RTUB.Shared
 @attribute [Authorize]
 @inject IInstrumentService InstrumentService
@@ -52,7 +53,7 @@ else
                     var stat = statsArray[i];
                     <div class="card">
                         <div class="card-body text-center">
-                            <h6 class="card-subtitle mb-2 text-muted">@GetConditionDisplayName(stat.Key)</h6>
+                            <h6 class="card-subtitle mb-2 text-muted">@InstrumentConditionHelper.GetDisplayName(stat.Key)</h6>
                             <h3 class="card-title">@stat.Value</h3>
                         </div>
                     </div>
@@ -75,7 +76,7 @@ else
                 <option value="">Todas as condições</option>
                 @foreach (InstrumentCondition condition in Enum.GetValues(typeof(InstrumentCondition)))
                 {
-                    <option value="@condition">@GetConditionDisplayName(condition)</option>
+                    <option value="@condition">@InstrumentConditionHelper.GetDisplayName(condition)</option>
                 }
             </select>
         </div>
@@ -121,8 +122,8 @@ else
         @if (viewingInstrument != null)
         {
             <span class="badge bg-primary">@viewingInstrument.Category</span>
-            <span class="badge @GetConditionBadgeClass(viewingInstrument.Condition)">
-                @GetConditionDisplayName(viewingInstrument.Condition)
+            <span class="badge @InstrumentConditionHelper.GetBadgeClass(viewingInstrument.Condition)">
+                @InstrumentConditionHelper.GetDisplayName(viewingInstrument.Condition)
             </span>
         }
     </BadgesContent>
@@ -137,7 +138,7 @@ else
                 <ProfileField Label="Marca" Value="@viewingInstrument.Brand" />
                 <ProfileField Label="Número de Série" Value="@viewingInstrument.SerialNumber" />
                 <ProfileField Label="Localização" Value="@viewingInstrument.Location" />
-                <ProfileField Label="Condição" Value="@GetConditionDisplayName(viewingInstrument.Condition)" />
+                <ProfileField Label="Condição" Value="@InstrumentConditionHelper.GetDisplayName(viewingInstrument.Condition)" />
                 <ProfileField Label="Data Última Manutenção" 
                             Value="@(viewingInstrument.LastMaintenanceDate.HasValue ? viewingInstrument.LastMaintenanceDate.Value.ToString("dd/MM/yyyy") : null)" />
             </InfoSection>
@@ -213,7 +214,7 @@ else
                     <InputSelect class="form-select" @bind-Value="instrument.Condition">
                         @foreach (InstrumentCondition condition in Enum.GetValues(typeof(InstrumentCondition)))
                         {
-                            <option value="@condition">@GetConditionDisplayName(condition)</option>
+                            <option value="@condition">@InstrumentConditionHelper.GetDisplayName(condition)</option>
                         }
                     </InputSelect>
                 </div>
@@ -502,30 +503,6 @@ else
     {
         showCropperModal = isOpen;
         StateHasChanged();
-    }
-
-    private string GetConditionDisplayName(InstrumentCondition condition)
-    {
-        return condition switch
-        {
-            InstrumentCondition.Excellent => "Óptimo",
-            InstrumentCondition.Good => "Bom",
-            InstrumentCondition.Worn => "Velho",
-            InstrumentCondition.NeedsMaintenance => "Precisa Manutenção",
-            _ => condition.ToString()
-        };
-    }
-
-    private string GetConditionBadgeClass(InstrumentCondition condition)
-    {
-        return condition switch
-        {
-            InstrumentCondition.Excellent => "bg-success",
-            InstrumentCondition.Good => "bg-info",
-            InstrumentCondition.Worn => "bg-warning",
-            InstrumentCondition.NeedsMaintenance => "bg-danger",
-            _ => "bg-secondary"
-        };
     }
 
     private string GetImageUrl(string imageSrc)
