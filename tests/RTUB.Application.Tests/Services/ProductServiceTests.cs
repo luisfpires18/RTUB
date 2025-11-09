@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -16,6 +17,8 @@ public class ProductServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly Mock<IImageService> _imageServiceMock;
+    private readonly Mock<IProductStorageService> _productStorageServiceMock;
+    private readonly Mock<ILogger<ProductService>> _loggerMock;
     private readonly ProductService _service;
 
     public ProductServiceTests()
@@ -26,7 +29,9 @@ public class ProductServiceTests : IDisposable
 
         _context = new ApplicationDbContext(options);
         _imageServiceMock = new Mock<IImageService>();
-        _service = new ProductService(_context, _imageServiceMock.Object);
+        _productStorageServiceMock = new Mock<IProductStorageService>();
+        _loggerMock = new Mock<ILogger<ProductService>>();
+        _service = new ProductService(_context, _imageServiceMock.Object, _productStorageServiceMock.Object, _loggerMock.Object);
     }
 
     [Fact]

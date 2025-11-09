@@ -43,10 +43,8 @@ public class ApplicationUser : IdentityUser
     public string? MentorId { get; set; }
     public ApplicationUser? Mentor { get; set; }
     
-    // Image handling
-    public byte[]? ProfilePictureData { get; set; }
-    public string? ProfilePictureContentType { get; set; }
-    public string? S3ImageFilename { get; set; } // IDrive S3 storage filename for profile picture
+    // Image handling - S3 storage only
+    public string? ImageUrl { get; set; } // IDrive S3 storage URL for profile picture
     
     // Positions and Categories (stored as JSON)
     public string? PositionsJson { get; set; }

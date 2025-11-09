@@ -950,13 +950,13 @@ else
             Location = eventItem.Location,
             Type = eventItem.Type,
             CreatedAt = eventItem.CreatedAt,
-            S3ImageFilename = eventItem.S3ImageFilename
+            ImageUrl = eventItem.ImageUrl
         };
         
         // Resolve S3 URL for the editing event if needed
-        if (!string.IsNullOrEmpty(eventItem.S3ImageFilename) && !s3ImageUrlCache.ContainsKey(eventItem.S3ImageFilename))
+        if (!string.IsNullOrEmpty(eventItem.ImageUrl) && !s3ImageUrlCache.ContainsKey(eventItem.ImageUrl))
         {
-            _ = ResolveEditingEventImageUrl(eventItem.S3ImageFilename);
+            _ = ResolveEditingEventImageUrl(eventItem.ImageUrl);
         }
         
         showEditModal = true;
@@ -1518,19 +1518,19 @@ else
     {
         foreach (var evt in eventList)
         {
-            if (!string.IsNullOrEmpty(evt.S3ImageFilename))
+            if (!string.IsNullOrEmpty(evt.ImageUrl))
             {
                 try
                 {
-                    var url = await EventStorageService.GetImageUrlAsync(evt.S3ImageFilename);
+                    var url = await EventStorageService.GetImageUrlAsync(evt.ImageUrl);
                     if (!string.IsNullOrEmpty(url))
                     {
-                        s3ImageUrlCache[evt.S3ImageFilename] = url;
+                        s3ImageUrlCache[evt.ImageUrl] = url;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error resolving S3 image URL for {evt.S3ImageFilename}: {ex.Message}");
+                    Console.WriteLine($"Error resolving S3 image URL for {evt.ImageUrl}: {ex.Message}");
                 }
             }
         }
