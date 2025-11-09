@@ -17,13 +17,21 @@
 <h1>Gestão de Pedidos</h1>
 <p class="lead mb-4 lead-light">Gerir todos os pedidos submetidos através do website.</p>
 
-<!-- Search Controls -->
+<!-- Search and Filter Controls -->
 <div class="row mb-3">
     <div class="col-md-6">
         <TableSearchBar 
             SearchTerm="@SearchTerm"
             OnSearchChanged="UpdateSearch"
             Placeholder="Pesquisar por nome, email, tipo de evento..." />
+    </div>
+    <div class="col-md-3">
+        <FilterDropdown 
+            Items="@statusFilterOptions"
+            SelectedValue="@selectedStatusFilter"
+            SelectedValueChanged="@((value) => { selectedStatusFilter = value; ApplyFiltersAndPagination(); })"
+            AllItemsLabel="Todos os Estados"
+            IconClass="bi-funnel" />
     </div>
 </div>
 
@@ -233,6 +241,10 @@ else
     private bool showRejectDialog = false;
     private bool isAdmin = false;
 
+    // Filter state
+    private string selectedStatusFilter = string.Empty;
+    private List<string> statusFilterOptions = new() { "Pendente", "Aprovado", "Rejeitado" };
+
     // Separate lists for pending and answered requests
     private List<Request> PendingRequests = new();
     private List<Request> AnsweredRequests = new();
@@ -296,12 +308,28 @@ else
         SearchHelper.SearchTerm = SearchTerm;
         FilteredItems = SearchHelper.FilterMultiple(AllItems, GetSearchSelectors());
 
+        // Apply status filter if selected
+        if (!string.IsNullOrEmpty(selectedStatusFilter))
+        {
+            FilteredItems = selectedStatusFilter switch
+            {
+                "Pendente" => FilteredItems.Where(r => r.Status == RequestStatus.Pending).ToList(),
+                "Aprovado" => FilteredItems.Where(r => r.Status == RequestStatus.Confirmed).ToList(),
+                "Rejeitado" => FilteredItems.Where(r => r.Status == RequestStatus.Rejected).ToList(),
+                _ => FilteredItems
+            };
+        }
+
         // Apply sorting
         FilteredItems = SortHelper.ApplySort(FilteredItems, GetSortColumnSelectors());
 
-        // Separate into pending and answered
+        // Separate into pending and answered (this will filter the already filtered items)
         PendingRequests = FilteredItems.Where(r => r.Status == RequestStatus.Pending).ToList();
         AnsweredRequests = FilteredItems.Where(r => r.Status == RequestStatus.Confirmed || r.Status == RequestStatus.Rejected).ToList();
+
+        // Reset pagination when filter changes
+        pendingPagination.Reset();
+        answeredPagination.Reset();
 
         // Update pagination for both grids
         UpdatePendingPagination();
