@@ -1,0 +1,127 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Application.Extensions
+@*
+    RequestCard Component
+    Card for displaying request information with message icon
+    Similar to RehearsalCard but slightly bigger
+*@
+
+<div class="card request-card h-100">
+    <div class="position-relative">
+        <div class="request-icon-header">
+            <div class="request-icon-circle">
+                <i class="bi bi-envelope-fill"></i>
+            </div>
+        </div>
+    </div>
+    <div class="card-body d-flex flex-column">
+        <div class="request-info">
+            <!-- Name -->
+            <div class="request-info-row">
+                <i class="bi bi-person request-icon"></i>
+                <span class="request-text fw-bold">@Request.Name</span>
+            </div>
+            
+            <!-- Email -->
+            <div class="request-info-row">
+                <i class="bi bi-envelope request-icon"></i>
+                <a href="mailto:@Request.Email" class="request-text text-decoration-none">@Request.Email</a>
+            </div>
+            
+            <!-- Phone -->
+            <div class="request-info-row">
+                <i class="bi bi-telephone request-icon"></i>
+                <a href="tel:@Request.Phone" class="request-text text-decoration-none">@Request.Phone</a>
+            </div>
+            
+            <!-- Event Type -->
+            <div class="request-info-row">
+                <i class="bi bi-calendar-event request-icon"></i>
+                <span class="request-text">@Request.EventType</span>
+            </div>
+            
+            <!-- Preferred Date -->
+            <div class="request-info-row">
+                <i class="bi bi-calendar3 request-icon"></i>
+                <span class="request-text">@Request.PreferredDate.ToPortugueseShortDate()</span>
+            </div>
+            
+            <!-- Location -->
+            <div class="request-info-row">
+                <i class="bi bi-geo-alt request-icon"></i>
+                <span class="request-text">@Request.Location</span>
+            </div>
+
+            <!-- Status Badge -->
+            <div class="mt-2">
+                <StatusBadge Status="@Request.Status" />
+            </div>
+        </div>
+
+        <div class="request-actions mt-auto">
+            <div class="d-flex gap-2 align-items-center justify-content-center">
+                <!-- View Details button -->
+                <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" 
+                        @onclick="HandleViewDetails" 
+                        title="Ver Detalhes">
+                    <i class="bi bi-eye-fill"></i>
+                    <span>Ver Detalhes</span>
+                </button>
+
+                <!-- Delete button (Owner only) -->
+                @if (IsOwner)
+                {
+                    <button class="btn btn-sm btn-danger d-flex align-items-center" 
+                            @onclick="HandleDelete" 
+                            title="Eliminar">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The request to display
+    /// </summary>
+    [Parameter]
+    public Request Request { get; set; } = null!;
+
+    /// <summary>
+    /// Whether the current user is the owner (has delete permissions)
+    /// </summary>
+    [Parameter]
+    public bool IsOwner { get; set; }
+
+    /// <summary>
+    /// Callback when the view details button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewDetails { get; set; }
+
+    /// <summary>
+    /// Callback when the delete button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    private async Task HandleViewDetails()
+    {
+        if (OnViewDetails.HasDelegate)
+        {
+            await OnViewDetails.InvokeAsync();
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync();
+        }
+    }
+}

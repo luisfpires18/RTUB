@@ -57,80 +57,27 @@
     </div>
 </div>
 
-<!-- Requests Table -->
+<!-- Requests Grid -->
 @if (PaginatedItems.Any())
 {
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <SortableTableHeader 
-                        HeaderText="Estado" 
-                        SortColumn="@nameof(Request.Status)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Nome" 
-                        SortColumn="@nameof(Request.Name)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Tipo de Evento" 
-                        SortColumn="@nameof(Request.EventType)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Data Preferida" 
-                        SortColumn="@nameof(Request.PreferredDate)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Localização" 
-                        SortColumn="@nameof(Request.Location)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Submetido" 
-                        SortColumn="@nameof(Request.CreatedAt)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var req in PaginatedItems)
-                {
-                    <tr>
-                        <td>
-                            <StatusBadge Status="@req.Status" />
-                        </td>
-                        <td>@req.Name</td>
-                        <td>@req.EventType</td>
-                        <td class="text-light-gray">@req.PreferredDate.ToPortugueseShortDate()</td>
-                        <td class="text-light-gray">@req.Location</td>
-                        <td class="text-light-gray">@req.CreatedAt.ToPortugueseDateTime()</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewRequest(req)" title="Ver Detalhes">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <AuthorizeView Roles="Owner">
-                                <Authorized>
-                                    <button class="btn btn-sm btn-danger ms-1" @onclick="() => OpenDeleteModal(req)" title="Eliminar">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </Authorized>
-                            </AuthorizeView>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <div class="request-grid">
+        @foreach (var req in PaginatedItems)
+        {
+            <AuthorizeView Roles="Owner">
+                <Authorized Context="ownerContext">
+                    <RequestCard Request="@req"
+                                IsOwner="true"
+                                OnViewDetails="@(() => ViewRequest(req))"
+                                OnDelete="@(() => OpenDeleteModal(req))" />
+                </Authorized>
+                <NotAuthorized>
+                    <RequestCard Request="@req"
+                                IsOwner="false"
+                                OnViewDetails="@(() => ViewRequest(req))"
+                                OnDelete="@(() => {})" />
+                </NotAuthorized>
+            </AuthorizeView>
+        }
     </div>
 
     <!-- Pagination -->
@@ -139,6 +86,7 @@
         PageSize="@PaginationHelper.PageSize"
         TotalItems="@FilteredItems.Count"
         ItemLabel="pedidos"
+        PageSizeOptions="@(new[] { 6, 12, 18, 24, 30 })"
         OnPageChanged="ChangePage"
         OnPageSizeChanged="ChangePageSize" />
 }
@@ -148,56 +96,58 @@ else
         Message="@($"Nenhum pedido {GetFilterStatusText()} encontrado.")" 
         IconClass="bi-info-circle" />
 }
-<!-- View/Edit Modal -->
-<Modal Show="@(selectedRequest != null)" ShowChanged="@((bool show) => { if (!show) CloseModal(); })" 
-       Title="Detalhes do Pedido" Size="Modal.ModalSize.Large">
-    <BodyContent>
+<!-- View/Edit Modal using DetailsModal -->
+<DetailsModal Show="@(selectedRequest != null)" 
+              ShowChanged="@((bool show) => { if (!show) CloseModal(); })" 
+              Title="Detalhes do Pedido"
+              HeaderTitle="@(selectedRequest?.Name ?? "")"
+              IconClass="bi-envelope-fill">
+    <BadgesContent>
         @if (selectedRequest != null)
         {
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Nome</label>
-                    <p class="modal-text">@selectedRequest.Name</p>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Email</label>
-                    <p class="modal-text">
-                        <a href="mailto:@selectedRequest.Email">@selectedRequest.Email</a>
-                    </p>
-                </div>
-            </div>
+            <StatusBadge Status="@selectedRequest.Status" />
+        }
+    </BadgesContent>
+    <Sections>
+        @if (selectedRequest != null)
+        {
+            <!-- Contact Information Section -->
+            <InfoSection SectionTitle="Informação de Contacto" 
+                        IconClass="bi-person-fill" 
+                        CssClass="mb-4">
+                <ProfileField Label="Nome" Value="@selectedRequest.Name" />
+                <ProfileField Label="Email">
+                    <a href="mailto:@selectedRequest.Email" class="text-decoration-none text-primary">@selectedRequest.Email</a>
+                </ProfileField>
+                <ProfileField Label="Telefone">
+                    <a href="tel:@selectedRequest.Phone" class="text-decoration-none text-primary">@selectedRequest.Phone</a>
+                </ProfileField>
+            </InfoSection>
 
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Telefone</label>
-                    <p class="modal-text">
-                        <a href="tel:@selectedRequest.Phone">@selectedRequest.Phone</a>
-                    </p>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Tipo de Evento</label>
-                    <p class="modal-text">@selectedRequest.EventType</p>
-                </div>
-            </div>
+            <!-- Event Information Section -->
+            <InfoSection SectionTitle="Informação do Evento" 
+                        IconClass="bi-calendar-event-fill" 
+                        CssClass="mb-4">
+                <ProfileField Label="Tipo de Evento" Value="@selectedRequest.EventType" />
+                <ProfileField Label="Data Preferida" Value="@selectedRequest.PreferredDate.ToPortugueseShortDate()" />
+                <ProfileField Label="Localização" Value="@selectedRequest.Location" />
+            </InfoSection>
 
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Data Preferida</label>
-                    <p class="modal-text">@selectedRequest.PreferredDate.ToPortugueseShortDate()</p>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Localização</label>
-                    <p class="modal-text">@selectedRequest.Location</p>
-                </div>
-            </div>
+            <!-- Additional Information Section -->
+            @if (!string.IsNullOrEmpty(selectedRequest.Message))
+            {
+                <InfoSection SectionTitle="Informações Adicionais" 
+                            IconClass="bi-file-text" 
+                            CssClass="mb-4">
+                    <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedRequest.Message</p>
+                </InfoSection>
+            }
 
-            <div class="mb-3">
-                <label class="form-label fw-bold">Informações Adicionais</label>
-                <p class="modal-text modal-text-pre">@selectedRequest.Message</p>
-            </div>
-
-            <div class="row mb-3">
-                <div class="col-md-6">
+            <!-- Status Management Section -->
+            <InfoSection SectionTitle="Gestão de Estado" 
+                        IconClass="bi-sliders" 
+                        CssClass="mb-3">
+                <div class="mb-3">
                     <label class="form-label fw-bold">Estado</label>
                     <InputSelect class="form-select" @bind-Value="selectedRequest.Status">
                         <option value="@RequestStatus.Pending">Pendente</option>
@@ -206,20 +156,17 @@ else
                         <option value="@RequestStatus.Rejected">Rejeitado</option>
                     </InputSelect>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Submetido</label>
-                    <p class="modal-text">@selectedRequest.CreatedAt.ToPortugueseDateTime()</p>
-                </div>
-            </div>
+                <ProfileField Label="Submetido" Value="@selectedRequest.CreatedAt.ToPortugueseDateTime()" />
+            </InfoSection>
         }
-    </BodyContent>
+    </Sections>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseModal">Fechar</button>
         <button type="button" class="btn btn-primary" @onclick="SaveChanges">
             <i class="bi bi-save"></i> Guardar Alterações
         </button>
     </FooterContent>
-</Modal>
+</DetailsModal>
 
 <!-- Delete Confirmation Modal -->
 <Modal Show="@(deletingRequest != null)" ShowChanged="@((bool show) => { if (!show) CloseDeleteModal(); })" 
@@ -246,6 +193,7 @@ else
     {
         SortHelper.SortColumn = nameof(Request.CreatedAt);
         SortHelper.SortAscending = false;
+        PaginationHelper.PageSize = 6; // Set default page size to 6
         await LoadItemsAsync();
         ApplyFiltersAndPagination();
     }
