@@ -28,7 +28,7 @@ public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task RequestsPage_ReturnsSuccessStatusCode()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/requests");
+        var response = await _client.GetAsync("/request");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -38,7 +38,7 @@ public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task RequestsPage_ContainsExpectedContent()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/requests");
+        var response = await _client.GetAsync("/request");
         var content = await response.Content.ReadAsStringAsync();
 
         // Assert
@@ -50,7 +50,7 @@ public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task RequestsPage_HasCorrectContentType()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/requests");
+        var response = await _client.GetAsync("/request");
 
         // Assert
         response.Content.Headers.ContentType?.MediaType.Should().Be("text/html");
@@ -103,7 +103,7 @@ public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
         var homeResponse = await _client.GetAsync("/");
 
         // Act - Navigate to each public page
-        var requestsResponse = await _client.GetAsync("/requests");
+        var requestsResponse = await _client.GetAsync("/request");
         var rolesResponse = await _client.GetAsync("/roles");
 
         // Assert
@@ -116,7 +116,7 @@ public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task PublicPages_NavigationBetweenPages_Works()
     {
         // Arrange & Act - Navigate through public pages in sequence
-        var requestsResponse = await _client.GetAsync("/requests");
+        var requestsResponse = await _client.GetAsync("/request");
         var rolesResponse = await _client.GetAsync("/roles");
 
         // Assert

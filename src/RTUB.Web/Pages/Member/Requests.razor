@@ -1,4 +1,4 @@
-@page "/admin/requests"
+@page "/member/requests"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -8,21 +8,30 @@
 @using RTUB.Application.Extensions
 @using RTUB.Application.Helpers
 @using RTUB.Shared
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize]
 @inherits CrudTablePageBase<Request>
 @inject IRequestService RequestService
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Gestão de Pedidos</h1>
 <p class="lead mb-4 lead-light">Gerir todos os pedidos submetidos através do website.</p>
 
-<!-- Search Controls -->
+<!-- Search and Filter Controls -->
 <div class="row mb-3">
     <div class="col-md-6">
         <TableSearchBar 
             SearchTerm="@SearchTerm"
             OnSearchChanged="UpdateSearch"
             Placeholder="Pesquisar por nome, email, tipo de evento..." />
+    </div>
+    <div class="col-md-3">
+        <FilterDropdown 
+            Items="@statusFilterOptions"
+            SelectedValue="@selectedStatusFilter"
+            SelectedValueChanged="@((value) => { selectedStatusFilter = value; ApplyFiltersAndPagination(); })"
+            AllItemsLabel="Todos os Estados"
+            IconClass="bi-funnel" />
     </div>
 </div>
 
@@ -37,14 +46,20 @@
                 <Authorized Context="ownerContext">
                     <RequestCard Request="@req"
                                 IsOwner="true"
+                                ShowAdminActions="@isAdmin"
                                 OnViewDetails="@(() => ViewRequest(req))"
-                                OnDelete="@(() => OpenDeleteModal(req))" />
+                                OnDelete="@(() => OpenDeleteModal(req))"
+                                OnApprove="@(() => OpenApproveModal(req))"
+                                OnReject="@(() => OpenRejectModal(req))" />
                 </Authorized>
                 <NotAuthorized>
                     <RequestCard Request="@req"
                                 IsOwner="false"
+                                ShowAdminActions="@isAdmin"
                                 OnViewDetails="@(() => ViewRequest(req))"
-                                OnDelete="@(() => {})" />
+                                OnDelete="@(() => {})"
+                                OnApprove="@(() => OpenApproveModal(req))"
+                                OnReject="@(() => OpenRejectModal(req))" />
                 </NotAuthorized>
             </AuthorizeView>
         }
@@ -78,14 +93,20 @@ else
                 <Authorized Context="ownerContext">
                     <RequestCard Request="@req"
                                 IsOwner="true"
+                                ShowAdminActions="false"
                                 OnViewDetails="@(() => ViewRequest(req))"
-                                OnDelete="@(() => OpenDeleteModal(req))" />
+                                OnDelete="@(() => OpenDeleteModal(req))"
+                                OnApprove="@(() => {})"
+                                OnReject="@(() => {})" />
                 </Authorized>
                 <NotAuthorized>
                     <RequestCard Request="@req"
                                 IsOwner="false"
+                                ShowAdminActions="false"
                                 OnViewDetails="@(() => ViewRequest(req))"
-                                OnDelete="@(() => {})" />
+                                OnDelete="@(() => {})"
+                                OnApprove="@(() => {})"
+                                OnReject="@(() => {})" />
                 </NotAuthorized>
             </AuthorizeView>
         }
@@ -153,15 +174,6 @@ else
         }
     </Sections>
     <FooterContent>
-        @if (selectedRequest != null && selectedRequest.Status == RequestStatus.Pending)
-        {
-            <button type="button" class="btn btn-success" @onclick="@(() => OpenApproveModal(selectedRequest))">
-                <i class="bi bi-check-circle"></i> Aprovar
-            </button>
-            <button type="button" class="btn btn-danger" @onclick="@(() => OpenRejectModal(selectedRequest))">
-                <i class="bi bi-x-circle"></i> Rejeitar
-            </button>
-        }
         <button type="button" class="btn btn-secondary" @onclick="CloseModal">Fechar</button>
     </FooterContent>
 </DetailsModal>
@@ -227,6 +239,11 @@ else
     private bool showApproveDialog = false;
     private bool showCreateEventDialog = false;
     private bool showRejectDialog = false;
+    private bool isAdmin = false;
+
+    // Filter state
+    private string selectedStatusFilter = string.Empty;
+    private List<string> statusFilterOptions = new() { "Pendente", "Aprovado", "Rejeitado" };
 
     // Separate lists for pending and answered requests
     private List<Request> PendingRequests = new();
@@ -243,6 +260,12 @@ else
         SortHelper.SortColumn = nameof(Request.CreatedAt);
         SortHelper.SortAscending = false;
         await LoadItemsAsync();
+        
+        // Check if user is admin
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isAdmin = user.IsInRole("Admin");
+        
         ApplyFiltersAndPagination();
     }
 
@@ -285,12 +308,28 @@ else
         SearchHelper.SearchTerm = SearchTerm;
         FilteredItems = SearchHelper.FilterMultiple(AllItems, GetSearchSelectors());
 
+        // Apply status filter if selected
+        if (!string.IsNullOrEmpty(selectedStatusFilter))
+        {
+            FilteredItems = selectedStatusFilter switch
+            {
+                "Pendente" => FilteredItems.Where(r => r.Status == RequestStatus.Pending).ToList(),
+                "Aprovado" => FilteredItems.Where(r => r.Status == RequestStatus.Confirmed).ToList(),
+                "Rejeitado" => FilteredItems.Where(r => r.Status == RequestStatus.Rejected).ToList(),
+                _ => FilteredItems
+            };
+        }
+
         // Apply sorting
         FilteredItems = SortHelper.ApplySort(FilteredItems, GetSortColumnSelectors());
 
-        // Separate into pending and answered
+        // Separate into pending and answered (this will filter the already filtered items)
         PendingRequests = FilteredItems.Where(r => r.Status == RequestStatus.Pending).ToList();
         AnsweredRequests = FilteredItems.Where(r => r.Status == RequestStatus.Confirmed || r.Status == RequestStatus.Rejected).ToList();
+
+        // Reset pagination when filter changes
+        pendingPagination.Reset();
+        answeredPagination.Reset();
 
         // Update pagination for both grids
         UpdatePendingPagination();
@@ -341,13 +380,21 @@ else
     {
         if (approvingRequest != null)
         {
+            // Build event name: "EventType em Location"
+            var eventName = $"{approvingRequest.EventType} em {approvingRequest.Location}";
+            
+            // Build description: "Pedido de Name"
+            var description = $"Pedido de {approvingRequest.Name}";
+            
             // Navigate to events page with query parameters to pre-fill the modal
             var queryParams = new Dictionary<string, object?>
             {
-                ["create"] = "true",
-                ["title"] = approvingRequest.EventType,
+                ["openModal"] = "true",
+                ["name"] = eventName,
                 ["location"] = approvingRequest.Location,
                 ["date"] = approvingRequest.PreferredDate.ToString("yyyy-MM-dd"),
+                ["description"] = description,
+                ["type"] = "Atuacao", // Default event type
                 ["requestId"] = approvingRequest.Id
             };
             

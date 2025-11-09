@@ -1,0 +1,120 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+@*
+    LabelCard Component
+    Card for displaying label information with tag icon
+    Similar to SongCard
+*@
+
+<div class="card label-card h-100">
+    <div class="position-relative">
+        <div class="label-admin-overlay">
+            <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
+                <i class="bi bi-pencil music-icon-edit"></i>
+            </button>
+            <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
+                <i class="bi bi-trash music-icon-delete"></i>
+            </button>
+        </div>
+        <div class="label-header">
+            <div class="label-icon-circle">
+                <i class="bi bi-tag-fill"></i>
+            </div>
+        </div>
+    </div>
+    <div class="card-body d-flex flex-column">
+        <div class="label-info">
+            <!-- Reference as code -->
+            <div class="label-reference mb-2">
+                <code class="label-reference-code">@Label.Reference</code>
+            </div>
+            
+            <!-- Title -->
+            <h5 class="label-title mb-3" title="@Label.Title">
+                @Label.Title
+            </h5>
+            
+            <!-- Status -->
+            <div class="label-status-row mb-2">
+                @if (Label.IsActive)
+                {
+                    <span class="badge bg-success">Ativo</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">Inativo</span>
+                }
+            </div>
+
+            <!-- Updated At -->
+            <div class="label-info-row">
+                <i class="bi bi-clock-history label-icon"></i>
+                <span class="label-text text-muted small">
+                    @(Label.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? Label.CreatedAt.ToString("dd/MM/yyyy HH:mm"))
+                </span>
+            </div>
+        </div>
+
+        <div class="label-actions mt-auto">
+            <div class="d-flex gap-2 align-items-center justify-content-center">
+                <!-- View Details button -->
+                <button class="btn btn-sm btn-purple label-action-btn" 
+                        @onclick="HandleViewDetails" 
+                        title="Ver Detalhes">
+                    <i class="bi bi-eye-fill"></i>
+                    <span>Detalhes</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The label to display
+    /// </summary>
+    [Parameter]
+    public Label Label { get; set; } = null!;
+
+    /// <summary>
+    /// Callback when the view details button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewDetails { get; set; }
+
+    /// <summary>
+    /// Callback when the edit button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    /// <summary>
+    /// Callback when the delete button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    private async Task HandleViewDetails()
+    {
+        if (OnViewDetails.HasDelegate)
+        {
+            await OnViewDetails.InvokeAsync();
+        }
+    }
+
+    private async Task HandleEdit()
+    {
+        if (OnEdit.HasDelegate)
+        {
+            await OnEdit.InvokeAsync();
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync();
+        }
+    }
+}

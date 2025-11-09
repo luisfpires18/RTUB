@@ -36,7 +36,7 @@
 
                 <AuthorizeView>
                     <NotAuthorized>
-                        <li class="nav-item"><NavLink class="nav-link" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                <li class="nav-item"><NavLink class="nav-link" href="/request"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
                     </NotAuthorized>
                 </AuthorizeView>
 
@@ -46,24 +46,16 @@
                     <Authorized>
                         <li class="nav-item"><NavLink class="nav-link" href="/member/hierarchy"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
                     </Authorized>
                 </AuthorizeView>
-                
-                <li class="nav-item"><NavLink class="nav-link" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
 
                 <AuthorizeView Roles="Admin">
                     <Authorized>
-                        <li class="nav-item dropdown">
-                            <button class="nav-link dropdown-toggle" type="button" id="adminDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
-                                <i class="bi bi-gear-fill"></i> Admin
-                            </button>
-                            <ul class="dropdown-menu" aria-labelledby="adminDropdown">
-                                <li><NavLink class="dropdown-item" href="/admin/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/admin/finance"><i class="bi bi-cash-stack"></i> Finanças</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/admin/roles"><i class="bi bi-person-badge"></i> Cargos</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/admin/slideshow-management"><i class="bi bi-images"></i> Imagens</NavLink></li>
-                            </ul>
-                        </li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/member/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/admin/finance"><i class="bi bi-cash-stack"></i> Finanças</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/admin/roles"><i class="bi bi-person-badge"></i> Cargos</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/admin/slideshow-management"><i class="bi bi-images"></i> Imagens</NavLink></li>
                     </Authorized>
                 </AuthorizeView>
 

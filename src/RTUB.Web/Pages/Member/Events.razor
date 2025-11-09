@@ -7,12 +7,14 @@
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
 @using RTUB.Shared
+@using System.Web
 @inject IEventService EventService
 @inject IEnrollmentService EnrollmentService
 @inject ITrophyService TrophyService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IWebHostEnvironment Environment
+@inject NavigationManager Navigation
 
 <h1>Atuações</h1>
 <p>Próximas atuações e atividades.</p>
@@ -711,6 +713,35 @@ else
         await LoadPreviousEvents();
         await LoadEnrollments();
         await LoadCurrentUser();
+        
+        // Check for query parameters to auto-open create modal with pre-filled data
+        var uri = new Uri(Navigation.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        
+        if (query["openModal"] == "true" && isUserAdmin)
+        {
+            // Pre-fill event creation modal from request data
+            isCreateMode = true;
+            uploadedImagePath = null;
+            dateValidationError = string.Empty;
+            
+            var name = query["name"];
+            var location = query["location"];
+            var dateStr = query["date"];
+            var description = query["description"];
+            
+            editingEvent = new Event
+            {
+                Name = !string.IsNullOrEmpty(name) ? name : string.Empty,
+                Location = !string.IsNullOrEmpty(location) ? location : string.Empty,
+                Description = !string.IsNullOrEmpty(description) ? description : string.Empty,
+                Date = DateTime.TryParse(dateStr, out var parsedDate) ? parsedDate : DateTime.Today.AddDays(1),
+                ImageUrl = string.Empty,
+                Type = EventType.Atuacao
+            };
+            
+            showEditModal = true;
+        }
     }
 
     private async Task LoadEvents()
