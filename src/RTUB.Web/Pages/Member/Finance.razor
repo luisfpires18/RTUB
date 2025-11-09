@@ -231,8 +231,15 @@ else
 
     protected override async Task LoadItemsAsync()
     {
-        // Load reports without recalculating financials
-        // Recalculation should only happen when reports are explicitly modified
+        var reports = (await ReportService.GetAllReportsAsync()).ToList();
+        
+        // Ensure financial data is up-to-date for each report
+        foreach (var report in reports)
+        {
+            await ReportService.RecalculateReportFinancialsAsync(report.Id);
+        }
+        
+        // Reload reports with updated financials
         AllItems = (await ReportService.GetAllReportsAsync()).ToList();
     }
 

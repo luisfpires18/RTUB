@@ -133,11 +133,17 @@ public class ReportService : IReportService
         // Calculate totals
         var totalIncome = allTransactions.Where(t => t.Type == "Income").Sum(t => t.Amount);
         var totalExpenses = allTransactions.Where(t => t.Type == "Expense").Sum(t => t.Amount);
+        var finalBalance = totalIncome - totalExpenses;
 
-        // Update report (FinalBalance is calculated automatically in UpdateFinancials)
-        report.UpdateFinancials(totalIncome, totalExpenses);
-        _context.Reports.Update(report);
-        await _context.SaveChangesAsync();
+        // Only update if values have actually changed to avoid polluting audit logs
+        if (report.TotalIncome != totalIncome || 
+            report.TotalExpenses != totalExpenses || 
+            report.FinalBalance != finalBalance)
+        {
+            report.UpdateFinancials(totalIncome, totalExpenses);
+            _context.Reports.Update(report);
+            await _context.SaveChangesAsync();
+        }
     }
 
     public async Task DeleteReportAsync(int reportId)
