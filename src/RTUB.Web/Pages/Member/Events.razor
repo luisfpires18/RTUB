@@ -757,6 +757,7 @@ else
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
+    private int imageRefreshTrigger = 0;
 
     // Previous events (admin only)
     private List<Event>? allPreviousEvents;
@@ -1071,6 +1072,9 @@ else
                 
                 // Invalidate server-side cache to ensure new image is served
                 ImageService.InvalidateEventImageCache(editingEvent.Id);
+                
+                // Increment trigger to force browser to re-fetch the image
+                imageRefreshTrigger++;
             }
         }
 
@@ -1505,7 +1509,16 @@ else
     
     private string GetEventImageUrl(string imageSrc)
     {
-        return imageSrc ?? string.Empty;
+        if (string.IsNullOrEmpty(imageSrc)) return string.Empty;
+        
+        // Add refresh trigger only when an image has been updated
+        // This forces browser to re-fetch after edits while maintaining ETag caching
+        if (imageRefreshTrigger > 0 && imageSrc.StartsWith("/api/images/"))
+        {
+            return $"{imageSrc}?r={imageRefreshTrigger}";
+        }
+        
+        return imageSrc;
     }
 
     // Email notification methods

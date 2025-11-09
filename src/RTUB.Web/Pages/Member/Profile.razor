@@ -48,6 +48,7 @@ else
 
     <!-- Profile Header Card -->
     <ProfileHeader User="@user" 
+                   ImageRefreshTrigger="@imageRefreshTrigger"
                    OnChangePassword="@OpenChangePasswordModal"
                    OnUploadPhoto="@OpenUploadModal" />
 
@@ -403,6 +404,7 @@ else
     private ChangePasswordModel passwordModel = new();
     private string? ChangePasswordMessage;
     private bool ChangePasswordSucceeded;
+    private int imageRefreshTrigger = 0;
     
     // Section editing state
     private string? editingSection = null;
@@ -554,6 +556,9 @@ else
                 // CRITICAL: Clear server-side image cache to ensure fresh image is served
                 ImageService.InvalidateProfileImageCache(user.Id);
                 
+                // Increment trigger to force browser to re-fetch the image
+                imageRefreshTrigger++;
+                
                 uploadMessage = "Foto de perfil atualizada com sucesso!";
                 StateHasChanged();
                 
@@ -592,7 +597,17 @@ else
     private string GetProfilePictureUrl()
     {
         if (user == null) return "/images/default-avatar.png";
-        return user.ProfilePictureSrc ?? "/images/default-avatar.png";
+        
+        var src = user.ProfilePictureSrc ?? "/images/default-avatar.png";
+        
+        // Add refresh trigger only when an image has been updated
+        // This forces browser to re-fetch after edits while maintaining ETag caching
+        if (imageRefreshTrigger > 0 && src.StartsWith("/api/images/"))
+        {
+            return $"{src}?r={imageRefreshTrigger}";
+        }
+        
+        return src;
     }
 
     private void OnCropperModalChanged(bool isOpen)

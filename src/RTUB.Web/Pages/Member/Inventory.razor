@@ -307,6 +307,7 @@ else
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private string? uploadedInstrumentImagePath;
+    private int imageRefreshTrigger = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -409,6 +410,9 @@ else
                 if (editingInstrument.ImageData != null && uploadedInstrumentImagePath != null)
                 {
                     ImageService.InvalidateInstrumentImageCache(editingInstrument.Id);
+                    
+                    // Increment trigger to force browser to re-fetch the image
+                    imageRefreshTrigger++;
                 }
             }
 
@@ -509,6 +513,15 @@ else
 
     private string GetImageUrl(string imageSrc)
     {
-        return imageSrc ?? string.Empty;
+        if (string.IsNullOrEmpty(imageSrc)) return string.Empty;
+        
+        // Add refresh trigger only when an image has been updated
+        // This forces browser to re-fetch after edits while maintaining ETag caching
+        if (imageRefreshTrigger > 0 && imageSrc.StartsWith("/api/images/"))
+        {
+            return $"{imageSrc}?r={imageRefreshTrigger}";
+        }
+        
+        return imageSrc;
     }
 }
