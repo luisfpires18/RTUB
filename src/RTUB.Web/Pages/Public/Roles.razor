@@ -119,7 +119,7 @@ else
                 </div>
 
                 @* Vice-Magister *@
-                <div class="text-center mb-4">
+                <div class="text-center mb-4 position-relative">
                     <div class="position-title mb-2">VICE-MAGISTER</div>
                     @if (viceMagister != null)
                     {
@@ -134,11 +134,29 @@ else
                             {
                                 <div class="text-light-theme">@viceMagister.User.FirstName @viceMagister.User.LastName</div>
                             }
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-action-chips mt-2">
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(viceMagister.Id))" title="Remover">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         </div>
                     }
                     else
                     {
                         <div class="not-available-text">N/D</div>
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                <div class="admin-action-chips mt-2">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.ViceMagister, "Vice-Magister"))" title="Adicionar">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
                     }
                 </div>
 
@@ -159,11 +177,29 @@ else
                                 {
                                     <div class="text-light-theme">@secretario.User.FirstName @secretario.User.LastName</div>
                                 }
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <div class="admin-action-chips mt-2">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(secretario.Id))" title="Remover">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </Authorized>
+                                </AuthorizeView>
                             </div>
                         }
                         else
                         {
                             <div class="not-available-text">N/D</div>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-action-chips mt-2">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.Secretario, "Secretário"))" title="Adicionar">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         }
                     </div>
                     <div class="col-md-4 text-center mb-3">
@@ -181,11 +217,29 @@ else
                                 {
                                     <div class="text-light-theme">@tesoureiro1.User.FirstName @tesoureiro1.User.LastName</div>
                                 }
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <div class="admin-action-chips mt-2">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(tesoureiro1.Id))" title="Remover">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </Authorized>
+                                </AuthorizeView>
                             </div>
                         }
                         else
                         {
                             <div class="not-available-text">N/D</div>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-action-chips mt-2">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.PrimeiroTesoureiro, "1º Tesoureiro"))" title="Adicionar">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         }
                     </div>
                     <div class="col-md-4 text-center mb-3">
@@ -203,11 +257,29 @@ else
                                 {
                                     <div class="text-light-theme">@tesoureiro2.User.FirstName @tesoureiro2.User.LastName</div>
                                 }
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <div class="admin-action-chips mt-2">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(tesoureiro2.Id))" title="Remover">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </Authorized>
+                                </AuthorizeView>
                             </div>
                         }
                         else
                         {
                             <div class="not-available-text">N/D</div>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-action-chips mt-2">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.SegundoTesoureiro, "2º Tesoureiro"))" title="Adicionar">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         }
                     </div>
                 </div>
@@ -229,7 +301,7 @@ else
                 }
                 
                 @* Presidente *@
-                <div class="text-center mb-4">
+                <div class="text-center mb-4 position-relative">
                     <div class="position-title mb-2">PRESIDENTE</div>
                     @if (presidenteMA != null)
                     {
@@ -244,11 +316,29 @@ else
                             {
                                 <div class="text-light-theme">@presidenteMA.User.FirstName @presidenteMA.User.LastName</div>
                             }
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-action-chips mt-2">
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(presidenteMA.Id))" title="Remover">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         </div>
                     }
                     else
                     {
                         <div class="not-available-text">N/D</div>
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                <div class="admin-action-chips mt-2">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.PresidenteMesaAssembleia, "Presidente Mesa Assembleia"))" title="Adicionar">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
                     }
                 </div>
 
@@ -269,11 +359,29 @@ else
                                 {
                                     <div class="text-light-theme">@secretario1MA.User.FirstName @secretario1MA.User.LastName</div>
                                 }
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <div class="admin-action-chips mt-2">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(secretario1MA.Id))" title="Remover">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </Authorized>
+                                </AuthorizeView>
                             </div>
                         }
                         else
                         {
                             <div class="not-available-text">N/D</div>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-action-chips mt-2">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.PrimeiroSecretarioMesaAssembleia, "1º Secretário Mesa Assembleia"))" title="Adicionar">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         }
                     </div>
                     <div class="col-md-4 text-center mb-3">
@@ -291,11 +399,29 @@ else
                                 {
                                     <div class="text-light-theme">@secretario2MA.User.FirstName @secretario2MA.User.LastName</div>
                                 }
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <div class="admin-action-chips mt-2">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(secretario2MA.Id))" title="Remover">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </Authorized>
+                                </AuthorizeView>
                             </div>
                         }
                         else
                         {
                             <div class="not-available-text">N/D</div>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-action-chips mt-2">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.SegundoSecretarioMesaAssembleia, "2º Secretário Mesa Assembleia"))" title="Adicionar">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         }
                     </div>
                 </div>
@@ -317,7 +443,7 @@ else
                 }
                 
                 @* Presidente *@
-                <div class="text-center mb-4">
+                <div class="text-center mb-4 position-relative">
                     <div class="position-title mb-2">PRESIDENTE</div>
                     @if (presidenteCF != null)
                     {
@@ -332,11 +458,29 @@ else
                             {
                                 <div class="text-light-theme">@presidenteCF.User.FirstName @presidenteCF.User.LastName</div>
                             }
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-action-chips mt-2">
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(presidenteCF.Id))" title="Remover">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         </div>
                     }
                     else
                     {
                         <div class="not-available-text">N/D</div>
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                <div class="admin-action-chips mt-2">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.PresidenteConselhoFiscal, "Presidente Conselho Fiscal"))" title="Adicionar">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
                     }
                 </div>
 
@@ -357,11 +501,29 @@ else
                                 {
                                     <div class="text-light-theme">@relator1CF.User.FirstName @relator1CF.User.LastName</div>
                                 }
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <div class="admin-action-chips mt-2">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(relator1CF.Id))" title="Remover">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </Authorized>
+                                </AuthorizeView>
                             </div>
                         }
                         else
                         {
                             <div class="not-available-text">N/D</div>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-action-chips mt-2">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.PrimeiroRelatorConselhoFiscal, "1º Relator Conselho Fiscal"))" title="Adicionar">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         }
                     </div>
                     <div class="col-md-4 text-center mb-3">
@@ -379,11 +541,29 @@ else
                                 {
                                     <div class="text-light-theme">@relator2CF.User.FirstName @relator2CF.User.LastName</div>
                                 }
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <div class="admin-action-chips mt-2">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(relator2CF.Id))" title="Remover">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </Authorized>
+                                </AuthorizeView>
                             </div>
                         }
                         else
                         {
                             <div class="not-available-text">N/D</div>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-action-chips mt-2">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.SegundoRelatorConselhoFiscal, "2º Relator Conselho Fiscal"))" title="Adicionar">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         }
                     </div>
                 </div>
@@ -403,7 +583,7 @@ else
                 }
                 
                 @* Presidente *@
-                <div class="text-center">
+                <div class="text-center position-relative">
                     <div class="position-title mb-2">PRESIDENTE</div>
                     @if (presidenteCV != null)
                     {
@@ -418,11 +598,29 @@ else
                             {
                                 <div class="text-light-theme">@presidenteCV.User.FirstName @presidenteCV.User.LastName</div>
                             }
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-action-chips mt-2">
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(presidenteCV.Id))" title="Remover">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         </div>
                     }
                     else
                     {
                         <div class="not-available-text">N/D</div>
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                <div class="admin-action-chips mt-2">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.PresidenteConselhoVeteranos, "Presidente Conselho de Veteranos"))" title="Adicionar">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
                     }
                 </div>
             </div>
@@ -441,7 +639,7 @@ else
                 }
                 
                 @* Ensaiador *@
-                <div class="text-center">
+                <div class="text-center position-relative">
                     <div class="position-title mb-2">ENSAIADOR</div>
                     @if (ensaiador != null)
                     {
@@ -456,11 +654,29 @@ else
                             {
                                 <div class="text-light-theme">@ensaiador.User.FirstName @ensaiador.User.LastName</div>
                             }
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <div class="admin-action-chips mt-2">
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(ensaiador.Id))" title="Remover">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
                         </div>
                     }
                     else
                     {
                         <div class="not-available-text">N/D</div>
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                <div class="admin-action-chips mt-2">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.Ensaiador, "Ensaiador"))" title="Adicionar">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
                     }
                 </div>
             </div>
