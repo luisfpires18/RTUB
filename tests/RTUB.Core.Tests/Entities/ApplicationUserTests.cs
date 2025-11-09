@@ -141,13 +141,13 @@ public class ApplicationUserTests
     }
 
     [Fact]
-    public void Subscribed_DefaultsToFalse()
+    public void Subscribed_DefaultsToTrue()
     {
         // Arrange & Act
         var user = new ApplicationUser();
 
         // Assert
-        user.Subscribed.Should().BeFalse();
+        user.Subscribed.Should().BeTrue();
     }
 
     [Fact]

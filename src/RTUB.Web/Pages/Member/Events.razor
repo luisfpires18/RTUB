@@ -828,7 +828,7 @@ else
     private async Task LoadEvents()
     {
         events = (await EventService.GetUpcomingEventsAsync(100)).ToList();
-        eventImageVersion = DateTime.UtcNow.Ticks; // Refresh cache-bust parameter
+        eventImageVersion = DateTime.UtcNow.Ticks;
     }
 
     private async Task LoadEnrollments()
@@ -994,7 +994,6 @@ else
                 editingEvent.ImageContentType = "image/jpeg";
                 uploadedImagePath = "uploaded";
                 
-                // Update cache-bust parameter to force image reload after save
                 eventImageVersion = DateTime.UtcNow.Ticks;
                 
                 StateHasChanged();
@@ -1506,7 +1505,6 @@ else
     
     private string GetEventImageUrl(string imageSrc)
     {
-        // Add cache-busting parameter to force reload after image update
         if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
         {
             return $"{imageSrc}?v={eventImageVersion}";

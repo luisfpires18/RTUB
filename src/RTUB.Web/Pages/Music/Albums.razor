@@ -173,7 +173,7 @@ else
     {
         albums = (await AlbumService.GetAllAlbumsAsync()).OrderBy(a => a.Year).ToList();
         allSongs = (await SongService.GetAllSongsAsync()).ToList();
-        albumImageVersion = DateTime.UtcNow.Ticks; // Refresh cache-bust parameter
+        albumImageVersion = DateTime.UtcNow.Ticks;
     }
 
     private int GetSongCount(int albumId)
@@ -252,7 +252,6 @@ else
                 editingAlbum.CoverImageContentType = "image/jpeg";
                 uploadedImagePath = "uploaded";
                 
-                // Update cache-bust parameter to force image reload after save
                 albumImageVersion = DateTime.UtcNow.Ticks;
                 
                 StateHasChanged();
@@ -356,7 +355,6 @@ else
     
     private string GetAlbumImageUrl(string imageSrc)
     {
-        // Add cache-busting parameter to force reload after image update
         if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
         {
             return $"{imageSrc}?v={albumImageVersion}";

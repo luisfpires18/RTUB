@@ -11,6 +11,7 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
 @inject IJSRuntime JSRuntime
+@inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 @implements IDisposable
 
 <nav class="navbar navbar-expand-lg navbar-dark border-bottom navbar-main">
@@ -114,7 +115,7 @@
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 @if (currentUser != null)
                                 {
-                                    <img src="@currentUser.ProfilePictureSrc" alt="@currentUser.Nickname" class="navbar-avatar me-2" />
+                                    <img src="@GetNavbarAvatarUrl()" alt="@currentUser.Nickname" class="navbar-avatar me-2" />
                                     <span>@currentUser.Nickname</span>
                                 }
                             </a>
@@ -187,7 +188,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js" crossorigin="anonymous"></script>
 <script src="/js/fileDownload.js"></script>
 <script src="/js/imageCropper.js"></script>
-<script src="/js/imageRefresh.js"></script>
+<script src="/js/profilePictureRefresh.js"></script>
 <script src="/js/familyTree.js"></script>
 <script src="/js/roleBadge.js"></script>
 <script src="/js/scrollToTop.js"></script>
@@ -208,10 +209,14 @@
     private string? _lastLocation;
     private System.Threading.Timer? _debounceTimer;
     private bool _isFirstRender = true;
+    private long profilePictureVersion = DateTime.UtcNow.Ticks;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadCurrentUser();
+        
+        // Subscribe to profile picture updates
+        ProfilePictureUpdateService.OnProfilePictureUpdated += HandleProfilePictureUpdated;
         
         // Subscribe to location changes
         NavigationManager.LocationChanged += HandleLocationChanged;
@@ -250,6 +255,18 @@
                 
                 // Check if it's a hash change only (same path)
                 bool isHashChangeOnly = oldUri.GetLeftPart(UriPartial.Path) == newUri.GetLeftPart(UriPartial.Path);
+                
+                // Reload user when navigating away from profile page (avatar may have changed)
+                if (_lastLocation.Contains("/profile", StringComparison.OrdinalIgnoreCase) && 
+                    !newLocation.Contains("/profile", StringComparison.OrdinalIgnoreCase))
+                {
+                    _ = InvokeAsync(async () =>
+                    {
+                        await LoadCurrentUser();
+                        profilePictureVersion = DateTime.UtcNow.Ticks;
+                        StateHasChanged();
+                    });
+                }
                 
                 // Only scroll if it's not a hash-only change and not the first render
                 if (!isHashChangeOnly && !_isFirstRender)
@@ -303,9 +320,37 @@
         }
     }
 
+    private string GetNavbarAvatarUrl()
+    {
+        if (currentUser == null) return "/images/default-avatar.png";
+        
+        if (!string.IsNullOrEmpty(currentUser.ProfilePictureSrc) && currentUser.ProfilePictureSrc.StartsWith("/api/images/"))
+        {
+            return $"{currentUser.ProfilePictureSrc}?v={profilePictureVersion}";
+        }
+        return currentUser.ProfilePictureSrc ?? "/images/default-avatar.png";
+    }
+
+    private void HandleProfilePictureUpdated()
+    {
+        Console.WriteLine($"[MainLayout] HandleProfilePictureUpdated called at {DateTime.Now:HH:mm:ss.fff}");
+        
+        // Reload user data and update version when profile picture is updated
+        _ = InvokeAsync(async () =>
+        {
+            Console.WriteLine($"[MainLayout] Reloading user data at {DateTime.Now:HH:mm:ss.fff}");
+            await LoadCurrentUser();
+            profilePictureVersion = DateTime.UtcNow.Ticks;
+            Console.WriteLine($"[MainLayout] Updated profilePictureVersion to {profilePictureVersion}");
+            StateHasChanged();
+            Console.WriteLine($"[MainLayout] StateHasChanged called at {DateTime.Now:HH:mm:ss.fff}");
+        });
+    }
+
     public void Dispose()
     {
         NavigationManager.LocationChanged -= HandleLocationChanged;
+        ProfilePictureUpdateService.OnProfilePictureUpdated -= HandleProfilePictureUpdated;
         _debounceTimer?.Dispose();
     }
 }

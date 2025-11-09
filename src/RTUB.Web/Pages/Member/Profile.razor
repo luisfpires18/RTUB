@@ -19,6 +19,7 @@
 @inject IJSRuntime JSRuntime
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject IRoleAssignmentService RoleAssignmentService
+@inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 
 <h1 class="text-center mb-4">Meu Perfil</h1>
 
@@ -561,21 +562,28 @@ else
                 uploadMessage = "Foto de perfil atualizada com sucesso!";
                 StateHasChanged();
                 
-                // Wait for Blazor to update the DOM with new ?v= parameter.
-                // The @key attribute should force element recreation, but we wait
-                // to ensure DOM updates are complete before JS manipulation.
-                // Using 150ms to account for varying server load and rendering time.
-                await Task.Delay(150);
+                // Wait a moment to ensure database and cache updates are complete
+                await Task.Delay(100);
                 
-                // Force browser to reload images by updating cache-bust parameter
-                // This is a safety measure in case the @key recreation doesn't
-                // trigger a proper image reload in all browsers.
+                // Notify MainLayout and other components that profile picture has been updated
+                // (This won't work due to Blazor scoping issues, but kept for potential future fixes)
+                ProfilePictureUpdateService.NotifyProfilePictureUpdated();
+                
+                // Use JavaScript to directly update the navbar avatar as a fallback
+                // This works reliably across render contexts
                 try
                 {
-                    await JSRuntime.InvokeVoidAsync("imageRefresh.forceRefresh", ".avatar, .navbar-avatar");
+                    await JSRuntime.InvokeVoidAsync("profilePictureRefresh.refreshNavbarAvatar");
+                    Console.WriteLine("[Profile.razor] Called JavaScript to refresh navbar avatar");
                 }
-                catch { /* Ignore JS errors */ }
-
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Profile.razor] Failed to call JavaScript: {ex.Message}");
+                }
+                
+                // Wait for Blazor to update the DOM with new ?v= parameter.
+                await Task.Delay(150);
+                
                 await Task.Delay(1500);
                 uploadMessage = null;
             }

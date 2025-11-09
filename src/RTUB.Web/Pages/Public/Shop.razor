@@ -672,7 +672,6 @@ else
             }
         }
         
-        // Refresh cache-bust parameter
         productImageVersion = DateTime.UtcNow.Ticks;
         
         loading = false;
@@ -808,7 +807,6 @@ else
                 editingProduct.ImageContentType = "image/jpeg";
                 uploadedImagePath = "uploaded";
                 
-                // Update cache-bust parameter to force image reload after save
                 productImageVersion = DateTime.UtcNow.Ticks;
                 
                 StateHasChanged();
@@ -828,7 +826,6 @@ else
     
     private string GetProductImageUrl(string imageSrc)
     {
-        // Add cache-busting parameter to force reload after image update
         if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("/api/images/"))
         {
             return $"{imageSrc}?v={productImageVersion}";
