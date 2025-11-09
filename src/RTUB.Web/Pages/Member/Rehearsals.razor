@@ -22,16 +22,16 @@
 <p>Ensaios regulares da tuna (Terças e Quintas, 21:00-00:00).</p>
 
 <!-- Header Controls -->
-<div class="mb-3 d-flex flex-wrap gap-2">
+<div class="mb-3">
     @if (isAdmin)
     {
-        <button class="btn btn-success" @onclick="OpenCreateSingleModal" title="Criar Ensaio (Data Específica)">
+        <button class="btn btn-success me-2" @onclick="OpenCreateSingleModal" title="Criar Ensaio (Data Específica)">
             <i class="bi bi-plus-lg"></i> Adicionar
         </button>
-        <button class="btn btn-sm btn-light" @onclick="OpenDateRangeModal" title="Criar Ensaios (Intervalo)">
+        <button class="btn btn-sm btn-light me-2" @onclick="OpenDateRangeModal" title="Criar Ensaios (Intervalo)">
             <i class="bi bi-calendar-range"></i> Adicionar Intervalo
         </button>
-        <button class="btn btn-outline-primary" @onclick="OpenStatsModal" title="Ver Estatísticas">
+        <button class="btn btn-outline-primary me-2" @onclick="OpenStatsModal" title="Ver Estatísticas">
             <i class="bi bi-bar-chart"></i> Estatísticas
         </button>
     }
