@@ -12,6 +12,5 @@ public interface IReportService
     Task PublishReportAsync(int id);
     Task UnpublishReportAsync(int id);
     Task<byte[]> GenerateReportPdfAsync(int reportId);
-    Task RecalculateReportFinancialsAsync(int reportId);
     Task DeleteReportAsync(int reportId);
 }

@@ -22,17 +22,25 @@ public class ActivityService : IActivityService
 
     public async Task<Activity?> GetActivityByIdAsync(int id)
     {
-        return await _context.Activities.FindAsync(id);
+        // Include Transactions for computed properties
+        return await _context.Activities
+            .Include(a => a.Transactions)
+            .FirstOrDefaultAsync(a => a.Id == id);
     }
 
     public async Task<IEnumerable<Activity>> GetAllActivitiesAsync()
     {
-        return await _context.Activities.ToListAsync();
+        // Include Transactions for computed properties
+        return await _context.Activities
+            .Include(a => a.Transactions)
+            .ToListAsync();
     }
 
     public async Task<IEnumerable<Activity>> GetActivitiesByReportIdAsync(int reportId)
     {
+        // Include Transactions for computed properties
         return await _context.Activities
+            .Include(a => a.Transactions)
             .Where(a => a.ReportId == reportId)
             .OrderBy(a => a.Name)
             .ToListAsync();
@@ -57,20 +65,12 @@ public class ActivityService : IActivityService
         await _context.SaveChangesAsync();
     }
 
-    public async Task RecalculateActivityFinancialsAsync(int id)
-    {
-        var activity = await _context.Activities.FindAsync(id);
-        if (activity == null)
-            throw new InvalidOperationException($"Activity with ID {id} not found");
-
-        activity.RecalculateFinancials();
-        _context.Activities.Update(activity);
-        await _context.SaveChangesAsync();
-    }
-
     public async Task DeleteActivityAsync(int id)
     {
-        var activity = await _context.Activities.FindAsync(id);
+        var activity = await _context.Activities
+            .Include(a => a.Transactions)
+            .FirstOrDefaultAsync(a => a.Id == id);
+            
         if (activity == null)
             throw new InvalidOperationException($"Activity with ID {id} not found");
 

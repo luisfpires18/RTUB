@@ -640,18 +640,7 @@ state.CurrentPage = newPage;
         return transactions.Count;
     }
 
-    private async Task RecalculateActivityTotals(int activityId)
-    {
-        var activity = activities?.FirstOrDefault(a => a.Id == activityId);
-        if (activity == null) return;
-
-  var transactions = GetActivityTransactions(activityId);
-        activity.TotalIncome = transactions.Where(t => t.Type == "Income").Sum(t => t.Amount);
-        activity.TotalExpenses = transactions.Where(t => t.Type == "Expense").Sum(t => t.Amount);
-        activity.Balance = activity.TotalIncome - activity.TotalExpenses;
-
-      await ActivityService.RecalculateActivityFinancialsAsync(activityId);
-    }
+    // Financial values are now computed properties - no recalculation needed
 
     private void GoBack()
     {
@@ -795,9 +784,8 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
         }
 
         await LoadTransactions(); // Reload transactions first
-   await RecalculateActivityTotals(currentActivityId);
-        await LoadActivities(); // Reload activities with updated totals
-   CloseTransactionModal();
+        await LoadActivities(); // Reload activities - financial values are computed properties
+        CloseTransactionModal();
     }
 
     private void OpenDeleteTransactionModal(Transaction transaction)
@@ -822,11 +810,11 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
         await LoadTransactions(); // Reload transactions first
 
         if (activityId > 0)
-      {
-       await RecalculateActivityTotals(activityId);
-   }
+        {
+            // Financial values are computed properties - no need to recalculate
+        }
 
-        await LoadActivities(); // Reload activities with updated totals
+        await LoadActivities(); // Reload activities - financial values are computed properties
 
         CloseDeleteTransactionModal();
     }
