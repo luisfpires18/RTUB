@@ -152,9 +152,7 @@ public class UserProfileServiceTests : IDisposable
         await _service.UpdateProfilePictureAsync(userId, imageData, contentType);
 
         // Assert
-        user.S3ImageFilename.Should().Be(s3Filename);
-        user.ProfilePictureData.Should().BeNull(); // Should be cleared since stored in S3
-        user.ProfilePictureContentType.Should().BeNull();
+        user.ImageUrl.Should().Be(s3Filename);
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
         _mockImageService.Verify(x => x.InvalidateProfileImageCache(userId), Times.Once);
         _mockProfileStorageService.Verify(x => x.UploadImageAsync(imageData, It.IsAny<string>(), contentType), Times.Once);
