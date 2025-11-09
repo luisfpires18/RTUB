@@ -139,7 +139,14 @@ namespace RTUB.Migrations
             migrationBuilder.Sql("DROP TABLE Instruments;");
             migrationBuilder.Sql("ALTER TABLE Instruments_new RENAME TO Instruments;");
 
-            // ===== STEP 2: Remove ProfilePictureData blob columns from AspNetUsers =====
+            // ===== STEP 2: Add ImageUrl and remove ProfilePictureData blob columns from AspNetUsers =====
+            // Add ImageUrl column for S3 storage
+            migrationBuilder.AddColumn<string>(
+                name: "ImageUrl",
+                table: "AspNetUsers",
+                type: "TEXT",
+                nullable: true);
+            
             // Drop ProfilePictureData and ProfilePictureContentType columns (S3 only now)
             migrationBuilder.DropColumn(
                 name: "ProfilePictureData",
@@ -153,8 +160,8 @@ namespace RTUB.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Note: ImageUrl columns in Events and AspNetUsers already existed before this migration
-            // so we don't drop them in the Down method
+            // Note: ImageUrl column in Events already existed before this migration
+            // so we don't drop it in the Down method
             
             // Restore blob columns for Slideshows
             migrationBuilder.AddColumn<string>(
@@ -239,6 +246,11 @@ namespace RTUB.Migrations
                 type: "TEXT",
                 maxLength: 100,
                 nullable: true);
+            
+            // Drop ImageUrl column that was added in Up
+            migrationBuilder.DropColumn(
+                name: "ImageUrl",
+                table: "AspNetUsers");
         }
     }
 }
