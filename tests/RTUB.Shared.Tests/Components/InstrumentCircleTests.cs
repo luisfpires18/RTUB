@@ -69,7 +69,8 @@ public class InstrumentCircleTests : TestContext
     [InlineData(InstrumentCondition.Excellent, "Óptimo", "bg-success")]
     [InlineData(InstrumentCondition.Good, "Bom", "bg-info")]
     [InlineData(InstrumentCondition.Worn, "Velho", "bg-warning")]
-    [InlineData(InstrumentCondition.NeedsMaintenance, "Precisa Manutenção", "bg-danger")]
+    [InlineData(InstrumentCondition.NeedsMaintenance, "Precisa Manutenção", "bg-warning")]
+    [InlineData(InstrumentCondition.Lost, "Perdido", "bg-danger")]
     public void InstrumentCircle_DisplaysCorrectCondition(InstrumentCondition condition, string expectedText, string expectedClass)
     {
         // Arrange
