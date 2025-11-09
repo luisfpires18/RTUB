@@ -140,21 +140,77 @@ namespace RTUB.Migrations
             migrationBuilder.Sql("ALTER TABLE Instruments_new RENAME TO Instruments;");
 
             // ===== STEP 2: Add ImageUrl and remove ProfilePictureData blob columns from AspNetUsers =====
-            // Add ImageUrl column for S3 storage
-            migrationBuilder.AddColumn<string>(
-                name: "ImageUrl",
-                table: "AspNetUsers",
-                type: "TEXT",
-                nullable: true);
-            
-            // Drop ProfilePictureData and ProfilePictureContentType columns (S3 only now)
-            migrationBuilder.DropColumn(
-                name: "ProfilePictureData",
-                table: "AspNetUsers");
+            // SQLite requires table recreation to properly drop columns
+            // First, create the new table structure with ImageUrl and without blob columns
+            migrationBuilder.Sql(@"
+                CREATE TABLE AspNetUsers_new (
+                    Id TEXT NOT NULL PRIMARY KEY,
+                    AccessFailedCount INTEGER NOT NULL,
+                    Categories TEXT NOT NULL,
+                    CategoriesJson TEXT,
+                    City TEXT,
+                    ConcurrencyStamp TEXT,
+                    DateOfBirth TEXT,
+                    Degree TEXT,
+                    Email TEXT,
+                    EmailConfirmed INTEGER NOT NULL,
+                    FirstName TEXT NOT NULL,
+                    ImageUrl TEXT,
+                    LastLoginDate TEXT,
+                    LastName TEXT NOT NULL,
+                    LockoutEnabled INTEGER NOT NULL,
+                    LockoutEnd TEXT,
+                    MainInstrument INTEGER,
+                    MentorId TEXT,
+                    Nickname TEXT,
+                    NormalizedEmail TEXT,
+                    NormalizedUserName TEXT,
+                    PasswordHash TEXT,
+                    PhoneContact TEXT NOT NULL,
+                    PhoneNumber TEXT,
+                    PhoneNumberConfirmed INTEGER NOT NULL,
+                    Positions TEXT NOT NULL,
+                    PositionsJson TEXT,
+                    RequirePasswordChange INTEGER NOT NULL,
+                    SecurityStamp TEXT,
+                    Subscribed INTEGER NOT NULL,
+                    TwoFactorEnabled INTEGER NOT NULL,
+                    UserName TEXT,
+                    YearCaloiro INTEGER,
+                    YearLeitao INTEGER,
+                    YearTuno INTEGER,
+                    CONSTRAINT FK_AspNetUsers_AspNetUsers_MentorId FOREIGN KEY (MentorId) REFERENCES AspNetUsers (Id) ON DELETE SET NULL
+                );
+            ");
 
-            migrationBuilder.DropColumn(
-                name: "ProfilePictureContentType",
-                table: "AspNetUsers");
+            // Copy data from old table to new table (excluding ProfilePictureData and ProfilePictureContentType)
+            migrationBuilder.Sql(@"
+                INSERT INTO AspNetUsers_new (
+                    Id, AccessFailedCount, Categories, CategoriesJson, City, ConcurrencyStamp,
+                    DateOfBirth, Degree, Email, EmailConfirmed, FirstName, ImageUrl, LastLoginDate,
+                    LastName, LockoutEnabled, LockoutEnd, MainInstrument, MentorId, Nickname,
+                    NormalizedEmail, NormalizedUserName, PasswordHash, PhoneContact, PhoneNumber,
+                    PhoneNumberConfirmed, Positions, PositionsJson, RequirePasswordChange,
+                    SecurityStamp, Subscribed, TwoFactorEnabled, UserName, YearCaloiro, YearLeitao, YearTuno
+                )
+                SELECT
+                    Id, AccessFailedCount, Categories, CategoriesJson, City, ConcurrencyStamp,
+                    DateOfBirth, Degree, Email, EmailConfirmed, FirstName, NULL, LastLoginDate,
+                    LastName, LockoutEnabled, LockoutEnd, MainInstrument, MentorId, Nickname,
+                    NormalizedEmail, NormalizedUserName, PasswordHash, PhoneContact, PhoneNumber,
+                    PhoneNumberConfirmed, Positions, PositionsJson, RequirePasswordChange,
+                    SecurityStamp, Subscribed, TwoFactorEnabled, UserName, YearCaloiro, YearLeitao, YearTuno
+                FROM AspNetUsers;
+            ");
+
+            // Drop old table and rename new table
+            migrationBuilder.Sql("DROP TABLE AspNetUsers;");
+            migrationBuilder.Sql("ALTER TABLE AspNetUsers_new RENAME TO AspNetUsers;");
+
+            // Recreate indexes
+            migrationBuilder.Sql("CREATE INDEX IX_AspNetUsers_MentorId ON AspNetUsers (MentorId);");
+            migrationBuilder.Sql("CREATE INDEX EmailIndex ON AspNetUsers (NormalizedEmail);");
+            migrationBuilder.Sql("CREATE UNIQUE INDEX UserNameIndex ON AspNetUsers (NormalizedUserName);");
         }
 
         /// <inheritdoc />
@@ -234,23 +290,77 @@ namespace RTUB.Migrations
                 nullable: true);
 
             // Restore ProfilePictureData blob columns for AspNetUsers
-            migrationBuilder.AddColumn<byte[]>(
-                name: "ProfilePictureData",
-                table: "AspNetUsers",
-                type: "BLOB",
-                nullable: true);
+            // SQLite requires table recreation to add columns back
+            migrationBuilder.Sql(@"
+                CREATE TABLE AspNetUsers_new (
+                    Id TEXT NOT NULL PRIMARY KEY,
+                    AccessFailedCount INTEGER NOT NULL,
+                    Categories TEXT NOT NULL,
+                    CategoriesJson TEXT,
+                    City TEXT,
+                    ConcurrencyStamp TEXT,
+                    DateOfBirth TEXT,
+                    Degree TEXT,
+                    Email TEXT,
+                    EmailConfirmed INTEGER NOT NULL,
+                    FirstName TEXT NOT NULL,
+                    LastLoginDate TEXT,
+                    LastName TEXT NOT NULL,
+                    LockoutEnabled INTEGER NOT NULL,
+                    LockoutEnd TEXT,
+                    MainInstrument INTEGER,
+                    MentorId TEXT,
+                    Nickname TEXT,
+                    NormalizedEmail TEXT,
+                    NormalizedUserName TEXT,
+                    PasswordHash TEXT,
+                    PhoneContact TEXT NOT NULL,
+                    PhoneNumber TEXT,
+                    PhoneNumberConfirmed INTEGER NOT NULL,
+                    Positions TEXT NOT NULL,
+                    PositionsJson TEXT,
+                    ProfilePictureContentType TEXT,
+                    ProfilePictureData BLOB,
+                    RequirePasswordChange INTEGER NOT NULL,
+                    SecurityStamp TEXT,
+                    Subscribed INTEGER NOT NULL,
+                    TwoFactorEnabled INTEGER NOT NULL,
+                    UserName TEXT,
+                    YearCaloiro INTEGER,
+                    YearLeitao INTEGER,
+                    YearTuno INTEGER,
+                    CONSTRAINT FK_AspNetUsers_AspNetUsers_MentorId FOREIGN KEY (MentorId) REFERENCES AspNetUsers (Id) ON DELETE SET NULL
+                );
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "ProfilePictureContentType",
-                table: "AspNetUsers",
-                type: "TEXT",
-                maxLength: 100,
-                nullable: true);
-            
-            // Drop ImageUrl column that was added in Up
-            migrationBuilder.DropColumn(
-                name: "ImageUrl",
-                table: "AspNetUsers");
+            migrationBuilder.Sql(@"
+                INSERT INTO AspNetUsers_new (
+                    Id, AccessFailedCount, Categories, CategoriesJson, City, ConcurrencyStamp,
+                    DateOfBirth, Degree, Email, EmailConfirmed, FirstName, LastLoginDate,
+                    LastName, LockoutEnabled, LockoutEnd, MainInstrument, MentorId, Nickname,
+                    NormalizedEmail, NormalizedUserName, PasswordHash, PhoneContact, PhoneNumber,
+                    PhoneNumberConfirmed, Positions, PositionsJson, ProfilePictureContentType,
+                    ProfilePictureData, RequirePasswordChange, SecurityStamp, Subscribed,
+                    TwoFactorEnabled, UserName, YearCaloiro, YearLeitao, YearTuno
+                )
+                SELECT
+                    Id, AccessFailedCount, Categories, CategoriesJson, City, ConcurrencyStamp,
+                    DateOfBirth, Degree, Email, EmailConfirmed, FirstName, LastLoginDate,
+                    LastName, LockoutEnabled, LockoutEnd, MainInstrument, MentorId, Nickname,
+                    NormalizedEmail, NormalizedUserName, PasswordHash, PhoneContact, PhoneNumber,
+                    PhoneNumberConfirmed, Positions, PositionsJson, NULL,
+                    NULL, RequirePasswordChange, SecurityStamp, Subscribed,
+                    TwoFactorEnabled, UserName, YearCaloiro, YearLeitao, YearTuno
+                FROM AspNetUsers;
+            ");
+
+            migrationBuilder.Sql("DROP TABLE AspNetUsers;");
+            migrationBuilder.Sql("ALTER TABLE AspNetUsers_new RENAME TO AspNetUsers;");
+
+            // Recreate indexes
+            migrationBuilder.Sql("CREATE INDEX IX_AspNetUsers_MentorId ON AspNetUsers (MentorId);");
+            migrationBuilder.Sql("CREATE INDEX EmailIndex ON AspNetUsers (NormalizedEmail);");
+            migrationBuilder.Sql("CREATE UNIQUE INDEX UserNameIndex ON AspNetUsers (NormalizedUserName);");
         }
     }
 }
