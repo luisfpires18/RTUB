@@ -12,7 +12,7 @@ public interface IUserProfileService
     Task<ApplicationUser?> GetUserByUsernameAsync(string username);
     Task<ApplicationUser?> GetUserByEmailAsync(string email);
     Task<IEnumerable<ApplicationUser>> GetAllUsersAsync();
-    Task UpdateProfilePictureAsync(string userId, byte[] imageData, string contentType);
+    Task UpdateProfilePictureAsync(string userId, Stream imageStream, string fileName, string contentType);
     Task UpdateUserInfoAsync(string userId, string firstName, string lastName, string? nickname, DateTime? dateOfBirth, string? phoneContact);
     Task<bool> IsUserActiveAsync(string userId);
     

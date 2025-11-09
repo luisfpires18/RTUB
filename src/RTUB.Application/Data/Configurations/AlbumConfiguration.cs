@@ -17,11 +17,8 @@ public class AlbumConfiguration : IEntityTypeConfiguration<Album>
         builder.Property(a => a.Description)
             .HasMaxLength(500);
         
-        builder.Property(a => a.CoverImageUrl)
+        builder.Property(a => a.ImageUrl)
             .HasMaxLength(500);
-        
-        builder.Property(a => a.CoverImageContentType)
-            .HasMaxLength(100);
         
         // Year is optional - removed .IsRequired() to match nullable int? in entity
         

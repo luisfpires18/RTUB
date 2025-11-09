@@ -15,13 +15,13 @@ public class UserProfileService : IUserProfileService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _context;
-    private readonly IImageService _imageService;
+    private readonly IImageStorageService _imageStorageService;
 
-    public UserProfileService(UserManager<ApplicationUser> userManager, ApplicationDbContext context, IImageService imageService)
+    public UserProfileService(UserManager<ApplicationUser> userManager, ApplicationDbContext context, IImageStorageService imageStorageService)
     {
         _userManager = userManager;
         _context = context;
-        _imageService = imageService;
+        _imageStorageService = imageStorageService;
     }
 
     public async Task<ApplicationUser?> GetUserByIdAsync(string userId)
@@ -44,21 +44,25 @@ public class UserProfileService : IUserProfileService
         return await Task.FromResult(_userManager.Users.ToList());
     }
 
-    public async Task UpdateProfilePictureAsync(string userId, byte[] imageData, string contentType)
+    public async Task UpdateProfilePictureAsync(string userId, Stream imageStream, string fileName, string contentType)
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
             throw new InvalidOperationException($"User with ID {userId} not found");
 
-        user.ProfilePictureData = imageData;
-        user.ProfilePictureContentType = contentType;
+        // Delete old image if it exists
+        if (!string.IsNullOrEmpty(user.ImageUrl))
+        {
+            await _imageStorageService.DeleteImageAsync(user.ImageUrl);
+        }
+
+        // Upload new image to Cloudflare R2
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "profile", userId);
+        user.ImageUrl = imageUrl;
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
             throw new InvalidOperationException("Failed to update profile picture");
-        
-        // Invalidate the cached profile image so the new image is served immediately
-        _imageService.InvalidateProfileImageCache(userId);
     }
 
     public async Task UpdateUserInfoAsync(string userId, string firstName, string lastName, string? nickname, DateTime? dateOfBirth, string? phoneContact)
