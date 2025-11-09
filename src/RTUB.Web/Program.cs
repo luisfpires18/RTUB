@@ -164,12 +164,16 @@ namespace RTUB
             services.AddAntiforgery(o => o.HeaderName = "X-CSRF-TOKEN");
 
             // Add response compression for better performance
-            services.AddResponseCompression(options =>
+            // Only enable in production to avoid conflicts with BrowserLink/BrowserRefresh dev tools
+            if (!builder.Environment.IsDevelopment())
             {
-                options.EnableForHttps = true;
-                options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
-                options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
-            });
+                services.AddResponseCompression(options =>
+                {
+                    options.EnableForHttps = true;
+                    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+                    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+                });
+            }
 
             // Add response caching
             services.AddResponseCaching();
@@ -222,7 +226,11 @@ namespace RTUB
             }
 
             // Enable response compression (must be before UseStaticFiles)
-            app.UseResponseCompression();
+            // Only enable in production to avoid conflicts with BrowserLink/BrowserRefresh dev tools
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseResponseCompression();
+            }
 
             // Enable response caching
             app.UseResponseCaching();

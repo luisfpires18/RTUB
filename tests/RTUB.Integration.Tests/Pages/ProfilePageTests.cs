@@ -175,9 +175,6 @@ public class ProfilePageTests : IClassFixture<WebApplicationFactory<Program>>
         // Verify Padrinho (mentor) selection is restricted to Tuno category members
         // This is implemented in Profile.razor OnInitializedAsync method
 
-        // Arrange
-        var tunoCategory = MemberCategory.Tuno;
-
         // Act - Expected filter logic
         var expectedFilter = "u.Categories.Contains(MemberCategory.Tuno)";
 
