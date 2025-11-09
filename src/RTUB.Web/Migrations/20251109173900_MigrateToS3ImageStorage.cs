@@ -51,13 +51,15 @@ namespace RTUB.Migrations
                     Type INTEGER NOT NULL,
                     ImageUrl TEXT,
                     CreatedAt TEXT NOT NULL,
-                    UpdatedAt TEXT
+                    CreatedBy TEXT,
+                    UpdatedAt TEXT,
+                    UpdatedBy TEXT
                 );
             ");
 
             migrationBuilder.Sql(@"
-                INSERT INTO Events_new (Id, Name, Date, EndDate, Description, Location, Type, ImageUrl, CreatedAt, UpdatedAt)
-                SELECT Id, Name, Date, EndDate, Description, Location, Type, ImageUrl, CreatedAt, UpdatedAt
+                INSERT INTO Events_new (Id, Name, Date, EndDate, Description, Location, Type, ImageUrl, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy)
+                SELECT Id, Name, Date, EndDate, Description, Location, Type, ImageUrl, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
                 FROM Events;
             ");
 
@@ -73,13 +75,15 @@ namespace RTUB.Migrations
                     Year INTEGER,
                     ImageUrl TEXT,
                     CreatedAt TEXT NOT NULL,
-                    UpdatedAt TEXT
+                    CreatedBy TEXT,
+                    UpdatedAt TEXT,
+                    UpdatedBy TEXT
                 );
             ");
 
             migrationBuilder.Sql(@"
-                INSERT INTO Albums_new (Id, Title, Description, Year, ImageUrl, CreatedAt, UpdatedAt)
-                SELECT Id, Title, Description, Year, CoverImageUrl, CreatedAt, UpdatedAt
+                INSERT INTO Albums_new (Id, Title, Description, Year, ImageUrl, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy)
+                SELECT Id, Title, Description, Year, CoverImageUrl, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
                 FROM Albums;
             ");
 
@@ -99,13 +103,15 @@ namespace RTUB.Migrations
                     IsPublic INTEGER NOT NULL,
                     ImageUrl TEXT,
                     CreatedAt TEXT NOT NULL,
-                    UpdatedAt TEXT
+                    CreatedBy TEXT,
+                    UpdatedAt TEXT,
+                    UpdatedBy TEXT
                 );
             ");
 
             migrationBuilder.Sql(@"
-                INSERT INTO Products_new (Id, Name, Type, Description, Price, Stock, IsAvailable, IsPublic, ImageUrl, CreatedAt, UpdatedAt)
-                SELECT Id, Name, Type, Description, Price, Stock, IsAvailable, IsPublic, NULL, CreatedAt, UpdatedAt
+                INSERT INTO Products_new (Id, Name, Type, Description, Price, Stock, IsAvailable, IsPublic, ImageUrl, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy)
+                SELECT Id, Name, Type, Description, Price, Stock, IsAvailable, IsPublic, NULL, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
                 FROM Products;
             ");
 
@@ -126,13 +132,15 @@ namespace RTUB.Migrations
                     LastMaintenanceDate TEXT,
                     ImageUrl TEXT,
                     CreatedAt TEXT NOT NULL,
-                    UpdatedAt TEXT
+                    CreatedBy TEXT,
+                    UpdatedAt TEXT,
+                    UpdatedBy TEXT
                 );
             ");
 
             migrationBuilder.Sql(@"
-                INSERT INTO Instruments_new (Id, Category, Name, SerialNumber, Brand, Condition, Location, MaintenanceNotes, LastMaintenanceDate, ImageUrl, CreatedAt, UpdatedAt)
-                SELECT Id, Category, Name, SerialNumber, Brand, Condition, Location, MaintenanceNotes, LastMaintenanceDate, NULL, CreatedAt, UpdatedAt
+                INSERT INTO Instruments_new (Id, Category, Name, SerialNumber, Brand, Condition, Location, MaintenanceNotes, LastMaintenanceDate, ImageUrl, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy)
+                SELECT Id, Category, Name, SerialNumber, Brand, Condition, Location, MaintenanceNotes, LastMaintenanceDate, NULL, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
                 FROM Instruments;
             ");
 
