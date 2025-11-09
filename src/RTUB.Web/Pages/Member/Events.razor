@@ -983,7 +983,7 @@ else
     private int GetEnrollmentCount(int eventId)
     {
         if (enrollments == null) return 0;
-        return enrollments.Count(e => e.EventId == eventId);
+        return enrollments.Count(e => e.EventId == eventId && e.WillAttend);
     }
 
     private void OpenCreateModal()
