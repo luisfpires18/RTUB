@@ -111,19 +111,23 @@ public class SlideshowService : ISlideshowService
         // If imageData is provided, upload to IDrive S3
         if (imageData != null && !string.IsNullOrEmpty(contentType))
         {
-            // Upload to IDrive S3 and get the filename
-            var filename = await _slideshowStorageService.UploadImageAsync(imageData, id, contentType);
-            
-            // Delete old image from S3 if it exists and is not a database-stored image
-            if (!string.IsNullOrEmpty(slideshow.ImageUrl) && 
-                !slideshow.ImageUrl.StartsWith("http") && 
-                !slideshow.ImageUrl.StartsWith("/"))
+            // STRATEGY: Replace-Before-Upload
+            // Step 1: Delete old image BEFORE uploading new one to avoid storing trash
+            if (!string.IsNullOrEmpty(slideshow.ImageUrl))
             {
-                await _slideshowStorageService.DeleteImageAsync(slideshow.ImageUrl);
+                // Extract filename from URL and delete from S3
+                var oldFilename = ExtractFilenameFromUrl(slideshow.ImageUrl);
+                if (!string.IsNullOrEmpty(oldFilename))
+                {
+                    await _slideshowStorageService.DeleteImageAsync(oldFilename);
+                }
             }
             
-            // Store the filename in the ImageUrl field
-            slideshow.SetImage(filename);
+            // Step 2: Upload new image to IDrive S3 and get the full public URL
+            var imageUrl = await _slideshowStorageService.UploadImageAsync(imageData, id, contentType);
+            
+            // Step 3: Store the full URL in the ImageUrl field
+            slideshow.SetImage(imageUrl);
         }
         else if (!string.IsNullOrEmpty(url))
         {
@@ -136,6 +140,24 @@ public class SlideshowService : ISlideshowService
         
         // Invalidate the cached slideshow image so the new image is served immediately
         _imageService.InvalidateSlideshowImageCache(id);
+    }
+
+    private string? ExtractFilenameFromUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+            return null;
+
+        try
+        {
+            // Extract filename from URL path (last segment after the last '/')
+            var uri = new Uri(url);
+            var segments = uri.AbsolutePath.Split('/');
+            return segments.Length > 0 ? segments[^1] : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public async Task ActivateSlideshowAsync(int id)

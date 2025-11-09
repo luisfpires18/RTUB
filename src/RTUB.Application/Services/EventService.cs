@@ -91,18 +91,47 @@ public class EventService : IEventService
         await _context.SaveChangesAsync();
     }
 
-    public async Task SetEventS3ImageAsync(int id, string? s3Filename)
+    public async Task SetEventS3ImageAsync(int id, string? s3ImageUrl)
     {
         var eventEntity = await _context.Events.FindAsync(id);
         if (eventEntity == null)
             throw new InvalidOperationException($"Event with ID {id} not found");
 
-        eventEntity.SetImageUrl(s3Filename);
+        // Delete old image from S3 if it exists
+        if (!string.IsNullOrEmpty(eventEntity.ImageUrl))
+        {
+            // Extract filename from URL and delete from S3
+            var oldFilename = ExtractFilenameFromUrl(eventEntity.ImageUrl);
+            if (!string.IsNullOrEmpty(oldFilename))
+            {
+                await _eventStorageService.DeleteImageAsync(oldFilename);
+            }
+        }
+
+        eventEntity.SetImageUrl(s3ImageUrl);
         _context.Events.Update(eventEntity);
         await _context.SaveChangesAsync();
         
         // Invalidate the cached image so the new image is served immediately
         _imageService.InvalidateEventImageCache(id);
+    }
+
+    private string? ExtractFilenameFromUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+            return null;
+
+        try
+        {
+            // Extract filename from URL path (last segment after the last '/')
+            var uri = new Uri(url);
+            var segments = uri.AbsolutePath.Split('/');
+            return segments.Length > 0 ? segments[^1] : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public async Task DeleteEventAsync(int id)

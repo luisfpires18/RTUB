@@ -790,9 +790,6 @@ else
     private string? emailErrorMessage;
 
 
-    // Cache for S3 image URLs
-    private Dictionary<string, string> s3ImageUrlCache = new();
-
     protected override async Task OnInitializedAsync()
     {
         await LoadEvents();
@@ -833,7 +830,6 @@ else
     private async Task LoadEvents()
     {
         events = (await EventService.GetUpcomingEventsAsync(100)).ToList();
-        await ResolveS3ImageUrls(events);
     }
 
     private async Task LoadEnrollments()
@@ -844,7 +840,6 @@ else
     private async Task LoadPreviousEvents()
     {
         allPreviousEvents = (await EventService.GetPastEventsAsync(100)).ToList();
-        await ResolveS3ImageUrls(allPreviousEvents);
         FilterPreviousEvents();
     }
 
@@ -952,12 +947,6 @@ else
             CreatedAt = eventItem.CreatedAt,
             ImageUrl = eventItem.ImageUrl
         };
-        
-        // Resolve S3 URL for the editing event if needed
-        if (!string.IsNullOrEmpty(eventItem.ImageUrl) && !s3ImageUrlCache.ContainsKey(eventItem.ImageUrl))
-        {
-            _ = ResolveEditingEventImageUrl(eventItem.ImageUrl);
-        }
         
         showEditModal = true;
     }
@@ -1514,64 +1503,10 @@ else
         }
     }
     
-    private async Task ResolveS3ImageUrls(List<Event> eventList)
-    {
-        foreach (var evt in eventList)
-        {
-            if (!string.IsNullOrEmpty(evt.ImageUrl))
-            {
-                try
-                {
-                    var url = await EventStorageService.GetImageUrlAsync(evt.ImageUrl);
-                    if (!string.IsNullOrEmpty(url))
-                    {
-                        s3ImageUrlCache[evt.ImageUrl] = url;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error resolving S3 image URL for {evt.ImageUrl}: {ex.Message}");
-                }
-            }
-        }
-    }
-    
-    private async Task ResolveEditingEventImageUrl(string s3Filename)
-    {
-        try
-        {
-            var url = await EventStorageService.GetImageUrlAsync(s3Filename);
-            if (!string.IsNullOrEmpty(url))
-            {
-                s3ImageUrlCache[s3Filename] = url;
-                StateHasChanged(); // Trigger UI update to show the image
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error resolving S3 image URL for editing event: {ex.Message}");
-        }
-    }
-    
     private string GetEventImageUrl(string imageSrc)
     {
-        // Handle S3 images
-        if (!string.IsNullOrEmpty(imageSrc) && imageSrc.StartsWith("s3:"))
-        {
-            var s3Filename = imageSrc.Substring(3); // Remove "s3:" prefix
-            
-            // Check cache first
-            if (s3ImageUrlCache.TryGetValue(s3Filename, out var cachedUrl))
-            {
-                return cachedUrl;
-            }
-            
-            // Return empty string if not in cache yet (will be loaded asynchronously)
-            // Note: The URL will be resolved when LoadEvents is called
-            return string.Empty;
-        }
-        
-        // Return URL as-is - ETag-based caching is handled by ImagesController
+        // Images are served directly from S3 with public URLs
+        // The ImageUrl field already contains the full public URL from S3
         return imageSrc ?? string.Empty;
     }
 
