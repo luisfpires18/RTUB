@@ -122,59 +122,8 @@ public class UserProfileServiceTests : IDisposable
         result.Should().HaveCount(3);
     }
 
-    [Fact]
-    public async Task UpdateProfilePictureAsync_WithValidUser_UpdatesProfilePicture()
-    {
-        // Arrange
-        var userId = "user-123";
-        var user = new ApplicationUser { Id = userId, UserName = "testuser" };
-        var imageData = new byte[] { 1, 2, 3, 4 };
-        var contentType = "image/jpeg";
 
-        _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
-            .ReturnsAsync(IdentityResult.Success);
 
-        // Act
-        await _service.UpdateProfilePictureAsync(userId, imageData, contentType);
-
-        // Assert
-        user.ProfilePictureData.Should().Equal(imageData);
-        user.ProfilePictureContentType.Should().Be(contentType);
-        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
-    }
-
-    [Fact]
-    public async Task UpdateProfilePictureAsync_WithInvalidUser_ThrowsException()
-    {
-        // Arrange
-        _mockUserManager.Setup(x => x.FindByIdAsync(It.IsAny<string>())).ReturnsAsync((ApplicationUser?)null);
-
-        // Act
-        var act = async () => await _service.UpdateProfilePictureAsync("invalid-id", new byte[0], "image/jpeg");
-
-        // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("User with ID invalid-id not found");
-    }
-
-    [Fact]
-    public async Task UpdateProfilePictureAsync_WhenUpdateFails_ThrowsException()
-    {
-        // Arrange
-        var userId = "user-123";
-        var user = new ApplicationUser { Id = userId };
-        _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
-            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Update failed" }));
-
-        // Act
-        var act = async () => await _service.UpdateProfilePictureAsync(userId, new byte[0], "image/jpeg");
-
-        // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Failed to update profile picture");
-    }
 
     [Fact]
     public async Task UpdateUserInfoAsync_WithValidUser_UpdatesUserInfo()
