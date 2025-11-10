@@ -320,8 +320,8 @@
 
     private string GetNavbarAvatarUrl()
     {
-        if (currentUser == null) return "/images/default-avatar.png";
-        return currentUser.ProfilePictureSrc ?? "/images/default-avatar.png";
+        if (currentUser == null) return "/images/default-avatar.webp";
+        return currentUser.ProfilePictureSrc ?? "/images/default-avatar.webp";
     }
 
     private void HandleProfilePictureUpdated()

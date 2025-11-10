@@ -594,9 +594,9 @@ else
 
     private string GetProfilePictureUrl()
     {
-        if (user == null) return "/images/default-avatar.png";
+        if (user == null) return "/images/default-avatar.webp";
         
-        var src = user.ProfilePictureSrc ?? "/images/default-avatar.png";
+        var src = user.ProfilePictureSrc ?? "/images/default-avatar.webp";
         
         // Add refresh trigger only when an image has been updated
         // This forces browser to re-fetch after edits while maintaining ETag caching
