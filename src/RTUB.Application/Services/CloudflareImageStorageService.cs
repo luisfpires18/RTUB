@@ -56,8 +56,7 @@ public class CloudflareImageStorageService : IImageStorageService
     {
         try
         {
-            // Generate object key: {environment}/{entityType}/{entityId}_{timestamp}.webp
-            // e.g., Development/albums/123_20241110120000.webp
+            // Generate object key with timestamp for all entities
             var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
             var objectKey = $"images/{_environment}/{entityType}/{entityId}_{timestamp}.webp";
 
@@ -66,12 +65,14 @@ public class CloudflareImageStorageService : IImageStorageService
                 BucketName = _bucketName,
                 Key = objectKey,
                 InputStream = fileStream,
-                ContentType = "image/webp", // Always use webp format
-                // Make the object publicly accessible (no expiry)
+                ContentType = "image/webp",
                 CannedACL = S3CannedACL.PublicRead,
-                // Required for Cloudflare R2 to avoid TLS/handshake errors
                 UseChunkEncoding = false
             };
+
+            // Add cache control headers for browser caching
+            // Since URLs include timestamp, they are immutable - cache for 1 year
+            putRequest.Headers.CacheControl = "public, max-age=31536000, immutable";
 
             // Add metadata to help with debugging
             putRequest.Metadata.Add("x-amz-meta-uploaded-at", DateTime.UtcNow.ToString("o"));

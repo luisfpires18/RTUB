@@ -232,10 +232,27 @@ public class SlideshowTests
     }
 
     [Fact]
-    public void Validate_WithoutImage_ReturnsValidationError()
+    public void Validate_WithoutImage_ForNewSlideshow_ReturnsNoErrors()
     {
-        // Arrange
+        // Arrange - New slideshow (Id == 0) should not require image during creation
         var slideshow = Slideshow.Create("Title", 1);
+        var validationContext = new ValidationContext(slideshow);
+
+        // Act
+        var results = slideshow.Validate(validationContext).ToList();
+
+        // Assert - No validation errors for new slideshows
+        results.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Validate_WithoutImage_ForExistingSlideshow_ReturnsValidationError()
+    {
+        // Arrange - Existing slideshow (Id > 0) should require image
+        var slideshow = Slideshow.Create("Title", 1);
+        // Simulate an existing entity by using reflection to set the Id
+        var idProperty = typeof(Slideshow).GetProperty("Id");
+        idProperty?.SetValue(slideshow, 1);
         var validationContext = new ValidationContext(slideshow);
 
         // Act

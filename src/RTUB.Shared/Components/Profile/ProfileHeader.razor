@@ -17,7 +17,10 @@
                 <div class="text-center">
                     <!-- Avatar -->
                     <div class="profile-avatar-wrapper profile-avatar-large mx-auto mb-3">
-                        <img src="@GetProfilePictureUrl()" alt="Foto de Perfil" class="profile-avatar" />
+                        <img src="@GetProfilePictureUrl()" 
+                             alt="Foto de Perfil" 
+                             class="profile-avatar"
+                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
                     </div>
                     
                     <!-- Name and Badges -->
@@ -85,16 +88,8 @@
     {
         if (User == null) return "/images/default-avatar.webp";
         
-        var src = User.ProfilePictureSrc ?? "/images/default-avatar.webp";
-        
-        // Add refresh trigger only when an image has been updated
-        // This forces browser to re-fetch after edits while maintaining ETag caching
-        if (ImageRefreshTrigger > 0 && src.StartsWith("/api/images/"))
-        {
-            return $"{src}?r={ImageRefreshTrigger}";
-        }
-        
-        return src;
+        // Return the profile picture URL directly - let ETags handle caching (304 responses)
+        return User.ProfilePictureSrc ?? "/images/default-avatar.webp";
     }
 
     private string GetDisplayName()

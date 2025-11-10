@@ -27,7 +27,7 @@ public class InstrumentServiceTests : IDisposable
 
         _context = new ApplicationDbContext(options);
         _imageStorageServiceMock = new Mock<IImageStorageService>();
-        _service = new InstrumentService(_context);
+        _service = new InstrumentService(_context, _imageStorageServiceMock.Object);
     }
 
     [Fact]
@@ -167,6 +167,35 @@ public class InstrumentServiceTests : IDisposable
     {
         var act = async () => await _service.DeleteAsync(999);
         await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WithInstrumentHavingImage_DeletesImageFromStorage()
+    {
+        var instrument = Instrument.Create("String", "Guitar with Image", InstrumentCondition.Good);
+        instrument.ImageUrl = "https://example.com/images/guitar.jpg";
+        _context.Instruments.Add(instrument);
+        await _context.SaveChangesAsync();
+        
+        await _service.DeleteAsync(instrument.Id);
+        
+        _imageStorageServiceMock.Verify(x => x.DeleteImageAsync("https://example.com/images/guitar.jpg"), Times.Once);
+        var deleted = await _context.Instruments.FindAsync(instrument.Id);
+        deleted.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WithInstrumentWithoutImage_DoesNotCallImageStorageService()
+    {
+        var instrument = Instrument.Create("String", "Guitar without Image", InstrumentCondition.Good);
+        _context.Instruments.Add(instrument);
+        await _context.SaveChangesAsync();
+        
+        await _service.DeleteAsync(instrument.Id);
+        
+        _imageStorageServiceMock.Verify(x => x.DeleteImageAsync(It.IsAny<string>()), Times.Never);
+        var deleted = await _context.Instruments.FindAsync(instrument.Id);
+        deleted.Should().BeNull();
     }
 
     [Fact]

@@ -102,7 +102,7 @@ public class EventService : IEventService
         }
 
         // Upload new image to Cloudflare R2
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "event", id.ToString());
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", id.ToString());
         eventEntity.SetImage(imageUrl);
         
         _context.Events.Update(eventEntity);
