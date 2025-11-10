@@ -89,7 +89,7 @@ public class AlbumService : IAlbumService
         }
 
         // Upload new image to Cloudflare R2
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "album", id.ToString());
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", id.ToString());
         album.SetCoverImage(imageUrl);
         
         _context.Albums.Update(album);

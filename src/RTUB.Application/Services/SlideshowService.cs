@@ -72,7 +72,7 @@ public class SlideshowService : ISlideshowService
         }
 
         // Upload new image to Cloudflare R2
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshow", id.ToString());
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", id.ToString());
         slideshow.SetImage(imageUrl);
         
         _context.Slideshows.Update(slideshow);
