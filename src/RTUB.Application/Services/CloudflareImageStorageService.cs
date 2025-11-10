@@ -3,6 +3,7 @@ using Amazon.S3.Model;
 using Amazon.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
 using RTUB.Application.Interfaces;
 
 namespace RTUB.Application.Services;
@@ -16,11 +17,13 @@ public class CloudflareImageStorageService : IImageStorageService
     private readonly IAmazonS3 _s3Client;
     private readonly string _bucketName;
     private readonly string _publicBaseUrl;
+    private readonly string _environment;
     private readonly ILogger<CloudflareImageStorageService> _logger;
 
     public CloudflareImageStorageService(
         IAmazonS3 s3Client,
         IConfiguration configuration,
+        IHostEnvironment hostEnvironment,
         ILogger<CloudflareImageStorageService> logger)
     {
         _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
@@ -46,18 +49,20 @@ public class CloudflareImageStorageService : IImageStorageService
 
         _bucketName = bucketName;
         _publicBaseUrl = publicUrl.TrimEnd('/'); // Remove trailing slash if present
+        _environment = hostEnvironment.EnvironmentName; // Development, Staging, Production, etc.
 
-        _logger.LogInformation("Cloudflare R2 image storage service initialized. Bucket: {BucketName}, PublicUrl: {PublicUrl}", 
-            _bucketName, _publicBaseUrl);
+        _logger.LogInformation("Cloudflare R2 image storage service initialized. Bucket: {BucketName}, PublicUrl: {PublicUrl}, Environment: {Environment}", 
+            _bucketName, _publicBaseUrl, _environment);
     }
 
     public async Task<string> UploadImageAsync(Stream fileStream, string fileName, string contentType, string entityType, string entityId)
     {
         try
         {
-            // Generate object key: images/{entityType}/{entityId}/{sanitized-filename}
-            var sanitizedFileName = SanitizeFileName(fileName);
-            var objectKey = $"images/{entityType}/{entityId}/{sanitizedFileName}";
+            // Generate object key: {environment}/{entityType}/{entityId}_{timestamp}.webp
+            // e.g., Development/albums/123_20241110120000.webp
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            var objectKey = $"{_environment}/{entityType}/{entityId}_{timestamp}.webp";
 
             _logger.LogInformation("Uploading image to R2: {ObjectKey}", objectKey);
 
@@ -66,7 +71,7 @@ public class CloudflareImageStorageService : IImageStorageService
                 BucketName = _bucketName,
                 Key = objectKey,
                 InputStream = fileStream,
-                ContentType = contentType,
+                ContentType = "image/webp", // Always use webp format
                 // Make the object publicly accessible (no expiry)
                 CannedACL = S3CannedACL.PublicRead,
                 // Required for Cloudflare R2 to avoid TLS/handshake errors
@@ -77,6 +82,7 @@ public class CloudflareImageStorageService : IImageStorageService
             putRequest.Metadata.Add("x-amz-meta-uploaded-at", DateTime.UtcNow.ToString("o"));
             putRequest.Metadata.Add("x-amz-meta-entity-type", entityType);
             putRequest.Metadata.Add("x-amz-meta-entity-id", entityId);
+            putRequest.Metadata.Add("x-amz-meta-environment", _environment);
 
             var response = await _s3Client.PutObjectAsync(putRequest);
 
@@ -186,27 +192,7 @@ public class CloudflareImageStorageService : IImageStorageService
         }
     }
 
-    /// <summary>
-    /// Sanitize filename to be safe for S3 object keys
-    /// </summary>
-    private string SanitizeFileName(string fileName)
-    {
-        // Remove path information
-        fileName = Path.GetFileName(fileName);
-        
-        // Replace spaces and special characters
-        fileName = fileName.Replace(" ", "_");
-        
-        // Keep only alphanumeric, dash, underscore, and dot
-        fileName = new string(fileName.Where(c => char.IsLetterOrDigit(c) || c == '-' || c == '_' || c == '.').ToArray());
-        
-        // Add timestamp to ensure uniqueness
-        var extension = Path.GetExtension(fileName);
-        var nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
-        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-        
-        return $"{nameWithoutExt}_{timestamp}{extension}";
-    }
+
 
     /// <summary>
     /// Extract object key from public URL

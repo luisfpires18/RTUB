@@ -1,6 +1,7 @@
 using Amazon.S3;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Services;
@@ -16,12 +17,17 @@ public class CloudflareImageStorageServiceTests
     private readonly Mock<ILogger<CloudflareImageStorageService>> _mockLogger;
     private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly Mock<IAmazonS3> _mockS3Client;
+    private readonly Mock<IHostEnvironment> _mockHostEnvironment;
 
     public CloudflareImageStorageServiceTests()
     {
         _mockLogger = new Mock<ILogger<CloudflareImageStorageService>>();
         _mockConfiguration = new Mock<IConfiguration>();
         _mockS3Client = new Mock<IAmazonS3>();
+        _mockHostEnvironment = new Mock<IHostEnvironment>();
+        
+        // Setup default environment name
+        _mockHostEnvironment.Setup(e => e.EnvironmentName).Returns("Development");
     }
 
     [Fact]
@@ -32,7 +38,7 @@ public class CloudflareImageStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
         // Act & Assert
-        Action act = () => new CloudflareImageStorageService(null!, _mockConfiguration.Object, _mockLogger.Object);
+        Action act = () => new CloudflareImageStorageService(null!, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -44,7 +50,7 @@ public class CloudflareImageStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns((string?)null);
 
         // Act & Assert
-        Action act = () => new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
+        Action act = () => new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*public URL not configured*");
     }
@@ -57,7 +63,7 @@ public class CloudflareImageStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
         // Act & Assert
-        Action act = () => new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
+        Action act = () => new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*bucket name not configured*");
     }
@@ -70,7 +76,7 @@ public class CloudflareImageStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
         // Act
-        var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
+        var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
 
         // Assert
         service.Should().NotBeNull();
@@ -93,7 +99,7 @@ public class CloudflareImageStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
         _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
-        var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
+        var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
 
         // Act
         await service.DeleteImageAsync("");
@@ -116,7 +122,7 @@ public class CloudflareImageStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
         _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
-        var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
+        var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
 
         // Act
         var result = await service.ImageExistsAsync("");
@@ -135,7 +141,7 @@ public class CloudflareImageStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
         _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
-        var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
+        var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
 
         // Act
         var result = await service.ImageExistsAsync(invalidUrl!);
@@ -152,7 +158,7 @@ public class CloudflareImageStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
         // Act
-        var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
+        var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
 
         // Assert - Verify logging
         _mockLogger.Verify(

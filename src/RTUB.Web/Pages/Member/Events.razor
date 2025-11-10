@@ -545,7 +545,7 @@ else
               OnImageCropped="OnImageCropped"
               AspectRatio="1.5"
               AspectRatioHelp="Event images are displayed in 3:2 aspect ratio for better presentation"
-              ImageFormat="image/jpeg"
+              ImageFormat="image/webp"
               ImageQuality="0.85" />
 
 <!-- Repertoire Modal -->
@@ -832,7 +832,7 @@ else
     private ImageUploadManager? imageUploadManager;
     private int imageRefreshTrigger = 0;
     private byte[]? croppedImageBytes;
-    private string? croppedImageFileName = "event-image.jpg";
+    private string? croppedImageFileName = "event-image.webp";
 
     // Previous events (admin only)
     private List<Event>? allPreviousEvents;
@@ -1118,7 +1118,7 @@ else
             if (croppedImageBytes != null && croppedImageBytes.Length > 0)
             {
                 using var stream = new MemoryStream(croppedImageBytes);
-                await EventService.SetEventImageAsync(newEvent.Id, stream, croppedImageFileName!, "image/jpeg");
+                await EventService.SetEventImageAsync(newEvent.Id, stream, croppedImageFileName!, "image/webp");
             }
         }
         else
@@ -1136,7 +1136,7 @@ else
             if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
             {
                 using var stream = new MemoryStream(croppedImageBytes);
-                await EventService.SetEventImageAsync(editingEvent.Id, stream, croppedImageFileName!, "image/jpeg");
+                await EventService.SetEventImageAsync(editingEvent.Id, stream, croppedImageFileName!, "image/webp");
                 imageRefreshTrigger++;
             }
         }

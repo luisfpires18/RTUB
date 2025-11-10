@@ -56,8 +56,11 @@ public class UserProfileService : IUserProfileService
             await _imageStorageService.DeleteImageAsync(user.ImageUrl);
         }
 
+        // Use nickname for the profile folder if available, otherwise use userId
+        var profileIdentifier = !string.IsNullOrEmpty(user.Nickname) ? user.Nickname : userId;
+        
         // Upload new image to Cloudflare R2
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "profile", userId);
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "profile", profileIdentifier);
         user.ImageUrl = imageUrl;
 
         var result = await _userManager.UpdateAsync(user);

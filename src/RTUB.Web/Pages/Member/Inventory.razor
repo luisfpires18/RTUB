@@ -277,7 +277,7 @@ else
               OnImageCropped="OnImageCropped"
               AspectRatio="1.0"
               AspectRatioHelp="Inventory images are displayed in 1:1 aspect ratio (square) for consistent presentation"
-              ImageFormat="image/jpeg"
+              ImageFormat="image/webp"
               ImageQuality="0.85" />
 
 @code {
@@ -309,7 +309,7 @@ else
     private string? uploadedInstrumentImagePath;
     private int imageRefreshTrigger = 0;
     private byte[]? croppedInstrumentImageBytes;
-    private string? croppedInstrumentImageFileName = "instrument-image.jpg";
+    private string? croppedInstrumentImageFileName = "instrument-image.webp";
 
     protected override async Task OnInitializedAsync()
     {
@@ -408,7 +408,7 @@ else
                 if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
                 {
                     using var stream = new MemoryStream(croppedInstrumentImageBytes);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/jpeg", "instrument", editingInstrument.Id.ToString());
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/webp", "instruments", editingInstrument.Id.ToString());
                     editingInstrument.ImageUrl = imageUrl;
                     await InstrumentService.UpdateAsync(editingInstrument);
                 }
@@ -419,7 +419,7 @@ else
                 if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
                 {
                     using var stream = new MemoryStream(croppedInstrumentImageBytes);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/jpeg", "instrument", editingInstrument.Id.ToString());
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/webp", "instruments", editingInstrument.Id.ToString());
                     editingInstrument.ImageUrl = imageUrl;
                 }
                 

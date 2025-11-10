@@ -348,7 +348,7 @@ else
               OnImageCropped="OnImageCropped"
               AspectRatio="1"
               AspectRatioHelp="As fotos de perfil são exibidas como avatares circulares (proporção 1:1 recomendada)"
-              ImageFormat="image/jpeg"
+              ImageFormat="image/webp"
               ImageQuality="0.9" />
 
 <!-- Change Password Modal -->
@@ -549,7 +549,7 @@ else
             {
                 // Upload image to R2 storage
                 using var stream = new MemoryStream(croppedImageData);
-                await UserProfileService.UpdateProfilePictureAsync(user.Id, stream, "profile-picture.jpg", "image/jpeg");
+                await UserProfileService.UpdateProfilePictureAsync(user.Id, stream, "profile-picture.webp", "image/webp");
 
                 await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(user);

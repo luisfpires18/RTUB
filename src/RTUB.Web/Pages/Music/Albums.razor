@@ -145,7 +145,7 @@ else
               OnImageCropped="OnImageCropped"
               AspectRatio="1.0"
               AspectRatioHelp="Album covers are displayed in 1:1 aspect ratio (square) for consistent presentation"
-              ImageFormat="image/jpeg"
+              ImageFormat="image/webp"
               ImageQuality="0.85" />
 
 @code {
@@ -164,7 +164,7 @@ else
     private ImageUploadManager? imageUploadManager;
     private int imageRefreshTrigger = 0;
     private byte[]? croppedImageBytes;
-    private string? croppedImageFileName = "album-cover.jpg";
+    private string? croppedImageFileName = "album-cover.webp";
 
     protected override async Task OnInitializedAsync()
     {
@@ -291,7 +291,7 @@ else
             if (croppedImageBytes != null && croppedImageBytes.Length > 0)
             {
                 using var stream = new MemoryStream(croppedImageBytes);
-                await AlbumService.SetAlbumCoverAsync(newAlbum.Id, stream, croppedImageFileName!, "image/jpeg");
+                await AlbumService.SetAlbumCoverAsync(newAlbum.Id, stream, croppedImageFileName!, "image/webp");
             }
         }
         else
@@ -307,7 +307,7 @@ else
             if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
             {
                 using var stream = new MemoryStream(croppedImageBytes);
-                await AlbumService.SetAlbumCoverAsync(editingAlbum.Id, stream, croppedImageFileName!, "image/jpeg");
+                await AlbumService.SetAlbumCoverAsync(editingAlbum.Id, stream, croppedImageFileName!, "image/webp");
                 imageRefreshTrigger++;
             }
         }

@@ -283,7 +283,7 @@ else
               OnImageCropped="OnImageCropped"
               AspectRatio="1.0"
               AspectRatioHelp="Product images are displayed in 1:1 aspect ratio (square) for consistent presentation"
-              ImageFormat="image/jpeg"
+              ImageFormat="image/webp"
               ImageQuality="0.85" />
 
 <!-- Reservation Modal -->
@@ -595,7 +595,7 @@ else
     private string? uploadedImagePath;
     private int imageRefreshTrigger = 0;
     private byte[]? croppedProductImageBytes;
-    private string? croppedProductImageFileName = "product-image.jpg";
+    private string? croppedProductImageFileName = "product-image.webp";
 
     // Reservation Modal State
     private bool showReservationModal = false;
@@ -730,7 +730,7 @@ else
                 if (croppedProductImageBytes != null && croppedProductImageBytes.Length > 0)
                 {
                     using var stream = new MemoryStream(croppedProductImageBytes);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/jpeg", "product", editingProduct.Id.ToString());
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/webp", "products", editingProduct.Id.ToString());
                     editingProduct.ImageUrl = imageUrl;
                     await ProductService.UpdateAsync(editingProduct);
                 }
@@ -741,7 +741,7 @@ else
                 if (croppedProductImageBytes != null && croppedProductImageBytes.Length > 0)
                 {
                     using var stream = new MemoryStream(croppedProductImageBytes);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/jpeg", "product", editingProduct.Id.ToString());
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/webp", "products", editingProduct.Id.ToString());
                     editingProduct.ImageUrl = imageUrl;
                 }
                 
