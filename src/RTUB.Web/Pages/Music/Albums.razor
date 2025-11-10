@@ -104,7 +104,7 @@ else
                   OnDelete="DeleteAlbum"
                   OnDeleteModalClosed="CloseDeleteModal">
     <EditFormContent Context="album">
-        <EditForm Model="album" OnValidSubmit="SaveAlbum">
+        <EditForm Model="album" OnValidSubmit="SaveAlbum" id="albumForm">
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" />
 
@@ -132,6 +132,10 @@ else
                                OnFileSelected="HandleImageUpload" />
         </EditForm>
     </EditFormContent>
+    <EditFormFooterContent Context="album">
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+        <button type="submit" form="albumForm" class="btn btn-success">Guardar</button>
+    </EditFormFooterContent>
     <DeleteConfirmationContent Context="album">
         <p>Tem certeza que deseja eliminar o álbum <strong>@album?.Title</strong>?</p>
         <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> Esta ação também eliminará todas as músicas associadas a este álbum.</p>
