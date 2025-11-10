@@ -10,7 +10,7 @@
 @using RTUB.Shared.Components.Cards
 @inject IProductService ProductService
 @inject IProductReservationService ProductReservationService
-@inject IImageService ImageService
+@inject IImageStorageService ImageStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Loja RTUB</h1>
@@ -59,9 +59,9 @@ else
             <div class="col-md-4 col-lg-2 mb-4">
                 <div class="card album-card h-100">
                     <div class="position-relative">
-                        @if (product.ImageData != null && product.ImageData.Length > 0)
+                        @if (!string.IsNullOrEmpty(product.ImageUrl))
                         {
-                            <img src="@GetProductImageUrl(product.ImageSrc)" class="card-img-top shop-square-image" alt="@product.Name">
+                            <img src="@GetProductImageUrl(product.ImageUrl)" class="card-img-top shop-square-image" alt="@product.Name">
                         }
                         else
                         {
@@ -245,12 +245,12 @@ else
             <div class="mb-3">
                 <label class="form-label">Imagem do Produto</label>
                 <InputFile class="form-control file-input-dark" OnChange="HandleImageUpload" accept="image/*" />
-                @if (!string.IsNullOrEmpty(product.ImageSrc) && uploadedImagePath == null && product.ImageData != null && product.ImageData.Length > 0)
+                @if (!string.IsNullOrEmpty(editingProduct?.ImageUrl) && uploadedImagePath == null)
                 {
                     <div class="mt-2">
                         <small class="text-muted">Imagem atual</small>
                         <br />
-                        <img src="@GetProductImageUrl(product.ImageSrc)" alt="Preview" class="img-thumbnail mt-1 slideshow-preview" />
+                        <img src="@GetProductImageUrl(editingProduct.ImageUrl)" alt="Preview" class="img-thumbnail mt-1 slideshow-preview" />
                     </div>
                 }
                 @if (uploadedImagePath != null)
@@ -283,7 +283,7 @@ else
               OnImageCropped="OnImageCropped"
               AspectRatio="1.0"
               AspectRatioHelp="Product images are displayed in 1:1 aspect ratio (square) for consistent presentation"
-              ImageFormat="image/jpeg"
+              ImageFormat="image/webp"
               ImageQuality="0.85" />
 
 <!-- Reservation Modal -->
@@ -476,8 +476,8 @@ else
               ShowChanged="@((bool show) => showProductDetailsModal = show)"
               Title="Detalhes do Produto" 
               HeaderTitle="@(viewingProduct?.Name ?? "")"
-              ImageUrl="@(viewingProduct != null && viewingProduct.ImageData != null && viewingProduct.ImageData.Length > 0 ? GetProductImageUrl(viewingProduct.ImageSrc) : null)"
-              IconClass="@(viewingProduct != null && (viewingProduct.ImageData == null || viewingProduct.ImageData.Length == 0) ? "bi-bag-fill" : null)"
+              ImageUrl="@(viewingProduct != null && !string.IsNullOrEmpty(viewingProduct.ImageUrl) ? GetProductImageUrl(viewingProduct.ImageUrl) : null)"
+              IconClass="@(viewingProduct != null && string.IsNullOrEmpty(viewingProduct.ImageUrl) ? "bi-bag-fill" : null)"
               OnClose="CloseProductDetailsModal">
     <BadgesContent>
         @if (viewingProduct != null)
@@ -594,6 +594,8 @@ else
     private IBrowserFile? selectedFile;
     private string? uploadedImagePath;
     private int imageRefreshTrigger = 0;
+    private byte[]? croppedProductImageBytes;
+    private string? croppedProductImageFileName = "product-image.webp";
 
     // Reservation Modal State
     private bool showReservationModal = false;
@@ -723,16 +725,31 @@ else
             if (isProductCreateMode)
             {
                 await ProductService.CreateAsync(editingProduct);
+                
+                // If image was cropped, upload it now with the correct ID
+                if (croppedProductImageBytes != null && croppedProductImageBytes.Length > 0)
+                {
+                    using var stream = new MemoryStream(croppedProductImageBytes);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/webp", "products", editingProduct.Id.ToString());
+                    editingProduct.ImageUrl = imageUrl;
+                    await ProductService.UpdateAsync(editingProduct);
+                }
             }
             else
             {
+                // Upload image to R2 if one was cropped
+                if (croppedProductImageBytes != null && croppedProductImageBytes.Length > 0)
+                {
+                    using var stream = new MemoryStream(croppedProductImageBytes);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/webp", "products", editingProduct.Id.ToString());
+                    editingProduct.ImageUrl = imageUrl;
+                }
+                
                 await ProductService.UpdateAsync(editingProduct);
                 
                 // Invalidate server-side cache if image was updated
-                if (editingProduct.ImageData != null && uploadedImagePath != null)
+                if (!string.IsNullOrEmpty(editingProduct.ImageUrl) && uploadedImagePath != null)
                 {
-                    ImageService.InvalidateProductImageCache(editingProduct.Id);
-                    
                     // Increment trigger to force browser to re-fetch the image
                     imageRefreshTrigger++;
                 }
@@ -741,6 +758,7 @@ else
             await LoadProducts();
             showProductEditModal = false;
             uploadedImagePath = null;
+            croppedProductImageBytes = null;
         }
         catch (Exception ex)
         {
@@ -811,8 +829,8 @@ else
         {
             if (editingProduct != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                editingProduct.ImageData = croppedImageData;
-                editingProduct.ImageContentType = "image/jpeg";
+                // Store the cropped image bytes for upload when saving
+                croppedProductImageBytes = croppedImageData;
                 uploadedImagePath = "uploaded";
                 
                 StateHasChanged();

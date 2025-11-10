@@ -16,7 +16,7 @@ namespace RTUB.Application.Tests.Services;
 public class InstrumentServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
-    private readonly Mock<IImageService> _imageServiceMock;
+    private readonly Mock<IImageStorageService> _imageStorageServiceMock;
     private readonly InstrumentService _service;
 
     public InstrumentServiceTests()
@@ -26,8 +26,8 @@ public class InstrumentServiceTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _imageServiceMock = new Mock<IImageService>();
-        _service = new InstrumentService(_context, _imageServiceMock.Object);
+        _imageStorageServiceMock = new Mock<IImageStorageService>();
+        _service = new InstrumentService(_context);
     }
 
     [Fact]
@@ -148,7 +148,6 @@ public class InstrumentServiceTests : IDisposable
         var updated = await _context.Instruments.FindAsync(instrument.Id);
         updated!.Name.Should().Be("Updated Guitar");
         updated.Condition.Should().Be(InstrumentCondition.Excellent);
-        _imageServiceMock.Verify(x => x.InvalidateInstrumentImageCache(instrument.Id), Times.Once);
     }
 
     [Fact]

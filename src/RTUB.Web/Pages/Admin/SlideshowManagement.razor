@@ -9,7 +9,6 @@
 @attribute [Authorize(Roles = "Admin")]
 @inherits CrudTablePageBase<Slideshow>
 @inject ISlideshowService SlideshowService
-@inject IImageService ImageService
 @inject IWebHostEnvironment Environment
 
 <h1>Gestão de Apresentação</h1>
@@ -192,7 +191,7 @@ else
               OnImageCropped="OnImageCropped"
               AspectRatio="0"
               AspectRatioHelp="As imagens de apresentação podem ter qualquer proporção - use corte livre para manter as proporções originais"
-              ImageFormat="image/jpeg"
+              ImageFormat="image/webp"
               ImageQuality="0.9" />
 
 @code {
@@ -207,6 +206,8 @@ else
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
     private int imageRefreshTrigger = 0;
+    private byte[]? croppedSlideshowImageBytes;
+    private string? croppedSlideshowImageFileName = "slideshow-image.webp";
 
     protected override async Task OnInitializedAsync()
     {
@@ -266,8 +267,6 @@ else
             Title = slide.Title,
             Description = slide.Description,
             ImageUrl = slide.ImageUrl,
-            ImageData = slide.ImageData,
-            ImageContentType = slide.ImageContentType,
             Order = slide.Order,
             IntervalMs = slide.IntervalMs,
             IsActive = slide.IsActive,
@@ -310,8 +309,8 @@ else
         {
             if (editingSlide != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                editingSlide.ImageData = croppedImageData;
-                editingSlide.ImageContentType = "image/jpeg";
+                // Store the cropped image bytes for upload when saving
+                croppedSlideshowImageBytes = croppedImageData;
                 uploadedImagePath = "uploaded";
                 StateHasChanged();
             }
@@ -341,13 +340,11 @@ else
                 editingSlide.IntervalMs
             );
             
-            if (editingSlide.ImageData != null)
+            // Upload image to R2 if one was cropped
+            if (croppedSlideshowImageBytes != null && croppedSlideshowImageBytes.Length > 0)
             {
-                await SlideshowService.SetSlideshowImageAsync(
-                    newSlide.Id,
-                    editingSlide.ImageData,
-                    editingSlide.ImageContentType
-                );
+                using var stream = new MemoryStream(croppedSlideshowImageBytes);
+                await SlideshowService.SetSlideshowImageAsync(newSlide.Id, stream, croppedSlideshowImageFileName!, "image/webp");
             }
             
             if (editingSlide.IsActive)
@@ -365,18 +362,11 @@ else
                 editingSlide.IntervalMs
             );
 
-            if (editingSlide.ImageData != null)
+            // Upload new image to R2 if one was cropped
+            if (croppedSlideshowImageBytes != null && croppedSlideshowImageBytes.Length > 0 && uploadedImagePath != null)
             {
-                await SlideshowService.SetSlideshowImageAsync(
-                    editingSlide.Id,
-                    editingSlide.ImageData,
-                    editingSlide.ImageContentType
-                );
-                
-                // Invalidate server-side cache to ensure new image is served
-                ImageService.InvalidateSlideshowImageCache(editingSlide.Id);
-                
-                // Increment trigger to force browser to re-fetch the image
+                using var stream = new MemoryStream(croppedSlideshowImageBytes);
+                await SlideshowService.SetSlideshowImageAsync(editingSlide.Id, stream, croppedSlideshowImageFileName!, "image/webp");
                 imageRefreshTrigger++;
             }
 

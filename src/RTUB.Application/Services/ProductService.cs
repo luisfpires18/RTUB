@@ -11,12 +11,10 @@ namespace RTUB.Application.Services;
 public class ProductService : IProductService
 {
     private readonly ApplicationDbContext _context;
-    private readonly IImageService _imageService;
 
-    public ProductService(ApplicationDbContext context, IImageService imageService)
+    public ProductService(ApplicationDbContext context)
     {
         _context = context;
-        _imageService = imageService;
     }
 
     public async Task<Product?> GetByIdAsync(int id)
@@ -71,7 +69,6 @@ public class ProductService : IProductService
         await _context.SaveChangesAsync();
         
         // Invalidate the cached product image so the new image is served immediately
-        _imageService.InvalidateProductImageCache(product.Id);
     }
 
     public async Task DeleteAsync(int id)

@@ -15,10 +15,10 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject IImageService ImageService
 @inject IJSRuntime JSRuntime
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject IRoleAssignmentService RoleAssignmentService
+@inject IUserProfileService UserProfileService
 @inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 
 <h1 class="text-center mb-4">Meu Perfil</h1>
@@ -348,7 +348,7 @@ else
               OnImageCropped="OnImageCropped"
               AspectRatio="1"
               AspectRatioHelp="As fotos de perfil são exibidas como avatares circulares (proporção 1:1 recomendada)"
-              ImageFormat="image/jpeg"
+              ImageFormat="image/webp"
               ImageQuality="0.9" />
 
 <!-- Change Password Modal -->
@@ -547,14 +547,12 @@ else
         {
             if (user != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                user.ProfilePictureData = croppedImageData;
-                user.ProfilePictureContentType = "image/jpeg";
+                // Upload image to R2 storage
+                using var stream = new MemoryStream(croppedImageData);
+                await UserProfileService.UpdateProfilePictureAsync(user.Id, stream, "profile-picture.webp", "image/webp");
 
                 await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(user);
-                
-                // CRITICAL: Clear server-side image cache to ensure fresh image is served
-                ImageService.InvalidateProfileImageCache(user.Id);
                 
                 // Increment trigger to force browser to re-fetch the image
                 imageRefreshTrigger++;
@@ -596,9 +594,9 @@ else
 
     private string GetProfilePictureUrl()
     {
-        if (user == null) return "/images/default-avatar.png";
+        if (user == null) return "/images/default-avatar.webp";
         
-        var src = user.ProfilePictureSrc ?? "/images/default-avatar.png";
+        var src = user.ProfilePictureSrc ?? "/images/default-avatar.webp";
         
         // Add refresh trigger only when an image has been updated
         // This forces browser to re-fetch after edits while maintaining ETag caching

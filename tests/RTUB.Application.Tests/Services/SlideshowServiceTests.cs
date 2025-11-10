@@ -11,7 +11,7 @@ namespace RTUB.Application.Tests.Services;
 public class SlideshowServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
-    private readonly Mock<IImageService> _imageServiceMock;
+    private readonly Mock<IImageStorageService> _imageStorageServiceMock;
     private readonly SlideshowService _service;
 
     public SlideshowServiceTests()
@@ -21,8 +21,8 @@ public class SlideshowServiceTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _imageServiceMock = new Mock<IImageService>();
-        _service = new SlideshowService(_context, _imageServiceMock.Object);
+        _imageStorageServiceMock = new Mock<IImageStorageService>();
+        _service = new SlideshowService(_context, _imageStorageServiceMock.Object);
     }
 
     [Fact]
@@ -151,37 +151,7 @@ public class SlideshowServiceTests : IDisposable
             .WithMessage("Slideshow with ID 999 not found");
     }
 
-    [Fact]
-    public async Task SetSlideshowImageAsync_WithValidData_UpdatesImageAndInvalidatesCache()
-    {
-        // Arrange
-        var slideshow = await _service.CreateSlideshowAsync("Test", 1);
-        var imageData = new byte[] { 1, 2, 3, 4 };
-        var contentType = "image/jpeg";
-        var url = "https://example.com/image.jpg";
 
-        // Act
-        await _service.SetSlideshowImageAsync(slideshow.Id, imageData, contentType, url);
-
-        // Assert
-        var updated = await _service.GetSlideshowByIdAsync(slideshow.Id);
-        updated!.ImageData.Should().BeEquivalentTo(imageData);
-        updated.ImageContentType.Should().Be(contentType);
-        updated.ImageUrl.Should().Be(url);
-        
-        _imageServiceMock.Verify(x => x.InvalidateSlideshowImageCache(slideshow.Id), Times.Once);
-    }
-
-    [Fact]
-    public async Task SetSlideshowImageAsync_WithNonExistentId_ThrowsException()
-    {
-        // Act
-        var act = async () => await _service.SetSlideshowImageAsync(999, null, null);
-
-        // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Slideshow with ID 999 not found");
-    }
 
     [Fact]
     public async Task ActivateSlideshowAsync_ActivatesSlideshow()

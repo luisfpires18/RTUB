@@ -13,7 +13,6 @@
 @inject IEnrollmentService EnrollmentService
 @inject ITrophyService TrophyService
 @inject IEmailNotificationService EmailNotificationService
-@inject IImageService ImageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IWebHostEnvironment Environment
@@ -547,7 +546,7 @@ else
               OnImageCropped="OnImageCropped"
               AspectRatio="1.5"
               AspectRatioHelp="Event images are displayed in 3:2 aspect ratio for better presentation"
-              ImageFormat="image/jpeg"
+              ImageFormat="image/webp"
               ImageQuality="0.85" />
 
 <!-- Repertoire Modal -->
@@ -833,6 +832,8 @@ else
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
     private int imageRefreshTrigger = 0;
+    private byte[]? croppedImageBytes;
+    private string? croppedImageFileName = "event-image.webp";
 
     // Previous events (admin only)
     private List<Event>? allPreviousEvents;
@@ -1015,8 +1016,6 @@ else
             Date = eventItem.Date,
             EndDate = eventItem.EndDate,
             Description = eventItem.Description,
-            ImageData = eventItem.ImageData,
-            ImageContentType = eventItem.ImageContentType,
             ImageUrl = eventItem.ImageUrl,
             Location = eventItem.Location,
             Type = eventItem.Type,
@@ -1064,8 +1063,8 @@ else
         {
             if (editingEvent != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                editingEvent.ImageData = croppedImageData;
-                editingEvent.ImageContentType = "image/jpeg";
+                // Store the cropped image bytes for upload when saving
+                croppedImageBytes = croppedImageData;
                 uploadedImagePath = "uploaded";
                 
                 StateHasChanged();
@@ -1115,13 +1114,11 @@ else
                 editingEvent.EndDate
             );
 
-            if (editingEvent.ImageData != null)
+            // Upload image to R2 if one was cropped
+            if (croppedImageBytes != null && croppedImageBytes.Length > 0)
             {
-                await EventService.SetEventImageAsync(
-                    newEvent.Id,
-                    editingEvent.ImageData,
-                    editingEvent.ImageContentType
-                );
+                using var stream = new MemoryStream(croppedImageBytes);
+                await EventService.SetEventImageAsync(newEvent.Id, stream, croppedImageFileName!, "image/webp");
             }
         }
         else
@@ -1135,19 +1132,11 @@ else
                 editingEvent.EndDate
             );
 
-            // Update image data if new image was uploaded
-            if (editingEvent.ImageData != null)
+            // Upload new image to R2 if one was cropped
+            if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
             {
-                await EventService.SetEventImageAsync(
-                    editingEvent.Id,
-                    editingEvent.ImageData,
-                    editingEvent.ImageContentType
-                );
-                
-                // Invalidate server-side cache to ensure new image is served
-                ImageService.InvalidateEventImageCache(editingEvent.Id);
-                
-                // Increment trigger to force browser to re-fetch the image
+                using var stream = new MemoryStream(croppedImageBytes);
+                await EventService.SetEventImageAsync(editingEvent.Id, stream, croppedImageFileName!, "image/webp");
                 imageRefreshTrigger++;
             }
         }
