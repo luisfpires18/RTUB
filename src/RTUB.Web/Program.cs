@@ -197,28 +197,32 @@ namespace RTUB
             var app = builder.Build();
 
             // ---------- Migrate + seed ----------
-            using (var scope = app.Services.CreateScope())
+            // Skip migration and seeding in Test environment (integration tests handle this)
+            if (app.Environment.EnvironmentName != "Test")
             {
-                var sp = scope.ServiceProvider;
-                var logger = sp.GetRequiredService<ILogger<Program>>();
-                
-                try
+                using (var scope = app.Services.CreateScope())
                 {
-                    var db = sp.GetRequiredService<ApplicationDbContext>();
-
-                    // Only migrate if there are pending migrations (performance optimization)
-                    var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
-                    if (pendingMigrations.Any())
+                    var sp = scope.ServiceProvider;
+                    var logger = sp.GetRequiredService<ILogger<Program>>();
+                    
+                    try
                     {
-                        await db.Database.MigrateAsync();
-                    }
+                        var db = sp.GetRequiredService<ApplicationDbContext>();
 
-                    await SeedData.InitializeAsync(sp, builder.Configuration);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "An error occurred while migrating or seeding the database");
-                    throw;
+                        // Only migrate if there are pending migrations (performance optimization)
+                        var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
+                        if (pendingMigrations.Any())
+                        {
+                            await db.Database.MigrateAsync();
+                        }
+
+                        await SeedData.InitializeAsync(sp, builder.Configuration);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "An error occurred while migrating or seeding the database");
+                        throw;
+                    }
                 }
             }
 

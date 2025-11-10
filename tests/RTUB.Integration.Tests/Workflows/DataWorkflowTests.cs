@@ -8,15 +8,14 @@ namespace RTUB.Integration.Tests.Workflows;
 /// <summary>
 /// Integration tests for data-related workflows and operations
 /// </summary>
-public class DataWorkflowTests : IClassFixture<WebApplicationFactory<Program>>
+public class DataWorkflowTests : IntegrationTestBase
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    
     private readonly HttpClient _client;
 
-    public DataWorkflowTests(WebApplicationFactory<Program> factory)
+    public DataWorkflowTests(TestWebApplicationFactory factory) : base(factory)
     {
-        _factory = factory;
-        _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        _client = Factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
         });
