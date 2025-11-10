@@ -26,7 +26,7 @@ public class ProductServiceTests : IDisposable
 
         _context = new ApplicationDbContext(options);
         _imageStorageServiceMock = new Mock<IImageStorageService>();
-        _service = new ProductService(_context, _imageStorageServiceMock.Object);
+        _service = new ProductService(_context);
     }
 
     [Fact]
@@ -138,7 +138,6 @@ public class ProductServiceTests : IDisposable
         var updated = await _context.Products.FindAsync(product.Id);
         updated!.Name.Should().Be("Updated");
         updated.Price.Should().Be(15.00m);
-        _imageStorageServiceMock.Verify(x => x.InvalidateProductImageCache(product.Id), Times.Once);
     }
 
     [Fact]

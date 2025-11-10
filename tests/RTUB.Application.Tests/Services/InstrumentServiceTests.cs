@@ -27,7 +27,7 @@ public class InstrumentServiceTests : IDisposable
 
         _context = new ApplicationDbContext(options);
         _imageStorageServiceMock = new Mock<IImageStorageService>();
-        _service = new InstrumentService(_context, _imageStorageServiceMock.Object);
+        _service = new InstrumentService(_context);
     }
 
     [Fact]
@@ -148,7 +148,6 @@ public class InstrumentServiceTests : IDisposable
         var updated = await _context.Instruments.FindAsync(instrument.Id);
         updated!.Name.Should().Be("Updated Guitar");
         updated.Condition.Should().Be(InstrumentCondition.Excellent);
-        _imageStorageServiceMock.Verify(x => x.InvalidateInstrumentImageCache(instrument.Id), Times.Once);
     }
 
     [Fact]

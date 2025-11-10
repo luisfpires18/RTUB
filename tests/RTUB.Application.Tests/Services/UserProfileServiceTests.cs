@@ -142,7 +142,6 @@ public class UserProfileServiceTests : IDisposable
         user.ProfilePictureData.Should().Equal(imageData);
         user.ProfilePictureContentType.Should().Be(contentType);
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
-        _mockImageStorageService.Verify(x => x.InvalidateProfileImageCache(userId), Times.Once);
     }
 
     [Fact]

@@ -169,7 +169,6 @@ public class SlideshowServiceTests : IDisposable
         updated.ImageContentType.Should().Be(contentType);
         updated.ImageUrl.Should().Be(url);
         
-        _imageStorageServiceMock.Verify(x => x.InvalidateSlideshowImageCache(slideshow.Id), Times.Once);
     }
 
     [Fact]
