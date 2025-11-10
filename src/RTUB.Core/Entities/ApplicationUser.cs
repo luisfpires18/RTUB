@@ -119,5 +119,5 @@ public class ApplicationUser : IdentityUser
         }
     }
     
-    public string ProfilePictureSrc => !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
+    public string ProfilePictureSrc => !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "/images/default-avatar.webp";
 }
