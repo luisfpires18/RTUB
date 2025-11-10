@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
@@ -860,7 +861,6 @@ else
     private int subscribedUsersCount = 0;
     private int totalUsersCount = 0;
     private bool emailLoadingSubscribers = false;
-    private bool emailSending = false;
     private string? emailErrorMessage;
 
     protected override async Task OnInitializedAsync()
@@ -1610,7 +1610,7 @@ else
         try
         {
             // Get all users with Subscribed = true and EmailConfirmed = true
-            var allUsers = UserManager.Users.ToList();
+            var allUsers = await UserManager.Users.ToListAsync();
             subscribedUsers = allUsers
                 .Where(u => u.Subscribed && u.EmailConfirmed)
                 .OrderBy(u => u.Nickname ?? u.FirstName)
@@ -1648,7 +1648,6 @@ else
             return;
         }
 
-        emailSending = true;
         StateHasChanged();
 
         try
@@ -1692,7 +1691,6 @@ else
         }
         finally
         {
-            emailSending = false;
             StateHasChanged();
         }
     }
