@@ -5,7 +5,11 @@
 *@
 
 <div class="empty-state-container">
-    <div class="empty-state-card @(string.IsNullOrEmpty(ActionUrl) && !OnAction.HasDelegate ? "" : "empty-state-hoverable")">
+    <div class="empty-state-card @(IsClickable ? "empty-state-hoverable" : "")"
+         tabindex="@(IsClickable ? "0" : "-1")"
+         role="@(IsClickable ? "button" : "")"
+         @onclick="HandleClick"
+         @onkeydown="HandleKeyDown">
         <div class="empty-state-content">
             @if (!string.IsNullOrEmpty(Icon))
             {
@@ -26,7 +30,7 @@
                 }
                 else if (OnAction.HasDelegate)
                 {
-                    <button class="btn btn-purple mt-2" @onclick="HandleAction">
+                    <button class="btn btn-purple mt-2" @onclick="HandleAction" @onclick:stopPropagation="true">
                         @ActionText
                     </button>
                 }
@@ -72,11 +76,34 @@
     [Parameter]
     public EventCallback OnAction { get; set; }
 
+    private bool IsClickable => !string.IsNullOrEmpty(ActionUrl) || OnAction.HasDelegate;
+
     private async Task HandleAction()
     {
         if (OnAction.HasDelegate)
         {
             await OnAction.InvokeAsync();
+        }
+    }
+
+    private async Task HandleClick()
+    {
+        if (!string.IsNullOrEmpty(ActionUrl))
+        {
+            // Navigation will be handled by the anchor tag
+        }
+        else if (OnAction.HasDelegate && string.IsNullOrEmpty(ActionText))
+        {
+            // Only trigger if there's no button (direct click on card)
+            await OnAction.InvokeAsync();
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (IsClickable && (e.Key == "Enter" || e.Key == " "))
+        {
+            await HandleClick();
         }
     }
 }

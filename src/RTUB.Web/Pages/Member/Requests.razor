@@ -31,7 +31,7 @@
             SelectedValue="@selectedStatusFilter"
             SelectedValueChanged="@((value) => { selectedStatusFilter = value; ApplyFiltersAndPagination(); })"
             AllItemsLabel="Todos os Estados"
-            Icon="bi-funnel" />
+            IconClass="bi-funnel" />
     </div>
 </div>
 
@@ -133,7 +133,7 @@ else
               ShowChanged="@((bool show) => { if (!show) CloseModal(); })" 
               Title="Detalhes do Pedido"
               HeaderTitle="@(selectedRequest?.Name ?? "")"
-              Icon="bi-envelope-fill">
+              IconClass="bi-envelope-fill">
     <BadgesContent>
         @if (selectedRequest != null)
         {
@@ -145,7 +145,7 @@ else
         {
             <!-- Contact Information Section -->
             <InfoSection SectionTitle="Informação de Contacto" 
-                        Icon="bi-person-fill" 
+                        IconClass="bi-person-fill" 
                         CssClass="mb-4">
                 <ProfileField Label="Nome" Value="@selectedRequest.Name" />
                 <ProfileField Label="Email" Value="@selectedRequest.Email" />
@@ -154,7 +154,7 @@ else
 
             <!-- Event Information Section -->
             <InfoSection SectionTitle="Informação do Evento" 
-                        Icon="bi-calendar-event-fill" 
+                        IconClass="bi-calendar-event-fill" 
                         CssClass="mb-4">
                 <ProfileField Label="Tipo de Evento" Value="@selectedRequest.EventType" />
                 <ProfileField Label="Data Preferida" Value="@selectedRequest.PreferredDate.ToPortugueseShortDate()" />
@@ -166,7 +166,7 @@ else
             @if (!string.IsNullOrEmpty(selectedRequest.Message))
             {
                 <InfoSection SectionTitle="Informações Adicionais" 
-                            Icon="bi-file-text" 
+                            IconClass="bi-file-text" 
                             CssClass="mb-4">
                     <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedRequest.Message</p>
                 </InfoSection>
