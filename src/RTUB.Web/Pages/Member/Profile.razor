@@ -558,30 +558,23 @@ else
                     user.ImageUrl = updatedUser.ImageUrl;
                 }
                 
-                // Increment trigger to force browser to re-fetch the image
                 imageRefreshTrigger++;
                 
                 uploadMessage = "Foto de perfil atualizada com sucesso!";
                 StateHasChanged();
                 
-                // Wait for the image to be available on CDN and database to be fully updated
-                await Task.Delay(500);
-                
-                // Notify MainLayout via the event service with a small delay
-                // This ensures the MainLayout can reload the user data with the updated ImageUrl
+                // Notify MainLayout to reload user data
                 ProfilePictureUpdateService.NotifyProfilePictureUpdated();
-                Console.WriteLine("[Profile.razor] Notified ProfilePictureUpdateService");
                 
-                // Also update via JavaScript as a backup
+                // Update navbar via JavaScript as backup
                 try
                 {
                     var newImageUrl = user.ProfilePictureSrc ?? "/images/default-avatar.webp";
                     await JSRuntime.InvokeVoidAsync("profilePictureRefresh.refreshNavbarAvatar", newImageUrl);
-                    Console.WriteLine($"[Profile.razor] Called JavaScript to refresh navbar avatar with URL: {newImageUrl}");
                 }
-                catch (Exception ex)
+                catch
                 {
-                    Console.WriteLine($"[Profile.razor] Failed to call JavaScript: {ex.Message}");
+                    // Silently fail - event service will handle update
                 }
                 
                 // Clear success message after a delay
@@ -592,7 +585,6 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Profile.razor] Error uploading profile picture: {ex.Message}");
             uploadMessage = "Erro ao guardar imagem. Por favor tente novamente.";
             StateHasChanged();
         }

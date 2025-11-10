@@ -164,6 +164,11 @@ else
                                PreviewCssClass="slideshow-preview"
                                OnFileSelected="HandleImageUpload" />
 
+            @if (!string.IsNullOrEmpty(validationErrorMessage))
+            {
+                <div class="alert alert-danger mt-2">@validationErrorMessage</div>
+            }
+
             <div class="mb-3 form-check">
                 <InputCheckbox class="form-check-input" id="isActive" @bind-Value="slide!.IsActive" />
                 <label class="form-check-label" for="isActive">Ativo</label>
@@ -208,6 +213,7 @@ else
     private int imageRefreshTrigger = 0;
     private byte[]? croppedSlideshowImageBytes;
     private string? croppedSlideshowImageFileName = "slideshow-image.webp";
+    private string? validationErrorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -245,7 +251,8 @@ else
     {
         isCreateMode = true;
         uploadedImagePath = null;
-        croppedSlideshowImageBytes = null;  // Reset to prevent using previous image
+        croppedSlideshowImageBytes = null;
+        validationErrorMessage = null;
         editingSlide = new Slideshow
         {
             Title = string.Empty,
@@ -310,9 +317,9 @@ else
         {
             if (editingSlide != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                // Store the cropped image bytes for upload when saving
                 croppedSlideshowImageBytes = croppedImageData;
                 uploadedImagePath = "uploaded";
+                validationErrorMessage = null;
                 StateHasChanged();
             }
         }
@@ -337,8 +344,8 @@ else
             // Validate that an image was uploaded for new slideshows
             if (croppedSlideshowImageBytes == null || croppedSlideshowImageBytes.Length == 0)
             {
-                // Show error message - image is required for new slideshows
-                Console.WriteLine("[SlideshowManagement] Cannot create slideshow without an image");
+                validationErrorMessage = "É obrigatório carregar uma imagem para o slideshow.";
+                StateHasChanged();
                 return;
             }
             
