@@ -9,31 +9,26 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// Implementation of image storage service using Cloudflare R2 (S3-compatible)
-/// Mirrors the IDrive audio storage implementation
+/// Uses a shared AmazonS3Client injected via DI
 /// </summary>
-public class CloudflareImageStorageService : IImageStorageService, IDisposable
+public class CloudflareImageStorageService : IImageStorageService
 {
     private readonly IAmazonS3 _s3Client;
     private readonly string _bucketName;
     private readonly string _publicBaseUrl;
     private readonly ILogger<CloudflareImageStorageService> _logger;
 
-    public CloudflareImageStorageService(IConfiguration configuration, ILogger<CloudflareImageStorageService> logger)
+    public CloudflareImageStorageService(
+        IAmazonS3 s3Client,
+        IConfiguration configuration,
+        ILogger<CloudflareImageStorageService> logger)
     {
+        _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
         _logger = logger;
 
-        // Get Cloudflare R2 credentials from configuration
-        var accessKey = configuration["Cloudflare:R2:AccessKeyId"];
-        var secretKey = configuration["Cloudflare:R2:SecretAccessKey"];
+        // Get Cloudflare R2 configuration
         var accountId = configuration["Cloudflare:R2:AccountId"];
         var bucketName = configuration["Cloudflare:R2:Bucket"];
-
-        if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
-        {
-            var errorMsg = "Cloudflare R2 credentials not configured. Set Cloudflare:R2:AccessKeyId and Cloudflare:R2:SecretAccessKey.";
-            _logger.LogError(errorMsg);
-            throw new InvalidOperationException(errorMsg);
-        }
 
         if (string.IsNullOrEmpty(accountId))
         {
@@ -50,19 +45,7 @@ public class CloudflareImageStorageService : IImageStorageService, IDisposable
         }
 
         _bucketName = bucketName;
-        
-        // Construct the Cloudflare R2 endpoint URL
-        var endpoint = $"{accountId}.r2.cloudflarestorage.com";
         _publicBaseUrl = $"https://pub-{accountId}.r2.dev/{bucketName}";
-
-        var credentials = new BasicAWSCredentials(accessKey, secretKey);
-        var config = new AmazonS3Config
-        {
-            ServiceURL = $"https://{endpoint}",
-            ForcePathStyle = true // Required for S3-compatible services
-        };
-
-        _s3Client = new AmazonS3Client(credentials, config);
 
         _logger.LogInformation("Cloudflare R2 image storage service initialized for bucket: {BucketName}", _bucketName);
     }
@@ -84,7 +67,9 @@ public class CloudflareImageStorageService : IImageStorageService, IDisposable
                 InputStream = fileStream,
                 ContentType = contentType,
                 // Make the object publicly accessible (no expiry)
-                CannedACL = S3CannedACL.PublicRead
+                CannedACL = S3CannedACL.PublicRead,
+                // Required for Cloudflare R2 to avoid TLS/handshake errors
+                UseChunkEncoding = false
             };
 
             // Add metadata to help with debugging
@@ -246,10 +231,5 @@ public class CloudflareImageStorageService : IImageStorageService, IDisposable
             _logger.LogError(ex, "Error extracting object key from URL: {ImageUrl}", imageUrl);
             return null;
         }
-    }
-
-    public void Dispose()
-    {
-        _s3Client?.Dispose();
     }
 }
