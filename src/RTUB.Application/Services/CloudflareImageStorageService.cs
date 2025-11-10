@@ -48,11 +48,8 @@ public class CloudflareImageStorageService : IImageStorageService
         }
 
         _bucketName = bucketName;
-        _publicBaseUrl = publicUrl.TrimEnd('/'); // Remove trailing slash if present
-        _environment = hostEnvironment.EnvironmentName; // Development, Staging, Production, etc.
-
-        _logger.LogInformation("Cloudflare R2 image storage service initialized. Bucket: {BucketName}, PublicUrl: {PublicUrl}, Environment: {Environment}", 
-            _bucketName, _publicBaseUrl, _environment);
+        _publicBaseUrl = publicUrl.TrimEnd('/');
+        _environment = hostEnvironment.EnvironmentName;
     }
 
     public async Task<string> UploadImageAsync(Stream fileStream, string fileName, string contentType, string entityType, string entityId)
@@ -63,8 +60,6 @@ public class CloudflareImageStorageService : IImageStorageService
             // e.g., Development/albums/123_20241110120000.webp
             var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
             var objectKey = $"images/{_environment}/{entityType}/{entityId}_{timestamp}.webp";
-
-            _logger.LogInformation("Uploading image to R2: {ObjectKey}", objectKey);
 
             var putRequest = new PutObjectRequest
             {
@@ -89,8 +84,7 @@ public class CloudflareImageStorageService : IImageStorageService
             if (response.HttpStatusCode == System.Net.HttpStatusCode.OK)
             {
                 var publicUrl = $"{_publicBaseUrl}/{objectKey}";
-                _logger.LogInformation("Successfully uploaded image. ObjectKey: {ObjectKey}, PublicUrl: {PublicUrl}", 
-                    objectKey, publicUrl);
+
                 return publicUrl;
             }
             else
@@ -131,8 +125,6 @@ public class CloudflareImageStorageService : IImageStorageService
                 return;
             }
 
-            _logger.LogInformation("Deleting image from R2: {ObjectKey}", objectKey);
-
             var deleteRequest = new DeleteObjectRequest
             {
                 BucketName = _bucketName,
@@ -140,7 +132,6 @@ public class CloudflareImageStorageService : IImageStorageService
             };
 
             var response = await _s3Client.DeleteObjectAsync(deleteRequest);
-            _logger.LogInformation("Successfully deleted image: {ObjectKey}", objectKey);
         }
         catch (AmazonS3Exception ex)
         {
@@ -205,13 +196,13 @@ public class CloudflareImageStorageService : IImageStorageService
             // We need to extract the objectKey part (everything after the domain)
             var uri = new Uri(imageUrl);
             var pathSegments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            
+
             // All segments form the object key (no bucket name in path)
             if (pathSegments.Length > 0)
             {
                 return string.Join("/", pathSegments);
             }
-            
+
             return null;
         }
         catch (Exception ex)
