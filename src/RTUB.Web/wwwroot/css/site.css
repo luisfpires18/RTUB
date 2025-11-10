@@ -1673,7 +1673,7 @@ th:hover {
     transition: opacity 0.2s ease;
 }
 
-/* SlideshowCard content */
+.slideshow-card-content {
     flex: 1;
     padding: 1.25rem;
     display: flex;

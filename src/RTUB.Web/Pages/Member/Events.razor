@@ -37,9 +37,8 @@
 }
 else if (!events.Any())
 {
-    <div class="card shadow-sm card-purple-no-border">
-        <h5 class="card-title text-white"><i class="bi bi-info-circle"></i>  Nenhum evento criado ainda</h5>
-    </div>
+    <EmptyState Title="Nenhum evento criado ainda"
+               Icon="bi-info-circle" />
 }
 else
 {
@@ -351,7 +350,8 @@ else
         <BodyContent>
             @if (eventEnrollments == null || !eventEnrollments.Any())
             {
-                <p class="text-white-full">Nenhuma inscrição ainda para este evento.</p>
+                <EmptyState Title="Nenhuma inscrição ainda para este evento"
+                           Icon="bi-people" />
             }
             else
             {
