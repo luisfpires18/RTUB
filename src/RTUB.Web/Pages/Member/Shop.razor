@@ -32,12 +32,9 @@
 }
 else if (!filteredProducts.Any())
 {
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title"><i class="bi bi-info-circle"></i> Sem produtos disponíveis</h5>
-            <p class="card-text">Neste momento não temos produtos disponíveis na loja@(string.IsNullOrEmpty(selectedType) ? "." : " deste tipo.").</p>
-        </div>
-    </div>
+    <EmptyState Title="Sem produtos disponíveis"
+                Message="@($"Neste momento não temos produtos disponíveis na loja{(string.IsNullOrEmpty(selectedType) ? "." : " deste tipo.")}")"
+                Icon="bi-bag-x" />
 }
 else
 {
@@ -388,11 +385,9 @@ else
             }
             else if (!productReservations.Any())
             {
-                <div class="card card-purple-no-border">
-                    <div class="card-body text-center text-white">
-                        <i class="bi bi-info-circle me-2"></i> Não existem reservas para este produto.
-                    </div>
-                </div>
+                <EmptyState Title="Não existem reservas"
+                            Message="Não existem reservas para este produto."
+                            Icon="bi-info-circle" />
             }
             else
             {

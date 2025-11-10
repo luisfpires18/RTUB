@@ -1228,6 +1228,20 @@ else
                 await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(user);
             }
+
+            // Check if user has no more positions - if so, demote from Admin to Member
+            var userRoles = await UserManager.GetRolesAsync(user);
+            if (!positions.Any() && userRoles.Contains("Admin") && !userRoles.Contains("Owner"))
+            {
+                // Remove Admin role
+                await UserManager.RemoveFromRoleAsync(user, "Admin");
+                
+                // Add Member role
+                await UserManager.AddToRoleAsync(user, "Member");
+                
+                // Invalidate security stamp to force fresh cookies and token refresh
+                await UserManager.UpdateSecurityStampAsync(user);
+            }
         }
 
         await LoadRoleAssignments();
