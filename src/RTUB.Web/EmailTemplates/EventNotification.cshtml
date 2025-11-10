@@ -1,11 +1,13 @@
 @model RTUB.Web.EmailTemplates.Models.EventNotificationModel
-
+@{
+    Layout = null;
+}
 Olá!
-Há uma nova atuação agendada: @Model.EventTitle
-📅 @Model.DateFormatted
-📍 @Model.EventLocation
+Há uma nova atuação agendada: @Html.Raw(Model.EventTitle)
+📅 @Html.Raw(Model.DateFormatted)
+📍 @Html.Raw(Model.EventLocation)
 Consulta os detalhes no site e confirma a tua presença se fores.
-@Model.EventLink
+@Html.Raw(Model.EventLink)
 
 Se não quiseres receber notificações por email, podes alterar as tuas preferências no teu perfil, desmarcando a opção "Pretendo ser notificado por email de novas atuações."
 

@@ -1,13 +1,15 @@
 @model RTUB.Web.EmailTemplates.Models.WelcomeEmailModel
-
-Olá @Model.FirstName,
+@{
+    Layout = null;
+}
+Olá @Html.Raw(Model.FirstName),
 
 Bem-vindo à RTUB!
 
 A sua conta foi criada com sucesso. Aqui estão as suas credenciais de acesso:
 
-Nome de Utilizador: @Model.UserName
-Palavra-passe: @Model.Password
+Nome de Utilizador: @Html.Raw(Model.UserName)
+Palavra-passe: @Html.Raw(Model.Password)
 
 Por favor, aceda ao sistema em https://rtub.azurewebsites.net/ e altere a sua palavra-passe no seu perfil assim que possível.
 
