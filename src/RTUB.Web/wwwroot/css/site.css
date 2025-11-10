@@ -1669,15 +1669,11 @@ th:hover {
     right: 0.5rem;
     display: flex;
     gap: 0.25rem;
-    opacity: 0;
+    opacity: 1;
     transition: opacity 0.2s ease;
 }
 
-.slideshow-card:hover .slideshow-card-admin-overlay {
-    opacity: 1;
-}
-
-.slideshow-card-content {
+/* SlideshowCard content */
     flex: 1;
     padding: 1.25rem;
     display: flex;

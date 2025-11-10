@@ -72,9 +72,8 @@ else
 
     @if (filteredUpcomingRehearsals == null || !filteredUpcomingRehearsals.Any())
     {
-        <div class="card shadow-sm card-purple-no-border">
-            <h5 class="card-title text-white"><i class="bi bi-info-circle"></i> Nenhum ensaio agendado</h5>
-        </div>
+        <EmptyState Title="Nenhum ensaio agendado"
+                   Icon="bi-info-circle" />
     }
     else
     {
@@ -123,9 +122,8 @@ else
         
         @if (filteredPreviousRehearsals == null || !filteredPreviousRehearsals.Any())
         {
-            <div class="card shadow-sm card-purple-no-border">
-                <h5 class="card-title text-white"><i class="bi bi-info-circle"></i> Nenhum ensaio anterior encontrado</h5>
-            </div>
+            <EmptyState Title="Nenhum ensaio anterior encontrado"
+                       Icon="bi-info-circle" />
         }
         else
         {

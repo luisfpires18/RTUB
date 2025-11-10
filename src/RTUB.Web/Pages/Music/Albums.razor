@@ -30,9 +30,8 @@
 }
 else if (!albums.Any())
 {
-    <div class="card shadow-sm card-purple-no-border">
-        <h5 class="card-title text-white"><i class="bi bi-info-circle"></i> Nenhum album criado ainda</h5>
-    </div>
+    <EmptyState Title="Nenhum album criado ainda"
+               Icon="bi-info-circle" />
 }
 else
 {
