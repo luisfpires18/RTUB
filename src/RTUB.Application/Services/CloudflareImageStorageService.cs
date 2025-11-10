@@ -56,22 +56,37 @@ public class CloudflareImageStorageService : IImageStorageService
     {
         try
         {
-            // Generate object key: {environment}/{entityType}/{entityId}_{timestamp}.webp
-            // e.g., Development/albums/123_20241110120000.webp
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-            var objectKey = $"images/{_environment}/{entityType}/{entityId}_{timestamp}.webp";
+            string objectKey;
+            
+            // For profile pictures, use consistent filename (no timestamp) to enable ETag caching
+            // This allows browsers to cache with 304 Not Modified responses
+            if (entityType == "profile")
+            {
+                objectKey = $"images/{_environment}/{entityType}/{entityId}.webp";
+            }
+            else
+            {
+                // For other entities, include timestamp to ensure unique URLs
+                var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+                objectKey = $"images/{_environment}/{entityType}/{entityId}_{timestamp}.webp";
+            }
 
             var putRequest = new PutObjectRequest
             {
                 BucketName = _bucketName,
                 Key = objectKey,
                 InputStream = fileStream,
-                ContentType = "image/webp", // Always use webp format
-                // Make the object publicly accessible (no expiry)
+                ContentType = "image/webp",
                 CannedACL = S3CannedACL.PublicRead,
-                // Required for Cloudflare R2 to avoid TLS/handshake errors
                 UseChunkEncoding = false
             };
+
+            // Add cache control headers for profile pictures to enable ETag caching
+            if (entityType == "profile")
+            {
+                // Allow caching but always revalidate with server (ETag check)
+                putRequest.Headers.CacheControl = "public, max-age=0, must-revalidate";
+            }
 
             // Add metadata to help with debugging
             putRequest.Metadata.Add("x-amz-meta-uploaded-at", DateTime.UtcNow.ToString("o"));
