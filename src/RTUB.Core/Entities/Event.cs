@@ -90,7 +90,7 @@ public class Event : BaseEntity
 
     public string GetImageSource()
     {
-        return !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
+        return !string.IsNullOrEmpty(ImageUrl) ? RTUB.Core.Helpers.ImageUrlHelper.ToProxiedUrl(ImageUrl) : "";
     }
     
     // Property alias for backward compatibility

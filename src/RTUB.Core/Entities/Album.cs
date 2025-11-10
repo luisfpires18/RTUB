@@ -62,7 +62,7 @@ public class Album : BaseEntity
 
     public string GetCoverImageSource()
     {
-        return !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
+        return !string.IsNullOrEmpty(ImageUrl) ? RTUB.Core.Helpers.ImageUrlHelper.ToProxiedUrl(ImageUrl) : "";
     }
     
     // Property alias for backward compatibility

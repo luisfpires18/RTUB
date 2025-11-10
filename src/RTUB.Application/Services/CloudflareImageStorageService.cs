@@ -57,6 +57,7 @@ public class CloudflareImageStorageService : IImageStorageService
         try
         {
             // Generate object key with timestamp for all entities
+            // Timestamp ensures URL changes when image is updated (instant updates)
             var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
             var objectKey = $"images/{_environment}/{entityType}/{entityId}_{timestamp}.webp";
 

@@ -37,7 +37,7 @@ public class Instrument : BaseEntity
     public string? ImageUrl { get; set; }
 
     // Helper property
-    public string ImageSrc => !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
+    public string ImageSrc => !string.IsNullOrEmpty(ImageUrl) ? RTUB.Core.Helpers.ImageUrlHelper.ToProxiedUrl(ImageUrl) : "";
 
     // Private constructor for EF Core
     private Instrument() { }

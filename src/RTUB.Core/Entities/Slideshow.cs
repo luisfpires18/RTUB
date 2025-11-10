@@ -83,7 +83,7 @@ public class Slideshow : BaseEntity, IValidatableObject
 
     public string GetImageSource()
     {
-        return !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
+        return !string.IsNullOrEmpty(ImageUrl) ? RTUB.Core.Helpers.ImageUrlHelper.ToProxiedUrl(ImageUrl) : "";
     }
 
     /// <summary>

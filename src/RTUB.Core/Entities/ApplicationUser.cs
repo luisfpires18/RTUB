@@ -119,5 +119,7 @@ public class ApplicationUser : IdentityUser
         }
     }
     
-    public string ProfilePictureSrc => !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "/images/default-avatar.webp";
+    public string ProfilePictureSrc => !string.IsNullOrEmpty(ImageUrl) 
+        ? RTUB.Core.Helpers.ImageUrlHelper.ToProxiedUrl(ImageUrl) 
+        : "/images/default-avatar.webp";
 }
