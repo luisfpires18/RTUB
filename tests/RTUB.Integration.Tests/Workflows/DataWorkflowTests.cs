@@ -37,7 +37,7 @@ public class DataWorkflowTests : IntegrationTestBase
     public async Task RequestsPage_IsAccessibleAndFunctional()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/requests");
+        var response = await _client.GetAsync("/request");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -50,7 +50,7 @@ public class DataWorkflowTests : IntegrationTestBase
     {
         // Test that multiple page loads don't cause issues
         // Arrange
-        var urls = new[] { "/", "/music", "/requests" };
+        var urls = new[] { "/", "/music", "/request" };
 
         // Act - Load each page multiple times
         foreach (var url in urls)
@@ -116,7 +116,7 @@ public class DataWorkflowTests : IntegrationTestBase
         {
             "/",
             "/music",
-            "/requests",
+            "/request",
             "/roles"
         };
 

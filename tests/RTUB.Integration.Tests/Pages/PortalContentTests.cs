@@ -61,7 +61,7 @@ public class PortalContentTests : IntegrationTestBase
     [Theory]
     [InlineData("/")]
     [InlineData("/roles")]
-    [InlineData("/requests")]
+    [InlineData("/request")]
     public async Task PublicPages_ContainProperContentType(string url)
     {
         // Arrange & Act
