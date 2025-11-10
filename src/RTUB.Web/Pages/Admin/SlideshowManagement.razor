@@ -265,8 +265,6 @@ else
             Title = slide.Title,
             Description = slide.Description,
             ImageUrl = slide.ImageUrl,
-            ImageData = slide.ImageData,
-            ImageContentType = slide.ImageContentType,
             Order = slide.Order,
             IntervalMs = slide.IntervalMs,
             IsActive = slide.IsActive,
@@ -309,8 +307,8 @@ else
         {
             if (editingSlide != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                editingSlide.ImageData = croppedImageData;
-                editingSlide.ImageContentType = "image/jpeg";
+                // TODO: Update for R2 storage - need to upload to R2 and set ImageUrl
+                // For now, just mark as uploaded
                 uploadedImagePath = "uploaded";
                 StateHasChanged();
             }
@@ -340,14 +338,12 @@ else
                 editingSlide.IntervalMs
             );
             
-            if (editingSlide!string.IsNullOrEmpty(.ImageData != null.ImageUrl))
-            {
-                await SlideshowService.SetSlideshowImageAsync(
-                    newSlide.Id,
-                    editingSlide.ImageData,
-                    editingSlide.ImageContentType
-                );
-            }
+            // TODO: Update for R2 storage - implement image upload
+            // if (!string.IsNullOrEmpty(editingSlide.ImageUrl))
+            // {
+            //     using var stream = new MemoryStream(imageBytes);
+            //     await SlideshowService.SetSlideshowImageAsync(newSlide.Id, stream, fileName, contentType);
+            // }
             
             if (editingSlide.IsActive)
             {
@@ -364,19 +360,13 @@ else
                 editingSlide.IntervalMs
             );
 
-            if (editingSlide!string.IsNullOrEmpty(.ImageData != null.ImageUrl))
-            {
-                await SlideshowService.SetSlideshowImageAsync(
-                    editingSlide.Id,
-                    editingSlide.ImageData,
-                    editingSlide.ImageContentType
-                );
-                
-                // Invalidate server-side cache to ensure new image is served
-                
-                // Increment trigger to force browser to re-fetch the image
-                imageRefreshTrigger++;
-            }
+            // TODO: Update for R2 storage - implement image upload
+            // if (!string.IsNullOrEmpty(editingSlide.ImageUrl))
+            // {
+            //     using var stream = new MemoryStream(imageBytes);
+            //     await SlideshowService.SetSlideshowImageAsync(editingSlide.Id, stream, fileName, contentType);
+            //     imageRefreshTrigger++;
+            // }
 
             if (editingSlide.IsActive)
             {

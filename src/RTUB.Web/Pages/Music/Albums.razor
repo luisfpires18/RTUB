@@ -205,9 +205,7 @@ else
             Title = album.Title,
             Description = album.Description,
             Year = album.Year,
-            CoverImageData = album.CoverImageData,
-            CoverImageContentType = album.CoverImageContentType,
-            CoverImageUrl = album.CoverImageUrl
+            ImageUrl = album.ImageUrl
         };
         uploadedImagePath = null;
         showEditModal = true;
@@ -247,8 +245,8 @@ else
         {
             if (editingAlbum != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                editingAlbum.CoverImageData = croppedImageData;
-                editingAlbum.CoverImageContentType = "image/jpeg";
+                // TODO: Update for R2 storage - need to upload to R2 and set ImageUrl
+                // For now, just mark as uploaded
                 uploadedImagePath = "uploaded";
                 
                 StateHasChanged();
@@ -286,14 +284,12 @@ else
                 editingAlbum.Description ?? string.Empty
             );
 
-            if (editingAlbum.CoverImageData != null)
-            {
-                await AlbumService.SetAlbumCoverAsync(
-                    newAlbum.Id,
-                    editingAlbum.CoverImageData,
-                    editingAlbum.CoverImageContentType
-                );
-            }
+            // TODO: Update for R2 storage - implement image upload
+            // if (!string.IsNullOrEmpty(editingAlbum.ImageUrl))
+            // {
+            //     using var stream = new MemoryStream(imageBytes);
+            //     await AlbumService.SetAlbumCoverAsync(newAlbum.Id, stream, fileName, contentType);
+            // }
         }
         else
         {
@@ -304,20 +300,13 @@ else
                 editingAlbum.Description ?? string.Empty
             );
 
-            // Only update image if a new one was uploaded
-            if (editingAlbum.CoverImageData != null && uploadedImagePath != null)
-            {
-                await AlbumService.SetAlbumCoverAsync(
-                    editingAlbum.Id,
-                    editingAlbum.CoverImageData,
-                    editingAlbum.CoverImageContentType
-                );
-                
-                // Invalidate server-side cache to ensure new image is served
-                
-                // Increment trigger to force browser to re-fetch the image
-                imageRefreshTrigger++;
-            }
+            // TODO: Update for R2 storage - implement image upload
+            // if (!string.IsNullOrEmpty(editingAlbum.ImageUrl) && uploadedImagePath != null)
+            // {
+            //     using var stream = new MemoryStream(imageBytes);
+            //     await AlbumService.SetAlbumCoverAsync(editingAlbum.Id, stream, fileName, contentType);
+            //     imageRefreshTrigger++;
+            // }
         }
 
         await LoadAlbums();
