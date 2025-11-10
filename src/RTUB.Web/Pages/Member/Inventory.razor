@@ -400,14 +400,6 @@ else
 
         try
         {
-            // Upload image to R2 if one was cropped
-            if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
-            {
-                using var stream = new MemoryStream(croppedInstrumentImageBytes);
-                var imageUrl = await ImageStorageService.UploadAsync(stream, "instrument", editingInstrument.Id, croppedInstrumentImageFileName!);
-                editingInstrument.ImageUrl = imageUrl;
-            }
-
             if (isInstrumentCreateMode)
             {
                 await InstrumentService.CreateAsync(editingInstrument);
@@ -416,13 +408,21 @@ else
                 if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
                 {
                     using var stream = new MemoryStream(croppedInstrumentImageBytes);
-                    var imageUrl = await ImageStorageService.UploadAsync(stream, "instrument", editingInstrument.Id, croppedInstrumentImageFileName!);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/jpeg", "instrument", editingInstrument.Id.ToString());
                     editingInstrument.ImageUrl = imageUrl;
                     await InstrumentService.UpdateAsync(editingInstrument);
                 }
             }
             else
             {
+                // Upload image to R2 if one was cropped
+                if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
+                {
+                    using var stream = new MemoryStream(croppedInstrumentImageBytes);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/jpeg", "instrument", editingInstrument.Id.ToString());
+                    editingInstrument.ImageUrl = imageUrl;
+                }
+                
                 await InstrumentService.UpdateAsync(editingInstrument);
                 
                 // Invalidate server-side cache if image was updated

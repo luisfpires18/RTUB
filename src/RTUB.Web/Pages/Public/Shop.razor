@@ -10,6 +10,7 @@
 @using RTUB.Shared.Components.Cards
 @inject IProductService ProductService
 @inject IProductReservationService ProductReservationService
+@inject IImageStorageService ImageStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Loja RTUB</h1>
@@ -593,6 +594,8 @@ else
     private IBrowserFile? selectedFile;
     private string? uploadedImagePath;
     private int imageRefreshTrigger = 0;
+    private byte[]? croppedProductImageBytes;
+    private string? croppedProductImageFileName = "product-image.jpg";
 
     // Reservation Modal State
     private bool showReservationModal = false;
@@ -722,9 +725,26 @@ else
             if (isProductCreateMode)
             {
                 await ProductService.CreateAsync(editingProduct);
+                
+                // If image was cropped, upload it now with the correct ID
+                if (croppedProductImageBytes != null && croppedProductImageBytes.Length > 0)
+                {
+                    using var stream = new MemoryStream(croppedProductImageBytes);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/jpeg", "product", editingProduct.Id.ToString());
+                    editingProduct.ImageUrl = imageUrl;
+                    await ProductService.UpdateAsync(editingProduct);
+                }
             }
             else
             {
+                // Upload image to R2 if one was cropped
+                if (croppedProductImageBytes != null && croppedProductImageBytes.Length > 0)
+                {
+                    using var stream = new MemoryStream(croppedProductImageBytes);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/jpeg", "product", editingProduct.Id.ToString());
+                    editingProduct.ImageUrl = imageUrl;
+                }
+                
                 await ProductService.UpdateAsync(editingProduct);
                 
                 // Invalidate server-side cache if image was updated
@@ -738,6 +758,7 @@ else
             await LoadProducts();
             showProductEditModal = false;
             uploadedImagePath = null;
+            croppedProductImageBytes = null;
         }
         catch (Exception ex)
         {
@@ -808,8 +829,8 @@ else
         {
             if (editingProduct != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                // TODO: Update for R2 storage - need to upload to R2 and set ImageUrl
-                // For now, just mark as uploaded
+                // Store the cropped image bytes for upload when saving
+                croppedProductImageBytes = croppedImageData;
                 uploadedImagePath = "uploaded";
                 
                 StateHasChanged();
