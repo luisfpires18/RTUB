@@ -61,7 +61,7 @@ public interface IEmailNotificationService
     /// <param name="eventLocation">The event location</param>
     /// <param name="eventLink">Absolute link to the event</param>
     /// <param name="recipientEmails">List of recipient email addresses</param>
-    /// <param name="recipientNicknames">Optional dictionary mapping emails to nicknames for personalization</param>
+    /// <param name="recipientData">Optional dictionary mapping emails to (nickname, fullName) tuples for personalization</param>
     /// <returns>Tuple with success flag and count of emails sent</returns>
     Task<(bool success, int count, string? errorMessage)> SendEventNotificationAsync(
         int eventId, 
@@ -70,5 +70,5 @@ public interface IEmailNotificationService
         string eventLocation, 
         string eventLink, 
         List<string> recipientEmails,
-        Dictionary<string, string>? recipientNicknames = null);
+        Dictionary<string, (string nickname, string fullName)>? recipientData = null);
 }

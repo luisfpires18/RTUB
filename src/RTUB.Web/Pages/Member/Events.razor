@@ -1662,6 +1662,17 @@ else
                 .Select(u => u.Email!)
                 .ToList();
 
+            // Build recipient data dictionary with nickname (username) and full name
+            var recipientData = subscribedUsers
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .ToDictionary(
+                    u => u.Email!,
+                    u => (
+                        nickname: u.UserName ?? "",
+                        fullName: $"{u.FirstName ?? ""} {u.LastName ?? ""}".Trim()
+                    )
+                );
+
             // Send the email
             var (success, count, errorMessage) = await EmailNotificationService.SendEventNotificationAsync(
                 selectedEventForEmail.Id,
@@ -1669,7 +1680,8 @@ else
                 selectedEventForEmail.Date,
                 selectedEventForEmail.Location,
                 eventLink,
-                recipientEmails
+                recipientEmails,
+                recipientData
             );
 
             if (success)

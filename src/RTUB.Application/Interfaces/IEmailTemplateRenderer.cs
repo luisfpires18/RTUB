@@ -35,7 +35,8 @@ public interface IEmailTemplateRenderer
         string dateFormatted,
         string eventLocation,
         string eventLink,
-        string nickname = "");
+        string nickname = "",
+        string fullName = "");
 
     /// <summary>
     /// Renders the password reset email

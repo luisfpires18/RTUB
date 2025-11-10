@@ -242,7 +242,7 @@ public class EmailNotificationService : IEmailNotificationService
         string eventLocation,
         string eventLink,
         List<string> recipientEmails,
-        Dictionary<string, string>? recipientNicknames = null)
+        Dictionary<string, (string nickname, string fullName)>? recipientData = null)
     {
         // Rate limit: Prevent duplicate emails for the same event within 5 minutes
         var rateLimitKey = $"email-event-{eventId}";
@@ -291,8 +291,8 @@ public class EmailNotificationService : IEmailNotificationService
             var dateFormatted = eventDate.ToString("dddd, dd 'de' MMMM 'de' yyyy", 
                 new System.Globalization.CultureInfo("pt-PT"));
 
-            // If nicknames are provided, send personalized emails to each recipient
-            if (recipientNicknames != null && recipientNicknames.Any())
+            // If recipient data is provided, send personalized emails to each recipient
+            if (recipientData != null && recipientData.Any())
             {
                 int successCount = 0;
                 using var smtpClient = new SmtpClient(smtpServer, smtpPort)
@@ -309,8 +309,10 @@ public class EmailNotificationService : IEmailNotificationService
 
                     try
                     {
-                        // Get nickname for this recipient
-                        var nickname = recipientNicknames.TryGetValue(email, out var nick) ? nick : "";
+                        // Get nickname and full name for this recipient
+                        var (nickname, fullName) = recipientData.TryGetValue(email, out var data) 
+                            ? data 
+                            : ("", "");
 
                         // Render personalized email
                         var body = await _templateRenderer.RenderEventNotificationAsync(
@@ -318,7 +320,8 @@ public class EmailNotificationService : IEmailNotificationService
                             dateFormatted,
                             eventLocation,
                             eventLink,
-                            nickname);
+                            nickname,
+                            fullName);
 
                         var mailMessage = new MailMessage
                         {

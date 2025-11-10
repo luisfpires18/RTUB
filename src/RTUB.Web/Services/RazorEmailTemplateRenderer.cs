@@ -62,7 +62,8 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
         string dateFormatted,
         string eventLocation,
         string eventLink,
-        string nickname = "")
+        string nickname = "",
+        string fullName = "")
     {
         var model = new EventNotificationModel
         {
@@ -70,7 +71,8 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
             DateFormatted = dateFormatted,
             EventLocation = eventLocation,
             EventLink = eventLink,
-            Nickname = nickname
+            Nickname = nickname,
+            FullName = fullName
         };
 
         return await _templateService.RenderTemplateAsync("EventNotification", model);
