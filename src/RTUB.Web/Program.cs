@@ -13,6 +13,11 @@ namespace RTUB
     {
         public static async Task Main(string[] args)
         {
+            // Force TLS 1.2/1.3 for all HTTPS connections (required for Cloudflare R2)
+            System.Net.ServicePointManager.SecurityProtocol =
+                System.Net.SecurityProtocolType.Tls12 |
+                System.Net.SecurityProtocolType.Tls13;
+            
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Configuration
