@@ -18,6 +18,7 @@
 @inject IJSRuntime JSRuntime
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject IRoleAssignmentService RoleAssignmentService
+@inject IUserProfileService UserProfileService
 @inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 
 <h1 class="text-center mb-4">Meu Perfil</h1>
@@ -546,13 +547,12 @@ else
         {
             if (user != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                // TODO: Update for R2 storage - user.ProfilePictureData = croppedImageData;
-                // TODO: Update for R2 storage - user.ProfilePictureContentType = "image/jpeg";
+                // Upload image to R2 storage
+                using var stream = new MemoryStream(croppedImageData);
+                await UserProfileService.UpdateProfilePictureAsync(user.Id, stream, "profile-picture.jpg", "image/jpeg");
 
                 await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(user);
-                
-                // CRITICAL: Clear server-side image cache to ensure fresh image is served
                 
                 // Increment trigger to force browser to re-fetch the image
                 imageRefreshTrigger++;

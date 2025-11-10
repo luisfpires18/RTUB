@@ -163,6 +163,8 @@ else
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
     private int imageRefreshTrigger = 0;
+    private byte[]? croppedImageBytes;
+    private string? croppedImageFileName = "album-cover.jpg";
 
     protected override async Task OnInitializedAsync()
     {
@@ -216,6 +218,7 @@ else
         showEditModal = false;
         editingAlbum = null;
         uploadedImagePath = null;
+        croppedImageBytes = null;
         imageUploadManager?.Reset();
     }
 
@@ -245,8 +248,8 @@ else
         {
             if (editingAlbum != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                // TODO: Update for R2 storage - need to upload to R2 and set ImageUrl
-                // For now, just mark as uploaded
+                // Store the cropped image bytes for upload when saving
+                croppedImageBytes = croppedImageData;
                 uploadedImagePath = "uploaded";
                 
                 StateHasChanged();
@@ -284,12 +287,12 @@ else
                 editingAlbum.Description ?? string.Empty
             );
 
-            // TODO: Update for R2 storage - implement image upload
-            // if (!string.IsNullOrEmpty(editingAlbum.ImageUrl))
-            // {
-            //     using var stream = new MemoryStream(imageBytes);
-            //     await AlbumService.SetAlbumCoverAsync(newAlbum.Id, stream, fileName, contentType);
-            // }
+            // Upload image to R2 if one was cropped
+            if (croppedImageBytes != null && croppedImageBytes.Length > 0)
+            {
+                using var stream = new MemoryStream(croppedImageBytes);
+                await AlbumService.SetAlbumCoverAsync(newAlbum.Id, stream, croppedImageFileName!, "image/jpeg");
+            }
         }
         else
         {
@@ -300,13 +303,13 @@ else
                 editingAlbum.Description ?? string.Empty
             );
 
-            // TODO: Update for R2 storage - implement image upload
-            // if (!string.IsNullOrEmpty(editingAlbum.ImageUrl) && uploadedImagePath != null)
-            // {
-            //     using var stream = new MemoryStream(imageBytes);
-            //     await AlbumService.SetAlbumCoverAsync(editingAlbum.Id, stream, fileName, contentType);
-            //     imageRefreshTrigger++;
-            // }
+            // Upload new image to R2 if one was cropped
+            if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
+            {
+                using var stream = new MemoryStream(croppedImageBytes);
+                await AlbumService.SetAlbumCoverAsync(editingAlbum.Id, stream, croppedImageFileName!, "image/jpeg");
+                imageRefreshTrigger++;
+            }
         }
 
         await LoadAlbums();

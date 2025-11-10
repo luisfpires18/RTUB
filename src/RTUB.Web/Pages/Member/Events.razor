@@ -831,6 +831,8 @@ else
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
     private int imageRefreshTrigger = 0;
+    private byte[]? croppedImageBytes;
+    private string? croppedImageFileName = "event-image.jpg";
 
     // Previous events (admin only)
     private List<Event>? allPreviousEvents;
@@ -1061,8 +1063,8 @@ else
         {
             if (editingEvent != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                // TODO: Update for R2 storage - editingEvent.ImageData = croppedImageData;
-                // TODO: Update for R2 storage - null // TODO: Update for R2 storage = "image/jpeg";
+                // Store the cropped image bytes for upload when saving
+                croppedImageBytes = croppedImageData;
                 uploadedImagePath = "uploaded";
                 
                 StateHasChanged();
@@ -1112,12 +1114,12 @@ else
                 editingEvent.EndDate
             );
 
-            // TODO: Update for R2 storage - implement image upload
-            // if (editingEvent.ImageUrl != null)
-            // {
-            //     using var stream = new MemoryStream(imageBytes);
-            //     await EventService.SetEventImageAsync(newEvent.Id, stream, fileName, contentType);
-            // }
+            // Upload image to R2 if one was cropped
+            if (croppedImageBytes != null && croppedImageBytes.Length > 0)
+            {
+                using var stream = new MemoryStream(croppedImageBytes);
+                await EventService.SetEventImageAsync(newEvent.Id, stream, croppedImageFileName!, "image/jpeg");
+            }
         }
         else
         {
@@ -1130,13 +1132,13 @@ else
                 editingEvent.EndDate
             );
 
-            // TODO: Update for R2 storage - implement image upload
-            // if (editingEvent.ImageUrl != null)
-            // {
-            //     using var stream = new MemoryStream(imageBytes);
-            //     await EventService.SetEventImageAsync(editingEvent.Id, stream, fileName, contentType);
-            //     imageRefreshTrigger++;
-            // }
+            // Upload new image to R2 if one was cropped
+            if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
+            {
+                using var stream = new MemoryStream(croppedImageBytes);
+                await EventService.SetEventImageAsync(editingEvent.Id, stream, croppedImageFileName!, "image/jpeg");
+                imageRefreshTrigger++;
+            }
         }
 
         await LoadEvents();
