@@ -1610,7 +1610,7 @@ th:hover {
     margin-bottom: 1rem;
     transition: all 0.3s ease;
     cursor: pointer;
-    min-height: 180px;
+    height: 200px;
 }
 
 .slideshow-card:hover {
@@ -1628,6 +1628,7 @@ th:hover {
     position: relative;
     width: 300px;
     min-width: 300px;
+    flex-shrink: 0;
     background-color: #0f0f10;
     overflow: hidden;
 }
@@ -1670,6 +1671,7 @@ th:hover {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    overflow: hidden;
 }
 
 .slideshow-card-header {
@@ -1685,6 +1687,9 @@ th:hover {
     color: #ffffff;
     margin: 0;
     flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .slideshow-card-badges {
@@ -1727,7 +1732,7 @@ th:hover {
 @media (max-width: 768px) {
     .slideshow-card {
         flex-direction: column;
-        min-height: auto;
+        height: auto;
     }
     
     .slideshow-card-image-container {

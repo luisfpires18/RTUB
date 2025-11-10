@@ -117,7 +117,7 @@ else
               Title="Detalhes do Instrumento" 
               HeaderTitle="@(viewingInstrument?.Name ?? "")"
               ImageUrl="@(viewingInstrument != null && !string.IsNullOrEmpty(viewingInstrument.ImageUrl) ? GetImageUrl(viewingInstrument.ImageUrl) : null)"
-              Icon="@(viewingInstrument != null && string.IsNullOrEmpty(viewingInstrument.ImageUrl) ? "bi-music-note-beamed" : null)"
+              IconClass="@(viewingInstrument != null && string.IsNullOrEmpty(viewingInstrument.ImageUrl) ? "bi-music-note-beamed" : null)"
               OnClose="CloseViewDetailsModal">
     <BadgesContent>
         @if (viewingInstrument != null)
@@ -133,7 +133,7 @@ else
         {
             <!-- Instrument Information Section -->
             <InfoSection SectionTitle="Informações do Instrumento" 
-                        Icon="bi-info-circle-fill" 
+                        IconClass="bi-info-circle-fill" 
                         CssClass="mb-4">
                 <ProfileField Label="Tipo" Value="@viewingInstrument.Category" />
                 <ProfileField Label="Marca" Value="@viewingInstrument.Brand" />
@@ -148,7 +148,7 @@ else
             @if (!string.IsNullOrEmpty(viewingInstrument.MaintenanceNotes))
             {
                 <InfoSection SectionTitle="Notas de Manutenção" 
-                            Icon="bi-wrench" 
+                            IconClass="bi-wrench" 
                             CssClass="mb-3">
                     <p class="text-white-full mb-0">@viewingInstrument.MaintenanceNotes</p>
                 </InfoSection>
