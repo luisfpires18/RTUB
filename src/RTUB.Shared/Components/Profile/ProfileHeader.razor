@@ -88,18 +88,8 @@
     {
         if (User == null) return "/images/default-avatar.webp";
         
-        var src = User.ProfilePictureSrc ?? "/images/default-avatar.webp";
-        
-        // Add refresh trigger only when an image has been updated
-        // This forces browser to re-fetch after edits while maintaining ETag caching
-        // Works for both local (/api/images/) and Cloudflare (https://) URLs
-        if (ImageRefreshTrigger > 0 && !src.Contains("default-avatar"))
-        {
-            var separator = src.Contains('?') ? '&' : '?';
-            return $"{src}{separator}r={ImageRefreshTrigger}";
-        }
-        
-        return src;
+        // Return the profile picture URL directly - let ETags handle caching (304 responses)
+        return User.ProfilePictureSrc ?? "/images/default-avatar.webp";
     }
 
     private string GetDisplayName()

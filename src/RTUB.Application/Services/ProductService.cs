@@ -11,10 +11,12 @@ namespace RTUB.Application.Services;
 public class ProductService : IProductService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IImageStorageService _imageStorageService;
 
-    public ProductService(ApplicationDbContext context)
+    public ProductService(ApplicationDbContext context, IImageStorageService imageStorageService)
     {
         _context = context;
+        _imageStorageService = imageStorageService;
     }
 
     public async Task<Product?> GetByIdAsync(int id)
@@ -76,6 +78,12 @@ public class ProductService : IProductService
         var product = await _context.Products.FindAsync(id);
         if (product != null)
         {
+            // Delete associated image from R2 storage if it exists
+            if (!string.IsNullOrEmpty(product.ImageUrl))
+            {
+                await _imageStorageService.DeleteImageAsync(product.ImageUrl);
+            }
+
             _context.Products.Remove(product);
             await _context.SaveChangesAsync();
         }
