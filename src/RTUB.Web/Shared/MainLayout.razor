@@ -343,8 +343,12 @@
         Console.WriteLine($"[MainLayout] HandleProfilePictureUpdated called at {DateTime.Now:HH:mm:ss.fff}");
         
         // Reload user data when profile picture is updated
+        // Add a small delay to ensure database has been fully updated
         _ = InvokeAsync(async () =>
         {
+            // Wait to ensure database transaction is complete
+            await Task.Delay(100);
+            
             Console.WriteLine($"[MainLayout] Reloading user data at {DateTime.Now:HH:mm:ss.fff}");
             await LoadCurrentUser();
             StateHasChanged();

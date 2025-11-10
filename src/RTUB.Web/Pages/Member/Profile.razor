@@ -564,11 +564,15 @@ else
                 uploadMessage = "Foto de perfil atualizada com sucesso!";
                 StateHasChanged();
                 
-                // Wait a moment to ensure the image is available on CDN
+                // Wait for the image to be available on CDN and database to be fully updated
                 await Task.Delay(500);
                 
-                // Use JavaScript to directly update the navbar avatar with the new URL
-                // Pass the new image URL to update the navbar immediately
+                // Notify MainLayout via the event service with a small delay
+                // This ensures the MainLayout can reload the user data with the updated ImageUrl
+                ProfilePictureUpdateService.NotifyProfilePictureUpdated();
+                Console.WriteLine("[Profile.razor] Notified ProfilePictureUpdateService");
+                
+                // Also update via JavaScript as a backup
                 try
                 {
                     var newImageUrl = user.ProfilePictureSrc ?? "/images/default-avatar.webp";

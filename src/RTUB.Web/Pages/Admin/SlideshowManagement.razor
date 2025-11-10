@@ -334,6 +334,14 @@ else
 
         if (isCreateMode)
         {
+            // Validate that an image was uploaded for new slideshows
+            if (croppedSlideshowImageBytes == null || croppedSlideshowImageBytes.Length == 0)
+            {
+                // Show error message - image is required for new slideshows
+                Console.WriteLine("[SlideshowManagement] Cannot create slideshow without an image");
+                return;
+            }
+            
             var newSlide = await SlideshowService.CreateSlideshowAsync(
                 editingSlide.Title,
                 editingSlide.Order,
@@ -341,12 +349,9 @@ else
                 editingSlide.IntervalMs
             );
             
-            // Upload image to R2 if one was cropped
-            if (croppedSlideshowImageBytes != null && croppedSlideshowImageBytes.Length > 0)
-            {
-                using var stream = new MemoryStream(croppedSlideshowImageBytes);
-                await SlideshowService.SetSlideshowImageAsync(newSlide.Id, stream, croppedSlideshowImageFileName!, "image/webp");
-            }
+            // Upload image to R2
+            using var stream = new MemoryStream(croppedSlideshowImageBytes);
+            await SlideshowService.SetSlideshowImageAsync(newSlide.Id, stream, croppedSlideshowImageFileName!, "image/webp");
             
             if (editingSlide.IsActive)
             {
