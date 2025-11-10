@@ -15,7 +15,7 @@ namespace RTUB.Application.Tests.Services;
 public class ProductServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
-    private readonly Mock<IImageService> _imageServiceMock;
+    private readonly Mock<IImageStorageService> _imageStorageServiceMock;
     private readonly ProductService _service;
 
     public ProductServiceTests()
@@ -25,8 +25,8 @@ public class ProductServiceTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _imageServiceMock = new Mock<IImageService>();
-        _service = new ProductService(_context, _imageServiceMock.Object);
+        _imageStorageServiceMock = new Mock<IImageStorageService>();
+        _service = new ProductService(_context, _imageStorageServiceMock.Object);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class ProductServiceTests : IDisposable
         var updated = await _context.Products.FindAsync(product.Id);
         updated!.Name.Should().Be("Updated");
         updated.Price.Should().Be(15.00m);
-        _imageServiceMock.Verify(x => x.InvalidateProductImageCache(product.Id), Times.Once);
+        _imageStorageServiceMock.Verify(x => x.InvalidateProductImageCache(product.Id), Times.Once);
     }
 
     [Fact]

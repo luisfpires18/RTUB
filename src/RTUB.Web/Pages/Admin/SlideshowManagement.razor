@@ -9,7 +9,6 @@
 @attribute [Authorize(Roles = "Admin")]
 @inherits CrudTablePageBase<Slideshow>
 @inject ISlideshowService SlideshowService
-@inject IImageService ImageService
 @inject IWebHostEnvironment Environment
 
 <h1>Gestão de Apresentação</h1>
@@ -341,7 +340,7 @@ else
                 editingSlide.IntervalMs
             );
             
-            if (editingSlide.ImageData != null)
+            if (editingSlide!string.IsNullOrEmpty(.ImageData != null.ImageUrl))
             {
                 await SlideshowService.SetSlideshowImageAsync(
                     newSlide.Id,
@@ -365,7 +364,7 @@ else
                 editingSlide.IntervalMs
             );
 
-            if (editingSlide.ImageData != null)
+            if (editingSlide!string.IsNullOrEmpty(.ImageData != null.ImageUrl))
             {
                 await SlideshowService.SetSlideshowImageAsync(
                     editingSlide.Id,
@@ -374,7 +373,6 @@ else
                 );
                 
                 // Invalidate server-side cache to ensure new image is served
-                ImageService.InvalidateSlideshowImageCache(editingSlide.Id);
                 
                 // Increment trigger to force browser to re-fetch the image
                 imageRefreshTrigger++;

@@ -10,7 +10,6 @@
 @using RTUB.Shared.Components.Cards
 @inject IProductService ProductService
 @inject IProductReservationService ProductReservationService
-@inject IImageService ImageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Loja RTUB</h1>
@@ -59,7 +58,7 @@ else
             <div class="col-md-4 col-lg-2 mb-4">
                 <div class="card album-card h-100">
                     <div class="position-relative">
-                        @if (product.ImageData != null && product.ImageData.Length > 0)
+                        @if (product!string.IsNullOrEmpty(!string.IsNullOrEmpty(.ImageData != null.ImageUrl) && product.ImageData.Length > 0.ImageUrl))
                         {
                             <img src="@GetProductImageUrl(product.ImageSrc)" class="card-img-top shop-square-image" alt="@product.Name">
                         }
@@ -245,7 +244,7 @@ else
             <div class="mb-3">
                 <label class="form-label">Imagem do Produto</label>
                 <InputFile class="form-control file-input-dark" OnChange="HandleImageUpload" accept="image/*" />
-                @if (!string.IsNullOrEmpty(product.ImageSrc) && uploadedImagePath == null && product.ImageData != null && product.ImageData.Length > 0)
+                @if (!string.IsNullOrEmpty(product.ImageSrc) && uploadedImagePath == null && product!string.IsNullOrEmpty(!string.IsNullOrEmpty(.ImageData != null.ImageUrl) && product.ImageData.Length > 0.ImageUrl))
                 {
                     <div class="mt-2">
                         <small class="text-muted">Imagem atual</small>
@@ -476,7 +475,7 @@ else
               ShowChanged="@((bool show) => showProductDetailsModal = show)"
               Title="Detalhes do Produto" 
               HeaderTitle="@(viewingProduct?.Name ?? "")"
-              ImageUrl="@(viewingProduct != null && viewingProduct.ImageData != null && viewingProduct.ImageData.Length > 0 ? GetProductImageUrl(viewingProduct.ImageSrc) : null)"
+              ImageUrl="@(viewingProduct != null && viewingProduct!string.IsNullOrEmpty(!string.IsNullOrEmpty(.ImageData != null.ImageUrl) && viewingProduct.ImageData.Length > 0.ImageUrl) ? GetProductImageUrl(viewingProduct.ImageSrc) : null)"
               IconClass="@(viewingProduct != null && (viewingProduct.ImageData == null || viewingProduct.ImageData.Length == 0) ? "bi-bag-fill" : null)"
               OnClose="CloseProductDetailsModal">
     <BadgesContent>
@@ -729,9 +728,8 @@ else
                 await ProductService.UpdateAsync(editingProduct);
                 
                 // Invalidate server-side cache if image was updated
-                if (editingProduct.ImageData != null && uploadedImagePath != null)
+                if (editingProduct!string.IsNullOrEmpty(.ImageData != null.ImageUrl) && uploadedImagePath != null)
                 {
-                    ImageService.InvalidateProductImageCache(editingProduct.Id);
                     
                     // Increment trigger to force browser to re-fetch the image
                     imageRefreshTrigger++;

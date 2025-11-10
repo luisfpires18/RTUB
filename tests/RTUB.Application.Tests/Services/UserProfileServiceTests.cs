@@ -13,7 +13,7 @@ public class UserProfileServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
-    private readonly Mock<IImageService> _mockImageService;
+    private readonly Mock<IImageStorageService> _mockImageStorageService;
     private readonly UserProfileService _service;
 
     public UserProfileServiceTests()
@@ -29,9 +29,9 @@ public class UserProfileServiceTests : IDisposable
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null, null, null, null, null, null, null, null);
         
-        _mockImageService = new Mock<IImageService>();
+        _mockImageStorageService = new Mock<IImageStorageService>();
         
-        _service = new UserProfileService(_mockUserManager.Object, _context, _mockImageService.Object);
+        _service = new UserProfileService(_mockUserManager.Object, _context, _mockImageStorageService.Object);
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public class UserProfileServiceTests : IDisposable
         user.ProfilePictureData.Should().Equal(imageData);
         user.ProfilePictureContentType.Should().Be(contentType);
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
-        _mockImageService.Verify(x => x.InvalidateProfileImageCache(userId), Times.Once);
+        _mockImageStorageService.Verify(x => x.InvalidateProfileImageCache(userId), Times.Once);
     }
 
     [Fact]

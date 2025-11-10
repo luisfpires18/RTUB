@@ -15,7 +15,7 @@ public class AlbumServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly AlbumService _albumService;
-    private readonly Mock<IImageService> _mockImageService;
+    private readonly Mock<IImageStorageService> _mockImageStorageService;
 
     public AlbumServiceTests()
     {
@@ -24,8 +24,8 @@ public class AlbumServiceTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _mockImageService = new Mock<IImageService>();
-        _albumService = new AlbumService(_context, _mockImageService.Object);
+        _mockImageStorageService = new Mock<IImageStorageService>();
+        _albumService = new AlbumService(_context, _mockImageStorageService.Object);
     }
 
     [Fact]

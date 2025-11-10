@@ -11,7 +11,7 @@ namespace RTUB.Application.Tests.Services;
 public class SlideshowServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
-    private readonly Mock<IImageService> _imageServiceMock;
+    private readonly Mock<IImageStorageService> _imageStorageServiceMock;
     private readonly SlideshowService _service;
 
     public SlideshowServiceTests()
@@ -21,8 +21,8 @@ public class SlideshowServiceTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _imageServiceMock = new Mock<IImageService>();
-        _service = new SlideshowService(_context, _imageServiceMock.Object);
+        _imageStorageServiceMock = new Mock<IImageStorageService>();
+        _service = new SlideshowService(_context, _imageStorageServiceMock.Object);
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public class SlideshowServiceTests : IDisposable
         updated.ImageContentType.Should().Be(contentType);
         updated.ImageUrl.Should().Be(url);
         
-        _imageServiceMock.Verify(x => x.InvalidateSlideshowImageCache(slideshow.Id), Times.Once);
+        _imageStorageServiceMock.Verify(x => x.InvalidateSlideshowImageCache(slideshow.Id), Times.Once);
     }
 
     [Fact]

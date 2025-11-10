@@ -17,7 +17,7 @@ public class EventServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly EventService _eventService;
-    private readonly Mock<IImageService> _mockImageService;
+    private readonly Mock<IImageStorageService> _mockImageStorageService;
 
     public EventServiceTests()
     {
@@ -26,8 +26,8 @@ public class EventServiceTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _mockImageService = new Mock<IImageService>();
-        _eventService = new EventService(_context, _mockImageService.Object);
+        _mockImageStorageService = new Mock<IImageStorageService>();
+        _eventService = new EventService(_context, _mockImageStorageService.Object);
     }
 
     [Fact]

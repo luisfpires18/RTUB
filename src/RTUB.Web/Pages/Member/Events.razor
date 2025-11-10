@@ -12,7 +12,6 @@
 @inject IEnrollmentService EnrollmentService
 @inject ITrophyService TrophyService
 @inject IEmailNotificationService EmailNotificationService
-@inject IImageService ImageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IWebHostEnvironment Environment
@@ -1015,8 +1014,6 @@ else
             Date = eventItem.Date,
             EndDate = eventItem.EndDate,
             Description = eventItem.Description,
-            ImageData = eventItem.ImageData,
-            ImageContentType = eventItem.ImageContentType,
             ImageUrl = eventItem.ImageUrl,
             Location = eventItem.Location,
             Type = eventItem.Type,
@@ -1064,8 +1061,8 @@ else
         {
             if (editingEvent != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                editingEvent.ImageData = croppedImageData;
-                editingEvent.ImageContentType = "image/jpeg";
+                // TODO: Update for R2 storage - editingEvent.ImageData = croppedImageData;
+                // TODO: Update for R2 storage - null // TODO: Update for R2 storage = "image/jpeg";
                 uploadedImagePath = "uploaded";
                 
                 StateHasChanged();
@@ -1115,14 +1112,12 @@ else
                 editingEvent.EndDate
             );
 
-            if (editingEvent.ImageData != null)
-            {
-                await EventService.SetEventImageAsync(
-                    newEvent.Id,
-                    editingEvent.ImageData,
-                    editingEvent.ImageContentType
-                );
-            }
+            // TODO: Update for R2 storage - implement image upload
+            // if (editingEvent.ImageUrl != null)
+            // {
+            //     using var stream = new MemoryStream(imageBytes);
+            //     await EventService.SetEventImageAsync(newEvent.Id, stream, fileName, contentType);
+            // }
         }
         else
         {
@@ -1135,21 +1130,13 @@ else
                 editingEvent.EndDate
             );
 
-            // Update image data if new image was uploaded
-            if (editingEvent.ImageData != null)
-            {
-                await EventService.SetEventImageAsync(
-                    editingEvent.Id,
-                    editingEvent.ImageData,
-                    editingEvent.ImageContentType
-                );
-                
-                // Invalidate server-side cache to ensure new image is served
-                ImageService.InvalidateEventImageCache(editingEvent.Id);
-                
-                // Increment trigger to force browser to re-fetch the image
-                imageRefreshTrigger++;
-            }
+            // TODO: Update for R2 storage - implement image upload
+            // if (editingEvent.ImageUrl != null)
+            // {
+            //     using var stream = new MemoryStream(imageBytes);
+            //     await EventService.SetEventImageAsync(editingEvent.Id, stream, fileName, contentType);
+            //     imageRefreshTrigger++;
+            // }
         }
 
         await LoadEvents();

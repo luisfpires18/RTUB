@@ -15,14 +15,14 @@ namespace RTUB.Web.Tests.Controllers;
 /// </summary>
 public class ImagesControllerTests
 {
-    private readonly Mock<IImageService> _mockImageService;
+    private readonly Mock<IImageStorageService> _mockImageStorageService;
     private readonly Mock<IWebHostEnvironment> _mockEnvironment;
     private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly ImagesController _controller;
 
     public ImagesControllerTests()
     {
-        _mockImageService = new Mock<IImageService>();
+        _mockImageStorageService = new Mock<IImageStorageService>();
         _mockEnvironment = new Mock<IWebHostEnvironment>();
         _mockConfiguration = new Mock<IConfiguration>();
         
@@ -33,7 +33,7 @@ public class ImagesControllerTests
             .Returns(mockConfigSection.Object);
 
         _controller = new ImagesController(
-            _mockImageService.Object,
+            _mockImageStorageService.Object,
             _mockEnvironment.Object,
             _mockConfiguration.Object);
 
@@ -53,7 +53,7 @@ public class ImagesControllerTests
         var eventId = 1;
         var imageData = new byte[] { 1, 2, 3, 4 };
         var contentType = "image/jpeg";
-        _mockImageService.Setup(s => s.GetEventImageAsync(eventId))
+        _mockImageStorageService.Setup(s => s.GetEventImageAsync(eventId))
             .ReturnsAsync((imageData, contentType));
 
         // Act
@@ -73,7 +73,7 @@ public class ImagesControllerTests
     {
         // Arrange
         var eventId = 999;
-        _mockImageService.Setup(s => s.GetEventImageAsync(eventId))
+        _mockImageStorageService.Setup(s => s.GetEventImageAsync(eventId))
             .ReturnsAsync(((byte[], string)?)null);
 
         // Act
@@ -91,7 +91,7 @@ public class ImagesControllerTests
         var imageData = new byte[] { 1, 2, 3, 4 };
         var contentType = "image/jpeg";
         
-        _mockImageService.Setup(s => s.GetEventImageAsync(eventId))
+        _mockImageStorageService.Setup(s => s.GetEventImageAsync(eventId))
             .ReturnsAsync((imageData, contentType));
 
         // First call to get ETag
@@ -125,7 +125,7 @@ public class ImagesControllerTests
         var slideshowId = 1;
         var imageData = new byte[] { 5, 6, 7, 8 };
         var contentType = "image/png";
-        _mockImageService.Setup(s => s.GetSlideshowImageAsync(slideshowId))
+        _mockImageStorageService.Setup(s => s.GetSlideshowImageAsync(slideshowId))
             .ReturnsAsync((imageData, contentType));
 
         // Act
@@ -143,7 +143,7 @@ public class ImagesControllerTests
     {
         // Arrange
         var slideshowId = 999;
-        _mockImageService.Setup(s => s.GetSlideshowImageAsync(slideshowId))
+        _mockImageStorageService.Setup(s => s.GetSlideshowImageAsync(slideshowId))
             .ReturnsAsync(((byte[], string)?)null);
 
         // Act
@@ -164,7 +164,7 @@ public class ImagesControllerTests
         var albumId = 1;
         var imageData = new byte[] { 9, 10, 11, 12 };
         var contentType = "image/webp";
-        _mockImageService.Setup(s => s.GetAlbumImageAsync(albumId))
+        _mockImageStorageService.Setup(s => s.GetAlbumImageAsync(albumId))
             .ReturnsAsync((imageData, contentType));
 
         // Act
@@ -182,7 +182,7 @@ public class ImagesControllerTests
     {
         // Arrange
         var albumId = 999;
-        _mockImageService.Setup(s => s.GetAlbumImageAsync(albumId))
+        _mockImageStorageService.Setup(s => s.GetAlbumImageAsync(albumId))
             .ReturnsAsync(((byte[], string)?)null);
 
         // Act
@@ -203,7 +203,7 @@ public class ImagesControllerTests
         var userId = "user123";
         var imageData = new byte[] { 13, 14, 15, 16 };
         var contentType = "image/jpeg";
-        _mockImageService.Setup(s => s.GetProfileImageAsync(userId))
+        _mockImageStorageService.Setup(s => s.GetProfileImageAsync(userId))
             .ReturnsAsync((imageData, contentType));
 
         // Act
@@ -223,7 +223,7 @@ public class ImagesControllerTests
         var userId = "user123";
         var defaultImageData = new byte[] { 20, 21, 22, 23 };
 
-        _mockImageService.Setup(s => s.GetProfileImageAsync(userId))
+        _mockImageStorageService.Setup(s => s.GetProfileImageAsync(userId))
             .ReturnsAsync(((byte[], string)?)null);
 
         _mockEnvironment.Setup(e => e.WebRootPath)
@@ -264,7 +264,7 @@ public class ImagesControllerTests
         var instrumentId = 1;
         var imageData = new byte[] { 17, 18, 19, 20 };
         var contentType = "image/png";
-        _mockImageService.Setup(s => s.GetInstrumentImageAsync(instrumentId))
+        _mockImageStorageService.Setup(s => s.GetInstrumentImageAsync(instrumentId))
             .ReturnsAsync((imageData, contentType));
 
         // Act
@@ -282,7 +282,7 @@ public class ImagesControllerTests
     {
         // Arrange
         var instrumentId = 999;
-        _mockImageService.Setup(s => s.GetInstrumentImageAsync(instrumentId))
+        _mockImageStorageService.Setup(s => s.GetInstrumentImageAsync(instrumentId))
             .ReturnsAsync(((byte[], string)?)null);
 
         // Act
@@ -303,7 +303,7 @@ public class ImagesControllerTests
         var productId = 1;
         var imageData = new byte[] { 21, 22, 23, 24 };
         var contentType = "image/jpeg";
-        _mockImageService.Setup(s => s.GetProductImageAsync(productId))
+        _mockImageStorageService.Setup(s => s.GetProductImageAsync(productId))
             .ReturnsAsync((imageData, contentType));
 
         // Act
@@ -321,7 +321,7 @@ public class ImagesControllerTests
     {
         // Arrange
         var productId = 999;
-        _mockImageService.Setup(s => s.GetProductImageAsync(productId))
+        _mockImageStorageService.Setup(s => s.GetProductImageAsync(productId))
             .ReturnsAsync(((byte[], string)?)null);
 
         // Act
@@ -341,7 +341,7 @@ public class ImagesControllerTests
         // Arrange
         var eventId = 1;
         var imageData = new byte[] { 1, 2, 3 };
-        _mockImageService.Setup(s => s.GetEventImageAsync(eventId))
+        _mockImageStorageService.Setup(s => s.GetEventImageAsync(eventId))
             .ReturnsAsync((imageData, "image/jpeg"));
 
         // Act
@@ -359,7 +359,7 @@ public class ImagesControllerTests
         // Arrange
         var eventId = 1;
         var imageData = new byte[] { 1, 2, 3 };
-        _mockImageService.Setup(s => s.GetEventImageAsync(eventId))
+        _mockImageStorageService.Setup(s => s.GetEventImageAsync(eventId))
             .ReturnsAsync((imageData, "image/jpeg"));
 
         // Act
@@ -375,7 +375,7 @@ public class ImagesControllerTests
     {
         // Arrange
         var imageData = new byte[] { 1, 2, 3, 4 };
-        _mockImageService.Setup(s => s.GetEventImageAsync(It.IsAny<int>()))
+        _mockImageStorageService.Setup(s => s.GetEventImageAsync(It.IsAny<int>()))
             .ReturnsAsync((imageData, "image/jpeg"));
 
         // Act - First request
@@ -403,9 +403,9 @@ public class ImagesControllerTests
         var imageData1 = new byte[] { 1, 2, 3, 4 };
         var imageData2 = new byte[] { 5, 6, 7, 8 };
 
-        _mockImageService.Setup(s => s.GetEventImageAsync(1))
+        _mockImageStorageService.Setup(s => s.GetEventImageAsync(1))
             .ReturnsAsync((imageData1, "image/jpeg"));
-        _mockImageService.Setup(s => s.GetEventImageAsync(2))
+        _mockImageStorageService.Setup(s => s.GetEventImageAsync(2))
             .ReturnsAsync((imageData2, "image/jpeg"));
 
         // Act

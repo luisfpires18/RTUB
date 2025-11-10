@@ -7,7 +7,6 @@
 @using RTUB.Shared
 @inject IAlbumService AlbumService
 @inject ISongService SongService
-@inject IImageService ImageService
 @inject NavigationManager NavigationManager
 @inject IWebHostEnvironment Environment
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -315,7 +314,6 @@ else
                 );
                 
                 // Invalidate server-side cache to ensure new image is served
-                ImageService.InvalidateAlbumImageCache(editingAlbum.Id);
                 
                 // Increment trigger to force browser to re-fetch the image
                 imageRefreshTrigger++;

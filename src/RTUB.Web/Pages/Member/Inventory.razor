@@ -10,7 +10,6 @@
 @using RTUB.Shared
 @attribute [Authorize]
 @inject IInstrumentService InstrumentService
-@inject IImageService ImageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Instrumentos</h1>
@@ -116,7 +115,7 @@ else
               ShowChanged="@((bool show) => showViewDetailsModal = show)"
               Title="Detalhes do Instrumento" 
               HeaderTitle="@(viewingInstrument?.Name ?? "")"
-              ImageUrl="@(viewingInstrument != null && viewingInstrument.ImageData != null && viewingInstrument.ImageData.Length > 0 ? GetImageUrl(viewingInstrument.ImageSrc) : null)"
+              ImageUrl="@(viewingInstrument != null && viewingInstrument!string.IsNullOrEmpty(!string.IsNullOrEmpty(.ImageData != null.ImageUrl) && viewingInstrument.ImageData.Length > 0.ImageUrl) ? GetImageUrl(viewingInstrument.ImageSrc) : null)"
               IconClass="@(viewingInstrument != null && (viewingInstrument.ImageData == null || viewingInstrument.ImageData.Length == 0) ? "bi-music-note-beamed" : null)"
               OnClose="CloseViewDetailsModal">
     <BadgesContent>
@@ -239,7 +238,7 @@ else
             <div class="mb-3">
                 <label class="form-label">Imagem</label>
                 <InputFile class="form-control file-input-dark" OnChange="HandleInstrumentImageUpload" accept="image/*" />
-                @if (!string.IsNullOrEmpty(instrument.ImageSrc) && uploadedInstrumentImagePath == null && instrument.ImageData != null && instrument.ImageData.Length > 0)
+                @if (!string.IsNullOrEmpty(instrument.ImageSrc) && uploadedInstrumentImagePath == null && instrument!string.IsNullOrEmpty(!string.IsNullOrEmpty(.ImageData != null.ImageUrl) && instrument.ImageData.Length > 0.ImageUrl))
                 {
                     <div class="mt-2">
                         <small class="text-muted">Imagem atual</small>
@@ -407,9 +406,8 @@ else
                 await InstrumentService.UpdateAsync(editingInstrument);
                 
                 // Invalidate server-side cache if image was updated
-                if (editingInstrument.ImageData != null && uploadedInstrumentImagePath != null)
+                if (editingInstrument!string.IsNullOrEmpty(.ImageData != null.ImageUrl) && uploadedInstrumentImagePath != null)
                 {
-                    ImageService.InvalidateInstrumentImageCache(editingInstrument.Id);
                     
                     // Increment trigger to force browser to re-fetch the image
                     imageRefreshTrigger++;

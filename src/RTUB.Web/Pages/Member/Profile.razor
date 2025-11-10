@@ -15,7 +15,6 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject IImageService ImageService
 @inject IJSRuntime JSRuntime
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject IRoleAssignmentService RoleAssignmentService
@@ -547,14 +546,13 @@ else
         {
             if (user != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                user.ProfilePictureData = croppedImageData;
-                user.ProfilePictureContentType = "image/jpeg";
+                // TODO: Update for R2 storage - user.ProfilePictureData = croppedImageData;
+                // TODO: Update for R2 storage - user.ProfilePictureContentType = "image/jpeg";
 
                 await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(user);
                 
                 // CRITICAL: Clear server-side image cache to ensure fresh image is served
-                ImageService.InvalidateProfileImageCache(user.Id);
                 
                 // Increment trigger to force browser to re-fetch the image
                 imageRefreshTrigger++;
