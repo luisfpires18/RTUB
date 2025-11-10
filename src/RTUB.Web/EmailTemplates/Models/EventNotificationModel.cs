@@ -11,4 +11,5 @@ public class EventNotificationModel
     public string EventLink { get; set; } = string.Empty;
     public string EventDescription { get; set; } = string.Empty;
     public string PreferencesLink { get; set; } = "https://rtub.azurewebsites.net/profile";
+    public string Nickname { get; set; } = string.Empty;
 }

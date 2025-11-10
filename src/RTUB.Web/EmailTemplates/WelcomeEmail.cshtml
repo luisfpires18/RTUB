@@ -2,10 +2,16 @@
 @{
     Layout = "~/EmailTemplates/_EmailLayout.cshtml";
     ViewData["Preheader"] = "Bem-vindo à RTUB!";
+    var fullName = !string.IsNullOrEmpty(Model.LastName) 
+        ? $"{Model.FirstName} {Model.LastName}" 
+        : Model.FirstName;
+    var displayName = !string.IsNullOrEmpty(Model.UserName) && !string.IsNullOrEmpty(fullName)
+        ? $"{Model.UserName} ({fullName})"
+        : (!string.IsNullOrEmpty(fullName) ? fullName : Model.UserName);
 }
 
 <h1 style="margin: 0 0 16px 0; padding: 0; font-size: 28px; line-height: 1.3; font-weight: 600; color: #0B0B0F;">
-    Bem-vindo à RTUB, @Html.Raw(Model.FirstName)! 👋
+    Bem-vindo à RTUB, @Html.Raw(displayName)! 👋
 </h1>
 
 <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
