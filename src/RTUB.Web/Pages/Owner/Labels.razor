@@ -34,9 +34,9 @@
 }
 else if (!PaginatedItems.Any())
 {
-    <EmptyTableState 
-        Message="Nenhuma etiqueta encontrada." 
-        IconClass="bi-info-circle" />
+    <EmptyState 
+        Title="Nenhuma etiqueta encontrada." 
+        Icon="bi-info-circle" />
 }
 else
 {
@@ -66,7 +66,7 @@ else
               ShowChanged="@((bool show) => showViewDetailsModal = show)" 
               Title="Detalhes da Etiqueta"
               HeaderTitle="@(viewingLabel?.Title ?? "")"
-              IconClass="bi-tag-fill"
+              Icon="bi-tag-fill"
               OnClose="CloseViewDetailsModal">
     <BadgesContent>
         @if (viewingLabel != null)
@@ -86,7 +86,7 @@ else
         {
             <!-- Label Information Section -->
             <InfoSection SectionTitle="Informação da Etiqueta" 
-                        IconClass="bi-info-circle-fill" 
+                        Icon="bi-info-circle-fill" 
                         CssClass="mb-4">
                 <ProfileField Label="Referência">
                     <ValueContent>
@@ -99,7 +99,7 @@ else
 
             <!-- Content Section -->
             <InfoSection SectionTitle="Conteúdo" 
-                        IconClass="bi-file-text" 
+                        Icon="bi-file-text" 
                         CssClass="mb-3">
                 <p class="text-white-full mb-0" style="white-space: pre-line;">@viewingLabel.Content</p>
             </InfoSection>

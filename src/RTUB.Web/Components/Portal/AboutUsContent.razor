@@ -48,8 +48,8 @@
     }
     else
     {
-        <EmptyTableState Message="Nenhum evento anterior ainda."
-                        IconClass="bi-calendar-event" />
+        <EmptyState Title="Nenhum evento anterior ainda"
+                    Icon="bi-calendar-event" />
     }
 </section>
 
@@ -102,8 +102,8 @@
     <BodyContent>
         @if (eventTrophies == null || !eventTrophies.Any())
         {
-            <EmptyTableState Message="Nenhum prémio conquistado neste evento."
-                            IconClass="bi-trophy" />
+            <EmptyState Title="Nenhum prémio conquistado neste evento"
+                        Icon="bi-trophy" />
         }
         else
         {

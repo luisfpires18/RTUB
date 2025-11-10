@@ -33,9 +33,9 @@
 @* FY Dropdown without icon *@
 @if (!fiscalYears.Any())
 {
-    <EmptyTableState Message="Nenhum ano fiscal criado ainda"
-                    SubMessage="Não existem anos fiscais para mostrar."
-                    IconClass="bi-calendar-x" />
+    <EmptyState Title="Nenhum ano fiscal criado ainda"
+                Message="Não existem anos fiscais para mostrar."
+                Icon="bi-calendar-x" />
 }
 else
 {

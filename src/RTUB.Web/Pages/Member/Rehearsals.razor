@@ -303,7 +303,7 @@ else
                                 @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && !addMemberFeedbackIsError)
                                 {
                                     <Alert Type="Alert.AlertType.Purple" 
-                                           Message="@addMemberFeedbackMessage" 
+                                           Title="@addMemberFeedbackMessage" 
                                            Dismissible="true"
                                            OnDismiss="ClearAddMemberFeedback"
                                            AdditionalClasses="mb-2" />
@@ -313,7 +313,7 @@ else
                                 @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && addMemberFeedbackIsError)
                                 {
                                     <Alert Type="Alert.AlertType.Error" 
-                                           Message="@addMemberFeedbackMessage" 
+                                           Title="@addMemberFeedbackMessage" 
                                            Dismissible="true"
                                            OnDismiss="ClearAddMemberFeedback"
                                            AdditionalClasses="mb-2" />
@@ -536,9 +536,9 @@ else
 
                 @if (!filteredStatsUsers.Any())
                 {
-                    <EmptyTableState 
-                        Message="Nenhum membro encontrado com os critérios de pesquisa." 
-                        IconClass="bi-search" />
+                    <EmptyState 
+                        Title="Nenhum membro encontrado com os critérios de pesquisa." 
+                        Icon="bi-search" />
                 }
                 else
                 {
@@ -586,9 +586,9 @@ else
             }
             else if (attendanceStatsUsers != null)
             {
-                <EmptyTableState 
-                    Message="Sem dados para o período selecionado." 
-                    IconClass="bi-info-circle" />
+                <EmptyState 
+                    Title="Sem dados para o período selecionado." 
+                    Icon="bi-info-circle" />
             }
         </BodyContent>
         <FooterContent>
@@ -664,7 +664,7 @@ else
               ShowChanged="@((bool show) => showRehearsalDetailsModal = show)"
               Title="Detalhes do Ensaio"
               HeaderTitle="@(selectedRehearsal != null ? $"Ensaio - {selectedRehearsal.Date:dd MMM yyyy}" : "")"
-              IconClass="bi-music-note-beamed"
+              Icon="bi-music-note-beamed"
               OnClose="CloseRehearsalDetailsModal">
     <BadgesContent>
         @if (selectedRehearsal != null)
@@ -677,7 +677,7 @@ else
         {
             <!-- Rehearsal Information Section -->
             <InfoSection SectionTitle="Informação do Ensaio" 
-                        IconClass="bi-info-circle-fill" 
+                        Icon="bi-info-circle-fill" 
                         CssClass="mb-4">
                 <ProfileField Label="Data" Value="@selectedRehearsal.Date.ToString("dd MMM yyyy")" />
                 <ProfileField Label="Localização" Value="@selectedRehearsal.Location" />
@@ -692,7 +692,7 @@ else
             @if (!string.IsNullOrEmpty(selectedRehearsal.Notes))
             {
                 <InfoSection SectionTitle="Notas" 
-                            IconClass="bi-file-text" 
+                            Icon="bi-file-text" 
                             CssClass="mb-3">
                     <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedRehearsal.Notes</p>
                 </InfoSection>
@@ -712,9 +712,9 @@ else
         <BodyContent>
             @if (myAttendances == null || !myAttendances.Any())
             {
-                <EmptyTableState 
-                    Message="Sem presenças registadas." 
-                    IconClass="bi-info-circle" />
+                <EmptyState 
+                    Title="Sem presenças registadas." 
+                    Icon="bi-info-circle" />
             }
             else
             {

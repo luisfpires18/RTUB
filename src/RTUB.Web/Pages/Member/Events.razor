@@ -101,9 +101,9 @@ else
         }
         else if (!filteredPreviousEvents.Any())
         {
-            <EmptyTableState Message="Nenhum evento anterior encontrado"
-                             SubMessage="Não existem atuações passados para mostrar."
-                           IconClass="bi-calendar-x" />
+            <EmptyState Title="Nenhum evento anterior encontrado"
+                             SubTitle="Não existem atuações passados para mostrar."
+                           Icon="bi-calendar-x" />
         }
         else
         {
@@ -565,7 +565,7 @@ else
                   Title="Detalhes da Atuação"
                   HeaderTitle="@(selectedEvent?.Name ?? "")"
                   ImageUrl="@(selectedEvent != null && !string.IsNullOrEmpty(selectedEvent.ImageSrc) ? selectedEvent.ImageSrc : null)"
-                  IconClass="@(selectedEvent != null && string.IsNullOrEmpty(selectedEvent.ImageSrc) ? "bi-calendar-event" : null)"
+                  Icon="@(selectedEvent != null && string.IsNullOrEmpty(selectedEvent.ImageSrc) ? "bi-calendar-event" : null)"
                   OnClose="@(() => showEventDetailsModal = false)">
         <BadgesContent>
             @if (selectedEvent != null)
@@ -578,7 +578,7 @@ else
             {
                 <!-- Event Information Section -->
                 <InfoSection SectionTitle="Informação da Atuação" 
-                            IconClass="bi-info-circle-fill" 
+                            Icon="bi-info-circle-fill" 
                             CssClass="mb-4">
                     <ProfileField Label="Nome" Value="@selectedEvent.Name" />
                     <ProfileField Label="Tipo" Value="@GetEventTypeDisplay(selectedEvent.Type)" />
@@ -593,7 +593,7 @@ else
                 @if (!string.IsNullOrEmpty(selectedEvent.Description))
                 {
                     <InfoSection SectionTitle="Descrição" 
-                                IconClass="bi-file-text" 
+                                Icon="bi-file-text" 
                                 CssClass="mb-3">
                         <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedEvent.Description</p>
                     </InfoSection>
@@ -622,8 +622,8 @@ else
 
         @if (eventTrophies == null || !eventTrophies.Any())
         {
-            <EmptyTableState Message="Nenhum prémio conquistado neste evento."
-                            IconClass="bi-trophy" />
+            <EmptyState Title="Nenhum prémio conquistado neste evento."
+                            Icon="bi-trophy" />
         }
         else
         {
@@ -753,7 +753,7 @@ else
             }
             else if (!string.IsNullOrEmpty(emailErrorMessage))
             {
-                <Alert Message="@emailErrorMessage" 
+                <Alert Title="@emailErrorMessage" 
                        Type="Alert.AlertType.Error" 
                        Dismissible="true"
                        OnDismiss="@(() => emailErrorMessage = null)" />
@@ -782,7 +782,7 @@ else
                 }
                 else
                 {
-                    <Alert Message="Nenhum membro subscrito às notificações por email." 
+                    <Alert Title="Nenhum membro subscrito às notificações por email." 
                            Type="Alert.AlertType.Warning" />
                 }
             }

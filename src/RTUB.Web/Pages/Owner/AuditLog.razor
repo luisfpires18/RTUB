@@ -148,9 +148,9 @@
         <!-- Audit Log Table -->
         @if (!auditLogs.Any())
         {
-            <EmptyTableState 
-                Message="No audit logs found matching the filters." 
-                IconClass="bi-inbox" />
+            <EmptyState 
+                Title="No audit logs found matching the filters." 
+                Icon="bi-inbox" />
         }
         else
         {
