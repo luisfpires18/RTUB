@@ -47,10 +47,10 @@ public interface IEmailNotificationService
     /// </summary>
     /// <param name="userName">The username of the new member</param>
     /// <param name="email">The email address of the new member</param>
-    /// <param name="firstName">The first name of the member</param>
+    /// <param name="fullName">The first and last name of the member</param>
+    /// <param name="nickname">The nickname of the member</param>
     /// <param name="password">The generated password</param>
-    /// <param name="lastName">The last name of the member (optional)</param>
-    Task SendWelcomeEmailAsync(string userName, string email, string firstName, string password, string lastName = "");
+    Task SendWelcomeEmailAsync(string userName, string email, string fullName, string nickname, string password);
 
     /// <summary>
     /// Sends event notification emails to subscribed members

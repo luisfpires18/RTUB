@@ -110,10 +110,11 @@ public class EmailNotificationServiceTests : IDisposable
         var userName = "newuser";
         var email = "newuser@test.com";
         var firstName = "New";
+        var lastName = "New";
         var password = "TempPassword123";
 
         // Act
-        Func<Task> act = async () => await _service.SendWelcomeEmailAsync(userName, email, firstName, password);
+        Func<Task> act = async () => await _service.SendWelcomeEmailAsync(userName, email, firstName, lastName, password);
 
         // Assert - Should not throw even when SMTP is not configured
         await act.Should().NotThrowAsync();

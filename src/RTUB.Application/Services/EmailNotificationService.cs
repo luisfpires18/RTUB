@@ -155,7 +155,7 @@ public class EmailNotificationService : IEmailNotificationService
     }
 
     /// <inheritdoc/>
-    public async Task SendWelcomeEmailAsync(string userName, string email, string firstName, string password, string lastName = "")
+    public async Task SendWelcomeEmailAsync(string userName, string email, string fullName, string nickname, string password)
     {
         // Rate limit: Prevent duplicate welcome emails for the same user
         var normalizedUserName = userName?.ToLower() ?? "unknown";
@@ -195,9 +195,9 @@ public class EmailNotificationService : IEmailNotificationService
 
             var body = await _templateRenderer.RenderWelcomeEmailAsync(
                 normalizedUserName,
-                firstName,
-                password,
-                lastName);
+                fullName,
+                nickname,
+                password);
 
             // Check if SMTP is configured
             if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")

@@ -23,9 +23,9 @@ public interface IEmailTemplateRenderer
     /// </summary>
     Task<string> RenderWelcomeEmailAsync(
         string userName,
-        string firstName,
-        string password,
-        string lastName = "");
+        string fullName,
+        string nickName,
+        string password);
 
     /// <summary>
     /// Renders the event notification email

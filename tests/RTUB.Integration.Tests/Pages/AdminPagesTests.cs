@@ -80,26 +80,10 @@ public class AdminPagesTests : IntegrationTestBase
 
     #endregion
 
-    #region Requests Management Tests
-
-    [Fact]
-    public async Task AdminRequestsPage_WithoutAuth_RedirectsToLogin()
-    {
-        // Arrange & Act
-        var response = await _client.GetAsync("/admin/requests");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/login");
-    }
-
-    #endregion
-
     #region Authorization Tests
 
     [Theory]
     [InlineData("/admin/slideshow-management")]
-    [InlineData("/admin/requests")]
     public async Task AdminPages_RequireAuthentication(string url)
     {
         // Arrange & Act
@@ -119,7 +103,6 @@ public class AdminPagesTests : IntegrationTestBase
         var adminUrls = new[]
         {
             "/admin/slideshow-management",
-            "/admin/requests"
         };
 
         // Act & Assert

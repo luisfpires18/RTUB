@@ -42,15 +42,15 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
 
     public async Task<string> RenderWelcomeEmailAsync(
         string userName,
-        string firstName,
-        string password,
-        string lastName = "")
+        string fullName,
+        string nickName,
+        string password)
     {
         var model = new WelcomeEmailModel
         {
             UserName = userName,
-            FirstName = firstName,
-            LastName = lastName,
+            FullName = fullName,
+            NickName = nickName,
             Password = password
         };
 
