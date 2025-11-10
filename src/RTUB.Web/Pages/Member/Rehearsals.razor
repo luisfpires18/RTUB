@@ -664,7 +664,7 @@ else
               ShowChanged="@((bool show) => showRehearsalDetailsModal = show)"
               Title="Detalhes do Ensaio"
               HeaderTitle="@(selectedRehearsal != null ? $"Ensaio - {selectedRehearsal.Date:dd MMM yyyy}" : "")"
-              Icon="bi-music-note-beamed"
+              IconClass="bi-music-note-beamed"
               OnClose="CloseRehearsalDetailsModal">
     <BadgesContent>
         @if (selectedRehearsal != null)
@@ -677,7 +677,7 @@ else
         {
             <!-- Rehearsal Information Section -->
             <InfoSection SectionTitle="Informação do Ensaio" 
-                        Icon="bi-info-circle-fill" 
+                        IconClass="bi-info-circle-fill" 
                         CssClass="mb-4">
                 <ProfileField Label="Data" Value="@selectedRehearsal.Date.ToString("dd MMM yyyy")" />
                 <ProfileField Label="Localização" Value="@selectedRehearsal.Location" />
@@ -692,7 +692,7 @@ else
             @if (!string.IsNullOrEmpty(selectedRehearsal.Notes))
             {
                 <InfoSection SectionTitle="Notas" 
-                            Icon="bi-file-text" 
+                            IconClass="bi-file-text" 
                             CssClass="mb-3">
                     <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedRehearsal.Notes</p>
                 </InfoSection>

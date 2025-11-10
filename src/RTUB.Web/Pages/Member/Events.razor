@@ -565,7 +565,7 @@ else
                   Title="Detalhes da Atuação"
                   HeaderTitle="@(selectedEvent?.Name ?? "")"
                   ImageUrl="@(selectedEvent != null && !string.IsNullOrEmpty(selectedEvent.ImageSrc) ? selectedEvent.ImageSrc : null)"
-                  Icon="@(selectedEvent != null && string.IsNullOrEmpty(selectedEvent.ImageSrc) ? "bi-calendar-event" : null)"
+                  IconClass="@(selectedEvent != null && string.IsNullOrEmpty(selectedEvent.ImageSrc) ? "bi-calendar-event" : null)"
                   OnClose="@(() => showEventDetailsModal = false)">
         <BadgesContent>
             @if (selectedEvent != null)
@@ -578,7 +578,7 @@ else
             {
                 <!-- Event Information Section -->
                 <InfoSection SectionTitle="Informação da Atuação" 
-                            Icon="bi-info-circle-fill" 
+                            IconClass="bi-info-circle-fill" 
                             CssClass="mb-4">
                     <ProfileField Label="Nome" Value="@selectedEvent.Name" />
                     <ProfileField Label="Tipo" Value="@GetEventTypeDisplay(selectedEvent.Type)" />
@@ -593,7 +593,7 @@ else
                 @if (!string.IsNullOrEmpty(selectedEvent.Description))
                 {
                     <InfoSection SectionTitle="Descrição" 
-                                Icon="bi-file-text" 
+                                IconClass="bi-file-text" 
                                 CssClass="mb-3">
                         <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedEvent.Description</p>
                     </InfoSection>
