@@ -1526,35 +1526,11 @@ th:hover {
     cursor: not-allowed;
 }
 
-/* EmptyTableState component */
+/* New EmptyState component - with purple hover */
 .empty-state-container {
     margin: 1rem 0;
 }
 
-.empty-state-card {
-    background-color: #6f42c1 !important;
-    border: none;
-    padding: 1rem 0.75rem;
-}
-
-.empty-state-icon {
-    font-size: 2rem;
-    color: #ffffff;
-    opacity: 0.7;
-}
-
-.empty-state-card .card-title {
-    font-size: 1rem;
-    margin-top: 0.5rem;
-}
-
-.empty-state-card .card-text {
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
-    color: #e2e2e2;
-}
-
-/* New EmptyState component - with purple hover */
 .empty-state-card {
     background-color: rgba(110, 86, 207, 0.08);
     border: 1px solid rgba(110, 86, 207, 0.3);
