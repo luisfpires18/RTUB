@@ -20,6 +20,7 @@
 @inject IJSRuntime JSRuntime
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject IRoleAssignmentService RoleAssignmentService
+@inject ProfilePictureUpdateService ProfilePictureUpdateService
 
 <h1 class="text-center mb-4">Meu Perfil</h1>
 
@@ -574,6 +575,9 @@ else
                     await JSRuntime.InvokeVoidAsync("imageRefresh.forceRefresh", ".avatar, .navbar-avatar");
                 }
                 catch { /* Ignore JS errors */ }
+                
+                // Notify the MainLayout to update the navbar avatar
+                await ProfilePictureUpdateService.NotifyProfilePictureUpdated();
 
                 await Task.Delay(1500);
                 uploadMessage = null;

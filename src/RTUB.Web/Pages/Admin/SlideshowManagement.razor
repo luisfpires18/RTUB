@@ -307,7 +307,7 @@ else
 
     private byte[]? croppedImageData = null;
 
-    private void OnImageCropped(byte[] croppedData)
+    private async Task OnImageCropped(byte[] croppedData)
     {
         try
         {
@@ -317,6 +317,13 @@ else
                 uploadedImagePath = "uploaded";
                 // Set a temporary placeholder so validation passes
                 editingSlide.ImageUrl = "pending-upload";
+                
+                // Notify the ImageUploadManager that a new image has been uploaded
+                if (imageUploadManager != null)
+                {
+                    await imageUploadManager.SetImageDataAsync(croppedData, "image/jpeg");
+                }
+                
                 StateHasChanged();
             }
         }

@@ -123,6 +123,7 @@ namespace RTUB
             services.AddSingleton<IAlbumStorageService, DriveAlbumStorageService>();
             services.AddSingleton<IInstrumentStorageService, DriveInstrumentStorageService>();
             services.AddSingleton<IProductStorageService, DriveProductStorageService>();
+            services.AddSingleton<ProfilePictureUpdateService>();
             
             // --------- Inventory & Shop Services ---------
             services.AddScoped<IInstrumentService, InstrumentService>();

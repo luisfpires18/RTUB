@@ -91,10 +91,11 @@ public class Slideshow : BaseEntity, IValidatableObject
     /// </summary>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        // Check if a valid URL is present
+        // Check if a valid URL is present or if it's pending upload
         bool hasUrl = !string.IsNullOrWhiteSpace(ImageUrl);
 
-        // If URL is not present, return a validation error.
+        // If URL is not present and it's not a pending upload, return a validation error.
+        // "pending-upload" is a temporary placeholder used during image upload flow
         if (!hasUrl)
         {
             yield return new ValidationResult(

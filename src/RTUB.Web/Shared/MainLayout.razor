@@ -5,12 +5,14 @@
 @using RTUB.Application.Data
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
+@using RTUB.Application.Services
 @using RTUB.Core.Entities
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
 @inject IJSRuntime JSRuntime
+@inject ProfilePictureUpdateService ProfilePictureUpdateService
 @implements IDisposable
 
 <nav class="navbar navbar-expand-lg navbar-dark border-bottom navbar-main">
@@ -114,7 +116,7 @@
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 @if (currentUser != null)
                                 {
-                                    <img src="@currentUser.ProfilePictureSrc" alt="@currentUser.Nickname" class="navbar-avatar me-2" />
+                                    <img src="@GetProfilePictureUrl()" alt="@currentUser.Nickname" class="navbar-avatar me-2" />
                                     <span>@currentUser.Nickname</span>
                                 }
                             </a>
@@ -208,6 +210,7 @@
     private string? _lastLocation;
     private System.Threading.Timer? _debounceTimer;
     private bool _isFirstRender = true;
+    private long _profilePictureVersion = DateTime.UtcNow.Ticks;
 
     protected override async Task OnInitializedAsync()
     {
@@ -216,6 +219,9 @@
         // Subscribe to location changes
         NavigationManager.LocationChanged += HandleLocationChanged;
         _lastLocation = NavigationManager.Uri;
+        
+        // Subscribe to profile picture updates
+        ProfilePictureUpdateService.Subscribe(OnProfilePictureUpdated);
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
@@ -302,10 +308,45 @@
             }
         }
     }
+    
+    private string GetProfilePictureUrl()
+    {
+        if (currentUser == null) return "/images/default-avatar.png";
+        
+        // Add cache-busting parameter to force reload after image update
+        if (!string.IsNullOrEmpty(currentUser.ProfilePictureSrc) && currentUser.ProfilePictureSrc.StartsWith("/api/images/"))
+        {
+            return $"{currentUser.ProfilePictureSrc}?v={_profilePictureVersion}";
+        }
+        return currentUser.ProfilePictureSrc ?? "/images/default-avatar.png";
+    }
+    
+    private async Task OnProfilePictureUpdated()
+    {
+        // Reload the current user to get the updated profile picture
+        await LoadCurrentUser();
+        
+        // Update the cache-busting version
+        _profilePictureVersion = DateTime.UtcNow.Ticks;
+        
+        // Trigger a re-render
+        await InvokeAsync(StateHasChanged);
+        
+        // Wait a bit for the DOM to update
+        await Task.Delay(100);
+        
+        // Force browser to reload the navbar avatar image
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("imageRefresh.forceRefresh", ".navbar-avatar");
+        }
+        catch { /* Ignore JS errors */ }
+    }
 
     public void Dispose()
     {
         NavigationManager.LocationChanged -= HandleLocationChanged;
         _debounceTimer?.Dispose();
+        ProfilePictureUpdateService.Unsubscribe(OnProfilePictureUpdated);
     }
 }
