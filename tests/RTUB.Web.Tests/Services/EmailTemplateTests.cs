@@ -83,23 +83,21 @@ public class EmailTemplateTests
         // Arrange & Act
         var model = new WelcomeEmailModel
         {
-            UserName = "joao.silva",
-            FirstName = "João",
+            UserName = "luisfpires",
+            FullName = "Luís Pires",
             Password = "TempPassword123",
             DashboardUrl = "https://rtub.azurewebsites.net/",
             ProfileUrl = "https://rtub.azurewebsites.net/profile",
             EventsUrl = "https://rtub.azurewebsites.net/events",
-            HelpUrl = "https://rtub.azurewebsites.net/help"
         };
 
         // Assert
-        model.UserName.Should().Be("joao.silva");
-        model.FirstName.Should().Be("João");
+        model.UserName.Should().Be("luisfpires");
+        model.FullName.Should().Be("Luís Pires");
         model.Password.Should().Be("TempPassword123");
         model.DashboardUrl.Should().Be("https://rtub.azurewebsites.net/");
         model.ProfileUrl.Should().Be("https://rtub.azurewebsites.net/profile");
         model.EventsUrl.Should().Be("https://rtub.azurewebsites.net/events");
-        model.HelpUrl.Should().Be("https://rtub.azurewebsites.net/help");
     }
 
     [Fact]
@@ -167,7 +165,6 @@ public class EmailTemplateTests
         model.DashboardUrl.Should().Be("https://rtub.azurewebsites.net/");
         model.ProfileUrl.Should().Be("https://rtub.azurewebsites.net/profile");
         model.EventsUrl.Should().Be("https://rtub.azurewebsites.net/events");
-        model.HelpUrl.Should().Be("https://rtub.azurewebsites.net/help");
     }
 
     [Fact]
@@ -236,7 +233,7 @@ public class EmailTemplateTests
         var model = new WelcomeEmailModel
         {
             UserName = "test",
-            FirstName = "Test",
+            FullName = "Test",
             Password = "test123"
             // URLs not set - should use defaults
         };
