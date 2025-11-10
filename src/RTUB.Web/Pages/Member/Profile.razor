@@ -567,12 +567,13 @@ else
                 // Wait a moment to ensure the image is available on CDN
                 await Task.Delay(500);
                 
-                // Use JavaScript to directly update the navbar avatar
-                // This works reliably across render contexts
+                // Use JavaScript to directly update the navbar avatar with the new URL
+                // Pass the new image URL to update the navbar immediately
                 try
                 {
-                    await JSRuntime.InvokeVoidAsync("profilePictureRefresh.refreshNavbarAvatar");
-                    Console.WriteLine("[Profile.razor] Called JavaScript to refresh navbar avatar");
+                    var newImageUrl = user.ProfilePictureSrc ?? "/images/default-avatar.webp";
+                    await JSRuntime.InvokeVoidAsync("profilePictureRefresh.refreshNavbarAvatar", newImageUrl);
+                    Console.WriteLine($"[Profile.razor] Called JavaScript to refresh navbar avatar with URL: {newImageUrl}");
                 }
                 catch (Exception ex)
                 {

@@ -418,6 +418,12 @@ else
                 // Upload image to R2 if one was cropped
                 if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
                 {
+                    // Delete old image if it exists
+                    if (!string.IsNullOrEmpty(editingInstrument.ImageUrl))
+                    {
+                        await ImageStorageService.DeleteImageAsync(editingInstrument.ImageUrl);
+                    }
+                    
                     using var stream = new MemoryStream(croppedInstrumentImageBytes);
                     var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/webp", "instruments", editingInstrument.Id.ToString());
                     editingInstrument.ImageUrl = imageUrl;

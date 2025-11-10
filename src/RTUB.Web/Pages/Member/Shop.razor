@@ -740,6 +740,12 @@ else
                 // Upload image to R2 if one was cropped
                 if (croppedProductImageBytes != null && croppedProductImageBytes.Length > 0)
                 {
+                    // Delete old image if it exists
+                    if (!string.IsNullOrEmpty(editingProduct.ImageUrl))
+                    {
+                        await ImageStorageService.DeleteImageAsync(editingProduct.ImageUrl);
+                    }
+                    
                     using var stream = new MemoryStream(croppedProductImageBytes);
                     var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/webp", "products", editingProduct.Id.ToString());
                     editingProduct.ImageUrl = imageUrl;
