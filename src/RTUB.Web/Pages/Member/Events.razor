@@ -1662,13 +1662,13 @@ else
                 .Select(u => u.Email!)
                 .ToList();
 
-            // Build recipient data dictionary with nickname (username) and full name
+            // Build recipient data dictionary with nickname and full name
             var recipientData = subscribedUsers
                 .Where(u => !string.IsNullOrWhiteSpace(u.Email))
                 .ToDictionary(
                     u => u.Email!,
                     u => (
-                        nickname: u.UserName ?? "",
+                        nickname: u.Nickname ?? "",
                         fullName: $"{u.FirstName ?? ""} {u.LastName ?? ""}".Trim()
                     )
                 );
