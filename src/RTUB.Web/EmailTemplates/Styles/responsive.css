@@ -1,0 +1,79 @@
+/* Responsive Styles for Mobile */
+
+@media only screen and (max-width: 600px) {
+    /* Container */
+    .email-container {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Content Padding */
+    .content-padding {
+        padding: 16px !important;
+    }
+
+    .email-header {
+        padding: 16px !important;
+    }
+
+    .email-footer {
+        padding: 16px !important;
+    }
+
+    /* Typography */
+    h1 {
+        font-size: 24px !important;
+    }
+
+    h2 {
+        font-size: 20px !important;
+    }
+
+    h3 {
+        font-size: 16px !important;
+    }
+
+    /* Buttons */
+    .button-td {
+        width: 100% !important;
+        display: block !important;
+    }
+
+    .button-link {
+        width: 100% !important;
+        display: block !important;
+        padding: 16px 24px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Event Meta */
+    .event-meta {
+        padding: 12px 16px !important;
+    }
+
+    /* Info Rows - Stack on mobile */
+    .info-label {
+        display: block !important;
+        min-width: auto !important;
+        margin-bottom: 4px;
+    }
+
+    .info-value {
+        display: block !important;
+    }
+
+    /* Footer */
+    .footer-links a {
+        display: block !important;
+        margin: 8px 0 !important;
+    }
+
+    /* Brand Name */
+    .brand-name {
+        font-size: 20px !important;
+    }
+
+    .brand-tagline {
+        font-size: 13px !important;
+    }
+}

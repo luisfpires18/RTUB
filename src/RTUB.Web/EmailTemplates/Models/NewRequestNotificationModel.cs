@@ -13,4 +13,6 @@ public class NewRequestNotificationModel
     public string Location { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    public string RequestUrl { get; set; } = "https://rtub.azurewebsites.net/requests";
+    public string Priority { get; set; } = "Normal";
 }
