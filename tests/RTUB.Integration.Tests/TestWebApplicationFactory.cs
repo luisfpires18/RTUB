@@ -42,7 +42,12 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ["IDrive:Endpoint"] = "s3.test.com",
                 ["IDrive:Bucket"] = "test-bucket",
                 ["IDrive:AccessKey"] = "test-access-key",
-                ["IDrive:SecretKey"] = "test-secret-key"
+                ["IDrive:SecretKey"] = "test-secret-key",
+                ["Cloudflare:R2:AccessKeyId"] = "test-cloudflare-access-key",
+                ["Cloudflare:R2:SecretAccessKey"] = "test-cloudflare-secret-key",
+                ["Cloudflare:R2:AccountId"] = "test-account-id",
+                ["Cloudflare:R2:Bucket"] = "test-bucket",
+                ["Cloudflare:R2:PublicUrl"] = "https://pub-test.r2.dev"
             });
         });
 
