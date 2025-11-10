@@ -12,10 +12,12 @@ namespace RTUB.Application.Services;
 public class InstrumentService : IInstrumentService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IImageStorageService _imageStorageService;
 
-    public InstrumentService(ApplicationDbContext context)
+    public InstrumentService(ApplicationDbContext context, IImageStorageService imageStorageService)
     {
         _context = context;
+        _imageStorageService = imageStorageService;
     }
 
     public async Task<Instrument?> GetByIdAsync(int id)
@@ -75,6 +77,12 @@ public class InstrumentService : IInstrumentService
         var instrument = await _context.Instruments.FindAsync(id);
         if (instrument != null)
         {
+            // Delete associated image from R2 storage if it exists
+            if (!string.IsNullOrEmpty(instrument.ImageUrl))
+            {
+                await _imageStorageService.DeleteImageAsync(instrument.ImageUrl);
+            }
+
             _context.Instruments.Remove(instrument);
             await _context.SaveChangesAsync();
         }

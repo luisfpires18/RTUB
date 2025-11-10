@@ -88,10 +88,19 @@ public class Slideshow : BaseEntity, IValidatableObject
 
     /// <summary>
     /// Custom validation logic to ensure an image is present.
+    /// Only validates for existing slideshows (Id > 0), not during creation.
+    /// Images are uploaded after the slideshow entity is created.
     /// </summary>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        // Check if a valid URL is present
+        // Skip validation for new slideshows (Id == 0) as images are uploaded after creation
+        // This allows the create flow to work: Create entity -> Upload image -> Save
+        if (Id == 0)
+        {
+            yield break;
+        }
+
+        // For existing slideshows, check if a valid URL is present
         bool hasUrl = !string.IsNullOrWhiteSpace(ImageUrl);
 
         // If no URL is present, return a validation error.
