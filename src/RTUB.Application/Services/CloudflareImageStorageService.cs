@@ -62,7 +62,7 @@ public class CloudflareImageStorageService : IImageStorageService
             // Generate object key: {environment}/{entityType}/{entityId}_{timestamp}.webp
             // e.g., Development/albums/123_20241110120000.webp
             var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-            var objectKey = $"{_environment}/{entityType}/{entityId}_{timestamp}.webp";
+            var objectKey = $"images/{_environment}/{entityType}/{entityId}_{timestamp}.webp";
 
             _logger.LogInformation("Uploading image to R2: {ObjectKey}", objectKey);
 
