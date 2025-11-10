@@ -294,26 +294,37 @@
             var nameIdentifierClaim = claimsPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             var nameClaim = claimsPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
 
+            ApplicationUser? user = null;
+            
             // Try to find by username first
             if (!string.IsNullOrEmpty(userName))
             {
-                currentUser = await UserManager.FindByNameAsync(userName);
+                user = await UserManager.FindByNameAsync(userName);
             }
 
             // Try by name claim
-            if (currentUser == null && !string.IsNullOrEmpty(nameClaim))
+            if (user == null && !string.IsNullOrEmpty(nameClaim))
             {
-                currentUser = await UserManager.FindByNameAsync(nameClaim);
-                if (currentUser == null)
+                user = await UserManager.FindByNameAsync(nameClaim);
+                if (user == null)
                 {
-                    currentUser = await UserManager.FindByEmailAsync(nameClaim);
+                    user = await UserManager.FindByEmailAsync(nameClaim);
                 }
             }
 
             // Try by user ID from NameIdentifier claim
-            if (currentUser == null && !string.IsNullOrEmpty(nameIdentifierClaim))
+            if (user == null && !string.IsNullOrEmpty(nameIdentifierClaim))
             {
-                currentUser = await UserManager.FindByIdAsync(nameIdentifierClaim);
+                user = await UserManager.FindByIdAsync(nameIdentifierClaim);
+            }
+            
+            // Force reload from database to get fresh data (especially ImageUrl)
+            if (user != null)
+            {
+                // Update security stamp to force fresh load on next request
+                await UserManager.UpdateSecurityStampAsync(user);
+                // Reload the user to ensure we have the latest data
+                currentUser = await UserManager.FindByIdAsync(user.Id);
             }
         }
     }
