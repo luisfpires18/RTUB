@@ -8,15 +8,14 @@ namespace RTUB.Integration.Tests.Pages;
 /// <summary>
 /// Integration tests for Public pages (Requests, OrgaosSociais)
 /// </summary>
-public class PublicPagesTests : IClassFixture<WebApplicationFactory<Program>>
+public class PublicPagesTests : IntegrationTestBase
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    
     private readonly HttpClient _client;
 
-    public PublicPagesTests(WebApplicationFactory<Program> factory)
+    public PublicPagesTests(TestWebApplicationFactory factory) : base(factory)
     {
-        _factory = factory;
-        _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        _client = Factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
         });

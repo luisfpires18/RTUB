@@ -9,20 +9,17 @@ namespace RTUB.Integration.Tests;
 /// Integration tests for authentication workflows
 /// Tests the complete authentication flow from HTTP requests to database
 /// </summary>
-public class AuthenticationTests : IClassFixture<WebApplicationFactory<Program>>
+public class AuthenticationTests : IntegrationTestBase
 {
-    private readonly WebApplicationFactory<Program> _factory;
-
-    public AuthenticationTests(WebApplicationFactory<Program> factory)
+    public AuthenticationTests(TestWebApplicationFactory factory) : base(factory)
     {
-        _factory = factory;
     }
 
     [Fact]
     public async Task HomePage_ReturnsSuccessStatusCode()
     {
         // Arrange
-        var client = _factory.CreateClient();
+        var client = Factory.CreateClient();
 
         // Act
         var response = await client.GetAsync("/");
@@ -35,7 +32,7 @@ public class AuthenticationTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task EventsPage_ReturnsSuccessStatusCode()
     {
         // Arrange
-        var client = _factory.CreateClient();
+        var client = Factory.CreateClient();
 
         // Act
         var response = await client.GetAsync("/Events");

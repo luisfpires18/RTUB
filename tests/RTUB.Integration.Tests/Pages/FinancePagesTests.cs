@@ -9,15 +9,14 @@ namespace RTUB.Integration.Tests.Pages;
 /// Integration tests for Finance pages (requires authentication)
 /// Tests page accessibility and authorization
 /// </summary>
-public class FinancePagesTests : IClassFixture<WebApplicationFactory<Program>>
+public class FinancePagesTests : IntegrationTestBase
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    
     private readonly HttpClient _client;
 
-    public FinancePagesTests(WebApplicationFactory<Program> factory)
+    public FinancePagesTests(TestWebApplicationFactory factory) : base(factory)
     {
-        _factory = factory;
-        _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        _client = Factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
         });

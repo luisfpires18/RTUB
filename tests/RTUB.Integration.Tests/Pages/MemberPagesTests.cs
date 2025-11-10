@@ -9,15 +9,14 @@ namespace RTUB.Integration.Tests.Pages;
 /// Integration tests for Member pages (requires authentication)
 /// Tests page accessibility and content without full authentication
 /// </summary>
-public class MemberPagesTests : IClassFixture<WebApplicationFactory<Program>>
+public class MemberPagesTests : IntegrationTestBase
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    
     private readonly HttpClient _client;
 
-    public MemberPagesTests(WebApplicationFactory<Program> factory)
+    public MemberPagesTests(TestWebApplicationFactory factory) : base(factory)
     {
-        _factory = factory;
-        _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        _client = Factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
         });

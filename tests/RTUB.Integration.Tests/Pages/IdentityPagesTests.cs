@@ -8,15 +8,14 @@ namespace RTUB.Integration.Tests.Pages;
 /// <summary>
 /// Integration tests for Identity pages (Login, ForgotPassword, etc.)
 /// </summary>
-public class IdentityPagesTests : IClassFixture<WebApplicationFactory<Program>>
+public class IdentityPagesTests : IntegrationTestBase
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    
     private readonly HttpClient _client;
 
-    public IdentityPagesTests(WebApplicationFactory<Program> factory)
+    public IdentityPagesTests(TestWebApplicationFactory factory) : base(factory)
     {
-        _factory = factory;
-        _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        _client = Factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
         });
