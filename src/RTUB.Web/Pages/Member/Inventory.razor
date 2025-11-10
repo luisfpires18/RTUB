@@ -10,6 +10,7 @@
 @using RTUB.Shared
 @attribute [Authorize]
 @inject IInstrumentService InstrumentService
+@inject IImageStorageService ImageStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h1>Instrumentos</h1>
@@ -307,6 +308,8 @@ else
     private IBrowserFile? selectedFile;
     private string? uploadedInstrumentImagePath;
     private int imageRefreshTrigger = 0;
+    private byte[]? croppedInstrumentImageBytes;
+    private string? croppedInstrumentImageFileName = "instrument-image.jpg";
 
     protected override async Task OnInitializedAsync()
     {
@@ -397,9 +400,26 @@ else
 
         try
         {
+            // Upload image to R2 if one was cropped
+            if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
+            {
+                using var stream = new MemoryStream(croppedInstrumentImageBytes);
+                var imageUrl = await ImageStorageService.UploadAsync(stream, "instrument", editingInstrument.Id, croppedInstrumentImageFileName!);
+                editingInstrument.ImageUrl = imageUrl;
+            }
+
             if (isInstrumentCreateMode)
             {
                 await InstrumentService.CreateAsync(editingInstrument);
+                
+                // If image was cropped, upload it now with the correct ID
+                if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
+                {
+                    using var stream = new MemoryStream(croppedInstrumentImageBytes);
+                    var imageUrl = await ImageStorageService.UploadAsync(stream, "instrument", editingInstrument.Id, croppedInstrumentImageFileName!);
+                    editingInstrument.ImageUrl = imageUrl;
+                    await InstrumentService.UpdateAsync(editingInstrument);
+                }
             }
             else
             {
@@ -416,6 +436,7 @@ else
             await LoadData();
             showInstrumentEditModal = false;
             uploadedInstrumentImagePath = null;
+            croppedInstrumentImageBytes = null;
         }
         catch (Exception ex)
         {
@@ -488,8 +509,8 @@ else
             {
                 if (editingInstrument != null)
                 {
-                    // TODO: Update for R2 storage - need to upload to R2 and set ImageUrl
-                    // For now, just mark as uploaded
+                    // Store the cropped image bytes for upload when saving
+                    croppedInstrumentImageBytes = croppedImageData;
                     uploadedInstrumentImagePath = "uploaded";
                 }
                 
