@@ -45,7 +45,7 @@ public class ImageStorageIntegrationTests : IDisposable
         var imageUrl = "https://pub-test.r2.dev/rtub/images/album/1/cover.jpg";
         
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "album", album.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", album.Id.ToString()))
             .ReturnsAsync(imageUrl);
 
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
@@ -55,7 +55,7 @@ public class ImageStorageIntegrationTests : IDisposable
 
         // Assert
         _mockImageStorageService.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "cover.jpg", "image/jpeg", "album", album.Id.ToString()),
+            x => x.UploadImageAsync(It.IsAny<Stream>(), "cover.jpg", "image/jpeg", "albums", album.Id.ToString()),
             Times.Once);
 
         var updatedAlbum = await _albumService.GetAlbumByIdAsync(album.Id);
@@ -73,7 +73,7 @@ public class ImageStorageIntegrationTests : IDisposable
         
         // Set initial cover
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "album", album.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", album.Id.ToString()))
             .ReturnsAsync(oldImageUrl);
         
         using (var oldImageStream = new MemoryStream(new byte[] { 1, 2, 3 }))
@@ -83,7 +83,7 @@ public class ImageStorageIntegrationTests : IDisposable
 
         // Setup for new upload
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "album", album.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", album.Id.ToString()))
             .ReturnsAsync(newImageUrl);
 
         using var newImageStream = new MemoryStream(new byte[] { 4, 5, 6 });
@@ -108,7 +108,7 @@ public class ImageStorageIntegrationTests : IDisposable
         var imageUrl = "https://pub-test.r2.dev/rtub/images/album/1/cover.jpg";
         
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "album", album.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", album.Id.ToString()))
             .ReturnsAsync(imageUrl);
 
         using (var imageStream = new MemoryStream(new byte[] { 1, 2, 3 }))
@@ -146,7 +146,7 @@ public class ImageStorageIntegrationTests : IDisposable
         var imageUrl = "https://pub-test.r2.dev/rtub/images/event/1/event.jpg";
         
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "event", eventEntity.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "events", eventEntity.Id.ToString()))
             .ReturnsAsync(imageUrl);
 
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
@@ -156,7 +156,7 @@ public class ImageStorageIntegrationTests : IDisposable
 
         // Assert
         _mockImageStorageService.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "event.jpg", "image/jpeg", "event", eventEntity.Id.ToString()),
+            x => x.UploadImageAsync(It.IsAny<Stream>(), "event.jpg", "image/jpeg", "events", eventEntity.Id.ToString()),
             Times.Once);
 
         var updatedEvent = await _eventService.GetEventByIdAsync(eventEntity.Id);
@@ -178,7 +178,7 @@ public class ImageStorageIntegrationTests : IDisposable
         var imageUrl = "https://pub-test.r2.dev/rtub/images/event/1/event.jpg";
         
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "event", eventEntity.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "events", eventEntity.Id.ToString()))
             .ReturnsAsync(imageUrl);
 
         using (var imageStream = new MemoryStream(new byte[] { 1, 2, 3 }))
@@ -210,7 +210,7 @@ public class ImageStorageIntegrationTests : IDisposable
         var imageUrl = "https://pub-test.r2.dev/rtub/images/slideshow/1/slide.jpg";
         
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "slideshow", slideshow.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "slideshows", slideshow.Id.ToString()))
             .ReturnsAsync(imageUrl);
 
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
@@ -220,7 +220,7 @@ public class ImageStorageIntegrationTests : IDisposable
 
         // Assert
         _mockImageStorageService.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "slide.jpg", "image/jpeg", "slideshow", slideshow.Id.ToString()),
+            x => x.UploadImageAsync(It.IsAny<Stream>(), "slide.jpg", "image/jpeg", "slideshows", slideshow.Id.ToString()),
             Times.Once);
 
         var updatedSlideshow = await _slideshowService.GetSlideshowByIdAsync(slideshow.Id);
@@ -236,7 +236,7 @@ public class ImageStorageIntegrationTests : IDisposable
         var imageUrl = "https://pub-test.r2.dev/rtub/images/slideshow/1/slide.jpg";
         
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "slideshow", slideshow.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "slideshows", slideshow.Id.ToString()))
             .ReturnsAsync(imageUrl);
 
         using (var imageStream = new MemoryStream(new byte[] { 1, 2, 3 }))

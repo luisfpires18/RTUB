@@ -120,7 +120,7 @@ public class InstrumentTests
     }
 
     [Fact]
-    public void ImageSrc_ReturnsCorrectPath()
+    public void ImageSrc_WithNoImageUrl_ReturnsEmptyString()
     {
         // Arrange
         var instrument = Instrument.Create("Guitarra", "Guitarra #1", InstrumentCondition.Good);
@@ -128,8 +128,23 @@ public class InstrumentTests
         // Act
         var imageSrc = instrument.ImageSrc;
 
-        // Assert
-        imageSrc.Should().Contain("/api/images/instrument/");
+        // Assert - When no ImageUrl is set, ImageSrc should return empty string
+        imageSrc.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ImageSrc_WithImageUrl_ReturnsImageUrl()
+    {
+        // Arrange
+        var instrument = Instrument.Create("Guitarra", "Guitarra #1", InstrumentCondition.Good);
+        var imageUrl = "https://pub-test.r2.dev/rtub/images/instruments/1.jpg";
+        instrument.ImageUrl = imageUrl;
+
+        // Act
+        var imageSrc = instrument.ImageSrc;
+
+        // Assert - When ImageUrl is set, ImageSrc should return the ImageUrl
+        imageSrc.Should().Be(imageUrl);
     }
 
     [Fact]

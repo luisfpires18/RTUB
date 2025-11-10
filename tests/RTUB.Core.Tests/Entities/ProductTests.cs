@@ -200,7 +200,7 @@ public class ProductTests
     }
 
     [Fact]
-    public void ImageSrc_ReturnsCorrectPath()
+    public void ImageSrc_WithNoImageUrl_ReturnsEmptyString()
     {
         // Arrange
         var product = Product.Create("Album 2023", "Album", 10.00m);
@@ -208,8 +208,23 @@ public class ProductTests
         // Act
         var imageSrc = product.ImageSrc;
 
-        // Assert
-        imageSrc.Should().Contain("/api/images/product/");
+        // Assert - When no ImageUrl is set, ImageSrc should return empty string
+        imageSrc.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ImageSrc_WithImageUrl_ReturnsImageUrl()
+    {
+        // Arrange
+        var product = Product.Create("Album 2023", "Album", 10.00m);
+        var imageUrl = "https://pub-test.r2.dev/rtub/images/products/1.jpg";
+        product.ImageUrl = imageUrl;
+
+        // Act
+        var imageSrc = product.ImageSrc;
+
+        // Assert - When ImageUrl is set, ImageSrc should return the ImageUrl
+        imageSrc.Should().Be(imageUrl);
     }
 
     [Fact]
