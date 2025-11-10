@@ -1,17 +1,72 @@
 @model RTUB.Web.EmailTemplates.Models.NewRequestNotificationModel
 @{
-    Layout = null;
+    Layout = "~/EmailTemplates/_EmailLayout.cshtml";
+    ViewData["Preheader"] = "Tens um novo pedido pendente.";
 }
-Novo Pedido de Atuação Recebido
 
-Nome: @Html.Raw(Model.RequestName)
-Email: @Html.Raw(Model.RequestEmail)
-Telefone: @Html.Raw(Model.Phone)
-Tipo de Evento: @Html.Raw(Model.EventType)
-Data: @Html.Raw(Model.DateInfo)
-Localização: @Html.Raw(Model.Location)
+<h1 style="margin: 0 0 16px 0; padding: 0; font-size: 28px; line-height: 1.3; font-weight: 600; color: #0B0B0F;">
+    Novo Pedido de Atuação
+</h1>
 
-Informações Adicionais:
-@Html.Raw(Model.Message)
+<p class="meta-text" style="font-size: 14px; color: #6B7280; line-height: 1.5; margin: 0 0 24px 0;">
+    Recebido em @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+</p>
 
-Submetido em: @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+<!-- Request Details Card -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F7F7FB; padding: 20px 24px; border-radius: 8px; margin: 16px 0;">
+    <tr>
+        <td>
+            <!-- Event Type & Date -->
+            <p style="margin: 0 0 12px 0; font-size: 18px; line-height: 1.6; color: #0B0B0F; font-weight: 600;">
+                📅 @Html.Raw(Model.EventType)
+            </p>
+            <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+                @Html.Raw(Model.DateInfo)
+            </p>
+            
+            <!-- Location -->
+            <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+                📍 @Html.Raw(Model.Location)
+            </p>
+            
+            <!-- Contact Info -->
+            <p style="margin: 0 0 8px 0; font-size: 16px; line-height: 1.6; color: #333333;">
+                👤 <strong>@Html.Raw(Model.RequestName)</strong>
+            </p>
+            <p style="margin: 0 0 8px 0; font-size: 15px; line-height: 1.6; color: #6B7280;">
+                ✉️ @Html.Raw(Model.RequestEmail)
+            </p>
+            <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #6B7280;">
+                📞 @Html.Raw(Model.Phone)
+            </p>
+            
+            <!-- Priority Badge -->
+            @if (!string.IsNullOrEmpty(Model.Priority) && Model.Priority != "Normal")
+            {
+                <p style="margin: 0; font-size: 14px; line-height: 1.4;">
+                    <span style="display: inline-block; padding: 4px 12px; background-color: #FFF8DC; color: #856404; border-radius: 4px; font-weight: 600;">
+                        ⚡ Prioridade: @Html.Raw(Model.Priority)
+                    </span>
+                </p>
+            }
+        </td>
+    </tr>
+</table>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <h3 style="margin: 24px 0 8px 0; padding: 0; font-size: 18px; line-height: 1.4; font-weight: 600; color: #0B0B0F;">
+        💬 Informações Adicionais:
+    </h3>
+    <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333333; white-space: pre-wrap;">@Html.Raw(Model.Message)</p>
+}
+
+<!-- Primary CTA Button -->
+@await Html.PartialAsync("~/EmailTemplates/Partials/_Button.cshtml", new RTUB.Web.EmailTemplates.Models.ButtonModel
+{
+    Href = Model.RequestUrl,
+    Label = "Abrir pedido",
+    BgColor = "#6E56CF",
+    TextColor = "#FFFFFF"
+})
+

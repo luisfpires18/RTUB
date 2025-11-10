@@ -1,0 +1,43 @@
+@model RTUB.Web.EmailTemplates.Models.ButtonModel
+@{
+    var href = Model?.Href ?? "#";
+    var label = Model?.Label ?? "Clique aqui";
+    var bgColor = Model?.BgColor ?? "#6E56CF";
+    var textColor = Model?.TextColor ?? "#FFFFFF";
+    var isSecondary = Model?.IsSecondary ?? false;
+}
+
+<!-- Bulletproof Button -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" class="button-wrapper" style="margin: 24px 0;">
+    <tr>
+        <td align="center">
+            <!--[if mso]>
+            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" 
+                         href="@href" 
+                         style="height:40px;v-text-anchor:middle;width:200px;" 
+                         arcsize="20%" 
+                         strokecolor="@(isSecondary ? bgColor : bgColor)" 
+                         fillcolor="@(isSecondary ? "#FFFFFF" : bgColor)">
+                <w:anchorlock/>
+                <center style='color:@(isSecondary ? bgColor : textColor);font-family:sans-serif;font-size:16px;font-weight:600;'>
+                    @label
+                </center>
+            </v:roundrect>
+            <![endif]-->
+            <!--[if !mso]><!-->
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="button-table" style="border-spacing: 0; border-collapse: separate;">
+                <tr>
+                    <td class="button-td @(isSecondary ? "button-secondary" : "")" 
+                        style="border-radius: 8px; background-color: @(isSecondary ? "transparent" : bgColor); text-align: center; @(isSecondary ? "border: 2px solid " + bgColor + ";" : "")">
+                        <a href="@href" 
+                           class="button-link" 
+                           style="display: inline-block; padding: @(isSecondary ? "10px 28px" : "12px 28px"); font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 600; line-height: 1.2; color: @(isSecondary ? bgColor : textColor) !important; text-decoration: none; border-radius: 8px; background-color: @(isSecondary ? "transparent" : bgColor); border: none;">
+                            @label
+                        </a>
+                    </td>
+                </tr>
+            </table>
+            <!--<![endif]-->
+        </td>
+    </tr>
+</table>

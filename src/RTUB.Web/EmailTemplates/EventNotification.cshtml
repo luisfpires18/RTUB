@@ -1,15 +1,76 @@
 @model RTUB.Web.EmailTemplates.Models.EventNotificationModel
 @{
-    Layout = null;
+    Layout = "~/EmailTemplates/_EmailLayout.cshtml";
+    ViewData["Preheader"] = "Nova atuação — confirma a tua presença.";
 }
-Olá!
-Há uma nova atuação agendada: @Html.Raw(Model.EventTitle)
-📅 @Html.Raw(Model.DateFormatted)
-📍 @Html.Raw(Model.EventLocation)
-Consulta os detalhes no site e confirma a tua presença se fores.
-@Html.Raw(Model.EventLink)
 
-Se não quiseres receber notificações por email, podes alterar as tuas preferências no teu perfil, desmarcando a opção "Pretendo ser notificado por email de novas atuações."
+@{
+    var displayName = !string.IsNullOrEmpty(Model.FullName) 
+        ? $"{Model.Nickname} ({Model.FullName})" 
+        : Model.Nickname;
+}
 
-Obrigado,
-Saudações RTUBianas
+<h1 style="margin: 0 0 16px 0; padding: 0; font-size: 28px; line-height: 1.3; font-weight: 600; color: #0B0B0F;">
+    Nova Atuação
+</h1>
+
+<p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+    <text>Olá, @Html.Raw(displayName)!</text>
+</p>
+
+<p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+    Há uma nova atuação agendada:
+</p>
+
+<h2 style="margin: 0 0 12px 0; padding: 0; font-size: 22px; line-height: 1.3; font-weight: 600; color: #0B0B0F;">
+    @Html.Raw(Model.EventTitle)
+</h2>
+
+<!-- Event Details -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="event-meta" style="background-color: #F7F7FB; padding: 16px 24px; border-radius: 8px; margin: 16px 0;">
+    <tr>
+        <td>
+            <p class="event-meta-item" style="font-size: 16px; line-height: 1.6; color: #333333; margin: 4px 0;">
+                <span class="emoji-icon" style="display: inline-block; margin-right: 8px;">📅</span>
+                <strong>@Html.Raw(Model.DateFormatted)</strong>
+            </p>
+            <p class="event-meta-item" style="font-size: 16px; line-height: 1.6; color: #333333; margin: 4px 0;">
+                <span class="emoji-icon" style="display: inline-block; margin-right: 8px;">📍</span>
+                @Html.Raw(Model.EventLocation)
+            </p>
+        </td>
+    </tr>
+</table>
+
+@if (!string.IsNullOrEmpty(Model.EventDescription))
+{
+    <p style="margin: 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+        @Html.Raw(Model.EventDescription)
+    </p>
+}
+
+<p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+    Consulta os detalhes no site e confirma a tua presença se fores.
+</p>
+
+<!-- Primary CTA Button -->
+@await Html.PartialAsync("~/EmailTemplates/Partials/_Button.cshtml", new RTUB.Web.EmailTemplates.Models.ButtonModel
+{
+    Href = Model.EventLink,
+    Label = "Ver detalhes e confirmar presença",
+    BgColor = "#6E56CF",
+    TextColor = "#FFFFFF"
+})
+
+<!-- Divider -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 24px 0;">
+    <tr>
+        <td style="border-top: 1px solid #E5E7EB;"></td>
+    </tr>
+</table>
+
+<!-- Preferences Link -->
+<p class="meta-text" style="font-size: 14px; color: #6B7280; line-height: 1.5; text-align: center; margin: 16px 0 0 0;">
+    Se não quiseres receber notificações por email, podes <a href="@Model.PreferencesLink" style="color: #6E56CF; text-decoration: underline;">alterar as tuas preferências</a> no teu perfil.
+</p>
+

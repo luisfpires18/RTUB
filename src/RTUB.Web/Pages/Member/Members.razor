@@ -956,7 +956,8 @@ else
                 await EmailNotificationService.SendWelcomeEmailAsync(
                     createdUser.UserName ?? "",
                     createdUser.Email ?? "",
-                    createdUser.FirstName ?? "",
+                    $"{createdUser.FirstName} {createdUser.LastName}" ?? "",
+                    createdUser.Nickname ?? "",
                     generatedPassword
                 );
             }

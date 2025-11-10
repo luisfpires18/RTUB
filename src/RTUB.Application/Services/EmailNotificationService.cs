@@ -138,7 +138,7 @@ public class EmailNotificationService : IEmailNotificationService
                 From = new MailAddress(senderEmail, senderName),
                 Subject = subject,
                 Body = body,
-                IsBodyHtml = false,
+                IsBodyHtml = true,
                 BodyEncoding = Encoding.UTF8,
                 SubjectEncoding = Encoding.UTF8
             };
@@ -155,7 +155,7 @@ public class EmailNotificationService : IEmailNotificationService
     }
 
     /// <inheritdoc/>
-    public async Task SendWelcomeEmailAsync(string userName, string email, string firstName, string password)
+    public async Task SendWelcomeEmailAsync(string userName, string email, string fullName, string nickname, string password)
     {
         // Rate limit: Prevent duplicate welcome emails for the same user
         var normalizedUserName = userName?.ToLower() ?? "unknown";
@@ -195,7 +195,8 @@ public class EmailNotificationService : IEmailNotificationService
 
             var body = await _templateRenderer.RenderWelcomeEmailAsync(
                 normalizedUserName,
-                firstName,
+                fullName,
+                nickname,
                 password);
 
             // Check if SMTP is configured
@@ -217,7 +218,7 @@ public class EmailNotificationService : IEmailNotificationService
                 From = new MailAddress(senderEmail, senderName ?? "RTUB"),
                 Subject = subject,
                 Body = body,
-                IsBodyHtml = false,
+                IsBodyHtml = true,
                 BodyEncoding = Encoding.UTF8,
                 SubjectEncoding = Encoding.UTF8
             };
@@ -240,7 +241,8 @@ public class EmailNotificationService : IEmailNotificationService
         DateTime eventDate,
         string eventLocation,
         string eventLink,
-        List<string> recipientEmails)
+        List<string> recipientEmails,
+        Dictionary<string, (string nickname, string fullName)>? recipientData = null)
     {
         // Rate limit: Prevent duplicate emails for the same event within 5 minutes
         var rateLimitKey = $"email-event-{eventId}";
@@ -289,48 +291,109 @@ public class EmailNotificationService : IEmailNotificationService
             var dateFormatted = eventDate.ToString("dddd, dd 'de' MMMM 'de' yyyy", 
                 new System.Globalization.CultureInfo("pt-PT"));
 
-            var body = await _templateRenderer.RenderEventNotificationAsync(
-                eventTitle,
-                dateFormatted,
-                eventLocation,
-                eventLink);
-
-            // Send email via SMTP
-            using var smtpClient = new SmtpClient(smtpServer, smtpPort)
+            // If recipient data is provided, send personalized emails to each recipient
+            if (recipientData != null && recipientData.Any())
             {
-                Credentials = new NetworkCredential(smtpUsername, smtpPassword),
-                EnableSsl = enableSsl,
-                Timeout = 30000 // 30 second timeout for batch emails
-            };
-
-            var mailMessage = new MailMessage
-            {
-                From = new MailAddress(senderEmail, senderName),
-                Subject = subject,
-                Body = body,
-                IsBodyHtml = false,
-                BodyEncoding = Encoding.UTF8,
-                SubjectEncoding = Encoding.UTF8
-            };
-
-            // Add all recipients as BCC to hide recipient list
-            foreach (var email in recipientEmails)
-            {
-                if (!string.IsNullOrWhiteSpace(email))
+                int successCount = 0;
+                using var smtpClient = new SmtpClient(smtpServer, smtpPort)
                 {
-                    mailMessage.Bcc.Add(email);
+                    Credentials = new NetworkCredential(smtpUsername, smtpPassword),
+                    EnableSsl = enableSsl,
+                    Timeout = 30000 // 30 second timeout
+                };
+
+                foreach (var email in recipientEmails)
+                {
+                    if (string.IsNullOrWhiteSpace(email))
+                        continue;
+
+                    try
+                    {
+                        // Get nickname and full name for this recipient
+                        var (nickname, fullName) = recipientData.TryGetValue(email, out var data) 
+                            ? data 
+                            : ("", "");
+
+                        // Render personalized email
+                        var body = await _templateRenderer.RenderEventNotificationAsync(
+                            eventTitle,
+                            dateFormatted,
+                            eventLocation,
+                            eventLink,
+                            nickname,
+                            fullName);
+
+                        var mailMessage = new MailMessage
+                        {
+                            From = new MailAddress(senderEmail, senderName),
+                            Subject = subject,
+                            Body = body,
+                            IsBodyHtml = true,
+                            BodyEncoding = Encoding.UTF8,
+                            SubjectEncoding = Encoding.UTF8
+                        };
+                        mailMessage.To.Add(email);
+
+                        await smtpClient.SendMailAsync(mailMessage);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to send personalized email to {Email}", email);
+                    }
                 }
+
+                _logger.LogInformation("Event notification emails sent for event {EventId} to {SuccessCount}/{TotalCount} members", 
+                    eventId, successCount, recipientEmails.Count);
+
+                return (successCount > 0, successCount, successCount < recipientEmails.Count ? "Alguns emails falharam" : null);
             }
+            else
+            {
+                // No personalization - send one email with all recipients in BCC (original behavior)
+                var body = await _templateRenderer.RenderEventNotificationAsync(
+                    eventTitle,
+                    dateFormatted,
+                    eventLocation,
+                    eventLink);
 
-            // Add sender as the To address (required by some SMTP servers)
-            mailMessage.To.Add(senderEmail);
+                // Send email via SMTP
+                using var smtpClient = new SmtpClient(smtpServer, smtpPort)
+                {
+                    Credentials = new NetworkCredential(smtpUsername, smtpPassword),
+                    EnableSsl = enableSsl,
+                    Timeout = 30000 // 30 second timeout for batch emails
+                };
 
-            await smtpClient.SendMailAsync(mailMessage);
-            
-            _logger.LogInformation("Event notification email successfully sent for event {EventId} to {RecipientCount} members", 
-                eventId, recipientEmails.Count);
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(senderEmail, senderName),
+                    Subject = subject,
+                    Body = body,
+                    IsBodyHtml = true,
+                    BodyEncoding = Encoding.UTF8,
+                    SubjectEncoding = Encoding.UTF8
+                };
 
-            return (true, recipientEmails.Count, null);
+                // Add all recipients as BCC to hide recipient list
+                foreach (var email in recipientEmails)
+                {
+                    if (!string.IsNullOrWhiteSpace(email))
+                    {
+                        mailMessage.Bcc.Add(email);
+                    }
+                }
+
+                // Add sender as the To address (required by some SMTP servers)
+                mailMessage.To.Add(senderEmail);
+
+                await smtpClient.SendMailAsync(mailMessage);
+                
+                _logger.LogInformation("Event notification email successfully sent for event {EventId} to {RecipientCount} members", 
+                    eventId, recipientEmails.Count);
+
+                return (true, recipientEmails.Count, null);
+            }
         }
         catch (Exception ex)
         {

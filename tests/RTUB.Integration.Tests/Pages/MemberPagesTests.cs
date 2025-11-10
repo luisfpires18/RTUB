@@ -56,7 +56,7 @@ public class MemberPagesTests : IntegrationTestBase
     public async Task HierarchyPage_WithoutAuth_RedirectsToLogin()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/member/hierarchy");
+        var response = await _client.GetAsync("/hierarchy");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
@@ -127,7 +127,7 @@ public class MemberPagesTests : IntegrationTestBase
 
     [Theory]
     [InlineData("/members")]
-    [InlineData("/member/hierarchy")]
+    [InlineData("/hierarchy")]
     [InlineData("/rehearsals")]
     [InlineData("/profile")]
     public async Task MemberPages_RequireAuthentication(string url)
@@ -146,7 +146,7 @@ public class MemberPagesTests : IntegrationTestBase
     public async Task MemberPages_AllRequireAuthenticationInSequence()
     {
         // Arrange
-        var memberUrls = new[] { "/members", "/member/hierarchy", "/rehearsals", "/profile" };
+        var memberUrls = new[] { "/members", "/hierarchy", "/rehearsals", "/profile" };
 
         // Act & Assert
         foreach (var url in memberUrls)

@@ -1,0 +1,70 @@
+/* Button Styles - Bulletproof Button */
+
+/* Primary Button */
+.button-wrapper {
+    margin: 24px 0;
+}
+
+.button-table {
+    border-spacing: 0;
+    border-collapse: separate;
+    margin: 0 auto;
+}
+
+.button-td {
+    border-radius: 8px;
+    background-color: #6E56CF;
+    text-align: center;
+}
+
+.button-link {
+    display: inline-block;
+    padding: 14px 32px;
+    min-height: 44px;
+    font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #FFFFFF !important;
+    text-decoration: none;
+    border-radius: 8px;
+    background-color: #6E56CF;
+    border: none;
+}
+
+.button-link:hover {
+    background-color: #5746a8;
+}
+
+/* Secondary Button */
+.button-secondary .button-td {
+    background-color: transparent;
+    border: 2px solid #6E56CF;
+}
+
+.button-secondary .button-link {
+    background-color: transparent;
+    color: #6E56CF !important;
+    padding: 12px 32px;
+}
+
+.button-secondary .button-link:hover {
+    background-color: #F7F7FB;
+}
+
+/* Text Link Button */
+.button-text {
+    display: inline-block;
+    margin: 16px 0;
+}
+
+.button-text-link {
+    color: #6E56CF;
+    text-decoration: underline;
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.button-text-link:hover {
+    color: #5746a8;
+}

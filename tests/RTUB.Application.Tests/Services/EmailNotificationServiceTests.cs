@@ -37,11 +37,11 @@ public class EmailNotificationServiceTests : IDisposable
             .ReturnsAsync("Test email body");
         
         _mockTemplateRenderer.Setup(x => x.RenderWelcomeEmailAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test welcome email");
         
         _mockTemplateRenderer.Setup(x => x.RenderEventNotificationAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test event email");
 
         _service = new EmailNotificationService(_mockLogger.Object, _mockConfiguration.Object, _cache, _mockTemplateRenderer.Object);
@@ -110,10 +110,11 @@ public class EmailNotificationServiceTests : IDisposable
         var userName = "newuser";
         var email = "newuser@test.com";
         var firstName = "New";
+        var lastName = "New";
         var password = "TempPassword123";
 
         // Act
-        Func<Task> act = async () => await _service.SendWelcomeEmailAsync(userName, email, firstName, password);
+        Func<Task> act = async () => await _service.SendWelcomeEmailAsync(userName, email, firstName, lastName, password);
 
         // Assert - Should not throw even when SMTP is not configured
         await act.Should().NotThrowAsync();

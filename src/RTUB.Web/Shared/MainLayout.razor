@@ -45,10 +45,10 @@
 
                 <AuthorizeView>
                     <Authorized>
-                        <li class="nav-item"><NavLink class="nav-link" href="/member/hierarchy"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/hierarchy"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
-                        <li class="nav-item"><NavLink class="nav-link" href="/member/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
                         @if (currentUser != null && !currentUser.IsLeitao())
                         {
                             <li class="nav-item"><NavLink class="nav-link" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
@@ -70,8 +70,8 @@
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="ownerDropdown">
                                 <li><NavLink class="dropdown-item" href="/owner/user-roles"><i class="bi bi-people"></i> Funções</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/owner/labels"><i class="bi bi-tag"></i> Conteúdo</NavLink></li>
                                 <li><NavLink class="dropdown-item" href="/owner/tracing"><i class="bi bi-shield-check"></i> Tracing</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/owner/labels"><i class="bi bi-tag"></i> Conteúdo</NavLink></li>
                             </ul>
                         </li>
                     </Authorized>
