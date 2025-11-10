@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Data
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
@@ -115,7 +116,10 @@
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 @if (currentUser != null)
                                 {
-                                    <img src="@GetNavbarAvatarUrl()" alt="@currentUser.Nickname" class="navbar-avatar me-2" />
+                                    <img src="@GetNavbarAvatarUrl()" 
+                                         alt="@currentUser.Nickname" 
+                                         class="navbar-avatar me-2"
+                                         onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
                                     <span>@currentUser.Nickname</span>
                                 }
                             </a>
@@ -318,13 +322,12 @@
                 user = await UserManager.FindByIdAsync(nameIdentifierClaim);
             }
             
-            // Force reload from database to get fresh data (especially ImageUrl)
+            // Reload the user to ensure we have the latest data from database
             if (user != null)
             {
-                // Update security stamp to force fresh load on next request
-                await UserManager.UpdateSecurityStampAsync(user);
-                // Reload the user to ensure we have the latest data
-                currentUser = await UserManager.FindByIdAsync(user.Id);
+                // Force Entity Framework to reload from database instead of using cached data
+                var entry = UserManager.Users.AsNoTracking().FirstOrDefault(u => u.Id == user.Id);
+                currentUser = entry ?? user;
             }
         }
     }

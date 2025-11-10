@@ -17,7 +17,10 @@
                 <div class="text-center">
                     <!-- Avatar -->
                     <div class="profile-avatar-wrapper profile-avatar-large mx-auto mb-3">
-                        <img src="@GetProfilePictureUrl()" alt="Foto de Perfil" class="profile-avatar" />
+                        <img src="@GetProfilePictureUrl()" 
+                             alt="Foto de Perfil" 
+                             class="profile-avatar"
+                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
                     </div>
                     
                     <!-- Name and Badges -->
@@ -89,9 +92,11 @@
         
         // Add refresh trigger only when an image has been updated
         // This forces browser to re-fetch after edits while maintaining ETag caching
-        if (ImageRefreshTrigger > 0 && src.StartsWith("/api/images/"))
+        // Works for both local (/api/images/) and Cloudflare (https://) URLs
+        if (ImageRefreshTrigger > 0 && !src.Contains("default-avatar"))
         {
-            return $"{src}?r={ImageRefreshTrigger}";
+            var separator = src.Contains('?') ? '&' : '?';
+            return $"{src}{separator}r={ImageRefreshTrigger}";
         }
         
         return src;

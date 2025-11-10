@@ -547,12 +547,16 @@ else
         {
             if (user != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                // Upload image to R2 storage
+                // Upload image to R2 storage and update user record
                 using var stream = new MemoryStream(croppedImageData);
                 await UserProfileService.UpdateProfilePictureAsync(user.Id, stream, "profile-picture.webp", "image/webp");
 
-                await SetAuditContextToCurrentUser();
-                await UserManager.UpdateAsync(user);
+                // Reload user from database to get the updated ImageUrl
+                var updatedUser = await UserManager.FindByIdAsync(user.Id);
+                if (updatedUser != null)
+                {
+                    user.ImageUrl = updatedUser.ImageUrl;
+                }
                 
                 // Increment trigger to force browser to re-fetch the image
                 imageRefreshTrigger++;
@@ -560,14 +564,10 @@ else
                 uploadMessage = "Foto de perfil atualizada com sucesso!";
                 StateHasChanged();
                 
-                // Wait a moment to ensure database and cache updates are complete
-                await Task.Delay(100);
+                // Wait a moment to ensure the image is available on CDN
+                await Task.Delay(500);
                 
-                // Notify MainLayout and other components that profile picture has been updated
-                // (This won't work due to Blazor scoping issues, but kept for potential future fixes)
-                ProfilePictureUpdateService.NotifyProfilePictureUpdated();
-                
-                // Use JavaScript to directly update the navbar avatar as a fallback
+                // Use JavaScript to directly update the navbar avatar
                 // This works reliably across render contexts
                 try
                 {
@@ -579,16 +579,17 @@ else
                     Console.WriteLine($"[Profile.razor] Failed to call JavaScript: {ex.Message}");
                 }
                 
-                // Wait for Blazor to update the DOM.
-                await Task.Delay(150);
-                
-                await Task.Delay(1500);
+                // Clear success message after a delay
+                await Task.Delay(2000);
                 uploadMessage = null;
+                StateHasChanged();
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.WriteLine($"[Profile.razor] Error uploading profile picture: {ex.Message}");
             uploadMessage = "Erro ao guardar imagem. Por favor tente novamente.";
+            StateHasChanged();
         }
     }
 
@@ -600,9 +601,11 @@ else
         
         // Add refresh trigger only when an image has been updated
         // This forces browser to re-fetch after edits while maintaining ETag caching
-        if (imageRefreshTrigger > 0 && src.StartsWith("/api/images/"))
+        // Works for both local (/api/images/) and Cloudflare (https://) URLs
+        if (imageRefreshTrigger > 0 && !src.Contains("default-avatar"))
         {
-            return $"{src}?r={imageRefreshTrigger}";
+            var separator = src.Contains('?') ? '&' : '?';
+            return $"{src}{separator}r={imageRefreshTrigger}";
         }
         
         return src;
