@@ -56,20 +56,9 @@ public class CloudflareImageStorageService : IImageStorageService
     {
         try
         {
-            string objectKey;
-            
-            // For profile pictures, use consistent filename (no timestamp) to enable ETag caching
-            // This allows browsers to cache with 304 Not Modified responses
-            if (entityType == "profile")
-            {
-                objectKey = $"images/{_environment}/{entityType}/{entityId}.webp";
-            }
-            else
-            {
-                // For other entities, include timestamp to ensure unique URLs
-                var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-                objectKey = $"images/{_environment}/{entityType}/{entityId}_{timestamp}.webp";
-            }
+            // Generate object key with timestamp for all entities
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            var objectKey = $"images/{_environment}/{entityType}/{entityId}_{timestamp}.webp";
 
             var putRequest = new PutObjectRequest
             {
@@ -81,12 +70,9 @@ public class CloudflareImageStorageService : IImageStorageService
                 UseChunkEncoding = false
             };
 
-            // Add cache control headers for profile pictures to enable ETag caching
-            if (entityType == "profile")
-            {
-                // Allow caching but always revalidate with server (ETag check)
-                putRequest.Headers.CacheControl = "public, max-age=0, must-revalidate";
-            }
+            // Add cache control headers for browser caching
+            // Since URLs include timestamp, they are immutable - cache for 1 year
+            putRequest.Headers.CacheControl = "public, max-age=31536000, immutable";
 
             // Add metadata to help with debugging
             putRequest.Metadata.Add("x-amz-meta-uploaded-at", DateTime.UtcNow.ToString("o"));
