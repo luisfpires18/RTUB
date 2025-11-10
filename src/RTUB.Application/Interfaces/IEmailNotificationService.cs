@@ -49,7 +49,8 @@ public interface IEmailNotificationService
     /// <param name="email">The email address of the new member</param>
     /// <param name="firstName">The first name of the member</param>
     /// <param name="password">The generated password</param>
-    Task SendWelcomeEmailAsync(string userName, string email, string firstName, string password);
+    /// <param name="lastName">The last name of the member (optional)</param>
+    Task SendWelcomeEmailAsync(string userName, string email, string firstName, string password, string lastName = "");
 
     /// <summary>
     /// Sends event notification emails to subscribed members
@@ -60,6 +61,7 @@ public interface IEmailNotificationService
     /// <param name="eventLocation">The event location</param>
     /// <param name="eventLink">Absolute link to the event</param>
     /// <param name="recipientEmails">List of recipient email addresses</param>
+    /// <param name="recipientNicknames">Optional dictionary mapping emails to nicknames for personalization</param>
     /// <returns>Tuple with success flag and count of emails sent</returns>
     Task<(bool success, int count, string? errorMessage)> SendEventNotificationAsync(
         int eventId, 
@@ -67,5 +69,6 @@ public interface IEmailNotificationService
         DateTime eventDate, 
         string eventLocation, 
         string eventLink, 
-        List<string> recipientEmails);
+        List<string> recipientEmails,
+        Dictionary<string, string>? recipientNicknames = null);
 }

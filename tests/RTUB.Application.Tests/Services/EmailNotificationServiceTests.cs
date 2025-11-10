@@ -37,11 +37,11 @@ public class EmailNotificationServiceTests : IDisposable
             .ReturnsAsync("Test email body");
         
         _mockTemplateRenderer.Setup(x => x.RenderWelcomeEmailAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test welcome email");
         
         _mockTemplateRenderer.Setup(x => x.RenderEventNotificationAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test event email");
 
         _service = new EmailNotificationService(_mockLogger.Object, _mockConfiguration.Object, _cache, _mockTemplateRenderer.Object);

@@ -43,12 +43,14 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
     public async Task<string> RenderWelcomeEmailAsync(
         string userName,
         string firstName,
-        string password)
+        string password,
+        string lastName = "")
     {
         var model = new WelcomeEmailModel
         {
             UserName = userName,
             FirstName = firstName,
+            LastName = lastName,
             Password = password
         };
 
@@ -59,14 +61,16 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
         string eventTitle,
         string dateFormatted,
         string eventLocation,
-        string eventLink)
+        string eventLink,
+        string nickname = "")
     {
         var model = new EventNotificationModel
         {
             EventTitle = eventTitle,
             DateFormatted = dateFormatted,
             EventLocation = eventLocation,
-            EventLink = eventLink
+            EventLink = eventLink,
+            Nickname = nickname
         };
 
         return await _templateService.RenderTemplateAsync("EventNotification", model);

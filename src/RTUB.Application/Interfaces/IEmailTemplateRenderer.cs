@@ -24,7 +24,8 @@ public interface IEmailTemplateRenderer
     Task<string> RenderWelcomeEmailAsync(
         string userName,
         string firstName,
-        string password);
+        string password,
+        string lastName = "");
 
     /// <summary>
     /// Renders the event notification email
@@ -33,7 +34,8 @@ public interface IEmailTemplateRenderer
         string eventTitle,
         string dateFormatted,
         string eventLocation,
-        string eventLink);
+        string eventLink,
+        string nickname = "");
 
     /// <summary>
     /// Renders the password reset email
