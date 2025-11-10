@@ -138,7 +138,7 @@ public class EmailNotificationService : IEmailNotificationService
                 From = new MailAddress(senderEmail, senderName),
                 Subject = subject,
                 Body = body,
-                IsBodyHtml = false,
+                IsBodyHtml = true,
                 BodyEncoding = Encoding.UTF8,
                 SubjectEncoding = Encoding.UTF8
             };
@@ -217,7 +217,7 @@ public class EmailNotificationService : IEmailNotificationService
                 From = new MailAddress(senderEmail, senderName ?? "RTUB"),
                 Subject = subject,
                 Body = body,
-                IsBodyHtml = false,
+                IsBodyHtml = true,
                 BodyEncoding = Encoding.UTF8,
                 SubjectEncoding = Encoding.UTF8
             };
@@ -308,7 +308,7 @@ public class EmailNotificationService : IEmailNotificationService
                 From = new MailAddress(senderEmail, senderName),
                 Subject = subject,
                 Body = body,
-                IsBodyHtml = false,
+                IsBodyHtml = true,
                 BodyEncoding = Encoding.UTF8,
                 SubjectEncoding = Encoding.UTF8
             };
