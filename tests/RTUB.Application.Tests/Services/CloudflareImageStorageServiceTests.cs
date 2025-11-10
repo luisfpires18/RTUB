@@ -28,8 +28,8 @@ public class CloudflareImageStorageServiceTests
     public void Constructor_WithNullS3Client_ThrowsArgumentNullException()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:AccountId"]).Returns("test-account-id");
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
         // Act & Assert
         Action act = () => new CloudflareImageStorageService(null!, _mockConfiguration.Object, _mockLogger.Object);
@@ -37,24 +37,24 @@ public class CloudflareImageStorageServiceTests
     }
 
     [Fact]
-    public void Constructor_WithoutAccountId_ThrowsInvalidOperationException()
+    public void Constructor_WithoutPublicUrl_ThrowsInvalidOperationException()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:AccountId"]).Returns((string?)null);
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns((string?)null);
 
         // Act & Assert
         Action act = () => new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*account ID not configured*");
+            .WithMessage("*public URL not configured*");
     }
 
     [Fact]
     public void Constructor_WithoutBucket_ThrowsInvalidOperationException()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:AccountId"]).Returns("test-account-id");
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns((string?)null);
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
         // Act & Assert
         Action act = () => new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
@@ -66,8 +66,8 @@ public class CloudflareImageStorageServiceTests
     public void Constructor_WithValidConfiguration_InitializesSuccessfully()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:AccountId"]).Returns("test-account-id");
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
         // Act
         var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
@@ -80,7 +80,7 @@ public class CloudflareImageStorageServiceTests
             x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("initialized for bucket")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("initialized")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -90,8 +90,8 @@ public class CloudflareImageStorageServiceTests
     public async Task DeleteImageAsync_WithEmptyUrl_LogsWarningAndReturns()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:AccountId"]).Returns("test-account-id");
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
         var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
 
@@ -113,8 +113,8 @@ public class CloudflareImageStorageServiceTests
     public async Task ImageExistsAsync_WithEmptyUrl_ReturnsFalse()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:AccountId"]).Returns("test-account-id");
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
         var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
 
@@ -132,8 +132,8 @@ public class CloudflareImageStorageServiceTests
     public async Task ImageExistsAsync_WithInvalidUrl_ReturnsFalse(string? invalidUrl)
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:AccountId"]).Returns("test-account-id");
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
         var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
 
@@ -148,8 +148,8 @@ public class CloudflareImageStorageServiceTests
     public void Constructor_LogsInitializationMessage()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["Cloudflare:R2:AccountId"]).Returns("test-account-id");
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("rtub");
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:PublicUrl"]).Returns("https://pub-test.r2.dev");
 
         // Act
         var service = new CloudflareImageStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);

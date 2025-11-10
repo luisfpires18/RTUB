@@ -27,15 +27,8 @@ public class CloudflareImageStorageService : IImageStorageService
         _logger = logger;
 
         // Get Cloudflare R2 configuration
-        var accountId = configuration["Cloudflare:R2:AccountId"];
         var bucketName = configuration["Cloudflare:R2:Bucket"];
-
-        if (string.IsNullOrEmpty(accountId))
-        {
-            var errorMsg = "Cloudflare R2 account ID not configured. Set Cloudflare:R2:AccountId.";
-            _logger.LogError(errorMsg);
-            throw new InvalidOperationException(errorMsg);
-        }
+        var publicUrl = configuration["Cloudflare:R2:PublicUrl"];
 
         if (string.IsNullOrEmpty(bucketName))
         {
@@ -44,10 +37,18 @@ public class CloudflareImageStorageService : IImageStorageService
             throw new InvalidOperationException(errorMsg);
         }
 
-        _bucketName = bucketName;
-        _publicBaseUrl = $"https://pub-{accountId}.r2.dev/{bucketName}";
+        if (string.IsNullOrEmpty(publicUrl))
+        {
+            var errorMsg = "Cloudflare R2 public URL not configured. Set Cloudflare:R2:PublicUrl (e.g., https://pub-xxx.r2.dev).";
+            _logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
 
-        _logger.LogInformation("Cloudflare R2 image storage service initialized for bucket: {BucketName}", _bucketName);
+        _bucketName = bucketName;
+        _publicBaseUrl = publicUrl.TrimEnd('/'); // Remove trailing slash if present
+
+        _logger.LogInformation("Cloudflare R2 image storage service initialized. Bucket: {BucketName}, PublicUrl: {PublicUrl}", 
+            _bucketName, _publicBaseUrl);
     }
 
     public async Task<string> UploadImageAsync(Stream fileStream, string fileName, string contentType, string entityType, string entityId)
@@ -82,7 +83,8 @@ public class CloudflareImageStorageService : IImageStorageService
             if (response.HttpStatusCode == System.Net.HttpStatusCode.OK)
             {
                 var publicUrl = $"{_publicBaseUrl}/{objectKey}";
-                _logger.LogInformation("Successfully uploaded image: {PublicUrl}", publicUrl);
+                _logger.LogInformation("Successfully uploaded image. ObjectKey: {ObjectKey}, PublicUrl: {PublicUrl}", 
+                    objectKey, publicUrl);
                 return publicUrl;
             }
             else
@@ -213,15 +215,15 @@ public class CloudflareImageStorageService : IImageStorageService
     {
         try
         {
-            // URL format: https://pub-{accountId}.r2.dev/{bucket}/{objectKey}
-            // We need to extract the objectKey part
+            // URL format: https://pub-xxx.r2.dev/{objectKey}
+            // We need to extract the objectKey part (everything after the domain)
             var uri = new Uri(imageUrl);
             var pathSegments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
             
-            // First segment is bucket name, rest is the object key
-            if (pathSegments.Length > 1)
+            // All segments form the object key (no bucket name in path)
+            if (pathSegments.Length > 0)
             {
-                return string.Join("/", pathSegments.Skip(1));
+                return string.Join("/", pathSegments);
             }
             
             return null;
