@@ -9,6 +9,8 @@
 @using RTUB.Application.Extensions
 @using RTUB.Shared
 @using RTUB.Core.Enums
+@using RTUB.Core.Extensions
+@using System.Security.Claims
 @attribute [Authorize]
 @inject IRehearsalService RehearsalService
 @inject IRehearsalAttendanceService AttendanceService
@@ -171,7 +173,7 @@ else
                 </div>
                 <div class="modal-body">
                     @* Only show "Quero tocar" toggle for non-Leitão members *@
-                    @if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao))
+                    @if (currentUserPrincipal != null && currentUserPrincipal.IsNotOnlyLeitao())
                     {
                         <div class="mb-3 form-check form-switch">
                             <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayRehearsalToggle"
@@ -804,6 +806,7 @@ else
     private bool isOwner = false;
     private string? currentUserId;
     private ApplicationUser? currentUser;
+    private ClaimsPrincipal? currentUserPrincipal;
 
     private List<Rehearsal> upcomingRehearsals = new();
     private List<Rehearsal> filteredUpcomingRehearsals = new();
@@ -897,6 +900,7 @@ else
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
+        currentUserPrincipal = user;
 
         if (user.Identity?.IsAuthenticated == true)
         {
@@ -1089,7 +1093,7 @@ else
                 instrumentValidationErrorRehearsal = string.Empty;
 
                 // Validate instrument is selected when wantToPlayRehearsal is true
-                if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao) && wantToPlayRehearsal)
+                if (currentUserPrincipal != null && currentUserPrincipal.IsNotOnlyLeitao() && wantToPlayRehearsal)
                 {
                     if (string.IsNullOrEmpty(selectedInstrument))
                     {

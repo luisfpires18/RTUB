@@ -9,6 +9,8 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Shared
 @using System.Web
+@using RTUB.Core.Extensions
+@using System.Security.Claims
 @inject IEventService EventService
 @inject IEnrollmentService EnrollmentService
 @inject ITrophyService TrophyService
@@ -276,7 +278,7 @@ else
                 @if (enrollmentForm.WillAttend)
                 {
                     @* Only show "Quero tocar" toggle for non-Leitão members *@
-                    @if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao))
+                    @if (currentUserPrincipal != null && currentUserPrincipal.IsNotOnlyLeitao())
                     {
                         <div class="mb-3 form-check form-switch">
                             <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayToggle"
@@ -802,6 +804,7 @@ else
     private List<Enrollment>? enrollments;
     private List<Enrollment>? eventEnrollments;
     private ApplicationUser? currentUser;
+    private ClaimsPrincipal? currentUserPrincipal;
     private bool showEditModal = false;
     private bool showDeleteModal = false;
     private bool showEnrollModal = false;
@@ -973,6 +976,7 @@ else
     private async Task LoadCurrentUser()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        currentUserPrincipal = authState.User;
         var userName = authState.User.Identity?.Name;
 
         if (!string.IsNullOrEmpty(userName))
@@ -1241,7 +1245,7 @@ else
         instrumentValidationError = string.Empty;
 
         // Validate instrument is selected when wantToPlay is true
-        if (wantToPlay && enrollmentForm.WillAttend && !currentUser.Categories.Contains(MemberCategory.Leitao))
+        if (wantToPlay && enrollmentForm.WillAttend && currentUserPrincipal != null && currentUserPrincipal.IsNotOnlyLeitao())
         {
             if (!enrollmentForm.Instrument.HasValue)
             {
