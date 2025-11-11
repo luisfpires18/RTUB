@@ -10,27 +10,11 @@ namespace RTUB.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // This migration fixes the issue where 20251109231600_MigrateToS3ImageStorage
-            // was added to __EFMigrationsHistory but never actually executed.
-            //
-            // Strategy:
-            // 1. Check if the old blob columns still exist (ProfilePictureData, ImageData, etc.)
-            // 2. If they do, remove the faulty migration entry from history
-            // 3. Re-run the S3 migration changes
+            // This migration re-applies the S3 Image Storage changes from 20251109231600_MigrateToS3ImageStorage
+            // The original migration wasn't running in production even though it's not in __EFMigrationsHistory
+            // 
+            // These changes are idempotent - they only run if the old blob columns still exist
 
-            // Check if old schema exists by looking for ProfilePictureData in AspNetUsers
-            migrationBuilder.Sql(@"
-                -- Delete the faulty migration entry if old schema still exists
-                DELETE FROM __EFMigrationsHistory 
-                WHERE MigrationId = '20251109231600_MigrateToS3ImageStorage'
-                AND EXISTS (
-                    SELECT 1 FROM pragma_table_info('AspNetUsers') 
-                    WHERE name = 'ProfilePictureData'
-                );
-            ");
-
-            // Now apply the S3 Image Storage migration (idempotent - only runs if old schema exists)
-            
             // ===== Slideshows: Remove ImageData and ImageContentType =====
             migrationBuilder.Sql(@"
                 CREATE TABLE IF NOT EXISTS Slideshows_new (
@@ -52,16 +36,14 @@ namespace RTUB.Migrations
                 FROM Slideshows
                 WHERE EXISTS (SELECT 1 FROM pragma_table_info('Slideshows') WHERE name = 'ImageData');
 
-                -- Only replace if old schema exists
-                DROP TABLE IF EXISTS Slideshows_old_temp;
-                CREATE TABLE IF NOT EXISTS Slideshows_old_temp AS SELECT * FROM Slideshows LIMIT 0;
-                
-                INSERT INTO Slideshows_old_temp SELECT * FROM Slideshows 
+                DROP TABLE IF EXISTS Slideshows_backup;
+                CREATE TABLE IF NOT EXISTS Slideshows_backup AS SELECT * FROM Slideshows LIMIT 0;
+                INSERT INTO Slideshows_backup SELECT * FROM Slideshows 
                 WHERE EXISTS (SELECT 1 FROM pragma_table_info('Slideshows') WHERE name = 'ImageData');
                 
                 DROP TABLE Slideshows;
                 ALTER TABLE Slideshows_new RENAME TO Slideshows;
-                DROP TABLE IF EXISTS Slideshows_old_temp;
+                DROP TABLE IF EXISTS Slideshows_backup;
             ");
 
             // ===== Events: Remove ImageData and ImageContentType =====
@@ -86,14 +68,14 @@ namespace RTUB.Migrations
                 FROM Events
                 WHERE EXISTS (SELECT 1 FROM pragma_table_info('Events') WHERE name = 'ImageData');
 
-                DROP TABLE IF EXISTS Events_old_temp;
-                CREATE TABLE IF NOT EXISTS Events_old_temp AS SELECT * FROM Events LIMIT 0;
-                INSERT INTO Events_old_temp SELECT * FROM Events 
+                DROP TABLE IF EXISTS Events_backup;
+                CREATE TABLE IF NOT EXISTS Events_backup AS SELECT * FROM Events LIMIT 0;
+                INSERT INTO Events_backup SELECT * FROM Events 
                 WHERE EXISTS (SELECT 1 FROM pragma_table_info('Events') WHERE name = 'ImageData');
                 
                 DROP TABLE Events;
                 ALTER TABLE Events_new RENAME TO Events;
-                DROP TABLE IF EXISTS Events_old_temp;
+                DROP TABLE IF EXISTS Events_backup;
             ");
 
             // ===== Albums: Remove CoverImageData, rename CoverImageUrl to ImageUrl =====
@@ -115,14 +97,14 @@ namespace RTUB.Migrations
                 FROM Albums
                 WHERE EXISTS (SELECT 1 FROM pragma_table_info('Albums') WHERE name = 'CoverImageData');
 
-                DROP TABLE IF EXISTS Albums_old_temp;
-                CREATE TABLE IF NOT EXISTS Albums_old_temp AS SELECT * FROM Albums LIMIT 0;
-                INSERT INTO Albums_old_temp SELECT * FROM Albums 
+                DROP TABLE IF EXISTS Albums_backup;
+                CREATE TABLE IF NOT EXISTS Albums_backup AS SELECT * FROM Albums LIMIT 0;
+                INSERT INTO Albums_backup SELECT * FROM Albums 
                 WHERE EXISTS (SELECT 1 FROM pragma_table_info('Albums') WHERE name = 'CoverImageData');
                 
                 DROP TABLE Albums;
                 ALTER TABLE Albums_new RENAME TO Albums;
-                DROP TABLE IF EXISTS Albums_old_temp;
+                DROP TABLE IF EXISTS Albums_backup;
             ");
 
             // ===== Products: Remove ImageData =====
@@ -148,14 +130,14 @@ namespace RTUB.Migrations
                 FROM Products
                 WHERE EXISTS (SELECT 1 FROM pragma_table_info('Products') WHERE name = 'ImageData');
 
-                DROP TABLE IF EXISTS Products_old_temp;
-                CREATE TABLE IF NOT EXISTS Products_old_temp AS SELECT * FROM Products LIMIT 0;
-                INSERT INTO Products_old_temp SELECT * FROM Products 
+                DROP TABLE IF EXISTS Products_backup;
+                CREATE TABLE IF NOT EXISTS Products_backup AS SELECT * FROM Products LIMIT 0;
+                INSERT INTO Products_backup SELECT * FROM Products 
                 WHERE EXISTS (SELECT 1 FROM pragma_table_info('Products') WHERE name = 'ImageData');
                 
                 DROP TABLE Products;
                 ALTER TABLE Products_new RENAME TO Products;
-                DROP TABLE IF EXISTS Products_old_temp;
+                DROP TABLE IF EXISTS Products_backup;
             ");
 
             // ===== Instruments: Remove ImageData =====
@@ -182,14 +164,14 @@ namespace RTUB.Migrations
                 FROM Instruments
                 WHERE EXISTS (SELECT 1 FROM pragma_table_info('Instruments') WHERE name = 'ImageData');
 
-                DROP TABLE IF EXISTS Instruments_old_temp;
-                CREATE TABLE IF NOT EXISTS Instruments_old_temp AS SELECT * FROM Instruments LIMIT 0;
-                INSERT INTO Instruments_old_temp SELECT * FROM Instruments 
+                DROP TABLE IF EXISTS Instruments_backup;
+                CREATE TABLE IF NOT EXISTS Instruments_backup AS SELECT * FROM Instruments LIMIT 0;
+                INSERT INTO Instruments_backup SELECT * FROM Instruments 
                 WHERE EXISTS (SELECT 1 FROM pragma_table_info('Instruments') WHERE name = 'ImageData');
                 
                 DROP TABLE Instruments;
                 ALTER TABLE Instruments_new RENAME TO Instruments;
-                DROP TABLE IF EXISTS Instruments_old_temp;
+                DROP TABLE IF EXISTS Instruments_backup;
             ");
 
             // ===== AspNetUsers: Add ImageUrl and remove ProfilePictureData columns =====
@@ -251,14 +233,14 @@ namespace RTUB.Migrations
                 FROM AspNetUsers
                 WHERE EXISTS (SELECT 1 FROM pragma_table_info('AspNetUsers') WHERE name = 'ProfilePictureData');
 
-                DROP TABLE IF EXISTS AspNetUsers_old_temp;
-                CREATE TABLE IF NOT EXISTS AspNetUsers_old_temp AS SELECT * FROM AspNetUsers LIMIT 0;
-                INSERT INTO AspNetUsers_old_temp SELECT * FROM AspNetUsers 
+                DROP TABLE IF EXISTS AspNetUsers_backup;
+                CREATE TABLE IF NOT EXISTS AspNetUsers_backup AS SELECT * FROM AspNetUsers LIMIT 0;
+                INSERT INTO AspNetUsers_backup SELECT * FROM AspNetUsers 
                 WHERE EXISTS (SELECT 1 FROM pragma_table_info('AspNetUsers') WHERE name = 'ProfilePictureData');
                 
                 DROP TABLE AspNetUsers;
                 ALTER TABLE AspNetUsers_new RENAME TO AspNetUsers;
-                DROP TABLE IF EXISTS AspNetUsers_old_temp;
+                DROP TABLE IF EXISTS AspNetUsers_backup;
 
                 -- Recreate indexes
                 CREATE INDEX IF NOT EXISTS IX_AspNetUsers_MentorId ON AspNetUsers (MentorId);
