@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -22,7 +23,7 @@ public class UserProfileServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options);
+        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
         
         // Mock UserManager
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();

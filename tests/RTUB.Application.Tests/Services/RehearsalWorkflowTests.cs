@@ -1,6 +1,8 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
@@ -24,6 +26,10 @@ public class RehearsalWorkflowTests : IDisposable
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
+        
+        // Register required dependencies for ApplicationDbContext
+        services.AddScoped<IHttpContextAccessor>(_ => Mock.Of<IHttpContextAccessor>());
+        services.AddScoped<AuditContext>();
 
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();

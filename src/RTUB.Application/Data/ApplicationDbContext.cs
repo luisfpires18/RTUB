@@ -14,8 +14,8 @@ namespace RTUB.Application.Data;
 /// </summary>
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
-    private readonly IHttpContextAccessor? _httpContextAccessor;
-    private readonly AuditContext? _auditContext;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly AuditContext _auditContext;
     private bool _isAuditingEnabled = true;
 
     // Critical entities that should always be flagged in audit logs
@@ -23,11 +23,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     // Constants for audit logging
     private const int BinaryDataTruncateThreshold = 100;
-
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-        : base(options)
-    {
-    }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor, AuditContext auditContext)
         : base(options)
@@ -80,11 +75,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
 
         // Try to get user from HttpContext first (for HTTP requests)
-        var username = _httpContextAccessor?.HttpContext?.User?.Identity?.Name;
-        var userId = _httpContextAccessor?.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var username = _httpContextAccessor.HttpContext?.User?.Identity?.Name;
+        var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-        // Fallback to AuditContext for operations outside HTTP context (e.g., Blazor InteractiveServer)
-        if (string.IsNullOrEmpty(username) && _auditContext != null)
+        // Fallback to AuditContext for operations outside HTTP context (e.g., Blazor InteractiveServer)  
+        // or when user is not yet authenticated (e.g., during login before SignInAsync is called)
+        if (string.IsNullOrEmpty(username))
         {
             username = _auditContext.UserName;
             userId = _auditContext.UserId;

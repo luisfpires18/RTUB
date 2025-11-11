@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -24,7 +25,7 @@ public class EnrollmentServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options);
+        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
         _enrollmentService = new EnrollmentService(_context);
         _mockImageStorageService = new Mock<IImageStorageService>();
         _eventService = new EventService(_context, _mockImageStorageService.Object);

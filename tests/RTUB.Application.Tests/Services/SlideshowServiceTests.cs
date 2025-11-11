@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -20,7 +21,7 @@ public class SlideshowServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options);
+        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
         _imageStorageServiceMock = new Mock<IImageStorageService>();
         _service = new SlideshowService(_context, _imageStorageServiceMock.Object);
     }
