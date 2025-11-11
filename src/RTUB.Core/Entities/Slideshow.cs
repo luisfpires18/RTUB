@@ -87,30 +87,16 @@ public class Slideshow : BaseEntity, IValidatableObject
     }
 
     /// <summary>
-    /// Custom validation logic to ensure an image is present.
-    /// Only validates for existing slideshows (Id > 0), not during creation.
-    /// Images are uploaded after the slideshow entity is created.
+    /// Custom validation logic.
+    /// Image validation is handled at the UI layer during create/edit operations.
+    /// This allows proper handling of image uploads through the multi-step process:
+    /// - Create: Entity is created first, then image is uploaded
+    /// - Edit: Existing image is preserved unless a new one is uploaded
     /// </summary>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        // Skip validation for new slideshows (Id == 0) as images are uploaded after creation
-        // This allows the create flow to work: Create entity -> Upload image -> Save
-        if (Id == 0)
-        {
-            yield break;
-        }
-
-        // For existing slideshows, check if a valid URL is present
-        bool hasUrl = !string.IsNullOrWhiteSpace(ImageUrl);
-
-        // If no URL is present, return a validation error.
-        if (!hasUrl)
-        {
-            yield return new ValidationResult(
-                "An image is required. Please provide an Image URL or upload a new image.",
-                new[] { nameof(ImageUrl) }
-            );
-        }
+        // No validation errors - image handling is managed by the UI layer
+        yield break;
     }
 
     // Property alias for backward compatibility
