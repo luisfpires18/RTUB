@@ -246,9 +246,9 @@ public class SlideshowTests
     }
 
     [Fact]
-    public void Validate_WithoutImage_ForExistingSlideshow_ReturnsValidationError()
+    public void Validate_WithoutImage_ForExistingSlideshow_ReturnsNoErrors()
     {
-        // Arrange - Existing slideshow (Id > 0) should require image
+        // Arrange - Image validation is now handled at the UI layer, not entity level
         var slideshow = Slideshow.Create("Title", 1);
         // Simulate an existing entity by using reflection to set the Id
         var idProperty = typeof(Slideshow).GetProperty("Id");
@@ -259,8 +259,7 @@ public class SlideshowTests
         var results = slideshow.Validate(validationContext).ToList();
 
         // Assert
-        results.Should().ContainSingle();
-        results[0].ErrorMessage.Should().Contain("An image is required");
+        results.Should().BeEmpty();
     }
 
     [Fact]
