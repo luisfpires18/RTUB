@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -24,7 +25,7 @@ public class RequestServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options);
+        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
         _emailServiceMock = new Mock<IEmailNotificationService>();
         _requestService = new RequestService(_context, _emailServiceMock.Object);
     }

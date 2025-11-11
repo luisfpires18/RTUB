@@ -1,5 +1,7 @@
 using FluentAssertions;
+using Moq;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
@@ -21,7 +23,7 @@ public class AuditLogServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options);
+        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
         _auditLogService = new AuditLogService(_context);
     }
 
