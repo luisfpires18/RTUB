@@ -251,7 +251,7 @@ else
            Size="Modal.ModalSize.Default"
            Centered="true">
         <BodyContent>
-            <EditForm Model="enrollmentForm" OnValidSubmit="SaveEnrollment">
+            <EditForm Model="enrollmentForm" OnValidSubmit="SaveEnrollment" @ref="enrollmentEditForm">
                 <DataAnnotationsValidator />
                 <ErrorDisplay />
 
@@ -298,10 +298,6 @@ else
                                         <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                                     }
                                 </InputSelect>
-                                @if (!string.IsNullOrEmpty(instrumentValidationError))
-                                {
-                                    <div class="text-danger mt-1">@instrumentValidationError</div>
-                                }
                             </div>
                         }
                     }
@@ -822,6 +818,7 @@ else
     private bool isUserOwner = false;
     private bool isTrophyCreateMode = false;
     private string instrumentValidationError = string.Empty;
+    private EditForm? enrollmentEditForm;
     private Event? editingEvent;
     private Event? deletingEvent;
     private Event? selectedEvent;
@@ -1235,18 +1232,22 @@ else
 
     private async Task SaveEnrollment()
     {
-        if (enrollmentForm == null || currentUser == null) return;
+        if (enrollmentForm == null || currentUser == null || enrollmentEditForm?.EditContext == null) return;
 
+        var editContext = enrollmentEditForm.EditContext;
+        var messageStore = new ValidationMessageStore(editContext);
+        
         // Clear previous validation errors
         instrumentValidationError = string.Empty;
+        messageStore.Clear();
 
         // Validate instrument is selected when wantToPlay is true
         if (wantToPlay && enrollmentForm.WillAttend && !currentUser.Categories.Contains(MemberCategory.Leitao))
         {
             if (!enrollmentForm.Instrument.HasValue)
             {
-                instrumentValidationError = "Por favor, selecione um instrumento.";
-                StateHasChanged();
+                messageStore.Add(() => enrollmentForm.Instrument, "Por favor, selecione um instrumento.");
+                editContext.NotifyValidationStateChanged();
                 return;
             }
         }
