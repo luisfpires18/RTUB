@@ -292,7 +292,7 @@ else
                             <div class="mb-3">
                                 <label class="form-label text-white-full">Instrumento *</label>
                                 <InputSelect class="form-select form-select-dark" @bind-Value="enrollmentForm.Instrument">
-                                    <option value="" disabled>Selecionar...</option>
+                                    <option value="" disabled selected>Selecionar...</option>
                                     @foreach (var instrument in Enum.GetValues<InstrumentType>())
                                     {
                                         <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
@@ -1216,9 +1216,9 @@ else
     {
         wantToPlay = value;
         instrumentValidationError = string.Empty; // Clear validation error when toggle changes
-        if (!value && enrollmentForm != null)
+        if (enrollmentForm != null)
         {
-            // Clear instrument when toggle is turned off
+            // Always clear instrument when toggle changes to force user to select
             enrollmentForm.Instrument = null;
         }
     }

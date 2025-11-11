@@ -187,7 +187,7 @@ else
                             <div class="mb-3">
                                 <label class="form-label">Instrumento *</label>
                                 <select class="form-select" @bind="selectedInstrument">
-                                    <option value="" disabled>Selecionar...</option>
+                                    <option value="" disabled selected>Selecionar...</option>
                                     @foreach (var instrument in Enum.GetValues<InstrumentType>())
                                     {
                                         <option value="@instrument">@instrument</option>
@@ -205,7 +205,7 @@ else
                         <div class="mb-3">
                             <label class="form-label">Instrumento (Opcional)</label>
                             <select class="form-select" @bind="selectedInstrument">
-                                <option value="" disabled>Selecionar...</option>
+                                <option value="" disabled selected>Selecionar...</option>
                                 @foreach (var instrument in Enum.GetValues<InstrumentType>())
                                 {
                                     <option value="@instrument">@instrument</option>
@@ -1123,11 +1123,8 @@ else
     {
         wantToPlayRehearsal = value;
         instrumentValidationErrorRehearsal = string.Empty; // Clear validation error when toggle changes
-        if (!value)
-        {
-            // Clear instrument when toggle is turned off
-            selectedInstrument = null;
-        }
+        // Always clear instrument when toggle changes to force user to select
+        selectedInstrument = null;
     }
 
     private void CloseAttendanceModal()
