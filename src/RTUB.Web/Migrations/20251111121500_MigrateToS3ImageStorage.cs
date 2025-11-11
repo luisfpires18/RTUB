@@ -13,6 +13,9 @@ namespace RTUB.Migrations
             // This migration renames CoverImageUrl to ImageUrl in Albums table
             // All other tables already have ImageUrl, so this is the only change needed for production
             
+            // ===== Cleanup: Remove any leftover tables from failed migrations =====
+            migrationBuilder.Sql("DROP TABLE IF EXISTS Albums_new;");
+            
             // ===== Albums: Rename CoverImageUrl to ImageUrl =====
             migrationBuilder.Sql("CREATE TABLE Albums_new (Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, Title TEXT NOT NULL, Description TEXT, Year INTEGER, ImageUrl TEXT, CreatedAt TEXT NOT NULL, CreatedBy TEXT, UpdatedAt TEXT, UpdatedBy TEXT);");
             
