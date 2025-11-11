@@ -12,7 +12,7 @@
 .history-subtitle {
     font-size: 1.5rem;
     font-weight: 600;
-    color: #6f42c1;
+    color: var(--bs-primary);
     margin: 0;
     text-align: left;
 }
@@ -54,7 +54,7 @@
     top: 10%;
     height: 80%;
     width: 2px;
-    background: linear-gradient(180deg, transparent 0%, #6f42c1 50%, transparent 100%);
+    background: linear-gradient(180deg, transparent 0%, var(--bs-primary) 50%, transparent 100%);
 }
 
 .column-header {
@@ -66,7 +66,7 @@
 
 .column-icon {
     font-size: 1.75rem;
-    color: #6f42c1;
+    color: var(--bs-primary);
     flex-shrink: 0;
 }
 
@@ -100,7 +100,7 @@
     content: '•';
     position: absolute;
     left: 0;
-    color: #6f42c1;
+    color: var(--bs-primary);
     font-weight: bold;
     font-size: 1.25rem;
 }
@@ -113,7 +113,7 @@
     border-radius: 1rem;
     padding: 2rem;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    border-left: 4px solid #6f42c1;
+    border-left: 4px solid var(--bs-primary);
 }
 
 .timeline-header {
@@ -125,7 +125,7 @@
 
 .timeline-icon {
     font-size: 1.75rem;
-    color: #6f42c1;
+    color: var(--bs-primary);
     flex-shrink: 0;
 }
 
@@ -153,7 +153,7 @@
     content: '▸';
     position: absolute;
     left: 0;
-    color: #6f42c1;
+    color: var(--bs-primary);
     font-weight: bold;
 }
 
@@ -161,11 +161,11 @@
 .history-closing {
     max-width: 900px;
     margin: 0 auto 3rem auto;
-    background: linear-gradient(135deg, rgba(111, 66, 193, 0.2) 0%, rgba(90, 47, 158, 0.2) 100%);
-    border: 1px solid rgba(111, 66, 193, 0.3);
+    background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.2) 0%, rgba(90, 47, 158, 0.2) 100%);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
     border-radius: 1rem;
     padding: 2.5rem;
-    box-shadow: 0 4px 8px rgba(111, 66, 193, 0.2);
+    box-shadow: 0 4px 8px rgba(var(--bs-primary-rgb), 0.2);
 }
 
 .closing-header {
@@ -184,7 +184,7 @@
 
 .closing-content i {
     font-size: 2rem;
-    color: #6f42c1;
+    color: var(--bs-primary);
     margin-top: 0.25rem;
     flex-shrink: 0;
 }
@@ -195,7 +195,7 @@
 
 .closing-icon {
     font-size: 2rem;
-    color: #6f42c1;
+    color: var(--bs-primary);
     flex-shrink: 0;
 }
 
@@ -237,7 +237,7 @@
         bottom: 0;
         left: 10%;
         right: auto;
-        background: linear-gradient(90deg, transparent 0%, #6f42c1 50%, transparent 100%);
+        background: linear-gradient(90deg, transparent 0%, var(--bs-primary) 50%, transparent 100%);
     }
 
     .mission-column,

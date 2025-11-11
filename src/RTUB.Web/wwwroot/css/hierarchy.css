@@ -13,7 +13,7 @@
 .hierarchy-subtitle {
     font-size: 1.5rem;
     font-weight: 600;
-    color: #6f42c1;
+    color: var(--bs-primary);
     margin: 0 0 1rem 0;
 }
 
@@ -48,7 +48,7 @@
 .hierarchy-card:hover,
 .hierarchy-card:focus-within {
     transform: translateY(-4px);
-    box-shadow: 0 6px 16px rgba(111, 66, 193, 0.3);
+    box-shadow: 0 6px 16px rgba(var(--bs-primary-rgb), 0.3);
 }
 
 /* Card Image */
@@ -101,7 +101,7 @@
     position: absolute;
     top: 0.75rem;
     right: 0.75rem;
-    background-color: rgba(111, 66, 193, 0.9);
+    background-color: rgba(var(--bs-primary-rgb), 0.9);
     border: none;
     border-radius: 50%;
     width: 32px;
@@ -118,12 +118,12 @@
 
 .hierarchy-edit-button:hover,
 .hierarchy-edit-button:focus {
-    background-color: #6f42c1;
+    background-color: var(--bs-primary);
     transform: scale(1.1);
 }
 
 .hierarchy-edit-button:focus {
-    outline: 2px solid #6f42c1;
+    outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
 
@@ -188,7 +188,7 @@
 
 /* Accessibility */
 .hierarchy-card:focus-within .hierarchy-edit-button {
-    outline: 2px solid #6f42c1;
+    outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
 
