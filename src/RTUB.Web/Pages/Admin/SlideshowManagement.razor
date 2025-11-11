@@ -82,7 +82,7 @@ else
                   OnDelete="DeleteSlide"
                   OnDeleteModalClosed="() => deletingSlide = null">
     <EditFormContent Context="slide">
-        <EditForm Model="slide" OnValidSubmit="SaveSlide">
+        <EditForm Model="slide" OnValidSubmit="SaveSlide" @ref="slideshowEditForm">
             <DataAnnotationsValidator />
             <ErrorDisplay />
 
@@ -112,11 +112,6 @@ else
                                ShowCurrentImage="@(uploadedImagePath == null)"
                                PreviewCssClass="slideshow-preview"
                                OnFileSelected="HandleImageUpload" />
-
-            @if (!string.IsNullOrEmpty(validationErrorMessage))
-            {
-                <div class="alert alert-danger mt-2">@validationErrorMessage</div>
-            }
 
             <div class="mb-3 form-check">
                 <InputCheckbox class="form-check-input" id="isActive" @bind-Value="slide!.IsActive" />
@@ -163,6 +158,7 @@ else
     private byte[]? croppedSlideshowImageBytes;
     private string? croppedSlideshowImageFileName = "slideshow-image.webp";
     private string? validationErrorMessage;
+    private EditForm? slideshowEditForm;
 
     protected override async Task OnInitializedAsync()
     {
@@ -289,15 +285,20 @@ else
 
     private async Task SaveSlide()
     {
-        if (editingSlide == null) return;
+        if (editingSlide == null || slideshowEditForm?.EditContext == null) return;
+
+        var editContext = slideshowEditForm.EditContext;
+        var messageStore = new ValidationMessageStore(editContext);
+        messageStore.Clear();
+        validationErrorMessage = null;
 
         if (isCreateMode)
         {
             // Validate that an image was uploaded for new slideshows
             if (croppedSlideshowImageBytes == null || croppedSlideshowImageBytes.Length == 0)
             {
-                validationErrorMessage = "É obrigatório carregar uma imagem para o slideshow.";
-                StateHasChanged();
+                messageStore.Add(() => editingSlide.Title, "É obrigatório carregar uma imagem para o slideshow.");
+                editContext.NotifyValidationStateChanged();
                 return;
             }
             
