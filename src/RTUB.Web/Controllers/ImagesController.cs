@@ -103,7 +103,9 @@ public class ImagesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error serving image {Filename}", filename);
+            // Sanitize filename for logging to prevent log forging
+            var sanitizedFilename = filename?.Replace("\r", "").Replace("\n", "") ?? "unknown";
+            _logger.LogError(ex, "Error serving image {Filename}", sanitizedFilename);
             return StatusCode(StatusCodes.Status500InternalServerError);
         }
     }
