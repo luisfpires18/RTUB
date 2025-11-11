@@ -292,20 +292,26 @@ namespace RTUB
             // Enable response caching
             app.UseResponseCaching();
 
-            // Serve static files with caching headers
-            app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
-            {
-                OnPrepareResponse = ctx =>
-                {
-                    // Cache static files for 30 days in production
-                    if (!app.Environment.IsDevelopment())
-                    {
-                        ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=2592000");
-                    }
-                }
-            });
-
             app.UseRouting();
+            
+            // Serve static files EXCEPT /images/* (handled by ImagesController for E-Tag support)
+            // We'll serve /images through the controller, all other static content through middleware
+            app.UseWhen(
+                context => !context.Request.Path.StartsWithSegments("/images"),
+                appBuilder =>
+                {
+                    appBuilder.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
+                    {
+                        OnPrepareResponse = ctx =>
+                        {
+                            // Cache static files for 30 days in production
+                            if (!app.Environment.IsDevelopment())
+                            {
+                                ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=2592000");
+                            }
+                        }
+                    });
+                });
 
             // Handle Blazor 404s gracefully - placed after UseRouting
             app.Use(async (context, next) =>
