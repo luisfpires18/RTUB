@@ -110,7 +110,7 @@ else
     <BodyContent>
         <EditForm Model="editingReport" OnValidSubmit="SaveReport">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" />
+            <ErrorDisplay />
 
             @if (!string.IsNullOrEmpty(errorMessage))
             {

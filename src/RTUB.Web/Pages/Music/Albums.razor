@@ -106,7 +106,7 @@ else
     <EditFormContent Context="album">
         <EditForm Model="album" OnValidSubmit="SaveAlbum" id="albumForm">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" />
+            <ErrorDisplay />
 
             <div class="mb-3">
                 <label class="form-label">Título</label>

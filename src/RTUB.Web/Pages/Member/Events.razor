@@ -162,7 +162,7 @@ else
     <BodyContent>
         <EditForm Model="editingEvent" OnValidSubmit="SaveEvent">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" />
+            <ErrorDisplay />
 
             <div class="mb-3">
                 <label class="form-label">Nome da Atuação</label>
@@ -253,7 +253,7 @@ else
         <BodyContent>
             <EditForm Model="enrollmentForm" OnValidSubmit="SaveEnrollment">
                 <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger" />
+                <ErrorDisplay />
 
                 @* Will Attend Selection *@
                 <div class="mb-4">
@@ -677,7 +677,7 @@ else
         {
             <EditForm Model="editingTrophy" OnValidSubmit="SaveTrophy">
                 <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger" />
+                <ErrorDisplay />
 
                 <div class="mb-3">
                     <label class="form-label">Nome do Prémio</label>
