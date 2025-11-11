@@ -292,7 +292,7 @@ namespace RTUB
             // Enable response caching
             app.UseResponseCaching();
 
-            // Serve static files with caching headers
+            // Serve static files with caching headers and E-Tag support
             app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
             {
                 OnPrepareResponse = ctx =>
@@ -301,6 +301,15 @@ namespace RTUB
                     if (!app.Environment.IsDevelopment())
                     {
                         ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=2592000");
+                    }
+                    
+                    // Enable E-Tag for all static files, especially images
+                    // ASP.NET Core generates ETags based on LastModified date and file length
+                    var headers = ctx.Context.Response.GetTypedHeaders();
+                    if (headers.LastModified.HasValue && ctx.File.Length > 0)
+                    {
+                        var etagValue = $"\"{ctx.File.LastModified.ToFileTime():x}-{ctx.File.Length:x}\"";
+                        headers.ETag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue(etagValue);
                     }
                 }
             });
