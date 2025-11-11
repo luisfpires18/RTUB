@@ -84,7 +84,8 @@ namespace RTUB
                 options.Password.RequireLowercase = true;
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddDefaultTokenProviders();
+            .AddDefaultTokenProviders()
+            .AddClaimsPrincipalFactory<RTUB.Application.Identity.ApplicationUserClaimsPrincipalFactory>();
 
             // Configure cookie authentication to redirect to /login instead of /Account/Login
             services.ConfigureApplicationCookie(options =>
@@ -212,6 +213,41 @@ namespace RTUB
             services.AddAuthorization(o =>
             {
                 o.AddPolicy("RequireAdministratorRole", p => p.RequireRole("Admin"));
+                
+                // Category-based policies
+                o.AddPolicy("RequireTuno", policy => 
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(RTUB.Core.Constants.CustomClaimTypes.Category, "Tuno")));
+                
+                o.AddPolicy("RequireVeterano", policy => 
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(RTUB.Core.Constants.CustomClaimTypes.Category, "Veterano")));
+                
+                o.AddPolicy("RequireTunossauro", policy => 
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(RTUB.Core.Constants.CustomClaimTypes.Category, "Tunossauro")));
+                
+                o.AddPolicy("RequireEffectiveMember", policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c => c.Type == RTUB.Core.Constants.CustomClaimTypes.Category && 
+                            (c.Value == "Caloiro" || c.Value == "Tuno" || 
+                             c.Value == "Veterano" || c.Value == "Tunossauro"))));
+                
+                o.AddPolicy("RequireNotOnlyLeitao", policy =>
+                    policy.RequireAssertion(context =>
+                        !context.User.HasClaim(RTUB.Core.Constants.CustomClaimTypes.Category, "Leitao") ||
+                        context.User.Claims.Count(c => c.Type == RTUB.Core.Constants.CustomClaimTypes.Category) > 1));
+                
+                // Position-based policies
+                o.AddPolicy("RequireMagister", policy => 
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(RTUB.Core.Constants.CustomClaimTypes.Position, "Magister")));
+                
+                o.AddPolicy("RequirePresidentPosition", policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c => c.Type == RTUB.Core.Constants.CustomClaimTypes.Position && 
+                            (c.Value == "Magister" || c.Value == "PresidenteMesaAssembleia" || 
+                             c.Value == "PresidenteConselhoFiscal" || c.Value == "PresidenteConselhoVeteranos"))));
             });
 
             services.AddAntiforgery(o => o.HeaderName = "X-CSRF-TOKEN");
