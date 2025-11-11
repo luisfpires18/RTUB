@@ -183,7 +183,6 @@ else
                 <div class="col-md-6">
                     <label class="form-label">Nome *</label>
                     <InputText class="form-control" @bind-Value="instrument.Name" />
-                    <ValidationMessage For="@(() => instrument.Name)" class="text-danger" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Tipo *</label>
@@ -194,7 +193,6 @@ else
                             <option value="@category">@category</option>
                         }
                     </InputSelect>
-                    <ValidationMessage For="@(() => instrument.Category)" class="text-danger" />
                 </div>
             </div>
 
