@@ -67,9 +67,9 @@ else
     }
     else if (!songs.Any())
     {
-        <EmptyTableState Message="Nenhuma música neste álbum."
-                        IconClass="bi-music-note-list"
-                        SubMessage="Adicione músicas para começar." />
+        <EmptyState Title="Nenhuma música neste álbum"
+                        Icon="bi-music-note-list"
+                        Message="Adicione músicas para começar." />
     }
     else
     {
@@ -187,8 +187,8 @@ else
                 }
                 @if (string.IsNullOrEmpty(viewingSong.SpotifyUrl) && (viewingSong.YouTubeUrls == null || !viewingSong.YouTubeUrls.Any()))
                 {
-                    <EmptyTableState Message="Nenhum link disponível para esta música."
-                                    IconClass="bi-link-45deg" />
+                    <EmptyState Title="Nenhum link disponível para esta música"
+                                    Icon="bi-link-45deg" />
                 }
             }
         </div>

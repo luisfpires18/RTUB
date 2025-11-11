@@ -9,7 +9,6 @@
 @attribute [Authorize(Roles = "Admin")]
 @inherits CrudTablePageBase<Slideshow>
 @inject ISlideshowService SlideshowService
-@inject IImageService ImageService
 @inject IWebHostEnvironment Environment
 
 <h1>Gestão de Apresentação</h1>
@@ -37,84 +36,33 @@
 }
 else if (!PaginatedItems.Any())
 {
-    <EmptyTableState 
-        Message="Nenhum slideshow encontrado." 
-        IconClass="bi-info-circle" />
+    <EmptyState Title="Nenhum slideshow encontrado"
+                Message="Não foram encontrados slideshows que correspondam à sua pesquisa."
+                Icon="bi-info-circle" />
 }
 else
 {
-    <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Imagem</th>
-                    <SortableTableHeader 
-                        HeaderText="Título" 
-                        SortColumn="@nameof(Slideshow.Title)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Ordem" 
-                        SortColumn="@nameof(Slideshow.Order)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Intervalo (ms)" 
-                        SortColumn="@nameof(Slideshow.IntervalMs)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Ativo" 
-                        SortColumn="@nameof(Slideshow.IsActive)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var slide in PaginatedItems)
-                {
-                    <tr>
-                        <td>
-                            @if (!string.IsNullOrEmpty(slide.ImageSrc))
-                            {
-                                <img src="@GetSlideshowImageUrl(slide.ImageSrc)" alt="@slide.Title" class="slideshow-thumbnail img-thumbnail" />
-                            }
-                        </td>
-                        <td>@slide.Title</td>
-                        <td>@slide.Order</td>
-                        <td>@slide.IntervalMs</td>
-                        <td>
-                            <span class="badge @(slide.IsActive ? "bg-success" : "bg-secondary")">
-                                @(slide.IsActive ? "Ativo" : "Inativo")
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditModal(slide)" title="Editar">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteModal(slide)" title="Eliminar">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <!-- Slideshow Cards -->
+    <div class="slideshow-list mb-4">
+        @foreach (var slide in PaginatedItems)
+        {
+            <SlideshowCard Slide="@slide"
+                          ImageUrl="@GetSlideshowImageUrl(slide.ImageSrc)"
+                          ShowAdminControls="true"
+                          OnClick="@((s) => { })"
+                          OnEdit="@((s) => OpenEditModal(s))"
+                          OnDelete="@((s) => OpenDeleteModal(s))" />
+        }
     </div>
 
     <!-- Pagination -->
-    <TablePagination 
-        CurrentPage="@PaginationHelper.CurrentPage"
-        PageSize="@PaginationHelper.PageSize"
-        TotalItems="@FilteredItems.Count"
-        ItemLabel="slides"
-        OnPageChanged="ChangePage"
-        OnPageSizeChanged="ChangePageSize" />
+    <TablePagination CurrentPage="@PaginationHelper.CurrentPage"
+                    PageSize="@PaginationHelper.PageSize"
+                    TotalItems="@FilteredItems.Count"
+                    ItemLabel="slides"
+                    PageSizeOptions="@(new[] { 3, 6, 9, 12, 15 })"
+                    OnPageChanged="ChangePage"
+                    OnPageSizeChanged="ChangePageSize" />
 }
 
 <!-- CRUD Modals -->
@@ -165,6 +113,11 @@ else
                                PreviewCssClass="slideshow-preview"
                                OnFileSelected="HandleImageUpload" />
 
+            @if (!string.IsNullOrEmpty(validationErrorMessage))
+            {
+                <div class="alert alert-danger mt-2">@validationErrorMessage</div>
+            }
+
             <div class="mb-3 form-check">
                 <InputCheckbox class="form-check-input" id="isActive" @bind-Value="slide!.IsActive" />
                 <label class="form-check-label" for="isActive">Ativo</label>
@@ -192,7 +145,7 @@ else
               OnImageCropped="OnImageCropped"
               AspectRatio="0"
               AspectRatioHelp="As imagens de apresentação podem ter qualquer proporção - use corte livre para manter as proporções originais"
-              ImageFormat="image/jpeg"
+              ImageFormat="image/webp"
               ImageQuality="0.9" />
 
 @code {
@@ -207,10 +160,14 @@ else
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
     private int imageRefreshTrigger = 0;
+    private byte[]? croppedSlideshowImageBytes;
+    private string? croppedSlideshowImageFileName = "slideshow-image.webp";
+    private string? validationErrorMessage;
 
     protected override async Task OnInitializedAsync()
     {
         SortHelper.SortColumn = nameof(Slideshow.Order);
+        PaginationHelper.PageSize = 3; // Default page size for slideshow list
         await LoadItemsAsync();
         ApplyFiltersAndPagination();
     }
@@ -244,6 +201,8 @@ else
     {
         isCreateMode = true;
         uploadedImagePath = null;
+        croppedSlideshowImageBytes = null;
+        validationErrorMessage = null;
         editingSlide = new Slideshow
         {
             Title = string.Empty,
@@ -266,8 +225,6 @@ else
             Title = slide.Title,
             Description = slide.Description,
             ImageUrl = slide.ImageUrl,
-            ImageData = slide.ImageData,
-            ImageContentType = slide.ImageContentType,
             Order = slide.Order,
             IntervalMs = slide.IntervalMs,
             IsActive = slide.IsActive,
@@ -310,9 +267,9 @@ else
         {
             if (editingSlide != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                editingSlide.ImageData = croppedImageData;
-                editingSlide.ImageContentType = "image/jpeg";
+                croppedSlideshowImageBytes = croppedImageData;
                 uploadedImagePath = "uploaded";
+                validationErrorMessage = null;
                 StateHasChanged();
             }
         }
@@ -334,6 +291,14 @@ else
 
         if (isCreateMode)
         {
+            // Validate that an image was uploaded for new slideshows
+            if (croppedSlideshowImageBytes == null || croppedSlideshowImageBytes.Length == 0)
+            {
+                validationErrorMessage = "É obrigatório carregar uma imagem para o slideshow.";
+                StateHasChanged();
+                return;
+            }
+            
             var newSlide = await SlideshowService.CreateSlideshowAsync(
                 editingSlide.Title,
                 editingSlide.Order,
@@ -341,14 +306,9 @@ else
                 editingSlide.IntervalMs
             );
             
-            if (editingSlide.ImageData != null)
-            {
-                await SlideshowService.SetSlideshowImageAsync(
-                    newSlide.Id,
-                    editingSlide.ImageData,
-                    editingSlide.ImageContentType
-                );
-            }
+            // Upload image to R2
+            using var stream = new MemoryStream(croppedSlideshowImageBytes);
+            await SlideshowService.SetSlideshowImageAsync(newSlide.Id, stream, croppedSlideshowImageFileName!, "image/webp");
             
             if (editingSlide.IsActive)
             {
@@ -365,18 +325,11 @@ else
                 editingSlide.IntervalMs
             );
 
-            if (editingSlide.ImageData != null)
+            // Upload new image to R2 if one was cropped
+            if (croppedSlideshowImageBytes != null && croppedSlideshowImageBytes.Length > 0 && uploadedImagePath != null)
             {
-                await SlideshowService.SetSlideshowImageAsync(
-                    editingSlide.Id,
-                    editingSlide.ImageData,
-                    editingSlide.ImageContentType
-                );
-                
-                // Invalidate server-side cache to ensure new image is served
-                ImageService.InvalidateSlideshowImageCache(editingSlide.Id);
-                
-                // Increment trigger to force browser to re-fetch the image
+                using var stream = new MemoryStream(croppedSlideshowImageBytes);
+                await SlideshowService.SetSlideshowImageAsync(editingSlide.Id, stream, croppedSlideshowImageFileName!, "image/webp");
                 imageRefreshTrigger++;
             }
 

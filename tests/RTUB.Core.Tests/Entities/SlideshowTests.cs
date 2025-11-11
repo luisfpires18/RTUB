@@ -134,36 +134,30 @@ public class SlideshowTests
     }
 
     [Fact]
-    public void SetImage_WithValidData_SetsImage()
+    public void SetImage_WithValidUrl_SetsImage()
     {
         // Arrange
         var slideshow = Slideshow.Create("Title", 1);
-        var imageData = new byte[] { 1, 2, 3, 4 };
-        var contentType = "image/jpeg";
         var url = "http://example.com/image.jpg";
 
         // Act
-        slideshow.SetImage(imageData, contentType, url);
+        slideshow.SetImage(url);
 
         // Assert
-        slideshow.ImageData.Should().BeEquivalentTo(imageData);
-        slideshow.ImageContentType.Should().Be(contentType);
         slideshow.ImageUrl.Should().Be(url);
     }
 
     [Fact]
-    public void SetImage_WithNull_ClearsImage()
+    public void SetImage_WithEmptyString_ClearsImage()
     {
         // Arrange
         var slideshow = Slideshow.Create("Title", 1);
-        slideshow.SetImage(new byte[] { 1, 2, 3 }, "image/jpeg", "http://test.com");
+        slideshow.SetImage("http://test.com");
 
         // Act
-        slideshow.SetImage(null, null, "");
+        slideshow.SetImage("");
 
         // Assert
-        slideshow.ImageData.Should().BeNull();
-        slideshow.ImageContentType.Should().BeNull();
         slideshow.ImageUrl.Should().BeEmpty();
     }
 
@@ -195,27 +189,12 @@ public class SlideshowTests
     }
 
     [Fact]
-    public void GetImageSource_WithImageData_ReturnsApiUrl()
-    {
-        // Arrange
-        var slideshow = Slideshow.Create("Title", 1);
-        slideshow.SetImage(new byte[] { 1, 2, 3 }, "image/jpeg");
-        slideshow.Id = 123;
-
-        // Act
-        var source = slideshow.GetImageSource();
-
-        // Assert
-        source.Should().Be("/api/images/slideshow/123");
-    }
-
-    [Fact]
     public void GetImageSource_WithImageUrl_ReturnsImageUrl()
     {
         // Arrange
         var slideshow = Slideshow.Create("Title", 1);
         var url = "http://example.com/image.jpg";
-        slideshow.SetImage(null, null, url);
+        slideshow.SetImage(url);
 
         // Act
         var source = slideshow.GetImageSource();
@@ -242,21 +221,38 @@ public class SlideshowTests
     {
         // Arrange
         var slideshow = Slideshow.Create("Title", 1);
-        slideshow.SetImage(new byte[] { 1, 2, 3 }, "image/jpeg");
-        slideshow.Id = 456;
+        var url = "http://example.com/image.jpg";
+        slideshow.SetImage(url);
 
         // Act
         var source = slideshow.ImageSrc;
 
         // Assert
-        source.Should().Be("/api/images/slideshow/456");
+        source.Should().Be(url);
     }
 
     [Fact]
-    public void Validate_WithoutImage_ReturnsValidationError()
+    public void Validate_WithoutImage_ForNewSlideshow_ReturnsNoErrors()
     {
-        // Arrange
+        // Arrange - New slideshow (Id == 0) should not require image during creation
         var slideshow = Slideshow.Create("Title", 1);
+        var validationContext = new ValidationContext(slideshow);
+
+        // Act
+        var results = slideshow.Validate(validationContext).ToList();
+
+        // Assert - No validation errors for new slideshows
+        results.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Validate_WithoutImage_ForExistingSlideshow_ReturnsValidationError()
+    {
+        // Arrange - Existing slideshow (Id > 0) should require image
+        var slideshow = Slideshow.Create("Title", 1);
+        // Simulate an existing entity by using reflection to set the Id
+        var idProperty = typeof(Slideshow).GetProperty("Id");
+        idProperty?.SetValue(slideshow, 1);
         var validationContext = new ValidationContext(slideshow);
 
         // Act
@@ -268,26 +264,11 @@ public class SlideshowTests
     }
 
     [Fact]
-    public void Validate_WithImageData_ReturnsNoErrors()
-    {
-        // Arrange
-        var slideshow = Slideshow.Create("Title", 1);
-        slideshow.SetImage(new byte[] { 1, 2, 3 }, "image/jpeg");
-        var validationContext = new ValidationContext(slideshow);
-
-        // Act
-        var results = slideshow.Validate(validationContext).ToList();
-
-        // Assert
-        results.Should().BeEmpty();
-    }
-
-    [Fact]
     public void Validate_WithImageUrl_ReturnsNoErrors()
     {
         // Arrange
         var slideshow = Slideshow.Create("Title", 1);
-        slideshow.SetImage(null, null, "http://example.com/image.jpg");
+        slideshow.SetImage("http://example.com/image.jpg");
         var validationContext = new ValidationContext(slideshow);
 
         // Act

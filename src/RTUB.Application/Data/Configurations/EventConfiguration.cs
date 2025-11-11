@@ -28,9 +28,6 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.Property(e => e.ImageUrl)
             .HasMaxLength(500);
         
-        builder.Property(e => e.ImageContentType)
-            .HasMaxLength(100);
-        
         builder.Property(e => e.Date)
             .IsRequired();
         

@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Data
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
@@ -115,7 +116,10 @@
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 @if (currentUser != null)
                                 {
-                                    <img src="@GetNavbarAvatarUrl()" alt="@currentUser.Nickname" class="navbar-avatar me-2" />
+                                    <img src="@GetNavbarAvatarUrl()" 
+                                         alt="@currentUser.Nickname" 
+                                         class="navbar-avatar me-2"
+                                         onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
                                     <span>@currentUser.Nickname</span>
                                 }
                             </a>
@@ -294,47 +298,53 @@
             var nameIdentifierClaim = claimsPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             var nameClaim = claimsPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
 
+            ApplicationUser? user = null;
+            
             // Try to find by username first
             if (!string.IsNullOrEmpty(userName))
             {
-                currentUser = await UserManager.FindByNameAsync(userName);
+                user = await UserManager.FindByNameAsync(userName);
             }
 
             // Try by name claim
-            if (currentUser == null && !string.IsNullOrEmpty(nameClaim))
+            if (user == null && !string.IsNullOrEmpty(nameClaim))
             {
-                currentUser = await UserManager.FindByNameAsync(nameClaim);
-                if (currentUser == null)
+                user = await UserManager.FindByNameAsync(nameClaim);
+                if (user == null)
                 {
-                    currentUser = await UserManager.FindByEmailAsync(nameClaim);
+                    user = await UserManager.FindByEmailAsync(nameClaim);
                 }
             }
 
             // Try by user ID from NameIdentifier claim
-            if (currentUser == null && !string.IsNullOrEmpty(nameIdentifierClaim))
+            if (user == null && !string.IsNullOrEmpty(nameIdentifierClaim))
             {
-                currentUser = await UserManager.FindByIdAsync(nameIdentifierClaim);
+                user = await UserManager.FindByIdAsync(nameIdentifierClaim);
+            }
+            
+            // Reload the user to ensure we have the latest data from database
+            if (user != null)
+            {
+                // Force Entity Framework to reload from database instead of using cached data
+                var entry = UserManager.Users.AsNoTracking().FirstOrDefault(u => u.Id == user.Id);
+                currentUser = entry ?? user;
             }
         }
     }
 
     private string GetNavbarAvatarUrl()
     {
-        if (currentUser == null) return "/images/default-avatar.png";
-        return currentUser.ProfilePictureSrc ?? "/images/default-avatar.png";
+        if (currentUser == null) return "/images/default-avatar.webp";
+        return currentUser.ProfilePictureSrc ?? "/images/default-avatar.webp";
     }
 
     private void HandleProfilePictureUpdated()
     {
-        Console.WriteLine($"[MainLayout] HandleProfilePictureUpdated called at {DateTime.Now:HH:mm:ss.fff}");
-        
         // Reload user data when profile picture is updated
         _ = InvokeAsync(async () =>
         {
-            Console.WriteLine($"[MainLayout] Reloading user data at {DateTime.Now:HH:mm:ss.fff}");
             await LoadCurrentUser();
             StateHasChanged();
-            Console.WriteLine($"[MainLayout] StateHasChanged called at {DateTime.Now:HH:mm:ss.fff}");
         });
     }
 

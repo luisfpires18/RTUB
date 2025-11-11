@@ -13,7 +13,7 @@ public interface ISlideshowService
     Task<IEnumerable<Slideshow>> GetActiveSlideshowsAsync();
     Task<Slideshow> CreateSlideshowAsync(string title, int order, string description = "", int intervalMs = 5000);
     Task UpdateSlideshowAsync(int id, string title, string description, int order, int intervalMs);
-    Task SetSlideshowImageAsync(int id, byte[]? imageData, string? contentType, string url = "");
+    Task SetSlideshowImageAsync(int id, Stream imageStream, string fileName, string contentType);
     Task ActivateSlideshowAsync(int id);
     Task DeactivateSlideshowAsync(int id);
     Task DeleteSlideshowAsync(int id);

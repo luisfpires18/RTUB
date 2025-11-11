@@ -1,0 +1,128 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+
+@*
+    Full-width card component for displaying slideshow items in a list
+    Features: image cover layout, consistent height, keyboard accessible
+*@
+
+<div class="slideshow-card" 
+     tabindex="0" 
+     @onclick="HandleClick" 
+     @onkeydown="HandleKeyDown"
+     role="button"
+     aria-label="@($"Slideshow: {Slide?.Title}")">
+    
+    <div class="slideshow-card-image-container">
+        @if (!string.IsNullOrEmpty(Slide?.ImageSrc))
+        {
+            <img src="@ImageUrl" 
+                 alt="@Slide.Title" 
+                 class="slideshow-card-image" 
+                 loading="lazy" />
+        }
+        else
+        {
+            <div class="slideshow-card-image-placeholder">
+                <i class="bi bi-image"></i>
+            </div>
+        }
+        
+        @if (ShowAdminControls)
+        {
+            <div class="slideshow-card-admin-overlay">
+                <button class="btn btn-sm btn-light me-1" 
+                        @onclick="HandleEdit" 
+                        @onclick:stopPropagation="true"
+                        title="Editar">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" 
+                        @onclick="HandleDelete" 
+                        @onclick:stopPropagation="true"
+                        title="Eliminar">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        }
+    </div>
+    
+    <div class="slideshow-card-content">
+        <div class="slideshow-card-header">
+            <h5 class="slideshow-card-title">@Slide?.Title</h5>
+            <div class="slideshow-card-badges">
+                <span class="badge @(Slide?.IsActive == true ? "bg-success" : "bg-secondary")">
+                    @(Slide?.IsActive == true ? "Ativo" : "Inativo")
+                </span>
+            </div>
+        </div>
+        
+        @if (!string.IsNullOrEmpty(Slide?.Description))
+        {
+            <p class="slideshow-card-description">@Slide.Description</p>
+        }
+        
+        <div class="slideshow-card-meta">
+            <span class="slideshow-card-meta-item">
+                <i class="bi bi-sort-numeric-down"></i>
+                Ordem: @Slide?.Order
+            </span>
+            <span class="slideshow-card-meta-item">
+                <i class="bi bi-clock"></i>
+                @Slide?.IntervalMs ms
+            </span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Slideshow? Slide { get; set; }
+
+    [Parameter]
+    public string? ImageUrl { get; set; }
+
+    [Parameter]
+    public bool ShowAdminControls { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<Slideshow> OnClick { get; set; }
+
+    [Parameter]
+    public EventCallback<Slideshow> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<Slideshow> OnDelete { get; set; }
+
+    private async Task HandleClick()
+    {
+        if (Slide != null && OnClick.HasDelegate)
+        {
+            await OnClick.InvokeAsync(Slide);
+        }
+    }
+
+    private async Task HandleEdit()
+    {
+        if (Slide != null && OnEdit.HasDelegate)
+        {
+            await OnEdit.InvokeAsync(Slide);
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (Slide != null && OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync(Slide);
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            await HandleClick();
+        }
+    }
+}

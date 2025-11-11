@@ -37,9 +37,9 @@
 }
 else if (!PaginatedItems.Any())
 {
-    <EmptyTableState Message="Nenhum utilizador encontrado"
-                    IconClass="bi-people"
-                    SubMessage="Tente ajustar os critérios de pesquisa." />
+    <EmptyState Title="Nenhum utilizador encontrado"
+                Message="Tente ajustar os critérios de pesquisa."
+                Icon="bi-people" />
 }
 else
 {
@@ -471,6 +471,10 @@ else
                 {
                     await UserManager.AddToRoleAsync(user, "Admin");
                 }
+
+                // Invalidate security stamp to force fresh cookies and token refresh
+                // This ensures role changes take effect immediately on next sign-in
+                await UserManager.UpdateSecurityStampAsync(user);
 
                 message = $"Função de {user.FirstName} {user.LastName} alterada para {newRole} com sucesso.";
                 isError = false;

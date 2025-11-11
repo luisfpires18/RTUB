@@ -15,12 +15,12 @@ namespace RTUB.Application.Services;
 public class EventService : IEventService
 {
     private readonly ApplicationDbContext _context;
-    private readonly IImageService _imageService;
+    private readonly IImageStorageService _imageStorageService;
 
-    public EventService(ApplicationDbContext context, IImageService imageService)
+    public EventService(ApplicationDbContext context, IImageStorageService imageStorageService)
     {
         _context = context;
-        _imageService = imageService;
+        _imageStorageService = imageStorageService;
     }
 
     public async Task<Event?> GetEventByIdAsync(int id)
@@ -89,18 +89,24 @@ public class EventService : IEventService
         await _context.SaveChangesAsync();
     }
 
-    public async Task SetEventImageAsync(int id, byte[]? imageData, string? contentType, string url = "")
+    public async Task SetEventImageAsync(int id, Stream imageStream, string fileName, string contentType)
     {
         var eventEntity = await _context.Events.FindAsync(id);
         if (eventEntity == null)
             throw new InvalidOperationException($"Event with ID {id} not found");
 
-        eventEntity.SetImage(imageData, contentType, url);
+        // Delete old image if it exists
+        if (!string.IsNullOrEmpty(eventEntity.ImageUrl))
+        {
+            await _imageStorageService.DeleteImageAsync(eventEntity.ImageUrl);
+        }
+
+        // Upload new image to Cloudflare R2
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", id.ToString());
+        eventEntity.SetImage(imageUrl);
+        
         _context.Events.Update(eventEntity);
         await _context.SaveChangesAsync();
-        
-        // Invalidate the cached image so the new image is served immediately
-        _imageService.InvalidateEventImageCache(id);
     }
 
     public async Task DeleteEventAsync(int id)
@@ -108,6 +114,12 @@ public class EventService : IEventService
         var eventEntity = await _context.Events.FindAsync(id);
         if (eventEntity == null)
             throw new InvalidOperationException($"Event with ID {id} not found");
+
+        // Delete associated image from R2 storage if it exists
+        if (!string.IsNullOrEmpty(eventEntity.ImageUrl))
+        {
+            await _imageStorageService.DeleteImageAsync(eventEntity.ImageUrl);
+        }
 
         _context.Events.Remove(eventEntity);
         await _context.SaveChangesAsync();

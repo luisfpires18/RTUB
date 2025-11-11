@@ -15,7 +15,7 @@ namespace RTUB.Application.Tests.Services;
 public class ProductServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
-    private readonly Mock<IImageService> _imageServiceMock;
+    private readonly Mock<IImageStorageService> _imageStorageServiceMock;
     private readonly ProductService _service;
 
     public ProductServiceTests()
@@ -25,8 +25,8 @@ public class ProductServiceTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _imageServiceMock = new Mock<IImageService>();
-        _service = new ProductService(_context, _imageServiceMock.Object);
+        _imageStorageServiceMock = new Mock<IImageStorageService>();
+        _service = new ProductService(_context, _imageStorageServiceMock.Object);
     }
 
     [Fact]
@@ -138,7 +138,6 @@ public class ProductServiceTests : IDisposable
         var updated = await _context.Products.FindAsync(product.Id);
         updated!.Name.Should().Be("Updated");
         updated.Price.Should().Be(15.00m);
-        _imageServiceMock.Verify(x => x.InvalidateProductImageCache(product.Id), Times.Once);
     }
 
     [Fact]
@@ -158,6 +157,35 @@ public class ProductServiceTests : IDisposable
     {
         var act = async () => await _service.DeleteAsync(999);
         await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WithProductHavingImage_DeletesImageFromStorage()
+    {
+        var product = Product.Create("Product with Image", "Type1", 10.00m, 10);
+        product.ImageUrl = "https://example.com/images/product.jpg";
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
+        
+        await _service.DeleteAsync(product.Id);
+        
+        _imageStorageServiceMock.Verify(x => x.DeleteImageAsync("https://example.com/images/product.jpg"), Times.Once);
+        var deleted = await _context.Products.FindAsync(product.Id);
+        deleted.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WithProductWithoutImage_DoesNotCallImageStorageService()
+    {
+        var product = Product.Create("Product without Image", "Type1", 10.00m, 10);
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
+        
+        await _service.DeleteAsync(product.Id);
+        
+        _imageStorageServiceMock.Verify(x => x.DeleteImageAsync(It.IsAny<string>()), Times.Never);
+        var deleted = await _context.Products.FindAsync(product.Id);
+        deleted.Should().BeNull();
     }
 
     [Fact]

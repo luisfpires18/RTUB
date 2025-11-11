@@ -21,43 +21,43 @@ public static partial class SeedData
 
             // --- EXISTENTES (os teus) ---
             var event1 = Event.Create("VII CITARA Festival Evora", new DateTime(2025, 9, 25), "Évora", EventType.Festival, "Festival de Tunas de 25 a 27 de setembro de 2025");
-            event1.SetImage(null, null, "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&h=400&fit=crop");
+            event1.SetImage(null);
 
             var event2 = Event.Create("Semana da Receção ao Caloiro 2025", new DateTime(2025, 10, 30), "Bragança", EventType.Nerba, "30 de outubro a 2 Novembro - NERBA");
-            event2.SetImage(null, null, "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=800&h=400&fit=crop");
+            event2.SetImage(null);
 
             var event3 = Event.Create("Magusto 2025", new DateTime(2025, 11, 12), "Bragança", EventType.Convivio, "Convívio tradicional de São Martinho");
-            event3.SetImage(null, null, "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&h=400&fit=crop");
+            event3.SetImage(null);
 
             var event4 = Event.Create("34º Aniversário", new DateTime(2025, 12, 4), "Bragança", EventType.Convivio, "Celebração do 34º Aniversário da RTUB - 4, 5, 6 Dezembro");
-            event4.SetImage(null, null, "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&h=400&fit=crop");
+            event4.SetImage(null);
 
             var event5 = Event.Create("XXX Edição do ETUMa - Festival de Tunas Universitárias da Madeira", new DateTime(2025, 12, 11), "Madeira", EventType.Festival, "11 a 13 de Dezembro 2025");
-            event5.SetImage(null, null, "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&h=400&fit=crop");
+            event5.SetImage(null);
 
             var event6 = Event.Create("XIV Festunag - Águeda", new DateTime(2026, 3, 20), "Águeda", EventType.Festival, "20-21-22 Março 2026");
-            event6.SetImage(null, null, "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&h=400&fit=crop");
+            event6.SetImage(null);
 
             events.AddRange(new[] { event1, event2, event3, event4, event5, event6 });
 
             // --- CONFIRMADOS NAS REDES (FITAB / SRC / RTÔNA) ---
             var fitab2018Noite = Event.Create("XX FITAB — Noite de Serenatas", new DateTime(2018, 5, 18), "Bragança", EventType.Festival, "Noite de Serenatas do XX FITAB (Castelo de Bragança).");
-            fitab2018Noite.SetImage(null, null, "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=800&h=400&fit=crop");
+            fitab2018Noite.SetImage(null);
             var fitab2018Gala = Event.Create("XX FITAB — Gala", new DateTime(2018, 5, 19), "Bragança", EventType.Festival, "Gala do XX FITAB — Teatro Municipal de Bragança.");
-            fitab2018Gala.SetImage(null, null, "https://images.unsplash.com/photo-1483412033650-1015ddeb83d1?w=800&h=400&fit=crop");
+            fitab2018Gala.SetImage(null);
 
             var fitab2019Gala = Event.Create("XXI FITAB — Gala", new DateTime(2019, 5, 21), "Bragança", EventType.Festival, "Gala do XXI FITAB — Teatro Municipal de Bragança.");
-            fitab2019Gala.SetImage(null, null, "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=400&fit=crop");
+            fitab2019Gala.SetImage(null);
 
             var fitab2024Noite = Event.Create("XXIV FITAB — Noite de Serenatas", new DateTime(2024, 5, 24), "Bragança", EventType.Festival, "XXIV FITAB — Noite de Serenatas.");
-            fitab2024Noite.SetImage(null, null, "https://images.unsplash.com/photo-1512427691650-01861a2f7f62?w=800&h=400&fit=crop");
+            fitab2024Noite.SetImage(null);
             var fitab2024Gala = Event.Create("XXIV FITAB — Gala", new DateTime(2024, 5, 25), "Bragança", EventType.Festival, "XXIV FITAB — Gala no TMB.");
-            fitab2024Gala.SetImage(null, null, "https://images.unsplash.com/photo-1520459368776-5abce4e1b88d?w=800&h=400&fit=crop");
+            fitab2024Gala.SetImage(null);
 
             var fitab2025Noite = Event.Create("XXV FITAB — Noite de Serenatas", new DateTime(2025, 5, 2), "Bragança", EventType.Festival, "XXV FITAB — Noite de Serenatas na Praça de Camões.");
-            fitab2025Noite.SetImage(null, null, "https://images.unsplash.com/photo-1483412033650-1015ddeb83d1?w=800&h=400&fit=crop");
+            fitab2025Noite.SetImage(null);
             var fitab2025Gala = Event.Create("XXV FITAB — Gala", new DateTime(2025, 5, 3), "Bragança", EventType.Festival, "XXV FITAB — Gala no TMB.");
-            fitab2025Gala.SetImage(null, null, "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=800&h=400&fit=crop");
+            fitab2025Gala.SetImage(null);
 
             var barracaSRC19 = Event.Create("Barraca RTUB — SRC'19", new DateTime(2019, 10, 23), "Bragança (NERBA)", EventType.Nerba, "Semana da Receção ao Caloiro 2019 — Barraca RTUB.");
             var src2022 = Event.Create("Semana da Receção ao Caloiro 2022", new DateTime(2022, 11, 8), "Bragança (NERBA)", EventType.Nerba, "Receção ao Caloiro 2022 — atuação RTUB.");

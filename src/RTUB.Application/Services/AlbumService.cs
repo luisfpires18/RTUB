@@ -9,12 +9,12 @@ namespace RTUB.Application.Services;
 public class AlbumService : IAlbumService
 {
     private readonly ApplicationDbContext _context;
-    private readonly IImageService _imageService;
+    private readonly IImageStorageService _imageStorageService;
 
-    public AlbumService(ApplicationDbContext context, IImageService imageService)
+    public AlbumService(ApplicationDbContext context, IImageStorageService imageStorageService)
     {
         _context = context;
-        _imageService = imageService;
+        _imageStorageService = imageStorageService;
     }
 
     public async Task<Album?> GetAlbumByIdAsync(int id)
@@ -66,21 +66,33 @@ public class AlbumService : IAlbumService
         if (album == null)
             throw new InvalidOperationException($"Album with ID {id} not found");
 
+        // Delete associated image from R2 storage if it exists
+        if (!string.IsNullOrEmpty(album.ImageUrl))
+        {
+            await _imageStorageService.DeleteImageAsync(album.ImageUrl);
+        }
+
         _context.Albums.Remove(album);
         await _context.SaveChangesAsync();
     }
 
-    public async Task SetAlbumCoverAsync(int id, byte[]? imageData, string? contentType, string url = "")
+    public async Task SetAlbumCoverAsync(int id, Stream imageStream, string fileName, string contentType)
     {
         var album = await _context.Albums.FindAsync(id);
         if (album == null)
             throw new InvalidOperationException($"Album with ID {id} not found");
 
-        album.SetCoverImage(imageData, contentType, url);
+        // Delete old image if it exists
+        if (!string.IsNullOrEmpty(album.ImageUrl))
+        {
+            await _imageStorageService.DeleteImageAsync(album.ImageUrl);
+        }
+
+        // Upload new image to Cloudflare R2
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", id.ToString());
+        album.SetCoverImage(imageUrl);
+        
         _context.Albums.Update(album);
         await _context.SaveChangesAsync();
-        
-        // Invalidate the cached album image so the new image is served immediately
-        _imageService.InvalidateAlbumImageCache(id);
     }
 }

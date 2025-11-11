@@ -15,10 +15,10 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject IImageService ImageService
 @inject IJSRuntime JSRuntime
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject IRoleAssignmentService RoleAssignmentService
+@inject IUserProfileService UserProfileService
 @inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 
 <h1 class="text-center mb-4">Meu Perfil</h1>
@@ -348,7 +348,7 @@ else
               OnImageCropped="OnImageCropped"
               AspectRatio="1"
               AspectRatioHelp="As fotos de perfil são exibidas como avatares circulares (proporção 1:1 recomendada)"
-              ImageFormat="image/jpeg"
+              ImageFormat="image/webp"
               ImageQuality="0.9" />
 
 <!-- Change Password Modal -->
@@ -547,67 +547,55 @@ else
         {
             if (user != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                user.ProfilePictureData = croppedImageData;
-                user.ProfilePictureContentType = "image/jpeg";
+                // Upload image to R2 storage and update user record
+                using var stream = new MemoryStream(croppedImageData);
+                await UserProfileService.UpdateProfilePictureAsync(user.Id, stream, "profile-picture.webp", "image/webp");
 
-                await SetAuditContextToCurrentUser();
-                await UserManager.UpdateAsync(user);
+                // Reload user from database to get the updated ImageUrl
+                var updatedUser = await UserManager.FindByIdAsync(user.Id);
+                if (updatedUser != null)
+                {
+                    user.ImageUrl = updatedUser.ImageUrl;
+                }
                 
-                // CRITICAL: Clear server-side image cache to ensure fresh image is served
-                ImageService.InvalidateProfileImageCache(user.Id);
-                
-                // Increment trigger to force browser to re-fetch the image
                 imageRefreshTrigger++;
                 
                 uploadMessage = "Foto de perfil atualizada com sucesso!";
                 StateHasChanged();
                 
-                // Wait a moment to ensure database and cache updates are complete
-                await Task.Delay(100);
-                
-                // Notify MainLayout and other components that profile picture has been updated
-                // (This won't work due to Blazor scoping issues, but kept for potential future fixes)
+                // Notify MainLayout to reload user data
                 ProfilePictureUpdateService.NotifyProfilePictureUpdated();
                 
-                // Use JavaScript to directly update the navbar avatar as a fallback
-                // This works reliably across render contexts
+                // Update navbar via JavaScript as backup
                 try
                 {
-                    await JSRuntime.InvokeVoidAsync("profilePictureRefresh.refreshNavbarAvatar");
-                    Console.WriteLine("[Profile.razor] Called JavaScript to refresh navbar avatar");
+                    var newImageUrl = user.ProfilePictureSrc ?? "/images/default-avatar.webp";
+                    await JSRuntime.InvokeVoidAsync("profilePictureRefresh.refreshNavbarAvatar", newImageUrl);
                 }
-                catch (Exception ex)
+                catch
                 {
-                    Console.WriteLine($"[Profile.razor] Failed to call JavaScript: {ex.Message}");
+                    // Silently fail - event service will handle update
                 }
                 
-                // Wait for Blazor to update the DOM.
-                await Task.Delay(150);
-                
-                await Task.Delay(1500);
+                // Clear success message after a delay
+                await Task.Delay(2000);
                 uploadMessage = null;
+                StateHasChanged();
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             uploadMessage = "Erro ao guardar imagem. Por favor tente novamente.";
+            StateHasChanged();
         }
     }
 
     private string GetProfilePictureUrl()
     {
-        if (user == null) return "/images/default-avatar.png";
+        if (user == null) return "/images/default-avatar.webp";
         
-        var src = user.ProfilePictureSrc ?? "/images/default-avatar.png";
-        
-        // Add refresh trigger only when an image has been updated
-        // This forces browser to re-fetch after edits while maintaining ETag caching
-        if (imageRefreshTrigger > 0 && src.StartsWith("/api/images/"))
-        {
-            return $"{src}?r={imageRefreshTrigger}";
-        }
-        
-        return src;
+        // Return the profile picture URL directly - let ETags handle caching (304 responses)
+        return user.ProfilePictureSrc ?? "/images/default-avatar.webp";
     }
 
     private void OnCropperModalChanged(bool isOpen)

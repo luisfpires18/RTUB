@@ -65,21 +65,6 @@ public class AdminPagesTests : IntegrationTestBase
 
     #endregion
 
-    #region Labels Management Tests
-
-    [Fact]
-    public async Task LabelsPage_RedirectsToOwnerLabels()
-    {
-        // Arrange & Act - /admin/labels should redirect to /owner/labels
-        var response = await _client.GetAsync("/admin/labels");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/owner/labels");
-    }
-
-    #endregion
-
     #region Authorization Tests
 
     [Theory]

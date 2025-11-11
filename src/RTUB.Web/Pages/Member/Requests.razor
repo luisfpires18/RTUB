@@ -77,9 +77,9 @@
 }
 else
 {
-    <EmptyTableState 
-        Message="Nenhum pedido pendente encontrado." 
-        IconClass="bi-info-circle" />
+    <EmptyState 
+        Title="Nenhum pedido pendente encontrado." 
+        Icon="bi-info-circle" />
 }
 
 <!-- Answered Requests Grid -->
@@ -124,9 +124,9 @@ else
 }
 else
 {
-    <EmptyTableState 
-        Message="Nenhum pedido respondido encontrado." 
-        IconClass="bi-info-circle" />
+    <EmptyState 
+        Title="Nenhum pedido respondido encontrado." 
+        Icon="bi-info-circle" />
 }
 <!-- View Details Modal using DetailsModal -->
 <DetailsModal Show="@(selectedRequest != null)" 

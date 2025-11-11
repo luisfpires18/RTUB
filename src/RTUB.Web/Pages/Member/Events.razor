@@ -13,7 +13,6 @@
 @inject IEnrollmentService EnrollmentService
 @inject ITrophyService TrophyService
 @inject IEmailNotificationService EmailNotificationService
-@inject IImageService ImageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IWebHostEnvironment Environment
@@ -38,9 +37,8 @@
 }
 else if (!events.Any())
 {
-    <div class="card shadow-sm card-purple-no-border">
-        <h5 class="card-title text-white"><i class="bi bi-info-circle"></i>  Nenhum evento criado ainda</h5>
-    </div>
+    <EmptyState Title="Nenhum evento criado ainda"
+               Icon="bi-info-circle" />
 }
 else
 {
@@ -102,9 +100,9 @@ else
         }
         else if (!filteredPreviousEvents.Any())
         {
-            <EmptyTableState Message="Nenhum evento anterior encontrado"
-                             SubMessage="Não existem atuações passados para mostrar."
-                           IconClass="bi-calendar-x" />
+            <EmptyState Title="Nenhum evento anterior encontrado"
+                             Message="Não existem atuações passados para mostrar."
+                           Icon="bi-calendar-x" />
         }
         else
         {
@@ -294,12 +292,16 @@ else
                             <div class="mb-3">
                                 <label class="form-label text-white-full">Instrumento *</label>
                                 <InputSelect class="form-select form-select-dark" @bind-Value="enrollmentForm.Instrument">
-                                    <option value="">Selecionar...</option>
+                                    <option value="" disabled selected>Selecionar...</option>
                                     @foreach (var instrument in Enum.GetValues<InstrumentType>())
                                     {
                                         <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                                     }
                                 </InputSelect>
+                                @if (!string.IsNullOrEmpty(instrumentValidationError))
+                                {
+                                    <div class="text-danger mt-1">@instrumentValidationError</div>
+                                }
                             </div>
                         }
                     }
@@ -352,7 +354,8 @@ else
         <BodyContent>
             @if (eventEnrollments == null || !eventEnrollments.Any())
             {
-                <p class="text-white-full">Nenhuma inscrição ainda para este evento.</p>
+                <EmptyState Title="Nenhuma inscrição ainda para este evento"
+                           Icon="bi-people" />
             }
             else
             {
@@ -428,23 +431,26 @@ else
                         instrumentCounts[inst] = performingMembers.Count(e => e.Instrument == inst);
                     }
 
-                    <div class="mt-3 mb-4">
-                        <div class="instrument-counter-section">
-                            <div class="instrument-counter-header">
-                                <i class="bi bi-music-note-beamed"></i>
-                                <span>Instrumentos</span>
-                            </div>
-                            <div class="instrument-counter-grid">
-                                @foreach (var kvp in instrumentCounts.Where(x => x.Value > 0).OrderByDescending(x => x.Value))
-                                {
-                                    <div class="instrument-counter-box">
-                                        <div class="instrument-counter-number">@kvp.Value</div>
-                                        <div class="instrument-counter-label">@StatusHelper.GetInstrumentDisplay(kvp.Key)</div>
-                                    </div>
-                                }
+                    @if (instrumentCounts.Any(x => x.Value > 0))
+                    {
+                        <div class="mt-3 mb-4">
+                            <div class="instrument-counter-section">
+                                <div class="instrument-counter-header">
+                                    <i class="bi bi-music-note-beamed"></i>
+                                    <span>Instrumentos</span>
+                                </div>
+                                <div class="instrument-counter-grid">
+                                    @foreach (var kvp in instrumentCounts.Where(x => x.Value > 0).OrderByDescending(x => x.Value))
+                                    {
+                                        <div class="instrument-counter-box">
+                                            <div class="instrument-counter-number">@kvp.Value</div>
+                                            <div class="instrument-counter-label">@StatusHelper.GetInstrumentDisplay(kvp.Key)</div>
+                                        </div>
+                                    }
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    }
                 }
 
                 @if (leitaoMembers.Any())
@@ -547,7 +553,7 @@ else
               OnImageCropped="OnImageCropped"
               AspectRatio="1.5"
               AspectRatioHelp="Event images are displayed in 3:2 aspect ratio for better presentation"
-              ImageFormat="image/jpeg"
+              ImageFormat="image/webp"
               ImageQuality="0.85" />
 
 <!-- Repertoire Modal -->
@@ -623,8 +629,8 @@ else
 
         @if (eventTrophies == null || !eventTrophies.Any())
         {
-            <EmptyTableState Message="Nenhum prémio conquistado neste evento."
-                            IconClass="bi-trophy" />
+            <EmptyState Title="Nenhum prémio conquistado neste evento."
+                            Icon="bi-trophy" />
         }
         else
         {
@@ -754,7 +760,7 @@ else
             }
             else if (!string.IsNullOrEmpty(emailErrorMessage))
             {
-                <Alert Message="@emailErrorMessage" 
+                <Alert Title="@emailErrorMessage" 
                        Type="Alert.AlertType.Error" 
                        Dismissible="true"
                        OnDismiss="@(() => emailErrorMessage = null)" />
@@ -783,7 +789,7 @@ else
                 }
                 else
                 {
-                    <Alert Message="Nenhum membro subscrito às notificações por email." 
+                    <Alert Title="Nenhum membro subscrito às notificações por email." 
                            Type="Alert.AlertType.Warning" />
                 }
             }
@@ -815,6 +821,7 @@ else
     private bool isUserAdmin = false;
     private bool isUserOwner = false;
     private bool isTrophyCreateMode = false;
+    private string instrumentValidationError = string.Empty;
     private Event? editingEvent;
     private Event? deletingEvent;
     private Event? selectedEvent;
@@ -833,6 +840,8 @@ else
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
     private int imageRefreshTrigger = 0;
+    private byte[]? croppedImageBytes;
+    private string? croppedImageFileName = "event-image.webp";
 
     // Previous events (admin only)
     private List<Event>? allPreviousEvents;
@@ -1015,8 +1024,6 @@ else
             Date = eventItem.Date,
             EndDate = eventItem.EndDate,
             Description = eventItem.Description,
-            ImageData = eventItem.ImageData,
-            ImageContentType = eventItem.ImageContentType,
             ImageUrl = eventItem.ImageUrl,
             Location = eventItem.Location,
             Type = eventItem.Type,
@@ -1064,8 +1071,8 @@ else
         {
             if (editingEvent != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                editingEvent.ImageData = croppedImageData;
-                editingEvent.ImageContentType = "image/jpeg";
+                // Store the cropped image bytes for upload when saving
+                croppedImageBytes = croppedImageData;
                 uploadedImagePath = "uploaded";
                 
                 StateHasChanged();
@@ -1115,13 +1122,11 @@ else
                 editingEvent.EndDate
             );
 
-            if (editingEvent.ImageData != null)
+            // Upload image to R2 if one was cropped
+            if (croppedImageBytes != null && croppedImageBytes.Length > 0)
             {
-                await EventService.SetEventImageAsync(
-                    newEvent.Id,
-                    editingEvent.ImageData,
-                    editingEvent.ImageContentType
-                );
+                using var stream = new MemoryStream(croppedImageBytes);
+                await EventService.SetEventImageAsync(newEvent.Id, stream, croppedImageFileName!, "image/webp");
             }
         }
         else
@@ -1135,19 +1140,11 @@ else
                 editingEvent.EndDate
             );
 
-            // Update image data if new image was uploaded
-            if (editingEvent.ImageData != null)
+            // Upload new image to R2 if one was cropped
+            if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
             {
-                await EventService.SetEventImageAsync(
-                    editingEvent.Id,
-                    editingEvent.ImageData,
-                    editingEvent.ImageContentType
-                );
-                
-                // Invalidate server-side cache to ensure new image is served
-                ImageService.InvalidateEventImageCache(editingEvent.Id);
-                
-                // Increment trigger to force browser to re-fetch the image
+                using var stream = new MemoryStream(croppedImageBytes);
+                await EventService.SetEventImageAsync(editingEvent.Id, stream, croppedImageFileName!, "image/webp");
                 imageRefreshTrigger++;
             }
         }
@@ -1218,9 +1215,10 @@ else
     private void OnWantToPlayChanged(bool value)
     {
         wantToPlay = value;
-        if (!value && enrollmentForm != null)
+        instrumentValidationError = string.Empty; // Clear validation error when toggle changes
+        if (enrollmentForm != null)
         {
-            // Clear instrument when toggle is turned off
+            // Always clear instrument when toggle changes to force user to select
             enrollmentForm.Instrument = null;
         }
     }
@@ -1231,12 +1229,27 @@ else
         enrollmentForm = null;
         selectedEvent = null;
         isEditingEnrollment = false;
+        instrumentValidationError = string.Empty; // Clear validation error on close
         wantToPlay = false;
     }
 
     private async Task SaveEnrollment()
     {
         if (enrollmentForm == null || currentUser == null) return;
+
+        // Clear previous validation errors
+        instrumentValidationError = string.Empty;
+
+        // Validate instrument is selected when wantToPlay is true
+        if (wantToPlay && enrollmentForm.WillAttend && !currentUser.Categories.Contains(MemberCategory.Leitao))
+        {
+            if (!enrollmentForm.Instrument.HasValue)
+            {
+                instrumentValidationError = "Por favor, selecione um instrumento.";
+                StateHasChanged();
+                return;
+            }
+        }
 
         if (isEditingEnrollment)
         {

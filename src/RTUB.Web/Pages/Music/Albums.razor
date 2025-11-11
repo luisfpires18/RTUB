@@ -7,7 +7,6 @@
 @using RTUB.Shared
 @inject IAlbumService AlbumService
 @inject ISongService SongService
-@inject IImageService ImageService
 @inject NavigationManager NavigationManager
 @inject IWebHostEnvironment Environment
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -31,9 +30,8 @@
 }
 else if (!albums.Any())
 {
-    <div class="card shadow-sm card-purple-no-border">
-        <h5 class="card-title text-white"><i class="bi bi-info-circle"></i> Nenhum album criado ainda</h5>
-    </div>
+    <EmptyState Title="Nenhum album criado ainda"
+               Icon="bi-info-circle" />
 }
 else
 {
@@ -106,13 +104,14 @@ else
                   OnDelete="DeleteAlbum"
                   OnDeleteModalClosed="CloseDeleteModal">
     <EditFormContent Context="album">
-        <EditForm Model="album" OnValidSubmit="SaveAlbum">
+        <EditForm Model="album" OnValidSubmit="SaveAlbum" id="albumForm">
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" />
 
             <div class="mb-3">
                 <label class="form-label">Título</label>
                 <InputText class="form-control" @bind-Value="album!.Title" placeholder="Inserir título do álbum..." />
+                <ValidationMessage For="() => album!.Title" class="text-danger" />
             </div>
 
             <div class="mb-3">
@@ -133,6 +132,10 @@ else
                                OnFileSelected="HandleImageUpload" />
         </EditForm>
     </EditFormContent>
+    <EditFormFooterContent Context="album">
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+        <button type="submit" form="albumForm" class="btn btn-success">Guardar</button>
+    </EditFormFooterContent>
     <DeleteConfirmationContent Context="album">
         <p>Tem certeza que deseja eliminar o álbum <strong>@album?.Title</strong>?</p>
         <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> Esta ação também eliminará todas as músicas associadas a este álbum.</p>
@@ -146,7 +149,7 @@ else
               OnImageCropped="OnImageCropped"
               AspectRatio="1.0"
               AspectRatioHelp="Album covers are displayed in 1:1 aspect ratio (square) for consistent presentation"
-              ImageFormat="image/jpeg"
+              ImageFormat="image/webp"
               ImageQuality="0.85" />
 
 @code {
@@ -164,6 +167,8 @@ else
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
     private int imageRefreshTrigger = 0;
+    private byte[]? croppedImageBytes;
+    private string? croppedImageFileName = "album-cover.webp";
 
     protected override async Task OnInitializedAsync()
     {
@@ -206,9 +211,7 @@ else
             Title = album.Title,
             Description = album.Description,
             Year = album.Year,
-            CoverImageData = album.CoverImageData,
-            CoverImageContentType = album.CoverImageContentType,
-            CoverImageUrl = album.CoverImageUrl
+            ImageUrl = album.ImageUrl
         };
         uploadedImagePath = null;
         showEditModal = true;
@@ -219,6 +222,7 @@ else
         showEditModal = false;
         editingAlbum = null;
         uploadedImagePath = null;
+        croppedImageBytes = null;
         imageUploadManager?.Reset();
     }
 
@@ -248,8 +252,8 @@ else
         {
             if (editingAlbum != null && croppedImageData != null && croppedImageData.Length > 0)
             {
-                editingAlbum.CoverImageData = croppedImageData;
-                editingAlbum.CoverImageContentType = "image/jpeg";
+                // Store the cropped image bytes for upload when saving
+                croppedImageBytes = croppedImageData;
                 uploadedImagePath = "uploaded";
                 
                 StateHasChanged();
@@ -287,13 +291,11 @@ else
                 editingAlbum.Description ?? string.Empty
             );
 
-            if (editingAlbum.CoverImageData != null)
+            // Upload image to R2 if one was cropped
+            if (croppedImageBytes != null && croppedImageBytes.Length > 0)
             {
-                await AlbumService.SetAlbumCoverAsync(
-                    newAlbum.Id,
-                    editingAlbum.CoverImageData,
-                    editingAlbum.CoverImageContentType
-                );
+                using var stream = new MemoryStream(croppedImageBytes);
+                await AlbumService.SetAlbumCoverAsync(newAlbum.Id, stream, croppedImageFileName!, "image/webp");
             }
         }
         else
@@ -305,19 +307,11 @@ else
                 editingAlbum.Description ?? string.Empty
             );
 
-            // Only update image if a new one was uploaded
-            if (editingAlbum.CoverImageData != null && uploadedImagePath != null)
+            // Upload new image to R2 if one was cropped
+            if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
             {
-                await AlbumService.SetAlbumCoverAsync(
-                    editingAlbum.Id,
-                    editingAlbum.CoverImageData,
-                    editingAlbum.CoverImageContentType
-                );
-                
-                // Invalidate server-side cache to ensure new image is served
-                ImageService.InvalidateAlbumImageCache(editingAlbum.Id);
-                
-                // Increment trigger to force browser to re-fetch the image
+                using var stream = new MemoryStream(croppedImageBytes);
+                await AlbumService.SetAlbumCoverAsync(editingAlbum.Id, stream, croppedImageFileName!, "image/webp");
                 imageRefreshTrigger++;
             }
         }
@@ -370,6 +364,4 @@ else
         
         return imageSrc;
     }
-    }
 }
-

@@ -13,6 +13,11 @@ namespace RTUB
     {
         public static async Task Main(string[] args)
         {
+            // Force TLS 1.2/1.3 for all HTTPS connections (required for Cloudflare R2)
+            System.Net.ServicePointManager.SecurityProtocol =
+                System.Net.SecurityProtocolType.Tls12 |
+                System.Net.SecurityProtocolType.Tls13;
+            
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Configuration
@@ -114,7 +119,45 @@ namespace RTUB
             services.AddScoped<IActivityService, ActivityService>();
             services.AddScoped<IEnrollmentService, EnrollmentService>();
             services.AddScoped<IUserProfileService, UserProfileService>();
-            services.AddScoped<IImageService, ImageService>();
+            
+            // --------- Cloudflare R2 S3 Client (Singleton) ---------
+            // Register a single shared AmazonS3Client with exact config that works with Cloudflare R2
+            services.AddSingleton<Amazon.S3.IAmazonS3>(serviceProvider =>
+            {
+                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+                var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+                
+                var accessKey = configuration["Cloudflare:R2:AccessKeyId"];
+                var secretKey = configuration["Cloudflare:R2:SecretAccessKey"];
+                var accountId = configuration["Cloudflare:R2:AccountId"];
+                
+                if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
+                {
+                    var errorMsg = "Cloudflare R2 credentials not configured. Set Cloudflare:R2:AccessKeyId and Cloudflare:R2:SecretAccessKey.";
+                    logger.LogError(errorMsg);
+                    throw new InvalidOperationException(errorMsg);
+                }
+                
+                if (string.IsNullOrEmpty(accountId))
+                {
+                    var errorMsg = "Cloudflare R2 account ID not configured. Set Cloudflare:R2:AccountId.";
+                    logger.LogError(errorMsg);
+                    throw new InvalidOperationException(errorMsg);
+                }
+                
+                var credentials = new Amazon.Runtime.BasicAWSCredentials(accessKey, secretKey);
+                var config = new Amazon.S3.AmazonS3Config
+                {
+                    ServiceURL = $"https://{accountId}.r2.cloudflarestorage.com",
+                    ForcePathStyle = true,
+                    AuthenticationRegion = "auto" // Required for Cloudflare R2
+                };
+                
+                logger.LogInformation("Cloudflare R2 S3 client initialized for account: {AccountId}", accountId);
+                return new Amazon.S3.AmazonS3Client(credentials, config);
+            });
+            
+            services.AddScoped<IImageStorageService, CloudflareImageStorageService>();
             services.AddScoped<IEmailNotificationService, EmailNotificationService>();
             services.AddScoped<IFiscalYearService, FiscalYearService>();
             services.AddScoped<IEventRepertoireService, EventRepertoireService>();

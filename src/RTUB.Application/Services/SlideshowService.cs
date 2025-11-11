@@ -14,12 +14,12 @@ namespace RTUB.Application.Services;
 public class SlideshowService : ISlideshowService
 {
     private readonly ApplicationDbContext _context;
-    private readonly IImageService _imageService;
+    private readonly IImageStorageService _imageStorageService;
 
-    public SlideshowService(ApplicationDbContext context, IImageService imageService)
+    public SlideshowService(ApplicationDbContext context, IImageStorageService imageStorageService)
     {
         _context = context;
-        _imageService = imageService;
+        _imageStorageService = imageStorageService;
     }
 
     public async Task<Slideshow?> GetSlideshowByIdAsync(int id)
@@ -59,18 +59,24 @@ public class SlideshowService : ISlideshowService
         await _context.SaveChangesAsync();
     }
 
-    public async Task SetSlideshowImageAsync(int id, byte[]? imageData, string? contentType, string url = "")
+    public async Task SetSlideshowImageAsync(int id, Stream imageStream, string fileName, string contentType)
     {
         var slideshow = await _context.Slideshows.FindAsync(id);
         if (slideshow == null)
             throw new InvalidOperationException($"Slideshow with ID {id} not found");
 
-        slideshow.SetImage(imageData, contentType, url);
+        // Delete old image if it exists
+        if (!string.IsNullOrEmpty(slideshow.ImageUrl))
+        {
+            await _imageStorageService.DeleteImageAsync(slideshow.ImageUrl);
+        }
+
+        // Upload new image to Cloudflare R2
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", id.ToString());
+        slideshow.SetImage(imageUrl);
+        
         _context.Slideshows.Update(slideshow);
         await _context.SaveChangesAsync();
-        
-        // Invalidate the cached slideshow image so the new image is served immediately
-        _imageService.InvalidateSlideshowImageCache(id);
     }
 
     public async Task ActivateSlideshowAsync(int id)
@@ -100,6 +106,12 @@ public class SlideshowService : ISlideshowService
         var slideshow = await _context.Slideshows.FindAsync(id);
         if (slideshow == null)
             throw new InvalidOperationException($"Slideshow with ID {id} not found");
+
+        // Delete associated image from R2 storage if it exists
+        if (!string.IsNullOrEmpty(slideshow.ImageUrl))
+        {
+            await _imageStorageService.DeleteImageAsync(slideshow.ImageUrl);
+        }
 
         _context.Slideshows.Remove(slideshow);
         await _context.SaveChangesAsync();

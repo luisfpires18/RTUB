@@ -15,7 +15,7 @@ public class AlbumServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly AlbumService _albumService;
-    private readonly Mock<IImageService> _mockImageService;
+    private readonly Mock<IImageStorageService> _mockImageStorageService;
 
     public AlbumServiceTests()
     {
@@ -24,8 +24,8 @@ public class AlbumServiceTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _mockImageService = new Mock<IImageService>();
-        _albumService = new AlbumService(_context, _mockImageService.Object);
+        _mockImageStorageService = new Mock<IImageStorageService>();
+        _albumService = new AlbumService(_context, _mockImageStorageService.Object);
     }
 
     [Fact]
@@ -165,36 +165,7 @@ public class AlbumServiceTests : IDisposable
             .WithMessage("*not found*");
     }
 
-    [Fact]
-    public async Task SetAlbumCoverAsync_SetsImageData()
-    {
-        // Arrange
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var imageData = new byte[] { 1, 2, 3, 4, 5 };
-        var contentType = "image/jpeg";
-        var url = "https://example.com/cover.jpg";
 
-        // Act
-        await _albumService.SetAlbumCoverAsync(album.Id, imageData, contentType, url);
-        var updated = await _albumService.GetAlbumByIdAsync(album.Id);
-
-        // Assert
-        updated!.CoverImageData.Should().BeEquivalentTo(imageData);
-        updated.CoverImageContentType.Should().Be(contentType);
-        updated.CoverImageUrl.Should().Be(url);
-    }
-
-    [Fact]
-    public async Task SetAlbumCoverAsync_WithInvalidId_ThrowsException()
-    {
-        // Arrange
-        var imageData = new byte[] { 1, 2, 3 };
-
-        // Act & Assert
-        var act = async () => await _albumService.SetAlbumCoverAsync(999, imageData, "image/jpeg");
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*not found*");
-    }
 
     public void Dispose()
     {

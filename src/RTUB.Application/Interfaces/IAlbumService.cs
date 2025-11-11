@@ -10,6 +10,6 @@ public interface IAlbumService
     Task<Album?> GetAlbumWithSongsAsync(int id);
     Task<Album> CreateAlbumAsync(string title, int? year, string? description = null);
     Task UpdateAlbumAsync(int id, string title, int? year, string? description);
-    Task SetAlbumCoverAsync(int id, byte[]? imageData, string? contentType, string url = "");
+    Task SetAlbumCoverAsync(int id, Stream imageStream, string fileName, string contentType);
     Task DeleteAlbumAsync(int id);
 }
