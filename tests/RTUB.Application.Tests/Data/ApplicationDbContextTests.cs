@@ -1254,6 +1254,55 @@ public class ApplicationDbContextTests : IDisposable
         auditLog.EntityDisplayName.Should().Be("Test Song");
     }
 
+    [Fact]
+    public async Task SaveChangesAsync_WhenLastLoginDateUpdatedViaAuditContext_AuditLogShowsCorrectUser()
+    {
+        // Arrange - Create a user (simulating login scenario)
+        var user = new ApplicationUser
+        {
+            UserName = "jeans",
+            Email = "jeans@example.com",
+            FirstName = "Jean",
+            LastName = "Smith",
+            PhoneContact = "123456789"
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        // Clear previous audit logs for cleaner test
+        var existingLogs = await _context.AuditLogs.ToListAsync();
+        _context.AuditLogs.RemoveRange(existingLogs);
+        await _context.SaveChangesAsync();
+
+        // Clear mock HttpContext to simulate login scenario where user hasn't signed in yet
+        _httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext?)null);
+
+        // Act - Update LastLoginDate using AuditContext (simulating login process)
+        var userFromDb = await _context.Users.FindAsync(user.Id);
+        userFromDb.Should().NotBeNull();
+        
+        // Set AuditContext to track the user who is logging in
+        _auditContext.SetUser(userFromDb!.UserName, userFromDb.Id);
+        
+        userFromDb.LastLoginDate = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        
+        // Clear AuditContext after save
+        _auditContext.Clear();
+
+        // Assert - Verify the audit log shows the correct user, not "System"
+        var auditLogs = await _context.AuditLogs.ToListAsync();
+        auditLogs.Should().ContainSingle();
+        
+        var auditLog = auditLogs.First();
+        auditLog.EntityType.Should().Be("ApplicationUser");
+        auditLog.Action.Should().Be("Modified");
+        auditLog.UserName.Should().Be("jeans", "the audit log should show the user who logged in, not 'System'");
+        auditLog.UserId.Should().Be(user.Id);
+        auditLog.Changes.Should().Contain("LastLoginDate");
+        auditLog.Changes.Should().Contain("jeans"); // Should contain the target user in _TargetUser field
+    }
+
     public void Dispose()
     {
         _context.Dispose();

@@ -332,7 +332,8 @@ namespace RTUB
             app.MapPost("/auth/login", async (HttpContext http,
                                               SignInManager<ApplicationUser> signInManager,
                                               UserManager<ApplicationUser> userManager,
-                                              ILogger<Program> logger) =>
+                                              ILogger<Program> logger,
+                                              AuditContext auditContext) =>
             {
                 var form = await http.Request.ReadFormAsync();
                 var username = form["Username"].ToString();
@@ -381,6 +382,9 @@ namespace RTUB
                 // This fixes the race condition where users could make requests before LastLoginDate was set
                 try
                 {
+                    // Set audit context so the audit log shows the correct user instead of "System"
+                    auditContext.SetUser(user.UserName, user.Id);
+                    
                     user.LastLoginDate = DateTime.UtcNow;
                     var updateResult = await userManager.UpdateAsync(user);
                     if (!updateResult.Succeeded)
@@ -393,6 +397,11 @@ namespace RTUB
                 {
                     // Log error but don't fail login
                     logger.LogError(ex, "Exception while updating LastLoginDate for user {UserId}", user.Id);
+                }
+                finally
+                {
+                    // Always clear the audit context to prevent leaking to other requests
+                    auditContext.Clear();
                 }
 
                 // Sign in the user using SignInAsync (password already validated above)
