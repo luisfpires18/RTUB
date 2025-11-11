@@ -9,19 +9,19 @@ public class Slideshow : BaseEntity, IValidatableObject
 {
     public string ImageUrl { get; set; } = string.Empty;
     
-    [Required(ErrorMessage = "Slideshow title is required")]
-    [MaxLength(200, ErrorMessage = "Title must not exceed 200 characters")]
+    [Required(ErrorMessage = "O título do slideshow é obrigatório")]
+    [MaxLength(200, ErrorMessage = "O título não pode exceder 200 caracteres")]
     public string Title { get; set; } = string.Empty;
     
-    [MaxLength(1000, ErrorMessage = "Description must not exceed 1000 characters")]
+    [MaxLength(1000, ErrorMessage = "A descrição não pode exceder 1000 caracteres")]
     public string Description { get; set; } = string.Empty;
     
-    [Required(ErrorMessage = "Order is required")]
-    [Range(1, int.MaxValue, ErrorMessage = "Order must be greater than 0")]
+    [Required(ErrorMessage = "A ordem é obrigatória")]
+    [Range(1, int.MaxValue, ErrorMessage = "A ordem deve ser maior que 0")]
     public int Order { get; set; }
     
-    [Required(ErrorMessage = "Interval is required")]
-    [Range(1000, 10000, ErrorMessage = "Interval must be between 1000ms and 10000ms")]
+    [Required(ErrorMessage = "O intervalo é obrigatório")]
+    [Range(1000, 10000, ErrorMessage = "O intervalo deve estar entre 1000ms e 10000ms")]
     public int IntervalMs { get; set; } = 5000;
     
     public bool IsActive { get; set; } = true;
@@ -32,13 +32,13 @@ public class Slideshow : BaseEntity, IValidatableObject
     public static Slideshow Create(string title, int order, string description = "", int intervalMs = 5000)
     {
         if (string.IsNullOrWhiteSpace(title))
-            throw new ArgumentException("Title cannot be empty", nameof(title));
+            throw new ArgumentException("O título não pode estar vazio", nameof(title));
         
         if (order < 1)
-            throw new ArgumentException("Order must be positive", nameof(order));
+            throw new ArgumentException("A ordem deve ser positiva", nameof(order));
         
         if (intervalMs < 1000 || intervalMs > 10000)
-            throw new ArgumentException("Interval must be between 1000ms and 10000ms", nameof(intervalMs));
+            throw new ArgumentException("O intervalo deve estar entre 1000ms e 10000ms", nameof(intervalMs));
 
         return new Slideshow
         {
@@ -52,13 +52,13 @@ public class Slideshow : BaseEntity, IValidatableObject
     public void UpdateDetails(string title, string description, int order, int intervalMs)
     {
         if (string.IsNullOrWhiteSpace(title))
-            throw new ArgumentException("Title cannot be empty", nameof(title));
+            throw new ArgumentException("O título não pode estar vazio", nameof(title));
         
         if (order < 1)
-            throw new ArgumentException("Order must be positive", nameof(order));
+            throw new ArgumentException("A ordem deve ser positiva", nameof(order));
         
         if (intervalMs < 1000 || intervalMs > 10000)
-            throw new ArgumentException("Interval must be between 1000ms and 10000ms", nameof(intervalMs));
+            throw new ArgumentException("O intervalo deve estar entre 1000ms e 10000ms", nameof(intervalMs));
 
         Title = title;
         Description = description;
