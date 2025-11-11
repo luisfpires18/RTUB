@@ -9,6 +9,9 @@ using RTUB.Application.Data;
 
 namespace RTUB.Application.Services;
 
+/// <summary>
+/// Service for managing reports including report generation, activities, and transactions.
+/// </summary>
 public class ReportService : IReportService
 {
     private readonly ApplicationDbContext _context;

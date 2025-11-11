@@ -6,6 +6,9 @@ using RTUB.Application.Data;
 
 namespace RTUB.Application.Services;
 
+/// <summary>
+/// Service for managing photo albums and their operations.
+/// </summary>
 public class AlbumService : IAlbumService
 {
     private readonly ApplicationDbContext _context;
