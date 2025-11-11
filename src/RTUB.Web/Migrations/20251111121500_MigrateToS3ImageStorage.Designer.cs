@@ -2,8 +2,8 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Microsoft.EntityFrameworkCore.Migrations;
 using RTUB.Application.Data;
 
 #nullable disable
@@ -11,8 +11,8 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251111115944_FixS3ImageStorageMigration")]
-    partial class FixS3ImageStorageMigration
+    [Migration("20251111121500_MigrateToS3ImageStorage")]
+    partial class MigrateToS3ImageStorage
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -191,6 +191,17 @@ namespace RTUB.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("CoverImageContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("CoverImageData")
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("CoverImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -198,10 +209,6 @@ namespace RTUB.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ImageUrl")
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
@@ -265,9 +272,6 @@ namespace RTUB.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ImageUrl")
-                        .HasColumnType("TEXT");
-
                     b.Property<DateTime?>("LastLoginDate")
                         .HasColumnType("TEXT");
 
@@ -319,6 +323,12 @@ namespace RTUB.Migrations
 
                     b.Property<string>("PositionsJson")
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("ProfilePictureContentType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("ProfilePictureData")
+                        .HasColumnType("BLOB");
 
                     b.Property<bool>("RequirePasswordChange")
                         .HasColumnType("INTEGER");
@@ -473,7 +483,15 @@ namespace RTUB.Migrations
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ImageContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("ImageData")
+                        .HasColumnType("BLOB");
+
                     b.Property<string>("ImageUrl")
+                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
@@ -590,8 +608,11 @@ namespace RTUB.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ImageUrl")
+                    b.Property<string>("ImageContentType")
                         .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("ImageData")
+                        .HasColumnType("BLOB");
 
                     b.Property<DateTime?>("LastMaintenanceDate")
                         .HasColumnType("TEXT");
@@ -681,8 +702,11 @@ namespace RTUB.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ImageUrl")
+                    b.Property<string>("ImageContentType")
                         .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("ImageData")
+                        .HasColumnType("BLOB");
 
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("INTEGER");
@@ -1031,6 +1055,12 @@ namespace RTUB.Migrations
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("ImageContentType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("ImageData")
+                        .HasColumnType("BLOB");
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()
