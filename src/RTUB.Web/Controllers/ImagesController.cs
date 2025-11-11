@@ -26,7 +26,6 @@ public class ImagesController : ControllerBase
     /// </summary>
     /// <param name="filename">The image filename (e.g., "default-avatar.webp")</param>
     [HttpGet("{filename}")]
-    [ResponseCache(Duration = 2592000, Location = ResponseCacheLocation.Any)] // 30 days
     public IActionResult GetImage(string filename)
     {
         try
@@ -94,6 +93,10 @@ public class ImagesController : ControllerBase
                 var f when f.EndsWith(".gif") => "image/gif",
                 _ => "application/octet-stream"
             };
+
+            // Set Cache-Control to allow browser caching but require revalidation with E-Tag
+            // no-cache means "you must revalidate before using cached copy"
+            Response.Headers.CacheControl = "no-cache";
 
             // Return the file with E-Tag header
             var fileBytes = System.IO.File.ReadAllBytes(imagePath);
