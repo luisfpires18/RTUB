@@ -1,5 +1,6 @@
 @namespace RTUB.Shared
 @using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
 @*
     Reusable error display component for displaying validation errors
     Features card-style design with red error theme based on EmptyState component
@@ -68,6 +69,27 @@
             }
 
             return false;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        if (EditContext != null)
+        {
+            EditContext.OnValidationStateChanged += OnValidationStateChanged;
+        }
+    }
+
+    private void OnValidationStateChanged(object? sender, ValidationStateChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        if (EditContext != null)
+        {
+            EditContext.OnValidationStateChanged -= OnValidationStateChanged;
         }
     }
 }
