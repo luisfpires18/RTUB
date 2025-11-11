@@ -7,6 +7,8 @@
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Core.Entities
+@using RTUB.Core.Extensions
+@using System.Security.Claims
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SignInManager<ApplicationUser> SignInManager
@@ -50,10 +52,11 @@
                         <li class="nav-item"><NavLink class="nav-link" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
-                        @if (currentUser != null && !currentUser.IsLeitao())
-                        {
-                            <li class="nav-item"><NavLink class="nav-link" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
-                        }
+                        <AuthorizeView Policy="RequireNotOnlyLeitao" Context="financeAuth">
+                            <Authorized>
+                                <li class="nav-item"><NavLink class="nav-link" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
+                            </Authorized>
+                        </AuthorizeView>
                     </Authorized>
                 </AuthorizeView>
 
@@ -82,23 +85,23 @@
             <AuthorizeView>
                 <Authorized>
                     <ul class="navbar-nav mb-2 mb-lg-0">
-                        @if (currentUser != null)
+                        @if (context.User.Identity?.IsAuthenticated == true)
                         {
-                            @if (currentUser.IsLeitao())
+                            @if (context.User.IsLeitao())
                             {
                                 <li class="nav-item d-flex align-items-center">
                                     <CategoryBadge Category="MemberCategory.Leitao" AdditionalClasses="me-1" />
                                 </li>
                             }
-                            else if (currentUser.IsCaloiro())
+                            else if (context.User.IsCaloiro())
                             {
                                 <li class="nav-item d-flex align-items-center">
                                     <CategoryBadge Category="MemberCategory.Caloiro" AdditionalClasses="me-1" />
                                 </li>
                             }
-                            else if (currentUser.IsTuno())
+                            else if (context.User.IsTuno())
                             {
-                                if (currentUser.Positions.Contains(Position.Magister))
+                                if (context.User.IsMagister())
                                 {
                                     <li class="nav-item d-flex align-items-center">
                                         <PositionBadge Position="Position.Magister" AdditionalClasses="me-1" />

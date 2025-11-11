@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -269,6 +270,9 @@ namespace RTUB
 
             // Add memory cache for server-side caching (reduces database queries)
             services.AddMemoryCache();
+            
+            // Add claims transformation for dynamic claims refresh
+            services.AddScoped<IClaimsTransformation, RTUB.Application.Identity.ApplicationClaimsTransformation>();
 
             // Add controller support for API endpoints
             services.AddControllers();
