@@ -8,21 +8,21 @@ namespace RTUB.Core.Entities;
 /// </summary>
 public class Instrument : BaseEntity
 {
-    [Required]
-    [MaxLength(50)]
+    [Required(ErrorMessage = "A categoria é obrigatória")]
+    [MaxLength(50, ErrorMessage = "A categoria não pode exceder 50 caracteres")]
     public string Category { get; set; } = string.Empty;
     
-    [Required]
-    [MaxLength(100)]
+    [Required(ErrorMessage = "O nome é obrigatório")]
+    [MaxLength(100, ErrorMessage = "O nome não pode exceder 100 caracteres")]
     public string Name { get; set; } = string.Empty;
     
-    [MaxLength(100)]
+    [MaxLength(100, ErrorMessage = "O número de série não pode exceder 100 caracteres")]
     public string? SerialNumber { get; set; }
     
-    [MaxLength(100)]
+    [MaxLength(100, ErrorMessage = "A marca não pode exceder 100 caracteres")]
     public string? Brand { get; set; }
     
-    [Required]
+    [Required(ErrorMessage = "A condição é obrigatória")]
     public InstrumentCondition Condition { get; set; }
 
     [MaxLength(200)]
