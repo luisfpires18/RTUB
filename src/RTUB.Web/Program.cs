@@ -365,19 +365,10 @@ namespace RTUB
                     return Results.Redirect("/login?error=Invalid");
                 }
 
-                // Password is valid - reset access failed count regardless of 2FA status
-                // This ensures consistent behavior: successful password = reset count
+                // Password is valid - reset access failed count
                 await userManager.ResetAccessFailedCountAsync(user);
 
-                // Check if two-factor authentication is required
-                // If so, redirect to 2FA page without updating LastLoginDate yet
-                // TODO: Ensure the 2FA completion endpoint also updates LastLoginDate before sign-in
-                if (await userManager.GetTwoFactorEnabledAsync(user))
-                {
-                    return Results.Redirect($"/login-with-2fa?rememberMe={remember}");
-                }
-
-                // Password verified and no 2FA required - update last login date BEFORE signing in
+                // Password verified - update last login date BEFORE signing in
                 // This ensures the timestamp is set before the authentication cookie is issued
                 // This fixes the race condition where users could make requests before LastLoginDate was set
                 try
