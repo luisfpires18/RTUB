@@ -602,7 +602,7 @@ else
                     <InfoSection SectionTitle="Descrição" 
                                 IconClass="bi-file-text" 
                                 CssClass="mb-3">
-                        <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedEvent.Description</p>
+                        <p class="text-white-full mb-0 whitespace-pre-line">@selectedEvent.Description</p>
                     </InfoSection>
                 }
             }
@@ -638,7 +638,7 @@ else
                 @foreach (var trophy in eventTrophies)
                 {
                     <div class="col-md-4 col-sm-6">
-                        <div class="card h-100 text-center p-3 position-relative trophy-card" style="background-color: #151516; border: 2px solid #2f2f2f; transition: border-color 0.2s ease, box-shadow 0.2s ease;">
+                        <div class="card h-100 text-center p-3 position-relative trophy-card trophy-card-dark">
                             <AuthorizeView Roles="Admin,Owner">
                                 <Authorized>
                                     <div class="position-absolute top-0 end-0 p-2">
@@ -652,7 +652,7 @@ else
                                 </Authorized>
                             </AuthorizeView>
                             <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                                <i class="bi bi-trophy-fill text-warning mb-3" style="font-size: 3rem;"></i>
+                                <i class="bi bi-trophy-fill text-warning mb-3 trophy-icon-large"></i>
                                 <h5 class="card-title mb-0">@trophy.Name</h5>
                             </div>
                         </div>

@@ -21,12 +21,12 @@
                 else if (!string.IsNullOrEmpty(ImageUrl))
                 {
                     <img src="@ImageUrl" alt="@HeaderTitle"
-                         class="mb-3" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 3px solid var(--bs-primary);" />
+                         class="circular-image-200 mb-3" />
                 }
                 else if (!string.IsNullOrEmpty(IconClass))
                 {
-                    <div class="mb-3" style="width: 200px; height: 200px; border-radius: 50%; background: linear-gradient(135deg, rgba(111, 66, 193, 0.2), rgba(111, 66, 193, 0.05)); display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 3px solid var(--bs-primary);">
-                        <i class="bi @IconClass" style="font-size: 4rem; color: rgba(255, 255, 255, 0.5);"></i>
+                    <div class="circular-placeholder-200 mb-3">
+                        <i class="bi @IconClass icon-size-4rem" style="color: rgba(255, 255, 255, 0.5);"></i>
                     </div>
                 }
                 
