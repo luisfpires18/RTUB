@@ -72,9 +72,8 @@ else
 
     @if (filteredUpcomingRehearsals == null || !filteredUpcomingRehearsals.Any())
     {
-        <div class="card shadow-sm card-purple-no-border">
-            <h5 class="card-title text-white"><i class="bi bi-info-circle"></i> Nenhum ensaio agendado</h5>
-        </div>
+        <EmptyState Title="Nenhum ensaio agendado"
+                   Icon="bi-info-circle" />
     }
     else
     {
@@ -123,9 +122,8 @@ else
         
         @if (filteredPreviousRehearsals == null || !filteredPreviousRehearsals.Any())
         {
-            <div class="card shadow-sm card-purple-no-border">
-                <h5 class="card-title text-white"><i class="bi bi-info-circle"></i> Nenhum ensaio anterior encontrado</h5>
-            </div>
+            <EmptyState Title="Nenhum ensaio anterior encontrado"
+                       Icon="bi-info-circle" />
         }
         else
         {
@@ -172,16 +170,50 @@ else
                     <button type="button" class="btn-close" @onclick="CloseAttendanceModal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Instrumento (Opcional)</label>
-                        <select class="form-select" @bind="selectedInstrument">
-                            <option value="">-- Selecionar --</option>
-                            @foreach (var instrument in Enum.GetValues<InstrumentType>())
-                            {
-                                <option value="@instrument">@instrument</option>
-                            }
-                        </select>
-                    </div>
+                    @* Only show "Quero tocar" toggle for non-Leitão members *@
+                    @if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao))
+                    {
+                        <div class="mb-3 form-check form-switch">
+                            <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayRehearsalToggle"
+                                   checked="@wantToPlayRehearsal"
+                                   @onchange="@((ChangeEventArgs e) => OnWantToPlayRehearsalChanged((bool)e.Value!))">
+                            <label class="form-check-label clickable-row" for="wantToPlayRehearsalToggle">
+                                Quero tocar
+                            </label>
+                        </div>
+
+                        @if (wantToPlayRehearsal)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Instrumento *</label>
+                                <select class="form-select" @bind="selectedInstrument">
+                                    <option value="" disabled selected>Selecionar...</option>
+                                    @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                                    {
+                                        <option value="@instrument">@instrument</option>
+                                    }
+                                </select>
+                                @if (!string.IsNullOrEmpty(instrumentValidationErrorRehearsal))
+                                {
+                                    <div class="text-danger mt-1">@instrumentValidationErrorRehearsal</div>
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Instrumento (Opcional)</label>
+                            <select class="form-select" @bind="selectedInstrument">
+                                <option value="" disabled selected>Selecionar...</option>
+                                @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                                {
+                                    <option value="@instrument">@instrument</option>
+                                }
+                            </select>
+                        </div>
+                    }
+
                     <div class="mb-3">
                         <label class="form-label">Notas (Opcional)</label>
                         <textarea class="form-control" rows="3" @bind="selectedNotes" placeholder="Adicione alguma nota..."></textarea>
@@ -303,7 +335,7 @@ else
                                 @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && !addMemberFeedbackIsError)
                                 {
                                     <Alert Type="Alert.AlertType.Purple" 
-                                           Message="@addMemberFeedbackMessage" 
+                                           Title="@addMemberFeedbackMessage" 
                                            Dismissible="true"
                                            OnDismiss="ClearAddMemberFeedback"
                                            AdditionalClasses="mb-2" />
@@ -313,7 +345,7 @@ else
                                 @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && addMemberFeedbackIsError)
                                 {
                                     <Alert Type="Alert.AlertType.Error" 
-                                           Message="@addMemberFeedbackMessage" 
+                                           Title="@addMemberFeedbackMessage" 
                                            Dismissible="true"
                                            OnDismiss="ClearAddMemberFeedback"
                                            AdditionalClasses="mb-2" />
@@ -370,7 +402,8 @@ else
                     }
                     else
                     {
-                        <p>Nenhuma presença registada ainda.</p>
+                        <EmptyState Title="Nenhuma presença registada ainda"
+                                   Icon="bi-calendar-check" />
                     }
                 </div>
                 <div class="modal-footer">
@@ -536,9 +569,9 @@ else
 
                 @if (!filteredStatsUsers.Any())
                 {
-                    <EmptyTableState 
-                        Message="Nenhum membro encontrado com os critérios de pesquisa." 
-                        IconClass="bi-search" />
+                    <EmptyState 
+                        Title="Nenhum membro encontrado com os critérios de pesquisa." 
+                        Icon="bi-search" />
                 }
                 else
                 {
@@ -586,9 +619,9 @@ else
             }
             else if (attendanceStatsUsers != null)
             {
-                <EmptyTableState 
-                    Message="Sem dados para o período selecionado." 
-                    IconClass="bi-info-circle" />
+                <EmptyState 
+                    Title="Sem dados para o período selecionado." 
+                    Icon="bi-info-circle" />
             }
         </BodyContent>
         <FooterContent>
@@ -712,9 +745,9 @@ else
         <BodyContent>
             @if (myAttendances == null || !myAttendances.Any())
             {
-                <EmptyTableState 
-                    Message="Sem presenças registadas." 
-                    IconClass="bi-info-circle" />
+                <EmptyState 
+                    Title="Sem presenças registadas." 
+                    Icon="bi-info-circle" />
             }
             else
             {
@@ -770,6 +803,7 @@ else
     private bool isAdmin = false;
     private bool isOwner = false;
     private string? currentUserId;
+    private ApplicationUser? currentUser;
 
     private List<Rehearsal> upcomingRehearsals = new();
     private List<Rehearsal> filteredUpcomingRehearsals = new();
@@ -813,6 +847,8 @@ else
     private RehearsalAttendance? deletingAttendance;
     private string? selectedInstrument;
     private string? selectedNotes;
+    private bool wantToPlayRehearsal = false;
+    private string instrumentValidationErrorRehearsal = string.Empty;
     private string editLocation = "";
     private string? editTheme;
     private string? editNotes;
@@ -868,6 +904,7 @@ else
             if (appUser != null)
             {
                 currentUserId = appUser.Id;
+                currentUser = appUser;
                 isAdmin = user.IsInRole("Admin") || user.IsInRole("Owner");
                 isOwner = user.IsInRole("Owner");
             }
@@ -1048,6 +1085,20 @@ else
         {
             try
             {
+                // Clear previous validation errors
+                instrumentValidationErrorRehearsal = string.Empty;
+
+                // Validate instrument is selected when wantToPlayRehearsal is true
+                if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao) && wantToPlayRehearsal)
+                {
+                    if (string.IsNullOrEmpty(selectedInstrument))
+                    {
+                        instrumentValidationErrorRehearsal = "Por favor, selecione um instrumento.";
+                        StateHasChanged();
+                        return;
+                    }
+                }
+
                 InstrumentType? instrument = null;
                 if (!string.IsNullOrEmpty(selectedInstrument))
                 {
@@ -1068,12 +1119,22 @@ else
         }
     }
 
+    private void OnWantToPlayRehearsalChanged(bool value)
+    {
+        wantToPlayRehearsal = value;
+        instrumentValidationErrorRehearsal = string.Empty; // Clear validation error when toggle changes
+        // Always clear instrument when toggle changes to force user to select
+        selectedInstrument = null;
+    }
+
     private void CloseAttendanceModal()
     {
         showAttendanceModal = false;
         selectedRehearsal = null;
         selectedInstrument = null;
         selectedNotes = null;
+        wantToPlayRehearsal = false;
+        instrumentValidationErrorRehearsal = string.Empty; // Clear validation error on close
         StateHasChanged();
     }
 

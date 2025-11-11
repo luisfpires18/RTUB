@@ -102,8 +102,8 @@ else
     }
     else if (!activities.Any())
     {
-        <EmptyTableState Message="Nenhuma atividade criada ainda."
-                        IconClass="bi-calendar-event" />
+        <EmptyState Title="Nenhuma atividade criada ainda."
+                        Icon="bi-calendar-event" />
     }
     else
     {
@@ -189,9 +189,9 @@ else
 
    @if (filteredCount == 0)
     {
-        <EmptyTableState Message="Nenhuma transação encontrada"
-                        IconClass="bi-search"
-                        SubMessage="Tente ajustar os filtros de pesquisa." />
+        <EmptyState Title="Nenhuma transação encontrada"
+                        Icon="bi-search"
+                        SubTitle="Tente ajustar os filtros de pesquisa." />
        }
         else
             {

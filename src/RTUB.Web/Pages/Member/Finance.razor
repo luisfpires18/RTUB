@@ -60,19 +60,14 @@ else
     {
         <AuthorizeView Roles="Admin">
             <Authorized>
-                <EmptyTableState 
-                    Message="Sem relatórios financeiros" 
-                    IconClass="bi-info-circle" />
-                <div class="text-center mt-3">
-                    <button class="btn btn-success" @onclick="OpenCreateModal">
-                        <i class="bi bi-plus-lg"></i> Novo Relatório
-                    </button>
-                </div>
+                <EmptyState 
+                    Title="Sem relatórios financeiros" 
+                    Icon="bi-info-circle" />
             </Authorized>
             <NotAuthorized>
-                <EmptyTableState 
-                    Message="Sem relatórios financeiros" 
-                    IconClass="bi-info-circle" />
+                <EmptyState 
+                    Title="Sem relatórios financeiros" 
+                    Icon="bi-info-circle" />
             </NotAuthorized>
         </AuthorizeView>
     }

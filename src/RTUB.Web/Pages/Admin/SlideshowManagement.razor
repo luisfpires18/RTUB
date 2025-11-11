@@ -36,84 +36,33 @@
 }
 else if (!PaginatedItems.Any())
 {
-    <EmptyTableState 
-        Message="Nenhum slideshow encontrado." 
-        IconClass="bi-info-circle" />
+    <EmptyState Title="Nenhum slideshow encontrado"
+                Message="Não foram encontrados slideshows que correspondam à sua pesquisa."
+                Icon="bi-info-circle" />
 }
 else
 {
-    <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Imagem</th>
-                    <SortableTableHeader 
-                        HeaderText="Título" 
-                        SortColumn="@nameof(Slideshow.Title)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Ordem" 
-                        SortColumn="@nameof(Slideshow.Order)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Intervalo (ms)" 
-                        SortColumn="@nameof(Slideshow.IntervalMs)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <SortableTableHeader 
-                        HeaderText="Ativo" 
-                        SortColumn="@nameof(Slideshow.IsActive)" 
-                        CurrentSortColumn="@SortHelper.SortColumn"
-                        IsSortAscending="@SortHelper.SortAscending"
-                        OnSortChanged="SortBy" />
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var slide in PaginatedItems)
-                {
-                    <tr>
-                        <td>
-                            @if (!string.IsNullOrEmpty(slide.ImageSrc))
-                            {
-                                <img src="@GetSlideshowImageUrl(slide.ImageSrc)" alt="@slide.Title" class="slideshow-thumbnail img-thumbnail" />
-                            }
-                        </td>
-                        <td>@slide.Title</td>
-                        <td>@slide.Order</td>
-                        <td>@slide.IntervalMs</td>
-                        <td>
-                            <span class="badge @(slide.IsActive ? "bg-success" : "bg-secondary")">
-                                @(slide.IsActive ? "Ativo" : "Inativo")
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditModal(slide)" title="Editar">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteModal(slide)" title="Eliminar">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <!-- Slideshow Cards -->
+    <div class="slideshow-list mb-4">
+        @foreach (var slide in PaginatedItems)
+        {
+            <SlideshowCard Slide="@slide"
+                          ImageUrl="@GetSlideshowImageUrl(slide.ImageSrc)"
+                          ShowAdminControls="true"
+                          OnClick="@((s) => { })"
+                          OnEdit="@((s) => OpenEditModal(s))"
+                          OnDelete="@((s) => OpenDeleteModal(s))" />
+        }
     </div>
 
     <!-- Pagination -->
-    <TablePagination 
-        CurrentPage="@PaginationHelper.CurrentPage"
-        PageSize="@PaginationHelper.PageSize"
-        TotalItems="@FilteredItems.Count"
-        ItemLabel="slides"
-        OnPageChanged="ChangePage"
-        OnPageSizeChanged="ChangePageSize" />
+    <TablePagination CurrentPage="@PaginationHelper.CurrentPage"
+                    PageSize="@PaginationHelper.PageSize"
+                    TotalItems="@FilteredItems.Count"
+                    ItemLabel="slides"
+                    PageSizeOptions="@(new[] { 3, 6, 9, 12, 15 })"
+                    OnPageChanged="ChangePage"
+                    OnPageSizeChanged="ChangePageSize" />
 }
 
 <!-- CRUD Modals -->
@@ -218,6 +167,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         SortHelper.SortColumn = nameof(Slideshow.Order);
+        PaginationHelper.PageSize = 3; // Default page size for slideshow list
         await LoadItemsAsync();
         ApplyFiltersAndPagination();
     }

@@ -1,0 +1,109 @@
+@namespace RTUB.Shared
+@*
+    Reusable empty state component for displaying when no items are found
+    Features textarea-style design with purple hover effect
+*@
+
+<div class="empty-state-container">
+    <div class="empty-state-card @(IsClickable ? "empty-state-hoverable" : "")"
+         tabindex="@(IsClickable ? "0" : "-1")"
+         role="@(IsClickable ? "button" : "")"
+         @onclick="HandleClick"
+         @onkeydown="HandleKeyDown">
+        <div class="empty-state-content">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <i class="bi @Icon empty-state-icon"></i>
+            }
+            <h5 class="empty-state-title">@Title</h5>
+            @if (!string.IsNullOrEmpty(Message))
+            {
+                <p class="empty-state-message">@Message</p>
+            }
+            @if (!string.IsNullOrEmpty(ActionText))
+            {
+                @if (!string.IsNullOrEmpty(ActionUrl))
+                {
+                    <a href="@ActionUrl" class="btn btn-purple mt-2">
+                        @ActionText
+                    </a>
+                }
+                else if (OnAction.HasDelegate)
+                {
+                    <button class="btn btn-purple mt-2" @onclick="HandleAction" @onclick:stopPropagation="true">
+                        @ActionText
+                    </button>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Main title to display
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = "No items found";
+
+    /// <summary>
+    /// Optional message providing more context
+    /// </summary>
+    [Parameter]
+    public string? Message { get; set; }
+
+    /// <summary>
+    /// Bootstrap icon class (e.g., "bi-inbox", "bi-search")
+    /// </summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    /// <summary>
+    /// Text for the action button (optional)
+    /// </summary>
+    [Parameter]
+    public string? ActionText { get; set; }
+
+    /// <summary>
+    /// URL to navigate to when action button is clicked (optional)
+    /// </summary>
+    [Parameter]
+    public string? ActionUrl { get; set; }
+
+    /// <summary>
+    /// Callback when action button is clicked (optional)
+    /// </summary>
+    [Parameter]
+    public EventCallback OnAction { get; set; }
+
+    private bool IsClickable => !string.IsNullOrEmpty(ActionUrl) || OnAction.HasDelegate;
+
+    private async Task HandleAction()
+    {
+        if (OnAction.HasDelegate)
+        {
+            await OnAction.InvokeAsync();
+        }
+    }
+
+    private async Task HandleClick()
+    {
+        if (!string.IsNullOrEmpty(ActionUrl))
+        {
+            // Navigation will be handled by the anchor tag
+        }
+        else if (OnAction.HasDelegate && string.IsNullOrEmpty(ActionText))
+        {
+            // Only trigger if there's no button (direct click on card)
+            await OnAction.InvokeAsync();
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (IsClickable && (e.Key == "Enter" || e.Key == " "))
+        {
+            await HandleClick();
+        }
+    }
+}
