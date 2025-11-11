@@ -292,12 +292,16 @@ else
                             <div class="mb-3">
                                 <label class="form-label text-white-full">Instrumento *</label>
                                 <InputSelect class="form-select form-select-dark" @bind-Value="enrollmentForm.Instrument">
-                                    <option value="">Selecionar...</option>
+                                    <option value="" disabled>Selecionar...</option>
                                     @foreach (var instrument in Enum.GetValues<InstrumentType>())
                                     {
                                         <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                                     }
                                 </InputSelect>
+                                @if (!string.IsNullOrEmpty(instrumentValidationError))
+                                {
+                                    <div class="text-danger mt-1">@instrumentValidationError</div>
+                                }
                             </div>
                         }
                     }
@@ -817,6 +821,7 @@ else
     private bool isUserAdmin = false;
     private bool isUserOwner = false;
     private bool isTrophyCreateMode = false;
+    private string instrumentValidationError = string.Empty;
     private Event? editingEvent;
     private Event? deletingEvent;
     private Event? selectedEvent;
@@ -1210,6 +1215,7 @@ else
     private void OnWantToPlayChanged(bool value)
     {
         wantToPlay = value;
+        instrumentValidationError = string.Empty; // Clear validation error when toggle changes
         if (!value && enrollmentForm != null)
         {
             // Clear instrument when toggle is turned off
@@ -1223,12 +1229,27 @@ else
         enrollmentForm = null;
         selectedEvent = null;
         isEditingEnrollment = false;
+        instrumentValidationError = string.Empty; // Clear validation error on close
         wantToPlay = false;
     }
 
     private async Task SaveEnrollment()
     {
         if (enrollmentForm == null || currentUser == null) return;
+
+        // Clear previous validation errors
+        instrumentValidationError = string.Empty;
+
+        // Validate instrument is selected when wantToPlay is true
+        if (wantToPlay && enrollmentForm.WillAttend && !currentUser.Categories.Contains(MemberCategory.Leitao))
+        {
+            if (!enrollmentForm.Instrument.HasValue)
+            {
+                instrumentValidationError = "Por favor, selecione um instrumento.";
+                StateHasChanged();
+                return;
+            }
+        }
 
         if (isEditingEnrollment)
         {

@@ -173,7 +173,7 @@ else
                     <div class="mb-3">
                         <label class="form-label">Instrumento (Opcional)</label>
                         <select class="form-select" @bind="selectedInstrument">
-                            <option value="">-- Selecionar --</option>
+                            <option value="" disabled>Selecionar...</option>
                             @foreach (var instrument in Enum.GetValues<InstrumentType>())
                             {
                                 <option value="@instrument">@instrument</option>
