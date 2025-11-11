@@ -10,6 +10,9 @@ using RTUB.Application.Data;
 
 namespace RTUB.Application.Services;
 
+/// <summary>
+/// Service for generating PDF reports using QuestPDF with caching support.
+/// </summary>
 public class ReportPdfService
 {
     private readonly IMemoryCache _cache;
