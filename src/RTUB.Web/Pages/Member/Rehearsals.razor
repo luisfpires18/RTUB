@@ -656,44 +656,35 @@ else
                             <button type="button" class="btn-close" @onclick="@(() => rangeFeedbackMessage = "")"></button>
                         </div>
                     }
-                    <div class="mb-3">
-                        <label class="form-label">Data Início</label>
-                        <input type="date" class="form-control" @bind="rangeStartDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Data Fim</label>
-                        <input type="date" class="form-control" @bind="rangeEndDate" max="@maxRangeDate.ToString("yyyy-MM-dd")" />
-                    </div>
-                    @if (rangeEndDate.Date < rangeStartDate.Date)
-                    {
-                        <div class="alert alert-danger">
-                            A data de fim não pode ser anterior à data de início.
+                    <EditForm Model="rangeRehearsalForm" OnValidSubmit="CreateRangeRehearsals" @ref="rangeRehearsalEditForm">
+                        <DataAnnotationsValidator />
+                        <ErrorDisplay />
+
+                        <div class="mb-3">
+                            <label class="form-label">Data Início *</label>
+                            <InputDate class="form-control" @bind-Value="rangeRehearsalForm.StartDate" min="@DateTime.Today" />
                         </div>
-                    }
-                    @if ((rangeEndDate.Date - rangeStartDate.Date).TotalDays > 90)
-                    {
-                        <div class="alert alert-warning">
-                            O período máximo é de 3 meses.
+                        <div class="mb-3">
+                            <label class="form-label">Data Fim *</label>
+                            <InputDate class="form-control" @bind-Value="rangeRehearsalForm.EndDate" max="@maxRangeDate" />
                         </div>
-                    }
-                    <div class="mb-3">
-                        <label class="form-label">Localização</label>
-                        <input type="text" class="form-control" @bind="rangeLocation" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Tema (Opcional)</label>
-                        <input type="text" class="form-control" @bind="rangeTheme" />
-                    </div>
-                    <p class="text-muted">
-                        <small>Serão criados ensaios às Terças e Quintas no intervalo selecionado.</small>
-                    </p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseDateRangeModal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" @onclick="CreateRangeRehearsals" 
-                            disabled="@(rangeEndDate.Date < rangeStartDate.Date || (rangeEndDate.Date - rangeStartDate.Date).TotalDays > 90)">
-                        Criar
-                    </button>
+                        <div class="mb-3">
+                            <label class="form-label">Localização *</label>
+                            <InputText class="form-control" @bind-Value="rangeRehearsalForm.Location" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tema (Opcional)</label>
+                            <InputText class="form-control" @bind-Value="rangeRehearsalForm.Theme" />
+                        </div>
+                        <p class="text-muted">
+                            <small>Serão criados ensaios às Terças e Quintas no intervalo selecionado.</small>
+                        </p>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseDateRangeModal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Criar</button>
+                        </div>
+                    </EditForm>
                 </div>
             </div>
         </div>
@@ -881,11 +872,9 @@ else
     private bool createFeedbackIsError = false;
 
     // Range rehearsals
-    private DateTime rangeStartDate = DateTime.Today;
-    private DateTime rangeEndDate = DateTime.Today.AddMonths(1);
+    private RehearsalRangeFormModel rangeRehearsalForm = new();
+    private EditForm? rangeRehearsalEditForm;
     private DateTime maxRangeDate => DateTime.Today.AddMonths(3);
-    private string rangeLocation = "Centro Académico";
-    private string? rangeTheme;
     private string rangeFeedbackMessage = "";
     private bool rangeFeedbackIsError = false;
 
@@ -1735,10 +1724,12 @@ else
     // Date Range Modal methods
     private void OpenDateRangeModal()
     {
-        rangeStartDate = DateTime.Today;
-        rangeEndDate = DateTime.Today.AddMonths(1);
-        rangeLocation = "Centro Académico";
-        rangeTheme = null;
+        rangeRehearsalForm = new RehearsalRangeFormModel
+        {
+            StartDate = DateTime.Today,
+            EndDate = DateTime.Today.AddMonths(1),
+            Location = "Centro Académico"
+        };
         showDateRangeModal = true;
     }
 
@@ -1756,12 +1747,34 @@ else
         {
             rangeFeedbackMessage = "";
             rangeFeedbackIsError = false;
+
+            if (rangeRehearsalEditForm?.EditContext == null) return;
+
+            var editContext = rangeRehearsalEditForm.EditContext;
+            var messageStore = new ValidationMessageStore(editContext);
+            messageStore.Clear();
+
+            // Custom validation: End date must be >= Start date
+            if (rangeRehearsalForm.EndDate.Date < rangeRehearsalForm.StartDate.Date)
+            {
+                messageStore.Add(() => rangeRehearsalForm.EndDate, "A data de fim não pode ser anterior à data de início.");
+                editContext.NotifyValidationStateChanged();
+                return;
+            }
+
+            // Custom validation: Maximum 3 months
+            if ((rangeRehearsalForm.EndDate.Date - rangeRehearsalForm.StartDate.Date).TotalDays > 90)
+            {
+                messageStore.Add(() => rangeRehearsalForm.EndDate, "O período máximo é de 3 meses.");
+                editContext.NotifyValidationStateChanged();
+                return;
+            }
             
-            var currentDate = rangeStartDate;
+            var currentDate = rangeRehearsalForm.StartDate;
             int created = 0;
             int skipped = 0;
             
-            while (currentDate <= rangeEndDate)
+            while (currentDate <= rangeRehearsalForm.EndDate)
             {
                 // Tuesday = 2, Thursday = 4
                 if (currentDate.DayOfWeek == DayOfWeek.Tuesday || currentDate.DayOfWeek == DayOfWeek.Thursday)
@@ -1770,7 +1783,7 @@ else
                     var existingRehearsal = await RehearsalService.GetRehearsalByDateAsync(currentDate);
                     if (existingRehearsal == null)
                     {
-                        await RehearsalService.CreateRehearsalAsync(currentDate, rangeLocation, rangeTheme);
+                        await RehearsalService.CreateRehearsalAsync(currentDate, rangeRehearsalForm.Location, rangeRehearsalForm.Theme);
                         created++;
                     }
                     else
@@ -1865,5 +1878,21 @@ else
 
         [MaxLength(1000, ErrorMessage = "As notas não podem exceder 1000 caracteres")]
         public string? Notes { get; set; }
+    }
+
+    private class RehearsalRangeFormModel
+    {
+        [Required(ErrorMessage = "A data de início é obrigatória")]
+        public DateTime StartDate { get; set; } = DateTime.Today;
+
+        [Required(ErrorMessage = "A data de fim é obrigatória")]
+        public DateTime EndDate { get; set; } = DateTime.Today.AddMonths(1);
+
+        [Required(ErrorMessage = "A localização é obrigatória")]
+        [MaxLength(200, ErrorMessage = "A localização não pode exceder 200 caracteres")]
+        public string Location { get; set; } = "Centro Académico";
+
+        [MaxLength(500, ErrorMessage = "O tema não pode exceder 500 caracteres")]
+        public string? Theme { get; set; }
     }
 }
