@@ -8,17 +8,17 @@ namespace RTUB.Core.Entities;
 /// </summary>
 public class Rehearsal : BaseEntity
 {
-    [Required]
+    [Required(ErrorMessage = "A data é obrigatória")]
     public DateTime Date { get; set; }
     
-    [Required]
-    [MaxLength(200)]
+    [Required(ErrorMessage = "A localização é obrigatória")]
+    [MaxLength(200, ErrorMessage = "A localização não pode exceder 200 caracteres")]
     public string Location { get; set; } = "Centro Académico";
         
-    [MaxLength(500)]
+    [MaxLength(500, ErrorMessage = "O tema não pode exceder 500 caracteres")]
     public string? Theme { get; set; } // e.g., "Fado practice", "Christmas repertoire"
     
-    [MaxLength(1000)]
+    [MaxLength(1000, ErrorMessage = "As notas não podem exceder 1000 caracteres")]
     public string? Notes { get; set; }
     
     public TimeSpan StartTime { get; set; } = new TimeSpan(21, 0, 0);

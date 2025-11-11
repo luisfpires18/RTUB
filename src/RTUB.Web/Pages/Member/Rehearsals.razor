@@ -1,9 +1,11 @@
 @page "/rehearsals"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
+@using System.ComponentModel.DataAnnotations
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
@@ -508,27 +510,33 @@ else
                     <button type="button" class="btn-close" @onclick="@(() => createFeedbackMessage = "")"></button>
                 </div>
             }
-            <div class="mb-3">
-                <label class="form-label">Data <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" @bind="createDate" />
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Localização <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" @bind="createLocation" />
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Tema (Opcional)</label>
-                <input type="text" class="form-control" @bind="createTheme" />
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Notas (Opcional)</label>
-                <textarea class="form-control" rows="3" @bind="createNotes"></textarea>
-            </div>
+            <EditForm Model="createRehearsalForm" OnValidSubmit="SaveNewRehearsal" @ref="createRehearsalEditForm">
+                <DataAnnotationsValidator />
+                <ErrorDisplay />
+
+                <div class="mb-3">
+                    <label class="form-label">Data *</label>
+                    <InputDate class="form-control" @bind-Value="createRehearsalForm.Date" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Localização *</label>
+                    <InputText class="form-control" @bind-Value="createRehearsalForm.Location" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Tema (Opcional)</label>
+                    <InputText class="form-control" @bind-Value="createRehearsalForm.Theme" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notas (Opcional)</label>
+                    <InputTextArea class="form-control" rows="3" @bind-Value="createRehearsalForm.Notes" />
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseCreateModal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar</button>
+                </div>
+            </EditForm>
         </BodyContent>
-        <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseCreateModal">Cancelar</button>
-            <button type="button" class="btn btn-primary" @onclick="SaveNewRehearsal">Criar</button>
-        </FooterContent>
     </Modal>
 }
 
@@ -867,10 +875,8 @@ else
     private List<ApplicationUser> filteredAvailableMembers = new();
 
     // Create rehearsal
-    private DateTime createDate = DateTime.Today.AddDays(1);
-    private string createLocation = "Centro Académico";
-    private string? createTheme;
-    private string? createNotes;
+    private RehearsalFormModel createRehearsalForm = new();
+    private EditForm? createRehearsalEditForm;
     private string createFeedbackMessage = "";
     private bool createFeedbackIsError = false;
 
@@ -1571,10 +1577,11 @@ else
     // Create modal methods
     private void OpenCreateSingleModal()
     {
-        createDate = DateTime.Today.AddDays(1);
-        createLocation = "Centro Académico";
-        createTheme = null;
-        createNotes = null;
+        createRehearsalForm = new RehearsalFormModel
+        {
+            Date = DateTime.Today.AddDays(1),
+            Location = "Centro Académico"
+        };
         showCreateModal = true;
     }
 
@@ -1592,18 +1599,23 @@ else
         {
             createFeedbackMessage = "";
             createFeedbackIsError = false;
+
+            if (createRehearsalEditForm?.EditContext == null) return;
+
+            var editContext = createRehearsalEditForm.EditContext;
+            var messageStore = new ValidationMessageStore(editContext);
+            messageStore.Clear();
             
             // Check if rehearsal already exists on this date
-            var existingRehearsal = await RehearsalService.GetRehearsalByDateAsync(createDate);
+            var existingRehearsal = await RehearsalService.GetRehearsalByDateAsync(createRehearsalForm.Date);
             if (existingRehearsal != null)
             {
-                createFeedbackMessage = $"Já existe um ensaio marcado para {createDate.ToString("dd/MM/yyyy")}.";
-                createFeedbackIsError = true;
-                StateHasChanged();
+                messageStore.Add(() => createRehearsalForm.Date, $"Já existe um ensaio marcado para {createRehearsalForm.Date.ToString("dd/MM/yyyy")}.");
+                editContext.NotifyValidationStateChanged();
                 return;
             }
 
-            await RehearsalService.CreateRehearsalAsync(createDate, createLocation, createTheme);
+            await RehearsalService.CreateRehearsalAsync(createRehearsalForm.Date, createRehearsalForm.Location, createRehearsalForm.Theme);
             await LoadData();
             CloseCreateModal();
             StateHasChanged();
@@ -1836,5 +1848,22 @@ else
         public string UserId { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
         public int Count { get; set; }
+    }
+
+    // Form models for validation
+    private class RehearsalFormModel
+    {
+        [Required(ErrorMessage = "A data é obrigatória")]
+        public DateTime Date { get; set; } = DateTime.Today.AddDays(1);
+
+        [Required(ErrorMessage = "A localização é obrigatória")]
+        [MaxLength(200, ErrorMessage = "A localização não pode exceder 200 caracteres")]
+        public string Location { get; set; } = "Centro Académico";
+
+        [MaxLength(500, ErrorMessage = "O tema não pode exceder 500 caracteres")]
+        public string? Theme { get; set; }
+
+        [MaxLength(1000, ErrorMessage = "As notas não podem exceder 1000 caracteres")]
+        public string? Notes { get; set; }
     }
 }
