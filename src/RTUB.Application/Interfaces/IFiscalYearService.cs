@@ -13,4 +13,5 @@ public interface IFiscalYearService
     Task<FiscalYear?> GetFiscalYearByStartYearAsync(int startYear);
     Task<FiscalYear> CreateFiscalYearAsync(int startYear);
     Task DeleteFiscalYearAsync(int id);
+    Task<IEnumerable<int>> GetAvailableFiscalYearStartYearsAsync();
 }

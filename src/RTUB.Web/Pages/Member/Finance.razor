@@ -117,14 +117,31 @@ else
                 <div class="alert alert-danger">@errorMessage</div>
             }
 
-            <div class="mb-3">
-                <label class="form-label">Ano Letivo</label>
-                <input type="number" class="form-control" @bind="fiscalYearInput" min="1991"  max="@DateTime.Now.Year" placeholder="Insira o ano inicial" />
-            </div>
+            @if (isCreateMode)
+            {
+                @if (!availableFiscalYearStartYears.Any())
+                {
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Todos os anos letivos até ao ano atual já têm relatórios criados.
+                    </div>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <label class="form-label">Ano Letivo</label>
+                        <select class="form-select" @bind="fiscalYearInput">
+                            @foreach (var year in availableFiscalYearStartYears)
+                            {
+                                <option value="@year">@year-@(year + 1)</option>
+                            }
+                        </select>
+                    </div>
+                }
+            }
 
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
-                <button type="submit" class="btn btn-success">Guardar</button>
+                <button type="submit" class="btn btn-success" disabled="@(isCreateMode && !availableFiscalYearStartYears.Any())">Guardar</button>
             </div>
         </EditForm>
     </BodyContent>
@@ -180,6 +197,7 @@ else
 
     private string currentFiscalYear = "";
     private List<string> availableFiscalYears = new();
+    private List<int> availableFiscalYearStartYears = new();
     private int fiscalYearInput = DateTime.Now.Year;
     private string errorMessage = "";
     
@@ -290,18 +308,47 @@ else
         }
     }
 
+    private async Task GenerateAvailableFiscalYearStartYears()
+    {
+        var today = DateTime.Today;
+        var currentMonth = today.Month;
+        var currentYear = today.Year;
+
+        // Get current fiscal start year
+        int currentFiscalStartYear = currentMonth >= 9 ? currentYear : currentYear - 1;
+
+        // Get all existing reports
+        var existingReports = await ReportService.GetAllReportsAsync();
+        var existingYears = new HashSet<int>(existingReports.Select(r => r.Year));
+
+        // Generate list of available years from 1991 to current fiscal year
+        availableFiscalYearStartYears.Clear();
+        for (int year = currentFiscalStartYear; year >= 1991; year--)
+        {
+            if (!existingYears.Contains(year))
+            {
+                availableFiscalYearStartYears.Add(year);
+            }
+        }
+    }
+
     private void ViewReport(int reportId)
     {
         NavigationManager.NavigateTo($"/finance/report/{reportId}");
     }
 
-    private void OpenCreateModal()
+    private async Task OpenCreateModal()
     {
         isCreateMode = true;
         errorMessage = "";
 
-        // Default to current fiscal year start year
-        int fiscalYearInput = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+        // Get available fiscal year start years (years without reports)
+        await GenerateAvailableFiscalYearStartYears();
+        
+        // Default to current fiscal year start year if available
+        fiscalYearInput = availableFiscalYearStartYears.Any() 
+            ? availableFiscalYearStartYears.First() 
+            : FiscalYearHelper.GetCurrentFiscalYearStartYear();
 
         editingReport = new ReportEntity
         {
