@@ -148,7 +148,7 @@ public class Program
                 AuthenticationRegion = "auto" // Required for Cloudflare R2
             };
             
-            logger.LogInformation("Cloudflare R2 S3 client initialized for account: {AccountId}", accountId);
+            logger.LogInformation("Cloudflare R2 S3 client initialized successfully");
             return new Amazon.S3.AmazonS3Client(credentials, config);
         });
         
