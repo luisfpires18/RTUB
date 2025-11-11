@@ -293,26 +293,61 @@ namespace RTUB
             app.UseResponseCaching();
 
             // Serve static files with caching headers and E-Tag support
-            app.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
+            // Enable support for conditional requests (If-None-Match, If-Modified-Since)
+            var staticFileOptions = new Microsoft.AspNetCore.Builder.StaticFileOptions
             {
                 OnPrepareResponse = ctx =>
                 {
+                    var headers = ctx.Context.Response.GetTypedHeaders();
+                    var lastModified = ctx.File.LastModified;
+                    
+                    // Set LastModified header (enables If-Modified-Since conditional requests)
+                    headers.LastModified = lastModified;
+                    
+                    // Generate E-Tag based on LastModified timestamp and file length
+                    if (ctx.File.Length > 0)
+                    {
+                        var etagValue = $"\"{lastModified.ToFileTime():x}-{ctx.File.Length:x}\"";
+                        headers.ETag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue(etagValue);
+                    }
+                    
+                    // Check if this is a conditional request and if content hasn't changed
+                    var requestHeaders = ctx.Context.Request.GetTypedHeaders();
+                    
+                    // Check If-None-Match (E-Tag validation) - return 304 if matches
+                    if (requestHeaders.IfNoneMatch != null && headers.ETag != null)
+                    {
+                        foreach (var etag in requestHeaders.IfNoneMatch)
+                        {
+                            if (headers.ETag.Compare(etag, useStrongComparison: true))
+                            {
+                                ctx.Context.Response.StatusCode = 304;
+                                ctx.Context.Response.ContentLength = 0;
+                                return;
+                            }
+                        }
+                    }
+                    
+                    // Check If-Modified-Since (LastModified validation) - return 304 if not modified
+                    if (requestHeaders.IfModifiedSince.HasValue && headers.LastModified.HasValue)
+                    {
+                        if (headers.LastModified.Value <= requestHeaders.IfModifiedSince.Value)
+                        {
+                            ctx.Context.Response.StatusCode = 304;
+                            ctx.Context.Response.ContentLength = 0;
+                            return;
+                        }
+                    }
+                    
                     // Cache static files for 30 days in production
                     if (!app.Environment.IsDevelopment())
                     {
                         ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=2592000");
                     }
-                    
-                    // Enable E-Tag for all static files, especially images
-                    // ASP.NET Core generates ETags based on LastModified date and file length
-                    var headers = ctx.Context.Response.GetTypedHeaders();
-                    if (headers.LastModified.HasValue && ctx.File.Length > 0)
-                    {
-                        var etagValue = $"\"{ctx.File.LastModified.ToFileTime():x}-{ctx.File.Length:x}\"";
-                        headers.ETag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue(etagValue);
-                    }
                 }
-            });
+            };
+            
+            app.UseStaticFiles(staticFileOptions);
 
             app.UseRouting();
 
