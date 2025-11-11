@@ -60,7 +60,7 @@ namespace RTUB.Application.Services
                                 .Bold()
                                 .FontColor("#6f42c1");
 
-                            column.Item().PaddingTop(5).Text($"Ano Fiscal: {report.Year}")
+                            column.Item().PaddingTop(5).Text($"Ano Letivo: {report.Year}")
                                 .FontSize(12)
                                 .FontColor(Colors.Grey.Darken2);
 

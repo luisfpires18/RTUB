@@ -118,7 +118,7 @@ else
             }
 
             <div class="mb-3">
-                <label class="form-label">Ano Fiscal</label>
+                <label class="form-label">Ano Letivo</label>
                 <input type="number" class="form-control" @bind="fiscalYearInput" min="1991"  max="@DateTime.Now.Year" placeholder="Insira o ano inicial" />
             </div>
 
@@ -327,7 +327,7 @@ else
         // Validate fiscal year input
         if (fiscalYearInput < 1991 || fiscalYearInput > DateTime.Now.Year)
         {
-            errorMessage = "Por favor, insira um ano fiscal válido (entre 1991 e o ano atual).";
+            errorMessage = "Por favor, insira um ano letivo válido (entre 1991 e o ano atual).";
             return;
         }
 
@@ -343,7 +343,7 @@ else
 
             if (existingReport != null)
             {
-                errorMessage = $"Já existe um relatório para o ano fiscal {selectedFiscalYearForReport}.";
+                errorMessage = $"Já existe um relatório para o ano letivo {selectedFiscalYearForReport}.";
                 return;
             }
 
@@ -364,7 +364,7 @@ else
 
                     if (duplicateReport != null)
                     {
-                        errorMessage = $"Já existe um relatório para o ano fiscal {selectedFiscalYearForReport}.";
+                        errorMessage = $"Já existe um relatório para o ano letivo {selectedFiscalYearForReport}.";
                         return;
                     }
                 }

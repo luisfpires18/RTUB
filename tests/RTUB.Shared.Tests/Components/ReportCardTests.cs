@@ -49,7 +49,7 @@ public class ReportCardTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("2023-2024", "card should display fiscal year");
-        cut.Markup.Should().Contain("Ano Fiscal", "card should have fiscal year label");
+        cut.Markup.Should().Contain("Ano Letivo", "card should have fiscal year label");
     }
 
     [Fact]

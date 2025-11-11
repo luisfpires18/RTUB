@@ -23,7 +23,7 @@
 <AuthorizeView Roles="Admin">
     <Authorized>
         <div class="mb-3">
-            <button class="btn btn-success mb-2" @onclick="OpenCreateFiscalYearModal" title="Adicionar Ano Fiscal">
+            <button class="btn btn-success mb-2" @onclick="OpenCreateFiscalYearModal" title="Adicionar Ano Letivo">
                 <i class="bi bi-plus-lg"></i>
             </button>
         </div>
@@ -33,7 +33,7 @@
 @* FY Dropdown without icon *@
 @if (!fiscalYears.Any())
 {
-    <EmptyState Title="Nenhum ano fiscal criado ainda"
+    <EmptyState Title="Nenhum ano letivo ainda"
                 Message="Não existem anos fiscais para mostrar."
                 Icon="bi-calendar-x" />
 }
@@ -42,7 +42,7 @@ else
     <div class="row mb-4">
         <div class="col-md-6">
             <select class="form-select" @bind="selectedFiscalYear" @bind:after="OnFiscalYearChanged">
-                <option value="" disabled>Selecionar Ano Lectivo</option>
+                <option value="" disabled>Selecionar Ano Letivo</option>
                 @foreach (var year in fiscalYears)
                 {
                     var isCurrent = year == currentFiscalYearString;
@@ -736,7 +736,7 @@ else
 <!-- Create Fiscal Year Modal (Admin only) -->
 <Modal Show="@showCreateFiscalYearModal" 
        ShowChanged="@((bool show) => showCreateFiscalYearModal = show)"
-       Title="Criar Novo Ano Fiscal" 
+       Title="Criar Novo Ano Letivo"
        Size="Modal.ModalSize.Default"
        Centered="true">
     <BodyContent>
@@ -747,7 +747,7 @@ else
         <div class="mb-3">
             <label class="form-label">Ano de Início</label>
             <input type="number" class="form-control" @bind="newStartYear" min="1900" max="2100" />
-            <small class="text-muted">O ano fiscal será criado automaticamente como @newStartYear-@(newStartYear + 1)</small>
+            <small class="text-muted">O ano letivo será criado automaticamente como @newStartYear-@(newStartYear + 1)</small>
         </div>
     </BodyContent>
     <FooterContent>
@@ -1132,7 +1132,7 @@ else
         var parts = selectedFiscalYear.Split('-');
         if (parts.Length != 2 || !int.TryParse(parts[0], out var startYear) || !int.TryParse(parts[1], out var endYear))
         {
-            errorMessage = "Ano fiscal inválido.";
+            errorMessage = "Ano letivo inválido.";
             return;
         }
 
@@ -1144,7 +1144,7 @@ else
 
         if (existing != null)
         {
-            errorMessage = "Este cargo já está atribuído para este ano fiscal.";
+            errorMessage = "Este cargo já está atribuído para este ano letivo.";
             return;
         }
 
@@ -1154,7 +1154,7 @@ else
 
         if (memberHasAssignment)
         {
-            errorMessage = "Este membro já tem um cargo atribuído para este ano fiscal.";
+            errorMessage = "Este membro já tem um cargo atribuído para este ano letivo.";
             return;
         }
 

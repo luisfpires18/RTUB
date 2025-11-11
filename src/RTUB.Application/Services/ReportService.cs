@@ -164,7 +164,7 @@ public class ReportService : IReportService
                 page.Header().ShowOnce().AlignCenter().Column(column =>
                 {
                     column.Item().Text(report.Title).FontSize(24).Bold().FontColor("#6f42c1");
-                    column.Item().PaddingTop(5).Text($"Ano Fiscal: {report.Year}").FontSize(12).FontColor(Colors.Grey.Darken2);
+                    column.Item().PaddingTop(5).Text($"Ano Letivo: {report.Year}").FontSize(12).FontColor(Colors.Grey.Darken2);
                     
                     if (!string.IsNullOrEmpty(report.Summary))
                     {
