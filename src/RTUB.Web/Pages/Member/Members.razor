@@ -856,16 +856,8 @@ else
 
     private async Task HandleSaveClick()
     {
-        if (memberEditForm?.EditContext == null) return;
-        
-        // Trigger validation
-        var isValid = memberEditForm.EditContext.Validate();
-        
-        // If valid, call SaveMember
-        if (isValid)
-        {
-            await SaveMember();
-        }
+        // Call SaveMember which handles all validation
+        await SaveMember();
     }
 
     private async Task SaveMember()
