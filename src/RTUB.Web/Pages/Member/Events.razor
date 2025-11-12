@@ -819,6 +819,7 @@ else
     private bool isTrophyCreateMode = false;
     private string instrumentValidationError = string.Empty;
     private EditForm? enrollmentEditForm;
+    private ValidationMessageStore? enrollmentValidationStore;
     private Event? editingEvent;
     private Event? deletingEvent;
     private Event? selectedEvent;
@@ -1236,10 +1237,9 @@ else
             enrollmentForm.Instrument = instrument;
             
             // Clear instrument validation error when instrument is selected
-            if (instrument.HasValue)
+            if (instrument.HasValue && enrollmentValidationStore != null)
             {
-                var messageStore = new ValidationMessageStore(enrollmentEditForm.EditContext);
-                messageStore.Clear(() => enrollmentForm.Instrument);
+                enrollmentValidationStore.Clear(() => enrollmentForm.Instrument);
                 enrollmentEditForm.EditContext.NotifyValidationStateChanged();
             }
         }
@@ -1260,18 +1260,23 @@ else
         if (enrollmentForm == null || currentUser == null || enrollmentEditForm?.EditContext == null) return;
 
         var editContext = enrollmentEditForm.EditContext;
-        var messageStore = new ValidationMessageStore(editContext);
+        
+        // Initialize or reuse the validation store
+        if (enrollmentValidationStore == null)
+        {
+            enrollmentValidationStore = new ValidationMessageStore(editContext);
+        }
         
         // Clear previous validation errors
         instrumentValidationError = string.Empty;
-        messageStore.Clear();
+        enrollmentValidationStore.Clear();
 
         // Validate instrument is selected when wantToPlay is true
         if (wantToPlay && enrollmentForm.WillAttend && !currentUser.Categories.Contains(MemberCategory.Leitao))
         {
             if (!enrollmentForm.Instrument.HasValue)
             {
-                messageStore.Add(() => enrollmentForm.Instrument, "Por favor, selecione um instrumento.");
+                enrollmentValidationStore.Add(() => enrollmentForm.Instrument, "Por favor, selecione um instrumento.");
                 editContext.NotifyValidationStateChanged();
                 return;
             }

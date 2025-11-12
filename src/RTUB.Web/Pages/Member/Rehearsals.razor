@@ -848,6 +848,7 @@ else
     private RehearsalAttendance? deletingAttendance;
     private AttendanceFormModel? attendanceForm;
     private EditForm? attendanceEditForm;
+    private ValidationMessageStore? attendanceValidationStore;
     private bool wantToPlayRehearsal = false;
     private string editLocation = "";
     private string? editTheme;
@@ -1086,15 +1087,21 @@ else
             try
             {
                 var editContext = attendanceEditForm.EditContext;
-                var messageStore = new ValidationMessageStore(editContext);
-                messageStore.Clear();
+                
+                // Initialize or reuse the validation store
+                if (attendanceValidationStore == null)
+                {
+                    attendanceValidationStore = new ValidationMessageStore(editContext);
+                }
+                
+                attendanceValidationStore.Clear();
 
                 // Validate instrument is selected when wantToPlayRehearsal is true
                 if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao) && wantToPlayRehearsal)
                 {
                     if (!attendanceForm.Instrument.HasValue)
                     {
-                        messageStore.Add(() => attendanceForm.Instrument, "Por favor, selecione um instrumento.");
+                        attendanceValidationStore.Add(() => attendanceForm.Instrument, "Por favor, selecione um instrumento.");
                         editContext.NotifyValidationStateChanged();
                         return;
                     }
@@ -1131,10 +1138,9 @@ else
             attendanceForm.Instrument = instrument;
             
             // Clear instrument validation error when instrument is selected
-            if (instrument.HasValue)
+            if (instrument.HasValue && attendanceValidationStore != null)
             {
-                var messageStore = new ValidationMessageStore(attendanceEditForm.EditContext);
-                messageStore.Clear(() => attendanceForm.Instrument);
+                attendanceValidationStore.Clear(() => attendanceForm.Instrument);
                 attendanceEditForm.EditContext.NotifyValidationStateChanged();
             }
         }

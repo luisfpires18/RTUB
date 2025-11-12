@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
@@ -875,7 +876,9 @@ else
             // Validate category
             if (string.IsNullOrEmpty(selectedRole))
             {
-                messageStore.Add(() => editingUser.FirstName, "Categoria é obrigatória.");
+                // Create a FieldIdentifier for the category (not a property, use string identifier)
+                var categoryField = FieldIdentifier.Create(() => selectedRole);
+                messageStore.Add(categoryField, "Categoria é obrigatória.");
                 editContext.NotifyValidationStateChanged();
                 return;
             }
