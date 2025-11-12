@@ -164,6 +164,16 @@ else
             <DataAnnotationsValidator />
             <ErrorDisplay />
 
+            @if (showPastDateWarning && editingEvent != null && editingEvent.Date.Date < DateTime.Today)
+            {
+                <Alert Type="Alert.AlertType.Purple"
+                       Icon="bi-info-circle"
+                       Dismissible="false"
+                       AdditionalClasses="mb-3">
+                    <strong>Nota:</strong> Esta data é anterior à data atual. O evento será disponibilizado nas atuações anteriores.
+                </Alert>
+            }
+
             <div class="mb-3">
                 <label class="form-label">Nome da Atuação</label>
                 <InputText class="form-control" @bind-Value="editingEvent!.Name" />
@@ -172,14 +182,7 @@ else
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Data Início</label>
-                    @if (isCreateMode)
-                    {
-                        <InputDate class="form-control" @bind-Value="editingEvent!.Date" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" />
-                    }
-                    else
-                    {
-                        <InputDate class="form-control" @bind-Value="editingEvent!.Date" />
-                    }
+                    <InputDate class="form-control" @bind-Value="editingEvent!.Date" @bind-Value:after="OnDateChanged" />
                     @if (!string.IsNullOrEmpty(dateValidationError))
                     {
                         <div class="text-danger small mt-1">@dateValidationError</div>
@@ -834,6 +837,7 @@ else
     private List<Trophy>? eventTrophies;
     private string? uploadedImagePath;
     private string dateValidationError = string.Empty;
+    private bool showPastDateWarning = false;
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
@@ -887,6 +891,7 @@ else
             isCreateMode = true;
             uploadedImagePath = null;
             dateValidationError = string.Empty;
+            showPastDateWarning = false;
             
             var name = query["name"];
             var location = query["location"];
@@ -902,6 +907,12 @@ else
                 ImageUrl = string.Empty,
                 Type = EventType.Atuacao
             };
+            
+            // Check if the date is in the past to show warning
+            if (editingEvent.Date.Date < DateTime.Today)
+            {
+                showPastDateWarning = true;
+            }
             
             showEditModal = true;
         }
@@ -1000,6 +1011,7 @@ else
         isCreateMode = true;
         uploadedImagePath = null;
         dateValidationError = string.Empty;
+        showPastDateWarning = false;
         editingEvent = new Event
         {
             Date = DateTime.Today.AddDays(1),
@@ -1017,6 +1029,7 @@ else
         isCreateMode = false;
         uploadedImagePath = null;
         dateValidationError = string.Empty;
+        showPastDateWarning = false;
         editingEvent = new Event
         {
             Id = eventItem.Id,
@@ -1037,6 +1050,7 @@ else
         showEditModal = false;
         editingEvent = null;
         uploadedImagePath = null;
+        showPastDateWarning = false;
     }
 
     private async Task HandleImageUpload(IBrowserFile file)
@@ -1094,13 +1108,8 @@ else
     {
         if (editingEvent == null) return;
 
-        // Validate date is in the future only for new events
+        // Clear any validation errors
         dateValidationError = string.Empty;
-        if (isCreateMode && editingEvent.Date.Date <= DateTime.Today)
-        {
-            dateValidationError = "Event date must be after today.";
-            return;
-        }
 
         if (isCreateMode)
         {
@@ -1749,6 +1758,15 @@ else
         }
         finally
         {
+            StateHasChanged();
+        }
+    }
+
+    private void OnDateChanged()
+    {
+        if (editingEvent != null)
+        {
+            showPastDateWarning = editingEvent.Date.Date < DateTime.Today;
             StateHasChanged();
         }
     }
