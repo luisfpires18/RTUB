@@ -1,0 +1,476 @@
+@page "/logistics"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@inject ILogisticsListService ListService
+@inject ILogisticsCardService CardService
+@inject IEventService EventService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Logística - RTUB</PageTitle>
+
+<h1><i class="bi bi-kanban"></i> Quadro de Logística</h1>
+<p>Gerencie tarefas, atribuições e eventos logísticos.</p>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="mb-3">
+            <button class="btn btn-success" @onclick="OpenCreateListModal">
+                <i class="bi bi-plus-lg"></i> Adicionar Lista
+            </button>
+        </div>
+
+        @if (lists == null)
+        {
+            <p>A carregar quadro...</p>
+        }
+        else if (!lists.Any())
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-kanban" style="font-size: 4rem; opacity: 0.3;"></i>
+                <h3>Nenhuma lista criada ainda</h3>
+                <p class="text-muted">Crie sua primeira lista para começar a organizar tarefas.</p>
+            </div>
+        }
+        else
+        {
+            <div class="kanban-board">
+                @foreach (var list in lists.OrderBy(l => l.Position))
+                {
+                    <div class="kanban-list" data-list-id="@list.Id">
+                        <div class="kanban-list-header">
+                            <h5>@list.Name</h5>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-link text-dark" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" @onclick="() => OpenEditListModal(list)" @onclick:preventDefault>
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </a></li>
+                                    <li><a class="dropdown-item text-danger" href="#" @onclick="() => OpenDeleteListModal(list)" @onclick:preventDefault>
+                                        <i class="bi bi-trash"></i> Eliminar
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="kanban-cards" data-list-id="@list.Id">
+                            @foreach (var card in list.Cards.OrderBy(c => c.Position))
+                            {
+                                <div class="kanban-card" data-card-id="@card.Id" draggable="true">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="mb-0">@card.Title</h6>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-link text-dark p-0" type="button" data-bs-toggle="dropdown">
+                                                <i class="bi bi-three-dots"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="#" @onclick="() => OpenEditCardModal(card)" @onclick:preventDefault>
+                                                    <i class="bi bi-pencil"></i> Editar
+                                                </a></li>
+                                                <li><a class="dropdown-item text-danger" href="#" @onclick="() => OpenDeleteCardModal(card)" @onclick:preventDefault>
+                                                    <i class="bi bi-trash"></i> Eliminar
+                                                </a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(card.Description))
+                                    {
+                                        <p class="small text-muted mb-2">@card.Description</p>
+                                    }
+                                    @if (card.Event != null)
+                                    {
+                                        <div class="badge bg-primary mb-2">
+                                            <i class="bi bi-calendar-event"></i> @card.Event.Name
+                                        </div>
+                                    }
+                                    @if (card.AssignedToUser != null)
+                                    {
+                                        <div class="badge bg-secondary">
+                                            <i class="bi bi-person"></i> @card.AssignedToUser.UserName
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <button class="btn btn-sm btn-link w-100 text-start" @onclick="() => OpenCreateCardModal(list.Id)">
+                            <i class="bi bi-plus"></i> Adicionar cartão
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            <i class="bi bi-lock"></i> Precisa estar autenticado para aceder ao quadro de logística.
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+<!-- Create/Edit List Modal -->
+@if (showListModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(editingList == null ? "Criar Lista" : "Editar Lista")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseListModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nome da Lista</label>
+                        <input type="text" class="form-control" @bind="listName" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseListModal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveList">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Create/Edit Card Modal -->
+@if (showCardModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(editingCard == null ? "Criar Cartão" : "Editar Cartão")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseCardModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Título</label>
+                        <input type="text" class="form-control" @bind="cardTitle" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <textarea class="form-control" rows="3" @bind="cardDescription"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Evento (opcional)</label>
+                        <select class="form-select" @bind="selectedEventId">
+                            <option value="">Nenhum</option>
+                            @if (events != null)
+                            {
+                                @foreach (var evt in events)
+                                {
+                                    <option value="@evt.Id">@evt.Name - @evt.Date.ToString("dd/MM/yyyy")</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Atribuir a (opcional)</label>
+                        <select class="form-select" @bind="selectedUserId">
+                            <option value="">Ninguém</option>
+                            @if (users != null)
+                            {
+                                @foreach (var user in users)
+                                {
+                                    <option value="@user.Id">@user.UserName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseCardModal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveCard">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Confirmation Modals -->
+@if (showDeleteListModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Eliminação</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDeleteListModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem a certeza que deseja eliminar a lista "<strong>@deletingList?.Name</strong>"?</p>
+                    <p class="text-danger"><small>Todos os cartões desta lista também serão eliminados.</small></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteListModal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteList">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showDeleteCardModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Eliminação</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDeleteCardModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem a certeza que deseja eliminar o cartão "<strong>@deletingCard?.Title</strong>"?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteCardModal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteCard">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<LogisticsList>? lists;
+    private List<Event>? events;
+    private List<ApplicationUser>? users;
+
+    // List modal state
+    private bool showListModal = false;
+    private LogisticsList? editingList = null;
+    private string listName = string.Empty;
+
+    // Card modal state
+    private bool showCardModal = false;
+    private LogisticsCard? editingCard = null;
+    private int currentListId = 0;
+    private string cardTitle = string.Empty;
+    private string cardDescription = string.Empty;
+    private string selectedEventId = string.Empty;
+    private string selectedUserId = string.Empty;
+
+    // Delete modal state
+    private bool showDeleteListModal = false;
+    private bool showDeleteCardModal = false;
+    private LogisticsList? deletingList = null;
+    private LogisticsCard? deletingCard = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("initializeKanbanDragDrop", DotNetObjectReference.Create(this));
+        }
+    }
+
+    private async Task LoadData()
+    {
+        lists = (await ListService.GetListsWithCardsAsync()).ToList();
+        events = (await EventService.GetAllEventsAsync()).ToList();
+        users = await UserManager.Users.ToListAsync();
+    }
+
+    // List operations
+    private void OpenCreateListModal()
+    {
+        editingList = null;
+        listName = string.Empty;
+        showListModal = true;
+    }
+
+    private void OpenEditListModal(LogisticsList list)
+    {
+        editingList = list;
+        listName = list.Name;
+        showListModal = true;
+    }
+
+    private void CloseListModal()
+    {
+        showListModal = false;
+        editingList = null;
+        listName = string.Empty;
+    }
+
+    private async Task SaveList()
+    {
+        if (string.IsNullOrWhiteSpace(listName))
+            return;
+
+        try
+        {
+            if (editingList == null)
+            {
+                var maxPosition = lists?.Any() == true ? lists.Max(l => l.Position) : -1;
+                await ListService.CreateListAsync(listName, maxPosition + 1);
+            }
+            else
+            {
+                await ListService.UpdateListAsync(editingList.Id, listName);
+            }
+
+            await LoadData();
+            CloseListModal();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    private void OpenDeleteListModal(LogisticsList list)
+    {
+        deletingList = list;
+        showDeleteListModal = true;
+    }
+
+    private void CloseDeleteListModal()
+    {
+        showDeleteListModal = false;
+        deletingList = null;
+    }
+
+    private async Task ConfirmDeleteList()
+    {
+        if (deletingList == null)
+            return;
+
+        try
+        {
+            await ListService.DeleteListAsync(deletingList.Id);
+            await LoadData();
+            CloseDeleteListModal();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    // Card operations
+    private void OpenCreateCardModal(int listId)
+    {
+        editingCard = null;
+        currentListId = listId;
+        cardTitle = string.Empty;
+        cardDescription = string.Empty;
+        selectedEventId = string.Empty;
+        selectedUserId = string.Empty;
+        showCardModal = true;
+    }
+
+    private void OpenEditCardModal(LogisticsCard card)
+    {
+        editingCard = card;
+        currentListId = card.ListId;
+        cardTitle = card.Title;
+        cardDescription = card.Description;
+        selectedEventId = card.EventId?.ToString() ?? string.Empty;
+        selectedUserId = card.AssignedToUserId ?? string.Empty;
+        showCardModal = true;
+    }
+
+    private void CloseCardModal()
+    {
+        showCardModal = false;
+        editingCard = null;
+        currentListId = 0;
+        cardTitle = string.Empty;
+        cardDescription = string.Empty;
+        selectedEventId = string.Empty;
+        selectedUserId = string.Empty;
+    }
+
+    private async Task SaveCard()
+    {
+        if (string.IsNullOrWhiteSpace(cardTitle))
+            return;
+
+        try
+        {
+            int? eventId = string.IsNullOrEmpty(selectedEventId) ? null : int.Parse(selectedEventId);
+            string? userId = string.IsNullOrEmpty(selectedUserId) ? null : selectedUserId;
+
+            if (editingCard == null)
+            {
+                var list = lists?.FirstOrDefault(l => l.Id == currentListId);
+                var maxPosition = list?.Cards?.Any() == true ? list.Cards.Max(c => c.Position) : -1;
+                var card = await CardService.CreateCardAsync(cardTitle, currentListId, maxPosition + 1, cardDescription);
+                
+                if (eventId.HasValue)
+                    await CardService.AssociateCardWithEventAsync(card.Id, eventId);
+                
+                if (!string.IsNullOrEmpty(userId))
+                    await CardService.AssignCardToUserAsync(card.Id, userId);
+            }
+            else
+            {
+                await CardService.UpdateCardAsync(editingCard.Id, cardTitle, cardDescription);
+                await CardService.AssociateCardWithEventAsync(editingCard.Id, eventId);
+                await CardService.AssignCardToUserAsync(editingCard.Id, userId);
+            }
+
+            await LoadData();
+            CloseCardModal();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    private void OpenDeleteCardModal(LogisticsCard card)
+    {
+        deletingCard = card;
+        showDeleteCardModal = true;
+    }
+
+    private void CloseDeleteCardModal()
+    {
+        showDeleteCardModal = false;
+        deletingCard = null;
+    }
+
+    private async Task ConfirmDeleteCard()
+    {
+        if (deletingCard == null)
+            return;
+
+        try
+        {
+            await CardService.DeleteCardAsync(deletingCard.Id);
+            await LoadData();
+            CloseDeleteCardModal();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnCardMoved(int cardId, int newListId, int newPosition)
+    {
+        try
+        {
+            await CardService.MoveCardAsync(cardId, newListId, newPosition);
+            await LoadData();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+}

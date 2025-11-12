@@ -55,6 +55,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ProductReservation> ProductReservations { get; set; }
     public DbSet<Trophy> Trophies { get; set; }
     
+    // Logistics Board DbSets
+    public DbSet<LogisticsList> LogisticsLists { get; set; }
+    public DbSet<LogisticsCard> LogisticsCards { get; set; }
+    
     // Audit Log DbSet
     public DbSet<AuditLog> AuditLogs { get; set; }
 
@@ -735,6 +739,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     // Slideshow can use Title
                     if (entry.Entity is Slideshow slideshow)
                         return slideshow.Title;
+                    break;
+                
+                case "LogisticsList":
+                    if (entry.Entity is LogisticsList logisticsList)
+                        return logisticsList.Name;
+                    break;
+                
+                case "LogisticsCard":
+                    if (entry.Entity is LogisticsCard logisticsCard)
+                        return logisticsCard.Title;
                     break;
             }
         }
