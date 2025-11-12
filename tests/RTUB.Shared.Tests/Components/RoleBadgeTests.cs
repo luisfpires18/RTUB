@@ -10,7 +10,7 @@ namespace RTUB.Shared.Tests.Components;
 public class RoleBadgeTests : TestContext
 {
     [Fact]
-    public void RoleBadge_RendersRole()
+    public void RoleBadge_RendersRoleIcon()
     {
         // Arrange
         var role = "Admin";
@@ -20,7 +20,30 @@ public class RoleBadgeTests : TestContext
             .Add(p => p.Role, role));
 
         // Assert
-        cut.Markup.Should().Contain(role, "badge should display the role");
+        cut.Markup.Should().Contain("A", "badge should display the role icon");
+        cut.Markup.Should().Contain($"title=\"{role}\"", "badge should have title with full role name");
+    }
+
+    [Fact]
+    public void RoleBadge_RendersOwnerIcon()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<RoleBadge>(parameters => parameters
+            .Add(p => p.Role, "Owner"));
+
+        // Assert
+        cut.Markup.Should().Contain("O", "Owner role should display 'O' icon");
+    }
+
+    [Fact]
+    public void RoleBadge_RendersMemberIcon()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<RoleBadge>(parameters => parameters
+            .Add(p => p.Role, "Member"));
+
+        // Assert
+        cut.Markup.Should().Contain("M", "Member role should display 'M' icon");
     }
 
     [Fact]
@@ -57,14 +80,14 @@ public class RoleBadgeTests : TestContext
     }
 
     [Fact]
-    public void RoleBadge_AppliesInfoClass_ForMemberRole()
+    public void RoleBadge_AppliesCustomColorStyle_ForMemberRole()
     {
         // Arrange & Act
         var cut = RenderComponent<RoleBadge>(parameters => parameters
             .Add(p => p.Role, "Member"));
 
         // Assert
-        cut.Markup.Should().Contain("bg-info", "Member role should have info (blue, not primary) background");
+        cut.Markup.Should().Contain("#007bff", "Member role should have custom blue color #007bff");
     }
 
     [Fact]
@@ -105,17 +128,18 @@ public class RoleBadgeTests : TestContext
     }
 
     [Theory]
-    [InlineData("Owner", "bg-danger")]
-    [InlineData("Admin", "bg-success")]
-    [InlineData("Member", "bg-info")]
-    public void RoleBadge_AppliesCorrectClass_ForEachRole(string role, string expectedClass)
+    [InlineData("Owner", "O", "bg-danger")]
+    [InlineData("Admin", "A", "bg-success")]
+    [InlineData("Member", "M", "#007bff")]
+    public void RoleBadge_AppliesCorrectIconAndClass_ForEachRole(string role, string expectedIcon, string expectedClassOrColor)
     {
         // Arrange & Act
         var cut = RenderComponent<RoleBadge>(parameters => parameters
             .Add(p => p.Role, role));
 
         // Assert
-        cut.Markup.Should().Contain(expectedClass, $"role {role} should have {expectedClass}");
+        cut.Markup.Should().Contain(expectedIcon, $"role {role} should display icon {expectedIcon}");
+        cut.Markup.Should().Contain(expectedClassOrColor, $"role {role} should have {expectedClassOrColor}");
     }
 
     [Fact]
