@@ -85,7 +85,7 @@ else
                     {
                         <EditForm Model="editUser" OnValidSubmit="SavePersonalSection">
                             <DataAnnotationsValidator />
-                            <ValidationSummary class="text-danger" />
+                            <ErrorDisplay />
 
                             <div class="row mb-3">
                                 <div class="col-md-6">
@@ -168,7 +168,7 @@ else
                     {
                         <EditForm Model="editUser" OnValidSubmit="SaveTunaSection">
                             <DataAnnotationsValidator />
-                            <ValidationSummary class="text-danger" />
+                            <ErrorDisplay />
 
                             <div class="mb-3">
                                 <label class="form-label text-white-full">Instrumento Principal</label>
@@ -364,7 +364,7 @@ else
         }
         <EditForm Model="passwordModel" OnValidSubmit="ChangePassword">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" />
+            <ErrorDisplay />
 
             <div class="mb-3">
                 <label class="form-label text-white-full">Palavra-passe Atual</label>

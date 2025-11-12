@@ -41,18 +41,16 @@
             <div class="card-body">
                 <EditForm Model="request" OnValidSubmit="HandleSubmit">
                     <DataAnnotationsValidator />
-                    <ValidationSummary class="text-danger mb-3" />
+                    <ErrorDisplay />
 
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="name" class="form-label">Nome *</label>
                             <InputText id="name" class="form-control" @bind-Value="request.Name" placeholder="Inserir nome completo..." />
-                            <ValidationMessage For="@(() => request.Name)" class="text-danger" />
                         </div>
                         <div class="col-md-6">
                             <label for="email" class="form-label">Email *</label>
                             <InputText id="email" type="email" class="form-control" @bind-Value="request.Email" placeholder="Inserir email..." />
-                            <ValidationMessage For="@(() => request.Email)" class="text-danger" />
                         </div>
                     </div>
 
@@ -60,12 +58,10 @@
                         <div class="col-md-6">
                             <label for="phone" class="form-label">Telefone *</label>
                             <InputText id="phone" class="form-control" @bind-Value="request.Phone" placeholder="Inserir telefone..." />
-                            <ValidationMessage For="@(() => request.Phone)" class="text-danger" />
                         </div>
                         <div class="col-md-6">
                             <label for="eventType" class="form-label">Tipo de Evento *</label>
                             <InputText id="eventType" class="form-control" @bind-Value="request.EventType" placeholder="Inserir tipo de evento..." />
-                            <ValidationMessage For="@(() => request.EventType)" class="text-danger" />
                         </div>
                     </div>
 
@@ -82,7 +78,6 @@
                         <div class="col-md-6">
                             <label for="preferredDate" class="form-label">@(request.IsDateRange ? "Data de Início *" : "Data Preferida *")</label>
                             <InputDate id="preferredDate" class="form-control" @bind-Value="request.PreferredDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                            <ValidationMessage For="@(() => request.PreferredDate)" class="text-danger" />
                             @if (!string.IsNullOrEmpty(dateValidationError))
                             {
                                 <div class="text-danger small mt-1">@dateValidationError</div>
@@ -104,7 +99,6 @@
                             <div class="col-md-6">
                                 <label for="location" class="form-label">Localização *</label>
                                 <InputText id="location" class="form-control" @bind-Value="request.Location" placeholder="Inserir localização..." />
-                                <ValidationMessage For="@(() => request.Location)" class="text-danger" />
                             </div>
                         }
                     </div>
@@ -115,7 +109,6 @@
                             <div class="col-md-12">
                                 <label for="location" class="form-label">Localização *</label>
                                 <InputText id="location" class="form-control" @bind-Value="request.Location" placeholder="Inserir localização..." />
-                                <ValidationMessage For="@(() => request.Location)" class="text-danger" />
                             </div>
                         </div>
                     }
@@ -124,7 +117,6 @@
                         <label for="message" class="form-label">Informações Adicionais</label>
                         <InputTextArea id="message" class="form-control" @bind-Value="request.Message" rows="5"
                                        placeholder="Inserir informações adicionais..." />
-                        <ValidationMessage For="@(() => request.Message)" class="text-danger" />
                     </div>
 
                     <div class="d-flex gap-2">
@@ -205,7 +197,7 @@
         {
             <EditForm Model="editingLabel" OnValidSubmit="SaveLabel">
                 <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger" />
+                <ErrorDisplay />
 
                 <div class="mb-3">
                     <label class="form-label">Título</label>

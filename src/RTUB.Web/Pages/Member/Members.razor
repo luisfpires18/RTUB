@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
@@ -187,167 +188,168 @@ else
        Size="Modal.ModalSize.Large"
        Centered="true">
     <BodyContent>
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <div class="alert alert-danger">@errorMessage</div>
-        }
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Primeiro Nome <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" @bind="editingUser.FirstName" required />
-            </div>
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Último Nome <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" @bind="editingUser.LastName" required />
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Nome de Tuna / Username <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" @bind="editingUser.Nickname" required />
-            </div>
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Contacto <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" @bind="editingUser.PhoneContact" required />
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Email <span class="text-danger">*</span></label>
-                <input type="email" class="form-control" @bind="editingUser.Email" required />
-            </div>
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Data de Nascimento</label>
-                <input type="date" class="form-control" @bind="editingUser.DateOfBirth" />
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Curso</label>
-                <input type="text" class="form-control" @bind="editingUser.Degree" placeholder="Inserir curso..." />
-            </div>
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Cidade</label>
-                <input type="text" class="form-control" @bind="editingUser.City" placeholder="Inserir cidade..." />
-            </div>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Categoria <span class="text-danger">*</span></label>
-            <select class="form-select" @bind="selectedRole" @bind:after="OnCategoryChanged" required>
-                <option value="">Selecionar Categoria</option>
-                <option value="Leitão">Leitão</option>
-                <option value="Caloiro">Caloiro</option>
-                <option value="Tuno">Tuno</option>
-            </select>
-        </div>
-        <div class="row">
-            @if (showYearLeitao)
-            {
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">Ano de entrada Leitão</label>
-                    <input type="number" class="form-control" @bind="editingUser.YearLeitao" placeholder="Inserir ano..." min="1991" max="@DateTime.Now.Year" />
-                </div>
-            }
+        <EditForm Model="@editingUser" OnValidSubmit="SaveMember" @ref="memberEditForm">
+            <DataAnnotationsValidator />
+            <ErrorDisplay />
 
-            @if (showYearCaloiro)
-            {
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">Ano de passagem a Caloiro</label>
-                    <input type="number" class="form-control" @bind="editingUser.YearCaloiro" placeholder="Inserir ano..." min="1991" max="@DateTime.Now.Year" />
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Primeiro Nome <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="editingUser.FirstName" />
                 </div>
-            }
-
-            @if (showYearTuno)
-            {
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">Ano de passagem a Tuno</label>
-                    <input type="number" class="form-control" @bind="editingUser.YearTuno" placeholder="Inserir ano..." min="1991" max="@DateTime.Now.Year" />
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Último Nome <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="editingUser.LastName" />
                 </div>
-            }
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Instrumento Principal</label>
-            <select class="form-select" @bind="editingUser.MainInstrument">
-                <option value="">Sem instrumento</option>
-                @foreach (var instrument in Enum.GetValues<InstrumentType>())
-                {
-                    <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
-                }
-            </select>
-        </div>
-        @* Only show Padrinho field for Caloiro or Tuno (not for Leitão) *@
-        @if (selectedRole == "Caloiro" || selectedRole == "Tuno")
-        {
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nome de Tuna / Username <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="editingUser.Nickname" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Contacto <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="editingUser.PhoneContact" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email <span class="text-danger">*</span></label>
+                    <InputText type="email" class="form-control" @bind-Value="editingUser.Email" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Data de Nascimento</label>
+                    <InputDate class="form-control" @bind-Value="editingUser.DateOfBirth" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Curso</label>
+                    <InputText class="form-control" @bind-Value="editingUser.Degree" placeholder="Inserir curso..." />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Cidade</label>
+                    <InputText class="form-control" @bind-Value="editingUser.City" placeholder="Inserir cidade..." />
+                </div>
+            </div>
             <div class="mb-3">
-                <label class="form-label">Padrinho @(selectedRole == "Caloiro" ? "(Obrigatório quando passa a Caloiro)" : "")</label>
-                <div class="mentor-search-container">
-                    <div class="input-group mb-2">
-                        <span class="input-group-text">
-                            <i class="bi bi-search"></i>
-                        </span>
-                        <input type="text" 
-                               class="form-control" 
-                               placeholder="Pesquisar padrinho por nome ou alcunha..."
-                               @bind="mentorSearchTerm" 
-                               @bind:event="oninput" 
-                               @onkeyup="FilterMentors" />
-                        @if (!string.IsNullOrEmpty(mentorSearchTerm))
-                        {
-                            <button class="btn btn-outline-secondary" type="button" @onclick="ClearMentorSelection" title="Limpar seleção">
-                                <i class="bi bi-x-circle-fill"></i>
-                            </button>
-                        }
-                    </div>
-                </div>
-                
-                @if (filteredMentors.Any())
+                <label class="form-label">Categoria <span class="text-danger">*</span></label>
+                <InputSelect class="form-select" @bind-Value="editingUser.SelectedCategory" @bind-Value:after="OnCategoryChanged">
+                    <option value="">Selecionar Categoria</option>
+                    <option value="Leitão">Leitão</option>
+                    <option value="Caloiro">Caloiro</option>
+                    <option value="Tuno">Tuno</option>
+                </InputSelect>
+            </div>
+            <div class="row">
+                @if (showYearLeitao)
                 {
-                    <div class="member-list member-list-scrollable">
-                        @foreach (var mentor in filteredMentors.Take(20))
-                        {
-                            <div class="member-item p-2 mb-2 border rounded clickable-row"
-                                 @onclick="() => SelectMentor(mentor)">
-                                <div class="d-flex align-items-center">
-                                    <img src="@mentor.ProfilePictureSrc" alt="@mentor.GetDisplayName()"
-                                         class="member-avatar-small me-2" />
-                                    <div>
-                                        @if (!string.IsNullOrEmpty(mentor.Nickname))
-                                        {
-                                            <div><strong>@mentor.Nickname</strong></div>
-                                            <div class="text-muted small">@mentor.FirstName @mentor.LastName</div>
-                                        }
-                                        else
-                                        {
-                                            <div><strong>@mentor.FirstName @mentor.LastName</strong></div>
-                                        }
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Ano de entrada Leitão</label>
+                        <InputNumber class="form-control" @bind-Value="editingUser.YearLeitao" placeholder="Inserir ano..." />
+                    </div>
+                }
+
+                @if (showYearCaloiro)
+                {
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Ano de passagem a Caloiro</label>
+                        <InputNumber class="form-control" @bind-Value="editingUser.YearCaloiro" placeholder="Inserir ano..." />
+                    </div>
+                }
+
+                @if (showYearTuno)
+                {
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Ano de passagem a Tuno</label>
+                        <InputNumber class="form-control" @bind-Value="editingUser.YearTuno" placeholder="Inserir ano..." />
+                    </div>
+                }
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Instrumento Principal</label>
+                <InputSelect class="form-select" @bind-Value="editingUser.MainInstrument">
+                    <option value="">Sem instrumento</option>
+                    @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                    {
+                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                    }
+                </InputSelect>
+            </div>
+            @* Only show Padrinho field for Caloiro or Tuno (not for Leitão) *@
+            @if (editingUser.SelectedCategory == "Caloiro" || editingUser.SelectedCategory == "Tuno")
+            {
+                <div class="mb-3">
+                    <label class="form-label">Padrinho @(editingUser.SelectedCategory == "Caloiro" ? "(Obrigatório quando passa a Caloiro)" : "")</label>
+                    <div class="mentor-search-container">
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" 
+                                   class="form-control" 
+                                   placeholder="Pesquisar padrinho por nome ou alcunha..."
+                                   @bind="mentorSearchTerm" 
+                                   @bind:event="oninput" 
+                                   @onkeyup="FilterMentors" />
+                            @if (!string.IsNullOrEmpty(mentorSearchTerm))
+                            {
+                                <button class="btn btn-outline-secondary" type="button" @onclick="ClearMentorSelection" title="Limpar seleção">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    
+                    @if (filteredMentors.Any())
+                    {
+                        <div class="member-list member-list-scrollable">
+                            @foreach (var mentor in filteredMentors.Take(20))
+                            {
+                                <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                     @onclick="() => SelectMentor(mentor)">
+                                    <div class="d-flex align-items-center">
+                                        <img src="@mentor.ProfilePictureSrc" alt="@mentor.GetDisplayName()"
+                                             class="member-avatar-small me-2" />
+                                        <div>
+                                            @if (!string.IsNullOrEmpty(mentor.Nickname))
+                                            {
+                                                <div><strong>@mentor.Nickname</strong></div>
+                                                <div class="text-muted small">@mentor.FirstName @mentor.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div><strong>@mentor.FirstName @mentor.LastName</strong></div>
+                                            }
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        }
-                    </div>
-                }
-                else if (!string.IsNullOrEmpty(mentorSearchTerm) && string.IsNullOrEmpty(editingUser.MentorId))
-                {
-                    <div class="alert alert-purple mt-2">Nenhum padrinho encontrado.</div>
-                }
-
-                @if (!string.IsNullOrEmpty(editingUser.MentorId))
-                {
-                    // Use cached mentor to avoid repeated lookups on every render
-                    var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editingUser.MentorId);
-                    if (displayMentor != null)
-                    {
-                        <div class="alert alert-purple mt-2">
-                            <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
+                            }
                         </div>
                     }
-                }
-            </div>
-        }
+                    else if (!string.IsNullOrEmpty(mentorSearchTerm) && string.IsNullOrEmpty(editingUser.MentorId))
+                    {
+                        <div class="alert alert-purple mt-2">Nenhum padrinho encontrado.</div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(editingUser.MentorId))
+                    {
+                        // Use cached mentor to avoid repeated lookups on every render
+                        var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editingUser.MentorId);
+                        if (displayMentor != null)
+                        {
+                            <div class="alert alert-purple mt-2">
+                                <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
+                            </div>
+                        }
+                    }
+                </div>
+            }
+        </EditForm>
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseEditModal" disabled="@isSaving">Cancelar</button>
-        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SaveMember" disabled="@isSaving">
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="HandleSaveClick" disabled="@isSaving">
             @if (isSaving)
             {
                 <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
@@ -511,8 +513,8 @@ else
     private ApplicationUser editingUser = new();
     private ApplicationUser? deletingUser;
     private ApplicationUser? viewingUser;
-    private string selectedRole = "";
     private string errorMessage = "";
+    private EditForm? memberEditForm;
     
     // Mentor search variables
     private string mentorSearchTerm = "";
@@ -777,7 +779,6 @@ else
     {
         isCreateMode = true;
         editingUser = new ApplicationUser();
-        selectedRole = "";
         errorMessage = "";
         mentorSearchTerm = "";
         filteredMentors.Clear();
@@ -808,9 +809,9 @@ else
             MentorId = user.MentorId
         };
 
-        // Set selectedRole based on user's primary category
+        // Set SelectedCategory based on user's primary category
         var primaryCategory = user.Categories.FirstOrDefault();
-        selectedRole = primaryCategory switch
+        editingUser.SelectedCategory = primaryCategory switch
         {
             MemberCategory.Leitao => "Leitão",
             MemberCategory.Caloiro => "Caloiro",
@@ -850,10 +851,46 @@ else
         isSaving = false;
     }
 
+    private ValidationMessageStore? memberValidationStore;
+
+    private async Task HandleSaveClick()
+    {
+        if (memberEditForm?.EditContext == null) return;
+
+        var editContext = memberEditForm.EditContext;
+        
+        // Initialize or reuse the validation store
+        if (memberValidationStore == null)
+        {
+            memberValidationStore = new ValidationMessageStore(editContext);
+        }
+        
+        // Clear any previous custom validation errors
+        memberValidationStore.Clear();
+        
+        // First, add custom Categoria validation before DataAnnotations
+        if (string.IsNullOrEmpty(editingUser.SelectedCategory))
+        {
+            memberValidationStore.Add(() => editingUser.SelectedCategory, "Categoria é obrigatória.");
+        }
+        
+        // Now validate the form to show all errors including DataAnnotations and custom
+        var isValid = editContext.Validate();
+        
+        if (!isValid)
+        {
+            // Validation failed, errors are already displayed
+            return;
+        }
+        
+        // If all validation passes, proceed with SaveMember
+        await SaveMember();
+    }
+
     private async Task SaveMember()
     {
         // Prevent double-submission
-        if (isSaving)
+        if (isSaving || memberEditForm?.EditContext == null)
         {
             return;
         }
@@ -863,44 +900,35 @@ else
 
         try
         {
-            if (string.IsNullOrWhiteSpace(editingUser.FirstName))
+            var editContext = memberEditForm.EditContext;
+            
+            // Note: Basic validation (DataAnnotations + Categoria) is already done in HandleSaveClick
+            // This method only does additional database-level validations
+            
+            // Initialize or reuse the validation store
+            if (memberValidationStore == null)
             {
-                errorMessage = "Primeiro nome é obrigatório.";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(editingUser.LastName))
-            {
-                errorMessage = "Último nome é obrigatório.";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(editingUser.PhoneContact))
-            {
-                errorMessage = "Contacto é obrigatório.";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(editingUser.Nickname))
-            {
-                errorMessage = "Nome de Tuna / Username é obrigatório.";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(editingUser.Email))
-            {
-                errorMessage = "Email é obrigatório.";
-                return;
-            }
-
-            if (string.IsNullOrEmpty(selectedRole))
-            {
-                errorMessage = "Categoria é obrigatória.";
-                return;
+                memberValidationStore = new ValidationMessageStore(editContext);
             }
 
             if (isCreateMode)
             {
+                // These null checks should not be needed since DataAnnotations validation passed,
+                // but we keep them for safety
+                if (string.IsNullOrEmpty(editingUser.Nickname))
+                {
+                    memberValidationStore.Add(() => editingUser.Nickname, "O nome de tuna / username é obrigatório.");
+                    editContext.NotifyValidationStateChanged();
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(editingUser.Email))
+                {
+                    memberValidationStore.Add(() => editingUser.Email, "O email é obrigatório.");
+                    editContext.NotifyValidationStateChanged();
+                    return;
+                }
+
                 // Set UserName to normalized version of Nickname (tuna name)
                 // Keep Nickname as display name, but use normalized version for username
                 editingUser.UserName = UsernameHelper.NormalizeUsername(editingUser.Nickname);
@@ -910,7 +938,10 @@ else
                 var existingUser = await UserManager.FindByNameAsync(editingUser.UserName);
                 if (existingUser != null)
                 {
-                    errorMessage = $"Já existe um utilizador com o nome de tuna '{editingUser.Nickname}' (username: {editingUser.UserName}).";
+                    // Clear previous validation errors for this field before adding new one
+                    memberValidationStore.Clear(() => editingUser.Nickname);
+                    memberValidationStore.Add(() => editingUser.Nickname, $"Já existe um utilizador com o nome de tuna '{editingUser.Nickname}' (username: {editingUser.UserName}).");
+                    editContext.NotifyValidationStateChanged();
                     return;
                 }
 
@@ -918,7 +949,10 @@ else
                 var existingEmail = await UserManager.FindByEmailAsync(editingUser.Email);
                 if (existingEmail != null)
                 {
-                    errorMessage = $"Já existe um utilizador com o email '{editingUser.Email}'.";
+                    // Clear previous validation errors for this field before adding new one
+                    memberValidationStore.Clear(() => editingUser.Email);
+                    memberValidationStore.Add(() => editingUser.Email, $"Já existe um utilizador com o email '{editingUser.Email}'.");
+                    editContext.NotifyValidationStateChanged();
                     return;
                 }
 
@@ -929,7 +963,11 @@ else
                 var result = await UserManager.CreateAsync(editingUser, generatedPassword);
             if (!result.Succeeded)
             {
-                errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+                foreach (var error in result.Errors)
+                {
+                    memberValidationStore.Add(() => editingUser.Email, error.Description);
+                }
+                editContext.NotifyValidationStateChanged();
                 return;
             }
 
@@ -940,7 +978,7 @@ else
             var createdUser = await UserManager.FindByEmailAsync(editingUser.Email);
             if (createdUser != null)
             {
-                var category = selectedRole switch
+                var category = editingUser.SelectedCategory switch
                 {
                     "Leitão" => MemberCategory.Leitao,
                     "Caloiro" => MemberCategory.Caloiro,
@@ -964,13 +1002,29 @@ else
         }
         else
         {
+            // Edit mode - add null checks
+            if (string.IsNullOrEmpty(editingUser.Nickname))
+            {
+                memberValidationStore.Add(() => editingUser.Nickname, "O nome de tuna / username é obrigatório.");
+                editContext.NotifyValidationStateChanged();
+                return;
+            }
+
+            if (string.IsNullOrEmpty(editingUser.Email))
+            {
+                memberValidationStore.Add(() => editingUser.Email, "O email é obrigatório.");
+                editContext.NotifyValidationStateChanged();
+                return;
+            }
+
             var existingUser = await UserManager.FindByIdAsync(editingUser.Id);
             if (existingUser != null)
             {
                 // Server-side guard: prevent user from being their own padrinho
                 if (!string.IsNullOrEmpty(editingUser.MentorId) && editingUser.MentorId == editingUser.Id)
                 {
-                    errorMessage = "Um utilizador não pode ser o seu próprio padrinho.";
+                    memberValidationStore.Add(() => editingUser.MentorId, "Um utilizador não pode ser o seu próprio padrinho.");
+                    editContext.NotifyValidationStateChanged();
                     return;
                 }
                 
@@ -991,7 +1045,7 @@ else
                 existingUser.MentorId = editingUser.MentorId;
 
                 // Update category (not role)
-                var category = selectedRole switch
+                var category = editingUser.SelectedCategory switch
                 {
                     "Leitão" => MemberCategory.Leitao,
                     "Caloiro" => MemberCategory.Caloiro,
@@ -1015,7 +1069,11 @@ else
                 var result = await UserManager.UpdateAsync(existingUser);
                 if (!result.Succeeded)
                 {
-                    errorMessage = string.Join(", ", result.Errors.Select(e => e.Description));
+                    foreach (var error in result.Errors)
+                    {
+                        memberValidationStore.Add(() => editingUser.Email, error.Description);
+                    }
+                    editContext.NotifyValidationStateChanged();
                     return;
                 }
             }
@@ -1097,12 +1155,18 @@ else
     }
 
     // Dynamic field visibility based on selected category
-    private bool showYearLeitao => !string.IsNullOrEmpty(selectedRole);
-    private bool showYearCaloiro => selectedRole == "Caloiro" || selectedRole == "Tuno";
-    private bool showYearTuno => selectedRole == "Tuno";
+    private bool showYearLeitao => !string.IsNullOrEmpty(editingUser?.SelectedCategory);
+    private bool showYearCaloiro => editingUser?.SelectedCategory == "Caloiro" || editingUser?.SelectedCategory == "Tuno";
+    private bool showYearTuno => editingUser?.SelectedCategory == "Tuno";
 
     private void OnCategoryChanged()
     {
+        // Clear category validation error when a category is selected
+        if (memberEditForm?.EditContext != null && memberValidationStore != null && !string.IsNullOrEmpty(editingUser?.SelectedCategory))
+        {
+            memberValidationStore.Clear(() => editingUser.SelectedCategory);
+            memberEditForm.EditContext.NotifyValidationStateChanged();
+        }
         StateHasChanged();
     }
 

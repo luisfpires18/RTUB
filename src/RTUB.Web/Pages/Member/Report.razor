@@ -291,7 +291,7 @@ else
     <BodyContent>
       <EditForm Model="editingActivity" OnValidSubmit="SaveActivity">
             <DataAnnotationsValidator />
-<ValidationSummary class="text-danger" />
+<ErrorDisplay />
 
     <div class="mb-3">
                 <label class="form-label">Nome</label>
@@ -320,7 +320,7 @@ else
     <BodyContent>
         <EditForm Model="editingTransaction" OnValidSubmit="SaveTransaction">
             <DataAnnotationsValidator />
-    <ValidationSummary class="text-danger" />
+    <ErrorDisplay />
 
        <div class="mb-3">
            <label class="form-label">Data</label>

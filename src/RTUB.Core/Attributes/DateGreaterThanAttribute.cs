@@ -24,7 +24,7 @@ public class DateGreaterThanAttribute : ValidationAttribute
 
         var property = validationContext.ObjectType.GetProperty(_comparisonProperty);
         if (property == null)
-            throw new ArgumentException($"Property {_comparisonProperty} not found");
+            throw new ArgumentException($"Propriedade {_comparisonProperty} não encontrada");
 
         var comparisonValue = property.GetValue(validationContext.ObjectInstance);
         if (comparisonValue == null)
@@ -35,7 +35,7 @@ public class DateGreaterThanAttribute : ValidationAttribute
         if (currentValue < comparisonDate)
         {
             return new ValidationResult(
-                ErrorMessage ?? $"End date must be greater than or equal to {_comparisonProperty}",
+                ErrorMessage ?? $"A data de fim deve ser maior ou igual a {_comparisonProperty}",
                 new[] { validationContext.MemberName ?? string.Empty });
         }
 

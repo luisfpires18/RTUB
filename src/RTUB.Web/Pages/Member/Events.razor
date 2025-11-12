@@ -162,7 +162,7 @@ else
     <BodyContent>
         <EditForm Model="editingEvent" OnValidSubmit="SaveEvent">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" />
+            <ErrorDisplay />
 
             <div class="mb-3">
                 <label class="form-label">Nome da Atuação</label>
@@ -251,9 +251,9 @@ else
            Size="Modal.ModalSize.Default"
            Centered="true">
         <BodyContent>
-            <EditForm Model="enrollmentForm" OnValidSubmit="SaveEnrollment">
+            <EditForm Model="enrollmentForm" OnValidSubmit="SaveEnrollment" @ref="enrollmentEditForm">
                 <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger" />
+                <ErrorDisplay />
 
                 @* Will Attend Selection *@
                 <div class="mb-4">
@@ -291,17 +291,13 @@ else
                         {
                             <div class="mb-3">
                                 <label class="form-label text-white-full">Instrumento *</label>
-                                <InputSelect class="form-select form-select-dark" @bind-Value="enrollmentForm.Instrument">
+                                <InputSelect class="form-select form-select-dark" @bind-Value="enrollmentForm.Instrument" @bind-Value:after="@(() => OnInstrumentChanged(enrollmentForm.Instrument))">
                                     <option value="" disabled selected>Selecionar...</option>
                                     @foreach (var instrument in Enum.GetValues<InstrumentType>())
                                     {
                                         <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                                     }
                                 </InputSelect>
-                                @if (!string.IsNullOrEmpty(instrumentValidationError))
-                                {
-                                    <div class="text-danger mt-1">@instrumentValidationError</div>
-                                }
                             </div>
                         }
                     }
@@ -677,7 +673,7 @@ else
         {
             <EditForm Model="editingTrophy" OnValidSubmit="SaveTrophy">
                 <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger" />
+                <ErrorDisplay />
 
                 <div class="mb-3">
                     <label class="form-label">Nome do Prémio</label>
@@ -822,6 +818,8 @@ else
     private bool isUserOwner = false;
     private bool isTrophyCreateMode = false;
     private string instrumentValidationError = string.Empty;
+    private EditForm? enrollmentEditForm;
+    private ValidationMessageStore? enrollmentValidationStore;
     private Event? editingEvent;
     private Event? deletingEvent;
     private Event? selectedEvent;
@@ -1218,10 +1216,34 @@ else
     {
         wantToPlay = value;
         instrumentValidationError = string.Empty; // Clear validation error when toggle changes
+        
+        // Clear validation messages from EditContext
+        if (enrollmentEditForm?.EditContext != null)
+        {
+            var messageStore = new ValidationMessageStore(enrollmentEditForm.EditContext);
+            messageStore.Clear();
+            enrollmentEditForm.EditContext.NotifyValidationStateChanged();
+        }
+        
         if (enrollmentForm != null)
         {
             // Always clear instrument when toggle changes to force user to select
             enrollmentForm.Instrument = null;
+        }
+    }
+    
+    private void OnInstrumentChanged(InstrumentType? instrument)
+    {
+        if (enrollmentForm != null && enrollmentEditForm?.EditContext != null)
+        {
+            enrollmentForm.Instrument = instrument;
+            
+            // Clear instrument validation error when instrument is selected
+            if (instrument.HasValue && enrollmentValidationStore != null)
+            {
+                enrollmentValidationStore.Clear(() => enrollmentForm.Instrument);
+                enrollmentEditForm.EditContext.NotifyValidationStateChanged();
+            }
         }
     }
 
@@ -1237,18 +1259,27 @@ else
 
     private async Task SaveEnrollment()
     {
-        if (enrollmentForm == null || currentUser == null) return;
+        if (enrollmentForm == null || currentUser == null || enrollmentEditForm?.EditContext == null) return;
 
+        var editContext = enrollmentEditForm.EditContext;
+        
+        // Initialize or reuse the validation store
+        if (enrollmentValidationStore == null)
+        {
+            enrollmentValidationStore = new ValidationMessageStore(editContext);
+        }
+        
         // Clear previous validation errors
         instrumentValidationError = string.Empty;
+        enrollmentValidationStore.Clear();
 
         // Validate instrument is selected when wantToPlay is true
         if (wantToPlay && enrollmentForm.WillAttend && !currentUser.Categories.Contains(MemberCategory.Leitao))
         {
             if (!enrollmentForm.Instrument.HasValue)
             {
-                instrumentValidationError = "Por favor, selecione um instrumento.";
-                StateHasChanged();
+                enrollmentValidationStore.Add(() => enrollmentForm.Instrument, "Por favor, selecione um instrumento.");
+                editContext.NotifyValidationStateChanged();
                 return;
             }
         }

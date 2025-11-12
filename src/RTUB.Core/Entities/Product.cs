@@ -7,22 +7,22 @@ namespace RTUB.Core.Entities;
 /// </summary>
 public class Product : BaseEntity
 {
-    [Required]
-    [MaxLength(200)]
+    [Required(ErrorMessage = "O nome é obrigatório")]
+    [MaxLength(200, ErrorMessage = "O nome não pode exceder 200 caracteres")]
     public string Name { get; set; } = string.Empty;
     
-    [Required]
-    [MaxLength(50)]
+    [Required(ErrorMessage = "O tipo é obrigatório")]
+    [MaxLength(50, ErrorMessage = "O tipo não pode exceder 50 caracteres")]
     public string Type { get; set; } = string.Empty;
     
-    [MaxLength(1000)]
+    [MaxLength(1000, ErrorMessage = "A descrição não pode exceder 1000 caracteres")]
     public string? Description { get; set; }
     
-    [Required]
+    [Required(ErrorMessage = "O preço é obrigatório")]
     [Range(0.01, double.MaxValue, ErrorMessage = "O preço deve ser maior que 0")]
     public decimal Price { get; set; }
     
-    [Required]
+    [Required(ErrorMessage = "O stock é obrigatório")]
     [Range(0, int.MaxValue, ErrorMessage = "O stock não pode ser negativo")]
     public int Stock { get; set; }
     

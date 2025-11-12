@@ -208,7 +208,7 @@ else
     <BodyContent>
         <EditForm Model="editingSong" OnValidSubmit="CreateSong">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" />
+            <ErrorDisplay />
 
             <div class="row">
                 <div class="col-md-8 mb-3">
@@ -293,7 +293,7 @@ else
     <BodyContent>
         <EditForm Model="editingSong" OnValidSubmit="SaveSong">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" />
+            <ErrorDisplay />
 
             <div class="row">
                 <div class="col-md-12 mb-3">

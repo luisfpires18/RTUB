@@ -1,0 +1,95 @@
+@namespace RTUB.Shared
+@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+@*
+    Reusable error display component for displaying validation errors
+    Features card-style design with red error theme based on EmptyState component
+    Only displays when there are actual validation errors
+*@
+
+@if (HasErrors)
+{
+    <div class="error-display-container">
+        <div class="error-display-card">
+            <div class="error-display-content">
+                <i class="bi bi-exclamation-triangle-fill error-display-icon"></i>
+                <h5 class="error-display-title">@Title</h5>
+                @if (Errors != null && Errors.Any())
+                {
+                    <ul class="error-display-list">
+                        @foreach (var error in Errors)
+                        {
+                            <li class="error-display-item">@error</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <ValidationSummary class="error-display-validation" />
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// Main title to display
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = "Ocorreram erros de validação";
+
+    /// <summary>
+    /// Optional list of error messages to display
+    /// </summary>
+    [Parameter]
+    public IEnumerable<string>? Errors { get; set; }
+
+    /// <summary>
+    /// EditContext from the parent EditForm (automatically cascaded)
+    /// </summary>
+    [CascadingParameter]
+    public EditContext? EditContext { get; set; }
+
+    /// <summary>
+    /// Determines if there are any validation errors to display
+    /// </summary>
+    private bool HasErrors
+    {
+        get
+        {
+            if (Errors != null && Errors.Any())
+            {
+                return true;
+            }
+
+            if (EditContext != null)
+            {
+                return EditContext.GetValidationMessages().Any();
+            }
+
+            return false;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        if (EditContext != null)
+        {
+            EditContext.OnValidationStateChanged += OnValidationStateChanged;
+        }
+    }
+
+    private void OnValidationStateChanged(object? sender, ValidationStateChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        if (EditContext != null)
+        {
+            EditContext.OnValidationStateChanged -= OnValidationStateChanged;
+        }
+    }
+}

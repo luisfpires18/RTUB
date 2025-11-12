@@ -193,18 +193,16 @@ else
     <EditFormContent Context="product">
         <EditForm Model="product" OnValidSubmit="SaveProduct">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" />
+            <ErrorDisplay />
 
             <div class="row mb-3">
                 <div class="col-md-8">
                     <label class="form-label">Nome *</label>
                     <InputText class="form-control" @bind-Value="product.Name" />
-                    <ValidationMessage For="@(() => product.Name)" class="text-danger" />
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Tipo *</label>
                     <InputText class="form-control" @bind-Value="product.Type" placeholder="Álbum, Pin, T-shirt..." />
-                    <ValidationMessage For="@(() => product.Type)" class="text-danger" />
                 </div>
             </div>
 
@@ -212,12 +210,10 @@ else
                 <div class="col-md-6">
                     <label class="form-label">Preço (€) *</label>
                     <InputNumber class="form-control" @bind-Value="product.Price" min="0.01" step="0.01" />
-                    <ValidationMessage For="@(() => product.Price)" class="text-danger" />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Stock *</label>
+                    <label class="form-label">Stock</label>
                     <InputNumber class="form-control" @bind-Value="product.Stock" min="0" />
-                    <ValidationMessage For="@(() => product.Stock)" class="text-danger" />
                 </div>
             </div>
 

@@ -125,9 +125,9 @@ else
                   OnDelete="DeleteLabel"
                   OnDeleteModalClosed="() => deletingLabel = null">
     <EditFormContent Context="label">
-        <EditForm Model="label" OnValidSubmit="SaveLabel">
+        <EditForm Model="label" @ref="labelEditForm" OnValidSubmit="SaveLabel">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" />
+            <ErrorDisplay />
 
             <div class="mb-3">
                 <label class="form-label text-white-full">Referência</label>
@@ -168,6 +168,7 @@ else
     private Label? editingLabel;
     private Label? deletingLabel;
     private Label? viewingLabel;
+    private EditForm? labelEditForm;
 
     protected override async Task OnInitializedAsync()
     {
@@ -254,7 +255,33 @@ else
 
     private async Task SaveLabel()
     {
-        if (editingLabel == null) return;
+        if (editingLabel == null || labelEditForm?.EditContext == null) return;
+
+        var editContext = labelEditForm.EditContext;
+        var messageStore = new ValidationMessageStore(editContext);
+        messageStore.Clear();
+
+        // Additional validation
+        if (string.IsNullOrWhiteSpace(editingLabel.Reference))
+        {
+            messageStore.Add(() => editingLabel.Reference, "A referência é obrigatória.");
+            editContext.NotifyValidationStateChanged();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(editingLabel.Title))
+        {
+            messageStore.Add(() => editingLabel.Title, "O título é obrigatório.");
+            editContext.NotifyValidationStateChanged();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(editingLabel.Content))
+        {
+            messageStore.Add(() => editingLabel.Content, "O conteúdo é obrigatório.");
+            editContext.NotifyValidationStateChanged();
+            return;
+        }
 
         if (isCreateMode)
         {

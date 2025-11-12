@@ -1,9 +1,11 @@
 @page "/rehearsals"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
+@using System.ComponentModel.DataAnnotations
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
@@ -160,7 +162,7 @@ else
 }
 
 <!-- Mark Attendance Modal -->
-@if (showAttendanceModal && selectedRehearsal != null)
+@if (showAttendanceModal && selectedRehearsal != null && attendanceForm != null)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog">
@@ -170,58 +172,60 @@ else
                     <button type="button" class="btn-close" @onclick="CloseAttendanceModal"></button>
                 </div>
                 <div class="modal-body">
-                    @* Only show "Quero tocar" toggle for non-Leitão members *@
-                    @if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao))
-                    {
-                        <div class="mb-3 form-check form-switch">
-                            <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayRehearsalToggle"
-                                   checked="@wantToPlayRehearsal"
-                                   @onchange="@((ChangeEventArgs e) => OnWantToPlayRehearsalChanged((bool)e.Value!))">
-                            <label class="form-check-label clickable-row" for="wantToPlayRehearsalToggle">
-                                Quero tocar
-                            </label>
-                        </div>
+                    <EditForm Model="attendanceForm" OnValidSubmit="ConfirmMarkAttendance" @ref="attendanceEditForm">
+                        <DataAnnotationsValidator />
+                        <ErrorDisplay />
 
-                        @if (wantToPlayRehearsal)
+                        @* Only show "Quero tocar" toggle for non-Leitão members *@
+                        @if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao))
+                        {
+                            <div class="mb-3 form-check form-switch">
+                                <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayRehearsalToggle"
+                                       checked="@wantToPlayRehearsal"
+                                       @onchange="@((ChangeEventArgs e) => OnWantToPlayRehearsalChanged((bool)e.Value!))">
+                                <label class="form-check-label clickable-row" for="wantToPlayRehearsalToggle">
+                                    Quero tocar
+                                </label>
+                            </div>
+
+                            @if (wantToPlayRehearsal)
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">Instrumento *</label>
+                                    <InputSelect class="form-select" @bind-Value="attendanceForm.Instrument" @bind-Value:after="@(() => OnAttendanceInstrumentChanged(attendanceForm.Instrument))">
+                                        <option value="" disabled selected>Selecionar...</option>
+                                        @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                                        {
+                                            <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                            }
+                        }
+                        else
                         {
                             <div class="mb-3">
-                                <label class="form-label">Instrumento *</label>
-                                <select class="form-select" @bind="selectedInstrument">
+                                <label class="form-label">Instrumento (Opcional)</label>
+                                <InputSelect class="form-select" @bind-Value="attendanceForm.Instrument">
                                     <option value="" disabled selected>Selecionar...</option>
                                     @foreach (var instrument in Enum.GetValues<InstrumentType>())
                                     {
-                                        <option value="@instrument">@instrument</option>
+                                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                                     }
-                                </select>
-                                @if (!string.IsNullOrEmpty(instrumentValidationErrorRehearsal))
-                                {
-                                    <div class="text-danger mt-1">@instrumentValidationErrorRehearsal</div>
-                                }
+                                </InputSelect>
                             </div>
                         }
-                    }
-                    else
-                    {
-                        <div class="mb-3">
-                            <label class="form-label">Instrumento (Opcional)</label>
-                            <select class="form-select" @bind="selectedInstrument">
-                                <option value="" disabled selected>Selecionar...</option>
-                                @foreach (var instrument in Enum.GetValues<InstrumentType>())
-                                {
-                                    <option value="@instrument">@instrument</option>
-                                }
-                            </select>
-                        </div>
-                    }
 
-                    <div class="mb-3">
-                        <label class="form-label">Notas (Opcional)</label>
-                        <textarea class="form-control" rows="3" @bind="selectedNotes" placeholder="Adicione alguma nota..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseAttendanceModal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" @onclick="ConfirmMarkAttendance">Confirmar</button>
+                        <div class="mb-3">
+                            <label class="form-label">Notas (Opcional)</label>
+                            <InputTextArea class="form-control" rows="3" @bind-Value="attendanceForm.Notes" placeholder="Adicione alguma nota..." />
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseAttendanceModal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Confirmar</button>
+                        </div>
+                    </EditForm>
                 </div>
             </div>
         </div>
@@ -508,27 +512,33 @@ else
                     <button type="button" class="btn-close" @onclick="@(() => createFeedbackMessage = "")"></button>
                 </div>
             }
-            <div class="mb-3">
-                <label class="form-label">Data <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" @bind="createDate" />
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Localização <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" @bind="createLocation" />
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Tema (Opcional)</label>
-                <input type="text" class="form-control" @bind="createTheme" />
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Notas (Opcional)</label>
-                <textarea class="form-control" rows="3" @bind="createNotes"></textarea>
-            </div>
+            <EditForm Model="createRehearsalForm" OnValidSubmit="SaveNewRehearsal" @ref="createRehearsalEditForm">
+                <DataAnnotationsValidator />
+                <ErrorDisplay />
+
+                <div class="mb-3">
+                    <label class="form-label">Data *</label>
+                    <InputDate class="form-control" @bind-Value="createRehearsalForm.Date" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Localização *</label>
+                    <InputText class="form-control" @bind-Value="createRehearsalForm.Location" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Tema (Opcional)</label>
+                    <InputText class="form-control" @bind-Value="createRehearsalForm.Theme" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notas (Opcional)</label>
+                    <InputTextArea class="form-control" rows="3" @bind-Value="createRehearsalForm.Notes" />
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseCreateModal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar</button>
+                </div>
+            </EditForm>
         </BodyContent>
-        <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseCreateModal">Cancelar</button>
-            <button type="button" class="btn btn-primary" @onclick="SaveNewRehearsal">Criar</button>
-        </FooterContent>
     </Modal>
 }
 
@@ -648,44 +658,35 @@ else
                             <button type="button" class="btn-close" @onclick="@(() => rangeFeedbackMessage = "")"></button>
                         </div>
                     }
-                    <div class="mb-3">
-                        <label class="form-label">Data Início</label>
-                        <input type="date" class="form-control" @bind="rangeStartDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Data Fim</label>
-                        <input type="date" class="form-control" @bind="rangeEndDate" max="@maxRangeDate.ToString("yyyy-MM-dd")" />
-                    </div>
-                    @if (rangeEndDate.Date < rangeStartDate.Date)
-                    {
-                        <div class="alert alert-danger">
-                            A data de fim não pode ser anterior à data de início.
+                    <EditForm Model="rangeRehearsalForm" OnValidSubmit="CreateRangeRehearsals" @ref="rangeRehearsalEditForm">
+                        <DataAnnotationsValidator />
+                        <ErrorDisplay />
+
+                        <div class="mb-3">
+                            <label class="form-label">Data Início *</label>
+                            <InputDate class="form-control" @bind-Value="rangeRehearsalForm.StartDate" min="@DateTime.Today" />
                         </div>
-                    }
-                    @if ((rangeEndDate.Date - rangeStartDate.Date).TotalDays > 90)
-                    {
-                        <div class="alert alert-warning">
-                            O período máximo é de 3 meses.
+                        <div class="mb-3">
+                            <label class="form-label">Data Fim *</label>
+                            <InputDate class="form-control" @bind-Value="rangeRehearsalForm.EndDate" max="@maxRangeDate" />
                         </div>
-                    }
-                    <div class="mb-3">
-                        <label class="form-label">Localização</label>
-                        <input type="text" class="form-control" @bind="rangeLocation" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Tema (Opcional)</label>
-                        <input type="text" class="form-control" @bind="rangeTheme" />
-                    </div>
-                    <p class="text-muted">
-                        <small>Serão criados ensaios às Terças e Quintas no intervalo selecionado.</small>
-                    </p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseDateRangeModal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" @onclick="CreateRangeRehearsals" 
-                            disabled="@(rangeEndDate.Date < rangeStartDate.Date || (rangeEndDate.Date - rangeStartDate.Date).TotalDays > 90)">
-                        Criar
-                    </button>
+                        <div class="mb-3">
+                            <label class="form-label">Localização *</label>
+                            <InputText class="form-control" @bind-Value="rangeRehearsalForm.Location" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tema (Opcional)</label>
+                            <InputText class="form-control" @bind-Value="rangeRehearsalForm.Theme" />
+                        </div>
+                        <p class="text-muted">
+                            <small>Serão criados ensaios às Terças e Quintas no intervalo selecionado.</small>
+                        </p>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseDateRangeModal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Criar</button>
+                        </div>
+                    </EditForm>
                 </div>
             </div>
         </div>
@@ -845,10 +846,10 @@ else
     private Rehearsal? editingRehearsal;
     private Rehearsal? deletingRehearsal;
     private RehearsalAttendance? deletingAttendance;
-    private string? selectedInstrument;
-    private string? selectedNotes;
-    private bool wantToPlayRehearsal = false;
-    private string instrumentValidationErrorRehearsal = string.Empty;
+    private AttendanceFormModel? attendanceForm;
+    private EditForm? attendanceEditForm;
+    private ValidationMessageStore? attendanceValidationStore;
+    private bool wantToPlayRehearsal = true;
     private string editLocation = "";
     private string? editTheme;
     private string? editNotes;
@@ -867,19 +868,15 @@ else
     private List<ApplicationUser> filteredAvailableMembers = new();
 
     // Create rehearsal
-    private DateTime createDate = DateTime.Today.AddDays(1);
-    private string createLocation = "Centro Académico";
-    private string? createTheme;
-    private string? createNotes;
+    private RehearsalFormModel createRehearsalForm = new();
+    private EditForm? createRehearsalEditForm;
     private string createFeedbackMessage = "";
     private bool createFeedbackIsError = false;
 
     // Range rehearsals
-    private DateTime rangeStartDate = DateTime.Today;
-    private DateTime rangeEndDate = DateTime.Today.AddMonths(1);
+    private RehearsalRangeFormModel rangeRehearsalForm = new();
+    private EditForm? rangeRehearsalEditForm;
     private DateTime maxRangeDate => DateTime.Today.AddMonths(3);
-    private string rangeLocation = "Centro Académico";
-    private string? rangeTheme;
     private string rangeFeedbackMessage = "";
     private bool rangeFeedbackIsError = false;
 
@@ -1073,39 +1070,44 @@ else
     private void MarkAttendance(Rehearsal rehearsal)
     {
         selectedRehearsal = rehearsal;
-        selectedInstrument = null;
-        selectedNotes = null;
+        attendanceForm = new AttendanceFormModel
+        {
+            Instrument = null,
+            Notes = null
+        };
+        wantToPlayRehearsal = true;
         showAttendanceModal = true;
         StateHasChanged();
     }
 
     private async Task ConfirmMarkAttendance()
     {
-        if (selectedRehearsal != null && currentUserId != null)
+        if (selectedRehearsal != null && currentUserId != null && attendanceForm != null && attendanceEditForm?.EditContext != null)
         {
             try
             {
-                // Clear previous validation errors
-                instrumentValidationErrorRehearsal = string.Empty;
+                var editContext = attendanceEditForm.EditContext;
+                
+                // Initialize or reuse the validation store
+                if (attendanceValidationStore == null)
+                {
+                    attendanceValidationStore = new ValidationMessageStore(editContext);
+                }
+                
+                attendanceValidationStore.Clear();
 
                 // Validate instrument is selected when wantToPlayRehearsal is true
                 if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao) && wantToPlayRehearsal)
                 {
-                    if (string.IsNullOrEmpty(selectedInstrument))
+                    if (!attendanceForm.Instrument.HasValue)
                     {
-                        instrumentValidationErrorRehearsal = "Por favor, selecione um instrumento.";
-                        StateHasChanged();
+                        attendanceValidationStore.Add(() => attendanceForm.Instrument, "Por favor, selecione um instrumento.");
+                        editContext.NotifyValidationStateChanged();
                         return;
                     }
                 }
 
-                InstrumentType? instrument = null;
-                if (!string.IsNullOrEmpty(selectedInstrument))
-                {
-                    instrument = Enum.Parse<InstrumentType>(selectedInstrument);
-                }
-
-                await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, currentUserId, instrument, selectedNotes);
+                await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, currentUserId, attendanceForm.Instrument, attendanceForm.Notes);
 
                 await LoadData();
                 CloseAttendanceModal();
@@ -1122,19 +1124,34 @@ else
     private void OnWantToPlayRehearsalChanged(bool value)
     {
         wantToPlayRehearsal = value;
-        instrumentValidationErrorRehearsal = string.Empty; // Clear validation error when toggle changes
         // Always clear instrument when toggle changes to force user to select
-        selectedInstrument = null;
+        if (attendanceForm != null)
+        {
+            attendanceForm.Instrument = null;
+        }
+    }
+    
+    private void OnAttendanceInstrumentChanged(InstrumentType? instrument)
+    {
+        if (attendanceForm != null && attendanceEditForm?.EditContext != null)
+        {
+            attendanceForm.Instrument = instrument;
+            
+            // Clear instrument validation error when instrument is selected
+            if (instrument.HasValue && attendanceValidationStore != null)
+            {
+                attendanceValidationStore.Clear(() => attendanceForm.Instrument);
+                attendanceEditForm.EditContext.NotifyValidationStateChanged();
+            }
+        }
     }
 
     private void CloseAttendanceModal()
     {
         showAttendanceModal = false;
         selectedRehearsal = null;
-        selectedInstrument = null;
-        selectedNotes = null;
+        attendanceForm = null;
         wantToPlayRehearsal = false;
-        instrumentValidationErrorRehearsal = string.Empty; // Clear validation error on close
         StateHasChanged();
     }
 
@@ -1414,7 +1431,12 @@ else
         // Similar to mark attendance, but pre-fill with existing data
         var existingAttendance = GetUserAttendance(rehearsal.Id);
         selectedRehearsal = rehearsal;
-        selectedInstrument = existingAttendance?.Instrument?.ToString();
+        attendanceForm = new AttendanceFormModel
+        {
+            Instrument = existingAttendance?.Instrument,
+            Notes = existingAttendance?.Notes
+        };
+        wantToPlayRehearsal = existingAttendance?.Instrument.HasValue ?? false;
         showAttendanceModal = true;
         StateHasChanged();
     }
@@ -1571,10 +1593,11 @@ else
     // Create modal methods
     private void OpenCreateSingleModal()
     {
-        createDate = DateTime.Today.AddDays(1);
-        createLocation = "Centro Académico";
-        createTheme = null;
-        createNotes = null;
+        createRehearsalForm = new RehearsalFormModel
+        {
+            Date = DateTime.Today.AddDays(1),
+            Location = "Centro Académico"
+        };
         showCreateModal = true;
     }
 
@@ -1592,18 +1615,23 @@ else
         {
             createFeedbackMessage = "";
             createFeedbackIsError = false;
+
+            if (createRehearsalEditForm?.EditContext == null) return;
+
+            var editContext = createRehearsalEditForm.EditContext;
+            var messageStore = new ValidationMessageStore(editContext);
+            messageStore.Clear();
             
             // Check if rehearsal already exists on this date
-            var existingRehearsal = await RehearsalService.GetRehearsalByDateAsync(createDate);
+            var existingRehearsal = await RehearsalService.GetRehearsalByDateAsync(createRehearsalForm.Date);
             if (existingRehearsal != null)
             {
-                createFeedbackMessage = $"Já existe um ensaio marcado para {createDate.ToString("dd/MM/yyyy")}.";
-                createFeedbackIsError = true;
-                StateHasChanged();
+                messageStore.Add(() => createRehearsalForm.Date, $"Já existe um ensaio marcado para {createRehearsalForm.Date.ToString("dd/MM/yyyy")}.");
+                editContext.NotifyValidationStateChanged();
                 return;
             }
 
-            await RehearsalService.CreateRehearsalAsync(createDate, createLocation, createTheme);
+            await RehearsalService.CreateRehearsalAsync(createRehearsalForm.Date, createRehearsalForm.Location, createRehearsalForm.Theme);
             await LoadData();
             CloseCreateModal();
             StateHasChanged();
@@ -1723,10 +1751,12 @@ else
     // Date Range Modal methods
     private void OpenDateRangeModal()
     {
-        rangeStartDate = DateTime.Today;
-        rangeEndDate = DateTime.Today.AddMonths(1);
-        rangeLocation = "Centro Académico";
-        rangeTheme = null;
+        rangeRehearsalForm = new RehearsalRangeFormModel
+        {
+            StartDate = DateTime.Today,
+            EndDate = DateTime.Today.AddMonths(1),
+            Location = "Centro Académico"
+        };
         showDateRangeModal = true;
     }
 
@@ -1744,12 +1774,34 @@ else
         {
             rangeFeedbackMessage = "";
             rangeFeedbackIsError = false;
+
+            if (rangeRehearsalEditForm?.EditContext == null) return;
+
+            var editContext = rangeRehearsalEditForm.EditContext;
+            var messageStore = new ValidationMessageStore(editContext);
+            messageStore.Clear();
+
+            // Custom validation: End date must be >= Start date
+            if (rangeRehearsalForm.EndDate.Date < rangeRehearsalForm.StartDate.Date)
+            {
+                messageStore.Add(() => rangeRehearsalForm.EndDate, "A data de fim não pode ser anterior à data de início.");
+                editContext.NotifyValidationStateChanged();
+                return;
+            }
+
+            // Custom validation: Maximum 3 months
+            if ((rangeRehearsalForm.EndDate.Date - rangeRehearsalForm.StartDate.Date).TotalDays > 90)
+            {
+                messageStore.Add(() => rangeRehearsalForm.EndDate, "O período máximo é de 3 meses.");
+                editContext.NotifyValidationStateChanged();
+                return;
+            }
             
-            var currentDate = rangeStartDate;
+            var currentDate = rangeRehearsalForm.StartDate;
             int created = 0;
             int skipped = 0;
             
-            while (currentDate <= rangeEndDate)
+            while (currentDate <= rangeRehearsalForm.EndDate)
             {
                 // Tuesday = 2, Thursday = 4
                 if (currentDate.DayOfWeek == DayOfWeek.Tuesday || currentDate.DayOfWeek == DayOfWeek.Thursday)
@@ -1758,7 +1810,7 @@ else
                     var existingRehearsal = await RehearsalService.GetRehearsalByDateAsync(currentDate);
                     if (existingRehearsal == null)
                     {
-                        await RehearsalService.CreateRehearsalAsync(currentDate, rangeLocation, rangeTheme);
+                        await RehearsalService.CreateRehearsalAsync(currentDate, rangeRehearsalForm.Location, rangeRehearsalForm.Theme);
                         created++;
                     }
                     else
@@ -1836,5 +1888,46 @@ else
         public string UserId { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
         public int Count { get; set; }
+    }
+
+    // Form models for validation
+    private class RehearsalFormModel
+    {
+        [Required(ErrorMessage = "A data é obrigatória")]
+        public DateTime Date { get; set; } = DateTime.Today.AddDays(1);
+
+        [Required(ErrorMessage = "A localização é obrigatória")]
+        [MaxLength(200, ErrorMessage = "A localização não pode exceder 200 caracteres")]
+        public string Location { get; set; } = "Centro Académico";
+
+        [MaxLength(500, ErrorMessage = "O tema não pode exceder 500 caracteres")]
+        public string? Theme { get; set; }
+
+        [MaxLength(1000, ErrorMessage = "As notas não podem exceder 1000 caracteres")]
+        public string? Notes { get; set; }
+    }
+
+    private class RehearsalRangeFormModel
+    {
+        [Required(ErrorMessage = "A data de início é obrigatória")]
+        public DateTime StartDate { get; set; } = DateTime.Today;
+
+        [Required(ErrorMessage = "A data de fim é obrigatória")]
+        public DateTime EndDate { get; set; } = DateTime.Today.AddMonths(1);
+
+        [Required(ErrorMessage = "A localização é obrigatória")]
+        [MaxLength(200, ErrorMessage = "A localização não pode exceder 200 caracteres")]
+        public string Location { get; set; } = "Centro Académico";
+
+        [MaxLength(500, ErrorMessage = "O tema não pode exceder 500 caracteres")]
+        public string? Theme { get; set; }
+    }
+
+    private class AttendanceFormModel
+    {
+        public InstrumentType? Instrument { get; set; }
+        
+        [MaxLength(500, ErrorMessage = "As notas não podem exceder 500 caracteres")]
+        public string? Notes { get; set; }
     }
 }

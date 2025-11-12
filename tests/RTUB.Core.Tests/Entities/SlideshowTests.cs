@@ -47,7 +47,7 @@ public class SlideshowTests
         var act = () => Slideshow.Create("", 1);
 
         // Assert
-        act.Should().Throw<ArgumentException>().WithMessage("*Title cannot be empty*");
+        act.Should().Throw<ArgumentException>().WithMessage("*título não pode estar vazio*");
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class SlideshowTests
         var act = () => Slideshow.Create("   ", 1);
 
         // Assert
-        act.Should().Throw<ArgumentException>().WithMessage("*Title cannot be empty*");
+        act.Should().Throw<ArgumentException>().WithMessage("*título não pode estar vazio*");
     }
 
     [Theory]
@@ -70,7 +70,7 @@ public class SlideshowTests
         var act = () => Slideshow.Create("Title", order);
 
         // Assert
-        act.Should().Throw<ArgumentException>().WithMessage("*Order must be positive*");
+        act.Should().Throw<ArgumentException>().WithMessage("*ordem deve ser positiva*");
     }
 
     [Theory]
@@ -84,7 +84,7 @@ public class SlideshowTests
         var act = () => Slideshow.Create("Title", 1, "", interval);
 
         // Assert
-        act.Should().Throw<ArgumentException>().WithMessage("*Interval must be between 1000ms and 10000ms*");
+        act.Should().Throw<ArgumentException>().WithMessage("*intervalo deve estar entre 1000ms e 10000ms*");
     }
 
     [Theory]

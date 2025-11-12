@@ -870,6 +870,17 @@ a:hover, a:focus {
   color: #ffffff !important;
   opacity: 0.6;
 }
+
+/* Fix autofill/autocomplete white background */
+.form-control:-webkit-autofill,
+.form-control:-webkit-autofill:hover,
+.form-control:-webkit-autofill:focus,
+.form-control:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #1c1c1d inset !important;
+  -webkit-text-fill-color: #fff !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 .form-label {
   margin-bottom: 0.5rem;
   display: inline-block;
@@ -1585,6 +1596,94 @@ th:hover {
     margin: 0;
     max-width: 600px;
     line-height: 1.5;
+}
+
+/* Error Display Component - Based on EmptyState with red theme */
+.error-display-container {
+    margin: 1rem 0;
+}
+
+.error-display-card {
+    background-color: rgba(231, 76, 60, 0.06);
+    border: 1px solid rgba(231, 76, 60, 0.25);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.error-display-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.error-display-icon {
+    font-size: 2.5rem;
+    color: #e74c3c;
+    opacity: 0.85;
+}
+
+.error-display-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.error-display-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    max-width: 600px;
+    text-align: left;
+}
+
+.error-display-item {
+    font-size: 0.9375rem;
+    color: #e74c3c;
+    padding: 0.5rem 1rem;
+    background-color: rgba(231, 76, 60, 0.08);
+    border-left: 3px solid #e74c3c;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    line-height: 1.5;
+}
+
+.error-display-item:last-child {
+    margin-bottom: 0;
+}
+
+.error-display-validation {
+    color: #e74c3c !important;
+    text-align: left;
+    width: 100%;
+    max-width: 600px;
+}
+
+.error-display-validation ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.error-display-validation li {
+    font-size: 0.9375rem;
+    color: #e74c3c;
+    padding: 0.5rem 1rem;
+    background-color: rgba(231, 76, 60, 0.08);
+    border-left: 3px solid #e74c3c;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    line-height: 1.5;
+}
+
+.error-display-validation li:last-child {
+    margin-bottom: 0;
 }
 
 .btn-purple {
@@ -3418,6 +3517,15 @@ th:hover {
   }
 
   .empty-state-icon {
+    font-size: 1.75rem;
+  }
+
+  /* Error display responsive styles */
+  .error-display-container {
+    padding: 1.5rem 1rem;
+  }
+
+  .error-display-icon {
     font-size: 1.75rem;
   }
 
