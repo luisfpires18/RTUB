@@ -855,7 +855,18 @@ else
 
     private async Task HandleSaveClick()
     {
-        // Call SaveMember which handles all validation
+        // Validate the form first to show all DataAnnotations errors
+        if (memberEditForm?.EditContext != null)
+        {
+            var isValid = memberEditForm.EditContext.Validate();
+            if (!isValid)
+            {
+                // DataAnnotations validation failed, errors are already displayed
+                return;
+            }
+        }
+        
+        // If DataAnnotations validation passes, proceed with SaveMember for custom validations
         await SaveMember();
     }
 
@@ -882,10 +893,10 @@ else
             
             memberValidationStore.Clear();
 
-            // Basic validation is handled by DataAnnotationsValidator
-            // We only need custom validations here
+            // Note: DataAnnotations validation is already done in HandleSaveClick
+            // This method only does additional custom validations
 
-            // Validate category
+            // Validate category (custom validation not covered by DataAnnotations)
             if (string.IsNullOrEmpty(editingUser.SelectedCategory))
             {
                 // Add validation error to the SelectedCategory field
@@ -896,6 +907,21 @@ else
 
             if (isCreateMode)
             {
+                // Null checks to prevent ArgumentNullException
+                if (string.IsNullOrEmpty(editingUser.Nickname))
+                {
+                    memberValidationStore.Add(() => editingUser.Nickname, "O nome de tuna / username é obrigatório.");
+                    editContext.NotifyValidationStateChanged();
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(editingUser.Email))
+                {
+                    memberValidationStore.Add(() => editingUser.Email, "O email é obrigatório.");
+                    editContext.NotifyValidationStateChanged();
+                    return;
+                }
+
                 // Set UserName to normalized version of Nickname (tuna name)
                 // Keep Nickname as display name, but use normalized version for username
                 editingUser.UserName = UsernameHelper.NormalizeUsername(editingUser.Nickname);
@@ -965,6 +991,21 @@ else
         }
         else
         {
+            // Edit mode - add null checks
+            if (string.IsNullOrEmpty(editingUser.Nickname))
+            {
+                memberValidationStore.Add(() => editingUser.Nickname, "O nome de tuna / username é obrigatório.");
+                editContext.NotifyValidationStateChanged();
+                return;
+            }
+
+            if (string.IsNullOrEmpty(editingUser.Email))
+            {
+                memberValidationStore.Add(() => editingUser.Email, "O email é obrigatório.");
+                editContext.NotifyValidationStateChanged();
+                return;
+            }
+
             var existingUser = await UserManager.FindByIdAsync(editingUser.Id);
             if (existingUser != null)
             {
