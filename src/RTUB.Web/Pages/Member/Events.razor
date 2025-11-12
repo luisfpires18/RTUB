@@ -617,9 +617,7 @@ else
                     <ProfileField Label="Nome" Value="@selectedEvent.Name" />
                     <ProfileField Label="Tipo" Value="@GetEventTypeDisplay(selectedEvent.Type)" />
                     <ProfileField Label="Data" 
-                                Value="@(selectedEvent.EndDate.HasValue && selectedEvent.EndDate.Value.Date != selectedEvent.Date.Date 
-                                        ? $"{selectedEvent.Date:dd MMM} - {selectedEvent.EndDate.Value:dd MMM yyyy}" 
-                                        : selectedEvent.Date.ToString("dd MMM yyyy"))" />
+                                Value="@GetEventDateDisplay(selectedEvent)" />
                     <ProfileField Label="Localização" Value="@selectedEvent.Location" />
                 </InfoSection>
 
@@ -1522,6 +1520,25 @@ else
             EventType.Atuacao => "Atuação",
             _ => type.ToString()
         };
+    }
+
+    private string GetEventDateDisplay(Event eventItem)
+    {
+        if (eventItem.EndDate.HasValue && eventItem.EndDate.Value.Date != eventItem.Date.Date)
+        {
+            // Date range
+            return $"{eventItem.Date:dd MMM} - {eventItem.EndDate.Value:dd MMM yyyy}";
+        }
+        else if (eventItem.Date.TimeOfDay != TimeSpan.Zero)
+        {
+            // Single date with time
+            return $"{eventItem.Date:dd MMM yyyy}, {eventItem.Date:HH:mm}h";
+        }
+        else
+        {
+            // Single date without time (all-day)
+            return eventItem.Date.ToString("dd MMM yyyy");
+        }
     }
 
     // Repertoire modal methods
