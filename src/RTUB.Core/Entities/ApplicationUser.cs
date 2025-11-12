@@ -11,6 +11,10 @@ namespace RTUB.Core.Entities;
 /// </summary>
 public class ApplicationUser : IdentityUser
 {
+    // Override Email to add validation attributes
+    [Required(ErrorMessage = "O email é obrigatório")]
+    [EmailAddress(ErrorMessage = "O formato do email é inválido")]
+    public override string? Email { get; set; }
     [Required(ErrorMessage = "O primeiro nome é obrigatório")]
     [MaxLength(80, ErrorMessage = "O primeiro nome não pode exceder 80 caracteres")]
     public string? FirstName { get; set; }
@@ -45,6 +49,10 @@ public class ApplicationUser : IdentityUser
     // Mentor/Padrinho relationship
     public string? MentorId { get; set; }
     public ApplicationUser? Mentor { get; set; }
+    
+    // UI-only property for category validation (not mapped to database)
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? SelectedCategory { get; set; }
     
     // Image handling
     public string? ImageUrl { get; set; }

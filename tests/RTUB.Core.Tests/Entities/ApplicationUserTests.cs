@@ -175,4 +175,123 @@ public class ApplicationUserTests
         // Assert
         user.Subscribed.Should().BeFalse();
     }
+
+    #region Email Validation Tests
+
+    [Fact]
+    public void Email_WithValidEmail_ShouldBeValid()
+    {
+        // Arrange
+        var user = new ApplicationUser
+        {
+            Email = "test@example.com"
+        };
+
+        // Assert
+        user.Email.Should().Be("test@example.com");
+    }
+
+    [Fact]
+    public void Email_CanBeSet_AndRetrieved()
+    {
+        // Arrange
+        var user = new ApplicationUser();
+        var expectedEmail = "user@rtub.pt";
+
+        // Act
+        user.Email = expectedEmail;
+
+        // Assert
+        user.Email.Should().Be(expectedEmail);
+    }
+
+    [Fact]
+    public void Email_HasRequiredAttribute()
+    {
+        // Arrange
+        var emailProperty = typeof(ApplicationUser).GetProperty("Email");
+
+        // Act
+        var requiredAttribute = emailProperty?.GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute), true);
+
+        // Assert
+        requiredAttribute.Should().NotBeNull();
+        requiredAttribute.Should().NotBeEmpty("Email should have Required attribute");
+    }
+
+    [Fact]
+    public void Email_HasEmailAddressAttribute()
+    {
+        // Arrange
+        var emailProperty = typeof(ApplicationUser).GetProperty("Email");
+
+        // Act
+        var emailAttribute = emailProperty?.GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.EmailAddressAttribute), true);
+
+        // Assert
+        emailAttribute.Should().NotBeNull();
+        emailAttribute.Should().NotBeEmpty("Email should have EmailAddress attribute");
+    }
+
+    #endregion
+
+    #region SelectedCategory Tests
+
+    [Fact]
+    public void SelectedCategory_CanBeSet_AndRetrieved()
+    {
+        // Arrange
+        var user = new ApplicationUser();
+        var expectedCategory = "Tuno";
+
+        // Act
+        user.SelectedCategory = expectedCategory;
+
+        // Assert
+        user.SelectedCategory.Should().Be(expectedCategory);
+    }
+
+    [Fact]
+    public void SelectedCategory_CanBeNull()
+    {
+        // Arrange & Act
+        var user = new ApplicationUser
+        {
+            SelectedCategory = null
+        };
+
+        // Assert
+        user.SelectedCategory.Should().BeNull();
+    }
+
+    [Fact]
+    public void SelectedCategory_HasNotMappedAttribute()
+    {
+        // Arrange
+        var selectedCategoryProperty = typeof(ApplicationUser).GetProperty("SelectedCategory");
+
+        // Act
+        var notMappedAttribute = selectedCategoryProperty?.GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.Schema.NotMappedAttribute), true);
+
+        // Assert
+        notMappedAttribute.Should().NotBeNull();
+        notMappedAttribute.Should().NotBeEmpty("SelectedCategory should have NotMapped attribute");
+    }
+
+    [Fact]
+    public void SelectedCategory_AcceptsValidCategories()
+    {
+        // Arrange
+        var user = new ApplicationUser();
+        var validCategories = new[] { "Leitão", "Caloiro", "Tuno" };
+
+        // Act & Assert
+        foreach (var category in validCategories)
+        {
+            user.SelectedCategory = category;
+            user.SelectedCategory.Should().Be(category);
+        }
+    }
+
+    #endregion
 }

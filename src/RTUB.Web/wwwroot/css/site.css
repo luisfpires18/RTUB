@@ -870,6 +870,17 @@ a:hover, a:focus {
   color: #ffffff !important;
   opacity: 0.6;
 }
+
+/* Fix autofill/autocomplete white background */
+.form-control:-webkit-autofill,
+.form-control:-webkit-autofill:hover,
+.form-control:-webkit-autofill:focus,
+.form-control:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #1c1c1d inset !important;
+  -webkit-text-fill-color: #fff !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 .form-label {
   margin-bottom: 0.5rem;
   display: inline-block;
