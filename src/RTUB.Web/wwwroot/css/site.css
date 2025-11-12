@@ -1286,6 +1286,12 @@ input::placeholder, textarea::placeholder, select::placeholder {
     font-weight: bold;
 }
 
+/* Instrument condition badge - Orange for Worn */
+.bg-orange {
+    background-color: #fd7e14 !important;
+    color: white;
+}
+
 /* File input styling for dark theme */
 .file-input-dark::file-selector-button {
     color: #000000 !important;
