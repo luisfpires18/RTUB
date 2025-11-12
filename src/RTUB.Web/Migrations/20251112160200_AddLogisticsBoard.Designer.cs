@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251112160200_AddLogisticsBoard")]
+    partial class AddLogisticsBoard
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
@@ -251,7 +254,6 @@ namespace RTUB.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
@@ -287,8 +289,6 @@ namespace RTUB.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Nickname")
-                        .IsRequired()
-                        .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("NormalizedEmail")
@@ -611,9 +611,6 @@ namespace RTUB.Migrations
 
                     b.Property<string>("SerialNumber")
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ThumbnailUrl")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAt")
