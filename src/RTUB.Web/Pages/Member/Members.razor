@@ -884,9 +884,9 @@ else
             // Validate category
             if (string.IsNullOrEmpty(selectedRole))
             {
-                // Create a FieldIdentifier for the category (not a property, use string identifier)
-                var categoryField = FieldIdentifier.Create(() => selectedRole);
-                memberValidationStore.Add(categoryField, "Categoria é obrigatória.");
+                // Add validation error to the model itself (not tied to a specific field)
+                var modelField = new FieldIdentifier(editingUser, string.Empty);
+                memberValidationStore.Add(modelField, "Categoria é obrigatória.");
                 editContext.NotifyValidationStateChanged();
                 return;
             }
@@ -1109,8 +1109,8 @@ else
         // Clear category validation error when a category is selected
         if (memberEditForm?.EditContext != null && memberValidationStore != null && !string.IsNullOrEmpty(selectedRole))
         {
-            var categoryField = FieldIdentifier.Create(() => selectedRole);
-            memberValidationStore.Clear(categoryField);
+            var modelField = new FieldIdentifier(editingUser, string.Empty);
+            memberValidationStore.Clear(modelField);
             memberEditForm.EditContext.NotifyValidationStateChanged();
         }
         StateHasChanged();
