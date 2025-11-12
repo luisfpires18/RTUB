@@ -41,9 +41,29 @@ public class LogisticsListService : ILogisticsListService
             .ToListAsync();
     }
 
-    public async Task<LogisticsList> CreateListAsync(string name, int position)
+    public async Task<IEnumerable<LogisticsList>> GetListsByBoardIdAsync(int boardId)
     {
-        var list = LogisticsList.Create(name, position);
+        return await _context.LogisticsLists
+            .Where(l => l.BoardId == boardId)
+            .OrderBy(l => l.Position)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<LogisticsList>> GetListsWithCardsByBoardIdAsync(int boardId)
+    {
+        return await _context.LogisticsLists
+            .Include(l => l.Cards.OrderBy(c => c.Position))
+            .ThenInclude(c => c.Event)
+            .Include(l => l.Cards)
+            .ThenInclude(c => c.AssignedToUser)
+            .Where(l => l.BoardId == boardId)
+            .OrderBy(l => l.Position)
+            .ToListAsync();
+    }
+
+    public async Task<LogisticsList> CreateListAsync(string name, int boardId, int position)
+    {
+        var list = LogisticsList.Create(name, boardId, position);
         _context.LogisticsLists.Add(list);
         await _context.SaveChangesAsync();
         return list;

@@ -1,5 +1,6 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 
@@ -101,6 +102,56 @@ public class LogisticsCardService : ILogisticsCardService
             throw new InvalidOperationException($"Cartão com ID {id} não encontrado");
 
         _context.LogisticsCards.Remove(card);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task SetCardStatusAsync(int id, CardStatus status)
+    {
+        var card = await _context.LogisticsCards.FindAsync(id);
+        if (card == null)
+            throw new InvalidOperationException($"Cartão com ID {id} não encontrado");
+
+        card.SetStatus(status);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task SetCardLabelsAsync(int id, string? labels)
+    {
+        var card = await _context.LogisticsCards.FindAsync(id);
+        if (card == null)
+            throw new InvalidOperationException($"Cartão com ID {id} não encontrado");
+
+        card.SetLabels(labels);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task SetCardDatesAsync(int id, DateTime? startDate, DateTime? dueDate, DateTime? reminderDate)
+    {
+        var card = await _context.LogisticsCards.FindAsync(id);
+        if (card == null)
+            throw new InvalidOperationException($"Cartão com ID {id} não encontrado");
+
+        card.SetDates(startDate, dueDate, reminderDate);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task SetCardChecklistAsync(int id, string? checklistJson)
+    {
+        var card = await _context.LogisticsCards.FindAsync(id);
+        if (card == null)
+            throw new InvalidOperationException($"Cartão com ID {id} não encontrado");
+
+        card.SetChecklist(checklistJson);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task SetCardAttachmentsAsync(int id, string? attachmentsJson)
+    {
+        var card = await _context.LogisticsCards.FindAsync(id);
+        if (card == null)
+            throw new InvalidOperationException($"Cartão com ID {id} não encontrado");
+
+        card.SetAttachments(attachmentsJson);
         await _context.SaveChangesAsync();
     }
 }

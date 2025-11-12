@@ -1,4 +1,5 @@
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 
 namespace RTUB.Application.Interfaces;
 
@@ -15,5 +16,10 @@ public interface ILogisticsCardService
     Task UpdateCardPositionAsync(int id, int position);
     Task AssociateCardWithEventAsync(int id, int? eventId);
     Task AssignCardToUserAsync(int id, string? userId);
+    Task SetCardStatusAsync(int id, CardStatus status);
+    Task SetCardLabelsAsync(int id, string? labels);
+    Task SetCardDatesAsync(int id, DateTime? startDate, DateTime? dueDate, DateTime? reminderDate);
+    Task SetCardChecklistAsync(int id, string? checklistJson);
+    Task SetCardAttachmentsAsync(int id, string? attachmentsJson);
     Task DeleteCardAsync(int id);
 }

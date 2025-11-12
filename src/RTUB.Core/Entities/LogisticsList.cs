@@ -14,14 +14,18 @@ public class LogisticsList : BaseEntity
     [Required]
     public int Position { get; set; }
 
+    [Required]
+    public int BoardId { get; set; }
+
     // Navigation properties
+    public virtual LogisticsBoard Board { get; set; } = null!;
     public virtual ICollection<LogisticsCard> Cards { get; set; } = new List<LogisticsCard>();
 
     // Private constructor for EF Core
     public LogisticsList() { }
 
     // Factory method
-    public static LogisticsList Create(string name, int position)
+    public static LogisticsList Create(string name, int boardId, int position)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("O nome da lista não pode estar vazio", nameof(name));
@@ -29,6 +33,7 @@ public class LogisticsList : BaseEntity
         return new LogisticsList
         {
             Name = name,
+            BoardId = boardId,
             Position = position
         };
     }
