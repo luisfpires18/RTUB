@@ -405,4 +405,114 @@ public class EmailNotificationService : IEmailNotificationService
     // Helper methods for email body generation (to be implemented when actual email sending is added)
     // private string BuildStatusChangeEmailBody(string name, int requestId, RequestStatus oldStatus, RequestStatus newStatus) { ... }
     // private string BuildNewRequestEmailBody(string name, string email, string eventType, int requestId) { ... }
+
+    /// <inheritdoc/>
+    public async Task<(bool success, int count, string? errorMessage)> SendBirthdayNotificationAsync(
+        string birthdayPersonId,
+        string birthdayPersonNickname,
+        string birthdayPersonFullName,
+        List<string> recipientEmails,
+        Dictionary<string, (string nickname, string fullName)> recipientData)
+    {
+        // Rate limit: Prevent duplicate emails for the same birthday within 5 minutes
+        var rateLimitKey = $"email-birthday-{birthdayPersonId}-{DateTime.UtcNow:yyyy-MM-dd}";
+        if (ShouldRateLimitEmail(rateLimitKey))
+        {
+            return (false, 0, "Email de aniversário já enviado recentemente.");
+        }
+
+        try
+        {
+            // Get email settings from configuration
+            var smtpServer = _configuration["EmailSettings:SmtpServer"];
+            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
+            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
+            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
+            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
+            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
+            var enableSsl = enableSslStr != "false"; // Default to true
+
+            // Validate required email settings
+            if (string.IsNullOrEmpty(senderEmail))
+            {
+                _logger.LogError("SenderEmail is not configured in EmailSettings");
+                return (false, 0, "Configuração de email não está completa.");
+            }
+
+            // Check if SMTP is configured
+            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
+            {
+                _logger.LogWarning("SMTP not configured, skipping birthday notification email");
+                return (false, 0, "Servidor de email não configurado.");
+            }
+
+            // Validate recipients
+            if (recipientEmails == null || !recipientEmails.Any())
+            {
+                _logger.LogWarning("No recipient emails provided for birthday notification");
+                return (false, 0, "Nenhum destinatário encontrado.");
+            }
+
+            var subject = $"🎉 {birthdayPersonNickname} está de aniversário!";
+
+            int successCount = 0;
+            using var smtpClient = new SmtpClient(smtpServer, smtpPort)
+            {
+                Credentials = new NetworkCredential(smtpUsername, smtpPassword),
+                EnableSsl = enableSsl,
+                Timeout = 30000 // 30 second timeout
+            };
+
+            foreach (var email in recipientEmails)
+            {
+                if (string.IsNullOrWhiteSpace(email))
+                    continue;
+
+                try
+                {
+                    // Get nickname and full name for this recipient
+                    var (nickname, fullName) = recipientData.TryGetValue(email, out var data) 
+                        ? data 
+                        : ("", "");
+
+                    // Render personalized email
+                    var body = await _templateRenderer.RenderBirthdayNotificationAsync(
+                        birthdayPersonNickname,
+                        birthdayPersonFullName,
+                        nickname,
+                        fullName);
+
+                    var mailMessage = new MailMessage
+                    {
+                        From = new MailAddress(senderEmail, senderName),
+                        Subject = subject,
+                        Body = body,
+                        IsBodyHtml = true,
+                        BodyEncoding = Encoding.UTF8,
+                        SubjectEncoding = Encoding.UTF8
+                    };
+                    mailMessage.To.Add(email);
+
+                    await smtpClient.SendMailAsync(mailMessage);
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send birthday notification email to {Email}", email);
+                }
+            }
+
+            _logger.LogInformation("Birthday notification emails sent for user {UserId} to {SuccessCount}/{TotalCount} members", 
+                birthdayPersonId, successCount, recipientEmails.Count);
+
+            return (successCount > 0, successCount, successCount < recipientEmails.Count ? "Alguns emails falharam" : null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending birthday notification email for user {UserId}", birthdayPersonId);
+            return (false, 0, $"Erro ao enviar email: {ex.Message}");
+        }
+    }
 }

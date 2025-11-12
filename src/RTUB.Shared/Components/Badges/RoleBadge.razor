@@ -2,15 +2,16 @@
 @*
     RoleBadge Component
     Displays a Bootstrap badge with the appropriate styling for a user role
-    Supports tap-to-expand on mobile for long role names
+    Shows icon followed by role name
 *@
 
 <span class="badge avatar-card-role-badge @GetRoleBadgeClass(Role) @AdditionalClasses" 
+      style="@GetRoleBadgeStyle(Role)"
       tabindex="0"
       role="button"
       aria-expanded="false"
       title="@Role">
-    @Role
+    <i class="bi @GetRoleIcon(Role) me-1"></i>@Role
 </span>
 
 @code {
@@ -33,10 +34,36 @@
     {
         return role switch
         {
-            "Owner" => "bg-danger",
-            "Admin" => "bg-warning text-dark",
-            "Member" => "bg-primary",
+            "Owner" => "bg-danger",      // Red
+            "Admin" => "bg-success",     // Green
+            "Member" => "",              // Custom blue color via style
             _ => "bg-secondary"
+        };
+    }
+
+    /// <summary>
+    /// Returns custom inline style for roles that need it
+    /// </summary>
+    private string GetRoleBadgeStyle(string role)
+    {
+        return role switch
+        {
+            "Member" => "background-color: #007bff; color: white; text-transform: none;",
+            _ => "text-transform: none;"
+        };
+    }
+
+    /// <summary>
+    /// Returns the Bootstrap icon class for the role
+    /// </summary>
+    private string GetRoleIcon(string role)
+    {
+        return role switch
+        {
+            "Owner" => "bi-star-fill",
+            "Admin" => "bi-shield-fill",
+            "Member" => "bi-person-fill",
+            _ => "bi-circle"
         };
     }
 }

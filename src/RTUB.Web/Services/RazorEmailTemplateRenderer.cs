@@ -87,4 +87,21 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
 
         return await _templateService.RenderTemplateAsync("PasswordReset", model);
     }
+
+    public async Task<string> RenderBirthdayNotificationAsync(
+        string birthdayPersonNickname,
+        string birthdayPersonFullName,
+        string recipientNickname = "",
+        string recipientFullName = "")
+    {
+        var model = new BirthdayNotificationModel
+        {
+            BirthdayPersonNickname = birthdayPersonNickname,
+            BirthdayPersonFullName = birthdayPersonFullName,
+            RecipientNickname = recipientNickname,
+            RecipientFullName = recipientFullName
+        };
+
+        return await _templateService.RenderTemplateAsync("BirthdayNotification", model);
+    }
 }

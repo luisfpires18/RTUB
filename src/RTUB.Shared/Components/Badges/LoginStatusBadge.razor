@@ -1,0 +1,106 @@
+@namespace RTUB.Shared
+@*
+    LoginStatusBadge Component
+    Displays a Bootstrap badge with the appropriate styling for user login status
+*@
+
+<span class="badge @GetLoginStatusBadgeClass()" title="@GetLoginStatusTitle()">
+    <i class="bi @GetLoginStatusIcon()"></i> @GetLoginStatusText()
+</span>
+
+@code {
+    private const int ONLINE_THRESHOLD_HOURS = 1;
+    private const int RECENT_THRESHOLD_HOURS = 24;
+    private const int THIS_WEEK_THRESHOLD_DAYS = 7;
+    private const int THIS_MONTH_THRESHOLD_DAYS = 30;
+
+    /// <summary>
+    /// The last login date of the user
+    /// </summary>
+    [Parameter]
+    public DateTime? LastLoginDate { get; set; }
+
+    private string GetLoginStatusBadgeClass()
+    {
+        if (LastLoginDate == null)
+            return "bg-secondary";
+        
+        var timeAgo = DateTime.UtcNow - LastLoginDate.Value;
+        
+        if (timeAgo.TotalHours < ONLINE_THRESHOLD_HOURS)
+            return "bg-success";
+        else if (timeAgo.TotalHours < RECENT_THRESHOLD_HOURS)
+            return "bg-info";
+        else if (timeAgo.TotalDays < THIS_MONTH_THRESHOLD_DAYS)
+            return "bg-warning";
+        else
+            return "bg-secondary";
+    }
+
+    private string GetLoginStatusIcon()
+    {
+        if (LastLoginDate == null)
+            return "bi-x-circle";
+        
+        var timeAgo = DateTime.UtcNow - LastLoginDate.Value;
+        
+        if (timeAgo.TotalHours < ONLINE_THRESHOLD_HOURS)
+            return "bi-circle-fill";
+        else if (timeAgo.TotalHours < RECENT_THRESHOLD_HOURS)
+            return "bi-clock";
+        else
+            return "bi-clock-history";
+    }
+
+    private string GetLoginStatusText()
+    {
+        if (LastLoginDate == null)
+            return "Nunca";
+        
+        var timeAgo = DateTime.UtcNow - LastLoginDate.Value;
+        
+        if (timeAgo.TotalHours < ONLINE_THRESHOLD_HOURS)
+            return "Online";
+        else if (timeAgo.TotalHours < RECENT_THRESHOLD_HOURS)
+            return "Recente";
+        else if (timeAgo.TotalDays < THIS_WEEK_THRESHOLD_DAYS)
+            return "Esta Semana";
+        else if (timeAgo.TotalDays < THIS_MONTH_THRESHOLD_DAYS)
+            return "Este Mês";
+        else
+            return "Inativo";
+    }
+
+    private string GetLoginStatusTitle()
+    {
+        if (LastLoginDate == null)
+            return "Nunca fez login";
+        
+        var timeAgo = DateTime.UtcNow - LastLoginDate.Value;
+        
+        if (timeAgo.TotalHours < ONLINE_THRESHOLD_HOURS)
+        {
+            var minutes = (int)timeAgo.TotalMinutes;
+            var minuteText = minutes == 1 ? "minuto" : "minutos";
+            return $"Último login: há {minutes} {minuteText}";
+        }
+        else if (timeAgo.TotalHours < RECENT_THRESHOLD_HOURS)
+        {
+            var hours = (int)timeAgo.TotalHours;
+            var hourText = hours == 1 ? "hora" : "horas";
+            return $"Último login: há {hours} {hourText}";
+        }
+        else if (timeAgo.TotalDays < THIS_MONTH_THRESHOLD_DAYS)
+        {
+            var days = (int)timeAgo.TotalDays;
+            var dayText = days == 1 ? "dia" : "dias";
+            return $"Último login: há {days} {dayText}";
+        }
+        else
+        {
+            var days = (int)timeAgo.TotalDays;
+            var dayText = days == 1 ? "dia" : "dias";
+            return $"Último login: há {days} {dayText}";
+        }
+    }
+}
