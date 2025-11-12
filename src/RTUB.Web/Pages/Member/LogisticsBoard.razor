@@ -33,36 +33,37 @@
         else
         {
             <div class="logistics-board-header mb-4">
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                    <div class="d-flex align-items-center gap-2 flex-grow-1">
-                        <a href="/logistics" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left"></i> Voltar
-                        </a>
-                        <h1 class="mb-0 d-flex align-items-center">
-                            <i class="bi bi-kanban text-primary me-2"></i>
-                            <span>@board.Name</span>
-                        </h1>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <FilterDropdown IconClass="bi-tag" 
-                                       AllItemsLabel="Todas as Etiquetas"
-                                       Items="@availableLabels"
-                                       SelectedValue="@selectedLabelFilter"
-                                       SelectedValueChanged="@((value) => { selectedLabelFilter = value; StateHasChanged(); })" />
-                        <button class="btn btn-success" @onclick="OpenCreateListModal">
-                            <i class="bi bi-plus-lg"></i> Adicionar Lista
-                        </button>
-                    </div>
+                <!-- Top row: Back button on left, Title centered, Add List on right -->
+                <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+                    <a href="/logistics" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                    <h1 class="mb-0 text-center flex-grow-1">
+                        <i class="bi bi-kanban text-primary me-2"></i>
+                        <span>@board.Name</span>
+                    </h1>
+                    <button class="btn btn-success" @onclick="OpenCreateListModal">
+                        <i class="bi bi-plus-lg"></i> Adicionar Lista
+                    </button>
+                </div>
+                
+                <!-- Second row: Filter dropdown -->
+                <div class="d-flex justify-content-center">
+                    <FilterDropdown IconClass="bi-tag" 
+                                   AllItemsLabel="Todas as Etiquetas"
+                                   Items="@availableLabels"
+                                   SelectedValue="@selectedLabelFilter"
+                                   SelectedValueChanged="@((value) => { selectedLabelFilter = value; StateHasChanged(); })" />
                 </div>
                 
                 @if (!string.IsNullOrWhiteSpace(board.Description))
                 {
-                    <p class="text-light-theme mt-2 mb-0">@board.Description</p>
+                    <p class="text-light-theme mt-2 mb-0 text-center">@board.Description</p>
                 }
                 
                 @if (board.Event != null)
                 {
-                    <div class="mt-2">
+                    <div class="mt-2 text-center">
                         <span class="badge bg-primary">
                             <i class="bi bi-calendar-event me-1"></i>@board.Event.Name
                         </span>
@@ -84,25 +85,21 @@
                     @foreach (var list in lists.OrderBy(l => l.Position))
                     {
                         <div class="kanban-list" data-list-id="@list.Id">
-                            <div class="kanban-list-header">
+                            <div class="kanban-list-header position-relative">
                                 <h5 class="mb-0">@list.Name</h5>
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-link text-light p-0" type="button" data-bs-toggle="dropdown">
-                                        <i class="bi bi-three-dots-vertical fs-5"></i>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-sm btn-outline-light" 
+                                            style="padding: 0.15rem 0.3rem; font-size: 0.7rem;" 
+                                            @onclick="() => OpenEditListModal(list)" 
+                                            title="Editar">
+                                        <i class="bi bi-pencil"></i>
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li>
-                                            <a class="dropdown-item" href="#" @onclick="() => OpenEditListModal(list)" @onclick:preventDefault>
-                                                <i class="bi bi-pencil"></i> Editar
-                                            </a>
-                                        </li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <a class="dropdown-item text-danger" href="#" @onclick="() => OpenDeleteListModal(list)" @onclick:preventDefault>
-                                                <i class="bi bi-trash"></i> Eliminar
-                                            </a>
-                                        </li>
-                                    </ul>
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            style="padding: 0.15rem 0.3rem; font-size: 0.7rem;" 
+                                            @onclick="() => OpenDeleteListModal(list)" 
+                                            title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </div>
                             </div>
                             <div class="kanban-cards" data-list-id="@list.Id">
@@ -112,21 +109,31 @@
                                          data-card-id="@card.Id" 
                                          draggable="true"
                                          @onclick="() => OpenCardDetailsModal(card)">
-                                        <div class="position-absolute top-0 end-0 p-2">
-                                            <button class="btn btn-sm btn-outline-danger" 
-                                                    style="padding: 0.15rem 0.3rem; font-size: 0.7rem; line-height: 1;" 
-                                                    @onclick="() => OpenDeleteCardModal(card)" 
-                                                    @onclick:stopPropagation="true"
-                                                    title="Eliminar cartão">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
                                         <div class="card-status-bar @(card.Status == CardStatus.Done ? "bg-success" : "bg-danger")">
                                             <i class="bi bi-@(card.Status == CardStatus.Done ? "check" : "x")-circle-fill me-1"></i>
                                             @(card.Status == CardStatus.Done ? "DONE" : "TODO")
                                         </div>
                                         <div class="card-separator"></div>
                                         <div class="card-content">
+                                            @* Dates section - before title *@
+                                            @if (card.StartDate.HasValue || card.DueDate.HasValue)
+                                            {
+                                                <div class="mb-2 small text-light-theme">
+                                                    @if (card.StartDate.HasValue)
+                                                    {
+                                                        <span><i class="bi bi-calendar3"></i> @card.StartDate.Value.ToString("dd/MM/yyyy")</span>
+                                                    }
+                                                    @if (card.DueDate.HasValue)
+                                                    {
+                                                        @if (card.StartDate.HasValue)
+                                                        {
+                                                            <span> - </span>
+                                                        }
+                                                        <span><i class="bi bi-calendar-check"></i> @card.DueDate.Value.ToString("dd/MM/yyyy")</span>
+                                                    }
+                                                </div>
+                                            }
+                                            
                                             <h6 class="mb-1 fw-semibold">@card.Title</h6>
                                             @if (!string.IsNullOrWhiteSpace(card.Description))
                                             {
@@ -149,12 +156,30 @@
                                                         <i class="bi bi-person"></i> @card.AssignedToUser.UserName
                                                     </div>
                                                 }
+                                                @{
+                                                    var (checklistCompleted, checklistTotal) = GetChecklistCount(card);
+                                                    if (checklistTotal > 0)
+                                                    {
+                                                        <div class="badge bg-info mt-1">
+                                                            <i class="bi bi-check-square"></i> @checklistCompleted/@checklistTotal
+                                                        </div>
+                                                    }
+                                                }
+                                                @{
+                                                    var attachmentCount = GetAttachmentsCount(card);
+                                                    if (attachmentCount > 0)
+                                                    {
+                                                        <div class="badge bg-warning text-dark mt-1">
+                                                            <i class="bi bi-paperclip"></i> @attachmentCount
+                                                        </div>
+                                                    }
+                                                }
                                             </div>
                                         </div>
                                     </div>
                                 }
                             </div>
-                            <button class="btn btn-primary w-100 mt-2" @onclick="() => OpenCreateCardModal(list.Id)">
+                            <button class="btn btn-success w-100 mt-2" @onclick="() => OpenCreateCardModal(list.Id)">
                                 <i class="bi bi-plus-lg"></i> Adicionar Cartão
                             </button>
                         </div>
@@ -491,7 +516,10 @@
                     </div>
                 </div>
                 <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseCardDetailsModal">
+                    <button type="button" class="btn btn-danger" @onclick="() => { CloseCardDetailsModal(); OpenDeleteCardModal(selectedCard); }">
+                        <i class="bi bi-trash me-2"></i>Eliminar
+                    </button>
+                    <button type="button" class="btn btn-secondary ms-auto" @onclick="CloseCardDetailsModal">
                         <i class="bi bi-x-circle me-2"></i>Fechar
                     </button>
                 </div>
@@ -1116,6 +1144,43 @@
             return card.Labels.Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(l => new LabelItem { Text = l.Trim(), Color = "#6f42c1" })
                 .ToList();
+        }
+    }
+
+    // Helper method to get checklist items count
+    private (int completed, int total) GetChecklistCount(LogisticsCard card)
+    {
+        if (string.IsNullOrEmpty(card.ChecklistJson))
+            return (0, 0);
+
+        try
+        {
+            var items = System.Text.Json.JsonSerializer.Deserialize<List<ChecklistItem>>(card.ChecklistJson);
+            if (items == null || !items.Any())
+                return (0, 0);
+            
+            return (items.Count(i => i.Done), items.Count);
+        }
+        catch
+        {
+            return (0, 0);
+        }
+    }
+
+    // Helper method to get attachments count
+    private int GetAttachmentsCount(LogisticsCard card)
+    {
+        if (string.IsNullOrEmpty(card.AttachmentsJson))
+            return 0;
+
+        try
+        {
+            var items = System.Text.Json.JsonSerializer.Deserialize<List<AttachmentItem>>(card.AttachmentsJson);
+            return items?.Count ?? 0;
+        }
+        catch
+        {
+            return 0;
         }
     }
 }
