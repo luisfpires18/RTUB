@@ -261,11 +261,18 @@ else
                         <small class="text-success">Nova imagem carregada com sucesso!</small>
                     </div>
                 }
+                
+                <!-- Info about image cropping -->
+                <div class="alert alert-info mt-3" style="background-color: #e7d6ff; border-color: #d0b3ff; color: #6c2d91;">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <strong>Nota:</strong> Ao adicionar uma imagem, será apresentado um editor para recortar a imagem completa do instrumento 
+                    e uma miniatura circular para exibição na lista. Ambos os recortes devem ser concluídos antes de guardar.
+                </div>
             </div>
 
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" class="btn btn-secondary" @onclick="() => showInstrumentEditModal = false">Cancelar</button>
-                <button type="submit" class="btn btn-success">Guardar</button>
+                <button type="submit" class="btn btn-success" disabled="@(!CanSaveInstrument())">Guardar</button>
             </div>
         </EditForm>
     </EditFormContent>
@@ -656,6 +663,20 @@ else
     {
         showThumbnailCropperModal = isOpen;
         StateHasChanged();
+    }
+
+    private bool CanSaveInstrument()
+    {
+        // If an image has been uploaded (selectedFile is not null), both crops must be completed
+        // before allowing save to prevent bugs
+        if (selectedFile != null)
+        {
+            // Both full image and thumbnail must be cropped
+            return croppedInstrumentImageBytes != null && croppedThumbnailImageBytes != null;
+        }
+        
+        // If no new image uploaded, can always save
+        return true;
     }
 
     private string GetImageUrl(string imageSrc)
