@@ -401,6 +401,10 @@ public class Program
             // All security checks (lockout, password validation, failed attempt tracking) are handled above
             await signInManager.SignInAsync(user, remember);
             
+            // Log successful login
+            logger.LogInformation("User {Username} (ID: {UserId}) successfully logged in at {LoginTime}", 
+                user.UserName, user.Id, DateTime.UtcNow);
+            
             // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
             if (!string.IsNullOrEmpty(returnUrl) && RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl))
             {
