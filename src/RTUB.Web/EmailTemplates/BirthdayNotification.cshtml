@@ -1,0 +1,61 @@
+@model RTUB.Web.EmailTemplates.Models.BirthdayNotificationModel
+@{
+    Layout = "~/EmailTemplates/_EmailLayout.cshtml";
+    ViewData["Preheader"] = $"{Model.BirthdayPersonNickname} está de aniversário hoje!";
+}
+
+@{
+    var displayName = !string.IsNullOrEmpty(Model.RecipientFullName) 
+        ? $"{Model.RecipientNickname} ({Model.RecipientFullName})" 
+        : Model.RecipientNickname;
+    
+    var birthdayPersonDisplayName = !string.IsNullOrEmpty(Model.BirthdayPersonFullName)
+        ? $"{Model.BirthdayPersonNickname} ({Model.BirthdayPersonFullName})"
+        : Model.BirthdayPersonNickname;
+}
+
+<h1 style="margin: 0 0 16px 0; padding: 0; font-size: 28px; line-height: 1.3; font-weight: 600; color: #0B0B0F;">
+    🎉 Aniversário na RTUB! 🎂
+</h1>
+
+<p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+    <text>Olá, @Html.Raw(displayName)!</text>
+</p>
+
+<p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+    Hoje é um dia especial para a nossa Tuna! 🎊
+</p>
+
+<!-- Birthday Person Highlight -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background: linear-gradient(135deg, #6E56CF 0%, #8B7CE8 100%); padding: 24px; border-radius: 12px; margin: 24px 0;">
+    <tr>
+        <td style="text-align: center;">
+            <p style="font-size: 20px; line-height: 1.5; color: #FFFFFF; margin: 0 0 8px 0; font-weight: 600;">
+                🎂 @Html.Raw(birthdayPersonDisplayName) 🎂
+            </p>
+            <p style="font-size: 18px; line-height: 1.5; color: #FFFFFF; margin: 0; font-weight: 400;">
+                está de aniversário hoje!
+            </p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+    Junta-te a nós para desejar um feliz aniversário! 🎈
+</p>
+
+<p style="margin: 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+    Que este novo ano de vida seja repleto de música, alegria e momentos inesquecíveis com a Tuna! 🎵✨
+</p>
+
+<!-- Divider -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 24px 0;">
+    <tr>
+        <td style="border-top: 1px solid #E5E7EB;"></td>
+    </tr>
+</table>
+
+<!-- Preferences Link -->
+<p class="meta-text" style="font-size: 14px; color: #6B7280; line-height: 1.5; text-align: center; margin: 16px 0 0 0;">
+    Se não quiseres receber notificações por email, podes <a href="@Model.PreferencesLink" style="color: #6E56CF; text-decoration: underline;">alterar as tuas preferências</a> no teu perfil.
+</p>

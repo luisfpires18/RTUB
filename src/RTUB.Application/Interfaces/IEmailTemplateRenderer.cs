@@ -42,4 +42,13 @@ public interface IEmailTemplateRenderer
     /// Renders the password reset email
     /// </summary>
     Task<string> RenderPasswordResetAsync(string callbackUrl);
+
+    /// <summary>
+    /// Renders the birthday notification email
+    /// </summary>
+    Task<string> RenderBirthdayNotificationAsync(
+        string birthdayPersonNickname,
+        string birthdayPersonFullName,
+        string recipientNickname = "",
+        string recipientFullName = "");
 }

@@ -9,6 +9,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IEmailNotificationService EmailNotificationService
 @attribute [Authorize(Roles = "Owner")]
 @inherits CrudTablePageBase<ApplicationUser>
 
@@ -62,6 +63,11 @@ else
                                         CurrentSortColumn="@SortHelper.SortColumn"
                                         IsSortAscending="@SortHelper.SortAscending"
                                         OnSortChanged="SortBy" />
+                    <SortableTableHeader HeaderText="Aniversário" 
+                                        SortColumn="Birthday"
+                                        CurrentSortColumn="@SortHelper.SortColumn"
+                                        IsSortAscending="@SortHelper.SortAscending"
+                                        OnSortChanged="SortBy" />
                     <SortableTableHeader HeaderText="Função Atual" 
                                         SortColumn="Role"
                                         CurrentSortColumn="@SortHelper.SortColumn"
@@ -95,6 +101,16 @@ else
                         <td><code>@user.UserName</code></td>
                         <td>@user.Email</td>
                         <td>
+                            @if (user.DateOfBirth.HasValue)
+                            {
+                                <text>@user.DateOfBirth.Value.ToString("dd/MM/yyyy")</text>
+                            }
+                            else
+                            {
+                                <span class="text-muted">N/A</span>
+                            }
+                        </td>
+                        <td>
                             <RoleBadge Role="@currentRole" />
                         </td>
                         <td>
@@ -106,10 +122,16 @@ else
                                     title="Ver Detalhes">
                                 <i class="bi bi-eye"></i>
                             </button>
-                            <button class="btn btn-sm btn-light" 
+                            <button class="btn btn-sm btn-light me-1" 
                                     @onclick="@(() => OpenEditRoleModal(user, currentRole))"
                                     title="Editar Função">
                                 <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm @(IsBirthdayToday(user) ? "btn-success" : "btn-secondary")" 
+                                    @onclick="@(() => SendBirthdayEmail(user))"
+                                    disabled="@(!IsBirthdayToday(user))"
+                                    title="@(IsBirthdayToday(user) ? "Enviar email de aniversário" : "Não é aniversário hoje")">
+                                <i class="bi bi-envelope-heart"></i>
                             </button>
                         </td>
                     </tr>
@@ -329,6 +351,7 @@ else
             ["Name"] = u => $"{u.FirstName} {u.LastName}",
             ["UserName"] = u => u.UserName ?? "",
             ["Email"] = u => u.Email ?? "",
+            ["Birthday"] = u => u.DateOfBirth ?? DateTime.MinValue,
             ["Role"] = u => GetRolePriority(userRolesDict.ContainsKey(u.Id) ? userRolesDict[u.Id] : new List<string>()),
             ["LastLogin"] = u => u.LastLoginDate ?? DateTime.MinValue
         };
@@ -531,6 +554,72 @@ else
             var days = (int)timeAgo.TotalDays;
             var dayText = days == 1 ? "dia" : "dias";
             return new MarkupString($"<span class='badge bg-secondary' title='Último login: há {days} {dayText}'><i class='bi bi-clock-history'></i> Inativo</span>");
+        }
+    }
+    
+    private bool IsBirthdayToday(ApplicationUser user)
+    {
+        if (!user.DateOfBirth.HasValue)
+            return false;
+        
+        var today = DateTime.Now;
+        return user.DateOfBirth.Value.Month == today.Month && 
+               user.DateOfBirth.Value.Day == today.Day;
+    }
+    
+    private async Task SendBirthdayEmail(ApplicationUser user)
+    {
+        if (!IsBirthdayToday(user))
+        {
+            message = "Não é aniversário deste utilizador hoje.";
+            isError = true;
+            return;
+        }
+        
+        try
+        {
+            // Get all subscribed users (excluding the birthday person)
+            var subscribedUsers = await Task.Run(() => 
+                UserManager.Users
+                    .Where(u => u.Subscribed && u.Id != user.Id && !string.IsNullOrEmpty(u.Email))
+                    .ToList());
+            
+            if (!subscribedUsers.Any())
+            {
+                message = "Não há utilizadores subscritos para enviar a notificação.";
+                isError = true;
+                return;
+            }
+            
+            var recipientEmails = subscribedUsers.Select(u => u.Email!).ToList();
+            var recipientData = subscribedUsers.ToDictionary(
+                u => u.Email!,
+                u => (u.Nickname ?? u.FirstName ?? "", $"{u.FirstName} {u.LastName}")
+            );
+            
+            var (success, count, errorMessage) = await EmailNotificationService.SendBirthdayNotificationAsync(
+                user.Id,
+                user.Nickname ?? user.FirstName ?? "",
+                $"{user.FirstName} {user.LastName}",
+                recipientEmails,
+                recipientData
+            );
+            
+            if (success)
+            {
+                message = $"Email de aniversário enviado com sucesso para {count} utilizadores subscritos.";
+                isError = false;
+            }
+            else
+            {
+                message = errorMessage ?? "Erro ao enviar email de aniversário.";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Erro inesperado: {ex.Message}";
+            isError = true;
         }
     }
 }

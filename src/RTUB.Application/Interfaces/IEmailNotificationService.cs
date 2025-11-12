@@ -71,4 +71,20 @@ public interface IEmailNotificationService
         string eventLink, 
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null);
+
+    /// <summary>
+    /// Sends birthday notification emails to subscribed members
+    /// </summary>
+    /// <param name="birthdayPersonId">The ID of the person celebrating their birthday</param>
+    /// <param name="birthdayPersonNickname">The nickname of the birthday person</param>
+    /// <param name="birthdayPersonFullName">The full name of the birthday person</param>
+    /// <param name="recipientEmails">List of recipient email addresses</param>
+    /// <param name="recipientData">Dictionary mapping emails to (nickname, fullName) tuples for personalization</param>
+    /// <returns>Tuple with success flag, count of emails sent, and optional error message</returns>
+    Task<(bool success, int count, string? errorMessage)> SendBirthdayNotificationAsync(
+        string birthdayPersonId,
+        string birthdayPersonNickname,
+        string birthdayPersonFullName,
+        List<string> recipientEmails,
+        Dictionary<string, (string nickname, string fullName)> recipientData);
 }
