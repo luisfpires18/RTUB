@@ -1,0 +1,37 @@
+/* Logistics Page Specific Styles */
+
+.logistics-page-container {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Enhanced loading state */
+.logistics-page-container .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.3rem;
+}
+
+/* Improved grid spacing */
+.logistics-page-container .row {
+    margin-bottom: 0;
+}
+
+/* Board card hover effect enhancement */
+.logistics-page-container .logistics-board-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.logistics-page-container .logistics-board-card:hover {
+    transform: translateY(-5px) scale(1.02);
+}

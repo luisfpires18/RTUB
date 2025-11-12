@@ -1,0 +1,96 @@
+/* Logistics Board Page Specific Styles */
+
+.logistics-board-header {
+    background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.05) 0%, rgba(var(--bs-primary-rgb), 0.02) 100%);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.1);
+    animation: fadeInDown 0.4s ease-out;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Improved kanban board scrollbar */
+.kanban-board {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Enhanced card hover states */
+.kanban-card {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kanban-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Improved list header */
+.kanban-list-header {
+    background: linear-gradient(135deg, #0f0f10 0%, #1a1a1b 100%);
+}
+
+/* Better card status indicators */
+.card-status-bar {
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+}
+
+/* Modal improvements for card details */
+.modal-dialog-scrollable .modal-body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--bs-primary) #0f0f10;
+}
+
+.modal-dialog-scrollable .modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-dialog-scrollable .modal-body::-webkit-scrollbar-track {
+    background: #0f0f10;
+    border-radius: 4px;
+}
+
+.modal-dialog-scrollable .modal-body::-webkit-scrollbar-thumb {
+    background: var(--bs-primary);
+    border-radius: 4px;
+}
+
+.modal-dialog-scrollable .modal-body::-webkit-scrollbar-thumb:hover {
+    background: #8a5dd3;
+}
+
+/* Improved form control focus states in modals */
+.modal-content .form-control:focus,
+.modal-content .form-select:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+/* Badge enhancements */
+.modal-content .badge {
+    transition: all 0.2s ease;
+}
+
+.modal-content .badge:hover {
+    transform: scale(1.05);
+}
