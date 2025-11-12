@@ -2,26 +2,29 @@
 @using RTUB.Core.Entities
 
 <div class="card logistics-board-card h-100">
-    <div class="card-body d-flex flex-column">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-            <h5 class="card-title mb-0">@Board.Name</h5>
-            @if (ShowActions)
-            {
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-link text-light p-0" type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-three-dots-vertical"></i>
+    <div class="position-relative">
+        @if (ShowActions)
+        {
+            <div class="position-absolute top-0 end-0 p-2" style="z-index: 10;">
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-light" style="padding: 0.15rem 0.3rem;" 
+                            @onclick="() => OnEdit.InvokeAsync(Board)" 
+                            @onclick:stopPropagation="true"
+                            title="Editar">
+                        <i class="bi bi-pencil"></i>
                     </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#" @onclick="(() => OnEdit.InvokeAsync(Board))" @onclick:preventDefault>
-                            <i class="bi bi-pencil"></i> Editar
-                        </a></li>
-                        <li><a class="dropdown-item text-danger" href="#" @onclick="(() => OnDelete.InvokeAsync(Board))" @onclick:preventDefault>
-                            <i class="bi bi-trash"></i> Eliminar
-                        </a></li>
-                    </ul>
+                    <button class="btn btn-sm btn-outline-danger" style="padding: 0.15rem 0.3rem;" 
+                            @onclick="() => OnDelete.InvokeAsync(Board)" 
+                            @onclick:stopPropagation="true"
+                            title="Eliminar">
+                        <i class="bi bi-trash"></i>
+                    </button>
                 </div>
-            }
-        </div>
+            </div>
+        }
+    </div>
+    <div class="card-body d-flex flex-column">
+        <h5 class="card-title mb-2">@Board.Name</h5>
         
         @if (!string.IsNullOrWhiteSpace(Board.Description))
         {
@@ -30,7 +33,7 @@
         
         @if (Board.Event != null)
         {
-            <span class="badge bg-primary" style="width: fit-content;">
+            <span class="badge bg-primary mb-2" style="width: fit-content;">
                 <i class="bi bi-calendar-event"></i> @Board.Event.Name
             </span>
         }
