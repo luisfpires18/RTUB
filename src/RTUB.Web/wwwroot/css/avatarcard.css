@@ -54,12 +54,12 @@
 .avatar-card:hover,
 .avatar-card:focus {
     transform: translateY(-4px);
-    box-shadow: 0 6px 16px rgba(111, 66, 193, 0.3);
+    box-shadow: 0 6px 16px rgba(var(--bs-primary-rgb), 0.3);
     outline: none;
 }
 
 .avatar-card:focus-visible {
-    outline: 2px solid #6f42c1;
+    outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
 
@@ -107,7 +107,7 @@
 
 .avatar-card-edit-btn:focus,
 .avatar-card-delete-btn:focus {
-    outline: 2px solid #6f42c1;
+    outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
 
@@ -203,7 +203,7 @@
 
 /* Role badge specific styles */
 .avatar-card-role-badge {
-    background-color: #6f42c1;
+    background-color: var(--bs-primary);
     color: white;
     font-weight: 500;
     text-transform: uppercase;
@@ -278,7 +278,7 @@
 }
 
 .btn-purple {
-    background-color: #6f42c1;
+    background-color: var(--bs-primary);
     color: white;
     border: none;
 }
@@ -312,7 +312,7 @@
 /* Accessibility */
 .avatar-card:focus-within .avatar-card-edit-btn,
 .avatar-card:focus-within .avatar-card-delete-btn {
-    outline: 2px solid #6f42c1;
+    outline: 2px solid var(--bs-primary);
     outline-offset: 2px;
 }
 

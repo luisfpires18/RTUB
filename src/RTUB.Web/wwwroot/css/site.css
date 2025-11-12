@@ -27,7 +27,7 @@
 
 /* Better touch interactions for all devices */
 * {
-  -webkit-tap-highlight-color: rgba(111, 66, 193, 0.1);
+  -webkit-tap-highlight-color: rgba(var(--bs-primary-rgb), 0.1);
   /* Prevent text selection on double-tap for better touch experience */
   -webkit-touch-callout: default;
   -webkit-user-select: text;
@@ -57,7 +57,7 @@ body {
   /* Smooth scrolling for better mobile experience */
   scroll-behavior: smooth;
   /* Improve tap highlighting on mobile */
-  -webkit-tap-highlight-color: rgba(111, 66, 193, 0.2);
+  -webkit-tap-highlight-color: rgba(var(--bs-primary-rgb), 0.2);
 }
 
 a {
@@ -130,7 +130,7 @@ a:hover, a:focus {
 }
 .nav-link.dropdown-toggle[type="button"]:hover,
 .nav-link.dropdown-toggle[type="button"]:focus {
-  background-color: rgba(111, 66, 193, 0.2); /* Fallback */
+  background-color: rgba(var(--bs-primary-rgb), 0.2); /* Fallback */
   background-color: rgba(var(--bs-primary-rgb), 0.2);
   color: #fff;
   text-decoration: none;
@@ -352,7 +352,7 @@ a:hover, a:focus {
   .table thead th {
     font-size: 0.8rem;
     padding: 0.5rem 0.375rem;
-    background-color: rgba(111, 66, 193, 0.15);
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
     font-weight: 600;
     vertical-align: middle;
   }
@@ -401,7 +401,7 @@ a:hover, a:focus {
 
   .table .clickable-row:hover,
   .table .clickable-row:active {
-    background-color: rgba(111, 66, 193, 0.12);
+    background-color: rgba(var(--bs-primary-rgb), 0.12);
   }
 
   /* Improve table-hover rows on mobile */
@@ -411,7 +411,7 @@ a:hover, a:focus {
 
   .table-hover tbody tr:hover,
   .table-hover tbody tr:active {
-    background-color: rgba(111, 66, 193, 0.15);
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
   }
 
   /* Ensure table-striped rows have good contrast on mobile */
@@ -828,8 +828,8 @@ a:hover, a:focus {
   color: #fff;
 }
 .btn-purple {
-  background-color: #6f42c1;
-  border-color: #6f42c1;
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
   color: #fff;
 }
 .btn-purple:hover {
@@ -931,7 +931,7 @@ input::placeholder, textarea::placeholder, select::placeholder {
 .alert-success { color: #00bc8c; background-color: rgba(0, 188, 140, 0.2); border-color: rgba(0, 188, 140, 0.5); }
 .alert-danger { color: #e74c3c; background-color: rgba(231, 76, 60, 0.2); border-color: rgba(231, 76, 60, 0.5); }
 .alert-warning { color: #f39c12; background-color: rgba(243, 156, 18, 0.2); border-color: rgba(243, 156, 18, 0.5); }
-.alert-purple { color: #ffffff; background-color: #6f42c1; border-color: #6f42c1; }
+.alert-purple { color: #ffffff; background-color: var(--bs-primary); border-color: var(--bs-primary); }
 
 /* Footer */
 .footer {
@@ -956,16 +956,16 @@ input::placeholder, textarea::placeholder, select::placeholder {
 /* Hover effect for cards with h-100 class (e.g., inventory cards) */
 .card.h-100:hover {
   transform: translateY(-5px);
-  border-color: #6f42c1;
-  box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+  border-color: var(--bs-primary);
+  box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.3);
 }
 
 .card-title { font-size: 1.25rem; margin-bottom: 0.5rem; }
 .card-text { margin-bottom: 1rem; }
 
 .card-header {
-  background-color: rgba(111, 66, 193, 0.1);
-  border-bottom: 1px solid rgba(111, 66, 193, 0.2);
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
+  border-bottom: 1px solid rgba(var(--bs-primary-rgb), 0.2);
   padding: 0.75rem 1rem;
   margin: -1rem -1rem 1rem -1rem;
   border-radius: 0.375rem 0.375rem 0 0;
@@ -1183,8 +1183,8 @@ input::placeholder, textarea::placeholder, select::placeholder {
 
 /* Primary button with purple styling */
 .btn-primary-purple {
-    background-color: #6f42c1;
-    border-color: #6f42c1;
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
 }
 
 .btn-primary-purple:hover {
@@ -1203,7 +1203,7 @@ input::placeholder, textarea::placeholder, select::placeholder {
 
 /* Card styling for info boxes */
 .card-info-purple {
-    background-color: #6f42c1 !important;
+    background-color: var(--bs-primary) !important;
     border: none;
 }
 
@@ -1220,10 +1220,10 @@ input::placeholder, textarea::placeholder, select::placeholder {
 
 /* Position badges - purple theme */
 .badge-position {
-    background-color: #6f42c1;
+    background-color: var(--bs-primary);
     color: white;
     font-weight: bold;
-    border: 2px solid #6f42c1;
+    border: 2px solid var(--bs-primary);
 }
 
 /* Category badges */
@@ -1235,18 +1235,18 @@ input::placeholder, textarea::placeholder, select::placeholder {
 .badge-veterano {
     background-color: #1a1a2e;
     color: white;
-    border: 1px solid #6f42c1;
+    border: 1px solid var(--bs-primary);
 }
 
 .badge-tunossauro {
     background-color: #2c2c54;
     color: white;
-    border: 2px solid #6f42c1;
+    border: 2px solid var(--bs-primary);
     font-weight: bold;
 }
 
 .badge-honorario {
-    background: linear-gradient(135deg, #6f42c1 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--bs-primary) 0%, #764ba2 100%);
     color: white;
     font-weight: bold;
 }
@@ -1270,7 +1270,7 @@ input::placeholder, textarea::placeholder, select::placeholder {
 }
 
 .badge-status-retired {
-    background-color: #6f42c1;
+    background-color: var(--bs-primary);
     color: white;
     font-weight: bold;
 }
@@ -1302,7 +1302,7 @@ input::placeholder, textarea::placeholder, select::placeholder {
     height: 200px;
     border-radius: 50%;
     object-fit: cover;
-    border: 4px solid #6f42c1;
+    border: 4px solid var(--bs-primary);
     background-color: #151516;
 }
 
@@ -1311,7 +1311,7 @@ input::placeholder, textarea::placeholder, select::placeholder {
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #6f42c1;
+    border: 2px solid var(--bs-primary);
 }
 
 .member-avatar-large {
@@ -1319,7 +1319,7 @@ input::placeholder, textarea::placeholder, select::placeholder {
     height: 150px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #6f42c1;
+    border: 3px solid var(--bs-primary);
 }
 
 .member-avatar-medium {
@@ -1327,7 +1327,7 @@ input::placeholder, textarea::placeholder, select::placeholder {
     height: 100px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #6f42c1;
+    border: 2px solid var(--bs-primary);
 }
 
 /* Table enhancements */
@@ -1337,7 +1337,7 @@ input::placeholder, textarea::placeholder, select::placeholder {
 }
 
 .table-hover tbody tr:hover {
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
 /* Allow text wrapping on desktop by default - will be overridden for specific use cases */
@@ -1359,7 +1359,7 @@ th {
 }
 
 th:hover {
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
 /* Role history */
@@ -1369,12 +1369,12 @@ th:hover {
 }
 
 .role-history-item {
-    background-color: rgba(111, 66, 193, 0.05);
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
     transition: background-color 0.2s;
 }
 
 .role-history-item:hover {
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
 /* Info button */
@@ -1393,17 +1393,17 @@ th:hover {
 /* Checkbox visibility fix for dark background */
 .form-check-input {
     background-color: #ffffff;
-    border: 2px solid #6f42c1;
+    border: 2px solid var(--bs-primary);
 }
 
 .form-check-input:checked {
-    background-color: #6f42c1;
-    border-color: #6f42c1;
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
 }
 
 .form-check-input:focus {
-    border-color: #6f42c1;
-    box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.25);
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
 }
 
 /* ========================================
@@ -1471,9 +1471,9 @@ th:hover {
 
 .mentor-search-container .form-control:focus {
     background-color: #1a1a1a;
-    border-color: #6f42c1;
+    border-color: var(--bs-primary);
     color: #ffffff;
-    box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
 }
 
 .mentor-search-container .btn-outline-secondary {
@@ -1510,16 +1510,16 @@ th:hover {
 }
 
 .pagination .page-item.active .page-link {
-    background-color: #6f42c1;
-    border-color: #6f42c1;
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
 }
 
 .pagination .page-link {
-    color: #6f42c1;
+    color: var(--bs-primary);
 }
 
 .pagination .page-link:hover {
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
 .pagination .page-item.disabled .page-link {
@@ -1772,7 +1772,7 @@ th:hover {
 }
 
 .sortable-header:hover {
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
 /* MainLayout component */
@@ -1795,7 +1795,7 @@ th:hover {
 }
 
 .navbar-toggler {
-    background-color: rgba(111, 66, 193, 0.8);
+    background-color: rgba(var(--bs-primary-rgb), 0.8);
     border: none;
     padding: 0.25rem 0.5rem;
 }
@@ -1814,7 +1814,7 @@ th:hover {
     height: 400px;
     overflow: hidden;
     background-color: #1c1c1d;
-    border: 2px solid #6f42c1;
+    border: 2px solid var(--bs-primary);
     border-radius: 0.375rem;
 }
 
@@ -1823,7 +1823,7 @@ th:hover {
     height: 200px;
     overflow: hidden;
     border-radius: 50%;
-    border: 3px solid #6f42c1;
+    border: 3px solid var(--bs-primary);
     margin: 1rem auto;
 }
 
@@ -1845,7 +1845,7 @@ th:hover {
     max-width: 100%;
     height: auto;
     border-radius: 0.375rem;
-    border: 2px solid #6f42c1;
+    border: 2px solid var(--bs-primary);
 }
 
 /* Index page specific */
@@ -1892,7 +1892,7 @@ th:hover {
     height: 200px;
     object-fit: cover;
     border-radius: 8px;
-    border: 3px solid #6f42c1;
+    border: 3px solid var(--bs-primary);
 }
 
 .track-duration {
@@ -1912,12 +1912,12 @@ th:hover {
 .report-stat {
     font-size: 2rem;
     font-weight: bold;
-    color: #6f42c1;
+    color: var(--bs-primary);
 }
 
 .finance-summary {
-    background-color: rgba(111, 66, 193, 0.1);
-    border-left: 4px solid #6f42c1;
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    border-left: 4px solid var(--bs-primary);
     padding: 1rem;
     margin-bottom: 1rem;
 }
@@ -1925,7 +1925,7 @@ th:hover {
 .slideshow-preview {
     max-width: 300px;
     border-radius: 0.375rem;
-    border: 2px solid #6f42c1;
+    border: 2px solid var(--bs-primary);
 }
 
 /* Identity pages */
@@ -1972,8 +1972,8 @@ th:hover {
 }
 
 .governing-body-card {
-    background-color: rgba(111, 66, 193, 0.05);
-    border: 1px solid rgba(111, 66, 193, 0.2);
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
     border-radius: 0.375rem;
     padding: 1rem;
     margin-bottom: 1rem;
@@ -1991,7 +1991,7 @@ th:hover {
 
 .member-card:hover {
     transform: translateY(-2px);
-    border-color: #6f42c1;
+    border-color: var(--bs-primary);
 }
 
 .event-card {
@@ -2005,12 +2005,12 @@ th:hover {
 
 .event-card:hover {
     transform: translateY(-5px);
-    border-color: #6f42c1;
-    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+    border-color: var(--bs-primary);
+    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.3);
 }
 
 .event-date {
-    background-color: #6f42c1;
+    background-color: var(--bs-primary);
     color: white;
     padding: 0.5rem 1rem;
     border-radius: 0.375rem;
@@ -2027,7 +2027,7 @@ th:hover {
 
 /* Owner pages */
 .role-assignment-card {
-    background-color: rgba(111, 66, 193, 0.05);
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
     padding: 1rem;
     border-radius: 0.375rem;
     margin-bottom: 0.5rem;
@@ -2051,7 +2051,7 @@ th:hover {
 
 .form-control-dark:focus {
     background-color: #1c1c1d;
-    border-color: #6f42c1;
+    border-color: var(--bs-primary);
     color: #e2e2e2;
 }
 
@@ -2063,12 +2063,12 @@ th:hover {
 
 /* Additional button styles */
 .btn-outline-primary-theme {
-    border-color: #6f42c1;
-    color: #6f42c1;
+    border-color: var(--bs-primary);
+    color: var(--bs-primary);
 }
 
 .btn-outline-primary-theme:hover {
-    background-color: #6f42c1;
+    background-color: var(--bs-primary);
     color: white;
 }
 
@@ -2102,7 +2102,7 @@ th:hover {
 }
 
 .footer-credit a {
-    color: #6f42c1;
+    color: var(--bs-primary);
     text-decoration: none;
 }
 
@@ -2111,7 +2111,7 @@ th:hover {
     height: 32px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #6f42c1;
+    border: 2px solid var(--bs-primary);
 }
 
 .navbar-category-badge {
@@ -2150,7 +2150,7 @@ th:hover {
 
 /* Portal Content Components */
 .portal-title {
-    color: #6f42c1;
+    color: var(--bs-primary);
 }
 
 .portal-subtitle {
@@ -2178,7 +2178,7 @@ th:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
 .portal-governing-body-card {
@@ -2192,12 +2192,12 @@ th:hover {
 
 .portal-event-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.3);
 }
 
 .portal-icon-large {
     font-size: 4rem;
-    color: #6f42c1;
+    color: var(--bs-primary);
 }
 
 .portal-card-text {
@@ -2221,7 +2221,7 @@ th:hover {
 
 .portal-section-divider {
     height: 3px;
-    background: linear-gradient(90deg, #6f42c1 0%, rgba(111, 66, 193, 0.3) 100%);
+    background: linear-gradient(90deg, var(--bs-primary) 0%, rgba(var(--bs-primary-rgb), 0.3) 100%);
     border-radius: 2px;
     margin-bottom: 1.75rem;
 }
@@ -2248,8 +2248,8 @@ th:hover {
 
 /* Music pages styles */
 .music-btn-primary {
-    background-color: #6f42c1;
-    border-color: #6f42c1;
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
 }
 
 .music-btn-delete {
@@ -2312,7 +2312,7 @@ th:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
     border-radius: 0.375rem 0.375rem 0 0;
 }
 
@@ -2373,7 +2373,7 @@ th:hover {
 
 /* Identity pages styles */
 .identity-link {
-    color: #6f42c1;
+    color: var(--bs-primary);
     text-decoration: none;
 }
 
@@ -2384,7 +2384,7 @@ th:hover {
 
 /* Member pages styles */
 .member-name-link {
-    color: #6f42c1;
+    color: var(--bs-primary);
     text-decoration: none;
     font-weight: 500;
 }
@@ -2438,34 +2438,34 @@ th:hover {
 }
 
 .card-purple-no-border {
-    background-color: #6f42c1 !important;
+    background-color: var(--bs-primary) !important;
     border: none;
 }
 
 .activity-highlight {
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
 /* Accordion styling for dark theme - Reports page */
 .accordion-button {
     background-color: #1a1a1b;
     color: #e2e2e2;
-    border-color: rgba(111, 66, 193, 0.25);
+    border-color: rgba(var(--bs-primary-rgb), 0.25);
 }
 
 .accordion-button:not(.collapsed) {
-    background-color: rgba(111, 66, 193, 0.15);
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
     color: #ffffff;
-    border-color: rgba(111, 66, 193, 0.4);
+    border-color: rgba(var(--bs-primary-rgb), 0.4);
 }
 
 .accordion-button:focus {
-    box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.25);
-    border-color: rgba(111, 66, 193, 0.5);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+    border-color: rgba(var(--bs-primary-rgb), 0.5);
 }
 
 .accordion-button:hover {
-    background-color: rgba(111, 66, 193, 0.12);
+    background-color: rgba(var(--bs-primary-rgb), 0.12);
 }
 
 .accordion-button::after {
@@ -2474,7 +2474,7 @@ th:hover {
 
 .accordion-item {
     background-color: #151516;
-    border-color: rgba(111, 66, 193, 0.25);
+    border-color: rgba(var(--bs-primary-rgb), 0.25);
 }
 
 .accordion-body {
@@ -2504,19 +2504,19 @@ th:hover {
 }
 
 .btn-primary-purple {
-    background-color: #6f42c1;
-    border-color: #6f42c1;
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
 }
 
 /* Governing bodies / OrgaosSociais specific styles */
 .gov-body-card-header {
-    background-color: #6f42c1;
+    background-color: var(--bs-primary);
     color: white;
     font-weight: 600;
 }
 
 .position-title {
-    color: #6f42c1;
+    color: var(--bs-primary);
     font-weight: 600;
 }
 
@@ -2530,8 +2530,8 @@ th:hover {
 }
 
 .identity-alert-info {
-    background-color: rgba(111, 66, 193, 0.1);
-    border-color: #6f42c1;
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    border-color: var(--bs-primary);
     color: #e2e2e2;
 }
 
@@ -2554,7 +2554,7 @@ th:hover {
 }
 
 .badge-fiscal-year {
-    background-color: #6f42c1;
+    background-color: var(--bs-primary);
     color: white;
 }
 
@@ -2564,13 +2564,13 @@ th:hover {
 }
 
 .portal-info-alert {
-    background-color: rgba(111, 66, 193, 0.2);
-    border: 2px solid #6f42c1;
+    background-color: rgba(var(--bs-primary-rgb), 0.2);
+    border: 2px solid var(--bs-primary);
     color: #ffffff;
 }
 
 .portal-info-icon {
-    color: #6f42c1;
+    color: var(--bs-primary);
 }
 
 .portal-text-preformatted-large {
@@ -2606,7 +2606,7 @@ th:hover {
 }
 
 .heading-purple {
-    color: #6f42c1;
+    color: var(--bs-primary);
 }
 
 .heading-warning {
@@ -2634,7 +2634,7 @@ th:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
     border-radius: 0.375rem 0.375rem 0 0;
 }
 
@@ -2644,7 +2644,7 @@ th:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
     border-radius: 0.375rem 0.375rem 0 0;
 }
 
@@ -2672,7 +2672,7 @@ th:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
     border-radius: 0.375rem;
 }
 
@@ -2694,7 +2694,7 @@ th:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
     border-radius: 0.375rem 0.375rem 0 0;
 }
 
@@ -2711,8 +2711,8 @@ th:hover {
 
 .album-card:hover {
     transform: translateY(-5px);
-    border-color: #6f42c1;
-    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+    border-color: var(--bs-primary);
+    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.3);
 }
 
 /* Image zoom effect on card hover */
@@ -2739,7 +2739,7 @@ th:hover {
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #6f42c1;
+    border: 2px solid var(--bs-primary);
 }
 
 /* Enrollment related styles */
@@ -2748,7 +2748,7 @@ th:hover {
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #6f42c1;
+    border: 2px solid var(--bs-primary);
 }
 
 .enrollment-table {
@@ -2756,16 +2756,16 @@ th:hover {
 }
 
 .enrollment-table thead {
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
 .enrollment-table tbody tr:hover {
-    background-color: rgba(111, 66, 193, 0.05);
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
 }
 
 .enrollment-section {
-    background-color: rgba(111, 66, 193, 0.05);
-    border: 1px solid rgba(111, 66, 193, 0.2);
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
 }
 
 .enrollment-actions {
@@ -2789,8 +2789,8 @@ th:hover {
 
 .event-card:hover {
     transform: translateY(-5px);
-    border-color: rgba(111, 66, 193, 0.6);
-    box-shadow: 0 8px 20px rgba(111, 66, 193, 0.3);
+    border-color: rgba(var(--bs-primary-rgb), 0.6);
+    box-shadow: 0 8px 20px rgba(var(--bs-primary-rgb), 0.3);
 }
 
 /* Event card admin overlay improvements */
@@ -2818,7 +2818,7 @@ th:hover {
 }
 
 .event-card:hover .enrollment-section {
-    background-color: rgba(111, 66, 193, 0.08);
+    background-color: rgba(var(--bs-primary-rgb), 0.08);
 }
 
 /* Separated button improvements for event card */
@@ -2861,8 +2861,8 @@ th:hover {
 }
 
 .event-card .btn-outline-primary:hover:not(:disabled) {
-    background-color: #6f42c1;
-    border-color: #6f42c1;
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
     color: #fff;
 }
 
@@ -3012,8 +3012,8 @@ th:hover {
     flex-direction: column;
     align-items: center;
     padding: 15px;
-    background: rgba(111, 66, 193, 0.1);
-    border: 2px solid #6f42c1;
+    background: rgba(var(--bs-primary-rgb), 0.1);
+    border: 2px solid var(--bs-primary);
     border-radius: 15px;
     min-width: 150px;
     transition: all 0.3s ease;
@@ -3021,9 +3021,9 @@ th:hover {
 }
 
 .member-card:hover {
-    background: rgba(111, 66, 193, 0.2);
+    background: rgba(var(--bs-primary-rgb), 0.2);
     transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(111, 66, 193, 0.3);
+    box-shadow: 0 8px 16px rgba(var(--bs-primary-rgb), 0.3);
 }
 
 .member-info {
@@ -3046,7 +3046,7 @@ th:hover {
 .children-connector {
     width: 2px;
     height: 30px;
-    background: #6f42c1;
+    background: var(--bs-primary);
     margin: 10px auto;
 }
 
@@ -3066,7 +3066,7 @@ th:hover {
     transform: translateX(-50%);
     width: calc(100% - 60px);
     height: 2px;
-    background: #6f42c1;
+    background: var(--bs-primary);
 }
 
 .child-node {
@@ -3082,7 +3082,7 @@ th:hover {
     transform: translateX(-50%);
     width: 2px;
     height: 10px;
-    background: #6f42c1;
+    background: var(--bs-primary);
 }
 
 @media (max-width: 768px) {
@@ -3178,7 +3178,7 @@ th:hover {
 
 /* Repertoire Modal Styles */
 .repertoire-divider {
-    border-color: rgba(111, 66, 193, 0.3);
+    border-color: rgba(var(--bs-primary-rgb), 0.3);
     margin: 1rem 0;
 }
 
@@ -3190,8 +3190,8 @@ th:hover {
 
 /* Card-based design for repertoire items */
 .repertoire-card {
-    background: linear-gradient(135deg, rgba(111, 66, 193, 0.08) 0%, rgba(111, 66, 193, 0.04) 100%);
-    border: 1px solid rgba(111, 66, 193, 0.25);
+    background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.08) 0%, rgba(var(--bs-primary-rgb), 0.04) 100%);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.25);
     border-radius: 0.5rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -3203,9 +3203,9 @@ th:hover {
 }
 
 .repertoire-card:hover {
-    background: linear-gradient(135deg, rgba(111, 66, 193, 0.12) 0%, rgba(111, 66, 193, 0.06) 100%);
-    border-color: rgba(111, 66, 193, 0.4);
-    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.2);
+    background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.12) 0%, rgba(var(--bs-primary-rgb), 0.06) 100%);
+    border-color: rgba(var(--bs-primary-rgb), 0.4);
+    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.2);
     transform: translateY(-2px);
 }
 
@@ -3213,14 +3213,14 @@ th:hover {
     opacity: 0.5;
     cursor: grabbing;
     transform: scale(1.02) rotate(2deg);
-    box-shadow: 0 8px 16px rgba(111, 66, 193, 0.3);
+    box-shadow: 0 8px 16px rgba(var(--bs-primary-rgb), 0.3);
 }
 
 .repertoire-card.drag-over {
-    background: linear-gradient(135deg, rgba(111, 66, 193, 0.2) 0%, rgba(111, 66, 193, 0.1) 100%);
-    border-color: rgba(111, 66, 193, 0.7);
+    background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.2) 0%, rgba(var(--bs-primary-rgb), 0.1) 100%);
+    border-color: rgba(var(--bs-primary-rgb), 0.7);
     border-width: 2px;
-    box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.2);
+    box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.2);
 }
 
 .repertoire-card-content {
@@ -3233,7 +3233,7 @@ th:hover {
 /* Drag handle with 6-dot pattern */
 .drag-handle {
     cursor: grab;
-    color: #6f42c1;
+    color: var(--bs-primary);
     font-size: 1.25rem;
     display: flex;
     align-items: center;
@@ -3260,7 +3260,7 @@ th:hover {
 
 /* Item number styling */
 .repertoire-item-number {
-    color: #6f42c1;
+    color: var(--bs-primary);
     font-weight: 700;
     font-size: 1.125rem;
     min-width: 2.5rem;
@@ -3313,13 +3313,13 @@ th:hover {
 
 .repertoire-empty-icon {
     font-size: 3rem;
-    color: #6f42c1;
+    color: var(--bs-primary);
     opacity: 0.3;
 }
 
 .btn-watch {
-    background-color: #6f42c1;
-    border: 1px solid #6f42c1;
+    background-color: var(--bs-primary);
+    border: 1px solid var(--bs-primary);
     color: #fff;
     transition: all 0.2s ease;
 }
@@ -3620,7 +3620,7 @@ th:hover {
 
   /* Lazy loading placeholder */
   img[loading="lazy"] {
-    background: rgba(111, 66, 193, 0.05);
+    background: rgba(var(--bs-primary-rgb), 0.05);
   }
 
   /* Better SVG rendering on mobile */
@@ -3632,7 +3632,7 @@ th:hover {
   /* Improve form focus states on mobile */
   .form-control:focus,
   .form-select:focus {
-    box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.3);
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.3);
   }
 
   /* Better handling of long URLs/text */
@@ -4340,7 +4340,7 @@ th:hover {
 .song-skeleton-header {
   width: 100%;
   height: 120px;
-  background: linear-gradient(90deg, rgba(111, 66, 193, 0.1) 25%, rgba(111, 66, 193, 0.2) 50%, rgba(111, 66, 193, 0.1) 75%);
+  background: linear-gradient(90deg, rgba(var(--bs-primary-rgb), 0.1) 25%, rgba(var(--bs-primary-rgb), 0.2) 50%, rgba(var(--bs-primary-rgb), 0.1) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -4351,7 +4351,7 @@ th:hover {
 
 .song-skeleton-title {
   height: 1.25rem;
-  background: linear-gradient(90deg, rgba(111, 66, 193, 0.1) 25%, rgba(111, 66, 193, 0.2) 50%, rgba(111, 66, 193, 0.1) 75%);
+  background: linear-gradient(90deg, rgba(var(--bs-primary-rgb), 0.1) 25%, rgba(var(--bs-primary-rgb), 0.2) 50%, rgba(var(--bs-primary-rgb), 0.1) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 0.25rem;
@@ -4361,7 +4361,7 @@ th:hover {
 .song-skeleton-author {
   height: 0.875rem;
   width: 60%;
-  background: linear-gradient(90deg, rgba(111, 66, 193, 0.1) 25%, rgba(111, 66, 193, 0.2) 50%, rgba(111, 66, 193, 0.1) 75%);
+  background: linear-gradient(90deg, rgba(var(--bs-primary-rgb), 0.1) 25%, rgba(var(--bs-primary-rgb), 0.2) 50%, rgba(var(--bs-primary-rgb), 0.1) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 0.25rem;
@@ -4379,7 +4379,7 @@ th:hover {
 .song-skeleton-button {
   height: 44px;
   flex: 1;
-  background: linear-gradient(90deg, rgba(111, 66, 193, 0.1) 25%, rgba(111, 66, 193, 0.2) 50%, rgba(111, 66, 193, 0.1) 75%);
+  background: linear-gradient(90deg, rgba(var(--bs-primary-rgb), 0.1) 25%, rgba(var(--bs-primary-rgb), 0.2) 50%, rgba(var(--bs-primary-rgb), 0.1) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 0.375rem;
@@ -4554,8 +4554,8 @@ th:hover {
 
 /* Trophy card hover effect */
 .trophy-card:hover {
-  border-color: #6f42c1 !important;
-  box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3) !important;
+  border-color: var(--bs-primary) !important;
+  box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.3) !important;
 }
 
 /* Request Card Styles (similar to RehearsalCard but slightly bigger) */

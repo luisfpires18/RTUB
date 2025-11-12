@@ -48,10 +48,7 @@ window.ImageCropperInterop = {
                 modal: true,
                 minContainerWidth: isMobile ? 100 : 200,
                 minContainerHeight: isMobile ? 100 : 200,
-                checkCrossOrigin: false,
-                ready: function() {
-                    console.log('Cropper ready');
-                }
+                checkCrossOrigin: false
             });
 
             return true;
