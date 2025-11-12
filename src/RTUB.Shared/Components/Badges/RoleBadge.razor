@@ -33,9 +33,9 @@
     {
         return role switch
         {
-            "Owner" => "bg-danger",
-            "Admin" => "bg-warning text-dark",
-            "Member" => "bg-primary",
+            "Owner" => "bg-danger",      // Red
+            "Admin" => "bg-success",     // Green
+            "Member" => "bg-info",       // Blue (not primary)
             _ => "bg-secondary"
         };
     }

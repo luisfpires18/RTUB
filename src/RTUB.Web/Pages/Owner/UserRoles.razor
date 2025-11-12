@@ -114,7 +114,7 @@ else
                             <RoleBadge Role="@currentRole" />
                         </td>
                         <td>
-                            @GetLoginStatusBadge(user)
+                            <LoginStatusBadge LastLoginDate="@user.LastLoginDate" />
                         </td>
                         <td>
                             <button class="btn btn-sm btn-purple me-1" 
@@ -275,13 +275,78 @@ else
                OnConfirm="ConfirmRoleChange"
                OnCancel="CancelRoleChange" />
 
+<!-- Birthday Notification Confirmation Modal -->
+<ConfirmDialog Show="@showBirthdayEmailModal"
+               ShowChanged="@((bool show) => showBirthdayEmailModal = show)"
+               Title="Enviar notificação de aniversário?"
+               ConfirmText="Sim"
+               CancelText="Não"
+               ConfirmButtonClass="btn-primary"
+               OnConfirm="@SendBirthdayNotification"
+               OnCancel="@CloseBirthdayEmailModal"
+               Size="Modal.ModalSize.Large">
+    <BodyContent>
+        @if (selectedUserForBirthday != null)
+        {
+            <div class="mb-3">
+                <h6 class="text-white-full">Detalhes do Aniversariante:</h6>
+                <div class="event-summary p-3 rounded bg-dark">
+                    <div><strong>Nome:</strong> @selectedUserForBirthday.Nickname (@selectedUserForBirthday.FirstName @selectedUserForBirthday.LastName)</div>
+                    @if (selectedUserForBirthday.DateOfBirth.HasValue)
+                    {
+                        <div><strong>Data de Nascimento:</strong> @selectedUserForBirthday.DateOfBirth.Value.ToString("dd/MM/yyyy")</div>
+                    }
+                </div>
+            </div>
+
+            @if (birthdayEmailLoadingSubscribers)
+            {
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">A carregar...</span>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(birthdayEmailErrorMessage))
+            {
+                <Alert Title="@birthdayEmailErrorMessage" 
+                       Type="Alert.AlertType.Error" 
+                       Dismissible="true"
+                       OnDismiss="@(() => birthdayEmailErrorMessage = null)" />
+            }
+            else
+            {
+                <div class="mb-3">
+                    <span class="badge bg-purple text-white p-2">
+                        @($"{birthdaySubscribedUsersCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")
+                    </span>
+                </div>
+
+                @if (birthdaySubscribedUsers != null && birthdaySubscribedUsers.Any())
+                {
+                    <div class="mb-3">
+                        <h6 class="text-white-full mb-2">Membros que irão receber:</h6>
+                        <div class="subscriber-list" style="max-height: 300px; overflow-y: auto;">
+                            @foreach (var user in birthdaySubscribedUsers)
+                            {
+                                <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                                    @(user.Nickname ?? $"{user.FirstName} {user.LastName}")
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <Alert Title="Nenhum membro subscrito às notificações por email." 
+                           Type="Alert.AlertType.Warning" />
+                }
+            }
+        }
+    </BodyContent>
+</ConfirmDialog>
+
 @code {
-    // Login status time thresholds
-    private const int ONLINE_THRESHOLD_HOURS = 1;
-    private const int RECENT_THRESHOLD_HOURS = 24;
-    private const int THIS_WEEK_THRESHOLD_DAYS = 7;
-    private const int THIS_MONTH_THRESHOLD_DAYS = 30;
-    
     private Dictionary<string, List<string>> userRolesDict = new();
     private string message = "";
     private bool isError = false;
@@ -300,6 +365,14 @@ else
     private ApplicationUser? selectedUser = null;
     private string selectedRole = "";
     private string confirmMessage = "";
+    
+    // Birthday notification modal
+    private bool showBirthdayEmailModal = false;
+    private ApplicationUser? selectedUserForBirthday = null;
+    private List<ApplicationUser>? birthdaySubscribedUsers = null;
+    private int birthdaySubscribedUsersCount = 0;
+    private bool birthdayEmailLoadingSubscribers = false;
+    private string? birthdayEmailErrorMessage = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -516,47 +589,6 @@ else
         }
     }
     
-    private MarkupString GetLoginStatusBadge(ApplicationUser user)
-    {
-        if (user.LastLoginDate == null)
-        {
-            return new MarkupString("<span class='badge bg-secondary' title='Nunca fez login'><i class='bi bi-x-circle'></i> Nunca</span>");
-        }
-        
-        var timeAgo = DateTime.UtcNow - user.LastLoginDate.Value;
-        
-        if (timeAgo.TotalHours < ONLINE_THRESHOLD_HOURS)
-        {
-            var minutes = (int)timeAgo.TotalMinutes;
-            var minuteText = minutes == 1 ? "minuto" : "minutos";
-            return new MarkupString($"<span class='badge bg-success' title='Último login: há {minutes} {minuteText}'><i class='bi bi-circle-fill'></i> Online</span>");
-        }
-        else if (timeAgo.TotalHours < RECENT_THRESHOLD_HOURS)
-        {
-            var hours = (int)timeAgo.TotalHours;
-            var hourText = hours == 1 ? "hora" : "horas";
-            return new MarkupString($"<span class='badge bg-info' title='Último login: há {hours} {hourText}'><i class='bi bi-clock'></i> Recente</span>");
-        }
-        else if (timeAgo.TotalDays < THIS_WEEK_THRESHOLD_DAYS)
-        {
-            var days = (int)timeAgo.TotalDays;
-            var dayText = days == 1 ? "dia" : "dias";
-            return new MarkupString($"<span class='badge bg-warning' title='Último login: há {days} {dayText}'><i class='bi bi-clock-history'></i> Esta Semana</span>");
-        }
-        else if (timeAgo.TotalDays < THIS_MONTH_THRESHOLD_DAYS)
-        {
-            var days = (int)timeAgo.TotalDays;
-            var dayText = days == 1 ? "dia" : "dias";
-            return new MarkupString($"<span class='badge bg-warning' title='Último login: há {days} {dayText}'><i class='bi bi-clock-history'></i> Este Mês</span>");
-        }
-        else
-        {
-            var days = (int)timeAgo.TotalDays;
-            var dayText = days == 1 ? "dia" : "dias";
-            return new MarkupString($"<span class='badge bg-secondary' title='Último login: há {days} {dayText}'><i class='bi bi-clock-history'></i> Inativo</span>");
-        }
-    }
-    
     private bool IsBirthdayToday(ApplicationUser user)
     {
         if (!user.DateOfBirth.HasValue)
@@ -567,6 +599,7 @@ else
                user.DateOfBirth.Value.Day == today.Day;
     }
     
+    // Birthday notification modal methods
     private async Task SendBirthdayEmail(ApplicationUser user)
     {
         if (!IsBirthdayToday(user))
@@ -576,34 +609,77 @@ else
             return;
         }
         
+        selectedUserForBirthday = user;
+        birthdayEmailLoadingSubscribers = true;
+        birthdayEmailErrorMessage = null;
+        showBirthdayEmailModal = true;
+        StateHasChanged();
+
         try
         {
             // Get all subscribed users with confirmed emails (excluding the birthday person)
             var subscribedUsers = await Task.Run(() => 
                 UserManager.Users
                     .Where(u => u.Subscribed && u.EmailConfirmed && u.Id != user.Id && !string.IsNullOrEmpty(u.Email))
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
                     .ToList());
             
-            if (!subscribedUsers.Any())
-            {
-                message = "Não há utilizadores subscritos para enviar a notificação.";
-                isError = true;
-                return;
-            }
-            
-            var recipientEmails = subscribedUsers.Select(u => u.Email!).ToList();
-            var recipientData = subscribedUsers.ToDictionary(
-                u => u.Email!,
-                u => (u.Nickname ?? u.FirstName ?? "", $"{u.FirstName} {u.LastName}")
-            );
+            birthdaySubscribedUsers = subscribedUsers;
+            birthdaySubscribedUsersCount = subscribedUsers.Count;
+        }
+        catch (Exception ex)
+        {
+            birthdayEmailErrorMessage = $"Erro ao carregar membros: {ex.Message}";
+        }
+        finally
+        {
+            birthdayEmailLoadingSubscribers = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseBirthdayEmailModal()
+    {
+        showBirthdayEmailModal = false;
+        selectedUserForBirthday = null;
+        birthdaySubscribedUsers = null;
+        birthdaySubscribedUsersCount = 0;
+        birthdayEmailErrorMessage = null;
+    }
+
+    private async Task SendBirthdayNotification()
+    {
+        if (selectedUserForBirthday == null || birthdaySubscribedUsers == null || !birthdaySubscribedUsers.Any())
+        {
+            CloseBirthdayEmailModal();
+            return;
+        }
+
+        StateHasChanged();
+
+        try
+        {
+            var recipientEmails = birthdaySubscribedUsers
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .Select(u => u.Email!)
+                .ToList();
+
+            var recipientData = birthdaySubscribedUsers
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .ToDictionary(
+                    u => u.Email!,
+                    u => (u.Nickname ?? u.FirstName ?? "", $"{u.FirstName} {u.LastName}")
+                );
             
             var (success, count, errorMessage) = await EmailNotificationService.SendBirthdayNotificationAsync(
-                user.Id,
-                user.Nickname ?? user.FirstName ?? "",
-                $"{user.FirstName} {user.LastName}",
+                selectedUserForBirthday.Id,
+                selectedUserForBirthday.Nickname ?? selectedUserForBirthday.FirstName ?? "",
+                $"{selectedUserForBirthday.FirstName} {selectedUserForBirthday.LastName}",
                 recipientEmails,
                 recipientData
             );
+            
+            CloseBirthdayEmailModal();
             
             if (success)
             {
@@ -618,6 +694,7 @@ else
         }
         catch (Exception ex)
         {
+            CloseBirthdayEmailModal();
             message = $"Erro inesperado: {ex.Message}";
             isError = true;
         }
