@@ -744,15 +744,28 @@ else
         {
             <div class="alert alert-danger">@errorMessage</div>
         }
-        <div class="mb-3">
-            <label class="form-label">Ano de Início</label>
-            <input type="number" class="form-control" @bind="newStartYear" min="1900" max="2100" />
-            <small class="text-muted">O ano letivo será criado automaticamente como @newStartYear-@(newStartYear + 1)</small>
-        </div>
+        @if (!availableFiscalYearStartYears.Any())
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Todos os anos letivos até ao ano atual já foram criados.
+            </div>
+        }
+        else
+        {
+            <div class="mb-3">
+                <label class="form-label">Ano de Início</label>
+                <select class="form-select" @bind="newStartYear">
+                    @foreach (var year in availableFiscalYearStartYears)
+                    {
+                        <option value="@year">@year-@(year + 1)</option>
+                    }
+                </select>
+            </div>
+        }
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseCreateFiscalYearModal">Cancelar</button>
-        <button type="button" class="btn btn-primary" @onclick="CreateFiscalYear">Criar</button>
+        <button type="button" class="btn btn-primary" @onclick="CreateFiscalYear" disabled="@(!availableFiscalYearStartYears.Any())">Criar</button>
     </FooterContent>
 </Modal>
 
@@ -834,6 +847,7 @@ else
     private bool showCreateFiscalYearModal = false;
     private bool showAssignMemberModal = false;
     private int newStartYear = DateTime.Now.Year;
+    private List<int> availableFiscalYearStartYears = new();
     private string errorMessage = "";
     
     private Position? selectedPosition;
@@ -1006,9 +1020,15 @@ else
     }
     
     // Admin modal methods
-    private void OpenCreateFiscalYearModal()
+    private async Task OpenCreateFiscalYearModal()
     {
-        newStartYear = DateTime.Now.Year;
+        // Load available fiscal years
+        var availableYears = await FiscalYearService.GetAvailableFiscalYearStartYearsAsync();
+        availableFiscalYearStartYears = availableYears.OrderByDescending(y => y).ToList();
+        
+        // Set default to the most recent available year
+        newStartYear = availableFiscalYearStartYears.Any() ? availableFiscalYearStartYears.First() : DateTime.Now.Year;
+        
         errorMessage = "";
         showCreateFiscalYearModal = true;
     }

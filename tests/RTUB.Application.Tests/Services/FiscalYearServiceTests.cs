@@ -157,6 +157,51 @@ public class FiscalYearServiceTests : IDisposable
             _service.DeleteFiscalYearAsync(999));
     }
 
+    [Fact]
+    public async Task GetAvailableFiscalYearStartYearsAsync_ReturnsOnlyAvailableYears()
+    {
+        // Arrange
+        var currentMonth = DateTime.Now.Month;
+        var currentYear = DateTime.Now.Year;
+        var currentFiscalStartYear = currentMonth >= 9 ? currentYear : currentYear - 1;
+        
+        // Create some fiscal years
+        await _service.CreateFiscalYearAsync(1991);
+        await _service.CreateFiscalYearAsync(1992);
+        await _service.CreateFiscalYearAsync(currentFiscalStartYear);
+
+        // Act
+        var availableYears = (await _service.GetAvailableFiscalYearStartYearsAsync()).ToList();
+
+        // Assert
+        availableYears.Should().NotContain(1991);
+        availableYears.Should().NotContain(1992);
+        availableYears.Should().NotContain(currentFiscalStartYear);
+        availableYears.Should().Contain(1993);
+        availableYears.Should().Contain(2000);
+    }
+
+    [Fact]
+    public async Task GetAvailableFiscalYearStartYearsAsync_ReturnsEmptyWhenAllYearsCreated()
+    {
+        // Arrange
+        var currentMonth = DateTime.Now.Month;
+        var currentYear = DateTime.Now.Year;
+        var currentFiscalStartYear = currentMonth >= 9 ? currentYear : currentYear - 1;
+        
+        // Create all fiscal years from 1991 to current
+        for (int year = 1991; year <= currentFiscalStartYear; year++)
+        {
+            await _service.CreateFiscalYearAsync(year);
+        }
+
+        // Act
+        var availableYears = (await _service.GetAvailableFiscalYearStartYearsAsync()).ToList();
+
+        // Assert
+        availableYears.Should().BeEmpty();
+    }
+
     public void Dispose()
     {
         _context?.Dispose();

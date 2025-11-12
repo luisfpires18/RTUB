@@ -71,4 +71,29 @@ public class FiscalYearService : IFiscalYearService
         _context.FiscalYears.Remove(fiscalYear);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<IEnumerable<int>> GetAvailableFiscalYearStartYearsAsync()
+    {
+        // Get current fiscal start year
+        var today = DateTime.Today;
+        var currentMonth = today.Month;
+        var currentYear = today.Year;
+        int currentFiscalStartYear = currentMonth >= 9 ? currentYear : currentYear - 1;
+
+        // Get all existing fiscal years
+        var existingFiscalYears = await _context.FiscalYears.ToListAsync();
+        var existingStartYears = new HashSet<int>(existingFiscalYears.Select(fy => fy.StartYear));
+
+        // Generate list of available years from 1991 to current fiscal year
+        var availableYears = new List<int>();
+        for (int year = 1991; year <= currentFiscalStartYear; year++)
+        {
+            if (!existingStartYears.Contains(year))
+            {
+                availableYears.Add(year);
+            }
+        }
+
+        return availableYears;
+    }
 }
