@@ -269,13 +269,23 @@ else
     </DeleteConfirmationContent>
 </CrudModalManager>
 
-<!-- Image Cropper Component -->
+<!-- Image Cropper Component - Full Image -->
 <ImageCropper @ref="imageCropper"
               ShowModal="showCropperModal"
               ShowModalChanged="OnCropperModalChanged"
               OnImageCropped="OnImageCropped"
               AspectRatio="0"
-              AspectRatioHelp="Crop to capture the full instrument - the image will be displayed as a circle in the list and full size in details"
+              AspectRatioHelp="Crop to capture the full instrument - this will be shown in the details view"
+              ImageFormat="image/webp"
+              ImageQuality="0.85" />
+
+<!-- Image Cropper Component - Thumbnail -->
+<ImageCropper @ref="thumbnailCropper"
+              ShowModal="showThumbnailCropperModal"
+              ShowModalChanged="OnThumbnailCropperModalChanged"
+              OnImageCropped="OnThumbnailImageCropped"
+              AspectRatio="1.0"
+              AspectRatioHelp="Define what is shown in the circular thumbnail - crop to show the best part of the instrument"
               ImageFormat="image/webp"
               ImageQuality="0.85" />
 
@@ -309,6 +319,12 @@ else
     private int imageRefreshTrigger = 0;
     private byte[]? croppedInstrumentImageBytes;
     private string? croppedInstrumentImageFileName = "instrument-image.webp";
+    
+    // Thumbnail Cropper
+    private bool showThumbnailCropperModal = false;
+    private ImageCropper? thumbnailCropper;
+    private byte[]? croppedThumbnailImageBytes;
+    private string? croppedThumbnailImageFileName = "instrument-thumbnail.webp";
 
     protected override async Task OnInitializedAsync()
     {
@@ -376,6 +392,8 @@ else
         editingInstrument = Instrument.CreateEmpty();
         isInstrumentCreateMode = true;
         uploadedInstrumentImagePath = null;
+        croppedInstrumentImageBytes = null;
+        croppedThumbnailImageBytes = null;
         showInstrumentEditModal = true;
     }
 
@@ -384,6 +402,8 @@ else
         editingInstrument = instrument;
         isInstrumentCreateMode = false;
         uploadedInstrumentImagePath = null;
+        croppedInstrumentImageBytes = null;
+        croppedThumbnailImageBytes = null;
         showInstrumentEditModal = true;
     }
 
@@ -403,18 +423,30 @@ else
             {
                 await InstrumentService.CreateAsync(editingInstrument);
                 
-                // If image was cropped, upload it now with the correct ID
+                // If full image was cropped, upload it now with the correct ID
                 if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
                 {
                     using var stream = new MemoryStream(croppedInstrumentImageBytes);
                     var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/webp", "instruments", editingInstrument.Id.ToString());
                     editingInstrument.ImageUrl = imageUrl;
+                }
+                
+                // If thumbnail was cropped, upload it as well
+                if (croppedThumbnailImageBytes != null && croppedThumbnailImageBytes.Length > 0)
+                {
+                    using var stream = new MemoryStream(croppedThumbnailImageBytes);
+                    var thumbnailUrl = await ImageStorageService.UploadImageAsync(stream, croppedThumbnailImageFileName!, "image/webp", "instruments/thumbnails", editingInstrument.Id.ToString());
+                    editingInstrument.ThumbnailUrl = thumbnailUrl;
+                }
+                
+                if (croppedInstrumentImageBytes != null || croppedThumbnailImageBytes != null)
+                {
                     await InstrumentService.UpdateAsync(editingInstrument);
                 }
             }
             else
             {
-                // Upload image to R2 if one was cropped
+                // Upload full image to R2 if one was cropped
                 if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
                 {
                     // Delete old image if it exists
@@ -426,6 +458,20 @@ else
                     using var stream = new MemoryStream(croppedInstrumentImageBytes);
                     var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/webp", "instruments", editingInstrument.Id.ToString());
                     editingInstrument.ImageUrl = imageUrl;
+                }
+                
+                // Upload thumbnail if one was cropped
+                if (croppedThumbnailImageBytes != null && croppedThumbnailImageBytes.Length > 0)
+                {
+                    // Delete old thumbnail if it exists
+                    if (!string.IsNullOrEmpty(editingInstrument.ThumbnailUrl))
+                    {
+                        await ImageStorageService.DeleteImageAsync(editingInstrument.ThumbnailUrl);
+                    }
+                    
+                    using var stream = new MemoryStream(croppedThumbnailImageBytes);
+                    var thumbnailUrl = await ImageStorageService.UploadImageAsync(stream, croppedThumbnailImageFileName!, "image/webp", "instruments/thumbnails", editingInstrument.Id.ToString());
+                    editingInstrument.ThumbnailUrl = thumbnailUrl;
                 }
                 
                 await InstrumentService.UpdateAsync(editingInstrument);
@@ -442,6 +488,7 @@ else
             showInstrumentEditModal = false;
             uploadedInstrumentImagePath = null;
             croppedInstrumentImageBytes = null;
+            croppedThumbnailImageBytes = null;
         }
         catch (Exception ex)
         {
@@ -470,6 +517,8 @@ else
         showInstrumentEditModal = false;
         editingInstrument = null;
         uploadedInstrumentImagePath = null;
+        croppedInstrumentImageBytes = null;
+        croppedThumbnailImageBytes = null;
     }
 
     private void CloseInstrumentDeleteModal()
@@ -506,7 +555,7 @@ else
         }
     }
 
-    private void OnImageCropped(byte[] croppedImageData)
+    private async void OnImageCropped(byte[] croppedImageData)
     {
         try
         {
@@ -514,9 +563,36 @@ else
             {
                 if (editingInstrument != null)
                 {
-                    // Store the cropped image bytes for upload when saving
+                    // Store the cropped full image bytes
                     croppedInstrumentImageBytes = croppedImageData;
                     uploadedInstrumentImagePath = "uploaded";
+                    
+                    // Now load the same image into the thumbnail cropper
+                    if (thumbnailCropper != null && selectedFile != null)
+                    {
+                        await thumbnailCropper.LoadImageAsync(selectedFile);
+                    }
+                }
+                
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    private void OnThumbnailImageCropped(byte[] croppedImageData)
+    {
+        try
+        {
+            if (croppedImageData != null && croppedImageData.Length > 0)
+            {
+                if (editingInstrument != null)
+                {
+                    // Store the cropped thumbnail bytes
+                    croppedThumbnailImageBytes = croppedImageData;
                 }
                 
                 StateHasChanged();
@@ -531,6 +607,12 @@ else
     private void OnCropperModalChanged(bool isOpen)
     {
         showCropperModal = isOpen;
+        StateHasChanged();
+    }
+
+    private void OnThumbnailCropperModalChanged(bool isOpen)
+    {
+        showThumbnailCropperModal = isOpen;
         StateHasChanged();
     }
 
