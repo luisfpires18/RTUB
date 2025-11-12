@@ -157,7 +157,6 @@ else
     private int imageRefreshTrigger = 0;
     private byte[]? croppedSlideshowImageBytes;
     private string? croppedSlideshowImageFileName = "slideshow-image.webp";
-    private string? validationErrorMessage;
     private EditForm? slideshowEditForm;
 
     protected override async Task OnInitializedAsync()
@@ -198,7 +197,6 @@ else
         isCreateMode = true;
         uploadedImagePath = null;
         croppedSlideshowImageBytes = null;
-        validationErrorMessage = null;
         editingSlide = new Slideshow
         {
             Title = string.Empty,
@@ -216,7 +214,6 @@ else
         isCreateMode = false;
         uploadedImagePath = null;
         croppedSlideshowImageBytes = null;
-        validationErrorMessage = null;
         editingSlide = new Slideshow
         {
             Id = slide.Id,
@@ -267,7 +264,6 @@ else
             {
                 croppedSlideshowImageBytes = croppedImageData;
                 uploadedImagePath = "uploaded";
-                validationErrorMessage = null;
                 StateHasChanged();
             }
         }
@@ -290,7 +286,6 @@ else
         var editContext = slideshowEditForm.EditContext;
         var messageStore = new ValidationMessageStore(editContext);
         messageStore.Clear();
-        validationErrorMessage = null;
 
         if (isCreateMode)
         {

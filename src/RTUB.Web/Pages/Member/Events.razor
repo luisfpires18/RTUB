@@ -1294,7 +1294,7 @@ else
             // Clear instrument validation error when instrument is selected
             if (instrument.HasValue && enrollmentValidationStore != null)
             {
-                enrollmentValidationStore.Clear(() => enrollmentForm.Instrument);
+                enrollmentValidationStore.Clear(() => enrollmentForm.Instrument!);
                 enrollmentEditForm.EditContext.NotifyValidationStateChanged();
             }
         }
@@ -1331,7 +1331,7 @@ else
         {
             if (!enrollmentForm.Instrument.HasValue)
             {
-                enrollmentValidationStore.Add(() => enrollmentForm.Instrument, "Por favor, selecione um instrumento.");
+                enrollmentValidationStore.Add(() => enrollmentForm.Instrument!, "Por favor, selecione um instrumento.");
                 editContext.NotifyValidationStateChanged();
                 return;
             }
