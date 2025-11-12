@@ -9,7 +9,9 @@ public interface ILogisticsListService
 {
     Task<LogisticsList?> GetListByIdAsync(int id);
     Task<IEnumerable<LogisticsList>> GetAllListsAsync();
-    Task<LogisticsList> CreateListAsync(string name, int position);
+    Task<IEnumerable<LogisticsList>> GetListsByBoardIdAsync(int boardId);
+    Task<IEnumerable<LogisticsList>> GetListsWithCardsByBoardIdAsync(int boardId);
+    Task<LogisticsList> CreateListAsync(string name, int boardId, int position);
     Task UpdateListAsync(int id, string name);
     Task UpdateListPositionAsync(int id, int position);
     Task DeleteListAsync(int id);

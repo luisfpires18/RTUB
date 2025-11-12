@@ -125,6 +125,7 @@ public class Program
         services.AddScoped<IActivityService, ActivityService>();
         services.AddScoped<IEnrollmentService, EnrollmentService>();
         services.AddScoped<IUserProfileService, UserProfileService>();
+        services.AddScoped<ILogisticsBoardService, LogisticsBoardService>();
         services.AddScoped<ILogisticsListService, LogisticsListService>();
         services.AddScoped<ILogisticsCardService, LogisticsCardService>();
         

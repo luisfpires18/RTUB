@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using RTUB.Core.Enums;
 
 namespace RTUB.Core.Entities;
 
@@ -26,6 +27,24 @@ public class LogisticsCard : BaseEntity
 
     // Optional assignee
     public string? AssignedToUserId { get; set; }
+
+    // Status and tracking
+    [Required]
+    public CardStatus Status { get; set; } = CardStatus.Todo;
+
+    // Labels for organization (stored as comma-separated string)
+    public string? Labels { get; set; }
+
+    // Dates
+    public DateTime? StartDate { get; set; }
+    public DateTime? DueDate { get; set; }
+    public DateTime? ReminderDate { get; set; }
+
+    // Checklist items (stored as JSON)
+    public string? ChecklistJson { get; set; }
+
+    // Attachments (stored as JSON - links, pages, etc.)
+    public string? AttachmentsJson { get; set; }
 
     // Navigation properties
     public virtual LogisticsList List { get; set; } = null!;
@@ -79,5 +98,32 @@ public class LogisticsCard : BaseEntity
     public void AssignToUser(string? userId)
     {
         AssignedToUserId = userId;
+    }
+
+    public void SetStatus(CardStatus status)
+    {
+        Status = status;
+    }
+
+    public void SetLabels(string? labels)
+    {
+        Labels = labels;
+    }
+
+    public void SetDates(DateTime? startDate, DateTime? dueDate, DateTime? reminderDate)
+    {
+        StartDate = startDate;
+        DueDate = dueDate;
+        ReminderDate = reminderDate;
+    }
+
+    public void SetChecklist(string? checklistJson)
+    {
+        ChecklistJson = checklistJson;
+    }
+
+    public void SetAttachments(string? attachmentsJson)
+    {
+        AttachmentsJson = attachmentsJson;
     }
 }
