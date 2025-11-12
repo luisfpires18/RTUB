@@ -849,7 +849,7 @@ else
     private AttendanceFormModel? attendanceForm;
     private EditForm? attendanceEditForm;
     private ValidationMessageStore? attendanceValidationStore;
-    private bool wantToPlayRehearsal = false;
+    private bool wantToPlayRehearsal = true;
     private string editLocation = "";
     private string? editTheme;
     private string? editNotes;
@@ -1075,7 +1075,7 @@ else
             Instrument = null,
             Notes = null
         };
-        wantToPlayRehearsal = false;
+        wantToPlayRehearsal = true;
         showAttendanceModal = true;
         StateHasChanged();
     }

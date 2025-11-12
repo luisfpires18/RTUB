@@ -853,6 +853,8 @@ else
         isSaving = false;
     }
 
+    private ValidationMessageStore? memberValidationStore;
+
     private async Task SaveMember()
     {
         // Prevent double-submission
@@ -867,8 +869,14 @@ else
         try
         {
             var editContext = memberEditForm.EditContext;
-            var messageStore = new ValidationMessageStore(editContext);
-            messageStore.Clear();
+            
+            // Initialize or reuse the validation store
+            if (memberValidationStore == null)
+            {
+                memberValidationStore = new ValidationMessageStore(editContext);
+            }
+            
+            memberValidationStore.Clear();
 
             // Basic validation is handled by DataAnnotationsValidator
             // We only need custom validations here
@@ -878,7 +886,7 @@ else
             {
                 // Create a FieldIdentifier for the category (not a property, use string identifier)
                 var categoryField = FieldIdentifier.Create(() => selectedRole);
-                messageStore.Add(categoryField, "Categoria é obrigatória.");
+                memberValidationStore.Add(categoryField, "Categoria é obrigatória.");
                 editContext.NotifyValidationStateChanged();
                 return;
             }
@@ -894,7 +902,7 @@ else
                 var existingUser = await UserManager.FindByNameAsync(editingUser.UserName);
                 if (existingUser != null)
                 {
-                    messageStore.Add(() => editingUser.Nickname, $"Já existe um utilizador com o nome de tuna '{editingUser.Nickname}' (username: {editingUser.UserName}).");
+                    memberValidationStore.Add(() => editingUser.Nickname, $"Já existe um utilizador com o nome de tuna '{editingUser.Nickname}' (username: {editingUser.UserName}).");
                     editContext.NotifyValidationStateChanged();
                     return;
                 }
@@ -903,7 +911,7 @@ else
                 var existingEmail = await UserManager.FindByEmailAsync(editingUser.Email);
                 if (existingEmail != null)
                 {
-                    messageStore.Add(() => editingUser.Email, $"Já existe um utilizador com o email '{editingUser.Email}'.");
+                    memberValidationStore.Add(() => editingUser.Email, $"Já existe um utilizador com o email '{editingUser.Email}'.");
                     editContext.NotifyValidationStateChanged();
                     return;
                 }
@@ -917,7 +925,7 @@ else
             {
                 foreach (var error in result.Errors)
                 {
-                    messageStore.Add(() => editingUser.Email, error.Description);
+                    memberValidationStore.Add(() => editingUser.Email, error.Description);
                 }
                 editContext.NotifyValidationStateChanged();
                 return;
@@ -960,7 +968,7 @@ else
                 // Server-side guard: prevent user from being their own padrinho
                 if (!string.IsNullOrEmpty(editingUser.MentorId) && editingUser.MentorId == editingUser.Id)
                 {
-                    messageStore.Add(() => editingUser.MentorId, "Um utilizador não pode ser o seu próprio padrinho.");
+                    memberValidationStore.Add(() => editingUser.MentorId, "Um utilizador não pode ser o seu próprio padrinho.");
                     editContext.NotifyValidationStateChanged();
                     return;
                 }
@@ -1008,7 +1016,7 @@ else
                 {
                     foreach (var error in result.Errors)
                     {
-                        messageStore.Add(() => editingUser.Email, error.Description);
+                        memberValidationStore.Add(() => editingUser.Email, error.Description);
                     }
                     editContext.NotifyValidationStateChanged();
                     return;
@@ -1098,6 +1106,13 @@ else
 
     private void OnCategoryChanged()
     {
+        // Clear category validation error when a category is selected
+        if (memberEditForm?.EditContext != null && memberValidationStore != null && !string.IsNullOrEmpty(selectedRole))
+        {
+            var categoryField = FieldIdentifier.Create(() => selectedRole);
+            memberValidationStore.Clear(categoryField);
+            memberEditForm.EditContext.NotifyValidationStateChanged();
+        }
         StateHasChanged();
     }
 
