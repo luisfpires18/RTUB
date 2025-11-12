@@ -33,11 +33,13 @@ public class Instrument : BaseEntity
     
     public DateTime? LastMaintenanceDate { get; set; }
     
-    // Image
+    // Images
     public string? ImageUrl { get; set; }
+    public string? ThumbnailUrl { get; set; }
 
-    // Helper property
+    // Helper properties
     public string ImageSrc => !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
+    public string ThumbnailSrc => !string.IsNullOrEmpty(ThumbnailUrl) ? ThumbnailUrl : ImageSrc;
 
     // Private constructor for EF Core
     private Instrument() { }

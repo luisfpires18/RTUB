@@ -126,4 +126,79 @@ public class DetailsModalTests : TestContext
         // Assert
         cut.Markup.Should().Contain("modal-lg", "modal should be large size");
     }
+
+    [Fact]
+    public void DetailsModal_RendersRectangularImage_WhenUseRectangularImageIsTrue()
+    {
+        // Arrange
+        var imageUrl = "/images/test-instrument.jpg";
+
+        // Act
+        var cut = RenderComponent<DetailsModal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.Title, "Modal")
+            .Add(p => p.HeaderTitle, "Header")
+            .Add(p => p.ImageUrl, imageUrl)
+            .Add(p => p.UseRectangularImage, true));
+
+        // Assert
+        cut.Markup.Should().Contain(imageUrl, "image URL should be in the markup");
+        cut.Markup.Should().Contain("details-modal-image-rectangular", "should have rectangular image class");
+    }
+
+    [Fact]
+    public void DetailsModal_RendersCircularImage_WhenUseRectangularImageIsFalse()
+    {
+        // Arrange
+        var imageUrl = "/images/test-member.jpg";
+
+        // Act
+        var cut = RenderComponent<DetailsModal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.Title, "Modal")
+            .Add(p => p.HeaderTitle, "Header")
+            .Add(p => p.ImageUrl, imageUrl)
+            .Add(p => p.UseRectangularImage, false));
+
+        // Assert
+        cut.Markup.Should().Contain(imageUrl, "image URL should be in the markup");
+        cut.Markup.Should().Contain("details-modal-image-circular", "should have circular image class");
+    }
+
+    [Fact]
+    public void DetailsModal_DefaultsToCircularImage_WhenUseRectangularImageNotSet()
+    {
+        // Arrange
+        var imageUrl = "/images/test.jpg";
+
+        // Act
+        var cut = RenderComponent<DetailsModal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.Title, "Modal")
+            .Add(p => p.HeaderTitle, "Header")
+            .Add(p => p.ImageUrl, imageUrl));
+
+        // Assert
+        cut.Markup.Should().Contain(imageUrl, "image URL should be in the markup");
+        cut.Markup.Should().Contain("details-modal-image-circular", "should default to circular image class");
+    }
+
+    [Fact]
+    public void DetailsModal_RendersIconPlaceholder_WithCorrectClasses()
+    {
+        // Arrange
+        var iconClass = "bi-music-note-beamed";
+
+        // Act
+        var cut = RenderComponent<DetailsModal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.Title, "Modal")
+            .Add(p => p.HeaderTitle, "Header")
+            .Add(p => p.IconClass, iconClass));
+
+        // Assert
+        cut.Markup.Should().Contain("details-modal-icon-placeholder", "should have icon placeholder class");
+        cut.Markup.Should().Contain("details-modal-icon", "should have icon class");
+        cut.Markup.Should().Contain(iconClass, "icon class should be in the markup");
+    }
 }

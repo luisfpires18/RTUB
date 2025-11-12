@@ -20,13 +20,21 @@
                 }
                 else if (!string.IsNullOrEmpty(ImageUrl))
                 {
-                    <img src="@ImageUrl" alt="@HeaderTitle"
-                         class="mb-3" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 3px solid var(--bs-primary);" />
+                    @if (UseRectangularImage)
+                    {
+                        <img src="@ImageUrl" alt="@HeaderTitle"
+                             class="mb-3 details-modal-image-rectangular" />
+                    }
+                    else
+                    {
+                        <img src="@ImageUrl" alt="@HeaderTitle"
+                             class="mb-3 details-modal-image-circular" />
+                    }
                 }
                 else if (!string.IsNullOrEmpty(IconClass))
                 {
-                    <div class="mb-3" style="width: 200px; height: 200px; border-radius: 50%; background: linear-gradient(135deg, rgba(111, 66, 193, 0.2), rgba(111, 66, 193, 0.05)); display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 3px solid var(--bs-primary);">
-                        <i class="bi @IconClass" style="font-size: 4rem; color: rgba(255, 255, 255, 0.5);"></i>
+                    <div class="mb-3 details-modal-icon-placeholder">
+                        <i class="bi @IconClass details-modal-icon"></i>
                     </div>
                 }
                 
@@ -109,6 +117,13 @@
     /// </summary>
     [Parameter]
     public string? IconClass { get; set; }
+
+    /// <summary>
+    /// When true, displays image as rectangular with rounded corners instead of circular.
+    /// Useful for full-size images like instruments. Default is false (circular).
+    /// </summary>
+    [Parameter]
+    public bool UseRectangularImage { get; set; } = false;
 
     /// <summary>
     /// Optional badges content to display below header title
