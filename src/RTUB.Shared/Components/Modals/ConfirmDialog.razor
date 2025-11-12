@@ -4,58 +4,31 @@
     Used for delete confirmations and other yes/no dialogs
 *@
 
-<div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7); display: @(Show ? "block" : "none");">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-bottom border-secondary @(ConfirmButtonClass == "btn-danger" ? "bg-danger bg-opacity-10" : "")">
-                <h5 class="modal-title @(ConfirmButtonClass == "btn-danger" ? "text-danger" : "")">
-                    @if (ConfirmButtonClass == "btn-danger")
-                    {
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                    }
-                    @Title
-                </h5>
-                @if (ShowCloseButton)
-                {
-                    <button type="button" class="btn-close" @onclick="HandleCancel"></button>
-                }
-            </div>
-            <div class="modal-body">
-                @if (BodyContent != null)
-                {
-                    @BodyContent
-                }
-                else
-                {
-                    <div class="d-flex align-items-start">
-                        <i class="bi bi-info-circle text-primary fs-4 me-3 mt-1"></i>
-                        <div>
-                            @if (!string.IsNullOrEmpty(Message))
-                            {
-                                <p class="mb-2">@Message</p>
-                            }
-                            @if (!string.IsNullOrEmpty(WarningMessage))
-                            {
-                                <p class="text-danger mb-0">
-                                    <i class="bi bi-exclamation-circle me-1"></i>
-                                    <small>@WarningMessage</small>
-                                </p>
-                            }
-                        </div>
-                    </div>
-                }
-            </div>
-            <div class="modal-footer border-top border-secondary">
-                <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
-                    <i class="bi bi-x-circle me-2"></i>@CancelText
-                </button>
-                <button type="button" class="btn @ConfirmButtonClass" @onclick="HandleConfirm">
-                    <i class="bi bi-@(ConfirmButtonClass == "btn-danger" ? "trash" : "check-circle") me-2"></i>@ConfirmText
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+<Modal Show="@Show" 
+       ShowChanged="@ShowChanged"
+       Title="@Title" 
+       Size="@Size"
+       Centered="true"
+       ShowCloseButton="@ShowCloseButton">
+    <BodyContent>
+        @if (BodyContent != null)
+        {
+            @BodyContent
+        }
+        else if (!string.IsNullOrEmpty(Message))
+        {
+            <p>@Message</p>
+        }
+        @if (!string.IsNullOrEmpty(WarningMessage))
+        {
+            <p class="text-muted">@WarningMessage</p>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="HandleCancel">@CancelText</button>
+        <button type="button" class="btn @ConfirmButtonClass" @onclick="HandleConfirm">@ConfirmText</button>
+    </FooterContent>
+</Modal>
 
 @code {
     /// <summary>
@@ -123,6 +96,12 @@
     /// </summary>
     [Parameter]
     public EventCallback OnCancel { get; set; }
+
+    /// <summary>
+    /// Modal size
+    /// </summary>
+    [Parameter]
+    public Modal.ModalSize Size { get; set; } = Modal.ModalSize.Default;
 
     /// <summary>
     /// Whether to show close button in header

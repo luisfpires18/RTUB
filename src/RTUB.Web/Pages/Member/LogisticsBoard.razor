@@ -528,27 +528,27 @@
     </div>
 }
 
-@* Delete Modals using ConfirmDialog Component *@
-<ConfirmDialog Show="@showDeleteListModal"
-               ShowChanged="@((show) => showDeleteListModal = show)"
-               Title="Confirmar Eliminação"
-               Message="@($"Tem a certeza que deseja eliminar a lista \"{deletingList?.Name}\"?")"
-               WarningMessage="Todos os cartões desta lista também serão eliminados."
-               ConfirmText="Eliminar"
-               CancelText="Cancelar"
-               ConfirmButtonClass="btn-danger"
-               OnConfirm="ConfirmDeleteList"
-               OnCancel="CloseDeleteListModal" />
+@* Delete Modals using ConfirmDialog2 Component *@
+<ConfirmDialog2 Show="@showDeleteListModal"
+                ShowChanged="@((show) => showDeleteListModal = show)"
+                Title="Confirmar Eliminação"
+                Message="@($"Tem a certeza que deseja eliminar a lista \"{deletingList?.Name}\"?")"
+                WarningMessage="Todos os cartões desta lista também serão eliminados."
+                ConfirmText="Eliminar"
+                CancelText="Cancelar"
+                ConfirmButtonClass="btn-danger"
+                OnConfirm="ConfirmDeleteList"
+                OnCancel="CloseDeleteListModal" />
 
-<ConfirmDialog Show="@showDeleteCardModal"
-               ShowChanged="@((show) => showDeleteCardModal = show)"
-               Title="Confirmar Eliminação"
-               Message="@($"Tem a certeza que deseja eliminar o cartão \"{deletingCard?.Title}\"?")"
-               ConfirmText="Eliminar"
-               CancelText="Cancelar"
-               ConfirmButtonClass="btn-danger"
-               OnConfirm="ConfirmDeleteCard"
-               OnCancel="CloseDeleteCardModal" />
+<ConfirmDialog2 Show="@showDeleteCardModal"
+                ShowChanged="@((show) => showDeleteCardModal = show)"
+                Title="Confirmar Eliminação"
+                Message="@($"Tem a certeza que deseja eliminar o cartão \"{deletingCard?.Title}\"?")"
+                ConfirmText="Eliminar"
+                CancelText="Cancelar"
+                ConfirmButtonClass="btn-danger"
+                OnConfirm="ConfirmDeleteCard"
+                OnCancel="CloseDeleteCardModal" />
 
 @code {
     // Helper classes (private to avoid naming conflicts)

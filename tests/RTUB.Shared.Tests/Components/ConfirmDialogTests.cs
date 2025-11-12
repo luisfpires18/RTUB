@@ -295,15 +295,15 @@ public class ConfirmDialogTests : TestContext
     }
 
     [Fact]
-    public void ConfirmDialog_ShowsWarningIconForDanger()
+    public void ConfirmDialog_AppliesModalSize()
     {
         // Arrange & Act
         var cut = RenderComponent<ConfirmDialog>(parameters => parameters
             .Add(p => p.Show, true)
-            .Add(p => p.ConfirmButtonClass, "btn-danger"));
+            .Add(p => p.Size, Modal.ModalSize.Large));
 
         // Assert
-        cut.Markup.Should().Contain("bi-exclamation-triangle", "dialog should show warning icon for danger confirmations");
+        cut.Markup.Should().Contain("modal-lg", "dialog should apply the specified modal size");
     }
 
     [Fact]
