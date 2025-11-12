@@ -66,7 +66,8 @@ public class Program
             Console.WriteLine($"Warning: Could not ensure database directory exists: {ex.Message}");
         }
         
-        services.AddDbContext<ApplicationDbContext>(o => o.UseSqlite(connectionString, b => b.MigrationsAssembly("RTUB")));
+        services.AddDbContext<ApplicationDbContext>(o => o.UseSqlite(connectionString, b => b.MigrationsAssembly("RTUB"))
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
         // ---------- Identity ----------
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
