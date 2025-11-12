@@ -164,31 +164,62 @@ else
             <DataAnnotationsValidator />
             <ErrorDisplay />
 
+            @if (showPastDateWarning && editingEvent != null && editingEvent.Date.Date < DateTime.Today)
+            {
+                <Alert Type="Alert.AlertType.Purple"
+                       Icon="bi-info-circle"
+                       Dismissible="false"
+                       AdditionalClasses="mb-3">
+                    <strong>Nota:</strong> Esta data é anterior à data atual. O evento será disponibilizado nas atuações anteriores.
+                </Alert>
+            }
+
             <div class="mb-3">
                 <label class="form-label">Nome da Atuação</label>
                 <InputText class="form-control" @bind-Value="editingEvent!.Name" />
             </div>
 
+            <div class="mb-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input clickable-row" type="checkbox" id="dateRangeToggle"
+                           @bind="isDateRange" @bind:after="OnDateRangeToggled" />
+                    <label class="form-check-label form-check-label-white-clickable" for="dateRangeToggle">
+                        Intervalo de Datas (em vez de data única)
+                    </label>
+                </div>
+            </div>
+
             <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Data Início</label>
-                    @if (isCreateMode)
-                    {
-                        <InputDate class="form-control" @bind-Value="editingEvent!.Date" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" />
-                    }
-                    else
-                    {
-                        <InputDate class="form-control" @bind-Value="editingEvent!.Date" />
-                    }
-                    @if (!string.IsNullOrEmpty(dateValidationError))
-                    {
-                        <div class="text-danger small mt-1">@dateValidationError</div>
-                    }
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Data Fim (opcional)</label>
-                    <InputDate class="form-control" @bind-Value="editingEvent!.EndDate" />
-                </div>
+                @if (!isDateRange)
+                {
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Data</label>
+                        <InputDate class="form-control" @bind-Value="editingEvent!.Date" @bind-Value:after="OnDateChanged" />
+                        @if (!string.IsNullOrEmpty(dateValidationError))
+                        {
+                            <div class="text-danger small mt-1">@dateValidationError</div>
+                        }
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Hora</label>
+                        <input type="time" class="form-control" value="@eventTimeString" @onchange="@((ChangeEventArgs e) => { eventTimeString = e.Value?.ToString() ?? "19:00"; OnTimeChanged(); })" />
+                    </div>
+                }
+                else
+                {
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Data Início</label>
+                        <InputDate class="form-control" @bind-Value="editingEvent!.Date" @bind-Value:after="OnDateChanged" />
+                        @if (!string.IsNullOrEmpty(dateValidationError))
+                        {
+                            <div class="text-danger small mt-1">@dateValidationError</div>
+                        }
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Data Fim (opcional)</label>
+                        <InputDate class="form-control" @bind-Value="editingEvent!.EndDate" />
+                    </div>
+                }
             </div>
 
             <div class="mb-3">
@@ -586,9 +617,7 @@ else
                     <ProfileField Label="Nome" Value="@selectedEvent.Name" />
                     <ProfileField Label="Tipo" Value="@GetEventTypeDisplay(selectedEvent.Type)" />
                     <ProfileField Label="Data" 
-                                Value="@(selectedEvent.EndDate.HasValue && selectedEvent.EndDate.Value.Date != selectedEvent.Date.Date 
-                                        ? $"{selectedEvent.Date:dd MMM} - {selectedEvent.EndDate.Value:dd MMM yyyy}" 
-                                        : selectedEvent.Date.ToString("dd MMM yyyy"))" />
+                                Value="@GetEventDateDisplay(selectedEvent)" />
                     <ProfileField Label="Localização" Value="@selectedEvent.Location" />
                 </InfoSection>
 
@@ -834,6 +863,9 @@ else
     private List<Trophy>? eventTrophies;
     private string? uploadedImagePath;
     private string dateValidationError = string.Empty;
+    private bool showPastDateWarning = false;
+    private bool isDateRange = false;
+    private string eventTimeString = "19:00"; // Default to 19:00 (7 PM)
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
@@ -887,21 +919,33 @@ else
             isCreateMode = true;
             uploadedImagePath = null;
             dateValidationError = string.Empty;
+            showPastDateWarning = false;
+            isDateRange = false;
+            eventTimeString = "19:00";
             
             var name = query["name"];
             var location = query["location"];
             var dateStr = query["date"];
             var description = query["description"];
             
+            var parsedDate = DateTime.TryParse(dateStr, out var date) ? date : DateTime.Today;
+            var eventTime = TimeSpan.Parse(eventTimeString);
+            
             editingEvent = new Event
             {
                 Name = !string.IsNullOrEmpty(name) ? name : string.Empty,
                 Location = !string.IsNullOrEmpty(location) ? location : string.Empty,
                 Description = !string.IsNullOrEmpty(description) ? description : string.Empty,
-                Date = DateTime.TryParse(dateStr, out var parsedDate) ? parsedDate : DateTime.Today.AddDays(1),
+                Date = parsedDate.Date.Add(eventTime),
                 ImageUrl = string.Empty,
                 Type = EventType.Atuacao
             };
+            
+            // Check if the date is in the past to show warning
+            if (editingEvent.Date.Date < DateTime.Today)
+            {
+                showPastDateWarning = true;
+            }
             
             showEditModal = true;
         }
@@ -1000,9 +1044,14 @@ else
         isCreateMode = true;
         uploadedImagePath = null;
         dateValidationError = string.Empty;
+        showPastDateWarning = false;
+        isDateRange = false;
+        eventTimeString = "19:00"; // Default to 19:00
+        
+        var eventTime = TimeSpan.Parse(eventTimeString);
         editingEvent = new Event
         {
-            Date = DateTime.Today.AddDays(1),
+            Date = DateTime.Today.Add(eventTime),
             Name = string.Empty,
             Description = string.Empty,
             ImageUrl = string.Empty,
@@ -1017,6 +1066,14 @@ else
         isCreateMode = false;
         uploadedImagePath = null;
         dateValidationError = string.Empty;
+        showPastDateWarning = false;
+        
+        // Detect if this is a date range (has EndDate and different from Date)
+        isDateRange = eventItem.EndDate.HasValue && eventItem.EndDate.Value.Date != eventItem.Date.Date;
+        
+        // Extract time from the DateTime
+        eventTimeString = eventItem.Date.ToString("HH:mm");
+        
         editingEvent = new Event
         {
             Id = eventItem.Id,
@@ -1037,6 +1094,7 @@ else
         showEditModal = false;
         editingEvent = null;
         uploadedImagePath = null;
+        showPastDateWarning = false;
     }
 
     private async Task HandleImageUpload(IBrowserFile file)
@@ -1094,13 +1152,8 @@ else
     {
         if (editingEvent == null) return;
 
-        // Validate date is in the future only for new events
+        // Clear any validation errors
         dateValidationError = string.Empty;
-        if (isCreateMode && editingEvent.Date.Date <= DateTime.Today)
-        {
-            dateValidationError = "Event date must be after today.";
-            return;
-        }
 
         if (isCreateMode)
         {
@@ -1469,6 +1522,25 @@ else
         };
     }
 
+    private string GetEventDateDisplay(Event eventItem)
+    {
+        if (eventItem.EndDate.HasValue && eventItem.EndDate.Value.Date != eventItem.Date.Date)
+        {
+            // Date range
+            return $"{eventItem.Date:dd MMM} - {eventItem.EndDate.Value:dd MMM yyyy}";
+        }
+        else if (eventItem.Date.TimeOfDay != TimeSpan.Zero)
+        {
+            // Single date with time
+            return $"{eventItem.Date:dd MMM yyyy}, {eventItem.Date:HH:mm}h";
+        }
+        else
+        {
+            // Single date without time (all-day)
+            return eventItem.Date.ToString("dd MMM yyyy");
+        }
+    }
+
     // Repertoire modal methods
     private void OpenRepertoireModal(Event eventItem)
     {
@@ -1749,6 +1821,55 @@ else
         }
         finally
         {
+            StateHasChanged();
+        }
+    }
+
+    private void OnDateChanged()
+    {
+        if (editingEvent != null)
+        {
+            showPastDateWarning = editingEvent.Date.Date < DateTime.Today;
+            
+            // When date changes and not a date range, update the time component
+            if (!isDateRange && TimeSpan.TryParse(eventTimeString, out var time))
+            {
+                editingEvent.Date = editingEvent.Date.Date.Add(time);
+            }
+            
+            StateHasChanged();
+        }
+    }
+    
+    private void OnTimeChanged()
+    {
+        if (editingEvent != null && !isDateRange && TimeSpan.TryParse(eventTimeString, out var time))
+        {
+            // Update the event date with the new time
+            editingEvent.Date = editingEvent.Date.Date.Add(time);
+            StateHasChanged();
+        }
+    }
+    
+    private void OnDateRangeToggled()
+    {
+        if (editingEvent != null)
+        {
+            if (isDateRange)
+            {
+                // Switching to date range mode - set time to midnight
+                editingEvent.Date = editingEvent.Date.Date;
+                editingEvent.EndDate = null;
+            }
+            else
+            {
+                // Switching to single date mode - add the time component
+                if (TimeSpan.TryParse(eventTimeString, out var time))
+                {
+                    editingEvent.Date = editingEvent.Date.Date.Add(time);
+                }
+                editingEvent.EndDate = null;
+            }
             StateHasChanged();
         }
     }

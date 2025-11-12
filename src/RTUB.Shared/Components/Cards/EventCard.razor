@@ -67,6 +67,11 @@
                 else
                 {
                     <span>@Event.Date.ToString("dd MMM yyyy")</span>
+                    @* Show time if it's not midnight (single date with time) *@
+                    @if (Event.Date.TimeOfDay != TimeSpan.Zero)
+                    {
+                        <span>, @Event.Date.ToString("HH:mm")h</span>
+                    }
                 }
                 @if (Event.Date.Date == DateTime.Today)
                 {

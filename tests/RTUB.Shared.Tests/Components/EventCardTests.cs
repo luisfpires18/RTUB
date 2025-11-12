@@ -347,4 +347,79 @@ public class EventCardTests : TestContext
         cut.Markup.Should().NotContain("HOJE", "should not display HOJE badge for yesterday's event");
         cut.Markup.Should().NotContain("event-today-badge", "should not have event-today-badge class");
     }
+
+    [Fact]
+    public void EventCard_DisplaysTime_WhenEventHasTimeComponent()
+    {
+        // Arrange
+        var eventDate = new DateTime(2025, 12, 25, 17, 0, 0); // 5 PM
+        var eventEntity = Event.Create("Evening Event", eventDate, "Concert Hall", EventType.Atuacao);
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("25 Dec 2025", "card should display event date");
+        cut.Markup.Should().Contain("17:00h", "card should display time when event has time component");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotDisplayTime_WhenEventIsAtMidnight()
+    {
+        // Arrange
+        var eventDate = new DateTime(2025, 12, 25, 0, 0, 0); // Midnight (all-day event)
+        var eventEntity = Event.Create("All Day Event", eventDate, "Location", EventType.Atuacao);
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("25 Dec 2025", "card should display event date");
+        cut.Markup.Should().NotContain("00:00h", "card should not display time for midnight (all-day events)");
+    }
+
+    [Fact]
+    public void EventCard_DisplaysDateRange_WithoutTime()
+    {
+        // Arrange
+        var startDate = new DateTime(2025, 12, 20, 0, 0, 0);
+        var endDate = new DateTime(2025, 12, 25, 0, 0, 0);
+        var eventEntity = Event.Create("Multi-day Event", startDate, "Location", EventType.Festival);
+        eventEntity.SetEndDate(endDate);
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("20 Dec", "card should display start date");
+        cut.Markup.Should().Contain("25 Dec 2025", "card should display end date");
+        cut.Markup.Should().NotContain("00:00h", "card should not display time for date ranges");
+    }
+
+    [Fact]
+    public void EventCard_DisplaysTime_WithDifferentHours()
+    {
+        // Arrange
+        var morningEvent = Event.Create("Morning Event", new DateTime(2025, 12, 25, 9, 30, 0), "Location", EventType.Atuacao);
+        var eveningEvent = Event.Create("Evening Event", new DateTime(2025, 12, 25, 19, 0, 0), "Location", EventType.Atuacao);
+
+        // Act
+        var cutMorning = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, morningEvent)
+            .Add(p => p.EnrollmentCount, 0));
+
+        var cutEvening = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eveningEvent)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cutMorning.Markup.Should().Contain("09:30h", "morning event should display 09:30h");
+        cutEvening.Markup.Should().Contain("19:00h", "evening event should display 19:00h");
+    }
 }
