@@ -309,7 +309,7 @@ else
             }
             else if (!string.IsNullOrEmpty(birthdayEmailErrorMessage))
             {
-                <Alert Title="@birthdayEmailErrorMessage" 
+                <Alert Message="@birthdayEmailErrorMessage" 
                        Type="Alert.AlertType.Error" 
                        Dismissible="true"
                        OnDismiss="@(() => birthdayEmailErrorMessage = null)" />
@@ -338,7 +338,7 @@ else
                 }
                 else
                 {
-                    <Alert Title="Nenhum membro subscrito às notificações por email." 
+                    <Alert Message="Nenhum membro subscrito às notificações por email." 
                            Type="Alert.AlertType.Warning" />
                 }
             }
