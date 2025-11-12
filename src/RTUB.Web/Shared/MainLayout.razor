@@ -48,6 +48,7 @@
                     <Authorized>
                         <li class="nav-item"><NavLink class="nav-link" href="/hierarchy"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/logistics"><i class="bi bi-kanban"></i> Logística</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
                         @if (currentUser != null && !currentUser.IsLeitao())
@@ -185,6 +186,7 @@
     <link href="/css/avatarcard.css" rel="stylesheet" />
     <link href="/css/enrollmentcard.css" rel="stylesheet" />
     <link href="/css/instrumentcircle.css" rel="stylesheet" />
+    <link href="/css/kanban.css" rel="stylesheet" />
 </HeadContent>
 
 <script src="/_framework/blazor.web.js" autostart="false" suppress-error="BL9992"></script>
@@ -196,6 +198,7 @@
 <script src="/js/familyTree.js"></script>
 <script src="/js/roleBadge.js"></script>
 <script src="/js/scrollToTop.js"></script>
+<script src="/js/kanban.js"></script>
 <script>
     // Configure Blazor to use absolute path for SignalR hub
     // This prevents 404 errors when on /admin/* or other sub-paths
