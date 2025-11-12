@@ -84,6 +84,82 @@ public class EventServiceTests : IDisposable
         result.Should().HaveCount(2);
     }
 
+    [Fact]
+    public async Task GetUpcomingEventsAsync_WithTodayEvent_IncludesEvent()
+    {
+        // Arrange
+        var today = DateTime.Today;
+        _context.Events.Add(Event.Create("Today Event", today, "Location", EventType.Festival));
+        _context.Events.Add(Event.Create("Future Event", today.AddDays(1), "Location", EventType.Festival));
+        _context.Events.Add(Event.Create("Past Event", today.AddDays(-1), "Location", EventType.Festival));
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = (await _eventService.GetUpcomingEventsAsync(10)).ToList();
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().Contain(e => e.Name == "Today Event");
+        result.Should().Contain(e => e.Name == "Future Event");
+        result.Should().NotContain(e => e.Name == "Past Event");
+    }
+
+    [Fact]
+    public async Task GetPastEventsAsync_WithTodayEvent_ExcludesEvent()
+    {
+        // Arrange
+        var today = DateTime.Today;
+        _context.Events.Add(Event.Create("Today Event", today, "Location", EventType.Festival));
+        _context.Events.Add(Event.Create("Future Event", today.AddDays(1), "Location", EventType.Festival));
+        _context.Events.Add(Event.Create("Past Event", today.AddDays(-1), "Location", EventType.Festival));
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = (await _eventService.GetPastEventsAsync(10)).ToList();
+
+        // Assert
+        result.Should().HaveCount(1);
+        result.Should().Contain(e => e.Name == "Past Event");
+        result.Should().NotContain(e => e.Name == "Today Event");
+        result.Should().NotContain(e => e.Name == "Future Event");
+    }
+
+    [Fact]
+    public async Task GetUpcomingEventsAsync_WithEventEndingToday_IncludesEvent()
+    {
+        // Arrange
+        var today = DateTime.Today;
+        var eventEntity = Event.Create("Multi-day Event", today.AddDays(-2), "Location", EventType.Festival);
+        eventEntity.SetEndDate(today);
+        _context.Events.Add(eventEntity);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = (await _eventService.GetUpcomingEventsAsync(10)).ToList();
+
+        // Assert
+        result.Should().HaveCount(1);
+        result.Should().Contain(e => e.Name == "Multi-day Event");
+    }
+
+    [Fact]
+    public async Task GetPastEventsAsync_WithEventEndingYesterday_IncludesEvent()
+    {
+        // Arrange
+        var today = DateTime.Today;
+        var eventEntity = Event.Create("Multi-day Event", today.AddDays(-3), "Location", EventType.Festival);
+        eventEntity.SetEndDate(today.AddDays(-1));
+        _context.Events.Add(eventEntity);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = (await _eventService.GetPastEventsAsync(10)).ToList();
+
+        // Assert
+        result.Should().HaveCount(1);
+        result.Should().Contain(e => e.Name == "Multi-day Event");
+    }
+
     public void Dispose()
     {
         _context?.Dispose();

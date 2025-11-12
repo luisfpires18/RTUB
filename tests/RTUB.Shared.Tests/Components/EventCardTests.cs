@@ -295,4 +295,56 @@ public class EventCardTests : TestContext
         cut.Markup.Should().Contain("Test Event", $"event type {eventType} should display name");
         cut.Markup.Should().Contain("card", $"event type {eventType} should have card class");
     }
+
+    [Fact]
+    public void EventCard_ShowsHojeBadge_WhenEventIsToday()
+    {
+        // Arrange
+        var today = DateTime.Today;
+        var eventEntity = Event.Create("Today Event", today, "Location", EventType.Atuacao);
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("HOJE", "should display HOJE badge for today's event");
+        cut.Markup.Should().Contain("event-today-badge", "should have event-today-badge class");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotShowHojeBadge_WhenEventIsTomorrow()
+    {
+        // Arrange
+        var tomorrow = DateTime.Today.AddDays(1);
+        var eventEntity = Event.Create("Tomorrow Event", tomorrow, "Location", EventType.Atuacao);
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("HOJE", "should not display HOJE badge for tomorrow's event");
+        cut.Markup.Should().NotContain("event-today-badge", "should not have event-today-badge class");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotShowHojeBadge_WhenEventWasYesterday()
+    {
+        // Arrange
+        var yesterday = DateTime.Today.AddDays(-1);
+        var eventEntity = Event.Create("Yesterday Event", yesterday, "Location", EventType.Atuacao);
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsPastEvent, true)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("HOJE", "should not display HOJE badge for yesterday's event");
+        cut.Markup.Should().NotContain("event-today-badge", "should not have event-today-badge class");
+    }
 }
