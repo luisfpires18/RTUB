@@ -1101,7 +1101,7 @@ else
                 {
                     if (!attendanceForm.Instrument.HasValue)
                     {
-                        attendanceValidationStore.Add(() => attendanceForm.Instrument, "Por favor, selecione um instrumento.");
+                        attendanceValidationStore.Add(() => attendanceForm.Instrument!, "Por favor, selecione um instrumento.");
                         editContext.NotifyValidationStateChanged();
                         return;
                     }
@@ -1140,7 +1140,7 @@ else
             // Clear instrument validation error when instrument is selected
             if (instrument.HasValue && attendanceValidationStore != null)
             {
-                attendanceValidationStore.Clear(() => attendanceForm.Instrument);
+                attendanceValidationStore.Clear(() => attendanceForm.Instrument!);
                 attendanceEditForm.EditContext.NotifyValidationStateChanged();
             }
         }

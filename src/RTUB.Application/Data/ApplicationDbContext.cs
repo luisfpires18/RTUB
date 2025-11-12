@@ -360,6 +360,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             "PasswordHash", "SecurityStamp", "ConcurrencyStamp", "NormalizedUserName",
             "NormalizedEmail", "LockoutEnd", "AccessFailedCount", "TwoFactorEnabled",
             "PhoneNumberConfirmed", "EmailConfirmed", "LockoutEnabled",
+            "LastLoginDate", // Exclude login tracking - already logged separately
             "Categories", "Positions" // Legacy collection properties - using CategoriesJson/PositionsJson instead
         };
 

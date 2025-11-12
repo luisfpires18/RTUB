@@ -513,7 +513,6 @@ else
     private ApplicationUser editingUser = new();
     private ApplicationUser? deletingUser;
     private ApplicationUser? viewingUser;
-    private string errorMessage = "";
     private EditForm? memberEditForm;
     
     // Mentor search variables
@@ -779,7 +778,6 @@ else
     {
         isCreateMode = true;
         editingUser = new ApplicationUser();
-        errorMessage = "";
         mentorSearchTerm = "";
         filteredMentors.Clear();
         selectedMentorCache = null;
@@ -836,7 +834,6 @@ else
         }
         
         filteredMentors.Clear();
-        errorMessage = "";
         showEditModal = true;
     }
 
@@ -844,7 +841,6 @@ else
     {
         showEditModal = false;
         editingUser = new();
-        errorMessage = "";
         mentorSearchTerm = "";
         filteredMentors.Clear();
         selectedMentorCache = null;
@@ -896,7 +892,6 @@ else
         }
 
         isSaving = true;
-        errorMessage = "";
 
         try
         {
@@ -924,14 +919,14 @@ else
 
                 if (string.IsNullOrEmpty(editingUser.Email))
                 {
-                    memberValidationStore.Add(() => editingUser.Email, "O email é obrigatório.");
+                    memberValidationStore.Add(() => editingUser.Email!, "O email é obrigatório.");
                     editContext.NotifyValidationStateChanged();
                     return;
                 }
 
                 // Set UserName to normalized version of Nickname (tuna name)
                 // Keep Nickname as display name, but use normalized version for username
-                editingUser.UserName = UsernameHelper.NormalizeUsername(editingUser.Nickname);
+                editingUser.UserName = UsernameHelper.NormalizeUsername(editingUser.Nickname!);
                 editingUser.EmailConfirmed = true;
 
                 // Check if username already exists
@@ -1012,12 +1007,12 @@ else
 
             if (string.IsNullOrEmpty(editingUser.Email))
             {
-                memberValidationStore.Add(() => editingUser.Email, "O email é obrigatório.");
+                memberValidationStore.Add(() => editingUser.Email!, "O email é obrigatório.");
                 editContext.NotifyValidationStateChanged();
                 return;
             }
 
-            var existingUser = await UserManager.FindByIdAsync(editingUser.Id);
+            var existingUser = await UserManager.FindByIdAsync(editingUser.Id!);
             if (existingUser != null)
             {
                 // Server-side guard: prevent user from being their own padrinho

@@ -66,7 +66,15 @@ public class Program
             Console.WriteLine($"Warning: Could not ensure database directory exists: {ex.Message}");
         }
         
-        services.AddDbContext<ApplicationDbContext>(o => o.UseSqlite(connectionString, b => b.MigrationsAssembly("RTUB")));
+        services.AddDbContext<ApplicationDbContext>(o => 
+        {
+            o.UseSqlite(connectionString, b => 
+            {
+                b.MigrationsAssembly("RTUB");
+                // Configure query splitting to prevent N+1 query performance issues when loading multiple collections
+                b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+            });
+        });
 
         // ---------- Identity ----------
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>

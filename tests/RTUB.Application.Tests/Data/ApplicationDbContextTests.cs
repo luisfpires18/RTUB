@@ -811,7 +811,7 @@ public class ApplicationDbContextTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveChangesAsync_WhenUserLastLoginDateChanged_CreatesAuditLog()
+    public async Task SaveChangesAsync_WhenUserLastLoginDateChanged_DoesNotCreateAuditLog()
     {
         // Arrange - Create a user
         var user = new ApplicationUser
@@ -837,15 +837,9 @@ public class ApplicationDbContextTests : IDisposable
         userFromDb!.LastLoginDate = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
-        // Assert
+        // Assert - LastLoginDate is excluded from audit logs as it's tracked separately in application logs
         var auditLogs = await _context.AuditLogs.ToListAsync();
-        auditLogs.Should().ContainSingle();
-        
-        var auditLog = auditLogs.First();
-        auditLog.EntityType.Should().Be("ApplicationUser");
-        auditLog.Action.Should().Be("Modified");
-        auditLog.IsCriticalAction.Should().BeFalse(); // LastLoginDate is not critical
-        auditLog.Changes.Should().Contain("LastLoginDate");
+        auditLogs.Should().BeEmpty("LastLoginDate changes should not create audit logs");
     }
 
     [Fact]
@@ -1173,7 +1167,7 @@ public class ApplicationDbContextTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveChangesAsync_WhenOnlyLastLoginDateChanged_CreatesAuditLogForLogin()
+    public async Task SaveChangesAsync_WhenOnlyLastLoginDateChanged_DoesNotCreateAuditLog()
     {
         // Arrange - Create a user
         var user = new ApplicationUser
@@ -1199,23 +1193,9 @@ public class ApplicationDbContextTests : IDisposable
         userFromDb.LastLoginDate = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
-        // Assert - Audit log should be created with only LastLoginDate in non-metadata changes
+        // Assert - LastLoginDate is excluded from audit logs as it's tracked separately
         var auditLogs = await _context.AuditLogs.ToListAsync();
-        auditLogs.Should().ContainSingle();
-
-        var auditLog = auditLogs.First();
-        auditLog.Changes.Should().Contain("LastLoginDate");
-        auditLog.Changes.Should().Contain("_TargetUser"); // Metadata field
-        
-        // Verify that the changes JSON contains LastLoginDate as the only non-metadata field
-        if (!string.IsNullOrEmpty(auditLog.Changes))
-        {
-            var changesDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(auditLog.Changes);
-            changesDict.Should().NotBeNull();
-            var nonMetadataKeys = changesDict!.Keys.Where(k => !k.StartsWith("_")).ToList();
-            nonMetadataKeys.Should().ContainSingle();
-            nonMetadataKeys[0].Should().Be("LastLoginDate");
-        }
+        auditLogs.Should().BeEmpty("LastLoginDate changes should not create audit logs");
     }
 
     [Fact]
@@ -1275,7 +1255,7 @@ public class ApplicationDbContextTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveChangesAsync_WhenLastLoginDateUpdatedViaAuditContext_AuditLogShowsCorrectUser()
+    public async Task SaveChangesAsync_WhenLastLoginDateUpdatedViaAuditContext_DoesNotCreateAuditLog()
     {
         // Arrange - Create a user (simulating login scenario)
         var user = new ApplicationUser
@@ -1311,17 +1291,9 @@ public class ApplicationDbContextTests : IDisposable
         // Clear AuditContext after save
         _auditContext.Clear();
 
-        // Assert - Verify the audit log shows the correct user, not "System"
+        // Assert - LastLoginDate is excluded from audit logs
         var auditLogs = await _context.AuditLogs.ToListAsync();
-        auditLogs.Should().ContainSingle();
-        
-        var auditLog = auditLogs.First();
-        auditLog.EntityType.Should().Be("ApplicationUser");
-        auditLog.Action.Should().Be("Modified");
-        auditLog.UserName.Should().Be("jeans", "the audit log should show the user who logged in, not 'System'");
-        auditLog.UserId.Should().Be(user.Id);
-        auditLog.Changes.Should().Contain("LastLoginDate");
-        auditLog.Changes.Should().Contain("jeans"); // Should contain the target user in _TargetUser field
+        auditLogs.Should().BeEmpty("LastLoginDate changes should not create audit logs");
     }
 
     public void Dispose()

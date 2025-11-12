@@ -34,7 +34,7 @@ public class InstrumentConditionHelperTests
     [Theory]
     [InlineData(InstrumentCondition.Excellent, "bg-success")]
     [InlineData(InstrumentCondition.Good, "bg-info")]
-    [InlineData(InstrumentCondition.Worn, "bg-warning")]
+    [InlineData(InstrumentCondition.Worn, "bg-orange")]
     [InlineData(InstrumentCondition.NeedsMaintenance, "bg-warning")]
     [InlineData(InstrumentCondition.Lost, "bg-danger")]
     public void GetBadgeClass_ReturnsCorrectCssClass(InstrumentCondition condition, string expectedClass)
