@@ -1,6 +1,7 @@
 @page "/logistics/{BoardId:int}"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Interfaces
@@ -176,8 +177,9 @@
                             <div class="list-group mt-2" style="max-height: 200px; overflow-y: auto;">
                                 @foreach (var user in filteredUsers.Take(10))
                                 {
+                                    var userName = user.UserName ?? user.Email ?? string.Empty;
                                     <button type="button" class="list-group-item list-group-item-action" 
-                                            @onclick="() => SelectUser(user.Id, user.UserName ?? user.Email ?? \"\")">
+                                            @onclick="() => SelectUser(user.Id, userName)">
                                         <i class="bi bi-person"></i> @(user.UserName ?? user.Email)
                                     </button>
                                 }
@@ -288,7 +290,7 @@
                             </div>
                         }
                         <div class="input-group input-group-sm">
-                            <input type="text" class="form-control" placeholder="Nova tarefa..." @bind="newChecklistItem" @onkeydown="@((e) => { if (e.Key == \"Enter\") AddChecklistItem(); })" />
+                            <input type="text" class="form-control" placeholder="Nova tarefa..." @bind="newChecklistItem" @onkeydown="HandleChecklistKeyDown" />
                             <button class="btn btn-outline-secondary" type="button" @onclick="AddChecklistItem">
                                 <i class="bi bi-plus"></i>
                             </button>
@@ -696,6 +698,14 @@
     }
 
     // Checklist methods
+    private void HandleChecklistKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddChecklistItem();
+        }
+    }
+
     private void AddChecklistItem()
     {
         if (string.IsNullOrWhiteSpace(newChecklistItem)) return;
@@ -721,7 +731,7 @@
     {
         if (selectedCard == null) return;
         var json = System.Text.Json.JsonSerializer.Serialize(checklistItems ?? new List<ChecklistItem>());
-        await CardService.SetChecklistAsync(selectedCard.Id, json);
+        await CardService.SetCardChecklistAsync(selectedCard.Id, json);
     }
 
     // Attachment methods
