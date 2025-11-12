@@ -83,25 +83,6 @@ else
         </div>
     </div>
 
-    <!-- Pagination Controls -->
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <label class="form-label">Itens por página</label>
-            <select class="form-select" @bind="itemsPerPage" @bind:after="OnItemsPerPageChanged">
-                <option value="6">6</option>
-                <option value="12">12</option>
-                <option value="18">18</option>
-                <option value="24">24</option>
-                <option value="30">30</option>
-            </select>
-        </div>
-        <div class="col-md-8 d-flex align-items-end justify-content-end">
-            <span class="text-muted">
-                Mostrando @GetDisplayRange() de @filteredInstruments.Count instrumentos
-            </span>
-        </div>
-    </div>
-
     <!-- Instruments Grid with InstrumentCircle Component -->
     <div class="row">
         @foreach (var instrument in paginatedInstruments)
@@ -129,35 +110,14 @@ else
         }
     </div>
 
-    <!-- Pagination Navigation -->
-    @if (totalPages > 1)
-    {
-        <nav aria-label="Navegação de páginas">
-            <ul class="pagination justify-content-center">
-                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                    <button class="page-link" @onclick="() => GoToPage(currentPage - 1)" disabled="@(currentPage == 1)">
-                        Anterior
-                    </button>
-                </li>
-                
-                @for (int i = 1; i <= totalPages; i++)
-                {
-                    var pageNumber = i;
-                    <li class="page-item @(currentPage == pageNumber ? "active" : "")">
-                        <button class="page-link" @onclick="() => GoToPage(pageNumber)">
-                            @pageNumber
-                        </button>
-                    </li>
-                }
-                
-                <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                    <button class="page-link" @onclick="() => GoToPage(currentPage + 1)" disabled="@(currentPage == totalPages)">
-                        Próxima
-                    </button>
-                </li>
-            </ul>
-        </nav>
-    }
+    <!-- Pagination Component -->
+    <TablePagination CurrentPage="@currentPage"
+                     PageSize="@itemsPerPage"
+                     TotalItems="@filteredInstruments.Count"
+                     ItemLabel="instrumentos"
+                     PageSizeOptions="@(new[] { 6, 12, 18, 24, 30 })"
+                     OnPageChanged="@HandlePageChanged"
+                     OnPageSizeChanged="@HandlePageSizeChanged" />
 }
 
 <!-- Details Modal -->
@@ -353,7 +313,6 @@ else
     // Pagination
     private int currentPage = 1;
     private int itemsPerPage = 6;
-    private int totalPages => (int)Math.Ceiling((double)filteredInstruments.Count / itemsPerPage);
 
     // Details Modal State
     private bool showViewDetailsModal = false;
@@ -435,29 +394,19 @@ else
         paginatedInstruments = filteredInstruments.Skip(skip).Take(itemsPerPage).ToList();
     }
 
-    private void GoToPage(int page)
+    private Task HandlePageChanged(int newPage)
     {
-        if (page < 1 || page > totalPages)
-            return;
-
-        currentPage = page;
+        currentPage = newPage;
         ApplyPagination();
+        return Task.CompletedTask;
     }
 
-    private void OnItemsPerPageChanged()
+    private Task HandlePageSizeChanged(int newPageSize)
     {
-        currentPage = 1;
+        itemsPerPage = newPageSize;
+        currentPage = 1; // Reset to first page when page size changes
         ApplyPagination();
-    }
-
-    private string GetDisplayRange()
-    {
-        if (filteredInstruments.Count == 0)
-            return "0";
-
-        var start = (currentPage - 1) * itemsPerPage + 1;
-        var end = Math.Min(currentPage * itemsPerPage, filteredInstruments.Count);
-        return $"{start}-{end}";
+        return Task.CompletedTask;
     }
 
     // Details Modal Methods
