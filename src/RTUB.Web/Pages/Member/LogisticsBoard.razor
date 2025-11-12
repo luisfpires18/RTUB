@@ -475,48 +475,48 @@
                     
                     <div class="mb-3">
                         <label class="form-label fw-bold text-primary">
-                            <i class="bi bi-people me-2"></i>Membros Atribuídos
+                            <i class="bi bi-person me-2"></i>Membro Atribuído
                         </label>
-                        @if (assignedMembers != null && assignedMembers.Any())
+                        @if (selectedCard?.AssignedToUser != null)
                         {
                             <div class="d-flex flex-wrap gap-2 mb-2">
-                                @foreach (var member in assignedMembers)
-                                {
-                                    <span class="badge bg-secondary d-inline-flex align-items-center" style="padding: 0.4rem 0.6rem;">
-                                        <i class="bi bi-person me-1"></i> @member.UserName
-                                        <button type="button" class="btn-close btn-close-white ms-2" 
-                                                style="font-size: 0.6rem; padding: 0;" @onclick="() => RemoveMember(member)"></button>
-                                    </span>
-                                }
+                                <span class="badge bg-secondary d-inline-flex align-items-center" style="padding: 0.4rem 0.6rem;">
+                                    <i class="bi bi-person me-1"></i> @selectedCard.AssignedToUser.UserName
+                                    <button type="button" class="btn-close btn-close-white ms-2" 
+                                            style="font-size: 0.6rem; padding: 0;" @onclick="RemoveAssignedUser"></button>
+                                </span>
                             </div>
                         }
                         else
                         {
                             <p class="text-light-theme small mb-2">Nenhum membro atribuído</p>
                         }
-                        <div class="input-group input-group-sm position-relative">
-                            <input type="text" class="form-control" placeholder="Pesquisar utilizador..." 
-                                   @bind="memberSearchTerm" @bind:event="oninput" />
-                            @if (!string.IsNullOrEmpty(memberSearchTerm) && filteredMembersForAssignment != null && filteredMembersForAssignment.Any())
-                            {
-                                <div class="position-absolute w-100 bg-dark rounded" style="top: 100%; z-index: 1000;">
-                                    <div class="list-group" style="max-height: 200px; overflow-y: auto;">
-                                        @foreach (var user in filteredMembersForAssignment.Take(10))
-                                        {
-                                            var userName = user.UserName ?? user.Email ?? string.Empty;
-                                            <button type="button" class="list-group-item list-group-item-action bg-dark border-secondary d-flex align-items-center" 
-                                                    @onclick="() => AddMember(user)">
-                                                <i class="bi bi-person text-primary me-2"></i> @userName
-                                            </button>
-                                        }
+                        @if (selectedCard?.AssignedToUser == null)
+                        {
+                            <div class="input-group input-group-sm position-relative">
+                                <input type="text" class="form-control" placeholder="Pesquisar utilizador..." 
+                                       @bind="memberSearchTerm" @bind:event="oninput" />
+                                @if (!string.IsNullOrEmpty(memberSearchTerm) && filteredMembersForAssignment != null && filteredMembersForAssignment.Any())
+                                {
+                                    <div class="position-absolute w-100 bg-dark rounded" style="top: 100%; z-index: 1000;">
+                                        <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                            @foreach (var user in filteredMembersForAssignment.Take(10))
+                                            {
+                                                var userName = user.UserName ?? user.Email ?? string.Empty;
+                                                <button type="button" class="list-group-item list-group-item-action bg-dark border-secondary d-flex align-items-center" 
+                                                        @onclick="() => AssignUser(user)">
+                                                    <i class="bi bi-person text-primary me-2"></i> @userName
+                                                </button>
+                                            }
+                                        </div>
                                     </div>
-                                </div>
-                            }
-                        </div>
+                                }
+                            </div>
+                        }
                     </div>
                 </div>
                 <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn btn-danger" @onclick="() => { CloseCardDetailsModal(); OpenDeleteCardModal(selectedCard); }">
+                    <button type="button" class="btn btn-danger" @onclick="DeleteCurrentCard">
                         <i class="bi bi-trash me-2"></i>Eliminar
                     </button>
                     <button type="button" class="btn btn-secondary ms-auto" @onclick="CloseCardDetailsModal">
@@ -528,72 +528,27 @@
     </div>
 }
 
-@* Delete Modals *@
-@if (showDeleteListModal)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header border-bottom border-secondary bg-danger bg-opacity-10">
-                    <h5 class="modal-title text-danger">
-                        <i class="bi bi-exclamation-triangle me-2"></i>Confirmar Eliminação
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="CloseDeleteListModal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="d-flex align-items-start mb-3">
-                        <i class="bi bi-info-circle text-primary fs-4 me-3 mt-1"></i>
-                        <div>
-                            <p class="mb-2">Tem a certeza que deseja eliminar a lista <strong>"@deletingList?.Name"</strong>?</p>
-                            <p class="text-danger mb-0">
-                                <i class="bi bi-exclamation-circle me-1"></i>
-                                <small>Todos os cartões desta lista também serão eliminados.</small>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteListModal">
-                        <i class="bi bi-x-circle me-2"></i>Cancelar
-                    </button>
-                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteList">
-                        <i class="bi bi-trash me-2"></i>Eliminar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+@* Delete Modals using ConfirmDialog Component *@
+<ConfirmDialog Show="@showDeleteListModal"
+               ShowChanged="@((show) => showDeleteListModal = show)"
+               Title="Confirmar Eliminação"
+               Message="@($"Tem a certeza que deseja eliminar a lista \"{deletingList?.Name}\"?")"
+               WarningMessage="Todos os cartões desta lista também serão eliminados."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmDeleteList"
+               OnCancel="CloseDeleteListModal" />
 
-@if (showDeleteCardModal)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header border-bottom border-secondary bg-danger bg-opacity-10">
-                    <h5 class="modal-title text-danger">
-                        <i class="bi bi-exclamation-triangle me-2"></i>Confirmar Eliminação
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="CloseDeleteCardModal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="d-flex align-items-start">
-                        <i class="bi bi-info-circle text-primary fs-4 me-3 mt-1"></i>
-                        <p class="mb-0">Tem a certeza que deseja eliminar o cartão <strong>"@deletingCard?.Title"</strong>?</p>
-                    </div>
-                </div>
-                <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteCardModal">
-                        <i class="bi bi-x-circle me-2"></i>Cancelar
-                    </button>
-                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteCard">
-                        <i class="bi bi-trash me-2"></i>Eliminar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+<ConfirmDialog Show="@showDeleteCardModal"
+               ShowChanged="@((show) => showDeleteCardModal = show)"
+               Title="Confirmar Eliminação"
+               Message="@($"Tem a certeza que deseja eliminar o cartão \"{deletingCard?.Title}\"?")"
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmDeleteCard"
+               OnCancel="CloseDeleteCardModal" />
 
 @code {
     // Helper classes (private to avoid naming conflicts)
@@ -660,11 +615,10 @@
     private List<AttachmentItem>? cardAttachments;
     private int? newAttachmentCardId = null;
     private Dictionary<string, List<LogisticsCard>>? allBoardCards;
-    private List<ApplicationUser>? assignedMembers;
     private string memberSearchTerm = string.Empty;
     private List<ApplicationUser>? filteredMembersForAssignment => users?.Where(u => 
         !string.IsNullOrEmpty(memberSearchTerm) && 
-        (assignedMembers == null || !assignedMembers.Any(m => m.Id == u.Id)) &&
+        (selectedCard == null || selectedCard.AssignedToUserId != u.Id) &&
         ((u.UserName != null && u.UserName.Contains(memberSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
         (u.Email != null && u.Email.Contains(memberSearchTerm, StringComparison.OrdinalIgnoreCase)))).ToList();
 
@@ -927,14 +881,6 @@
             catch { }
         }
         
-        // Parse assigned members (stored as comma-separated user IDs in AssignedToUserId field, or just one)
-        assignedMembers = new List<ApplicationUser>();
-        if (!string.IsNullOrEmpty(card.AssignedToUserId))
-        {
-            var userIds = card.AssignedToUserId.Split(',', StringSplitOptions.RemoveEmptyEntries);
-            assignedMembers = users?.Where(u => userIds.Contains(u.Id)).ToList() ?? new List<ApplicationUser>();
-        }
-        
         cardStartDate = card.StartDate?.ToString("yyyy-MM-dd");
         cardDueDate = card.DueDate?.ToString("yyyy-MM-dd");
         cardDetailsText = card.Description ?? string.Empty;
@@ -1045,31 +991,6 @@
         await CardService.SetCardAttachmentsAsync(selectedCard.Id, json);
     }
 
-    // Member management methods
-    private void AddMember(ApplicationUser user)
-    {
-        assignedMembers ??= new List<ApplicationUser>();
-        if (!assignedMembers.Any(m => m.Id == user.Id))
-        {
-            assignedMembers.Add(user);
-            SaveMembers();
-        }
-        memberSearchTerm = string.Empty;
-    }
-
-    private void RemoveMember(ApplicationUser user)
-    {
-        assignedMembers?.Remove(user);
-        SaveMembers();
-    }
-
-    private async void SaveMembers()
-    {
-        if (selectedCard == null) return;
-        var userIds = string.Join(",", assignedMembers?.Select(m => m.Id) ?? Array.Empty<string>());
-        await CardService.AssignCardToUserAsync(selectedCard.Id, string.IsNullOrEmpty(userIds) ? null : userIds);
-    }
-
     // Details text method
     private async Task UpdateCardDetails()
     {
@@ -1085,7 +1006,37 @@
         await CardService.SetCardDatesAsync(selectedCard.Id, start, due, null);
     }
 
+    // Member assignment methods
+    private async void AssignUser(ApplicationUser user)
+    {
+        if (selectedCard == null) return;
+        await CardService.AssignCardToUserAsync(selectedCard.Id, user.Id);
+        selectedCard.AssignedToUserId = user.Id;
+        selectedCard.AssignedToUser = user;
+        memberSearchTerm = string.Empty;
+        await LoadData();
+    }
+
+    private async void RemoveAssignedUser()
+    {
+        if (selectedCard == null) return;
+        await CardService.AssignCardToUserAsync(selectedCard.Id, null);
+        selectedCard.AssignedToUserId = null;
+        selectedCard.AssignedToUser = null;
+        await LoadData();
+    }
+
     // Card delete methods
+    private void DeleteCurrentCard()
+    {
+        if (selectedCard != null)
+        {
+            deletingCard = selectedCard;
+            showDeleteCardModal = true;
+            CloseCardDetailsModal();
+        }
+    }
+
     private void OpenDeleteCardModal(LogisticsCard card)
     {
         deletingCard = card;
