@@ -28,10 +28,15 @@
         else
         {
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="d-flex align-items-center">
-                    <a href="/logistics" class="btn btn-sm btn-outline-secondary me-2">
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/logistics" class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-arrow-left"></i> Voltar
                     </a>
+                    <FilterDropdown IconClass="bi-tag" 
+                                   AllItemsLabel="Todas as Etiquetas"
+                                   Items="@availableLabels"
+                                   SelectedValue="@selectedLabelFilter"
+                                   SelectedValueChanged="@((value) => { selectedLabelFilter = value; StateHasChanged(); })" />
                 </div>
                 <h1 class="text-center flex-grow-1 mb-0"><i class="bi bi-kanban"></i> @board.Name</h1>
                 <button class="btn btn-success" @onclick="OpenCreateListModal">
@@ -70,12 +75,19 @@
                                 </div>
                             </div>
                             <div class="kanban-cards" data-list-id="@list.Id">
-                                @foreach (var card in list.Cards.OrderBy(c => c.Position))
+                                @foreach (var card in GetFilteredCards(list.Cards))
                                 {
                                     <div class="kanban-card @(card.Status == CardStatus.Done ? "card-done" : "card-todo")" 
                                          data-card-id="@card.Id" 
                                          draggable="true"
                                          @onclick="() => OpenCardDetailsModal(card)">
+                                        <div class="position-absolute top-0 end-0 p-2">
+                                            <button class="btn btn-sm btn-outline-danger" style="padding: 0.15rem 0.3rem; font-size: 0.7rem;" 
+                                                    @onclick="() => OpenDeleteCardModal(card)" 
+                                                    @onclick:stopPropagation="true">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
                                         <div class="card-status-bar @(card.Status == CardStatus.Done ? "bg-success" : "bg-danger")">
                                             <i class="bi bi-@(card.Status == CardStatus.Done ? "check" : "x")-circle-fill"></i>
                                         </div>
@@ -108,8 +120,8 @@
                                     </div>
                                 }
                             </div>
-                            <button class="btn btn-sm btn-link w-100 text-start" @onclick="() => OpenCreateCardModal(list.Id)">
-                                <i class="bi bi-plus"></i> Adicionar cartão
+                            <button class="btn btn-primary w-100" @onclick="() => OpenCreateCardModal(list.Id)">
+                                <i class="bi bi-plus-lg"></i> Adicionar Cartão
                             </button>
                         </div>
                     }
@@ -256,19 +268,21 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold">Datas</label>
                         <div class="row g-2">
-                            <div class="col-4">
+                            <div class="col-6">
                                 <label class="form-label small">Início</label>
                                 <input type="date" class="form-control form-control-sm" value="@cardStartDate" @onchange="@((e) => { cardStartDate = e.Value?.ToString(); UpdateCardDates(); })" />
                             </div>
-                            <div class="col-4">
+                            <div class="col-6">
                                 <label class="form-label small">Prazo</label>
                                 <input type="date" class="form-control form-control-sm" value="@cardDueDate" @onchange="@((e) => { cardDueDate = e.Value?.ToString(); UpdateCardDates(); })" />
                             </div>
-                            <div class="col-4">
-                                <label class="form-label small">Lembrete</label>
-                                <input type="date" class="form-control form-control-sm" value="@cardReminderDate" @onchange="@((e) => { cardReminderDate = e.Value?.ToString(); UpdateCardDates(); })" />
-                            </div>
                         </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Detalhes</label>
+                        <textarea class="form-control" rows="4" placeholder="Adicionar detalhes..." 
+                                  @bind="cardDetailsText" @onblur="UpdateCardDetails"></textarea>
                     </div>
                     
                     <div class="mb-3">
@@ -320,14 +334,63 @@
                             </div>
                         }
                         <div class="input-group input-group-sm">
-                            <select class="form-select" @bind="newAttachmentType">
-                                <option value="card">Link para Cartão</option>
+                            <select class="form-select" @bind="newAttachmentCardId">
+                                <option value="">Selecionar cartão...</option>
+                                @if (allBoardCards != null)
+                                {
+                                    @foreach (var list in allBoardCards)
+                                    {
+                                        <optgroup label="@list.Key">
+                                            @foreach (var card in list.Value)
+                                            {
+                                                @if (selectedCard == null || card.Id != selectedCard.Id)
+                                                {
+                                                    <option value="@card.Id">@card.Title</option>
+                                                }
+                                            }
+                                        </optgroup>
+                                    }
+                                }
                             </select>
-                            <input type="number" class="form-control" placeholder="ID do Cartão" @bind="newAttachmentCardId" />
-                            <input type="text" class="form-control" placeholder="Nome/Descrição" @bind="newAttachmentName" />
                             <button class="btn btn-outline-secondary" type="button" @onclick="AddAttachment">
                                 <i class="bi bi-plus"></i>
                             </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Membros Atribuídos</label>
+                        @if (assignedMembers != null && assignedMembers.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                @foreach (var member in assignedMembers)
+                                {
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-person"></i> @member.UserName
+                                        <button type="button" class="btn-close btn-close-white ms-1" 
+                                                style="font-size: 0.6rem;" @onclick="() => RemoveMember(member)"></button>
+                                    </span>
+                                }
+                            </div>
+                        }
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" placeholder="Pesquisar utilizador..." 
+                                   @bind="memberSearchTerm" @bind:event="oninput" />
+                            @if (!string.IsNullOrEmpty(memberSearchTerm) && filteredMembersForAssignment != null && filteredMembersForAssignment.Any())
+                            {
+                                <div class="position-absolute w-100" style="top: 100%; z-index: 1000;">
+                                    <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                        @foreach (var user in filteredMembersForAssignment.Take(10))
+                                        {
+                                            var userName = user.UserName ?? user.Email ?? string.Empty;
+                                            <button type="button" class="list-group-item list-group-item-action" 
+                                                    @onclick="() => AddMember(user)">
+                                                <i class="bi bi-person"></i> @userName
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -362,6 +425,27 @@
     </div>
 }
 
+@if (showDeleteCardModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Eliminação</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDeleteCardModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem a certeza que deseja eliminar o cartão "<strong>@deletingCard?.Title</strong>"?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteCardModal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteCard">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     // Helper classes (private to avoid naming conflicts)
     private class LabelItem
@@ -390,6 +474,10 @@
     private List<Event>? events;
     private List<ApplicationUser>? users;
 
+    // Filtering
+    private string selectedLabelFilter = string.Empty;
+    private List<string> availableLabels = new();
+
     // List modal state
     private bool showListModal = false;
     private LogisticsList? editingList = null;
@@ -417,17 +505,25 @@
     private string newLabelColor = "#6f42c1";
     private string? cardStartDate = null;
     private string? cardDueDate = null;
-    private string? cardReminderDate = null;
+    private string cardDetailsText = string.Empty;
     private List<ChecklistItem>? checklistItems;
     private string newChecklistItem = string.Empty;
     private List<AttachmentItem>? cardAttachments;
-    private string newAttachmentType = "card";
     private int? newAttachmentCardId = null;
-    private string newAttachmentName = string.Empty;
+    private Dictionary<string, List<LogisticsCard>>? allBoardCards;
+    private List<ApplicationUser>? assignedMembers;
+    private string memberSearchTerm = string.Empty;
+    private List<ApplicationUser>? filteredMembersForAssignment => users?.Where(u => 
+        !string.IsNullOrEmpty(memberSearchTerm) && 
+        (assignedMembers == null || !assignedMembers.Any(m => m.Id == u.Id)) &&
+        ((u.UserName != null && u.UserName.Contains(memberSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+        (u.Email != null && u.Email.Contains(memberSearchTerm, StringComparison.OrdinalIgnoreCase)))).ToList();
 
     // Delete modal state
     private bool showDeleteListModal = false;
     private LogisticsList? deletingList = null;
+    private bool showDeleteCardModal = false;
+    private LogisticsCard? deletingCard = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -448,9 +544,39 @@
         if (board != null)
         {
             lists = board.Lists.ToList();
+            
+            // Extract all unique labels for filtering
+            availableLabels = lists
+                .SelectMany(l => l.Cards)
+                .SelectMany(c => GetCardLabels(c))
+                .Select(l => l.Text)
+                .Distinct()
+                .OrderBy(l => l)
+                .ToList();
+            
+            // Build card lookup for attachments
+            allBoardCards = lists.ToDictionary(
+                l => l.Name,
+                l => l.Cards.OrderBy(c => c.Position).ToList()
+            );
         }
         events = (await EventService.GetAllEventsAsync()).ToList();
         users = await UserManager.Users.ToListAsync();
+    }
+
+    // Filter cards by label
+    private IEnumerable<LogisticsCard> GetFilteredCards(IEnumerable<LogisticsCard> cards)
+    {
+        var orderedCards = cards.OrderBy(c => c.Position);
+        
+        if (string.IsNullOrEmpty(selectedLabelFilter))
+            return orderedCards;
+        
+        return orderedCards.Where(c =>
+        {
+            var labels = GetCardLabels(c);
+            return labels.Any(l => l.Text == selectedLabelFilter);
+        });
     }
 
     // List operations
@@ -652,9 +778,18 @@
             catch { }
         }
         
+        // Parse assigned members (stored as comma-separated user IDs in AssignedToUserId field, or just one)
+        assignedMembers = new List<ApplicationUser>();
+        if (!string.IsNullOrEmpty(card.AssignedToUserId))
+        {
+            var userIds = card.AssignedToUserId.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            assignedMembers = users?.Where(u => userIds.Contains(u.Id)).ToList() ?? new List<ApplicationUser>();
+        }
+        
         cardStartDate = card.StartDate?.ToString("yyyy-MM-dd");
         cardDueDate = card.DueDate?.ToString("yyyy-MM-dd");
-        cardReminderDate = card.ReminderDate?.ToString("yyyy-MM-dd");
+        cardDetailsText = card.Description ?? string.Empty;
+        memberSearchTerm = string.Empty;
         showCardDetailsModal = true;
     }
 
@@ -737,11 +872,14 @@
     // Attachment methods
     private void AddAttachment()
     {
-        if (!newAttachmentCardId.HasValue || string.IsNullOrWhiteSpace(newAttachmentName)) return;
+        if (!newAttachmentCardId.HasValue) return;
+        
+        var linkedCard = allBoardCards?.Values.SelectMany(cards => cards).FirstOrDefault(c => c.Id == newAttachmentCardId.Value);
+        if (linkedCard == null) return;
+        
         cardAttachments ??= new List<AttachmentItem>();
-        cardAttachments.Add(new AttachmentItem { Name = newAttachmentName, CardId = newAttachmentCardId });
+        cardAttachments.Add(new AttachmentItem { Name = linkedCard.Title, CardId = newAttachmentCardId });
         newAttachmentCardId = null;
-        newAttachmentName = string.Empty;
         SaveAttachments();
     }
 
@@ -758,13 +896,73 @@
         await CardService.SetCardAttachmentsAsync(selectedCard.Id, json);
     }
 
+    // Member management methods
+    private void AddMember(ApplicationUser user)
+    {
+        assignedMembers ??= new List<ApplicationUser>();
+        if (!assignedMembers.Any(m => m.Id == user.Id))
+        {
+            assignedMembers.Add(user);
+            SaveMembers();
+        }
+        memberSearchTerm = string.Empty;
+    }
+
+    private void RemoveMember(ApplicationUser user)
+    {
+        assignedMembers?.Remove(user);
+        SaveMembers();
+    }
+
+    private async void SaveMembers()
+    {
+        if (selectedCard == null) return;
+        var userIds = string.Join(",", assignedMembers?.Select(m => m.Id) ?? Array.Empty<string>());
+        await CardService.AssignCardToUserAsync(selectedCard.Id, string.IsNullOrEmpty(userIds) ? null : userIds);
+    }
+
+    // Details text method
+    private async Task UpdateCardDetails()
+    {
+        if (selectedCard == null) return;
+        await CardService.UpdateCardAsync(selectedCard.Id, selectedCard.Title, cardDetailsText);
+    }
+
     private async Task UpdateCardDates()
     {
         if (selectedCard == null) return;
         DateTime? start = string.IsNullOrEmpty(cardStartDate) ? null : DateTime.Parse(cardStartDate);
         DateTime? due = string.IsNullOrEmpty(cardDueDate) ? null : DateTime.Parse(cardDueDate);
-        DateTime? reminder = string.IsNullOrEmpty(cardReminderDate) ? null : DateTime.Parse(cardReminderDate);
-        await CardService.SetCardDatesAsync(selectedCard.Id, start, due, reminder);
+        await CardService.SetCardDatesAsync(selectedCard.Id, start, due, null);
+    }
+
+    // Card delete methods
+    private void OpenDeleteCardModal(LogisticsCard card)
+    {
+        deletingCard = card;
+        showDeleteCardModal = true;
+    }
+
+    private void CloseDeleteCardModal()
+    {
+        showDeleteCardModal = false;
+        deletingCard = null;
+    }
+
+    private async Task ConfirmDeleteCard()
+    {
+        if (deletingCard == null) return;
+        
+        try
+        {
+            await CardService.DeleteCardAsync(deletingCard.Id);
+            await LoadData();
+            CloseDeleteCardModal();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
     }
 
     [JSInvokable]
