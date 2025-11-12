@@ -174,17 +174,17 @@ public static class ApplicationUserExtensions
     #region Display Name Methods
     
     /// <summary>
-    /// Gets the display name in the format: "Nickname" FirstName LastName
-    /// Example: "Jeans" Luís Pires
-    /// If no nickname exists, returns FirstName LastName
+    /// Gets the display name in the format: Nickname (First Name Last Name)
+    /// Example: Jeans (Luís Pires)
+    /// If no nickname exists, returns First Name Last Name
     /// </summary>
     public static string GetDisplayName(this ApplicationUser user)
     {
         if (string.IsNullOrEmpty(user.Nickname))
         {
-            return $"{user.FirstName} {user.LastName}";
+            return $"{user.FirstName} {user.LastName}".Trim();
         }
-        return $"{user.Nickname} {user.FirstName} {user.LastName}";
+        return $"{user.Nickname} ({user.FirstName} {user.LastName})".Trim();
     }
     #endregion
 }

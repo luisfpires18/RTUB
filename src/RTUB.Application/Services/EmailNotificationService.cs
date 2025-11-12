@@ -49,12 +49,9 @@ public class EmailNotificationService : IEmailNotificationService
     /// <inheritdoc/>
     public async Task SendRequestStatusChangedAsync(int requestId, string requestName, string requestEmail, RequestStatus oldStatus, RequestStatus newStatus)
     {
-        // TODO: Implement actual email sending logic
-        // Placeholder for actual implementation:
-        // var subject = $"Request Status Update - #{requestId}";
-        // var body = BuildStatusChangeEmailBody(requestName, requestId, oldStatus, newStatus);
-        // await _emailSender.SendEmailAsync(requestEmail, subject, body);
-
+        // Note: This method is deprecated and kept for backward compatibility only.
+        // Email notifications for request status changes are not currently implemented.
+        // Use the full overload SendNewRequestNotificationAsync for new request notifications.
         await Task.CompletedTask;
     }
 

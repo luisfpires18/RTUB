@@ -55,7 +55,7 @@ public class LoginAuditLogTests : IDisposable
     }
 
     [Fact]
-    public async Task Login_UpdateLastLoginDate_CreatesAuditLogWithUserName()
+    public async Task Login_UpdateLastLoginDate_DoesNotCreateAuditLog()
     {
         // Arrange - Create a user (simulating existing user in database)
         var user = new ApplicationUser
@@ -91,19 +91,13 @@ public class LoginAuditLogTests : IDisposable
         // Assert
         updateResult.Succeeded.Should().BeTrue();
         
+        // LastLoginDate is now excluded from audit logs as it's tracked separately in application logs
         var auditLogs = await _context.AuditLogs.ToListAsync();
-        auditLogs.Should().ContainSingle("an audit log should be created for LastLoginDate update");
-        
-        var auditLog = auditLogs.First();
-        auditLog.EntityType.Should().Be("ApplicationUser");
-        auditLog.Action.Should().Be("Modified");
-        auditLog.UserName.Should().Be("johndoe", "the audit log should record who performed the action");
-        auditLog.UserId.Should().Be(user.Id);
-        auditLog.Changes.Should().Contain("LastLoginDate");
+        auditLogs.Should().BeEmpty("LastLoginDate changes should not create audit logs");
     }
     
     [Fact]
-    public async Task Login_WithoutAuditContext_CreatesAuditLogWithNullUserName()
+    public async Task Login_WithoutAuditContext_DoesNotCreateAuditLog()
     {
         // Arrange - Create a user
         var user = new ApplicationUser
@@ -125,7 +119,7 @@ public class LoginAuditLogTests : IDisposable
         _context.AuditLogs.RemoveRange(existingLogs);
         await _context.SaveChangesAsync();
         
-        // Act - Simulate login WITHOUT setting audit context (bug scenario)
+        // Act - Simulate login WITHOUT setting audit context
         // DON'T set audit context: _auditContext.SetUser(user.UserName, user.Id);
         
         user.LastLoginDate = DateTime.UtcNow;
@@ -134,12 +128,9 @@ public class LoginAuditLogTests : IDisposable
         // Assert
         updateResult.Succeeded.Should().BeTrue();
         
+        // LastLoginDate is now excluded from audit logs
         var auditLogs = await _context.AuditLogs.ToListAsync();
-        auditLogs.Should().ContainSingle();
-        
-        var auditLog = auditLogs.First();
-        auditLog.UserName.Should().BeNull("when audit context is not set, UserName should be null");
-        auditLog.UserId.Should().BeNull();
+        auditLogs.Should().BeEmpty("LastLoginDate changes should not create audit logs");
     }
 
     public void Dispose()
