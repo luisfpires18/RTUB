@@ -662,14 +662,11 @@ namespace RTUB.Migrations
                     b.ToTable("Labels");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCard", b =>
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsBoard", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("AssignedToUserId")
-                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -685,10 +682,72 @@ namespace RTUB.Migrations
                     b.Property<int?>("EventId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId");
+
+                    b.ToTable("LogisticsBoards");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCard", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AssignedToUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AttachmentsJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ChecklistJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("EventId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Labels")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("ListId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ReminderDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Title")
@@ -719,6 +778,9 @@ namespace RTUB.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("BoardId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -740,6 +802,8 @@ namespace RTUB.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BoardId");
 
                     b.ToTable("LogisticsLists");
                 });
@@ -1521,6 +1585,15 @@ namespace RTUB.Migrations
                     b.Navigation("Event");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsBoard", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.Event", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId");
+
+                    b.Navigation("Event");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsCard", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.ApplicationUser", "AssignedToUser")
@@ -1544,6 +1617,17 @@ namespace RTUB.Migrations
                     b.Navigation("List");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsList", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.LogisticsBoard", "Board")
+                        .WithMany("Lists")
+                        .HasForeignKey("BoardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Board");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Activity", b =>
                 {
                     b.Navigation("Transactions");
@@ -1561,6 +1645,11 @@ namespace RTUB.Migrations
                     b.Navigation("RepertoireSongs");
 
                     b.Navigation("Trophies");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsBoard", b =>
+                {
+                    b.Navigation("Lists");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsList", b =>

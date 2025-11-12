@@ -5,11 +5,37 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace RTUB.Migrations
 {
     /// <inheritdoc />
-    public partial class AddLogisticsBoard : Migration
+    public partial class AddLogisticsBoardSystem : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Create LogisticsBoards table
+            migrationBuilder.CreateTable(
+                name: "LogisticsBoards",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: false),
+                    EventId = table.Column<int>(type: "INTEGER", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_LogisticsBoards", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_LogisticsBoards_Events_EventId",
+                        column: x => x.EventId,
+                        principalTable: "Events",
+                        principalColumn: "Id");
+                });
+
+            // Create LogisticsLists table
             migrationBuilder.CreateTable(
                 name: "LogisticsLists",
                 columns: table => new
@@ -18,6 +44,7 @@ namespace RTUB.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
                     Position = table.Column<int>(type: "INTEGER", nullable: false),
+                    BoardId = table.Column<int>(type: "INTEGER", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
@@ -26,8 +53,15 @@ namespace RTUB.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_LogisticsLists", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_LogisticsLists_LogisticsBoards_BoardId",
+                        column: x => x.BoardId,
+                        principalTable: "LogisticsBoards",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
+            // Create LogisticsCards table
             migrationBuilder.CreateTable(
                 name: "LogisticsCards",
                 columns: table => new
@@ -40,6 +74,13 @@ namespace RTUB.Migrations
                     Position = table.Column<int>(type: "INTEGER", nullable: false),
                     EventId = table.Column<int>(type: "INTEGER", nullable: true),
                     AssignedToUserId = table.Column<string>(type: "TEXT", nullable: true),
+                    Status = table.Column<int>(type: "INTEGER", nullable: false),
+                    Labels = table.Column<string>(type: "TEXT", nullable: true),
+                    StartDate = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    DueDate = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    ReminderDate = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    ChecklistJson = table.Column<string>(type: "TEXT", nullable: true),
+                    AttachmentsJson = table.Column<string>(type: "TEXT", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
@@ -66,6 +107,17 @@ namespace RTUB.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            // Create indexes
+            migrationBuilder.CreateIndex(
+                name: "IX_LogisticsBoards_EventId",
+                table: "LogisticsBoards",
+                column: "EventId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LogisticsLists_BoardId",
+                table: "LogisticsLists",
+                column: "BoardId");
+
             migrationBuilder.CreateIndex(
                 name: "IX_LogisticsCards_AssignedToUserId",
                 table: "LogisticsCards",
@@ -90,6 +142,9 @@ namespace RTUB.Migrations
 
             migrationBuilder.DropTable(
                 name: "LogisticsLists");
+
+            migrationBuilder.DropTable(
+                name: "LogisticsBoards");
         }
     }
 }
