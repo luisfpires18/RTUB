@@ -940,7 +940,9 @@ else
             e => e.Name ?? "",
             e => e.Location ?? "",
             e => e.Description ?? ""
-        });
+        })
+        .OrderByDescending(e => e.Date)
+        .ToList();
 
         paginationHelper.Reset(); // Reset to first page when filtering
     }

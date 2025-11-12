@@ -35,9 +35,9 @@ public class EventService : IEventService
 
     public async Task<IEnumerable<Event>> GetUpcomingEventsAsync(int count = 10)
     {
-        var now = DateTime.Now;
+        var today = DateTime.Today;
         return await _context.Events
-            .Where(e => (e.EndDate.HasValue ? e.EndDate.Value : e.Date) >= now)
+            .Where(e => (e.EndDate.HasValue ? e.EndDate.Value.Date : e.Date.Date) >= today)
             .OrderBy(e => e.Date)
             .Take(count)
             .ToListAsync();
@@ -45,9 +45,9 @@ public class EventService : IEventService
 
     public async Task<IEnumerable<Event>> GetPastEventsAsync(int count = 10)
     {
-        var now = DateTime.Now;
+        var today = DateTime.Today;
         return await _context.Events
-            .Where(e => (e.EndDate.HasValue ? e.EndDate.Value : e.Date) < now)
+            .Where(e => (e.EndDate.HasValue ? e.EndDate.Value.Date : e.Date.Date) < today)
             .OrderByDescending(e => e.Date)
             .Take(count)
             .ToListAsync();
