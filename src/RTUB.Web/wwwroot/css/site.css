@@ -1390,14 +1390,14 @@ th:hover {
 
 /* Info button */
 .btn-info {
-    background-color: #17a2b8;
-    border-color: #17a2b8;
+    background-color: #007bff;
+    border-color: #007bff;
     color: white;
 }
 
 .btn-info:hover {
-    background-color: #138496;
-    border-color: #117a8b;
+    background-color: #0069d9;
+    border-color: #0062cc;
     color: white;
 }
 
