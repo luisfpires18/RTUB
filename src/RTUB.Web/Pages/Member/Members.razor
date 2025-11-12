@@ -855,18 +855,35 @@ else
 
     private async Task HandleSaveClick()
     {
-        // Validate the form first to show all DataAnnotations errors
-        if (memberEditForm?.EditContext != null)
+        if (memberEditForm?.EditContext == null) return;
+
+        var editContext = memberEditForm.EditContext;
+        
+        // Initialize or reuse the validation store
+        if (memberValidationStore == null)
         {
-            var isValid = memberEditForm.EditContext.Validate();
-            if (!isValid)
-            {
-                // DataAnnotations validation failed, errors are already displayed
-                return;
-            }
+            memberValidationStore = new ValidationMessageStore(editContext);
         }
         
-        // If DataAnnotations validation passes, proceed with SaveMember for custom validations
+        // Clear any previous custom validation errors
+        memberValidationStore.Clear();
+        
+        // First, add custom Categoria validation before DataAnnotations
+        if (string.IsNullOrEmpty(editingUser.SelectedCategory))
+        {
+            memberValidationStore.Add(() => editingUser.SelectedCategory, "Categoria é obrigatória.");
+        }
+        
+        // Now validate the form to show all errors including DataAnnotations and custom
+        var isValid = editContext.Validate();
+        
+        if (!isValid)
+        {
+            // Validation failed, errors are already displayed
+            return;
+        }
+        
+        // If all validation passes, proceed with SaveMember
         await SaveMember();
     }
 
@@ -885,29 +902,19 @@ else
         {
             var editContext = memberEditForm.EditContext;
             
+            // Note: Basic validation (DataAnnotations + Categoria) is already done in HandleSaveClick
+            // This method only does additional database-level validations
+            
             // Initialize or reuse the validation store
             if (memberValidationStore == null)
             {
                 memberValidationStore = new ValidationMessageStore(editContext);
             }
-            
-            memberValidationStore.Clear();
-
-            // Note: DataAnnotations validation is already done in HandleSaveClick
-            // This method only does additional custom validations
-
-            // Validate category (custom validation not covered by DataAnnotations)
-            if (string.IsNullOrEmpty(editingUser.SelectedCategory))
-            {
-                // Add validation error to the SelectedCategory field
-                memberValidationStore.Add(() => editingUser.SelectedCategory, "Categoria é obrigatória.");
-                editContext.NotifyValidationStateChanged();
-                return;
-            }
 
             if (isCreateMode)
             {
-                // Null checks to prevent ArgumentNullException
+                // These null checks should not be needed since DataAnnotations validation passed,
+                // but we keep them for safety
                 if (string.IsNullOrEmpty(editingUser.Nickname))
                 {
                     memberValidationStore.Add(() => editingUser.Nickname, "O nome de tuna / username é obrigatório.");
@@ -931,6 +938,8 @@ else
                 var existingUser = await UserManager.FindByNameAsync(editingUser.UserName);
                 if (existingUser != null)
                 {
+                    // Clear previous validation errors for this field before adding new one
+                    memberValidationStore.Clear(() => editingUser.Nickname);
                     memberValidationStore.Add(() => editingUser.Nickname, $"Já existe um utilizador com o nome de tuna '{editingUser.Nickname}' (username: {editingUser.UserName}).");
                     editContext.NotifyValidationStateChanged();
                     return;
@@ -940,6 +949,8 @@ else
                 var existingEmail = await UserManager.FindByEmailAsync(editingUser.Email);
                 if (existingEmail != null)
                 {
+                    // Clear previous validation errors for this field before adding new one
+                    memberValidationStore.Clear(() => editingUser.Email);
                     memberValidationStore.Add(() => editingUser.Email, $"Já existe um utilizador com o email '{editingUser.Email}'.");
                     editContext.NotifyValidationStateChanged();
                     return;
