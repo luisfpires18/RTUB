@@ -159,4 +159,63 @@ public class InstrumentTests
         instrument.Name.Should().Be(string.Empty);
         instrument.Condition.Should().Be(InstrumentCondition.Good);
     }
+
+    [Fact]
+    public void ThumbnailSrc_WithNoThumbnailUrl_ReturnImageSrc()
+    {
+        // Arrange
+        var instrument = Instrument.Create("Guitarra", "Guitarra #1", InstrumentCondition.Good);
+        var imageUrl = "https://pub-test.r2.dev/rtub/images/instruments/1.jpg";
+        instrument.ImageUrl = imageUrl;
+
+        // Act
+        var thumbnailSrc = instrument.ThumbnailSrc;
+
+        // Assert - When no ThumbnailUrl is set, ThumbnailSrc should return ImageSrc
+        thumbnailSrc.Should().Be(imageUrl);
+    }
+
+    [Fact]
+    public void ThumbnailSrc_WithThumbnailUrl_ReturnsThumbnailUrl()
+    {
+        // Arrange
+        var instrument = Instrument.Create("Guitarra", "Guitarra #1", InstrumentCondition.Good);
+        var imageUrl = "https://pub-test.r2.dev/rtub/images/instruments/1.jpg";
+        var thumbnailUrl = "https://pub-test.r2.dev/rtub/images/instruments/thumbnails/1.jpg";
+        instrument.ImageUrl = imageUrl;
+        instrument.ThumbnailUrl = thumbnailUrl;
+
+        // Act
+        var thumbnailSrc = instrument.ThumbnailSrc;
+
+        // Assert - When ThumbnailUrl is set, ThumbnailSrc should return the ThumbnailUrl
+        thumbnailSrc.Should().Be(thumbnailUrl);
+    }
+
+    [Fact]
+    public void ThumbnailSrc_WithNoImages_ReturnsEmptyString()
+    {
+        // Arrange
+        var instrument = Instrument.Create("Guitarra", "Guitarra #1", InstrumentCondition.Good);
+
+        // Act
+        var thumbnailSrc = instrument.ThumbnailSrc;
+
+        // Assert - When no ImageUrl or ThumbnailUrl is set, ThumbnailSrc should return empty string
+        thumbnailSrc.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ThumbnailUrl_CanBeSetAndRetrieved()
+    {
+        // Arrange
+        var instrument = Instrument.Create("Guitarra", "Guitarra #1", InstrumentCondition.Good);
+        var thumbnailUrl = "https://pub-test.r2.dev/rtub/images/instruments/thumbnails/1.jpg";
+
+        // Act
+        instrument.ThumbnailUrl = thumbnailUrl;
+
+        // Assert
+        instrument.ThumbnailUrl.Should().Be(thumbnailUrl);
+    }
 }

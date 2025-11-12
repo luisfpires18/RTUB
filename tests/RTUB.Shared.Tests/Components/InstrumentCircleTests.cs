@@ -237,4 +237,72 @@ public class InstrumentCircleTests : TestContext
         // Assert
         cut.Markup.Should().NotContain("Local:", "location label should not be shown when location is not set");
     }
+
+    [Fact]
+    public void InstrumentCircle_DisplaysThumbnailUrl_WhenSet()
+    {
+        // Arrange
+        var instrument = Instrument.Create("Guitarra", "Test Guitar", InstrumentCondition.Good);
+        instrument.ThumbnailUrl = "/images/thumbnails/guitar-thumb.jpg";
+
+        // Act
+        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+            .Add(p => p.Instrument, instrument)
+            .Add(p => p.ImageUrl, ""));
+
+        // Assert
+        cut.Markup.Should().Contain(instrument.ThumbnailUrl, "should display thumbnail URL when set");
+    }
+
+    [Fact]
+    public void InstrumentCircle_FallsBackToImageUrl_WhenThumbnailUrlNotSet()
+    {
+        // Arrange
+        var instrument = Instrument.Create("Baixo", "Test Bass", InstrumentCondition.Good);
+        instrument.ImageUrl = "/images/bass.jpg";
+        // ThumbnailUrl not set
+
+        // Act
+        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+            .Add(p => p.Instrument, instrument)
+            .Add(p => p.ImageUrl, ""));
+
+        // Assert
+        cut.Markup.Should().Contain(instrument.ImageUrl, "should fall back to ImageUrl when ThumbnailUrl is not set");
+    }
+
+    [Fact]
+    public void InstrumentCircle_PrefersThumbnailUrl_OverImageUrl()
+    {
+        // Arrange
+        var instrument = Instrument.Create("Flauta", "Test Flute", InstrumentCondition.Good);
+        instrument.ImageUrl = "/images/flute-full.jpg";
+        instrument.ThumbnailUrl = "/images/thumbnails/flute-thumb.jpg";
+
+        // Act
+        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+            .Add(p => p.Instrument, instrument)
+            .Add(p => p.ImageUrl, ""));
+
+        // Assert
+        cut.Markup.Should().Contain(instrument.ThumbnailUrl, "should prefer ThumbnailUrl when both are set");
+        cut.Markup.Should().NotContain(instrument.ImageUrl, "should not display ImageUrl when ThumbnailUrl is available");
+    }
+
+    [Fact]
+    public void InstrumentCircle_DisplaysPlaceholderIcon_WhenNoImageUrlsSet()
+    {
+        // Arrange
+        var instrument = Instrument.Create("Acordeao", "Test Accordion", InstrumentCondition.Good);
+        // No ImageUrl or ThumbnailUrl set
+
+        // Act
+        var cut = RenderComponent<InstrumentCircle>(parameters => parameters
+            .Add(p => p.Instrument, instrument)
+            .Add(p => p.ImageUrl, ""));
+
+        // Assert
+        cut.Markup.Should().Contain("instrument-circle-placeholder", "should display placeholder when no images are set");
+        cut.Markup.Should().Contain("bi-grid-3x3-gap", "should display correct icon for Acordeao");
+    }
 }
