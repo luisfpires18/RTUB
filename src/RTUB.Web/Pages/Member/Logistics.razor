@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
+@using BoardEntity = RTUB.Core.Entities.LogisticsBoard
 @using RTUB.Core.Entities
 @using RTUB.Shared
 @inject ILogisticsBoardService BoardService
@@ -134,7 +135,7 @@
 }
 
 @code {
-    private List<LogisticsBoard>? boards;
+    private List<BoardEntity>? boards;
     private List<Event>? events;
     private int currentPage = 1;
     private int pageSize = 12;
@@ -143,14 +144,14 @@
 
     // Board modal state
     private bool showBoardModal = false;
-    private LogisticsBoard? editingBoard = null;
+    private BoardEntity? editingBoard = null;
     private string boardName = string.Empty;
     private string boardDescription = string.Empty;
     private string selectedEventId = string.Empty;
 
     // Delete modal state
     private bool showDeleteBoardModal = false;
-    private LogisticsBoard? deletingBoard = null;
+    private BoardEntity? deletingBoard = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -194,7 +195,7 @@
         showBoardModal = true;
     }
 
-    private void OpenEditBoardModal(LogisticsBoard board)
+    private void OpenEditBoardModal(BoardEntity board)
     {
         editingBoard = board;
         boardName = board.Name;
@@ -239,7 +240,7 @@
         }
     }
 
-    private void OpenDeleteBoardModal(LogisticsBoard board)
+    private void OpenDeleteBoardModal(BoardEntity board)
     {
         deletingBoard = board;
         showDeleteBoardModal = true;

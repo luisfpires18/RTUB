@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Interfaces
+@using BoardEntity = RTUB.Core.Entities.LogisticsBoard
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @inject ILogisticsBoardService BoardService
@@ -241,15 +242,15 @@
                         <div class="row g-2">
                             <div class="col-4">
                                 <label class="form-label small">Início</label>
-                                <input type="date" class="form-control form-control-sm" @bind="cardStartDate" @onblur="UpdateCardDates" />
+                                <input type="date" class="form-control form-control-sm" value="@cardStartDate" @onchange="@((e) => { cardStartDate = e.Value?.ToString(); UpdateCardDates(); })" />
                             </div>
                             <div class="col-4">
                                 <label class="form-label small">Prazo</label>
-                                <input type="date" class="form-control form-control-sm" @bind="cardDueDate" @onblur="UpdateCardDates" />
+                                <input type="date" class="form-control form-control-sm" value="@cardDueDate" @onchange="@((e) => { cardDueDate = e.Value?.ToString(); UpdateCardDates(); })" />
                             </div>
                             <div class="col-4">
                                 <label class="form-label small">Lembrete</label>
-                                <input type="date" class="form-control form-control-sm" @bind="cardReminderDate" @onblur="UpdateCardDates" />
+                                <input type="date" class="form-control form-control-sm" value="@cardReminderDate" @onchange="@((e) => { cardReminderDate = e.Value?.ToString(); UpdateCardDates(); })" />
                             </div>
                         </div>
                     </div>
@@ -301,7 +302,7 @@
     [Parameter]
     public int BoardId { get; set; }
 
-    private LogisticsBoard? board;
+    private BoardEntity? board;
     private List<LogisticsList> lists = new();
     private List<Event>? events;
     private List<ApplicationUser>? users;
