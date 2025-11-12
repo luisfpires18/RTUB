@@ -216,7 +216,6 @@ else
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Email <span class="text-danger">*</span></label>
                     <InputText type="email" class="form-control" @bind-Value="editingUser.Email" />
-                    <ValidationMessage For="@(() => editingUser.Email)" />
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Data de Nascimento</label>
@@ -351,7 +350,7 @@ else
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseEditModal" disabled="@isSaving">Cancelar</button>
-        <button type="submit" class="btn btn-primary btn-primary-purple" @onclick="() => memberEditForm?.EditContext?.Validate()" disabled="@isSaving">
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="HandleSaveClick" disabled="@isSaving">
             @if (isSaving)
             {
                 <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
@@ -854,6 +853,20 @@ else
     }
 
     private ValidationMessageStore? memberValidationStore;
+
+    private async Task HandleSaveClick()
+    {
+        if (memberEditForm?.EditContext == null) return;
+        
+        // Trigger validation
+        var isValid = memberEditForm.EditContext.Validate();
+        
+        // If valid, call SaveMember
+        if (isValid)
+        {
+            await SaveMember();
+        }
+    }
 
     private async Task SaveMember()
     {
