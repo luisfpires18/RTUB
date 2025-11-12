@@ -2,7 +2,7 @@
 @*
     RoleBadge Component
     Displays a Bootstrap badge with the appropriate styling for a user role
-    Supports tap-to-expand on mobile for long role names
+    Shows icon followed by role name
 *@
 
 <span class="badge avatar-card-role-badge @GetRoleBadgeClass(Role) @AdditionalClasses" 
@@ -11,7 +11,7 @@
       role="button"
       aria-expanded="false"
       title="@Role">
-    @GetRoleIcon(Role)
+    <i class="bi @GetRoleIcon(Role) me-1"></i>@Role
 </span>
 
 @code {
@@ -54,16 +54,16 @@
     }
 
     /// <summary>
-    /// Returns the icon (first capital letter) for the role
+    /// Returns the Bootstrap icon class for the role
     /// </summary>
     private string GetRoleIcon(string role)
     {
         return role switch
         {
-            "Owner" => "O",
-            "Admin" => "A",
-            "Member" => "M",
-            _ => role.Length > 0 ? role.Substring(0, 1).ToUpper() : ""
+            "Owner" => "bi-star-fill",
+            "Admin" => "bi-shield-fill",
+            "Member" => "bi-person-fill",
+            _ => "bi-circle"
         };
     }
 }
