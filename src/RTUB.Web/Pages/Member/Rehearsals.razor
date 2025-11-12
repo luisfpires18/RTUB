@@ -162,7 +162,7 @@ else
 }
 
 <!-- Mark Attendance Modal -->
-@if (showAttendanceModal && selectedRehearsal != null)
+@if (showAttendanceModal && selectedRehearsal != null && attendanceForm != null)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog">
@@ -172,58 +172,60 @@ else
                     <button type="button" class="btn-close" @onclick="CloseAttendanceModal"></button>
                 </div>
                 <div class="modal-body">
-                    @* Only show "Quero tocar" toggle for non-Leitão members *@
-                    @if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao))
-                    {
-                        <div class="mb-3 form-check form-switch">
-                            <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayRehearsalToggle"
-                                   checked="@wantToPlayRehearsal"
-                                   @onchange="@((ChangeEventArgs e) => OnWantToPlayRehearsalChanged((bool)e.Value!))">
-                            <label class="form-check-label clickable-row" for="wantToPlayRehearsalToggle">
-                                Quero tocar
-                            </label>
-                        </div>
+                    <EditForm Model="attendanceForm" OnValidSubmit="ConfirmMarkAttendance" @ref="attendanceEditForm">
+                        <DataAnnotationsValidator />
+                        <ErrorDisplay />
 
-                        @if (wantToPlayRehearsal)
+                        @* Only show "Quero tocar" toggle for non-Leitão members *@
+                        @if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao))
+                        {
+                            <div class="mb-3 form-check form-switch">
+                                <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayRehearsalToggle"
+                                       checked="@wantToPlayRehearsal"
+                                       @onchange="@((ChangeEventArgs e) => OnWantToPlayRehearsalChanged((bool)e.Value!))">
+                                <label class="form-check-label clickable-row" for="wantToPlayRehearsalToggle">
+                                    Quero tocar
+                                </label>
+                            </div>
+
+                            @if (wantToPlayRehearsal)
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">Instrumento *</label>
+                                    <InputSelect class="form-select" @bind-Value="attendanceForm.Instrument" @bind-Value:after="@(() => OnAttendanceInstrumentChanged(attendanceForm.Instrument))">
+                                        <option value="" disabled selected>Selecionar...</option>
+                                        @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                                        {
+                                            <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                            }
+                        }
+                        else
                         {
                             <div class="mb-3">
-                                <label class="form-label">Instrumento *</label>
-                                <select class="form-select" @bind="selectedInstrument">
+                                <label class="form-label">Instrumento (Opcional)</label>
+                                <InputSelect class="form-select" @bind-Value="attendanceForm.Instrument">
                                     <option value="" disabled selected>Selecionar...</option>
                                     @foreach (var instrument in Enum.GetValues<InstrumentType>())
                                     {
-                                        <option value="@instrument">@instrument</option>
+                                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                                     }
-                                </select>
-                                @if (!string.IsNullOrEmpty(instrumentValidationErrorRehearsal))
-                                {
-                                    <div class="text-danger mt-1">@instrumentValidationErrorRehearsal</div>
-                                }
+                                </InputSelect>
                             </div>
                         }
-                    }
-                    else
-                    {
-                        <div class="mb-3">
-                            <label class="form-label">Instrumento (Opcional)</label>
-                            <select class="form-select" @bind="selectedInstrument">
-                                <option value="" disabled selected>Selecionar...</option>
-                                @foreach (var instrument in Enum.GetValues<InstrumentType>())
-                                {
-                                    <option value="@instrument">@instrument</option>
-                                }
-                            </select>
-                        </div>
-                    }
 
-                    <div class="mb-3">
-                        <label class="form-label">Notas (Opcional)</label>
-                        <textarea class="form-control" rows="3" @bind="selectedNotes" placeholder="Adicione alguma nota..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseAttendanceModal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" @onclick="ConfirmMarkAttendance">Confirmar</button>
+                        <div class="mb-3">
+                            <label class="form-label">Notas (Opcional)</label>
+                            <InputTextArea class="form-control" rows="3" @bind-Value="attendanceForm.Notes" placeholder="Adicione alguma nota..." />
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseAttendanceModal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Confirmar</button>
+                        </div>
+                    </EditForm>
                 </div>
             </div>
         </div>
@@ -844,10 +846,9 @@ else
     private Rehearsal? editingRehearsal;
     private Rehearsal? deletingRehearsal;
     private RehearsalAttendance? deletingAttendance;
-    private string? selectedInstrument;
-    private string? selectedNotes;
+    private AttendanceFormModel? attendanceForm;
+    private EditForm? attendanceEditForm;
     private bool wantToPlayRehearsal = false;
-    private string instrumentValidationErrorRehearsal = string.Empty;
     private string editLocation = "";
     private string? editTheme;
     private string? editNotes;
@@ -1068,39 +1069,38 @@ else
     private void MarkAttendance(Rehearsal rehearsal)
     {
         selectedRehearsal = rehearsal;
-        selectedInstrument = null;
-        selectedNotes = null;
+        attendanceForm = new AttendanceFormModel
+        {
+            Instrument = null,
+            Notes = null
+        };
+        wantToPlayRehearsal = false;
         showAttendanceModal = true;
         StateHasChanged();
     }
 
     private async Task ConfirmMarkAttendance()
     {
-        if (selectedRehearsal != null && currentUserId != null)
+        if (selectedRehearsal != null && currentUserId != null && attendanceForm != null && attendanceEditForm?.EditContext != null)
         {
             try
             {
-                // Clear previous validation errors
-                instrumentValidationErrorRehearsal = string.Empty;
+                var editContext = attendanceEditForm.EditContext;
+                var messageStore = new ValidationMessageStore(editContext);
+                messageStore.Clear();
 
                 // Validate instrument is selected when wantToPlayRehearsal is true
                 if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao) && wantToPlayRehearsal)
                 {
-                    if (string.IsNullOrEmpty(selectedInstrument))
+                    if (!attendanceForm.Instrument.HasValue)
                     {
-                        instrumentValidationErrorRehearsal = "Por favor, selecione um instrumento.";
-                        StateHasChanged();
+                        messageStore.Add(() => attendanceForm.Instrument, "Por favor, selecione um instrumento.");
+                        editContext.NotifyValidationStateChanged();
                         return;
                     }
                 }
 
-                InstrumentType? instrument = null;
-                if (!string.IsNullOrEmpty(selectedInstrument))
-                {
-                    instrument = Enum.Parse<InstrumentType>(selectedInstrument);
-                }
-
-                await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, currentUserId, instrument, selectedNotes);
+                await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, currentUserId, attendanceForm.Instrument, attendanceForm.Notes);
 
                 await LoadData();
                 CloseAttendanceModal();
@@ -1117,19 +1117,35 @@ else
     private void OnWantToPlayRehearsalChanged(bool value)
     {
         wantToPlayRehearsal = value;
-        instrumentValidationErrorRehearsal = string.Empty; // Clear validation error when toggle changes
         // Always clear instrument when toggle changes to force user to select
-        selectedInstrument = null;
+        if (attendanceForm != null)
+        {
+            attendanceForm.Instrument = null;
+        }
+    }
+    
+    private void OnAttendanceInstrumentChanged(InstrumentType? instrument)
+    {
+        if (attendanceForm != null && attendanceEditForm?.EditContext != null)
+        {
+            attendanceForm.Instrument = instrument;
+            
+            // Clear instrument validation error when instrument is selected
+            if (instrument.HasValue)
+            {
+                var messageStore = new ValidationMessageStore(attendanceEditForm.EditContext);
+                messageStore.Clear(() => attendanceForm.Instrument);
+                attendanceEditForm.EditContext.NotifyValidationStateChanged();
+            }
+        }
     }
 
     private void CloseAttendanceModal()
     {
         showAttendanceModal = false;
         selectedRehearsal = null;
-        selectedInstrument = null;
-        selectedNotes = null;
+        attendanceForm = null;
         wantToPlayRehearsal = false;
-        instrumentValidationErrorRehearsal = string.Empty; // Clear validation error on close
         StateHasChanged();
     }
 
@@ -1409,7 +1425,12 @@ else
         // Similar to mark attendance, but pre-fill with existing data
         var existingAttendance = GetUserAttendance(rehearsal.Id);
         selectedRehearsal = rehearsal;
-        selectedInstrument = existingAttendance?.Instrument?.ToString();
+        attendanceForm = new AttendanceFormModel
+        {
+            Instrument = existingAttendance?.Instrument,
+            Notes = existingAttendance?.Notes
+        };
+        wantToPlayRehearsal = existingAttendance?.Instrument.HasValue ?? false;
         showAttendanceModal = true;
         StateHasChanged();
     }
@@ -1894,5 +1915,13 @@ else
 
         [MaxLength(500, ErrorMessage = "O tema não pode exceder 500 caracteres")]
         public string? Theme { get; set; }
+    }
+
+    private class AttendanceFormModel
+    {
+        public InstrumentType? Instrument { get; set; }
+        
+        [MaxLength(500, ErrorMessage = "As notas não podem exceder 500 caracteres")]
+        public string? Notes { get; set; }
     }
 }

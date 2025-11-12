@@ -1231,15 +1231,15 @@ else
     
     private void OnInstrumentChanged(InstrumentType? instrument)
     {
-        if (enrollmentForm != null)
+        if (enrollmentForm != null && enrollmentEditForm?.EditContext != null)
         {
             enrollmentForm.Instrument = instrument;
             
-            // Clear validation messages when instrument is selected
-            if (enrollmentEditForm?.EditContext != null && instrument.HasValue)
+            // Clear instrument validation error when instrument is selected
+            if (instrument.HasValue)
             {
                 var messageStore = new ValidationMessageStore(enrollmentEditForm.EditContext);
-                messageStore.Clear();
+                messageStore.Clear(() => enrollmentForm.Instrument);
                 enrollmentEditForm.EditContext.NotifyValidationStateChanged();
             }
         }
