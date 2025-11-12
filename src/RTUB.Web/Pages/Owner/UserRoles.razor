@@ -578,10 +578,10 @@ else
         
         try
         {
-            // Get all subscribed users (excluding the birthday person)
+            // Get all subscribed users with confirmed emails (excluding the birthday person)
             var subscribedUsers = await Task.Run(() => 
                 UserManager.Users
-                    .Where(u => u.Subscribed && u.Id != user.Id && !string.IsNullOrEmpty(u.Email))
+                    .Where(u => u.Subscribed && u.EmailConfirmed && u.Id != user.Id && !string.IsNullOrEmpty(u.Email))
                     .ToList());
             
             if (!subscribedUsers.Any())
