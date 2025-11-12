@@ -68,6 +68,10 @@
                 {
                     <span>@Event.Date.ToString("dd MMM yyyy")</span>
                 }
+                @if (Event.Date.Date == DateTime.Today)
+                {
+                    <span class="event-today-badge">HOJE</span>
+                }
             </small>
         </p>
         @if (!string.IsNullOrEmpty(Event.Location))
