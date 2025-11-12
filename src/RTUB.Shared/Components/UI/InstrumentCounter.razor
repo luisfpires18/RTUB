@@ -1,0 +1,71 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Enums
+@using RTUB.Application.Helpers
+@*
+    Reusable Instrument Counter Component
+    Displays a horizontal grid showing the count of each instrument type
+    Used in Events and Rehearsals pages to show instrument distribution
+*@
+
+@if (InstrumentCounts != null && InstrumentCounts.Any(x => x.Value > 0))
+{
+    <div class="@GetContainerClass()">
+        <div class="instrument-counter-section">
+            <div class="instrument-counter-header">
+                <i class="bi bi-music-note-beamed"></i>
+                <span>@Title</span>
+            </div>
+            <div class="instrument-counter-grid">
+                @foreach (var kvp in InstrumentCounts.Where(x => x.Value > 0).OrderByDescending(x => x.Value))
+                {
+                    <div class="instrument-counter-box">
+                        <div class="instrument-counter-number">@kvp.Value</div>
+                        <div class="instrument-counter-label">@StatusHelper.GetInstrumentDisplay(kvp.Key)</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// Dictionary containing instrument types and their counts
+    /// </summary>
+    [Parameter]
+    public Dictionary<InstrumentType, int>? InstrumentCounts { get; set; }
+
+    /// <summary>
+    /// Title to display in the header
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = "Instrumentos";
+
+    /// <summary>
+    /// Additional CSS classes for the container
+    /// </summary>
+    [Parameter]
+    public string? AdditionalClass { get; set; }
+
+    /// <summary>
+    /// Margin top class (e.g., "mt-3")
+    /// </summary>
+    [Parameter]
+    public string MarginTop { get; set; } = "mt-3";
+
+    /// <summary>
+    /// Margin bottom class (e.g., "mb-4")
+    /// </summary>
+    [Parameter]
+    public string MarginBottom { get; set; } = "mb-4";
+
+    private string GetContainerClass()
+    {
+        var classes = new List<string> { MarginTop, MarginBottom };
+        if (!string.IsNullOrWhiteSpace(AdditionalClass))
+        {
+            classes.Add(AdditionalClass);
+        }
+        return string.Join(" ", classes.Where(c => !string.IsNullOrWhiteSpace(c)));
+    }
+}
