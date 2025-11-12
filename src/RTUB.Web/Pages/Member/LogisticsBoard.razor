@@ -27,12 +27,12 @@
         else
         {
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
+                <div class="d-flex align-items-center">
                     <a href="/logistics" class="btn btn-sm btn-outline-secondary me-2">
                         <i class="bi bi-arrow-left"></i> Voltar
                     </a>
-                    <h1 class="d-inline"><i class="bi bi-kanban"></i> @board.Name</h1>
                 </div>
+                <h1 class="text-center flex-grow-1 mb-0"><i class="bi bi-kanban"></i> @board.Name</h1>
                 <button class="btn btn-success" @onclick="OpenCreateListModal">
                     <i class="bi bi-plus-lg"></i> Adicionar Lista
                 </button>
@@ -40,11 +40,11 @@
 
             @if (!lists.Any())
             {
-                <div class="text-center py-5">
-                    <i class="bi bi-kanban" style="font-size: 4rem; opacity: 0.3;"></i>
-                    <h3>Nenhuma lista criada ainda</h3>
-                    <p class="text-muted">Crie sua primeira lista para começar a organizar tarefas.</p>
-                </div>
+                <EmptyState Title="Nenhuma lista criada ainda"
+                           Message="Crie sua primeira lista para começar a organizar tarefas."
+                           Icon="bi-list-ul"
+                           ActionText="Criar Lista"
+                           OnAction="OpenCreateListModal" />
             }
             else
             {
@@ -86,12 +86,9 @@
                                                 <p class="small text-muted mb-2">@card.Description</p>
                                             }
                                             <div class="card-footer-section">
-                                                @if (!string.IsNullOrEmpty(card.Labels))
+                                                @foreach (var label in GetCardLabels(card))
                                                 {
-                                                    @foreach (var label in card.Labels.Split(',', StringSplitOptions.RemoveEmptyEntries))
-                                                    {
-                                                        <span class="badge badge-label">@label.Trim()</span>
-                                                    }
+                                                    <span class="badge badge-label" style="background-color: @label.Color; color: white;">@label.Text</span>
                                                 }
                                                 @if (card.Event != null)
                                                 {
@@ -171,30 +168,29 @@
                         <textarea class="form-control" rows="3" @bind="cardDescription"></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Evento (opcional)</label>
-                        <select class="form-select" @bind="selectedEventId">
-                            <option value="">Nenhum</option>
-                            @if (events != null)
-                            {
-                                @foreach (var evt in events)
-                                {
-                                    <option value="@evt.Id">@evt.Name - @evt.Date.ToString("dd/MM/yyyy")</option>
-                                }
-                            }
-                        </select>
-                    </div>
-                    <div class="mb-3">
                         <label class="form-label">Atribuir a (opcional)</label>
-                        <select class="form-select" @bind="selectedUserId">
-                            <option value="">Ninguém</option>
-                            @if (users != null)
-                            {
-                                @foreach (var user in users)
+                        <input type="text" class="form-control" placeholder="Pesquisar utilizador..." 
+                               @bind="userSearchTerm" @bind:event="oninput" />
+                        @if (!string.IsNullOrEmpty(userSearchTerm) && filteredUsers != null && filteredUsers.Any())
+                        {
+                            <div class="list-group mt-2" style="max-height: 200px; overflow-y: auto;">
+                                @foreach (var user in filteredUsers.Take(10))
                                 {
-                                    <option value="@user.Id">@user.UserName</option>
+                                    <button type="button" class="list-group-item list-group-item-action" 
+                                            @onclick="() => SelectUser(user.Id, user.UserName ?? user.Email ?? \"\")">
+                                        <i class="bi bi-person"></i> @(user.UserName ?? user.Email)
+                                    </button>
                                 }
-                            }
-                        </select>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(selectedUserName))
+                        {
+                            <div class="badge bg-secondary mt-2">
+                                <i class="bi bi-person"></i> @selectedUserName
+                                <button type="button" class="btn-close btn-close-white ms-2" 
+                                        style="font-size: 0.7rem;" @onclick="ClearUserSelection"></button>
+                            </div>
+                        }
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -233,8 +229,26 @@
                     
                     <div class="mb-3">
                         <label class="form-label fw-bold">Etiquetas</label>
-                        <input type="text" class="form-control" placeholder="Separado por vírgulas (ex: Urgente, Importante)" 
-                               @bind="selectedCardLabels" @onblur="UpdateCardLabels" />
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            @if (cardLabels != null)
+                            {
+                                @foreach (var label in cardLabels)
+                                {
+                                    <span class="badge" style="background-color: @label.Color; color: white;">
+                                        @label.Text
+                                        <button type="button" class="btn-close btn-close-white ms-1" 
+                                                style="font-size: 0.6rem;" @onclick="() => RemoveLabel(label)"></button>
+                                    </span>
+                                }
+                            }
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" placeholder="Nome da etiqueta" @bind="newLabelText" />
+                            <input type="color" class="form-control form-control-color" @bind="newLabelColor" title="Escolha a cor" style="max-width: 60px;" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="AddLabel">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="mb-3">
@@ -256,15 +270,63 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Checklist (JSON)</label>
-                        <textarea class="form-control" rows="3" placeholder='[{"task":"Tarefa 1","done":false}]' 
-                                  @bind="selectedCardChecklist" @onblur="UpdateCardChecklist"></textarea>
+                        <label class="form-label fw-bold">Checklist</label>
+                        @if (checklistItems != null && checklistItems.Any())
+                        {
+                            <div class="list-group mb-2">
+                                @foreach (var item in checklistItems)
+                                {
+                                    <div class="list-group-item d-flex align-items-center gap-2">
+                                        <input class="form-check-input" type="checkbox" checked="@item.Done" 
+                                               @onchange="@((e) => ToggleChecklistItem(item))" />
+                                        <span class="flex-grow-1 @(item.Done ? "text-decoration-line-through text-muted" : "")">@item.Task</span>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveChecklistItem(item)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" placeholder="Nova tarefa..." @bind="newChecklistItem" @onkeydown="@((e) => { if (e.Key == \"Enter\") AddChecklistItem(); })" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="AddChecklistItem">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Anexos (JSON)</label>
-                        <textarea class="form-control" rows="2" placeholder='[{"name":"Link 1","url":"https://..."}]' 
-                                  @bind="selectedCardAttachments" @onblur="UpdateCardAttachments"></textarea>
+                        <label class="form-label fw-bold">Anexos</label>
+                        @if (cardAttachments != null && cardAttachments.Any())
+                        {
+                            <div class="list-group mb-2">
+                                @foreach (var attachment in cardAttachments)
+                                {
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>
+                                            <i class="bi bi-link-45deg"></i> @attachment.Name
+                                            @if (attachment.CardId.HasValue)
+                                            {
+                                                <small class="text-muted">(Cartão #@attachment.CardId)</small>
+                                            }
+                                        </span>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveAttachment(attachment)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        <div class="input-group input-group-sm">
+                            <select class="form-select" @bind="newAttachmentType">
+                                <option value="card">Link para Cartão</option>
+                            </select>
+                            <input type="number" class="form-control" placeholder="ID do Cartão" @bind="newAttachmentCardId" />
+                            <input type="text" class="form-control" placeholder="Nome/Descrição" @bind="newAttachmentName" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="AddAttachment">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -299,6 +361,25 @@
 }
 
 @code {
+    // Helper classes (private to avoid naming conflicts)
+    private class LabelItem
+    {
+        public string Text { get; set; } = string.Empty;
+        public string Color { get; set; } = "#6f42c1";
+    }
+
+    private class ChecklistItem
+    {
+        public string Task { get; set; } = string.Empty;
+        public bool Done { get; set; }
+    }
+
+    private class AttachmentItem
+    {
+        public string Name { get; set; } = string.Empty;
+        public int? CardId { get; set; }
+    }
+
     [Parameter]
     public int BoardId { get; set; }
 
@@ -318,18 +399,29 @@
     private int currentListId = 0;
     private string cardTitle = string.Empty;
     private string cardDescription = string.Empty;
-    private string selectedEventId = string.Empty;
     private string selectedUserId = string.Empty;
+    private string selectedUserName = string.Empty;
+    private string userSearchTerm = string.Empty;
+    private List<ApplicationUser>? filteredUsers => users?.Where(u => 
+        string.IsNullOrEmpty(userSearchTerm) || 
+        (u.UserName != null && u.UserName.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+        (u.Email != null && u.Email.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase))).ToList();
 
     // Card details modal state
     private bool showCardDetailsModal = false;
     private LogisticsCard? selectedCard = null;
-    private string selectedCardLabels = string.Empty;
+    private List<LabelItem>? cardLabels;
+    private string newLabelText = string.Empty;
+    private string newLabelColor = "#6f42c1";
     private string? cardStartDate = null;
     private string? cardDueDate = null;
     private string? cardReminderDate = null;
-    private string selectedCardChecklist = string.Empty;
-    private string selectedCardAttachments = string.Empty;
+    private List<ChecklistItem>? checklistItems;
+    private string newChecklistItem = string.Empty;
+    private List<AttachmentItem>? cardAttachments;
+    private string newAttachmentType = "card";
+    private int? newAttachmentCardId = null;
+    private string newAttachmentName = string.Empty;
 
     // Delete modal state
     private bool showDeleteListModal = false;
@@ -443,8 +535,9 @@
         currentListId = listId;
         cardTitle = string.Empty;
         cardDescription = string.Empty;
-        selectedEventId = string.Empty;
         selectedUserId = string.Empty;
+        selectedUserName = string.Empty;
+        userSearchTerm = string.Empty;
         showCardModal = true;
     }
 
@@ -454,8 +547,9 @@
         currentListId = card.ListId;
         cardTitle = card.Title;
         cardDescription = card.Description;
-        selectedEventId = card.EventId?.ToString() ?? string.Empty;
         selectedUserId = card.AssignedToUserId ?? string.Empty;
+        selectedUserName = card.AssignedToUser?.UserName ?? string.Empty;
+        userSearchTerm = string.Empty;
         showCardModal = true;
     }
 
@@ -466,6 +560,19 @@
         currentListId = 0;
     }
 
+    private void SelectUser(string userId, string userName)
+    {
+        selectedUserId = userId;
+        selectedUserName = userName;
+        userSearchTerm = string.Empty;
+    }
+
+    private void ClearUserSelection()
+    {
+        selectedUserId = string.Empty;
+        selectedUserName = string.Empty;
+    }
+
     private async Task SaveCard()
     {
         if (string.IsNullOrWhiteSpace(cardTitle))
@@ -473,7 +580,6 @@
 
         try
         {
-            int? eventId = string.IsNullOrEmpty(selectedEventId) ? null : int.Parse(selectedEventId);
             string? userId = string.IsNullOrEmpty(selectedUserId) ? null : selectedUserId;
 
             if (editingCard == null)
@@ -482,16 +588,12 @@
                 var maxPosition = list?.Cards?.Any() == true ? list.Cards.Max(c => c.Position) : -1;
                 var card = await CardService.CreateCardAsync(cardTitle, currentListId, maxPosition + 1, cardDescription);
                 
-                if (eventId.HasValue)
-                    await CardService.AssociateCardWithEventAsync(card.Id, eventId);
-                
                 if (!string.IsNullOrEmpty(userId))
                     await CardService.AssignCardToUserAsync(card.Id, userId);
             }
             else
             {
                 await CardService.UpdateCardAsync(editingCard.Id, cardTitle, cardDescription);
-                await CardService.AssociateCardWithEventAsync(editingCard.Id, eventId);
                 await CardService.AssignCardToUserAsync(editingCard.Id, userId);
             }
 
@@ -508,12 +610,49 @@
     private void OpenCardDetailsModal(LogisticsCard card)
     {
         selectedCard = card;
-        selectedCardLabels = card.Labels ?? string.Empty;
+        
+        // Parse labels
+        cardLabels = new List<LabelItem>();
+        if (!string.IsNullOrEmpty(card.Labels))
+        {
+            try
+            {
+                cardLabels = System.Text.Json.JsonSerializer.Deserialize<List<LabelItem>>(card.Labels) ?? new List<LabelItem>();
+            }
+            catch
+            {
+                // Fallback for old comma-separated format
+                cardLabels = card.Labels.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(l => new LabelItem { Text = l.Trim(), Color = "#6f42c1" })
+                    .ToList();
+            }
+        }
+        
+        // Parse checklist
+        checklistItems = new List<ChecklistItem>();
+        if (!string.IsNullOrEmpty(card.ChecklistJson))
+        {
+            try
+            {
+                checklistItems = System.Text.Json.JsonSerializer.Deserialize<List<ChecklistItem>>(card.ChecklistJson) ?? new List<ChecklistItem>();
+            }
+            catch { }
+        }
+        
+        // Parse attachments
+        cardAttachments = new List<AttachmentItem>();
+        if (!string.IsNullOrEmpty(card.AttachmentsJson))
+        {
+            try
+            {
+                cardAttachments = System.Text.Json.JsonSerializer.Deserialize<List<AttachmentItem>>(card.AttachmentsJson) ?? new List<AttachmentItem>();
+            }
+            catch { }
+        }
+        
         cardStartDate = card.StartDate?.ToString("yyyy-MM-dd");
         cardDueDate = card.DueDate?.ToString("yyyy-MM-dd");
         cardReminderDate = card.ReminderDate?.ToString("yyyy-MM-dd");
-        selectedCardChecklist = card.ChecklistJson ?? string.Empty;
-        selectedCardAttachments = card.AttachmentsJson ?? string.Empty;
         showCardDetailsModal = true;
     }
 
@@ -528,14 +667,85 @@
         if (selectedCard == null) return;
         await CardService.SetCardStatusAsync(selectedCard.Id, status);
         selectedCard.Status = status;
-        StateHasChanged();
+        await LoadData();
     }
 
-    private async Task UpdateCardLabels()
+    // Label methods
+    private void AddLabel()
+    {
+        if (string.IsNullOrWhiteSpace(newLabelText)) return;
+        cardLabels ??= new List<LabelItem>();
+        cardLabels.Add(new LabelItem { Text = newLabelText, Color = newLabelColor });
+        newLabelText = string.Empty;
+        newLabelColor = "#6f42c1";
+        SaveLabels();
+    }
+
+    private void RemoveLabel(LabelItem label)
+    {
+        cardLabels?.Remove(label);
+        SaveLabels();
+    }
+
+    private async void SaveLabels()
     {
         if (selectedCard == null) return;
-        await CardService.SetCardLabelsAsync(selectedCard.Id, selectedCardLabels);
+        var json = System.Text.Json.JsonSerializer.Serialize(cardLabels ?? new List<LabelItem>());
+        await CardService.SetCardLabelsAsync(selectedCard.Id, json);
         await LoadData();
+    }
+
+    // Checklist methods
+    private void AddChecklistItem()
+    {
+        if (string.IsNullOrWhiteSpace(newChecklistItem)) return;
+        checklistItems ??= new List<ChecklistItem>();
+        checklistItems.Add(new ChecklistItem { Task = newChecklistItem, Done = false });
+        newChecklistItem = string.Empty;
+        SaveChecklist();
+    }
+
+    private void ToggleChecklistItem(ChecklistItem item)
+    {
+        item.Done = !item.Done;
+        SaveChecklist();
+    }
+
+    private void RemoveChecklistItem(ChecklistItem item)
+    {
+        checklistItems?.Remove(item);
+        SaveChecklist();
+    }
+
+    private async void SaveChecklist()
+    {
+        if (selectedCard == null) return;
+        var json = System.Text.Json.JsonSerializer.Serialize(checklistItems ?? new List<ChecklistItem>());
+        await CardService.SetChecklistAsync(selectedCard.Id, json);
+    }
+
+    // Attachment methods
+    private void AddAttachment()
+    {
+        if (!newAttachmentCardId.HasValue || string.IsNullOrWhiteSpace(newAttachmentName)) return;
+        cardAttachments ??= new List<AttachmentItem>();
+        cardAttachments.Add(new AttachmentItem { Name = newAttachmentName, CardId = newAttachmentCardId });
+        newAttachmentCardId = null;
+        newAttachmentName = string.Empty;
+        SaveAttachments();
+    }
+
+    private void RemoveAttachment(AttachmentItem attachment)
+    {
+        cardAttachments?.Remove(attachment);
+        SaveAttachments();
+    }
+
+    private async void SaveAttachments()
+    {
+        if (selectedCard == null) return;
+        var json = System.Text.Json.JsonSerializer.Serialize(cardAttachments ?? new List<AttachmentItem>());
+        await CardService.SetCardAttachmentsAsync(selectedCard.Id, json);
     }
 
     private async Task UpdateCardDates()
@@ -545,18 +755,6 @@
         DateTime? due = string.IsNullOrEmpty(cardDueDate) ? null : DateTime.Parse(cardDueDate);
         DateTime? reminder = string.IsNullOrEmpty(cardReminderDate) ? null : DateTime.Parse(cardReminderDate);
         await CardService.SetCardDatesAsync(selectedCard.Id, start, due, reminder);
-    }
-
-    private async Task UpdateCardChecklist()
-    {
-        if (selectedCard == null) return;
-        await CardService.SetCardChecklistAsync(selectedCard.Id, selectedCardChecklist);
-    }
-
-    private async Task UpdateCardAttachments()
-    {
-        if (selectedCard == null) return;
-        await CardService.SetCardAttachmentsAsync(selectedCard.Id, selectedCardAttachments);
     }
 
     [JSInvokable]
@@ -570,6 +768,25 @@
         catch (Exception)
         {
             // Handle error
+        }
+    }
+
+    // Helper method to parse labels
+    private List<LabelItem> GetCardLabels(LogisticsCard card)
+    {
+        if (string.IsNullOrEmpty(card.Labels))
+            return new List<LabelItem>();
+
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<LabelItem>>(card.Labels) ?? new List<LabelItem>();
+        }
+        catch
+        {
+            // Fallback for old comma-separated format
+            return card.Labels.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(l => new LabelItem { Text = l.Trim(), Color = "#6f42c1" })
+                .ToList();
         }
     }
 }

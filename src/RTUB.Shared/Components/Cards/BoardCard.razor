@@ -30,13 +30,13 @@
         
         @if (Board.Event != null)
         {
-            <div class="badge bg-primary mb-2">
+            <span class="badge bg-primary" style="width: fit-content;">
                 <i class="bi bi-calendar-event"></i> @Board.Event.Name
-            </div>
+            </span>
         }
         
         <div class="mt-auto">
-            <button class="btn btn-sm btn-primary w-100" @onclick="(() => OnView.InvokeAsync(Board))">
+            <button class="btn btn-sm btn-primary" @onclick="(() => OnView.InvokeAsync(Board))" style="width: auto;">
                 <i class="bi bi-kanban"></i> Abrir Quadro
             </button>
         </div>

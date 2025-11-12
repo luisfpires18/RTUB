@@ -34,11 +34,11 @@
         }
         else if (!boards.Any())
         {
-            <div class="text-center py-5">
-                <i class="bi bi-kanban" style="font-size: 4rem; opacity: 0.3;"></i>
-                <h3>Nenhum quadro criado ainda</h3>
-                <p class="text-muted">Crie o seu primeiro quadro para começar a organizar tarefas.</p>
-            </div>
+            <EmptyState Title="Nenhum quadro criado ainda"
+                       Message="Crie o seu primeiro quadro para começar a organizar tarefas."
+                       Icon="bi-kanban"
+                       ActionText="Criar Quadro"
+                       OnAction="OpenCreateBoardModal" />
         }
         else
         {
@@ -90,16 +90,28 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Evento Associado (opcional)</label>
-                        <select class="form-select" @bind="selectedEventId">
-                            <option value="">Nenhum</option>
-                            @if (events != null)
-                            {
-                                @foreach (var evt in events)
+                        <input type="text" class="form-control" placeholder="Pesquisar evento..." 
+                               @bind="eventSearchTerm" @bind:event="oninput" />
+                        @if (!string.IsNullOrEmpty(eventSearchTerm) && filteredEvents != null && filteredEvents.Any())
+                        {
+                            <div class="list-group mt-2" style="max-height: 200px; overflow-y: auto;">
+                                @foreach (var evt in filteredEvents.Take(10))
                                 {
-                                    <option value="@evt.Id">@evt.Name - @evt.Date.ToString("dd/MM/yyyy")</option>
+                                    <button type="button" class="list-group-item list-group-item-action" 
+                                            @onclick="() => SelectEvent(evt.Id.ToString(), evt.Name)">
+                                        <i class="bi bi-calendar-event"></i> @evt.Name - @evt.Date.ToString("dd/MM/yyyy")
+                                    </button>
                                 }
-                            }
-                        </select>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(selectedEventName))
+                        {
+                            <div class="badge bg-primary mt-2">
+                                <i class="bi bi-calendar-event"></i> @selectedEventName
+                                <button type="button" class="btn-close btn-close-white ms-2" 
+                                        style="font-size: 0.7rem;" @onclick="ClearEventSelection"></button>
+                            </div>
+                        }
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -148,6 +160,11 @@
     private string boardName = string.Empty;
     private string boardDescription = string.Empty;
     private string selectedEventId = string.Empty;
+    private string selectedEventName = string.Empty;
+    private string eventSearchTerm = string.Empty;
+    private List<Event>? filteredEvents => events?.Where(e => 
+        string.IsNullOrEmpty(eventSearchTerm) || 
+        e.Name.Contains(eventSearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
 
     // Delete modal state
     private bool showDeleteBoardModal = false;
@@ -192,6 +209,8 @@
         boardName = string.Empty;
         boardDescription = string.Empty;
         selectedEventId = string.Empty;
+        selectedEventName = string.Empty;
+        eventSearchTerm = string.Empty;
         showBoardModal = true;
     }
 
@@ -201,6 +220,8 @@
         boardName = board.Name;
         boardDescription = board.Description;
         selectedEventId = board.EventId?.ToString() ?? string.Empty;
+        selectedEventName = board.Event?.Name ?? string.Empty;
+        eventSearchTerm = string.Empty;
         showBoardModal = true;
     }
 
@@ -208,6 +229,19 @@
     {
         showBoardModal = false;
         editingBoard = null;
+    }
+
+    private void SelectEvent(string eventId, string eventName)
+    {
+        selectedEventId = eventId;
+        selectedEventName = eventName;
+        eventSearchTerm = string.Empty;
+    }
+
+    private void ClearEventSelection()
+    {
+        selectedEventId = string.Empty;
+        selectedEventName = string.Empty;
     }
 
     private async Task SaveBoard()
