@@ -118,6 +118,7 @@ else
               HeaderTitle="@(viewingInstrument?.Name ?? "")"
               ImageUrl="@(viewingInstrument != null && !string.IsNullOrEmpty(viewingInstrument.ImageUrl) ? GetImageUrl(viewingInstrument.ImageUrl) : null)"
               IconClass="@(viewingInstrument != null && string.IsNullOrEmpty(viewingInstrument.ImageUrl) ? "bi-music-note-beamed" : null)"
+              UseRectangularImage="true"
               OnClose="CloseViewDetailsModal">
     <BadgesContent>
         @if (viewingInstrument != null)
@@ -273,8 +274,8 @@ else
               ShowModal="showCropperModal"
               ShowModalChanged="OnCropperModalChanged"
               OnImageCropped="OnImageCropped"
-              AspectRatio="1.0"
-              AspectRatioHelp="Inventory images are displayed in 1:1 aspect ratio (square) for consistent presentation"
+              AspectRatio="0"
+              AspectRatioHelp="Crop to capture the full instrument - the image will be displayed as a circle in the list and full size in details"
               ImageFormat="image/webp"
               ImageQuality="0.85" />
 
