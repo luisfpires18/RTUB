@@ -216,6 +216,7 @@ else
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Email <span class="text-danger">*</span></label>
                     <InputText type="email" class="form-control" @bind-Value="editingUser.Email" />
+                    <ValidationMessage For="@(() => editingUser.Email)" />
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Data de Nascimento</label>
@@ -234,12 +235,13 @@ else
             </div>
             <div class="mb-3">
                 <label class="form-label">Categoria <span class="text-danger">*</span></label>
-                <InputSelect class="form-select" @bind-Value="selectedRole" @bind-Value:after="OnCategoryChanged">
+                <InputSelect class="form-select" @bind-Value="editingUser.SelectedCategory" @bind-Value:after="OnCategoryChanged">
                     <option value="">Selecionar Categoria</option>
                     <option value="Leitão">Leitão</option>
                     <option value="Caloiro">Caloiro</option>
                     <option value="Tuno">Tuno</option>
                 </InputSelect>
+                <ValidationMessage For="@(() => editingUser.SelectedCategory)" />
             </div>
             <div class="row">
                 @if (showYearLeitao)
@@ -277,10 +279,10 @@ else
                 </InputSelect>
             </div>
             @* Only show Padrinho field for Caloiro or Tuno (not for Leitão) *@
-            @if (selectedRole == "Caloiro" || selectedRole == "Tuno")
+            @if (editingUser.SelectedCategory == "Caloiro" || editingUser.SelectedCategory == "Tuno")
             {
                 <div class="mb-3">
-                    <label class="form-label">Padrinho @(selectedRole == "Caloiro" ? "(Obrigatório quando passa a Caloiro)" : "")</label>
+                    <label class="form-label">Padrinho @(editingUser.SelectedCategory == "Caloiro" ? "(Obrigatório quando passa a Caloiro)" : "")</label>
                     <div class="mentor-search-container">
                         <div class="input-group mb-2">
                             <span class="input-group-text">
@@ -513,7 +515,6 @@ else
     private ApplicationUser editingUser = new();
     private ApplicationUser? deletingUser;
     private ApplicationUser? viewingUser;
-    private string selectedRole = "";
     private string errorMessage = "";
     private EditForm? memberEditForm;
     
@@ -780,7 +781,6 @@ else
     {
         isCreateMode = true;
         editingUser = new ApplicationUser();
-        selectedRole = "";
         errorMessage = "";
         mentorSearchTerm = "";
         filteredMentors.Clear();
@@ -811,9 +811,9 @@ else
             MentorId = user.MentorId
         };
 
-        // Set selectedRole based on user's primary category
+        // Set SelectedCategory based on user's primary category
         var primaryCategory = user.Categories.FirstOrDefault();
-        selectedRole = primaryCategory switch
+        editingUser.SelectedCategory = primaryCategory switch
         {
             MemberCategory.Leitao => "Leitão",
             MemberCategory.Caloiro => "Caloiro",
@@ -882,11 +882,10 @@ else
             // We only need custom validations here
 
             // Validate category
-            if (string.IsNullOrEmpty(selectedRole))
+            if (string.IsNullOrEmpty(editingUser.SelectedCategory))
             {
-                // Add validation error to the model itself (not tied to a specific field)
-                var modelField = new FieldIdentifier(editingUser, string.Empty);
-                memberValidationStore.Add(modelField, "Categoria é obrigatória.");
+                // Add validation error to the SelectedCategory field
+                memberValidationStore.Add(() => editingUser.SelectedCategory, "Categoria é obrigatória.");
                 editContext.NotifyValidationStateChanged();
                 return;
             }
@@ -938,7 +937,7 @@ else
             var createdUser = await UserManager.FindByEmailAsync(editingUser.Email);
             if (createdUser != null)
             {
-                var category = selectedRole switch
+                var category = editingUser.SelectedCategory switch
                 {
                     "Leitão" => MemberCategory.Leitao,
                     "Caloiro" => MemberCategory.Caloiro,
@@ -990,7 +989,7 @@ else
                 existingUser.MentorId = editingUser.MentorId;
 
                 // Update category (not role)
-                var category = selectedRole switch
+                var category = editingUser.SelectedCategory switch
                 {
                     "Leitão" => MemberCategory.Leitao,
                     "Caloiro" => MemberCategory.Caloiro,
@@ -1100,17 +1099,16 @@ else
     }
 
     // Dynamic field visibility based on selected category
-    private bool showYearLeitao => !string.IsNullOrEmpty(selectedRole);
-    private bool showYearCaloiro => selectedRole == "Caloiro" || selectedRole == "Tuno";
-    private bool showYearTuno => selectedRole == "Tuno";
+    private bool showYearLeitao => !string.IsNullOrEmpty(editingUser?.SelectedCategory);
+    private bool showYearCaloiro => editingUser?.SelectedCategory == "Caloiro" || editingUser?.SelectedCategory == "Tuno";
+    private bool showYearTuno => editingUser?.SelectedCategory == "Tuno";
 
     private void OnCategoryChanged()
     {
         // Clear category validation error when a category is selected
-        if (memberEditForm?.EditContext != null && memberValidationStore != null && !string.IsNullOrEmpty(selectedRole))
+        if (memberEditForm?.EditContext != null && memberValidationStore != null && !string.IsNullOrEmpty(editingUser?.SelectedCategory))
         {
-            var modelField = new FieldIdentifier(editingUser, string.Empty);
-            memberValidationStore.Clear(modelField);
+            memberValidationStore.Clear(() => editingUser.SelectedCategory);
             memberEditForm.EditContext.NotifyValidationStateChanged();
         }
         StateHasChanged();
