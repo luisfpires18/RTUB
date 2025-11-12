@@ -20,6 +20,9 @@
   --bs-success: #00bc8c;
   --bs-warning: #f39c12;
   --bs-danger: #e74c3c;
+  /* Override Bootstrap's info color from teal to primary blue */
+  --bs-info: #007bff;
+  --bs-info-rgb: 0, 123, 255;
   /* Override Bootstrap's secondary color to white */
   --bs-secondary-color: #ffffff !important;
   --bs-secondary-color-rgb: 255, 255, 255;
@@ -1286,6 +1289,12 @@ input::placeholder, textarea::placeholder, select::placeholder {
     font-weight: bold;
 }
 
+/* Instrument condition badge - Orange for Worn */
+.bg-orange {
+    background-color: #fd7e14 !important;
+    color: white;
+}
+
 /* File input styling for dark theme */
 .file-input-dark::file-selector-button {
     color: #000000 !important;
@@ -1390,14 +1399,14 @@ th:hover {
 
 /* Info button */
 .btn-info {
-    background-color: #17a2b8;
-    border-color: #17a2b8;
+    background-color: #007bff;
+    border-color: #007bff;
     color: white;
 }
 
 .btn-info:hover {
-    background-color: #138496;
-    border-color: #117a8b;
+    background-color: #0069d9;
+    border-color: #0062cc;
     color: white;
 }
 

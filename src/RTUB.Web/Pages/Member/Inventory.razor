@@ -85,7 +85,7 @@ else
 
     <!-- Instruments Grid with InstrumentCircle Component -->
     <div class="row">
-        @foreach (var instrument in filteredInstruments)
+        @foreach (var instrument in paginatedInstruments)
         {
             <div class="col-md-4 col-lg-2 mb-4">
                 <AuthorizeView Roles="Admin,Owner">
@@ -109,6 +109,15 @@ else
             </div>
         }
     </div>
+
+    <!-- Pagination Component -->
+    <TablePagination CurrentPage="@currentPage"
+                     PageSize="@itemsPerPage"
+                     TotalItems="@filteredInstruments.Count"
+                     ItemLabel="instrumentos"
+                     PageSizeOptions="@(new[] { 6, 12, 18, 24, 30 })"
+                     OnPageChanged="@HandlePageChanged"
+                     OnPageSizeChanged="@HandlePageSizeChanged" />
 }
 
 <!-- Details Modal -->
@@ -252,11 +261,18 @@ else
                         <small class="text-success">Nova imagem carregada com sucesso!</small>
                     </div>
                 }
+                
+                <!-- Info about image cropping -->
+                <div class="alert alert-info mt-3 identity-alert-info">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <strong>Nota:</strong> Ao adicionar uma imagem, será apresentado um editor para recortar a imagem completa do instrumento 
+                    e uma miniatura circular para exibição na lista. Ambos os recortes devem ser concluídos antes de guardar.
+                </div>
             </div>
 
             <div class="d-flex justify-content-end gap-2">
                 <button type="button" class="btn btn-secondary" @onclick="() => showInstrumentEditModal = false">Cancelar</button>
-                <button type="submit" class="btn btn-success">Guardar</button>
+                <button type="submit" class="btn btn-success" disabled="@(!CanSaveInstrument())">Guardar</button>
             </div>
         </EditForm>
     </EditFormContent>
@@ -295,10 +311,15 @@ else
     // Instruments
     private List<Instrument> instruments = new();
     private List<Instrument> filteredInstruments = new();
+    private List<Instrument> paginatedInstruments = new();
     private List<string> categories = new();
     private Dictionary<InstrumentCondition, int> conditionStats = new();
     private string filterCategory = "";
     private string filterCondition = "";
+
+    // Pagination
+    private int currentPage = 1;
+    private int itemsPerPage = 6;
 
     // Details Modal State
     private bool showViewDetailsModal = false;
@@ -349,6 +370,9 @@ else
 
         conditionStats = await InstrumentService.GetConditionStatsAsync();
 
+        // Apply initial pagination
+        ApplyPagination();
+
         loading = false;
     }
 
@@ -365,6 +389,31 @@ else
         {
             filteredInstruments = filteredInstruments.Where(i => i.Condition == condition).ToList();
         }
+
+        // Reset to first page when filters change
+        currentPage = 1;
+        ApplyPagination();
+    }
+
+    private void ApplyPagination()
+    {
+        var skip = (currentPage - 1) * itemsPerPage;
+        paginatedInstruments = filteredInstruments.Skip(skip).Take(itemsPerPage).ToList();
+    }
+
+    private Task HandlePageChanged(int newPage)
+    {
+        currentPage = newPage;
+        ApplyPagination();
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePageSizeChanged(int newPageSize)
+    {
+        itemsPerPage = newPageSize;
+        currentPage = 1; // Reset to first page when page size changes
+        ApplyPagination();
+        return Task.CompletedTask;
     }
 
     // Details Modal Methods
@@ -614,6 +663,20 @@ else
     {
         showThumbnailCropperModal = isOpen;
         StateHasChanged();
+    }
+
+    private bool CanSaveInstrument()
+    {
+        // If an image has been uploaded (selectedFile is not null), both crops must be completed
+        // before allowing save to prevent bugs
+        if (selectedFile != null)
+        {
+            // Both full image and thumbnail must be cropped
+            return croppedInstrumentImageBytes != null && croppedThumbnailImageBytes != null;
+        }
+        
+        // If no new image uploaded, can always save
+        return true;
     }
 
     private string GetImageUrl(string imageSrc)

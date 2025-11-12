@@ -33,7 +33,7 @@ public static class InstrumentConditionHelper
         {
             InstrumentCondition.Excellent => "bg-success",      // Green
             InstrumentCondition.Good => "bg-info",              // Blue
-            InstrumentCondition.Worn => "bg-warning",           // Orange
+            InstrumentCondition.Worn => "bg-orange",            // Orange
             InstrumentCondition.NeedsMaintenance => "bg-warning", // Yellow
             InstrumentCondition.Lost => "bg-danger",            // Red
             _ => "bg-secondary"
