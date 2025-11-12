@@ -21,6 +21,7 @@ public class ApplicationUserExtensionsTests
             Id = Guid.NewGuid().ToString(),
             FirstName = "Test",
             LastName = "User",
+            Nickname = "TestUser",
             Email = "test@example.com",
             UserName = "test@example.com"
         };

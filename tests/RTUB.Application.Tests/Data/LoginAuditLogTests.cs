@@ -64,6 +64,7 @@ public class LoginAuditLogTests : IDisposable
             Email = "john@example.com",
             FirstName = "John",
             LastName = "Doe",
+            Nickname = "JDoe",
             PhoneContact = "123456789",
             EmailConfirmed = true
         };
@@ -111,6 +112,7 @@ public class LoginAuditLogTests : IDisposable
             Email = "jane@example.com",
             FirstName = "Jane",
             LastName = "Doe",
+            Nickname = "JaneDoe",
             PhoneContact = "987654321",
             EmailConfirmed = true
         };

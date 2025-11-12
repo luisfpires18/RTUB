@@ -39,7 +39,7 @@ public class UserProfileServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var user = new ApplicationUser { Id = userId, UserName = "testuser" };
+        var user = new ApplicationUser { Id = userId, UserName = "testuser", Nickname = "TestUser" };
         _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
 
         // Act
@@ -69,7 +69,7 @@ public class UserProfileServiceTests : IDisposable
     {
         // Arrange
         var username = "testuser";
-        var user = new ApplicationUser { Id = "user-123", UserName = username };
+        var user = new ApplicationUser { Id = "user-123", UserName = username, Nickname = username };
         _mockUserManager.Setup(x => x.FindByNameAsync(username)).ReturnsAsync(user);
 
         // Act
@@ -85,7 +85,7 @@ public class UserProfileServiceTests : IDisposable
     {
         // Arrange
         var email = "test@example.com";
-        var user = new ApplicationUser { Id = "user-123", Email = email };
+        var user = new ApplicationUser { Id = "user-123", Email = email, Nickname = "TestUser" };
         _mockUserManager.Setup(x => x.FindByEmailAsync(email)).ReturnsAsync(user);
 
         // Act
@@ -130,7 +130,7 @@ public class UserProfileServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var user = new ApplicationUser { Id = userId };
+        var user = new ApplicationUser { Id = userId, Nickname = "TestUser" };
         var firstName = "John";
         var lastName = "Doe";
         var nickname = "JD";
@@ -172,7 +172,7 @@ public class UserProfileServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var user = new ApplicationUser { Id = userId };
+        var user = new ApplicationUser { Id = userId, Nickname = "TestUser" };
         _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
         _mockUserManager.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Update failed" }));
@@ -190,7 +190,7 @@ public class UserProfileServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var user = new ApplicationUser { Id = userId };
+        var user = new ApplicationUser { Id = userId, Nickname = "TestUser" };
         _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
 
         // Act
@@ -218,7 +218,7 @@ public class UserProfileServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var user = new ApplicationUser { Id = userId };
+        var user = new ApplicationUser { Id = userId, Nickname = "TestUser" };
         var roles = new List<string> { "Admin", "Member" };
 
         _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);

@@ -872,9 +872,12 @@ else
             // Basic validation is handled by DataAnnotationsValidator
             // We only need custom validations here
 
+            // Create a dummy object to hold category validation
+            var categoryHolder = new { Category = selectedRole };
+            
             if (string.IsNullOrEmpty(selectedRole))
             {
-                messageStore.Add(() => editingUser.FirstName, "Categoria é obrigatória.");
+                messageStore.Add(editContext.Field(nameof(categoryHolder.Category)), "Categoria é obrigatória.");
                 editContext.NotifyValidationStateChanged();
                 return;
             }

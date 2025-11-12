@@ -291,7 +291,7 @@ else
                         {
                             <div class="mb-3">
                                 <label class="form-label text-white-full">Instrumento *</label>
-                                <InputSelect class="form-select form-select-dark" @bind-Value="enrollmentForm.Instrument">
+                                <InputSelect class="form-select form-select-dark" @bind-Value="enrollmentForm.Instrument" @bind-Value:after="@(() => OnInstrumentChanged(enrollmentForm.Instrument))">
                                     <option value="" disabled selected>Selecionar...</option>
                                     @foreach (var instrument in Enum.GetValues<InstrumentType>())
                                     {
@@ -1213,10 +1213,35 @@ else
     {
         wantToPlay = value;
         instrumentValidationError = string.Empty; // Clear validation error when toggle changes
+        
+        // Clear validation messages from EditContext
+        if (enrollmentEditForm?.EditContext != null)
+        {
+            var messageStore = new ValidationMessageStore(enrollmentEditForm.EditContext);
+            messageStore.Clear();
+            enrollmentEditForm.EditContext.NotifyValidationStateChanged();
+        }
+        
         if (enrollmentForm != null)
         {
             // Always clear instrument when toggle changes to force user to select
             enrollmentForm.Instrument = null;
+        }
+    }
+    
+    private void OnInstrumentChanged(InstrumentType? instrument)
+    {
+        if (enrollmentForm != null)
+        {
+            enrollmentForm.Instrument = instrument;
+            
+            // Clear validation messages when instrument is selected
+            if (enrollmentEditForm?.EditContext != null && instrument.HasValue)
+            {
+                var messageStore = new ValidationMessageStore(enrollmentEditForm.EditContext);
+                messageStore.Clear();
+                enrollmentEditForm.EditContext.NotifyValidationStateChanged();
+            }
         }
     }
 

@@ -274,6 +274,7 @@ public class ApplicationDbContextTests : IDisposable
             FirstName = "Test",
             LastName = "User",
             PhoneContact = "123456789",
+            Nickname = "TestUser",
             CategoriesJson = "[0]",
             PositionsJson = "[5]"
         };
@@ -320,6 +321,7 @@ public class ApplicationDbContextTests : IDisposable
             FirstName = "Test",
             LastName = "User",
             PhoneContact = "123456789",
+            Nickname = "TestUser",
             CategoriesJson = "[]",  // Empty array
             PositionsJson = "[]"    // Empty array
         };
@@ -364,6 +366,7 @@ public class ApplicationDbContextTests : IDisposable
             FirstName = "Test",
             LastName = "User",
             PhoneContact = "123456789",
+            Nickname = "TestUser",
             CategoriesJson = null,  // Null initially
             PositionsJson = null    // Null initially
         };
@@ -419,7 +422,8 @@ public class ApplicationDbContextTests : IDisposable
             Email = "jeans@example.com",
             FirstName = "Jean",
             LastName = "Smith",
-            PhoneContact = "123456789"
+            PhoneContact = "123456789",
+            Nickname = "TestUser",
         };
         _context.Users.Add(testUser);
         await _context.SaveChangesAsync();
@@ -477,7 +481,8 @@ public class ApplicationDbContextTests : IDisposable
             Email = "jeans@example.com",
             FirstName = "Jean",
             LastName = "Smith",
-            PhoneContact = "123456789"
+            PhoneContact = "123456789",
+            Nickname = "TestUser",
         };
         _context.Users.Add(testUser);
         
@@ -528,6 +533,7 @@ public class ApplicationDbContextTests : IDisposable
             FirstName = "Test",
             LastName = "User",
             PhoneContact = "123456789",
+            Nickname = "TestUser",
             DateOfBirth = DateTime.Parse("1990-01-01"),
             Degree = "Computer Science"
         };
@@ -570,7 +576,8 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789"
+            PhoneContact = "123456789",
+            Nickname = "TestUser",
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -607,7 +614,8 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789"
+            PhoneContact = "123456789",
+            Nickname = "TestUser",
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -645,6 +653,7 @@ public class ApplicationDbContextTests : IDisposable
             FirstName = "Test",
             LastName = "User",
             PhoneContact = "123456789",
+            Nickname = "TestUser",
             PhoneNumber = "123456789"
         };
         _context.Users.Add(user);
@@ -683,6 +692,7 @@ public class ApplicationDbContextTests : IDisposable
             FirstName = "Test",
             LastName = "User",
             PhoneContact = "123456789",
+            Nickname = "TestUser",
             PasswordHash = "oldhash"
         };
         _context.Users.Add(user);
@@ -726,6 +736,7 @@ public class ApplicationDbContextTests : IDisposable
             FirstName = "Test",
             LastName = "User",
             PhoneContact = "123456789",
+            Nickname = "TestUser",
             SecurityStamp = "oldstamp"
         };
         _context.Users.Add(user);
@@ -769,6 +780,7 @@ public class ApplicationDbContextTests : IDisposable
             FirstName = "Test",
             LastName = "User",
             PhoneContact = "123456789",
+            Nickname = "TestUser",
             PhoneNumber = "123456789"
         };
         _context.Users.Add(user);
@@ -808,7 +820,8 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789"
+            PhoneContact = "123456789",
+            Nickname = "TestUser",
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -845,7 +858,8 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789"
+            PhoneContact = "123456789",
+            Nickname = "TestUser",
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -881,7 +895,8 @@ public class ApplicationDbContextTests : IDisposable
             Email = "target@example.com",
             FirstName = "Target",
             LastName = "User",
-            PhoneContact = "123456789"
+            PhoneContact = "123456789",
+            Nickname = "TestUser",
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -999,6 +1014,7 @@ public class ApplicationDbContextTests : IDisposable
             FirstName = "Test",
             LastName = "User",
             PhoneContact = "123456789",
+            Nickname = "TestUser",
             PasswordHash = "oldhash",
             SecurityStamp = "oldstamp"
         };
@@ -1047,6 +1063,7 @@ public class ApplicationDbContextTests : IDisposable
             FirstName = "Test",
             LastName = "User",
             PhoneContact = "123456789",
+            Nickname = "TestUser",
             SecurityStamp = "oldstamp"
         };
         _context.Users.Add(user);
@@ -1080,6 +1097,7 @@ public class ApplicationDbContextTests : IDisposable
             FirstName = "Test",
             LastName = "User",
             PhoneContact = "123456789",
+            Nickname = "TestUser",
             SecurityStamp = "oldstamp"
         };
         _context.Users.Add(user);
@@ -1119,6 +1137,7 @@ public class ApplicationDbContextTests : IDisposable
             FirstName = "Test",
             LastName = "User",
             PhoneContact = "123456789",
+            Nickname = "TestUser",
             SecurityStamp = "oldstamp",
             PasswordHash = "oldhash"
         };
@@ -1164,7 +1183,8 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789"
+            PhoneContact = "123456789",
+            Nickname = "TestUser",
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -1264,7 +1284,8 @@ public class ApplicationDbContextTests : IDisposable
             Email = "jeans@example.com",
             FirstName = "Jean",
             LastName = "Smith",
-            PhoneContact = "123456789"
+            PhoneContact = "123456789",
+            Nickname = "TestUser",
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
