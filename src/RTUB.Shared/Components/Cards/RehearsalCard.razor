@@ -104,13 +104,16 @@
                         }
                         else
                         {
-                            <!-- Attendance Pending button (disabled, warning) -->
-                            <button class="btn btn-sm btn-warning d-flex align-items-center gap-1" 
-                                    disabled 
-                                    title="Presença Pendente">
-                                <i class="bi bi-clock-fill icon-size-1rem"></i>
-                                <span class="d-none d-md-inline"></span>
-                            </button>
+                            @if (UserAttendance.WillAttend)
+                            {
+                                <!-- Attendance Pending button (disabled, warning) - only shown when WillAttend is true -->
+                                <button class="btn btn-sm btn-warning d-flex align-items-center gap-1" 
+                                        disabled 
+                                        title="Presença Pendente">
+                                    <i class="bi bi-clock-fill icon-size-1rem"></i>
+                                    <span class="d-none d-md-inline"></span>
+                                </button>
+                            }
                             
                             <!-- Edit Attendance button (white) -->
                             <button class="btn btn-sm btn-light d-flex align-items-center" 

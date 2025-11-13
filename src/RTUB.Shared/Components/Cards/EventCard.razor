@@ -83,7 +83,7 @@
     </div>
     <div class="card-body d-flex flex-column p-3">
         <h5 class="card-title mb-2">@Event.Name</h5>
-        <p class="card-text text-light-theme mb-2">
+        <p class="card-text text-white mb-2">
             <small>
                 <i class="bi bi-calendar me-1"></i>
                 @if (Event.EndDate.HasValue && Event.EndDate.Value.Date != Event.Date.Date)
@@ -107,7 +107,7 @@
         </p>
         @if (!string.IsNullOrEmpty(Event.Location))
         {
-            <p class="card-text text-light-theme mb-2">
+            <p class="card-text text-white mb-2">
                 <small>
                     <i class="bi bi-geo-alt me-1"></i> @Event.Location
                 </small>
