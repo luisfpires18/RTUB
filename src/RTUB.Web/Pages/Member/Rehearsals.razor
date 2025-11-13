@@ -203,8 +203,12 @@ else
                                            OnSearchChanged="@HandleAttendanceSearchChanged" />
                         </div>
                         
+                        var attendingMembers = paginatedAttendances.Where(a => a.WillAttend).ToList();
+                        var notAttendingMembers = selectedRehearsalAttendances.Where(a => a.User != null && !a.WillAttend).ToList();
+                        
+                        <h6 class="mb-3">Vão participar (@attendingMembers.Count)</h6>
                         <div class="enrollment-card-grid">
-                            @foreach (var attendance in paginatedAttendances)
+                            @foreach (var attendance in attendingMembers)
                             {
                                 var instrumentDisplay = attendance.Instrument?.ToString() ?? "—";
                                 <EnrollmentCard 
@@ -226,11 +230,7 @@ else
                                     CancelTooltip="Cancelar">
                                     <BadgeContent>
                                         <div class="enrollment-card-badges-row">
-                                            @if (!attendance.WillAttend)
-                                            {
-                                                <span class="badge bg-danger">Não Vou</span>
-                                            }
-                                            else if (attendance.Attended)
+                                            @if (attendance.Attended)
                                             {
                                                 <span class="badge bg-success">Aprovado</span>
                                             }
@@ -244,12 +244,12 @@ else
                             }
                         </div>
                         
-                        <!-- Pagination for attendance cards -->
-                        @if (filteredAttendances.Count > 0)
+                        <!-- Pagination for attending members -->
+                        @if (filteredAttendances.Where(a => a.WillAttend).Count() > 0)
                         {
                             <div class="mt-3">
                                 <TablePagination 
-                                    TotalItems="@filteredAttendances.Count"
+                                    TotalItems="@filteredAttendances.Where(a => a.WillAttend).Count()"
                                     CurrentPage="@attendancesPagination.CurrentPage"
                                     PageSize="@attendancesPagination.PageSize"
                                     PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
@@ -262,10 +262,37 @@ else
                         var instrumentCounts = new Dictionary<InstrumentType, int>();
                         foreach (var inst in Enum.GetValues<InstrumentType>())
                         {
-                            instrumentCounts[inst] = selectedRehearsalAttendances.Count(a => a.Instrument == inst);
+                            instrumentCounts[inst] = selectedRehearsalAttendances.Where(a => a.WillAttend).Count(a => a.Instrument == inst);
                         }
 
                         <InstrumentCounter InstrumentCounts="@instrumentCounts" />
+                        
+                        @if (notAttendingMembers.Any())
+                        {
+                            <h6 class="mb-3 mt-4 heading-danger">Não vão participar (@notAttendingMembers.Count)</h6>
+                            <div class="enrollment-card-grid">
+                                @foreach (var attendance in notAttendingMembers)
+                                {
+                                    <EnrollmentCard 
+                                        AvatarUrl="@attendance.User?.ProfilePictureSrc"
+                                        TunaName="@attendance.User?.Nickname"
+                                        FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}")"
+                                        InstrumentText=""
+                                        Notes="@attendance.Notes"
+                                        AltText="@attendance.User?.GetDisplayName()"
+                                        ShowEditButton="false"
+                                        ShowDeleteButton="@(isOwner && isSelectedRehearsalPast)"
+                                        OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
+                                        DeleteTooltip="Eliminar">
+                                        <BadgeContent>
+                                            <div class="enrollment-card-badges-row">
+                                                <!-- Category badges could be added here if needed -->
+                                            </div>
+                                        </BadgeContent>
+                                    </EnrollmentCard>
+                                }
+                            </div>
+                        }
 
                         <!-- Add Member Section (Admin Only for Past Rehearsals) -->
                         @if (isAdmin && isSelectedRehearsalPast)
