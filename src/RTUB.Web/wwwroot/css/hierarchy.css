@@ -56,7 +56,6 @@
     position: relative;
     width: 100%;
     height: 250px; /* Fallback for browsers without aspect-ratio support */
-    aspect-ratio: 4 / 3;
     overflow: hidden;
     background-color: rgba(0, 0, 0, 0.3);
 }
@@ -64,12 +63,14 @@
 @supports (aspect-ratio: 4 / 3) {
     .hierarchy-card-image-wrapper {
         height: auto;
+        aspect-ratio: 4 / 3;
     }
 }
 
 .hierarchy-card-image {
     width: 100%;
     height: 100%;
+    min-height: 250px; /* Ensure minimum height */
     object-fit: cover;
     object-position: center;
     display: block;
