@@ -21,10 +21,10 @@
     align-items: center;
 }
 
-/* Individual filter controls - equal width */
+/* Individual filter controls - flexible width */
 .members-toolbar-filter {
-    width: 260px;
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    min-width: 180px;
 }
 
 /* Ensure all controls have uniform height */
@@ -51,24 +51,13 @@
     align-items: center;
 }
 
-/* Responsive: Stack on mobile (≤768px) */
+/* Responsive: Keep on same row, allow wrapping if needed */
 @media (max-width: 768px) {
     .members-toolbar {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-    
-    .members-toolbar-search,
-    .members-toolbar-filters {
-        width: 100%;
-    }
-    
-    .members-toolbar-filters {
-        flex-direction: column;
         gap: 0.75rem;
     }
     
     .members-toolbar-filter {
-        width: 100%;
+        min-width: 140px;
     }
 }
