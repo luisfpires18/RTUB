@@ -55,6 +55,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ProductReservation> ProductReservations { get; set; }
     public DbSet<Trophy> Trophies { get; set; }
     
+    // Discussion DbSets
+    public DbSet<Discussion> Discussions { get; set; }
+    public DbSet<Post> Posts { get; set; }
+    public DbSet<Comment> Comments { get; set; }
+    
     // Logistics Board DbSets
     public DbSet<LogisticsBoard> LogisticsBoards { get; set; }
     public DbSet<LogisticsList> LogisticsLists { get; set; }
