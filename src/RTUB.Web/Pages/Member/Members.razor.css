@@ -1,0 +1,74 @@
+/* Members Page - Search and Filter Toolbar */
+
+/* Main toolbar container - single horizontal row */
+.members-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Left section - Search (flexible, takes remaining space) */
+.members-toolbar-search {
+    flex: 1;
+    min-width: 0; /* Allow flexbox to shrink below content size */
+}
+
+/* Right section - Filters container */
+.members-toolbar-filters {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* Individual filter controls - equal width */
+.members-toolbar-filter {
+    width: 260px;
+    flex-shrink: 0;
+}
+
+/* Ensure all controls have uniform height */
+.members-toolbar :deep(.search-bar-container) {
+    margin-bottom: 0;
+}
+
+.members-toolbar :deep(.form-select),
+.members-toolbar :deep(.form-control),
+.members-toolbar :deep(.input-group),
+.members-toolbar :deep(.btn) {
+    height: 44px;
+}
+
+/* Remove any top margins that could cause misalignment */
+.members-toolbar :deep(.input-group),
+.members-toolbar :deep(.form-select) {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* Ensure vertical centering within input groups */
+.members-toolbar :deep(.input-group) {
+    align-items: center;
+}
+
+/* Responsive: Stack on mobile (≤768px) */
+@media (max-width: 768px) {
+    .members-toolbar {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .members-toolbar-search,
+    .members-toolbar-filters {
+        width: 100%;
+    }
+    
+    .members-toolbar-filters {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .members-toolbar-filter {
+        width: 100%;
+    }
+}

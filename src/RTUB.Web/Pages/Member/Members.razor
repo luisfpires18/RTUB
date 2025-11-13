@@ -31,27 +31,29 @@
 </AuthorizeView>
 
 <!-- Search and Controls -->
-<div class="d-flex gap-2 mb-3 align-items-center">
-    <div style="flex: 2;">
+<div class="members-toolbar">
+    <div class="members-toolbar-search">
         <TableSearchBar SearchTerm="@searchTerm"
                        Placeholder="Pesquisar membros..."
                        OnSearchChanged="@HandleSearchChanged" />
     </div>
-    <div style="flex: 1;">
-        <select class="form-select" @bind="selectedCategoryFilter" @bind:after="ApplyFilters">
-            <option value="">Categoria</option>
-            <option value="Caloiro">Caloiro</option>
-            <option value="Tuno">Tuno</option>
-        </select>
-    </div>
-    <div style="flex: 1;">
-        <select class="form-select" @bind="selectedInstrumentFilter" @bind:after="ApplyFilters">
-            <option value="">Instrumento</option>
-            @foreach (var instrument in Enum.GetValues<InstrumentType>())
-            {
-                <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
-            }
-        </select>
+    <div class="members-toolbar-filters">
+        <div class="members-toolbar-filter">
+            <select class="form-select" @bind="selectedCategoryFilter" @bind:after="ApplyFilters">
+                <option value="">Categoria</option>
+                <option value="Caloiro">Caloiro</option>
+                <option value="Tuno">Tuno</option>
+            </select>
+        </div>
+        <div class="members-toolbar-filter">
+            <select class="form-select" @bind="selectedInstrumentFilter" @bind:after="ApplyFilters">
+                <option value="">Instrumento</option>
+                @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                {
+                    <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                }
+            </select>
+        </div>
     </div>
 </div>
 
