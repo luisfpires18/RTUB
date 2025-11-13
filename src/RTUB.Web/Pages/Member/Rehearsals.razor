@@ -1034,6 +1034,7 @@ else
         selectedRehearsal = rehearsal;
         attendanceForm = new AttendanceFormModel
         {
+            WillAttend = true,
             Instrument = null,
             Notes = null
         };
@@ -1349,6 +1350,7 @@ else
         selectedRehearsal = rehearsal;
         attendanceForm = new AttendanceFormModel
         {
+            WillAttend = existingAttendance?.WillAttend ?? true,
             Instrument = existingAttendance?.Instrument,
             Notes = existingAttendance?.Notes
         };
