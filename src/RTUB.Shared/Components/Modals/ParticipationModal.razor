@@ -16,7 +16,7 @@
     <BodyContent>
         <EditForm Model="@this" OnValidSubmit="@HandleSubmit">
             <DataAnnotationsValidator />
-            <ErrorDisplay />
+            <ErrorDisplay Errors="@validationErrors" />
 
             @* Will Attend Selection (only for events with ShowWillAttend=true) *@
             @if (ShowWillAttend)
@@ -64,10 +64,6 @@
                                     <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                                 }
                             </InputSelect>
-                            @if (!string.IsNullOrEmpty(instrumentValidationError))
-                            {
-                                <div class="text-danger small mt-1">@instrumentValidationError</div>
-                            }
                         </div>
                     }
                 }
@@ -109,6 +105,7 @@
 @code {
     private string instrumentValidationError = string.Empty;
     private bool wantToPlay = false;
+    private List<string> validationErrors = new();
 
     /// <summary>
     /// Controls whether the modal is visible
@@ -222,6 +219,7 @@
                 {
                     Instrument = null;
                     instrumentValidationError = string.Empty;
+                    validationErrors.Clear();
                 }
                 StateHasChanged();
             }
@@ -236,6 +234,7 @@
     private async Task OnInstrumentChangedInternal()
     {
         instrumentValidationError = string.Empty;
+        validationErrors.Clear();
         await InstrumentChanged.InvokeAsync(Instrument);
     }
 
@@ -245,10 +244,12 @@
         if (WantToPlay && (!ShowWillAttend || WillAttend) && !IsLeitao && !Instrument.HasValue)
         {
             instrumentValidationError = "Por favor, selecione um instrumento.";
+            validationErrors = new List<string> { instrumentValidationError };
             return;
         }
 
         instrumentValidationError = string.Empty;
+        validationErrors.Clear();
         await OnSubmit.InvokeAsync();
     }
 
