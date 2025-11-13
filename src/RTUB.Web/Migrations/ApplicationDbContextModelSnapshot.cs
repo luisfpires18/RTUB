@@ -418,10 +418,16 @@ namespace RTUB.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("PostId")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("UserId")
@@ -449,6 +455,9 @@ namespace RTUB.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("EventId")
                         .HasColumnType("INTEGER");
 
@@ -457,6 +466,9 @@ namespace RTUB.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -481,10 +493,16 @@ namespace RTUB.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("DiscussionId")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedBy")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("UserId")

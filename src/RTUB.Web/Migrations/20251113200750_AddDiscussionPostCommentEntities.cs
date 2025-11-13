@@ -20,7 +20,9 @@ namespace RTUB.Migrations
                     EventId = table.Column<int>(type: "INTEGER", nullable: false),
                     Title = table.Column<string>(type: "TEXT", maxLength: 200, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -44,7 +46,9 @@ namespace RTUB.Migrations
                     UserId = table.Column<string>(type: "TEXT", maxLength: 450, nullable: false),
                     Content = table.Column<string>(type: "TEXT", maxLength: 5000, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -74,7 +78,9 @@ namespace RTUB.Migrations
                     UserId = table.Column<string>(type: "TEXT", maxLength: 450, nullable: false),
                     Content = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    CreatedBy = table.Column<string>(type: "TEXT", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
