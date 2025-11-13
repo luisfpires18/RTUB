@@ -1462,6 +1462,7 @@ th:hover {
 
 /* TableSearchBar component */
 .search-bar-container {
+    margin-top: 2.5rem;
     margin-bottom: 1rem;
 }
 
