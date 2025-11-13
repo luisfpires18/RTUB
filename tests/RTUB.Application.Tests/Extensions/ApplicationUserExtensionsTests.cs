@@ -115,6 +115,26 @@ public class ApplicationUserExtensionsTests
         user.IsTunoHonorario().Should().BeTrue();
     }
     
+    [Fact]
+    public void IsFundador_WithFundadorCategory_ReturnsTrue()
+    {
+        // Arrange
+        var user = CreateUserWithCategories(MemberCategory.Fundador);
+        
+        // Act & Assert
+        user.IsFundador().Should().BeTrue();
+    }
+    
+    [Fact]
+    public void IsFundador_WithoutFundadorCategory_ReturnsFalse()
+    {
+        // Arrange
+        var user = CreateUserWithCategories(MemberCategory.Tuno);
+        
+        // Act & Assert
+        user.IsFundador().Should().BeFalse();
+    }
+    
     #endregion
     
     #region Combined Checks Tests

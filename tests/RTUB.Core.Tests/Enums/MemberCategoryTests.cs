@@ -19,6 +19,7 @@ public class MemberCategoryTests
             MemberCategory.Veterano,
             MemberCategory.Tunossauro,
             MemberCategory.TunoHonorario,
+            MemberCategory.Fundador,
             MemberCategory.Caloiro,
             MemberCategory.Leitao
         };
@@ -35,6 +36,7 @@ public class MemberCategoryTests
     [InlineData("Veterano", MemberCategory.Veterano)]
     [InlineData("Tunossauro", MemberCategory.Tunossauro)]
     [InlineData("TunoHonorario", MemberCategory.TunoHonorario)]
+    [InlineData("Fundador", MemberCategory.Fundador)]
     [InlineData("Caloiro", MemberCategory.Caloiro)]
     [InlineData("Leitao", MemberCategory.Leitao)]
     public void MemberCategory_CanParse(string value, MemberCategory expected)
@@ -47,12 +49,12 @@ public class MemberCategoryTests
     }
 
     [Fact]
-    public void MemberCategory_Count_IsSix()
+    public void MemberCategory_Count_IsSeven()
     {
         // Act
         var count = Enum.GetValues<MemberCategory>().Length;
 
         // Assert
-        count.Should().Be(6);
+        count.Should().Be(7);
     }
 }
