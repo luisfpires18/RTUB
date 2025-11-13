@@ -57,10 +57,10 @@
                 }
                 else
                 {
-                    <div class="boards-grid">
+                    <div class="row g-4">
                         @foreach (var board in boards)
                         {
-                            <div class="board-grid-item">
+                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
                                 <BoardCard Board="@board"
                                            ShowActions="@isAdmin"
                                            OnView="@(() => Navigation.NavigateTo($"/logistics/{board.Id}"))"
