@@ -48,15 +48,6 @@
                     </button>
                 </div>
                 
-                <!-- Second row: Filter dropdown -->
-                <div class="d-flex justify-content-center">
-                    <FilterDropdown IconClass="bi-tag" 
-                                   AllItemsLabel="Todas as Etiquetas"
-                                   Items="@availableLabels"
-                                   SelectedValue="@selectedLabelFilter"
-                                   SelectedValueChanged="@((value) => { selectedLabelFilter = value; StateHasChanged(); })" />
-                </div>
-                
                 @if (!string.IsNullOrWhiteSpace(board.Description))
                 {
                     <p class="text-light-theme mt-2 mb-0 text-center">@board.Description</p>
@@ -70,6 +61,17 @@
                         </span>
                     </div>
                 }
+                
+                <!-- Filter dropdown - after description, narrower width -->
+                <div class="d-flex justify-content-center mt-3">
+                    <div style="max-width: 300px;">
+                        <FilterDropdown IconClass="bi-tag" 
+                                       AllItemsLabel="Todas as Etiquetas"
+                                       Items="@availableLabels"
+                                       SelectedValue="@selectedLabelFilter"
+                                       SelectedValueChanged="@((value) => { selectedLabelFilter = value; StateHasChanged(); })" />
+                    </div>
+                </div>
             </div>
 
             @if (!lists.Any())
@@ -164,12 +166,21 @@
                                                         </div>
                                                     }
                                                 }
-                                                @{
+                                                 @{
                                                     var attachmentCount = GetAttachmentsCount(card);
                                                     if (attachmentCount > 0)
                                                     {
                                                         <div class="badge bg-warning text-dark mt-1">
                                                             <i class="bi bi-paperclip"></i> @attachmentCount
+                                                        </div>
+                                                    }
+                                                }
+                                                @{
+                                                    var linkedCardsCount = GetLinkedCardsCount(card);
+                                                    if (linkedCardsCount > 0)
+                                                    {
+                                                        <div class="badge bg-primary mt-1">
+                                                            <i class="bi bi-link-45deg"></i> @linkedCardsCount
                                                         </div>
                                                     }
                                                 }
@@ -1265,6 +1276,23 @@
 
     // Helper method to get attachments count
     private int GetAttachmentsCount(LogisticsCard card)
+    {
+        if (string.IsNullOrEmpty(card.AttachmentsJson))
+            return 0;
+
+        try
+        {
+            var items = System.Text.Json.JsonSerializer.Deserialize<List<AttachmentItem>>(card.AttachmentsJson);
+            return items?.Count ?? 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    // Helper method to get linked cards count
+    private int GetLinkedCardsCount(LogisticsCard card)
     {
         if (string.IsNullOrEmpty(card.AttachmentsJson))
             return 0;
