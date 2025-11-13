@@ -119,10 +119,10 @@
                             <div class="kanban-cards" data-list-id="@list.Id">
                                 @foreach (var card in GetFilteredCards(list.Cards))
                                 {
-                                    <div class="kanban-card @(card.Status == CardStatus.Done ? "card-done" : "card-todo")" 
+                                    <div class="kanban-card @(card.Status == CardStatus.Done ? "card-done" : "card-todo") @(isAdmin ? "clickable" : "")" 
                                          data-card-id="@card.Id" 
                                          draggable="true"
-                                         @onclick="() => OpenCardDetailsModal(card)">
+                                         @onclick="() => { if (isAdmin) OpenCardDetailsModal(card); }">
                                         <div class="card-status-bar @(card.Status == CardStatus.Done ? "bg-success" : "bg-danger")">
                                             <i class="bi bi-@(card.Status == CardStatus.Done ? "check" : "x")-circle-fill me-1"></i>
                                             @(card.Status == CardStatus.Done ? "DONE" : "TODO")
@@ -691,6 +691,7 @@
     private List<FileItem>? uploadedFiles;
     private IBrowserFile? selectedFile;
     private const long MaxFileSize = 10 * 1024 * 1024; // 10MB
+    private bool isAdmin = false;
     private List<ApplicationUser>? filteredMembersForAssignment => users?.Where(u => 
         !string.IsNullOrEmpty(memberSearchTerm) && 
         (selectedCard == null || selectedCard.AssignedToUserId != u.Id) &&
@@ -705,6 +706,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await CheckUserRole();
         await LoadData();
     }
 
@@ -714,6 +716,13 @@
         {
             await JSRuntime.InvokeVoidAsync("initializeKanbanDragDrop", DotNetObjectReference.Create(this));
         }
+    }
+
+    private async Task CheckUserRole()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isAdmin = user.IsInRole("Admin");
     }
 
     private async Task LoadData()
