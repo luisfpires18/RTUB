@@ -1,0 +1,260 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Enums
+@using RTUB.Application.Helpers
+
+@*
+    ParticipationModal Component
+    Unified modal for both event enrollment and rehearsal attendance
+    Supports "WillAttend" selection for events and direct attendance for rehearsals
+*@
+
+<Modal Show="@Show" 
+       ShowChanged="@ShowChanged"
+       Title="@Title" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        <EditForm Model="@this" OnValidSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+            <ErrorDisplay />
+
+            @* Will Attend Selection (only for events with ShowWillAttend=true) *@
+            @if (ShowWillAttend)
+            {
+                <div class="mb-4">
+                    <label class="form-label text-white-full">Vais participar?</label>
+                    <div class="d-flex gap-2">
+                        <button type="button" 
+                                class="btn @(WillAttend ? "btn-success" : "btn-outline-secondary") flex-fill"
+                                @onclick="() => WillAttend = true">
+                            <i class="bi bi-check-circle me-1"></i> Vou
+                        </button>
+                        <button type="button" 
+                                class="btn @(!WillAttend ? "btn-danger" : "btn-outline-secondary") flex-fill"
+                                @onclick="() => WillAttend = false">
+                            <i class="bi bi-x-circle me-1"></i> Não vou
+                        </button>
+                    </div>
+                </div>
+            }
+
+            @* Only show instrument and notes if attending (or if not using WillAttend) *@
+            @if (!ShowWillAttend || WillAttend)
+            {
+                @* Only show "Quero tocar" toggle for non-Leitão members *@
+                @if (!IsLeitao)
+                {
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayToggle"
+                               checked="@WantToPlay"
+                               @onchange="@((ChangeEventArgs e) => OnWantToPlayChanged((bool)e.Value!))">
+                        <label class="form-check-label form-check-label-white-clickable" for="wantToPlayToggle">
+                            Quero tocar
+                        </label>
+                    </div>
+
+                    @if (WantToPlay)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label text-white-full">Instrumento *</label>
+                            <InputSelect class="form-select form-select-dark" @bind-Value="Instrument" @bind-Value:after="@OnInstrumentChangedInternal">
+                                <option value="">Selecionar...</option>
+                                @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                                {
+                                    <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                }
+                            </InputSelect>
+                            @if (!string.IsNullOrEmpty(instrumentValidationError))
+                            {
+                                <div class="text-danger small mt-1">@instrumentValidationError</div>
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-white-full">Instrumento (Opcional)</label>
+                        <InputSelect class="form-select form-select-dark" @bind-Value="Instrument">
+                            <option value="">Selecionar...</option>
+                            @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                            {
+                                <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Notas (opcional)</label>
+                    <InputTextArea class="form-control" rows="@NotesRows" @bind-Value="Notes" placeholder="@NotesPlaceholder" />
+                </div>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Notas (opcional)</label>
+                    <InputTextArea class="form-control" rows="@NotesRows" @bind-Value="Notes" placeholder="@NotesPlaceholder" />
+                </div>
+            }
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="HandleCancel">Cancelar</button>
+                <button type="submit" class="btn btn-primary btn-primary-purple">@SubmitButtonText</button>
+            </div>
+        </EditForm>
+    </BodyContent>
+</Modal>
+
+@code {
+    private string instrumentValidationError = string.Empty;
+    private bool wantToPlay = false;
+
+    /// <summary>
+    /// Controls whether the modal is visible
+    /// </summary>
+    [Parameter]
+    public bool Show { get; set; }
+
+    /// <summary>
+    /// Event callback when Show state changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> ShowChanged { get; set; }
+
+    /// <summary>
+    /// Modal title
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = "Participação";
+
+    /// <summary>
+    /// Whether to show the "Vais participar?" section (true for events, false for rehearsals)
+    /// </summary>
+    [Parameter]
+    public bool ShowWillAttend { get; set; } = false;
+
+    /// <summary>
+    /// Whether the user will attend (for events)
+    /// </summary>
+    [Parameter]
+    public bool WillAttend { get; set; } = true;
+
+    /// <summary>
+    /// Whether the user will attend changed callback
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> WillAttendChanged { get; set; }
+
+    /// <summary>
+    /// Whether the current user is a Leitão (affects instrument requirements)
+    /// </summary>
+    [Parameter]
+    public bool IsLeitao { get; set; }
+
+    /// <summary>
+    /// Selected instrument
+    /// </summary>
+    [Parameter]
+    public InstrumentType? Instrument { get; set; }
+
+    /// <summary>
+    /// Instrument changed callback
+    /// </summary>
+    [Parameter]
+    public EventCallback<InstrumentType?> InstrumentChanged { get; set; }
+
+    /// <summary>
+    /// Notes text
+    /// </summary>
+    [Parameter]
+    public string Notes { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Notes changed callback
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> NotesChanged { get; set; }
+
+    /// <summary>
+    /// Number of rows for notes textarea
+    /// </summary>
+    [Parameter]
+    public int NotesRows { get; set; } = 4;
+
+    /// <summary>
+    /// Placeholder for notes textarea
+    /// </summary>
+    [Parameter]
+    public string NotesPlaceholder { get; set; } = "Informações adicionais...";
+
+    /// <summary>
+    /// Text for submit button
+    /// </summary>
+    [Parameter]
+    public string SubmitButtonText { get; set; } = "Confirmar";
+
+    /// <summary>
+    /// Callback when form is submitted
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSubmit { get; set; }
+
+    /// <summary>
+    /// Callback when modal is cancelled
+    /// </summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    /// <summary>
+    /// Whether "Quero tocar" toggle is enabled
+    /// </summary>
+    [Parameter]
+    public bool WantToPlay 
+    { 
+        get => wantToPlay;
+        set
+        {
+            if (wantToPlay != value)
+            {
+                wantToPlay = value;
+                if (!wantToPlay)
+                {
+                    Instrument = null;
+                    instrumentValidationError = string.Empty;
+                }
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void OnWantToPlayChanged(bool value)
+    {
+        WantToPlay = value;
+    }
+
+    private async Task OnInstrumentChangedInternal()
+    {
+        instrumentValidationError = string.Empty;
+        await InstrumentChanged.InvokeAsync(Instrument);
+    }
+
+    private async Task HandleSubmit()
+    {
+        // Validate instrument is selected when required
+        if (WantToPlay && (!ShowWillAttend || WillAttend) && !IsLeitao && !Instrument.HasValue)
+        {
+            instrumentValidationError = "Por favor, selecione um instrumento.";
+            return;
+        }
+
+        instrumentValidationError = string.Empty;
+        await OnSubmit.InvokeAsync();
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+        await ShowChanged.InvokeAsync(false);
+    }
+}

@@ -161,75 +161,24 @@ else
     }
 }
 
-<!-- Mark Attendance Modal -->
+<!-- Mark Attendance Modal (using unified ParticipationModal) -->
 @if (showAttendanceModal && selectedRehearsal != null && attendanceForm != null)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Marcar Presença</h5>
-                    <button type="button" class="btn-close" @onclick="CloseAttendanceModal"></button>
-                </div>
-                <div class="modal-body">
-                    <EditForm Model="attendanceForm" OnValidSubmit="ConfirmMarkAttendance" @ref="attendanceEditForm">
-                        <DataAnnotationsValidator />
-                        <ErrorDisplay />
-
-                        @* Only show "Quero tocar" toggle for non-Leitão members *@
-                        @if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao))
-                        {
-                            <div class="mb-3 form-check form-switch">
-                                <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayRehearsalToggle"
-                                       checked="@wantToPlayRehearsal"
-                                       @onchange="@((ChangeEventArgs e) => OnWantToPlayRehearsalChanged((bool)e.Value!))">
-                                <label class="form-check-label clickable-row" for="wantToPlayRehearsalToggle">
-                                    Quero tocar
-                                </label>
-                            </div>
-
-                            @if (wantToPlayRehearsal)
-                            {
-                                <div class="mb-3">
-                                    <label class="form-label">Instrumento *</label>
-                                    <InputSelect class="form-select" @bind-Value="attendanceForm.Instrument" @bind-Value:after="@(() => OnAttendanceInstrumentChanged(attendanceForm.Instrument))">
-                                        <option value="" disabled selected>Selecionar...</option>
-                                        @foreach (var instrument in Enum.GetValues<InstrumentType>())
-                                        {
-                                            <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
-                                        }
-                                    </InputSelect>
-                                </div>
-                            }
-                        }
-                        else
-                        {
-                            <div class="mb-3">
-                                <label class="form-label">Instrumento (Opcional)</label>
-                                <InputSelect class="form-select" @bind-Value="attendanceForm.Instrument">
-                                    <option value="" disabled selected>Selecionar...</option>
-                                    @foreach (var instrument in Enum.GetValues<InstrumentType>())
-                                    {
-                                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
-                                    }
-                                </InputSelect>
-                            </div>
-                        }
-
-                        <div class="mb-3">
-                            <label class="form-label">Notas (Opcional)</label>
-                            <InputTextArea class="form-control" rows="3" @bind-Value="attendanceForm.Notes" placeholder="Adicione alguma nota..." />
-                        </div>
-
-                        <div class="d-flex justify-content-end gap-2">
-                            <button type="button" class="btn btn-secondary" @onclick="CloseAttendanceModal">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Confirmar</button>
-                        </div>
-                    </EditForm>
-                </div>
-            </div>
-        </div>
-    </div>
+    <ParticipationModal Show="@showAttendanceModal"
+                       ShowChanged="@((bool show) => showAttendanceModal = show)"
+                       Title="Marcar Presença"
+                       ShowWillAttend="false"
+                       IsLeitao="@(currentUser != null && currentUser.Categories.Contains(MemberCategory.Leitao))"
+                       Instrument="@attendanceForm.Instrument"
+                       InstrumentChanged="@((InstrumentType? value) => attendanceForm.Instrument = value)"
+                       Notes="@attendanceForm.Notes"
+                       NotesChanged="@((string value) => attendanceForm.Notes = value)"
+                       NotesRows="3"
+                       NotesPlaceholder="Adicione alguma nota..."
+                       SubmitButtonText="Confirmar"
+                       WantToPlay="@wantToPlayRehearsal"
+                       OnSubmit="@ConfirmMarkAttendance"
+                       OnCancel="@CloseAttendanceModal" />
 }
 
 <!-- View Attendances Modal -->
@@ -828,8 +777,6 @@ else
     private Rehearsal? deletingRehearsal;
     private RehearsalAttendance? deletingAttendance;
     private AttendanceFormModel? attendanceForm;
-    private EditForm? attendanceEditForm;
-    private ValidationMessageStore? attendanceValidationStore;
     private bool wantToPlayRehearsal = true;
     private string editLocation = "";
     private string? editTheme;
@@ -1063,31 +1010,10 @@ else
 
     private async Task ConfirmMarkAttendance()
     {
-        if (selectedRehearsal != null && currentUserId != null && attendanceForm != null && attendanceEditForm?.EditContext != null)
+        if (selectedRehearsal != null && currentUserId != null && attendanceForm != null)
         {
             try
             {
-                var editContext = attendanceEditForm.EditContext;
-                
-                // Initialize or reuse the validation store
-                if (attendanceValidationStore == null)
-                {
-                    attendanceValidationStore = new ValidationMessageStore(editContext);
-                }
-                
-                attendanceValidationStore.Clear();
-
-                // Validate instrument is selected when wantToPlayRehearsal is true
-                if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao) && wantToPlayRehearsal)
-                {
-                    if (!attendanceForm.Instrument.HasValue)
-                    {
-                        attendanceValidationStore.Add(() => attendanceForm.Instrument!, "Por favor, selecione um instrumento.");
-                        editContext.NotifyValidationStateChanged();
-                        return;
-                    }
-                }
-
                 await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, currentUserId, attendanceForm.Instrument, attendanceForm.Notes);
 
                 await LoadData();
@@ -1098,31 +1024,6 @@ else
             {
                 // Log error or show message to user
                 Console.WriteLine($"Error marking attendance: {ex.Message}");
-            }
-        }
-    }
-
-    private void OnWantToPlayRehearsalChanged(bool value)
-    {
-        wantToPlayRehearsal = value;
-        // Always clear instrument when toggle changes to force user to select
-        if (attendanceForm != null)
-        {
-            attendanceForm.Instrument = null;
-        }
-    }
-    
-    private void OnAttendanceInstrumentChanged(InstrumentType? instrument)
-    {
-        if (attendanceForm != null && attendanceEditForm?.EditContext != null)
-        {
-            attendanceForm.Instrument = instrument;
-            
-            // Clear instrument validation error when instrument is selected
-            if (instrument.HasValue && attendanceValidationStore != null)
-            {
-                attendanceValidationStore.Clear(() => attendanceForm.Instrument!);
-                attendanceEditForm.EditContext.NotifyValidationStateChanged();
             }
         }
     }

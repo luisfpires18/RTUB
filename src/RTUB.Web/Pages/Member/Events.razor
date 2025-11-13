@@ -275,86 +275,26 @@ else
     </FooterContent>
 </Modal>
 
-<!-- Enrollment Modal -->
+<!-- Enrollment Modal (using unified ParticipationModal) -->
 @if (enrollmentForm != null)
 {
-    <Modal Show="@showEnrollModal" 
-           ShowChanged="@((bool show) => showEnrollModal = show)"
-           Title="@(isEditingEnrollment ? "Editar Inscrição" : $"Inscrever em {selectedEvent?.Name}")" 
-           Size="Modal.ModalSize.Default"
-           Centered="true">
-        <BodyContent>
-            <EditForm Model="enrollmentForm" OnValidSubmit="SaveEnrollment" @ref="enrollmentEditForm">
-                <DataAnnotationsValidator />
-                <ErrorDisplay />
-
-                @* Will Attend Selection *@
-                <div class="mb-4">
-                    <label class="form-label text-white-full">Vais participar?</label>
-                    <div class="d-flex gap-2">
-                        <button type="button" 
-                                class="btn @(enrollmentForm.WillAttend ? "btn-success" : "btn-outline-secondary") flex-fill"
-                                @onclick="() => enrollmentForm.WillAttend = true">
-                            <i class="bi bi-check-circle me-1"></i> Vou
-                        </button>
-                        <button type="button" 
-                                class="btn @(!enrollmentForm.WillAttend ? "btn-danger" : "btn-outline-secondary") flex-fill"
-                                @onclick="() => enrollmentForm.WillAttend = false">
-                            <i class="bi bi-x-circle me-1"></i> Não vou
-                        </button>
-                    </div>
-                </div>
-
-                @* Only show instrument and details if attending *@
-                @if (enrollmentForm.WillAttend)
-                {
-                    @* Only show "Quero tocar" toggle for non-Leitão members *@
-                    @if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao))
-                    {
-                        <div class="mb-3 form-check form-switch">
-                            <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayToggle"
-                                   checked="@wantToPlay"
-                                   @onchange="@((ChangeEventArgs e) => OnWantToPlayChanged((bool)e.Value!))">
-                            <label class="form-check-label form-check-label-white-clickable" for="wantToPlayToggle">
-                                Quero tocar
-                            </label>
-                        </div>
-
-                        @if (wantToPlay)
-                        {
-                            <div class="mb-3">
-                                <label class="form-label text-white-full">Instrumento *</label>
-                                <InputSelect class="form-select form-select-dark" @bind-Value="enrollmentForm.Instrument" @bind-Value:after="@(() => OnInstrumentChanged(enrollmentForm.Instrument))">
-                                    <option value="" disabled selected>Selecionar...</option>
-                                    @foreach (var instrument in Enum.GetValues<InstrumentType>())
-                                    {
-                                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
-                                    }
-                                </InputSelect>
-                            </div>
-                        }
-                    }
-
-                    <div class="mb-3">
-                        <label class="form-label text-white-full">Notas (opcional)</label>
-                        <InputTextArea class="form-control" rows="4" @bind-Value="enrollmentForm.Notes" placeholder="Informações adicionais..." />
-                    </div>
-                }
-                else
-                {
-                    <div class="mb-3">
-                        <label class="form-label text-white-full">Notas (opcional)</label>
-                        <InputTextArea class="form-control" rows="4" @bind-Value="enrollmentForm.Notes" placeholder="Informações adicionais..." />
-                    </div>
-                }
-
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseEnrollModal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary btn-primary-purple">@(isEditingEnrollment ? "Atualizar" : "Inscrever")</button>
-                </div>
-            </EditForm>
-        </BodyContent>
-    </Modal>
+    <ParticipationModal Show="@showEnrollModal"
+                       ShowChanged="@((bool show) => showEnrollModal = show)"
+                       Title="@(isEditingEnrollment ? "Editar Inscrição" : $"Inscrever em {selectedEvent?.Name}")"
+                       ShowWillAttend="true"
+                       WillAttend="@enrollmentForm.WillAttend"
+                       WillAttendChanged="@((bool value) => enrollmentForm.WillAttend = value)"
+                       IsLeitao="@(currentUser != null && currentUser.Categories.Contains(MemberCategory.Leitao))"
+                       Instrument="@enrollmentForm.Instrument"
+                       InstrumentChanged="@((InstrumentType? value) => enrollmentForm.Instrument = value)"
+                       Notes="@enrollmentForm.Notes"
+                       NotesChanged="@((string value) => enrollmentForm.Notes = value)"
+                       NotesRows="4"
+                       NotesPlaceholder="Informações adicionais..."
+                       SubmitButtonText="@(isEditingEnrollment ? "Atualizar" : "Inscrever")"
+                       WantToPlay="@wantToPlay"
+                       OnSubmit="@SaveEnrollment"
+                       OnCancel="@CloseEnrollModal" />
 }
 
 <!-- Remove Enrollment Confirmation Modal -->
@@ -902,9 +842,6 @@ else
     private bool isUserAdmin = false;
     private bool isUserOwner = false;
     private bool isTrophyCreateMode = false;
-    private string instrumentValidationError = string.Empty;
-    private EditForm? enrollmentEditForm;
-    private ValidationMessageStore? enrollmentValidationStore;
     private Event? editingEvent;
     private Event? deletingEvent;
     private Event? selectedEvent;
@@ -1331,77 +1268,18 @@ else
         showEnrollModal = true;
     }
 
-    private void OnWantToPlayChanged(bool value)
-    {
-        wantToPlay = value;
-        instrumentValidationError = string.Empty; // Clear validation error when toggle changes
-        
-        // Clear validation messages from EditContext
-        if (enrollmentEditForm?.EditContext != null)
-        {
-            var messageStore = new ValidationMessageStore(enrollmentEditForm.EditContext);
-            messageStore.Clear();
-            enrollmentEditForm.EditContext.NotifyValidationStateChanged();
-        }
-        
-        if (enrollmentForm != null)
-        {
-            // Always clear instrument when toggle changes to force user to select
-            enrollmentForm.Instrument = null;
-        }
-    }
-    
-    private void OnInstrumentChanged(InstrumentType? instrument)
-    {
-        if (enrollmentForm != null && enrollmentEditForm?.EditContext != null)
-        {
-            enrollmentForm.Instrument = instrument;
-            
-            // Clear instrument validation error when instrument is selected
-            if (instrument.HasValue && enrollmentValidationStore != null)
-            {
-                enrollmentValidationStore.Clear(() => enrollmentForm.Instrument!);
-                enrollmentEditForm.EditContext.NotifyValidationStateChanged();
-            }
-        }
-    }
-
     private void CloseEnrollModal()
     {
         showEnrollModal = false;
         enrollmentForm = null;
         selectedEvent = null;
         isEditingEnrollment = false;
-        instrumentValidationError = string.Empty; // Clear validation error on close
         wantToPlay = false;
     }
 
     private async Task SaveEnrollment()
     {
-        if (enrollmentForm == null || currentUser == null || enrollmentEditForm?.EditContext == null) return;
-
-        var editContext = enrollmentEditForm.EditContext;
-        
-        // Initialize or reuse the validation store
-        if (enrollmentValidationStore == null)
-        {
-            enrollmentValidationStore = new ValidationMessageStore(editContext);
-        }
-        
-        // Clear previous validation errors
-        instrumentValidationError = string.Empty;
-        enrollmentValidationStore.Clear();
-
-        // Validate instrument is selected when wantToPlay is true
-        if (wantToPlay && enrollmentForm.WillAttend && !currentUser.Categories.Contains(MemberCategory.Leitao))
-        {
-            if (!enrollmentForm.Instrument.HasValue)
-            {
-                enrollmentValidationStore.Add(() => enrollmentForm.Instrument!, "Por favor, selecione um instrumento.");
-                editContext.NotifyValidationStateChanged();
-                return;
-            }
-        }
+        if (enrollmentForm == null || currentUser == null) return;
 
         if (isEditingEnrollment)
         {
