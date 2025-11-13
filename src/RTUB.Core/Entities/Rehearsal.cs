@@ -21,7 +21,7 @@ public class Rehearsal : BaseEntity
     [MaxLength(1000, ErrorMessage = "As notas não podem exceder 1000 caracteres")]
     public string? Notes { get; set; }
     
-    public TimeSpan StartTime { get; set; } = new TimeSpan(21, 0, 0);
+    public TimeSpan StartTime { get; set; } = new TimeSpan(21, 30, 0);
     public TimeSpan EndTime { get; set; } = new TimeSpan(0, 0, 0); // Midnight
     
     public bool IsCanceled { get; set; } = false;
