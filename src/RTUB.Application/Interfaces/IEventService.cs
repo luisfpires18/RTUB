@@ -18,4 +18,6 @@ public interface IEventService
     Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, DateTime? endDate = null);
     Task SetEventImageAsync(int id, Stream imageStream, string fileName, string contentType);
     Task DeleteEventAsync(int id);
+    Task CancelEventAsync(int id, string reason);
+    Task UncancelEventAsync(int id);
 }

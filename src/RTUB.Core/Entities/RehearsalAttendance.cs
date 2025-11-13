@@ -15,6 +15,8 @@ public class RehearsalAttendance : BaseEntity
     [Required]
     public string UserId { get; set; } = string.Empty;
     
+    public bool WillAttend { get; set; } = true; // Whether the member will attend (true by default)
+    
     public bool Attended { get; set; } = false; // Defaults to false (pending approval) when created
     
     public InstrumentType? Instrument { get; set; }

@@ -60,6 +60,8 @@ else
                                    OnEdit="@(() => OpenEditModal(eventItem))"
                                    OnDelete="@(() => OpenDeleteModal(eventItem))"
                                    OnSendEmail="@(() => OpenEmailNotificationModal(eventItem))"
+                                   OnCancelEvent="@(() => OpenCancelEventModal(eventItem))"
+                                   OnUncancelEvent="@(() => UncancelEvent(eventItem))"
                                    OnEnroll="@(() => OpenEnrollModal(eventItem))"
                                    OnEditEnrollment="@(() => { if (userEnrollment != null) OpenEditEnrollmentModal(userEnrollment); })"
                                    OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
@@ -273,86 +275,27 @@ else
     </FooterContent>
 </Modal>
 
-<!-- Enrollment Modal -->
+<!-- Enrollment Modal (using unified ParticipationModal) -->
 @if (enrollmentForm != null)
 {
-    <Modal Show="@showEnrollModal" 
-           ShowChanged="@((bool show) => showEnrollModal = show)"
-           Title="@(isEditingEnrollment ? "Editar Inscrição" : $"Inscrever em {selectedEvent?.Name}")" 
-           Size="Modal.ModalSize.Default"
-           Centered="true">
-        <BodyContent>
-            <EditForm Model="enrollmentForm" OnValidSubmit="SaveEnrollment" @ref="enrollmentEditForm">
-                <DataAnnotationsValidator />
-                <ErrorDisplay />
-
-                @* Will Attend Selection *@
-                <div class="mb-4">
-                    <label class="form-label text-white-full">Vais participar?</label>
-                    <div class="d-flex gap-2">
-                        <button type="button" 
-                                class="btn @(enrollmentForm.WillAttend ? "btn-success" : "btn-outline-secondary") flex-fill"
-                                @onclick="() => enrollmentForm.WillAttend = true">
-                            <i class="bi bi-check-circle me-1"></i> Vou
-                        </button>
-                        <button type="button" 
-                                class="btn @(!enrollmentForm.WillAttend ? "btn-danger" : "btn-outline-secondary") flex-fill"
-                                @onclick="() => enrollmentForm.WillAttend = false">
-                            <i class="bi bi-x-circle me-1"></i> Não vou
-                        </button>
-                    </div>
-                </div>
-
-                @* Only show instrument and details if attending *@
-                @if (enrollmentForm.WillAttend)
-                {
-                    @* Only show "Quero tocar" toggle for non-Leitão members *@
-                    @if (currentUser != null && !currentUser.Categories.Contains(MemberCategory.Leitao))
-                    {
-                        <div class="mb-3 form-check form-switch">
-                            <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayToggle"
-                                   checked="@wantToPlay"
-                                   @onchange="@((ChangeEventArgs e) => OnWantToPlayChanged((bool)e.Value!))">
-                            <label class="form-check-label form-check-label-white-clickable" for="wantToPlayToggle">
-                                Quero tocar
-                            </label>
-                        </div>
-
-                        @if (wantToPlay)
-                        {
-                            <div class="mb-3">
-                                <label class="form-label text-white-full">Instrumento *</label>
-                                <InputSelect class="form-select form-select-dark" @bind-Value="enrollmentForm.Instrument" @bind-Value:after="@(() => OnInstrumentChanged(enrollmentForm.Instrument))">
-                                    <option value="" disabled selected>Selecionar...</option>
-                                    @foreach (var instrument in Enum.GetValues<InstrumentType>())
-                                    {
-                                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
-                                    }
-                                </InputSelect>
-                            </div>
-                        }
-                    }
-
-                    <div class="mb-3">
-                        <label class="form-label text-white-full">Notas (opcional)</label>
-                        <InputTextArea class="form-control" rows="4" @bind-Value="enrollmentForm.Notes" placeholder="Informações adicionais..." />
-                    </div>
-                }
-                else
-                {
-                    <div class="mb-3">
-                        <label class="form-label text-white-full">Notas (opcional)</label>
-                        <InputTextArea class="form-control" rows="4" @bind-Value="enrollmentForm.Notes" placeholder="Informações adicionais..." />
-                    </div>
-                }
-
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseEnrollModal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary btn-primary-purple">@(isEditingEnrollment ? "Atualizar" : "Inscrever")</button>
-                </div>
-            </EditForm>
-        </BodyContent>
-    </Modal>
+    <ParticipationModal Show="@showEnrollModal"
+                       ShowChanged="@((bool show) => showEnrollModal = show)"
+                       Title="@(isEditingEnrollment ? "Editar Inscrição" : $"Inscrever em {selectedEvent?.Name}")"
+                       ShowWillAttend="true"
+                       WillAttend="@enrollmentForm.WillAttend"
+                       WillAttendChanged="@((bool value) => enrollmentForm.WillAttend = value)"
+                       IsLeitao="@(currentUser != null && currentUser.Categories.Contains(MemberCategory.Leitao))"
+                       Instrument="@enrollmentForm.Instrument"
+                       InstrumentChanged="@((InstrumentType? value) => enrollmentForm.Instrument = value)"
+                       Notes="@enrollmentForm.Notes"
+                       NotesChanged="@((string value) => enrollmentForm.Notes = value)"
+                       NotesRows="4"
+                       NotesPlaceholder="Informações adicionais..."
+                       SubmitButtonText="@(isEditingEnrollment ? "Atualizar" : "Inscrever")"
+                       WantToPlay="@wantToPlay"
+                       WantToPlayChanged="@((bool value) => wantToPlay = value)"
+                       OnSubmit="@SaveEnrollment"
+                       OnCancel="@CloseEnrollModal" />
 }
 
 <!-- Remove Enrollment Confirmation Modal -->
@@ -458,26 +401,7 @@ else
                         instrumentCounts[inst] = performingMembers.Count(e => e.Instrument == inst);
                     }
 
-                    @if (instrumentCounts.Any(x => x.Value > 0))
-                    {
-                        <div class="mt-3 mb-4">
-                            <div class="instrument-counter-section">
-                                <div class="instrument-counter-header">
-                                    <i class="bi bi-music-note-beamed"></i>
-                                    <span>Instrumentos</span>
-                                </div>
-                                <div class="instrument-counter-grid">
-                                    @foreach (var kvp in instrumentCounts.Where(x => x.Value > 0).OrderByDescending(x => x.Value))
-                                    {
-                                        <div class="instrument-counter-box">
-                                            <div class="instrument-counter-number">@kvp.Value</div>
-                                            <div class="instrument-counter-label">@StatusHelper.GetInstrumentDisplay(kvp.Key)</div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    }
+                    <InstrumentCounter InstrumentCounts="@instrumentCounts" />
                 }
 
                 @if (leitaoMembers.Any())
@@ -822,6 +746,72 @@ else
     </BodyContent>
 </ConfirmDialog>
 
+<!-- Cancel Event Confirmation Modal -->
+<Modal Show="@showCancelEventModal"
+       ShowChanged="@((bool show) => showCancelEventModal = show)"
+       Title="Cancelar Evento"
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true">
+    <BodyContent>
+        @if (selectedEventForCancellation != null)
+        {
+            <div class="mb-3">
+                <h6 class="text-white-full">Evento:</h6>
+                <div class="event-summary p-3 rounded bg-dark">
+                    <div><strong>Título:</strong> @selectedEventForCancellation.Name</div>
+                    <div><strong>Data:</strong> @selectedEventForCancellation.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"))</div>
+                    <div><strong>Local:</strong> @selectedEventForCancellation.Location</div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(cancelEventErrorMessage))
+            {
+                <ErrorDisplay Errors="@(new[] { cancelEventErrorMessage })" />
+            }
+
+            @if (cancelEventLoadingSubscribers)
+            {
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">A carregar...</span>
+                    </div>
+                </div>
+            }
+            
+            <div class="mb-3 form-check">
+                <input class="form-check-input" type="checkbox" id="notifySubscribersCheckbox"
+                       @bind="notifySubscribersOnCancel">
+                <label class="form-check-label text-white-full" for="notifySubscribersCheckbox">
+                    Notificar todos os inscritos por email
+                </label>
+            </div>
+            
+            @if (notifySubscribersOnCancel)
+            {
+                <div class="mb-3">
+                    <span class="badge bg-purple text-white p-2">
+                        @($"{cancelEventSubscribedCount} / {cancelEventTotalCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")
+                    </span>
+                </div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label text-white-full">Motivo do Cancelamento <span class="text-danger">*</span></label>
+                <textarea class="form-control" rows="4" 
+                          @bind="cancelEventReason" 
+                          placeholder="Descreva o motivo do cancelamento do evento..."
+                          maxlength="1000"></textarea>
+                <small class="text-muted">Máximo 1000 caracteres</small>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseCancelEventModal">Não Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelEvent">Cancelar Evento</button>
+    </FooterContent>
+</Modal>
+
 @code {
     private List<Event>? events;
     private List<Enrollment>? enrollments;
@@ -840,21 +830,20 @@ else
     private bool showTrophyDeleteModal = false;
     private bool showDeleteEnrollmentModal = false;
     private bool showEmailNotificationModal = false;
+    private bool showCancelEventModal = false;
     private bool isCreateMode = false;
     private bool isEditingEnrollment = false;
     private bool wantToPlay = false; // Toggle for "Quero tocar"
     private bool isUserAdmin = false;
     private bool isUserOwner = false;
     private bool isTrophyCreateMode = false;
-    private string instrumentValidationError = string.Empty;
-    private EditForm? enrollmentEditForm;
-    private ValidationMessageStore? enrollmentValidationStore;
     private Event? editingEvent;
     private Event? deletingEvent;
     private Event? selectedEvent;
     private Event? selectedEventForRepertoire;
     private Event? selectedEventForTrophies;
     private Event? selectedEventForEmail;
+    private Event? selectedEventForCancellation;
     private Enrollment? enrollmentForm;
     private Enrollment? removingEnrollment;
     private Enrollment? deletingEnrollment;
@@ -901,6 +890,15 @@ else
     private int totalUsersCount = 0;
     private bool emailLoadingSubscribers = false;
     private string? emailErrorMessage;
+    
+    // Cancel event modal variables
+    private bool notifySubscribersOnCancel = false;
+    private string cancelEventReason = string.Empty;
+    private List<ApplicationUser>? cancelEventSubscribedUsers;
+    private int cancelEventSubscribedCount = 0;
+    private int cancelEventTotalCount = 0;
+    private bool cancelEventLoadingSubscribers = false;
+    private string? cancelEventErrorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1265,77 +1263,18 @@ else
         showEnrollModal = true;
     }
 
-    private void OnWantToPlayChanged(bool value)
-    {
-        wantToPlay = value;
-        instrumentValidationError = string.Empty; // Clear validation error when toggle changes
-        
-        // Clear validation messages from EditContext
-        if (enrollmentEditForm?.EditContext != null)
-        {
-            var messageStore = new ValidationMessageStore(enrollmentEditForm.EditContext);
-            messageStore.Clear();
-            enrollmentEditForm.EditContext.NotifyValidationStateChanged();
-        }
-        
-        if (enrollmentForm != null)
-        {
-            // Always clear instrument when toggle changes to force user to select
-            enrollmentForm.Instrument = null;
-        }
-    }
-    
-    private void OnInstrumentChanged(InstrumentType? instrument)
-    {
-        if (enrollmentForm != null && enrollmentEditForm?.EditContext != null)
-        {
-            enrollmentForm.Instrument = instrument;
-            
-            // Clear instrument validation error when instrument is selected
-            if (instrument.HasValue && enrollmentValidationStore != null)
-            {
-                enrollmentValidationStore.Clear(() => enrollmentForm.Instrument!);
-                enrollmentEditForm.EditContext.NotifyValidationStateChanged();
-            }
-        }
-    }
-
     private void CloseEnrollModal()
     {
         showEnrollModal = false;
         enrollmentForm = null;
         selectedEvent = null;
         isEditingEnrollment = false;
-        instrumentValidationError = string.Empty; // Clear validation error on close
         wantToPlay = false;
     }
 
     private async Task SaveEnrollment()
     {
-        if (enrollmentForm == null || currentUser == null || enrollmentEditForm?.EditContext == null) return;
-
-        var editContext = enrollmentEditForm.EditContext;
-        
-        // Initialize or reuse the validation store
-        if (enrollmentValidationStore == null)
-        {
-            enrollmentValidationStore = new ValidationMessageStore(editContext);
-        }
-        
-        // Clear previous validation errors
-        instrumentValidationError = string.Empty;
-        enrollmentValidationStore.Clear();
-
-        // Validate instrument is selected when wantToPlay is true
-        if (wantToPlay && enrollmentForm.WillAttend && !currentUser.Categories.Contains(MemberCategory.Leitao))
-        {
-            if (!enrollmentForm.Instrument.HasValue)
-            {
-                enrollmentValidationStore.Add(() => enrollmentForm.Instrument!, "Por favor, selecione um instrumento.");
-                editContext.NotifyValidationStateChanged();
-                return;
-            }
-        }
+        if (enrollmentForm == null || currentUser == null) return;
 
         if (isEditingEnrollment)
         {
@@ -1871,6 +1810,130 @@ else
                 editingEvent.EndDate = null;
             }
             StateHasChanged();
+        }
+    }
+    
+    // Cancel event methods
+    private async Task OpenCancelEventModal(Event eventItem)
+    {
+        selectedEventForCancellation = eventItem;
+        notifySubscribersOnCancel = false;
+        cancelEventReason = string.Empty;
+        cancelEventLoadingSubscribers = true;
+        cancelEventErrorMessage = null;
+        showCancelEventModal = true;
+        StateHasChanged();
+
+        try
+        {
+            // Get all users with Subscribed = true and EmailConfirmed = true
+            var allUsers = await UserManager.Users.ToListAsync();
+            cancelEventSubscribedUsers = allUsers
+                .Where(u => u.Subscribed && u.EmailConfirmed)
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .ToList();
+            
+            cancelEventSubscribedCount = cancelEventSubscribedUsers.Count;
+            cancelEventTotalCount = allUsers.Count(u => u.EmailConfirmed);
+        }
+        catch (Exception ex)
+        {
+            cancelEventErrorMessage = $"Erro ao carregar membros: {ex.Message}";
+        }
+        finally
+        {
+            cancelEventLoadingSubscribers = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseCancelEventModal()
+    {
+        showCancelEventModal = false;
+        selectedEventForCancellation = null;
+        notifySubscribersOnCancel = false;
+        cancelEventReason = string.Empty;
+        cancelEventSubscribedUsers = null;
+        cancelEventSubscribedCount = 0;
+        cancelEventTotalCount = 0;
+        cancelEventErrorMessage = null;
+    }
+
+    private async Task ConfirmCancelEvent()
+    {
+        if (selectedEventForCancellation == null || string.IsNullOrWhiteSpace(cancelEventReason))
+        {
+            cancelEventErrorMessage = "O motivo do cancelamento é obrigatório.";
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            // Cancel the event
+            await EventService.CancelEventAsync(selectedEventForCancellation.Id, cancelEventReason);
+
+            // Send notification emails if checkbox is selected
+            if (notifySubscribersOnCancel && cancelEventSubscribedUsers != null && cancelEventSubscribedUsers.Any())
+            {
+                var baseUri = Navigation.BaseUri.TrimEnd('/');
+                var eventLink = $"{baseUri}/events";
+
+                // Get recipient emails
+                var recipientEmails = cancelEventSubscribedUsers
+                    .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                    .Select(u => u.Email!)
+                    .ToList();
+
+                // Build recipient data dictionary with nickname and full name
+                var recipientData = cancelEventSubscribedUsers
+                    .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                    .ToDictionary(
+                        u => u.Email!,
+                        u => (
+                            nickname: u.Nickname ?? "",
+                            fullName: $"{u.FirstName ?? ""} {u.LastName ?? ""}".Trim()
+                        )
+                    );
+
+                // Send the cancellation notification email
+                await EmailNotificationService.SendEventCancellationNotificationAsync(
+                    selectedEventForCancellation.Id,
+                    selectedEventForCancellation.Name,
+                    selectedEventForCancellation.Date,
+                    selectedEventForCancellation.Location,
+                    cancelEventReason,
+                    eventLink,
+                    recipientEmails,
+                    recipientData
+                );
+            }
+
+            // Reload events
+            await LoadEvents();
+            await LoadPreviousEvents();
+
+            CloseCancelEventModal();
+        }
+        catch (Exception ex)
+        {
+            cancelEventErrorMessage = $"Erro ao cancelar evento: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
+    private async Task UncancelEvent(Event eventItem)
+    {
+        try
+        {
+            await EventService.UncancelEventAsync(eventItem.Id);
+            await LoadEvents();
+            await LoadPreviousEvents();
+        }
+        catch (Exception ex)
+        {
+            // Could show an error message here
+            Console.WriteLine($"Error uncanceling event: {ex.Message}");
         }
     }
 }
