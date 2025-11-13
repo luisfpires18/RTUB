@@ -766,7 +766,7 @@ else
 
             @if (!string.IsNullOrEmpty(cancelEventErrorMessage))
             {
-                <Alert Title="@cancelEventErrorMessage" 
+                <Alert Message="@cancelEventErrorMessage" 
                        Type="Alert.AlertType.Error" 
                        Dismissible="true"
                        OnDismiss="@(() => cancelEventErrorMessage = null)" />
