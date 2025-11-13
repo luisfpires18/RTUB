@@ -180,9 +180,6 @@ public class PositionBadgeAvatarCardTests : TestContext
         // Purple background (#6f42c1) with white text
         // meets WCAG AA accessibility standards (4.5:1 ratio)
         
-        var backgroundColor = "#6f42c1";
-        var textColor = "white";
-        
         // Purple #6f42c1 with white has approximately 7:1 contrast ratio
         // which exceeds WCAG AA (4.5:1) and even AAA (7:1) standards
         var meetsWCAG_AA = true;

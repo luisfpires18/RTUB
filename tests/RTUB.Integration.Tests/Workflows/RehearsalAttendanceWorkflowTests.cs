@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using RTUB.Application.Data;
@@ -20,10 +21,43 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
     {
     }
 
+    private async Task<ApplicationUser> CreateTestUserAsync()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        
+        var existingUser = await userManager.FindByIdAsync(TestUserId);
+        if (existingUser != null)
+        {
+            return existingUser;
+        }
+
+        var testUser = new ApplicationUser
+        {
+            Id = TestUserId,
+            UserName = "testuser",
+            Email = "testuser@test.com",
+            EmailConfirmed = true,
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = "TestNick",
+            PhoneContact = "123456789"
+        };
+
+        var result = await userManager.CreateAsync(testUser, "TestPassword123!");
+        if (!result.Succeeded)
+        {
+            throw new Exception($"Failed to create test user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+        }
+
+        return testUser;
+    }
+
     [Fact]
     public async Task RehearsalAttendance_WithNotes_PersistsThroughFullWorkflow()
     {
-        // Arrange - Create a rehearsal
+        // Arrange - Create test user and rehearsal
+        await CreateTestUserAsync();
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
         using (var scope = Factory.Services.CreateScope())
         {
@@ -63,7 +97,8 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
     [Fact]
     public async Task RehearsalAttendance_UpdateNotes_CorrectlyUpdatesExistingAttendance()
     {
-        // Arrange - Create a rehearsal and initial attendance
+        // Arrange - Create test user, rehearsal, and initial attendance
+        await CreateTestUserAsync();
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
         using (var scope = Factory.Services.CreateScope())
         {
@@ -118,7 +153,8 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
     [Fact]
     public async Task RehearsalAttendance_ClearNotes_AllowsClearingExistingNotes()
     {
-        // Arrange - Create a rehearsal and attendance with notes
+        // Arrange - Create test user, rehearsal, and attendance with notes
+        await CreateTestUserAsync();
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
         using (var scope = Factory.Services.CreateScope())
         {
@@ -169,7 +205,8 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
     [Fact]
     public async Task RehearsalAttendance_ChangeFromNotAttendingToAttending_PreservesNotes()
     {
-        // Arrange - Create a rehearsal
+        // Arrange - Create test user and rehearsal
+        await CreateTestUserAsync();
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
         using (var scope = Factory.Services.CreateScope())
         {

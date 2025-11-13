@@ -144,14 +144,13 @@ public class InstrumentCircleTests : TestContext
     {
         // Arrange
         var instrument = Instrument.Create("Flauta", "Test Flute", InstrumentCondition.Good);
-        var viewClicked = false;
 
         // Act
         var cut = RenderComponent<InstrumentCircle>(parameters => parameters
             .Add(p => p.Instrument, instrument)
             .Add(p => p.ImageUrl, "")
             .Add(p => p.ShowViewButton, true)
-            .Add(p => p.OnView, () => viewClicked = true));
+            .Add(p => p.OnView, () => { }));
 
         // Assert
         cut.Markup.Should().Contain("Ver Detalhes", "view button should be displayed");
