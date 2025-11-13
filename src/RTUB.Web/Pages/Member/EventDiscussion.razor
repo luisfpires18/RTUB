@@ -7,6 +7,7 @@
 @inject IEventService EventService
 @inject IDiscussionService DiscussionService
 @inject IPostService PostService
+@inject ICommentService CommentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -75,19 +76,152 @@
                 }
                 else
                 {
-                    <div class="posts-list">
+                    <div class="accordion" id="postsAccordion">
                         @foreach (var post in posts)
                         {
-                            <PostCard Post="@post" 
-                                     CanEdit="@(IsAuthor(post) || isAdmin)"
-                                     CanPin="@isAdmin"
-                                     CanLock="@isAdmin"
-                                     CanDelete="@isAdmin"
-                                     OnClick="@(() => NavigateToPost(post.Id))"
-                                     OnEdit="@(() => EditPost(post))"
-                                     OnPin="@(() => TogglePin(post))"
-                                     OnLock="@(() => ToggleLock(post))"
-                                     OnDelete="@(() => DeletePost(post))" />
+                            var postComments = GetPostComments(post.Id);
+                            var commentCount = postComments.Count;
+                            
+                            <div class="accordion-item mb-2">
+                                <h2 class="accordion-header" id="heading@post.Id">
+                                    <button class="accordion-button @(expandedPostIds.Contains(post.Id) ? "" : "collapsed")" 
+                                            type="button"
+                                            @onclick="@(() => TogglePost(post.Id))"
+                                            aria-expanded="@(expandedPostIds.Contains(post.Id) ? "true" : "false")"
+                                            aria-controls="collapse@post.Id">
+                                        <div class="flex-grow-1 d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <strong class="text-white-full">@post.Title</strong>
+                                                @if (post.IsPinned)
+                                                {
+                                                    <span class="badge bg-warning text-dark ms-2">
+                                                        <i class="bi bi-pin-angle-fill"></i> Fixado
+                                                    </span>
+                                                }
+                                                @if (post.IsLocked)
+                                                {
+                                                    <span class="badge bg-danger ms-2">
+                                                        <i class="bi bi-lock-fill"></i> Bloqueado
+                                                    </span>
+                                                }
+                                            </div>
+                                            <div class="ms-3 d-flex align-items-center gap-3">
+                                                <span class="text-muted small">
+                                                    <i class="bi bi-chat-left-dots"></i> @commentCount comentários
+                                                </span>
+                                                <span class="text-muted small">
+                                                    <i class="bi bi-clock"></i> @post.LastActivityAt.ToString("dd MMM, HH:mm")
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </button>
+                                </h2>
+                                <div id="collapse@post.Id" 
+                                     class="accordion-collapse collapse @(expandedPostIds.Contains(post.Id) ? "show" : "")" 
+                                     aria-labelledby="heading@post.Id">
+                                    <div class="accordion-body">
+                                        <!-- Post Content -->
+                                        <div class="post-detail-section mb-4">
+                                            <div class="d-flex align-items-start justify-content-between mb-3">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="@(post.Author.ProfilePictureSrc)" 
+                                                         class="rounded-circle me-2" 
+                                                         alt="@(post.Author.Nickname ?? post.Author.UserName)" 
+                                                         style="width: 40px; height: 40px; object-fit: cover;" />
+                                                    <div>
+                                                        <div class="fw-bold">@(post.Author.Nickname ?? post.Author.UserName)</div>
+                                                        <small class="text-muted">
+                                                            @post.CreatedAt.ToString("dd MMM yyyy, HH:mm")
+                                                            @if (post.IsEdited)
+                                                            {
+                                                                <span>(editado)</span>
+                                                            }
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="d-flex gap-2">
+                                                    <!-- Author controls (left) -->
+                                                    @if (IsAuthor(post))
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-light" @onclick="@(() => EditPost(post))" title="Editar">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-danger" @onclick="@(() => DeletePost(post))" title="Eliminar">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    }
+                                                    <!-- Admin controls (right) -->
+                                                    @if (isAdmin)
+                                                    {
+                                                        <button class="btn btn-sm @(post.IsPinned ? "btn-warning" : "btn-outline-warning")" 
+                                                                @onclick="@(() => TogglePin(post))" 
+                                                                title="@(post.IsPinned ? "Desafixar" : "Fixar")">
+                                                            <i class="bi bi-pin-angle-fill"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm @(post.IsLocked ? "btn-danger" : "btn-outline-danger")" 
+                                                                @onclick="@(() => ToggleLock(post))" 
+                                                                title="@(post.IsLocked ? "Desbloquear" : "Bloquear")">
+                                                            <i class="bi @(post.IsLocked ? "bi-unlock-fill" : "bi-lock-fill")"></i>
+                                                        </button>
+                                                    }
+                                                    <!-- Owner controls -->
+                                                    @if (isOwner)
+                                                    {
+                                                        <button class="btn btn-sm btn-danger" @onclick="@(() => DeletePost(post))" title="Eliminar Post">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="post-body-text" style="white-space: pre-line; line-height: 1.6;">
+                                                @post.Body
+                                            </div>
+                                        </div>
+
+                                        <!-- Comments Section -->
+                                        <div class="comments-section">
+                                            <h6 class="mb-3">
+                                                <i class="bi bi-chat-left-text me-2"></i>Comentários (@commentCount)
+                                            </h6>
+                                            
+                                            @if (commentCount == 0)
+                                            {
+                                                <p class="text-muted"><em>Nenhum comentário ainda.</em></p>
+                                            }
+                                            else
+                                            {
+                                                <div class="comments-list mb-3">
+                                                    @foreach (var comment in postComments)
+                                                    {
+                                                        <CommentItem Comment="@comment" 
+                                                                    CanEdit="@(IsCommentAuthor(comment))"
+                                                                    CanDelete="@(isAdmin || isOwner)"
+                                                                    OnEdit="@(() => EditComment(comment))"
+                                                                    OnDelete="@(() => DeleteComment(comment, post.Id))" />
+                                                    }
+                                                </div>
+                                            }
+
+                                            <!-- Add Comment -->
+                                            @if (!post.IsLocked && canCreatePost)
+                                            {
+                                                <div class="mt-3">
+                                                    <CommentComposer OnSubmit="@(async (body) => await CreateComment(post.Id, body))" />
+                                                </div>
+                                            }
+                                            else if (post.IsLocked)
+                                            {
+                                                <div class="alert alert-warning mt-3 d-flex align-items-center">
+                                                    <i class="bi bi-lock-fill me-2"></i>
+                                                    <span>Este post está bloqueado. Não é possível adicionar novos comentários.</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         }
                     </div>
 
@@ -127,14 +261,17 @@
     private Event? eventItem;
     private Discussion? discussion;
     private List<Post> posts = new();
+    private Dictionary<int, List<Comment>> postCommentsCache = new();
     private ApplicationUser? currentUser;
     private bool isAdmin = false;
+    private bool isOwner = false;
     private bool canCreatePost = false;
     private string searchTerm = string.Empty;
     private int currentPage = 1;
     private int pageSize = 20;
     private int totalPosts = 0;
     private bool showCreatePostModal = false;
+    private HashSet<int> expandedPostIds = new HashSet<int>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -157,7 +294,8 @@
         if (!string.IsNullOrEmpty(userName))
         {
             currentUser = await UserManager.FindByNameAsync(userName);
-            isAdmin = authState.User.IsInRole("Admin") || authState.User.IsInRole("Owner");
+            isAdmin = authState.User.IsInRole("Admin");
+            isOwner = authState.User.IsInRole("Owner");
             canCreatePost = currentUser != null;
         }
     }
@@ -182,6 +320,34 @@
         posts = loadedPosts.ToList();
     }
 
+    private async Task TogglePost(int postId)
+    {
+        if (expandedPostIds.Contains(postId))
+        {
+            expandedPostIds.Remove(postId);
+        }
+        else
+        {
+            expandedPostIds.Add(postId);
+            // Load comments for this post if not already loaded
+            if (!postCommentsCache.ContainsKey(postId))
+            {
+                await LoadCommentsForPost(postId);
+            }
+        }
+    }
+
+    private async Task LoadCommentsForPost(int postId)
+    {
+        var comments = await CommentService.GetByPostIdAsync(postId, 1, 50);
+        postCommentsCache[postId] = comments.ToList();
+    }
+
+    private List<Comment> GetPostComments(int postId)
+    {
+        return postCommentsCache.ContainsKey(postId) ? postCommentsCache[postId] : new List<Comment>();
+    }
+
     private async Task CreatePost(string title, string body)
     {
         if (discussion == null || currentUser == null) return;
@@ -189,6 +355,23 @@
         await PostService.CreateAsync(discussion.Id, currentUser.Id, title, body);
         await LoadPostsAsync();
         showCreatePostModal = false;
+        StateHasChanged();
+    }
+
+    private async Task CreateComment(int postId, string body)
+    {
+        if (currentUser == null) return;
+
+        await CommentService.CreateAsync(postId, currentUser.Id, body);
+        await LoadCommentsForPost(postId);
+        
+        // Update the post to refresh last activity and comment count
+        var postIndex = posts.FindIndex(p => p.Id == postId);
+        if (postIndex >= 0)
+        {
+            posts[postIndex] = await PostService.GetByIdAsync(postId);
+        }
+        
         StateHasChanged();
     }
 
@@ -202,9 +385,9 @@
         return currentUser != null && post.AuthorId == currentUser.Id;
     }
 
-    private void NavigateToPost(int postId)
+    private bool IsCommentAuthor(Comment comment)
     {
-        Navigation.NavigateTo($"/events/{EventId}/discussion/{postId}");
+        return currentUser != null && comment.AuthorId == currentUser.Id;
     }
 
     private void NavigateBack()
@@ -267,5 +450,26 @@
     {
         await PostService.SoftDeleteAsync(post.Id);
         await LoadPostsAsync();
+    }
+
+    private async Task EditComment(Comment comment)
+    {
+        // TODO: Implement edit modal
+        await Task.CompletedTask;
+    }
+
+    private async Task DeleteComment(Comment comment, int postId)
+    {
+        await CommentService.SoftDeleteAsync(comment.Id);
+        await LoadCommentsForPost(postId);
+        
+        // Update the post to refresh comment count
+        var postIndex = posts.FindIndex(p => p.Id == postId);
+        if (postIndex >= 0)
+        {
+            posts[postIndex] = await PostService.GetByIdAsync(postId);
+        }
+        
+        StateHasChanged();
     }
 }
