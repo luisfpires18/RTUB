@@ -63,4 +63,17 @@ public interface IEmailTemplateRenderer
         string eventLink,
         string nickname = "",
         string fullName = "");
+    
+    /// <summary>
+    /// Renders the event reminder notification email
+    /// </summary>
+    Task<string> RenderEventReminderNotificationAsync(
+        string eventTitle,
+        string dateFormatted,
+        string eventLocation,
+        string eventLink,
+        int daysUntilEvent,
+        string nickname = "",
+        string fullName = "",
+        string eventDescription = "");
 }
