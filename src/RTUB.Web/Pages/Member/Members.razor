@@ -239,6 +239,7 @@ else
                     <option value="Leitão">Leitão</option>
                     <option value="Caloiro">Caloiro</option>
                     <option value="Tuno">Tuno</option>
+                    <option value="Fundador">Fundador</option>
                 </InputSelect>
             </div>
             <div class="row">
@@ -276,7 +277,7 @@ else
                     }
                 </InputSelect>
             </div>
-            @* Only show Padrinho field for Caloiro or Tuno (not for Leitão) *@
+            @* Only show Padrinho field for Caloiro or Tuno (not for Leitão or Fundador) *@
             @if (editingUser.SelectedCategory == "Caloiro" || editingUser.SelectedCategory == "Tuno")
             {
                 <div class="mb-3">
@@ -814,6 +815,7 @@ else
             MemberCategory.Leitao => "Leitão",
             MemberCategory.Caloiro => "Caloiro",
             MemberCategory.Tuno => "Tuno",
+            MemberCategory.Fundador => "Fundador",
             _ => ""
         };
         
@@ -953,6 +955,15 @@ else
 
                 // Generate a secure random password
                 var generatedPassword = PasswordGenerator.GeneratePassword();
+                
+                // Special handling for Fundador: set YearTuno to 1991, clear YearLeitao and YearCaloiro
+                if (editingUser.SelectedCategory == "Fundador")
+                {
+                    editingUser.YearTuno = 1991;
+                    editingUser.YearLeitao = null;
+                    editingUser.YearCaloiro = null;
+                    editingUser.MentorId = null; // Fundadores don't have mentors
+                }
             
                 // Create user with generated password
                 var result = await UserManager.CreateAsync(editingUser, generatedPassword);
@@ -978,6 +989,7 @@ else
                     "Leitão" => MemberCategory.Leitao,
                     "Caloiro" => MemberCategory.Caloiro,
                     "Tuno" => MemberCategory.Tuno,
+                    "Fundador" => MemberCategory.Fundador,
                     _ => MemberCategory.Leitao
                 };
                 createdUser.Categories = new List<MemberCategory> { category };
@@ -1038,6 +1050,15 @@ else
                 existingUser.YearTuno = editingUser.YearTuno;
                 existingUser.MainInstrument = editingUser.MainInstrument;
                 existingUser.MentorId = editingUser.MentorId;
+                
+                // Special handling for Fundador: set YearTuno to 1991, clear YearLeitao and YearCaloiro
+                if (editingUser.SelectedCategory == "Fundador")
+                {
+                    existingUser.YearTuno = 1991;
+                    existingUser.YearLeitao = null;
+                    existingUser.YearCaloiro = null;
+                    existingUser.MentorId = null; // Fundadores don't have mentors
+                }
 
                 // Update category (not role)
                 var category = editingUser.SelectedCategory switch
@@ -1045,6 +1066,7 @@ else
                     "Leitão" => MemberCategory.Leitao,
                     "Caloiro" => MemberCategory.Caloiro,
                     "Tuno" => MemberCategory.Tuno,
+                    "Fundador" => MemberCategory.Fundador,
                     _ => MemberCategory.Leitao
                 };
 
@@ -1056,7 +1078,7 @@ else
                 else
                 {
                     // Remove old primary category and add new one
-                    existingUser.Categories.RemoveAll(c => c == MemberCategory.Leitao || c == MemberCategory.Caloiro || c == MemberCategory.Tuno);
+                    existingUser.Categories.RemoveAll(c => c == MemberCategory.Leitao || c == MemberCategory.Caloiro || c == MemberCategory.Tuno || c == MemberCategory.Fundador);
                     existingUser.Categories.Add(category);
                 }
 
@@ -1150,9 +1172,9 @@ else
     }
 
     // Dynamic field visibility based on selected category
-    private bool showYearLeitao => !string.IsNullOrEmpty(editingUser?.SelectedCategory);
-    private bool showYearCaloiro => editingUser?.SelectedCategory == "Caloiro" || editingUser?.SelectedCategory == "Tuno";
-    private bool showYearTuno => editingUser?.SelectedCategory == "Tuno";
+    private bool showYearLeitao => !string.IsNullOrEmpty(editingUser?.SelectedCategory) && editingUser?.SelectedCategory != "Fundador";
+    private bool showYearCaloiro => (editingUser?.SelectedCategory == "Caloiro" || editingUser?.SelectedCategory == "Tuno") && editingUser?.SelectedCategory != "Fundador";
+    private bool showYearTuno => editingUser?.SelectedCategory == "Tuno" || editingUser?.SelectedCategory == "Fundador";
 
     private void OnCategoryChanged()
     {

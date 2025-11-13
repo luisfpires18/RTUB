@@ -59,6 +59,14 @@ public static class ApplicationUserExtensions
         return user.Categories.Contains(MemberCategory.TunoHonorario);
     }
     
+    /// <summary>
+    /// Checks if the user has Fundador category (Founder of the Tuna)
+    /// </summary>
+    public static bool IsFundador(this ApplicationUser user)
+    {
+        return user.Categories.Contains(MemberCategory.Fundador);
+    }
+    
     #endregion
     
     #region Combined Checks

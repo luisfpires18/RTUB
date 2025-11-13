@@ -112,6 +112,7 @@ public static class StatusHelper
             MemberCategory.Veterano => "VETERANO",
             MemberCategory.Tunossauro => "TUNOSSAURO",
             MemberCategory.TunoHonorario => "TUNO HONORÁRIO",
+            MemberCategory.Fundador => "FUNDADOR",
             MemberCategory.Caloiro => "CALOIRO",
             MemberCategory.Leitao => "LEITÃO",
             _ => category.ToString()
@@ -129,6 +130,7 @@ public static class StatusHelper
             MemberCategory.Veterano => "badge-veterano",
             MemberCategory.Tunossauro => "badge-tunossauro",
             MemberCategory.TunoHonorario => "badge-honorario",
+            MemberCategory.Fundador => "badge-fundador",
             MemberCategory.Caloiro => "badge-caloiro",
             MemberCategory.Leitao => "badge-leitao",
             _ => "bg-secondary"

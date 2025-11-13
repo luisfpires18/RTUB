@@ -28,6 +28,12 @@
                             <i class="bi bi-star-fill"></i>
                         </div>
                     }
+                    @if (item.Category.HasValue && item.Category.Value == MemberCategory.Fundador)
+                    {
+                        <div class="timeline-crown">
+                            <i class="bi bi-award-fill"></i>
+                        </div>
+                    }
                     <div class="timeline-badge-unified">
                         <i class="bi @GetItemIcon(item)"></i>
                     </div>
@@ -116,15 +122,31 @@
 
             if (User.YearTuno.HasValue)
             {
-                items.Add(new TimelineItemModel
+                // If user is Fundador, show Fundador instead of Tuno
+                if (User.IsFundador())
                 {
-                    Year = User.YearTuno.Value,
-                    Order = 3,
-                    Label = "TUNO",
-                    Type = "membership",
-                    State = "active",
-                    Category = MemberCategory.Tuno
-                });
+                    items.Add(new TimelineItemModel
+                    {
+                        Year = User.YearTuno.Value,
+                        Order = 3,
+                        Label = "FUNDADOR",
+                        Type = "membership",
+                        State = "active",
+                        Category = MemberCategory.Fundador
+                    });
+                }
+                else
+                {
+                    items.Add(new TimelineItemModel
+                    {
+                        Year = User.YearTuno.Value,
+                        Order = 3,
+                        Label = "TUNO",
+                        Type = "membership",
+                        State = "active",
+                        Category = MemberCategory.Tuno
+                    });
+                }
             }
 
             // Add VETERANO and TUNOSSAURO as separate items if qualified
@@ -199,6 +221,7 @@
                 MemberCategory.Tuno => "timeline-tuno",
                 MemberCategory.Veterano => "timeline-veterano",
                 MemberCategory.Tunossauro => "timeline-tunossauro",
+                MemberCategory.Fundador => "timeline-fundador",
                 _ => ""
             });
         }
