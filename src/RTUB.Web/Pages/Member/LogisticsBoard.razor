@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Interfaces
@@ -89,13 +90,11 @@
                                 <h5 class="mb-0">@list.Name</h5>
                                 <div class="d-flex gap-1">
                                     <button class="btn btn-sm btn-outline-light" 
-                                            style="padding: 0.15rem 0.3rem; font-size: 0.7rem;" 
                                             @onclick="() => OpenEditListModal(list)" 
                                             title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn btn-sm btn-outline-danger" 
-                                            style="padding: 0.15rem 0.3rem; font-size: 0.7rem;" 
                                             @onclick="() => OpenDeleteListModal(list)" 
                                             title="Eliminar">
                                         <i class="bi bi-trash"></i>
@@ -422,7 +421,7 @@
                     
                     <div class="mb-4">
                         <label class="form-label fw-bold text-primary">
-                            <i class="bi bi-paperclip me-2"></i>Anexos
+                            <i class="bi bi-link-45deg me-2"></i>Ligações
                         </label>
                         @if (cardAttachments != null && cardAttachments.Any())
                         {
@@ -446,7 +445,7 @@
                         }
                         else
                         {
-                            <p class="text-light-theme small mb-2">Nenhum anexo adicionado</p>
+                            <p class="text-light-theme small mb-2">Nenhuma ligação adicionada</p>
                         }
                         <div class="input-group input-group-sm">
                             <select class="form-select" @bind="newAttachmentCardId">
@@ -471,6 +470,41 @@
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-primary">
+                            <i class="bi bi-paperclip me-2"></i>Anexos
+                        </label>
+                        @if (uploadedFiles != null && uploadedFiles.Any())
+                        {
+                            <div class="list-group mb-2 rounded">
+                                @foreach (var file in uploadedFiles)
+                                {
+                                    <div class="list-group-item d-flex justify-content-between align-items-center bg-dark border-secondary">
+                                        <span>
+                                            <i class="bi bi-file-earmark-@GetFileIcon(file.Name) text-primary me-2"></i>
+                                            @file.Name
+                                            <small class="text-light-theme ms-2">(@FormatFileSize(file.Size))</small>
+                                        </span>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveFile(file)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-light-theme small mb-2">Nenhum ficheiro anexado</p>
+                        }
+                        <div class="input-group input-group-sm">
+                            <InputFile OnChange="HandleFileSelected" class="form-control" accept=".pdf,.docx,.doc,.xlsx,.xls,.txt" />
+                            <button class="btn btn-outline-primary" type="button" @onclick="UploadFile" disabled="@(selectedFile == null)">
+                                <i class="bi bi-upload"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Formatos suportados: PDF, Word, Excel, TXT (max. 10MB)</small>
                     </div>
                     
                     <div class="mb-3">
@@ -570,6 +604,14 @@
         public int? CardId { get; set; }
     }
 
+    private class FileItem
+    {
+        public string Name { get; set; } = string.Empty;
+        public long Size { get; set; }
+        public string Base64Data { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+    }
+
     [Parameter]
     public int BoardId { get; set; }
 
@@ -616,6 +658,9 @@
     private int? newAttachmentCardId = null;
     private Dictionary<string, List<LogisticsCard>>? allBoardCards;
     private string memberSearchTerm = string.Empty;
+    private List<FileItem>? uploadedFiles;
+    private IBrowserFile? selectedFile;
+    private const long MaxFileSize = 10 * 1024 * 1024; // 10MB
     private List<ApplicationUser>? filteredMembersForAssignment => users?.Where(u => 
         !string.IsNullOrEmpty(memberSearchTerm) && 
         (selectedCard == null || selectedCard.AssignedToUserId != u.Id) &&
@@ -881,9 +926,28 @@
             catch { }
         }
         
+        // Parse uploaded files from description
+        uploadedFiles = new List<FileItem>();
+        cardDetailsText = card.Description ?? string.Empty;
+        if (cardDetailsText.Contains("<!-- FILES:"))
+        {
+            try
+            {
+                var startIndex = cardDetailsText.IndexOf("<!-- FILES:") + 11;
+                var endIndex = cardDetailsText.IndexOf("-->", startIndex);
+                if (endIndex > startIndex)
+                {
+                    var filesJson = cardDetailsText.Substring(startIndex, endIndex - startIndex).Trim();
+                    uploadedFiles = System.Text.Json.JsonSerializer.Deserialize<List<FileItem>>(filesJson) ?? new List<FileItem>();
+                    // Remove files marker from displayed text
+                    cardDetailsText = cardDetailsText.Substring(0, cardDetailsText.IndexOf("<!-- FILES:")).TrimEnd();
+                }
+            }
+            catch { }
+        }
+        
         cardStartDate = card.StartDate?.ToString("yyyy-MM-dd");
         cardDueDate = card.DueDate?.ToString("yyyy-MM-dd");
-        cardDetailsText = card.Description ?? string.Empty;
         memberSearchTerm = string.Empty;
         showCardDetailsModal = true;
     }
@@ -989,6 +1053,87 @@
         if (selectedCard == null) return;
         var json = System.Text.Json.JsonSerializer.Serialize(cardAttachments ?? new List<AttachmentItem>());
         await CardService.SetCardAttachmentsAsync(selectedCard.Id, json);
+    }
+
+    // File handling methods
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+
+    private async Task UploadFile()
+    {
+        if (selectedFile == null || selectedCard == null) return;
+
+        try
+        {
+            if (selectedFile.Size > MaxFileSize)
+            {
+                // File too large - could add error handling here
+                return;
+            }
+
+            using var memoryStream = new MemoryStream();
+            await selectedFile.OpenReadStream(MaxFileSize).CopyToAsync(memoryStream);
+            var base64 = Convert.ToBase64String(memoryStream.ToArray());
+
+            uploadedFiles ??= new List<FileItem>();
+            uploadedFiles.Add(new FileItem
+            {
+                Name = selectedFile.Name,
+                Size = selectedFile.Size,
+                Base64Data = base64,
+                ContentType = selectedFile.ContentType
+            });
+
+            selectedFile = null;
+            await SaveFiles();
+        }
+        catch (Exception)
+        {
+            // Handle error - file too large or other issues
+        }
+    }
+
+    private void RemoveFile(FileItem file)
+    {
+        uploadedFiles?.Remove(file);
+        SaveFiles().Wait();
+    }
+
+    private async Task SaveFiles()
+    {
+        if (selectedCard == null) return;
+        var json = System.Text.Json.JsonSerializer.Serialize(uploadedFiles ?? new List<FileItem>());
+        // Store in Details field for now - could be moved to separate field later
+        await CardService.UpdateCardAsync(selectedCard.Id, selectedCard.Title, 
+            $"{cardDetailsText}\n\n<!-- FILES: {json} -->");
+    }
+
+    private string GetFileIcon(string fileName)
+    {
+        var extension = Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".pdf" => "pdf",
+            ".doc" or ".docx" => "word",
+            ".xls" or ".xlsx" => "excel",
+            ".txt" => "text",
+            _ => "file"
+        };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
     }
 
     // Details text method
