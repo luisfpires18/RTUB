@@ -767,6 +767,14 @@ else
                 </div>
             </div>
 
+            @if (!string.IsNullOrEmpty(cancelEventErrorMessage))
+            {
+                <Alert Title="@cancelEventErrorMessage" 
+                       Type="Alert.AlertType.Error" 
+                       Dismissible="true"
+                       OnDismiss="@(() => cancelEventErrorMessage = null)" />
+            }
+
             @if (cancelEventLoadingSubscribers)
             {
                 <div class="text-center py-3">
@@ -775,44 +783,32 @@ else
                     </div>
                 </div>
             }
-            else if (!string.IsNullOrEmpty(cancelEventErrorMessage))
+            
+            <div class="mb-3 form-check">
+                <input class="form-check-input" type="checkbox" id="notifySubscribersCheckbox"
+                       @bind="notifySubscribersOnCancel">
+                <label class="form-check-label text-white-full" for="notifySubscribersCheckbox">
+                    Notificar todos os inscritos por email
+                </label>
+            </div>
+            
+            @if (notifySubscribersOnCancel)
             {
-                <Alert Title="@cancelEventErrorMessage" 
-                       Type="Alert.AlertType.Error" 
-                       Dismissible="true"
-                       OnDismiss="@(() => cancelEventErrorMessage = null)" />
-            }
-            else
-            {
-                <div class="mb-3 form-check">
-                    <input class="form-check-input" type="checkbox" id="notifySubscribersCheckbox"
-                           @bind="notifySubscribersOnCancel">
-                    <label class="form-check-label text-white-full" for="notifySubscribersCheckbox">
-                        Notificar todos os inscritos por email
-                    </label>
-                </div>
-                
-                @if (notifySubscribersOnCancel)
-                {
-                    <div class="mb-3">
-                        <span class="badge bg-purple text-white p-2">
-                            @($"{cancelEventSubscribedCount} / {cancelEventTotalCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")
-                        </span>
-                    </div>
-                }
-
                 <div class="mb-3">
-                    <label class="form-label text-white-full">Motivo do Cancelamento <span class="text-danger">*</span></label>
-                    <textarea class="form-control" rows="4" 
-                              @bind="cancelEventReason" 
-                              placeholder="Descreva o motivo do cancelamento do evento..."
-                              maxlength="1000"></textarea>
-                    @if (string.IsNullOrWhiteSpace(cancelEventReason))
-                    {
-                        <div class="text-danger small mt-1">O motivo é obrigatório.</div>
-                    }
+                    <span class="badge bg-purple text-white p-2">
+                        @($"{cancelEventSubscribedCount} / {cancelEventTotalCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")
+                    </span>
                 </div>
             }
+
+            <div class="mb-3">
+                <label class="form-label text-white-full">Motivo do Cancelamento <span class="text-danger">*</span></label>
+                <textarea class="form-control" rows="4" 
+                          @bind="cancelEventReason" 
+                          placeholder="Descreva o motivo do cancelamento do evento..."
+                          maxlength="1000"></textarea>
+                <small class="text-muted">Máximo 1000 caracteres</small>
+            </div>
         }
     </BodyContent>
 </ConfirmDialog>
