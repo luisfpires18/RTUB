@@ -32,8 +32,8 @@
                             <i class="bi bi-arrow-left"></i>
                         </button>
                         <div>
-                            <h2 class="mb-1">Discussão</h2>
-                            <p class="text-muted mb-0">@eventItem.Name</p>
+                            <p class="text-muted mb-1 small">@eventItem.Name</p>
+                            <h2 class="mb-0">Discussão</h2>
                         </div>
                     </div>
                     @if (canCreatePost)
@@ -102,7 +102,7 @@
                                                     <button class="btn btn-sm btn-outline-light" @onclick="@(() => EditPost(post))" title="Editar">
                                                         <i class="bi bi-pencil"></i> Editar
                                                     </button>
-                                                    <button class="btn btn-sm btn-danger" @onclick="@(() => DeletePost(post))" title="Eliminar">
+                                                    <button class="btn btn-sm btn-danger" @onclick="@(() => ShowDeletePostConfirm(post))" title="Eliminar">
                                                         <i class="bi bi-trash"></i> Eliminar
                                                     </button>
                                                 }
@@ -126,7 +126,7 @@
                                                 <!-- Owner controls -->
                                                 @if (isOwner)
                                                 {
-                                                    <button class="btn btn-sm btn-danger" @onclick="@(() => DeletePost(post))" title="Eliminar Post">
+                                                    <button class="btn btn-sm btn-danger" @onclick="@(() => ShowDeletePostConfirm(post))" title="Eliminar Post">
                                                         <i class="bi bi-trash"></i> Eliminar
                                                     </button>
                                                 }
@@ -155,9 +155,9 @@
                                                     {
                                                         <CommentItem Comment="@comment" 
                                                                     CanEdit="@(IsCommentAuthor(comment))"
-                                                                    CanDelete="@(isAdmin || isOwner)"
+                                                                    CanDelete="@(isAdmin || isOwner || IsCommentAuthor(comment))"
                                                                     OnEdit="@(() => EditComment(comment))"
-                                                                    OnDelete="@(() => DeleteComment(comment, post.Id))" />
+                                                                    OnDelete="@(() => ShowDeleteCommentConfirm(comment, post.Id))" />
                                                     }
                                                 </div>
                                             }
@@ -212,6 +212,26 @@
     </BodyContent>
 </Modal>
 
+<!-- Delete Post Confirmation -->
+<ConfirmDialog Show="@showDeletePostConfirm"
+               ShowChanged="@((value) => showDeletePostConfirm = value)"
+               Title="Confirmar Eliminação"
+               Message="Tem a certeza que deseja eliminar este post? Esta ação não pode ser desfeita."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmDeletePost" />
+
+<!-- Delete Comment Confirmation -->
+<ConfirmDialog Show="@showDeleteCommentConfirm"
+               ShowChanged="@((value) => showDeleteCommentConfirm = value)"
+               Title="Confirmar Eliminação"
+               Message="Tem a certeza que deseja eliminar este comentário?"
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmDeleteComment" />
+
 @code {
     [Parameter]
     public int EventId { get; set; }
@@ -230,6 +250,11 @@
     private int totalPosts = 0;
     private bool showCreatePostModal = false;
     private HashSet<int> expandedPostIds = new HashSet<int>();
+    private bool showDeletePostConfirm = false;
+    private bool showDeleteCommentConfirm = false;
+    private Post? postToDelete = null;
+    private Comment? commentToDelete = null;
+    private int commentPostId = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -404,10 +429,21 @@
         await LoadPostsAsync();
     }
 
-    private async Task DeletePost(Post post)
+    private void ShowDeletePostConfirm(Post post)
     {
-        await PostService.SoftDeleteAsync(post.Id);
-        await LoadPostsAsync();
+        postToDelete = post;
+        showDeletePostConfirm = true;
+    }
+
+    private async Task ConfirmDeletePost()
+    {
+        if (postToDelete != null)
+        {
+            await PostService.SoftDeleteAsync(postToDelete.Id);
+            expandedPostIds.Remove(postToDelete.Id);
+            postToDelete = null;
+            await LoadPostsAsync();
+        }
     }
 
     private async Task EditComment(Comment comment)
@@ -416,18 +452,30 @@
         await Task.CompletedTask;
     }
 
-    private async Task DeleteComment(Comment comment, int postId)
+    private void ShowDeleteCommentConfirm(Comment comment, int postId)
     {
-        await CommentService.SoftDeleteAsync(comment.Id);
-        await LoadCommentsForPost(postId);
-        
-        // Update the post to refresh comment count
-        var postIndex = posts.FindIndex(p => p.Id == postId);
-        if (postIndex >= 0)
+        commentToDelete = comment;
+        commentPostId = postId;
+        showDeleteCommentConfirm = true;
+    }
+
+    private async Task ConfirmDeleteComment()
+    {
+        if (commentToDelete != null)
         {
-            posts[postIndex] = await PostService.GetByIdAsync(postId);
+            await CommentService.SoftDeleteAsync(commentToDelete.Id);
+            await LoadCommentsForPost(commentPostId);
+            
+            // Update the post to refresh comment count
+            var postIndex = posts.FindIndex(p => p.Id == commentPostId);
+            if (postIndex >= 0)
+            {
+                posts[postIndex] = await PostService.GetByIdAsync(commentPostId);
+            }
+            
+            commentToDelete = null;
+            commentPostId = 0;
+            StateHasChanged();
         }
-        
-        StateHasChanged();
     }
 }
