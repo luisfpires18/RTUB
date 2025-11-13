@@ -678,15 +678,12 @@ else
 </Modal>
 
 <!-- Email Notification Confirmation Modal -->
-<ConfirmDialog Show="@showEmailNotificationModal"
-               ShowChanged="@((bool show) => showEmailNotificationModal = show)"
-               Title="Enviar notificação desta atuação?"
-               ConfirmText="Sim"
-               CancelText="Não"
-               ConfirmButtonClass="btn-primary"
-               OnConfirm="@SendEventNotification"
-               OnCancel="@CloseEmailNotificationModal"
-               Size="Modal.ModalSize.Large">
+<Modal Show="@showEmailNotificationModal"
+       ShowChanged="@((bool show) => showEmailNotificationModal = show)"
+       Title="Enviar notificação desta atuação"
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true">
     <BodyContent>
         @if (selectedEventForEmail != null)
         {
@@ -716,6 +713,27 @@ else
             }
             else
             {
+                <!-- Notification Type Selection -->
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Tipo de Notificação <span class="text-danger">*</span></label>
+                    <select class="form-select" @bind="selectedNotificationType">
+                        <option value="new">Nova Atuação</option>
+                        <option value="reminder">Lembrete de Atuação</option>
+                    </select>
+                    <small class="text-muted">
+                        @if (selectedNotificationType == "new")
+                        {
+                            <text>Notifica os membros sobre uma nova atuação criada.</text>
+                        }
+                        else
+                        {
+                            var daysUntil = (int)Math.Ceiling((selectedEventForEmail.Date.Date - DateTime.UtcNow.Date).TotalDays);
+                            var daysText = daysUntil == 1 ? "1 dia" : $"{daysUntil} dias";
+                            <text>Lembra os membros que a atuação é em @daysText e de confirmarem a presença.</text>
+                        }
+                    </small>
+                </div>
+                
                 <div class="mb-3">
                     <span class="badge bg-purple text-white p-2">
                         @($"{subscribedUsersCount} / {totalUsersCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")
@@ -744,7 +762,13 @@ else
             }
         }
     </BodyContent>
-</ConfirmDialog>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEmailNotificationModal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendEventNotification" disabled="@(subscribedUsers == null || !subscribedUsers.Any())">
+            Enviar Notificação
+        </button>
+    </FooterContent>
+</Modal>
 
 <!-- Cancel Event Confirmation Modal -->
 <Modal Show="@showCancelEventModal"
@@ -890,6 +914,7 @@ else
     private int totalUsersCount = 0;
     private bool emailLoadingSubscribers = false;
     private string? emailErrorMessage;
+    private string selectedNotificationType = "new"; // "new" or "reminder"
     
     // Cancel event modal variables
     private bool notifySubscribersOnCancel = false;
@@ -1661,6 +1686,7 @@ else
         selectedEventForEmail = eventItem;
         emailLoadingSubscribers = true;
         emailErrorMessage = null;
+        selectedNotificationType = "new"; // Reset to default
         showEmailNotificationModal = true;
         StateHasChanged();
 
@@ -1730,18 +1756,38 @@ else
                     )
                 );
 
-            // Send the email
-            var (success, count, errorMessage) = await EmailNotificationService.SendEventNotificationAsync(
-                selectedEventForEmail.Id,
-                selectedEventForEmail.Name,
-                selectedEventForEmail.Date,
-                selectedEventForEmail.Location,
-                eventLink,
-                recipientEmails,
-                recipientData
-            );
+            // Send the appropriate notification based on selected type
+            (bool success, int count, string? errorMessage) result;
+            
+            if (selectedNotificationType == "reminder")
+            {
+                // Send reminder notification
+                result = await EmailNotificationService.SendEventReminderNotificationAsync(
+                    selectedEventForEmail.Id,
+                    selectedEventForEmail.Name,
+                    selectedEventForEmail.Date,
+                    selectedEventForEmail.Location,
+                    eventLink,
+                    recipientEmails,
+                    recipientData,
+                    selectedEventForEmail.Description ?? ""
+                );
+            }
+            else
+            {
+                // Send new event notification
+                result = await EmailNotificationService.SendEventNotificationAsync(
+                    selectedEventForEmail.Id,
+                    selectedEventForEmail.Name,
+                    selectedEventForEmail.Date,
+                    selectedEventForEmail.Location,
+                    eventLink,
+                    recipientEmails,
+                    recipientData
+                );
+            }
 
-            if (success)
+            if (result.success)
             {
                 // Close modal on success
                 CloseEmailNotificationModal();
@@ -1751,7 +1797,7 @@ else
             }
             else
             {
-                emailErrorMessage = errorMessage ?? "Erro ao enviar notificação.";
+                emailErrorMessage = result.errorMessage ?? "Erro ao enviar notificação.";
             }
         }
         catch (Exception ex)

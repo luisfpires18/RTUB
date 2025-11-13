@@ -640,4 +640,136 @@ public class EmailNotificationService : IEmailNotificationService
             return (false, 0, $"Erro ao enviar email: {ex.Message}");
         }
     }
+    
+    /// <inheritdoc/>
+    public async Task<(bool success, int count, string? errorMessage)> SendEventReminderNotificationAsync(
+        int eventId,
+        string eventTitle,
+        DateTime eventDate,
+        string eventLocation,
+        string eventLink,
+        List<string> recipientEmails,
+        Dictionary<string, (string nickname, string fullName)>? recipientData = null,
+        string eventDescription = "")
+    {
+        // Rate limit: Prevent duplicate emails for the same event reminder within 5 minutes
+        var rateLimitKey = $"email-event-reminder-{eventId}";
+        if (ShouldRateLimitEmail(rateLimitKey))
+        {
+            return (false, 0, "Email de lembrete já enviado recentemente.");
+        }
+
+        try
+        {
+            // Get email settings from configuration
+            var smtpServer = _configuration["EmailSettings:SmtpServer"];
+            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
+            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
+            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
+            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
+            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
+            var enableSsl = enableSslStr != "false"; // Default to true
+
+            // Validate required email settings
+            if (string.IsNullOrEmpty(senderEmail))
+            {
+                _logger.LogError("SenderEmail is not configured in EmailSettings");
+                return (false, 0, "Configuração de email não está completa.");
+            }
+
+            // Check if SMTP is configured
+            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
+            {
+                _logger.LogWarning("SMTP not configured, skipping event reminder notification email");
+                return (false, 0, "Servidor de email não configurado.");
+            }
+
+            // Validate recipients
+            if (recipientEmails == null || !recipientEmails.Any())
+            {
+                _logger.LogWarning("No recipient emails provided for event reminder notification");
+                return (false, 0, "Nenhum destinatário encontrado.");
+            }
+
+            // Calculate days until event
+            var daysUntilEvent = (int)Math.Ceiling((eventDate.Date - DateTime.UtcNow.Date).TotalDays);
+            
+            var subject = $"Lembrete: {eventTitle} — faltam {daysUntilEvent} {(daysUntilEvent == 1 ? "dia" : "dias")}";
+
+            // Format date in PT-PT format
+            var dateFormatted = eventDate.ToString("dddd, dd 'de' MMMM 'de' yyyy", 
+                new System.Globalization.CultureInfo("pt-PT"));
+
+            // If recipient data is provided, send personalized emails to each recipient
+            if (recipientData != null && recipientData.Any())
+            {
+                int successCount = 0;
+                using var smtpClient = new SmtpClient(smtpServer, smtpPort)
+                {
+                    Credentials = new NetworkCredential(smtpUsername, smtpPassword),
+                    EnableSsl = enableSsl,
+                    Timeout = 30000 // 30 second timeout
+                };
+
+                foreach (var email in recipientEmails)
+                {
+                    if (string.IsNullOrWhiteSpace(email))
+                        continue;
+
+                    try
+                    {
+                        // Get nickname and full name for this recipient
+                        var (nickname, fullName) = recipientData.TryGetValue(email, out var data) 
+                            ? data 
+                            : ("", "");
+
+                        // Render personalized email
+                        var body = await _templateRenderer.RenderEventReminderNotificationAsync(
+                            eventTitle,
+                            dateFormatted,
+                            eventLocation,
+                            eventLink,
+                            daysUntilEvent,
+                            nickname,
+                            fullName,
+                            eventDescription);
+
+                        var mailMessage = new MailMessage
+                        {
+                            From = new MailAddress(senderEmail, senderName),
+                            Subject = subject,
+                            Body = body,
+                            IsBodyHtml = true,
+                            BodyEncoding = Encoding.UTF8,
+                            SubjectEncoding = Encoding.UTF8
+                        };
+                        mailMessage.To.Add(email);
+
+                        await smtpClient.SendMailAsync(mailMessage);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to send event reminder notification email to {Email}", email);
+                    }
+                }
+
+                _logger.LogInformation("Event reminder notification emails sent for event {EventId} to {SuccessCount}/{TotalCount} members", 
+                    eventId, successCount, recipientEmails.Count);
+
+                return (successCount > 0, successCount, successCount < recipientEmails.Count ? "Alguns emails falharam" : null);
+            }
+
+            // If no recipient data, send generic emails (fallback - not personalized)
+            _logger.LogWarning("No recipient data provided for event reminder notification, emails will not be personalized");
+            return (false, 0, "Dados de destinatários não fornecidos.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending event reminder notification email for event {EventId}", eventId);
+            return (false, 0, $"Erro ao enviar email: {ex.Message}");
+        }
+    }
 }

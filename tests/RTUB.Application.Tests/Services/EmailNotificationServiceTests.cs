@@ -306,6 +306,109 @@ public class EmailNotificationServiceTests : IDisposable
         result2.success.Should().BeFalse();
         result2.errorMessage.Should().Contain("já enviado recentemente");
     }
+    
+    [Fact]
+    public async Task SendEventReminderNotificationAsync_DoesNotThrow_WhenSmtpNotConfigured()
+    {
+        // Arrange
+        var eventId = 7;
+        var eventTitle = "Reminder Event";
+        var eventDate = DateTime.Now.AddDays(3);
+        var eventLocation = "Coimbra";
+        var eventLink = "https://rtub.azurewebsites.net/events";
+        var recipientEmails = new List<string> { "user1@test.com", "user2@test.com" };
+        var recipientData = new Dictionary<string, (string nickname, string fullName)>
+        {
+            { "user1@test.com", ("user1", "User One") },
+            { "user2@test.com", ("user2", "User Two") }
+        };
+
+        // Setup mock for RenderEventReminderNotificationAsync
+        _mockTemplateRenderer.Setup(x => x.RenderEventReminderNotificationAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync("Test reminder email");
+
+        // Act
+        var result = await _service.SendEventReminderNotificationAsync(
+            eventId, eventTitle, eventDate, eventLocation, eventLink, recipientEmails, recipientData);
+
+        // Assert - Should not throw even when SMTP is not configured
+        result.success.Should().BeFalse();
+        result.count.Should().Be(0);
+        result.errorMessage.Should().NotBeNull();
+    }
+    
+    [Fact]
+    public async Task SendEventReminderNotificationAsync_ReturnsError_WhenNoRecipients()
+    {
+        // Arrange
+        var eventId = 8;
+        var eventTitle = "Reminder Event 2";
+        var eventDate = DateTime.Now.AddDays(3);
+        var eventLocation = "Coimbra";
+        var eventLink = "https://rtub.azurewebsites.net/events";
+        var recipientEmails = new List<string>();
+
+        // Setup SMTP configuration for this test so it doesn't fail on SMTP config check
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpServer"]).Returns("smtp.test.com");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpPassword"]).Returns("test-password");
+        _mockConfiguration.Setup(x => x["EmailSettings:SenderEmail"]).Returns("noreply@rtub.pt");
+
+        // Setup mock for RenderEventReminderNotificationAsync
+        _mockTemplateRenderer.Setup(x => x.RenderEventReminderNotificationAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync("Test reminder email");
+
+        // Act
+        var result = await _service.SendEventReminderNotificationAsync(
+            eventId, eventTitle, eventDate, eventLocation, eventLink, recipientEmails);
+
+        // Assert
+        result.success.Should().BeFalse();
+        result.count.Should().Be(0);
+        result.errorMessage.Should().Contain("Nenhum destinatário");
+    }
+    
+    [Fact]
+    public async Task SendEventReminderNotificationAsync_RateLimits_DuplicateRequests()
+    {
+        // Arrange
+        var eventId = 9;
+        var eventTitle = "Reminder Event 3";
+        var eventDate = DateTime.Now.AddDays(3);
+        var eventLocation = "Coimbra";
+        var eventLink = "https://rtub.azurewebsites.net/events";
+        var recipientEmails = new List<string> { "user1@test.com" };
+        var recipientData = new Dictionary<string, (string nickname, string fullName)>
+        {
+            { "user1@test.com", ("user1", "User One") }
+        };
+
+        // Setup SMTP configuration for this test
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpServer"]).Returns("smtp.test.com");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpPassword"]).Returns("test-password");
+        _mockConfiguration.Setup(x => x["EmailSettings:SenderEmail"]).Returns("noreply@rtub.pt");
+
+        // Setup mock for RenderEventReminderNotificationAsync
+        _mockTemplateRenderer.Setup(x => x.RenderEventReminderNotificationAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync("Test reminder email");
+
+        // Act - First call
+        var result1 = await _service.SendEventReminderNotificationAsync(
+            eventId, eventTitle, eventDate, eventLocation, eventLink, recipientEmails, recipientData);
+
+        // Act - Second call immediately after (should be rate limited)
+        var result2 = await _service.SendEventReminderNotificationAsync(
+            eventId, eventTitle, eventDate, eventLocation, eventLink, recipientEmails, recipientData);
+
+        // Assert
+        result2.success.Should().BeFalse();
+        result2.errorMessage.Should().Contain("já enviado recentemente");
+    }
 
     public void Dispose()
     {

@@ -109,4 +109,26 @@ public interface IEmailNotificationService
         string eventLink,
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null);
+    
+    /// <summary>
+    /// Sends event reminder notification emails to subscribed members
+    /// </summary>
+    /// <param name="eventId">The event ID</param>
+    /// <param name="eventTitle">The event title</param>
+    /// <param name="eventDate">The event date</param>
+    /// <param name="eventLocation">The event location</param>
+    /// <param name="eventLink">Absolute link to the event</param>
+    /// <param name="recipientEmails">List of recipient email addresses</param>
+    /// <param name="recipientData">Optional dictionary mapping emails to (nickname, fullName) tuples for personalization</param>
+    /// <param name="eventDescription">Optional event description</param>
+    /// <returns>Tuple with success flag, count of emails sent, and optional error message</returns>
+    Task<(bool success, int count, string? errorMessage)> SendEventReminderNotificationAsync(
+        int eventId,
+        string eventTitle,
+        DateTime eventDate,
+        string eventLocation,
+        string eventLink,
+        List<string> recipientEmails,
+        Dictionary<string, (string nickname, string fullName)>? recipientData = null,
+        string eventDescription = "");
 }
