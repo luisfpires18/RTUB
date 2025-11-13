@@ -394,13 +394,26 @@ public class AvatarCardTests : TestContext
         {
             builder.OpenElement(0, "div");
             builder.AddAttribute(1, "class", "avatar-card-badges-row");
-            for (int i = 0; i < 5; i++)
-            {
-                builder.OpenElement(2 + i, "span");
-                builder.AddAttribute(3 + i, "class", "badge avatar-card-role-badge");
-                builder.AddContent(4 + i, $"Badge {i}");
-                builder.CloseElement();
-            }
+            builder.OpenElement(2, "span");
+            builder.AddAttribute(3, "class", "badge avatar-card-role-badge");
+            builder.AddContent(4, "Badge 0");
+            builder.CloseElement();
+            builder.OpenElement(5, "span");
+            builder.AddAttribute(6, "class", "badge avatar-card-role-badge");
+            builder.AddContent(7, "Badge 1");
+            builder.CloseElement();
+            builder.OpenElement(8, "span");
+            builder.AddAttribute(9, "class", "badge avatar-card-role-badge");
+            builder.AddContent(10, "Badge 2");
+            builder.CloseElement();
+            builder.OpenElement(11, "span");
+            builder.AddAttribute(12, "class", "badge avatar-card-role-badge");
+            builder.AddContent(13, "Badge 3");
+            builder.CloseElement();
+            builder.OpenElement(14, "span");
+            builder.AddAttribute(15, "class", "badge avatar-card-role-badge");
+            builder.AddContent(16, "Badge 4");
+            builder.CloseElement();
             builder.CloseElement();
         });
 

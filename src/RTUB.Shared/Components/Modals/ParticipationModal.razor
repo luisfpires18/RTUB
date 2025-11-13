@@ -104,7 +104,6 @@
 
 @code {
     private string instrumentValidationError = string.Empty;
-    private bool wantToPlay = false;
     private List<string> validationErrors = new();
 
     /// <summary>
@@ -207,24 +206,7 @@
     /// Whether "Quero tocar" toggle is enabled
     /// </summary>
     [Parameter]
-    public bool WantToPlay 
-    { 
-        get => wantToPlay;
-        set
-        {
-            if (wantToPlay != value)
-            {
-                wantToPlay = value;
-                if (!wantToPlay)
-                {
-                    Instrument = null;
-                    instrumentValidationError = string.Empty;
-                    validationErrors.Clear();
-                }
-                StateHasChanged();
-            }
-        }
-    }
+    public bool WantToPlay { get; set; }
 
     /// <summary>
     /// WantToPlay changed callback
@@ -234,8 +216,18 @@
 
     private async Task OnWantToPlayChanged(bool value)
     {
-        WantToPlay = value;
-        await WantToPlayChanged.InvokeAsync(value);
+        if (WantToPlay != value)
+        {
+            WantToPlay = value;
+            if (!WantToPlay)
+            {
+                Instrument = null;
+                instrumentValidationError = string.Empty;
+                validationErrors.Clear();
+            }
+            await WantToPlayChanged.InvokeAsync(value);
+            StateHasChanged();
+        }
     }
 
     private async Task OnWillAttendChanged(bool value)

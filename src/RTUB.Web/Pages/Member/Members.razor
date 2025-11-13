@@ -889,7 +889,7 @@ else
         // First, add custom Categoria validation before DataAnnotations
         if (string.IsNullOrEmpty(editingUser.SelectedCategory))
         {
-            memberValidationStore.Add(() => editingUser.SelectedCategory, "Categoria é obrigatória.");
+            memberValidationStore.Add(() => editingUser.SelectedCategory!, "Categoria é obrigatória.");
         }
         
         // Now validate the form to show all errors including DataAnnotations and custom
@@ -934,7 +934,7 @@ else
                 // but we keep them for safety
                 if (string.IsNullOrEmpty(editingUser.Nickname))
                 {
-                    memberValidationStore.Add(() => editingUser.Nickname, "O nome de tuna / username é obrigatório.");
+                    memberValidationStore.Add(() => editingUser.Nickname!, "O nome de tuna / username é obrigatório.");
                     editContext.NotifyValidationStateChanged();
                     return;
                 }
@@ -1042,7 +1042,7 @@ else
             // Edit mode - add null checks
             if (string.IsNullOrEmpty(editingUser.Nickname))
             {
-                memberValidationStore.Add(() => editingUser.Nickname, "O nome de tuna / username é obrigatório.");
+                memberValidationStore.Add(() => editingUser.Nickname!, "O nome de tuna / username é obrigatório.");
                 editContext.NotifyValidationStateChanged();
                 return;
             }

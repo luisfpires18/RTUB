@@ -134,7 +134,7 @@ public class LogisticsPagesTests : IntegrationTestBase
     #region Navigation Tests
 
     [Fact]
-    public async Task LogisticsNavigation_FromMainToBoard_UrlPattern()
+    public void LogisticsNavigation_FromMainToBoard_UrlPattern()
     {
         // Arrange
         var mainPageUrl = "/logistics";
@@ -153,7 +153,7 @@ public class LogisticsPagesTests : IntegrationTestBase
     [InlineData("/logistics/1", true)]
     [InlineData("/logistics/999", true)]
     [InlineData("/logistics/", false)] // Trailing slash without ID
-    public async Task LogisticsUrls_ValidityChecks(string url, bool shouldBeValidFormat)
+    public void LogisticsUrls_ValidityChecks(string url, bool shouldBeValidFormat)
     {
         // Arrange & Act
         var isValid = url == "/logistics" || 

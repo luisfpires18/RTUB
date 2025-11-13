@@ -116,14 +116,13 @@ public class CrudTablePageBaseTests : TestContext
     }
 
     [Fact]
-    public void UpdateSearch_FiltersItems_BySearchTerm()
+    public async Task UpdateSearch_FiltersItems_BySearchTerm()
     {
         // Arrange
         var testData = CreateTestData(10); // Use only 10 items
         var cut = RenderComponent<TestCrudTablePage>(parameters => parameters
             .Add(p => p.TestItems, testData));
-        cut.Instance.TestItems = testData;
-        cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync()).Wait();
+        await cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync());
 
         // Act
         cut.Instance.PublicUpdateSearch("Item 7");
@@ -137,14 +136,13 @@ public class CrudTablePageBaseTests : TestContext
     }
 
     [Fact]
-    public void UpdateSearch_WithEmptyTerm_ShowsAllItems()
+    public async Task UpdateSearch_WithEmptyTerm_ShowsAllItems()
     {
         // Arrange
         var testData = CreateTestData(50);
         var cut = RenderComponent<TestCrudTablePage>(parameters => parameters
             .Add(p => p.TestItems, testData));
-        cut.Instance.TestItems = testData;
-        cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync()).Wait();
+        await cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync());
         cut.Instance.PublicUpdateSearch("Item 1");
 
         // Act
@@ -156,14 +154,13 @@ public class CrudTablePageBaseTests : TestContext
     }
 
     [Fact]
-    public void SortBy_SortsItems_BySpecifiedColumn()
+    public async Task SortBy_SortsItems_BySpecifiedColumn()
     {
         // Arrange
         var testData = CreateTestData(10);
         var cut = RenderComponent<TestCrudTablePage>(parameters => parameters
             .Add(p => p.TestItems, testData));
-        cut.Instance.TestItems = testData;
-        cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync()).Wait();
+        await cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync());
 
         // Act
         cut.Instance.PublicSortBy("Priority");
@@ -173,14 +170,13 @@ public class CrudTablePageBaseTests : TestContext
     }
 
     [Fact]
-    public void SortBy_TogglesDirection_WhenCalledTwice()
+    public async Task SortBy_TogglesDirection_WhenCalledTwice()
     {
         // Arrange
         var testData = CreateTestData(10);
         var cut = RenderComponent<TestCrudTablePage>(parameters => parameters
             .Add(p => p.TestItems, testData));
-        cut.Instance.TestItems = testData;
-        cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync()).Wait();
+        await cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync());
 
         // Act - First sort ascending
         cut.Instance.PublicSortBy("Priority");
@@ -196,14 +192,13 @@ public class CrudTablePageBaseTests : TestContext
     }
 
     [Fact]
-    public void ChangePage_UpdatesCurrentPage()
+    public async Task ChangePage_UpdatesCurrentPage()
     {
         // Arrange
         var testData = CreateTestData(100);
         var cut = RenderComponent<TestCrudTablePage>(parameters => parameters
             .Add(p => p.TestItems, testData));
-        cut.Instance.TestItems = testData;
-        cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync()).Wait();
+        await cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync());
 
         // Act
         cut.Instance.PublicChangePage(2);
@@ -214,14 +209,13 @@ public class CrudTablePageBaseTests : TestContext
     }
 
     [Fact]
-    public void ChangePageSize_UpdatesPageSizeAndResetsToFirstPage()
+    public async Task ChangePageSize_UpdatesPageSizeAndResetsToFirstPage()
     {
         // Arrange
         var testData = CreateTestData(100);
         var cut = RenderComponent<TestCrudTablePage>(parameters => parameters
             .Add(p => p.TestItems, testData));
-        cut.Instance.TestItems = testData;
-        cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync()).Wait();
+        await cut.InvokeAsync(async () => await cut.Instance.PublicRefreshDataAsync());
         cut.Instance.PublicChangePage(3);
 
         // Act

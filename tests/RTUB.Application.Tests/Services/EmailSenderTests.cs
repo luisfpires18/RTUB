@@ -25,8 +25,8 @@ public class EmailSenderTests
     public async Task SendEmailAsync_WithoutSMTPConfiguration_DoesNotThrow()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string)null);
-        _mockConfiguration.Setup(c => c["EmailSettings:SmtpPassword"]).Returns((string)null);
+        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
+        _mockConfiguration.Setup(c => c["EmailSettings:SmtpPassword"]).Returns((string?)null);
         
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
@@ -57,7 +57,7 @@ public class EmailSenderTests
     public async Task SendEmailAsync_WithMissingConfiguration_DoesNotThrow()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string)null);
+        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
         // Act
@@ -74,7 +74,7 @@ public class EmailSenderTests
     public async Task SendEmailAsync_ParsesSmtpPortCorrectly()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string)null);
+        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
         _mockConfiguration.Setup(c => c["EmailSettings:SmtpPort"]).Returns("465");
         
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
@@ -87,8 +87,8 @@ public class EmailSenderTests
     public async Task SendEmailAsync_UsesDefaultPort_WhenNotConfigured()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string)null);
-        _mockConfiguration.Setup(c => c["EmailSettings:SmtpPort"]).Returns((string)null);
+        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
+        _mockConfiguration.Setup(c => c["EmailSettings:SmtpPort"]).Returns((string?)null);
         
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
@@ -100,8 +100,8 @@ public class EmailSenderTests
     public async Task SendEmailAsync_UsesDefaultSenderEmail_WhenNotConfigured()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string)null);
-        _mockConfiguration.Setup(c => c["EmailSettings:SenderEmail"]).Returns((string)null);
+        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
+        _mockConfiguration.Setup(c => c["EmailSettings:SenderEmail"]).Returns((string?)null);
         
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
@@ -113,8 +113,8 @@ public class EmailSenderTests
     public async Task SendEmailAsync_UsesDefaultSenderName_WhenNotConfigured()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string)null);
-        _mockConfiguration.Setup(c => c["EmailSettings:SenderName"]).Returns((string)null);
+        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
+        _mockConfiguration.Setup(c => c["EmailSettings:SenderName"]).Returns((string?)null);
         
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
@@ -126,8 +126,8 @@ public class EmailSenderTests
     public async Task SendEmailAsync_EnablesSsl_ByDefault()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string)null);
-        _mockConfiguration.Setup(c => c["EmailSettings:EnableSsl"]).Returns((string)null);
+        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
+        _mockConfiguration.Setup(c => c["EmailSettings:EnableSsl"]).Returns((string?)null);
         
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
@@ -139,7 +139,7 @@ public class EmailSenderTests
     public async Task SendEmailAsync_CanDisableSsl_WhenConfigured()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string)null);
+        _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
         _mockConfiguration.Setup(c => c["EmailSettings:EnableSsl"]).Returns("false");
         
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);

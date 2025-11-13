@@ -395,11 +395,11 @@
                         <div class="row g-3">
                             <div class="col-6">
                                 <label class="form-label small fw-semibold">Início</label>
-                                <input type="date" class="form-control" value="@cardStartDate" @onchange="@((e) => { cardStartDate = e.Value?.ToString(); UpdateCardDates(); })" />
+                                <input type="date" class="form-control" value="@cardStartDate" @onchange="@(async (e) => { cardStartDate = e.Value?.ToString(); await UpdateCardDates(); })" />
                             </div>
                             <div class="col-6">
                                 <label class="form-label small fw-semibold">Prazo</label>
-                                <input type="date" class="form-control" value="@cardDueDate" @onchange="@((e) => { cardDueDate = e.Value?.ToString(); UpdateCardDates(); })" />
+                                <input type="date" class="form-control" value="@cardDueDate" @onchange="@(async (e) => { cardDueDate = e.Value?.ToString(); await UpdateCardDates(); })" />
                             </div>
                         </div>
                     </div>

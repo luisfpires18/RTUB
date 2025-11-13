@@ -65,6 +65,7 @@ public class RolesPageTests
 
         // Assert
         displayName.Should().NotBeNullOrEmpty($"Position {position} should have a display name");
+        displayName.Should().Be(expectedName, $"Position {position} should have display name '{expectedName}'");
     }
 
     [Fact]
