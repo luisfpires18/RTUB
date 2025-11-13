@@ -231,9 +231,45 @@ public class Program
 
         services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
 
+        // Register Claims Service
+        services.AddScoped<RTUB.Application.Interfaces.IUserClaimsService, RTUB.Application.Services.UserClaimsService>();
+        
+        // Register Authorization Handlers
+        services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, RTUB.Application.Authorization.PermissionAuthorizationHandler>();
+        services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, RTUB.Application.Authorization.CategoryAuthorizationHandler>();
+        services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, RTUB.Application.Authorization.PositionAuthorizationHandler>();
+
         services.AddAuthorization(o =>
         {
+            // Legacy role-based policy
             o.AddPolicy("RequireAdministratorRole", p => p.RequireRole("Admin"));
+            
+            // Permission-based policies
+            o.AddPolicy("ViewMemberPages", p => 
+                p.Requirements.Add(new RTUB.Application.Authorization.PermissionRequirement(RTUB.Core.Constants.Permissions.ViewMemberPages)));
+            
+            o.AddPolicy("ViewOwnerPages", p => p.RequireRole("Owner"));
+            
+            o.AddPolicy("ManageFinances", p =>
+                p.RequireAssertion(context =>
+                    context.User.HasClaim(c => 
+                        c.Type == RTUB.Core.Constants.CustomClaimTypes.Permission && 
+                        (c.Value == RTUB.Core.Constants.Permissions.ManageAllFinances || 
+                         c.Value == RTUB.Core.Constants.Permissions.ManageTreasurerFinances))));
+            
+            // Category-based policies
+            o.AddPolicy("RequireEffectiveMember", p =>
+                p.Requirements.Add(new RTUB.Application.Authorization.PermissionRequirement(RTUB.Core.Constants.Permissions.IsEffectiveMember)));
+            
+            o.AddPolicy("RequireTunoOrHigher", p =>
+                p.Requirements.Add(new RTUB.Application.Authorization.PermissionRequirement(RTUB.Core.Constants.Permissions.CanBeMentor)));
+            
+            // Position-based policies
+            o.AddPolicy("RequireMagister", p =>
+                p.Requirements.Add(new RTUB.Application.Authorization.PositionRequirement(RTUB.Core.Enums.Position.Magister.ToString())));
+            
+            o.AddPolicy("RequireEnsaiador", p =>
+                p.Requirements.Add(new RTUB.Application.Authorization.PositionRequirement(RTUB.Core.Enums.Position.Ensaiador.ToString())));
         });
 
         services.AddAntiforgery(o => o.HeaderName = "X-CSRF-TOKEN");
@@ -361,7 +397,8 @@ public class Program
                                           SignInManager<ApplicationUser> signInManager,
                                           UserManager<ApplicationUser> userManager,
                                           ILogger<Program> logger,
-                                          AuditContext auditContext) =>
+                                          AuditContext auditContext,
+                                          RTUB.Application.Interfaces.IUserClaimsService claimsService) =>
         {
             var form = await http.Request.ReadFormAsync();
             var username = form["Username"].ToString();
@@ -421,6 +458,18 @@ public class Program
             {
                 // Always clear the audit context to prevent leaking to other requests
                 auditContext.Clear();
+            }
+
+            // Sync user claims with categories and positions before signing in
+            // This ensures claims are up to date for authorization checks
+            try
+            {
+                await claimsService.SyncUserClaimsAsync(user);
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail login
+                logger.LogError(ex, "Exception while syncing user claims for user {UserId}", user.Id);
             }
 
             // Sign in the user using SignInAsync (password already validated above)
