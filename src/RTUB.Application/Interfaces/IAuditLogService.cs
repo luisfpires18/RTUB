@@ -69,6 +69,11 @@ public interface IAuditLogService
     Task TruncateAsync();
     
     /// <summary>
+    /// Truncates (deletes all) audit logs for a specific user
+    /// </summary>
+    Task TruncateByUserAsync(string userName);
+    
+    /// <summary>
     /// Gets all audit logs for export (without pagination)
     /// </summary>
     Task<IEnumerable<AuditLog>> GetAllForExportAsync(
