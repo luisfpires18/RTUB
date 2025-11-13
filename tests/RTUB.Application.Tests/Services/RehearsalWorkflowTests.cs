@@ -51,6 +51,7 @@ public class RehearsalWorkflowTests : IDisposable
         var attendance = await _attendanceService.MarkAttendanceAsync(
             rehearsal.Id,
             "user123",
+            true,
             InstrumentType.Guitarra);
 
         // Assert

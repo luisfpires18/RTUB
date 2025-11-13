@@ -33,6 +33,12 @@ public class Event : BaseEntity
     // Image handling - store reference/path, actual storage handled by infrastructure
     public string? ImageUrl { get; set; }
     
+    // Cancellation tracking
+    public bool IsCancelled { get; set; }
+    
+    [MaxLength(1000, ErrorMessage = "O motivo de cancelamento não pode exceder 1000 caracteres")]
+    public string? CancellationReason { get; set; }
+    
     // Navigation properties
     public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
     public virtual ICollection<EventRepertoire> RepertoireSongs { get; set; } = new List<EventRepertoire>();
@@ -91,6 +97,21 @@ public class Event : BaseEntity
     public string GetImageSource()
     {
         return !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
+    }
+    
+    public void Cancel(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new ArgumentException("O motivo de cancelamento é obrigatório", nameof(reason));
+        
+        IsCancelled = true;
+        CancellationReason = reason;
+    }
+    
+    public void Uncancel()
+    {
+        IsCancelled = false;
+        CancellationReason = null;
     }
     
     // Property alias for backward compatibility

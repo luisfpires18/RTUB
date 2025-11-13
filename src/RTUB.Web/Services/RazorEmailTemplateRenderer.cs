@@ -104,4 +104,27 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
 
         return await _templateService.RenderTemplateAsync("BirthdayNotification", model);
     }
+
+    public async Task<string> RenderEventCancellationNotificationAsync(
+        string eventTitle,
+        string dateFormatted,
+        string eventLocation,
+        string cancellationReason,
+        string eventLink,
+        string nickname = "",
+        string fullName = "")
+    {
+        var model = new EventCancellationNotificationModel
+        {
+            EventTitle = eventTitle,
+            DateFormatted = dateFormatted,
+            EventLocation = eventLocation,
+            CancellationReason = cancellationReason,
+            EventLink = eventLink,
+            Nickname = nickname,
+            FullName = fullName
+        };
+
+        return await _templateService.RenderTemplateAsync("EventCancellationNotification", model);
+    }
 }

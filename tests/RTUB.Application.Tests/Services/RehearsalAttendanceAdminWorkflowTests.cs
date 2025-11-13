@@ -42,7 +42,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         var instrument = InstrumentType.Guitarra;
 
         // Act - Simulate admin workflow: Mark attendance then immediately approve
-        var attendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, instrument);
+        var attendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, instrument);
         await _attendanceService.UpdateAttendanceAsync(attendance.Id, true, instrument);
 
         // Assert
@@ -65,7 +65,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         var userId = "user-no-instrument";
 
         // Act - Admin adds member without specifying instrument
-        var attendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, null);
+        var attendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, null);
         await _attendanceService.UpdateAttendanceAsync(attendance.Id, true, null);
 
         // Assert
@@ -86,10 +86,10 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         var userId = "existing-user";
         
         // Member already marked attendance (pending)
-        var existingAttendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, InstrumentType.Bandolim);
+        var existingAttendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, InstrumentType.Bandolim);
 
         // Act - Admin tries to add the same member
-        var attendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, InstrumentType.Guitarra);
+        var attendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, InstrumentType.Guitarra);
         await _attendanceService.UpdateAttendanceAsync(attendance.Id, true, InstrumentType.Guitarra);
 
         // Assert
@@ -113,7 +113,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         // Act - Admin adds multiple members
         foreach (var userId in users)
         {
-            var attendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, null);
+            var attendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, null);
             await _attendanceService.UpdateAttendanceAsync(attendance.Id, true, null);
         }
 
@@ -132,7 +132,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         await _context.SaveChangesAsync();
 
         var userId = "temp-user";
-        var attendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, null);
+        var attendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, null);
         await _attendanceService.UpdateAttendanceAsync(attendance.Id, true, null);
 
         // Act - Admin deletes the attendance
@@ -157,14 +157,14 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         // Admin adds 3 members (pre-approved)
         for (int i = 0; i < 3; i++)
         {
-            var att = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, $"admin-user-{i}", null);
+            var att = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, $"admin-user-{i}", true, null);
             await _attendanceService.UpdateAttendanceAsync(att.Id, true, null);
         }
 
         // Regular users mark attendance (pending)
         for (int i = 0; i < 2; i++)
         {
-            await _attendanceService.MarkAttendanceAsync(rehearsal.Id, $"regular-user-{i}", null);
+            await _attendanceService.MarkAttendanceAsync(rehearsal.Id, $"regular-user-{i}", true, null);
         }
 
         // Act
@@ -191,10 +191,10 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         var userId = "user-change-instrument";
 
         // Member marked with Bandolim
-        var attendance1 = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, InstrumentType.Bandolim);
+        var attendance1 = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, InstrumentType.Bandolim);
 
         // Act - Admin updates with Guitarra
-        var attendance2 = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, InstrumentType.Guitarra);
+        var attendance2 = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, InstrumentType.Guitarra);
         await _attendanceService.UpdateAttendanceAsync(attendance2.Id, true, InstrumentType.Guitarra);
 
         // Assert
@@ -213,7 +213,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         var userId = "user-preserve-instrument";
         var instrument = InstrumentType.Bandolim;
 
-        var attendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, instrument);
+        var attendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, instrument);
 
         // Act - Update attended status without changing instrument
         await _attendanceService.UpdateAttendanceAsync(attendance.Id, true, instrument);
@@ -263,10 +263,10 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         var userId = "contested-user";
 
         // Act - Simulate two admins trying to add same member
-        var attendance1 = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, InstrumentType.Guitarra);
+        var attendance1 = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, InstrumentType.Guitarra);
         await _attendanceService.UpdateAttendanceAsync(attendance1.Id, true, InstrumentType.Guitarra);
 
-        var attendance2 = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, InstrumentType.Bandolim);
+        var attendance2 = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, InstrumentType.Bandolim);
         await _attendanceService.UpdateAttendanceAsync(attendance2.Id, true, InstrumentType.Bandolim);
 
         // Assert
@@ -292,7 +292,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         var userIds = new[] { "user-a", "user-b", "user-c" };
         foreach (var userId in userIds)
         {
-            var att = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, null);
+            var att = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, null);
             await _attendanceService.UpdateAttendanceAsync(att.Id, true, null);
             await Task.Delay(10); // Small delay to ensure different timestamps
         }

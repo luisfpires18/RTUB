@@ -16,7 +16,7 @@ public interface IRehearsalAttendanceService
     /// Marks a user as attended at a rehearsal. Creates new attendance if not exists, updates if exists.
     /// Defaults to pending (Attended = false) for admin approval.
     /// </summary>
-    Task<RehearsalAttendance> MarkAttendanceAsync(int rehearsalId, string userId, InstrumentType? instrument = null, string? notes = null);
+    Task<RehearsalAttendance> MarkAttendanceAsync(int rehearsalId, string userId, bool willAttend = true, InstrumentType? instrument = null, string? notes = null);
     Task UpdateAttendanceAsync(int id, bool attended, InstrumentType? instrument = null);
     Task DeleteAttendanceAsync(int id);
     

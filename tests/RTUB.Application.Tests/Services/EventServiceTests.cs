@@ -159,6 +159,71 @@ public class EventServiceTests : IDisposable
         result.Should().HaveCount(1);
         result.Should().Contain(e => e.Name == "Multi-day Event");
     }
+    
+    [Fact]
+    public async Task CancelEventAsync_WithValidReason_CancelsEvent()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", EventType.Atuacao);
+        _context.Events.Add(eventEntity);
+        await _context.SaveChangesAsync();
+        var eventId = eventEntity.Id;
+        var cancellationReason = "Mau tempo previsto";
+
+        // Act
+        await _eventService.CancelEventAsync(eventId, cancellationReason);
+
+        // Assert
+        var cancelledEvent = await _context.Events.FindAsync(eventId);
+        cancelledEvent.Should().NotBeNull();
+        cancelledEvent!.IsCancelled.Should().BeTrue();
+        cancelledEvent.CancellationReason.Should().Be(cancellationReason);
+    }
+    
+    [Fact]
+    public async Task CancelEventAsync_WithNonExistentEvent_ThrowsException()
+    {
+        // Arrange
+        var nonExistentEventId = 9999;
+        var cancellationReason = "Mau tempo previsto";
+
+        // Act & Assert
+        var act = async () => await _eventService.CancelEventAsync(nonExistentEventId, cancellationReason);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage($"Event with ID {nonExistentEventId} not found");
+    }
+    
+    [Fact]
+    public async Task UncancelEventAsync_WithCancelledEvent_UncancelsEvent()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", EventType.Atuacao);
+        eventEntity.Cancel("Mau tempo previsto");
+        _context.Events.Add(eventEntity);
+        await _context.SaveChangesAsync();
+        var eventId = eventEntity.Id;
+
+        // Act
+        await _eventService.UncancelEventAsync(eventId);
+
+        // Assert
+        var uncancelledEvent = await _context.Events.FindAsync(eventId);
+        uncancelledEvent.Should().NotBeNull();
+        uncancelledEvent!.IsCancelled.Should().BeFalse();
+        uncancelledEvent.CancellationReason.Should().BeNull();
+    }
+    
+    [Fact]
+    public async Task UncancelEventAsync_WithNonExistentEvent_ThrowsException()
+    {
+        // Arrange
+        var nonExistentEventId = 9999;
+
+        // Act & Assert
+        var act = async () => await _eventService.UncancelEventAsync(nonExistentEventId);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage($"Event with ID {nonExistentEventId} not found");
+    }
 
     public void Dispose()
     {

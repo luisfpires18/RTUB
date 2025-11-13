@@ -43,7 +43,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             .ToListAsync();
     }
 
-    public async Task<RehearsalAttendance> MarkAttendanceAsync(int rehearsalId, string userId, InstrumentType? instrument = null, string? notes = null)
+    public async Task<RehearsalAttendance> MarkAttendanceAsync(int rehearsalId, string userId, bool willAttend = true, InstrumentType? instrument = null, string? notes = null)
     {
         // Check if attendance already exists
         var existing = await _context.RehearsalAttendances
@@ -52,10 +52,11 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         if (existing != null)
         {
             // Update existing attendance
+            existing.WillAttend = willAttend;
             if (instrument.HasValue)
                 existing.UpdateInstrument(instrument);
-            if (!string.IsNullOrWhiteSpace(notes))
-                existing.Notes = notes;
+            // Always update notes, even if empty (allows clearing notes)
+            existing.Notes = notes;
             
             _context.RehearsalAttendances.Update(existing);
             await _context.SaveChangesAsync();
@@ -64,8 +65,9 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
 
         // Create new attendance (defaults to pending - Attended = false)
         var attendance = RehearsalAttendance.Create(rehearsalId, userId, instrument);
-        if (!string.IsNullOrWhiteSpace(notes))
-            attendance.Notes = notes;
+        attendance.WillAttend = willAttend;
+        // Always set notes, even if empty
+        attendance.Notes = notes;
         
         _context.RehearsalAttendances.Add(attendance);
         await _context.SaveChangesAsync();
