@@ -746,15 +746,12 @@ else
 </ConfirmDialog>
 
 <!-- Cancel Event Confirmation Modal -->
-<ConfirmDialog Show="@showCancelEventModal"
-               ShowChanged="@((bool show) => showCancelEventModal = show)"
-               Title="Cancelar Evento"
-               ConfirmText="Cancelar Evento"
-               CancelText="Não Cancelar"
-               ConfirmButtonClass="btn-danger"
-               OnConfirm="@ConfirmCancelEvent"
-               OnCancel="@CloseCancelEventModal"
-               Size="Modal.ModalSize.Large">
+<Modal Show="@showCancelEventModal"
+       ShowChanged="@((bool show) => showCancelEventModal = show)"
+       Title="Cancelar Evento"
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true">
     <BodyContent>
         @if (selectedEventForCancellation != null)
         {
@@ -811,7 +808,11 @@ else
             </div>
         }
     </BodyContent>
-</ConfirmDialog>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseCancelEventModal">Não Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelEvent">Cancelar Evento</button>
+    </FooterContent>
+</Modal>
 
 @code {
     private List<Event>? events;
