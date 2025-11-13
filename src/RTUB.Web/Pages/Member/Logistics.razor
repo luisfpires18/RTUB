@@ -71,6 +71,7 @@
                                  PageSize="@pageSize"
                                  TotalItems="@totalCount"
                                  ItemLabel="quadros"
+                                 PageSizeOptions="@(new[] { 5, 10, 15, 20, 25 })"
                                  OnPageChanged="@HandlePageChanged"
                                  OnPageSizeChanged="@HandlePageSizeChanged" />
             }
@@ -201,7 +202,7 @@
     private List<BoardEntity>? boards;
     private List<Event>? events;
     private int currentPage = 1;
-    private int pageSize = 12;
+    private int pageSize = 5;
     private int totalCount = 0;
     private string searchTerm = string.Empty;
     private bool isAdmin = false;
