@@ -1,7 +1,0 @@
-/* Members.razor specific styles */
-
-/* Override the global search-bar-container margin to align with dropdowns */
-.search-bar-container {
-    margin-top: 0;
-    margin-bottom: 0;
-}
