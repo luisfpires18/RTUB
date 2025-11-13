@@ -13,7 +13,7 @@ description: Implements features for the RTUB Blazor/ASP.NET Core app with page-
 
 Frontend:
 
-* Always create new CSS classes in a file specific for the Razor page.
+* Always search site.css for most of css. But avoid writing in that class, try to create a new specific for the Razor page.
 * Always search for existing components in the Shared project. If not found, create a component. Avoid code repetition.
 * Focus on layout WEB-First but mobile-second. The app should also look good on mobile while opening the browser.
 
