@@ -1,0 +1,73 @@
+@namespace RTUB.Shared
+@using System.ComponentModel.DataAnnotations
+
+<div class="post-composer">
+    <EditForm Model="@model" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        <ErrorDisplay />
+
+        <div class="mb-3">
+            <label class="form-label">Título</label>
+            <InputText class="form-control" 
+                       @bind-Value="model.Title" 
+                       placeholder="Título do post (3-120 caracteres)" 
+                       maxlength="120" />
+            <ValidationMessage For="@(() => model.Title)" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Conteúdo</label>
+            <InputTextArea class="form-control" 
+                          rows="5" 
+                          @bind-Value="model.Body" 
+                          placeholder="Escreva o conteúdo do post... Use arroba-usuario para mencionar alguém" />
+            <ValidationMessage For="@(() => model.Body)" />
+        </div>
+
+        <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary btn-primary-purple" disabled="@isSubmitting">
+                @if (isSubmitting)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                }
+                Publicar
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<(string title, string body)> OnSubmit { get; set; }
+
+    private PostComposerModel model = new();
+    private bool isSubmitting = false;
+
+    private async Task HandleSubmit()
+    {
+        if (isSubmitting) return;
+
+        isSubmitting = true;
+        try
+        {
+            await OnSubmit.InvokeAsync((model.Title, model.Body));
+            model = new PostComposerModel(); // Reset form
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private class PostComposerModel
+    {
+        [Required(ErrorMessage = "O título é obrigatório")]
+        [MinLength(3, ErrorMessage = "O título deve ter pelo menos 3 caracteres")]
+        [MaxLength(120, ErrorMessage = "O título não pode exceder 120 caracteres")]
+        public string Title { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O conteúdo é obrigatório")]
+        [MinLength(3, ErrorMessage = "O conteúdo deve ter pelo menos 3 caracteres")]
+        public string Body { get; set; } = string.Empty;
+    }
+}

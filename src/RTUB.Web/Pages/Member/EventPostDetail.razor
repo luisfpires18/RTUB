@@ -1,0 +1,218 @@
+@page "/events/{eventId:int}/discussion/{postId:int}"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@inject IEventService EventService
+@inject IPostService PostService
+@inject ICommentService CommentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+
+<PageTitle>@(post?.Title ?? "Post") - Discussão</PageTitle>
+
+<div class="post-detail-container">
+    @if (post == null)
+    {
+        <p>A carregar post...</p>
+    }
+    else
+    {
+        <div class="post-detail-header mb-4">
+            <div class="d-flex align-items-center mb-3">
+                <button class="btn btn-outline-secondary me-3" @onclick="NavigateBack">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
+                <div>
+                    <h2 class="mb-0">@post.Title</h2>
+                    @if (post.IsPinned)
+                    {
+                        <span class="badge bg-warning text-dark me-1">
+                            <i class="bi bi-pin-angle-fill"></i> Fixado
+                        </span>
+                    }
+                    @if (post.IsLocked)
+                    {
+                        <span class="badge bg-danger">
+                            <i class="bi bi-lock-fill"></i> Bloqueado
+                        </span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="post-content-section mb-4">
+            <div class="post-author-info mb-3">
+                <div class="d-flex align-items-center">
+                    <img src="@(post.Author.ProfilePictureSrc)" 
+                         class="rounded-circle me-2" 
+                         alt="@(post.Author.Nickname ?? post.Author.UserName)" 
+                         style="width: 40px; height: 40px; object-fit: cover;" />
+                    <div>
+                        <div class="fw-bold">@(post.Author.Nickname ?? post.Author.UserName)</div>
+                        <small class="text-muted">
+                            @post.CreatedAt.ToString("dd MMM yyyy, HH:mm")
+                            @if (post.IsEdited)
+                            {
+                                <span>(editado)</span>
+                            }
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="post-body">
+                <p style="white-space: pre-line;">@post.Body</p>
+            </div>
+        </div>
+
+        <hr />
+
+        <div class="comments-section">
+            <h4 class="mb-3">
+                Comentários (@totalComments)
+            </h4>
+
+            @if (comments.Count == 0)
+            {
+                <EmptyState Title="Nenhum comentário ainda" 
+                           Message="Seja o primeiro a comentar neste post!" 
+                           Icon="bi-chat-left-text" />
+            }
+            else
+            {
+                <div class="comments-list mb-4">
+                    @foreach (var comment in comments)
+                    {
+                        <CommentItem Comment="@comment" 
+                                    CanEdit="@(IsAuthor(comment) || isAdmin)"
+                                    CanDelete="@isAdmin"
+                                    OnEdit="@(() => EditComment(comment))"
+                                    OnDelete="@(() => DeleteComment(comment))" />
+                    }
+                </div>
+
+                @if (totalComments > pageSize)
+                {
+                    <TablePagination CurrentPage="@currentPage"
+                                    PageSize="@pageSize"
+                                    TotalItems="@totalComments"
+                                    ItemLabel="comentários"
+                                    PageSizeOptions="@(new[] { 50, 100 })"
+                                    OnPageChanged="@HandlePageChange"
+                                    OnPageSizeChanged="@HandlePageSizeChange" />
+                }
+            }
+        </div>
+
+        @if (!post.IsLocked && canCreateComment)
+        {
+            <div class="comment-composer-section mt-4">
+                <CommentComposer OnSubmit="CreateComment" />
+            </div>
+        }
+        else if (post.IsLocked)
+        {
+            <div class="alert alert-warning mt-4">
+                <i class="bi bi-lock-fill"></i> Este post está bloqueado. Não é possível adicionar novos comentários.
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int EventId { get; set; }
+
+    [Parameter]
+    public int PostId { get; set; }
+
+    private Post? post;
+    private List<Comment> comments = new();
+    private ApplicationUser? currentUser;
+    private bool isAdmin = false;
+    private bool canCreateComment = false;
+    private int currentPage = 1;
+    private int pageSize = 50;
+    private int totalComments = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentUserAsync();
+        await LoadPostAsync();
+        await LoadCommentsAsync();
+    }
+
+    private async Task LoadCurrentUserAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userName = authState.User.Identity?.Name;
+
+        if (!string.IsNullOrEmpty(userName))
+        {
+            currentUser = await UserManager.FindByNameAsync(userName);
+            isAdmin = authState.User.IsInRole("Admin") || authState.User.IsInRole("Owner");
+            canCreateComment = currentUser != null;
+        }
+    }
+
+    private async Task LoadPostAsync()
+    {
+        post = await PostService.GetByIdAsync(PostId);
+    }
+
+    private async Task LoadCommentsAsync()
+    {
+        if (post == null) return;
+
+        totalComments = await CommentService.GetCountByPostIdAsync(PostId);
+        var loadedComments = await CommentService.GetByPostIdAsync(PostId, currentPage, pageSize);
+        comments = loadedComments.ToList();
+    }
+
+    private async Task CreateComment(string body)
+    {
+        if (post == null || currentUser == null || post.IsLocked) return;
+
+        await CommentService.CreateAsync(PostId, currentUser.Id, body);
+        await LoadCommentsAsync();
+        StateHasChanged();
+    }
+
+    private bool IsAuthor(Comment comment)
+    {
+        return currentUser != null && comment.AuthorId == currentUser.Id;
+    }
+
+    private void NavigateBack()
+    {
+        Navigation.NavigateTo($"/events/{EventId}/discussion");
+    }
+
+    private async Task HandlePageChange(int newPage)
+    {
+        currentPage = newPage;
+        await LoadCommentsAsync();
+    }
+
+    private async Task HandlePageSizeChange(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1;
+        await LoadCommentsAsync();
+    }
+
+    private async Task EditComment(Comment comment)
+    {
+        // TODO: Implement edit modal
+        await Task.CompletedTask;
+    }
+
+    private async Task DeleteComment(Comment comment)
+    {
+        await CommentService.SoftDeleteAsync(comment.Id);
+        await LoadCommentsAsync();
+    }
+}

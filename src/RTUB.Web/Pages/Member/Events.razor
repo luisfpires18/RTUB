@@ -69,7 +69,8 @@ else
                                    OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
                                    OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
                                    OnViewEnrollments="@(() => OpenEnrollmentListModal(eventItem))"
-                                   OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))" />
+                                   OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
+                                   OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))" />
                     </Authorized>
                     <NotAuthorized Context="unauthorizedContext">
                         <EventCard Event="@eventItem"
@@ -127,6 +128,7 @@ else
                                            OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
                                            OnViewEnrollments="@(() => OpenEnrollmentListModal(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
+                                           OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
                                            OnViewTrophies="@(() => OpenTrophyModal(eventItem))" />
                             </Authorized>
                             <NotAuthorized Context="adminOnlyContext">
@@ -139,6 +141,7 @@ else
                                            OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
                                            OnViewEnrollments="@(() => OpenEnrollmentListModal(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
+                                           OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
                                            OnViewTrophies="@(() => OpenTrophyModal(eventItem))" />
                             </NotAuthorized>
                         </AuthorizeView>
@@ -2011,6 +2014,11 @@ else
     private bool CanCancelEvent()
     {
         return isUserAdmin && !IsCaloiroAdmin();
+    }
+
+    private void NavigateToDiscussion(Event eventItem)
+    {
+        Navigation.NavigateTo($"/events/{eventItem.Id}/discussion");
     }
 }
 
