@@ -32,11 +32,12 @@
 }
 
 .post-card-avatar {
-    width: 40px;
-    height: 40px;
+    width: 40px !important;
+    height: 40px !important;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--border-color, #2f2f2f);
+    flex-shrink: 0;
 }
 
 .post-card-author-details {
@@ -106,8 +107,8 @@
 }
 
 .comment-card-avatar {
-    width: 32px;
-    height: 32px;
+    width: 32px !important;
+    height: 32px !important;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--border-color, #2f2f2f);
@@ -208,8 +209,8 @@
     }
     
     .post-card-avatar {
-        width: 36px;
-        height: 36px;
+        width: 36px !important;
+        height: 36px !important;
     }
     
     .comment-card {
@@ -217,8 +218,8 @@
     }
     
     .comment-card-avatar {
-        width: 28px;
-        height: 28px;
+        width: 28px !important;
+        height: 28px !important;
     }
     
     .comment-card-content {
