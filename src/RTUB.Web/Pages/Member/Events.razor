@@ -13,6 +13,7 @@
 @inject IEnrollmentService EnrollmentService
 @inject ITrophyService TrophyService
 @inject IEmailNotificationService EmailNotificationService
+@inject RTUB.Web.Services.WebBrowserNotificationService BrowserNotificationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IWebHostEnvironment Environment
@@ -1180,6 +1181,20 @@ else
             {
                 using var stream = new MemoryStream(croppedImageBytes);
                 await EventService.SetEventImageAsync(newEvent.Id, stream, croppedImageFileName!, "image/webp");
+            }
+            
+            // Send browser notification to subscribed users
+            try
+            {
+                await BrowserNotificationService.SendNewEventNotificationAsync(
+                    newEvent.Id,
+                    newEvent.Name,
+                    newEvent.Date);
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail event creation if notification fails
+                Console.WriteLine($"Failed to send browser notification: {ex.Message}");
             }
         }
         else

@@ -1,0 +1,104 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.JSInterop
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@implements IAsyncDisposable
+
+@code {
+    private HubConnection? hubConnection;
+    private bool isAuthenticated = false;
+    private bool isInitialized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check if user is authenticated
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
+
+        if (isAuthenticated)
+        {
+            await InitializeHubConnection();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && isAuthenticated && !isInitialized)
+        {
+            isInitialized = true;
+            // Check and request notification permission if user is subscribed
+            await CheckNotificationPermission();
+        }
+    }
+
+    private async Task InitializeHubConnection()
+    {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(Navigation.ToAbsoluteUri("/hubs/notifications"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On<string, string, int>("ReceiveNewEventNotification", async (eventName, eventDate, eventId) =>
+            {
+                // Show browser notification
+                await ShowBrowserNotification(eventName, eventDate, eventId);
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing SignalR connection: {ex.Message}");
+        }
+    }
+
+    private async Task CheckNotificationPermission()
+    {
+        try
+        {
+            // Check if browser supports notifications
+            var isSupported = await JS.InvokeAsync<bool>("browserNotifications.isSupported");
+            
+            if (!isSupported)
+            {
+                Console.WriteLine("Browser notifications are not supported");
+                return;
+            }
+
+            // Get current permission status
+            var permission = await JS.InvokeAsync<string>("browserNotifications.getPermissionStatus");
+            
+            // If default (not yet requested), we'll request it when user enables the toggle
+            // If denied, user has explicitly denied permission
+            // If granted, notifications will work
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking notification permission: {ex.Message}");
+        }
+    }
+
+    private async Task ShowBrowserNotification(string eventName, string eventDate, int eventId)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("browserNotifications.showEventNotification", eventName, eventDate, eventId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error showing browser notification: {ex.Message}");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection != null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}

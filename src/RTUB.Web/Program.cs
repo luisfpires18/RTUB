@@ -162,6 +162,7 @@ public class Program
         
         services.AddScoped<IImageStorageService, CloudflareImageStorageService>();
         services.AddScoped<IEmailNotificationService, EmailNotificationService>();
+        services.AddScoped<IBrowserNotificationService, BrowserNotificationService>();
         services.AddScoped<IFiscalYearService, FiscalYearService>();
         services.AddScoped<IEventRepertoireService, EventRepertoireService>();
         services.AddScoped<IRehearsalService, RehearsalService>();
@@ -179,6 +180,7 @@ public class Program
         
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
+        services.AddScoped<RTUB.Web.Services.WebBrowserNotificationService>();
 
         // ---------- Blazor + Authentication ----------
         services.AddRazorComponents()
@@ -435,6 +437,9 @@ public class Program
 
         // Map API controllers
         app.MapControllers();
+        
+        // Map SignalR hubs
+        app.MapHub<RTUB.Web.Hubs.NotificationHub>("/hubs/notifications");
 
         app.Run();
     }
