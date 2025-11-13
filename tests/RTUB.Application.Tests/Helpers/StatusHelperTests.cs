@@ -97,6 +97,7 @@ public class StatusHelperTests
     [InlineData(MemberCategory.Veterano, "VETERANO")]
     [InlineData(MemberCategory.Tunossauro, "TUNOSSAURO")]
     [InlineData(MemberCategory.TunoHonorario, "TUNO HONORÁRIO")]
+    [InlineData(MemberCategory.Fundador, "FUNDADOR")]
     [InlineData(MemberCategory.Caloiro, "CALOIRO")]
     [InlineData(MemberCategory.Leitao, "LEITÃO")]
     public void GetCategoryDisplay_ReturnsCorrectName(MemberCategory category, string expected)
@@ -112,6 +113,7 @@ public class StatusHelperTests
     [InlineData(MemberCategory.Tuno, "badge-tuno")]
     [InlineData(MemberCategory.Veterano, "badge-veterano")]
     [InlineData(MemberCategory.Tunossauro, "badge-tunossauro")]
+    [InlineData(MemberCategory.Fundador, "badge-fundador")]
     [InlineData(MemberCategory.Caloiro, "badge-caloiro")]
     public void GetCategoryBadgeClass_ReturnsCorrectClass(MemberCategory category, string expected)
     {

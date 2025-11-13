@@ -28,6 +28,12 @@
                             <i class="bi bi-star-fill"></i>
                         </div>
                     }
+                    @if (item.Category.HasValue && item.Category.Value == MemberCategory.Fundador)
+                    {
+                        <div class="timeline-crown">
+                            <i class="bi bi-award-fill"></i>
+                        </div>
+                    }
                     <div class="timeline-badge-unified">
                         <i class="bi @GetItemIcon(item)"></i>
                     </div>
@@ -116,10 +122,25 @@
 
             if (User.YearTuno.HasValue)
             {
+                // If user is Fundador, add Fundador item FIRST
+                if (User.IsFundador())
+                {
+                    items.Add(new TimelineItemModel
+                    {
+                        Year = User.YearTuno.Value,
+                        Order = 3, // Same year, comes before TUNO
+                        Label = "FUNDADOR",
+                        Type = "subcategory",
+                        State = "active",
+                        Category = MemberCategory.Fundador
+                    });
+                }
+                
+                // Then add TUNO item
                 items.Add(new TimelineItemModel
                 {
                     Year = User.YearTuno.Value,
-                    Order = 3,
+                    Order = 4, // Same year but shown after FUNDADOR
                     Label = "TUNO",
                     Type = "membership",
                     State = "active",
@@ -199,6 +220,7 @@
                 MemberCategory.Tuno => "timeline-tuno",
                 MemberCategory.Veterano => "timeline-veterano",
                 MemberCategory.Tunossauro => "timeline-tunossauro",
+                MemberCategory.Fundador => "timeline-fundador",
                 _ => ""
             });
         }

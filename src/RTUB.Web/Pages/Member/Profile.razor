@@ -143,7 +143,7 @@ else
                     <ProfileField Label="Instrumento Principal" 
                                 Value="@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : null)" />
                     
-                    @if (!user.IsLeitao() || user.IsCaloiro() || user.IsTuno())
+                    @if ((!user.IsLeitao() || user.IsCaloiro() || user.IsTuno()) && !user.IsFundador())
                     {
                         <ProfileField Label="Padrinho" 
                                     Value="@GetMentorDisplayName()" />
@@ -181,7 +181,7 @@ else
                                 </select>
                             </div>
 
-                            @if (user != null && (!user.IsLeitao() || user.IsCaloiro() || user.IsTuno()))
+                            @if (user != null && (!user.IsLeitao() || user.IsCaloiro() || user.IsTuno()) && !user.IsFundador())
                             {
                                 <div class="mb-3">
                                     <label class="form-label text-white-full">Padrinho</label>
@@ -254,26 +254,29 @@ else
                                 </div>
                             }
 
-                            <div class="row mb-3">
-                                <div class="col-md-4">
-                                    <label class="form-label text-white-full">Ano LEITÃO</label>
-                                    <InputNumber class="form-control" @bind-Value="editUser.YearLeitao" placeholder="Inserir ano..." />
+                            @if (user != null && !user.IsFundador())
+                            {
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label text-white-full">Ano LEITÃO</label>
+                                        <InputNumber class="form-control" @bind-Value="editUser.YearLeitao" placeholder="Inserir ano..." />
+                                    </div>
+                                    @if (!user.IsOnlyLeitao())
+                                    {
+                                        <div class="col-md-4">
+                                            <label class="form-label text-white-full">Ano CALOIRO</label>
+                                            <InputNumber class="form-control" @bind-Value="editUser.YearCaloiro" placeholder="Inserir ano..." />
+                                        </div>
+                                    }
+                                    @if (user.IsTunoOrHigher())
+                                    {
+                                        <div class="col-md-4">
+                                            <label class="form-label text-white-full">Ano TUNO</label>
+                                            <InputNumber class="form-control" @bind-Value="editUser.YearTuno" placeholder="Inserir ano..." />
+                                        </div>
+                                    }
                                 </div>
-                                @if (user != null && !user.IsOnlyLeitao())
-                                {
-                                    <div class="col-md-4">
-                                        <label class="form-label text-white-full">Ano CALOIRO</label>
-                                        <InputNumber class="form-control" @bind-Value="editUser.YearCaloiro" placeholder="Inserir ano..." />
-                                    </div>
-                                }
-                                @if (user != null && user.IsTunoOrHigher())
-                                {
-                                    <div class="col-md-4">
-                                        <label class="form-label text-white-full">Ano TUNO</label>
-                                        <InputNumber class="form-control" @bind-Value="editUser.YearTuno" placeholder="Inserir ano..." />
-                                    </div>
-                                }
-                            </div>
+                            }
                         </EditForm>
 
                         <div class="mb-3">

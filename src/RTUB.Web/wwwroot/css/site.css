@@ -1307,6 +1307,13 @@ input::placeholder, textarea::placeholder, select::placeholder {
     font-weight: bold;
 }
 
+.badge-fundador {
+    background-color: #3d2c5c;
+    color: white;
+    border: 2px solid var(--bs-primary);
+    font-weight: bold;
+}
+
 .badge-caloiro {
     background-color: #ffffff;
     color: #000000 !important;

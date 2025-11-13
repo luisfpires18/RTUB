@@ -13,5 +13,6 @@ public enum MemberCategory
 
     // Outros
     Caloiro,
-    Leitao           // Único - não é membro oficial
+    Leitao,          // Único - não é membro oficial
+    Fundador         // Fundadores da Tuna (1991)
 }
