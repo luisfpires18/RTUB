@@ -206,6 +206,10 @@
     background: #e74c3c;
 }
 
+.kanban-card.card-in-progress .card-status-bar {
+    background: var(--yellow);
+}
+
 .kanban-card.card-done .card-status-bar {
     background: #00bc8c;
 }
@@ -325,6 +329,63 @@
     border-color: #6f42c1;
     color: #e2e2e2;
     box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.25);
+}
+
+/* Card status button styling - show correct colors with purple border on selected */
+.btn-group .btn.status-todo {
+    background-color: #e74c3c !important;
+    border-color: #e74c3c !important;
+    color: white !important;
+}
+
+.btn-group .btn.status-todo:hover {
+    background-color: #c0392b !important;
+    border-color: #c0392b !important;
+}
+
+.btn-group .btn.status-todo.active {
+    background-color: #e74c3c !important;
+    border-color: #6f42c1 !important;
+    border-width: 2px !important;
+    box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.5) !important;
+}
+
+.btn-group .btn.status-wip {
+    background-color: rgba(var(--yellow-rgb), var(--bs-bg-opacity)) !important;
+    border-color: rgba(var(--yellow-rgb), var(--bs-bg-opacity)) !important;
+    color: #212529 !important;
+}
+
+.btn-group .btn.status-wip:hover {
+    background-color: #fdd835 !important;
+    border-color: #fdd835 !important;
+    color: #212529 !important;
+}
+
+.btn-group .btn.status-wip.active {
+    background-color: rgba(var(--yellow-rgb), var(--bs-bg-opacity)) !important;
+    border-color: #6f42c1 !important;
+    border-width: 2px !important;
+    box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.5) !important;
+    color: #212529 !important;
+}
+
+.btn-group .btn.status-done {
+    background-color: #00bc8c !important;
+    border-color: #00bc8c !important;
+    color: white !important;
+}
+
+.btn-group .btn.status-done:hover {
+    background-color: #00a378 !important;
+    border-color: #00a378 !important;
+}
+
+.btn-group .btn.status-done.active {
+    background-color: #00bc8c !important;
+    border-color: #6f42c1 !important;
+    border-width: 2px !important;
+    box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.5) !important;
 }
 
 /* Scrollbar styling */

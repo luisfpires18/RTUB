@@ -6,5 +6,6 @@ namespace RTUB.Core.Enums;
 public enum CardStatus
 {
     Todo = 0,
-    Done = 1
+    InProgress = 1,
+    Done = 2
 }
