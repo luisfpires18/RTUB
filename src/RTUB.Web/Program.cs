@@ -414,10 +414,9 @@ public class Program
             // Note: We use SignInAsync instead of PasswordSignInAsync to avoid duplicate password validation
             // All security checks (lockout, password validation, failed attempt tracking) are handled above
             await signInManager.SignInAsync(user, remember);
-            
+
             // Log successful login
-            logger.LogInformation("User {Username} (ID: {UserId}) successfully logged in at {LoginTime}", 
-                user.UserName, user.Id, DateTime.UtcNow);
+            logger.LogInformation($"User {user.UserName} successfully logged in at {DateTime.UtcNow}.");
             
             // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
             if (!string.IsNullOrEmpty(returnUrl) && RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl))

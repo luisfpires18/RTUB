@@ -190,6 +190,21 @@ public class AuditLogService : IAuditLogService
         await _context.SaveChangesAsync();
     }
 
+    public async Task TruncateByUserAsync(string userName)
+    {
+        if (string.IsNullOrWhiteSpace(userName))
+        {
+            throw new ArgumentException("User name cannot be null or empty.", nameof(userName));
+        }
+
+        // Remove all audit logs for the specified user
+        var userLogs = await _context.AuditLogs
+            .Where(a => a.UserName == userName)
+            .ToListAsync();
+        _context.AuditLogs.RemoveRange(userLogs);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<IEnumerable<AuditLog>> GetAllForExportAsync(
         string? userName = null,
         string? excludeUserName = null,

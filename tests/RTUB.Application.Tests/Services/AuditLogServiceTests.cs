@@ -344,6 +344,62 @@ public class AuditLogServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task TruncateByUserAsync_DeletesOnlyUserLogs()
+    {
+        // Arrange
+        await SeedAuditLogs();
+        var initialCount = await _context.AuditLogs.CountAsync();
+        initialCount.Should().Be(5);
+
+        // Act
+        await _auditLogService.TruncateByUserAsync("user1");
+
+        // Assert
+        var finalCount = await _context.AuditLogs.CountAsync();
+        finalCount.Should().Be(3); // Only user2 logs remain
+        
+        var remainingLogs = await _context.AuditLogs.ToListAsync();
+        remainingLogs.Should().OnlyContain(log => log.UserName == "user2");
+    }
+
+    [Fact]
+    public async Task TruncateByUserAsync_WithNonExistentUser_DeletesNothing()
+    {
+        // Arrange
+        await SeedAuditLogs();
+        var initialCount = await _context.AuditLogs.CountAsync();
+
+        // Act
+        await _auditLogService.TruncateByUserAsync("nonexistentuser");
+
+        // Assert
+        var finalCount = await _context.AuditLogs.CountAsync();
+        finalCount.Should().Be(initialCount);
+    }
+
+    [Fact]
+    public async Task TruncateByUserAsync_WithNullUserName_ThrowsArgumentException()
+    {
+        // Arrange
+        await SeedAuditLogs();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(
+            async () => await _auditLogService.TruncateByUserAsync(null!));
+    }
+
+    [Fact]
+    public async Task TruncateByUserAsync_WithEmptyUserName_ThrowsArgumentException()
+    {
+        // Arrange
+        await SeedAuditLogs();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(
+            async () => await _auditLogService.TruncateByUserAsync(""));
+    }
+
+    [Fact]
     public async Task GetAllForExportAsync_WithNoFilters_ReturnsAllLogs()
     {
         // Arrange

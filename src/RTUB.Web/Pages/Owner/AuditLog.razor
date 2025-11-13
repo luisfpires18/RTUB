@@ -377,14 +377,41 @@
 <!-- Truncate All Confirmation Modal -->
 <Modal Show="@showTruncateModal" 
        ShowChanged="@((show) => showTruncateModal = show)"
-       Title="Confirm Truncate All">
+       Title="@(string.IsNullOrWhiteSpace(truncateSelectedUser) ? "Confirm Truncate All" : $"Confirm Truncate by User")">
     <BodyContent>
-        <p class="fw-bold">Are you sure you want to delete ALL audit logs?</p>
-        <p>This action will permanently delete <strong>@totalRecords</strong> audit log records and cannot be undone.</p>
-        <div class="alert alert-danger">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <strong>Warning:</strong> This will remove all historical tracking data from the system.
+        <div class="mb-3">
+            <label class="form-label">User (Optional)</label>
+            <select class="form-select" @bind="truncateSelectedUser">
+                <option value="">All Users</option>
+                @foreach (var user in availableUsers)
+                {
+                    <option value="@user">@user</option>
+                }
+            </select>
+            <small class="form-text text-muted">
+                Select a user to delete only their logs, or leave as "All Users" to delete all logs.
+            </small>
         </div>
+        
+        @if (string.IsNullOrWhiteSpace(truncateSelectedUser))
+        {
+            <p class="fw-bold">Are you sure you want to delete ALL audit logs?</p>
+            <p>This action will permanently delete <strong>@totalRecords</strong> audit log records and cannot be undone.</p>
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <strong>Warning:</strong> This will remove all historical tracking data from the system.
+            </div>
+        }
+        else
+        {
+            <p class="fw-bold">Are you sure you want to delete all audit logs for user <strong>@truncateSelectedUser</strong>?</p>
+            <p>This action will permanently delete all audit log records from this user and cannot be undone.</p>
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <strong>Warning:</strong> This will remove all historical tracking data for this user.
+            </div>
+        }
+        
         <p>Type <code>DELETE ALL</code> to confirm:</p>
         <input type="text" class="form-control" @bind="truncateConfirmationText" placeholder="DELETE ALL" />
     </BodyContent>
@@ -399,7 +426,7 @@
             else
             {
                 <i class="bi bi-trash"></i>
-                <span> Delete All</span>
+                <span> Delete @(string.IsNullOrWhiteSpace(truncateSelectedUser) ? "All" : "User Logs")</span>
             }
         </button>
     </FooterContent>
@@ -436,6 +463,7 @@
     private bool showDeleteModal = false;
     private bool showTruncateModal = false;
     private string truncateConfirmationText = "";
+    private string truncateSelectedUser = "";
     private bool isTruncating = false;
     private bool isDeleting = false;
 
@@ -603,6 +631,7 @@
     {
         showTruncateModal = true;
         truncateConfirmationText = "";
+        truncateSelectedUser = "";
     }
 
     private async Task ConfirmTruncate()
@@ -613,9 +642,20 @@
         isTruncating = true;
         try
         {
-            await AuditLogService.TruncateAsync();
+            if (string.IsNullOrWhiteSpace(truncateSelectedUser))
+            {
+                // Truncate all logs
+                await AuditLogService.TruncateAsync();
+            }
+            else
+            {
+                // Truncate logs for specific user
+                await AuditLogService.TruncateByUserAsync(truncateSelectedUser);
+            }
+            
             showTruncateModal = false;
             truncateConfirmationText = "";
+            truncateSelectedUser = "";
             currentPage = 1;
             await LoadAuditLogs();
             await LoadDropdownData();
