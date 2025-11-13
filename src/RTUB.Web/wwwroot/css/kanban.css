@@ -207,7 +207,7 @@
 }
 
 .kanban-card.card-in-progress .card-status-bar {
-    background: #f39c12;
+    background: var(--yellow);
 }
 
 .kanban-card.card-done .card-status-bar {
@@ -351,18 +351,18 @@
 }
 
 .btn-group .btn.status-wip {
-    background-color: rgba(var(--bs-warning-rgb), var(--bs-bg-opacity)) !important;
-    border-color: rgba(var(--bs-warning-rgb), var(--bs-bg-opacity)) !important;
+    background-color: rgba(var(--yellow-rgb), var(--bs-bg-opacity)) !important;
+    border-color: rgba(var(--yellow-rgb), var(--bs-bg-opacity)) !important;
     color: white !important;
 }
 
 .btn-group .btn.status-wip:hover {
-    background-color: #e67e22 !important;
-    border-color: #e67e22 !important;
+    background-color: #e6a800 !important;
+    border-color: #e6a800 !important;
 }
 
 .btn-group .btn.status-wip.active {
-    background-color: rgba(var(--bs-warning-rgb), var(--bs-bg-opacity)) !important;
+    background-color: rgba(var(--yellow-rgb), var(--bs-bg-opacity)) !important;
     border-color: #6f42c1 !important;
     border-width: 2px !important;
     box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.5) !important;

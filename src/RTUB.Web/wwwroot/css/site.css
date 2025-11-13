@@ -22,6 +22,9 @@
   --bs-warning-rgb: 243, 156, 18;
   --bs-danger: #e74c3c;
   --bs-bg-opacity: 1;
+  /* Custom yellow color for WIP status (not orange warning) */
+  --yellow: #ffc107;
+  --yellow-rgb: 255, 193, 7;
   /* Override Bootstrap's info color from teal to primary blue */
   --bs-info: #007bff;
   --bs-info-rgb: 0, 123, 255;
