@@ -20,7 +20,7 @@
 
 <PageTitle>@(board?.Name ?? "Logística") - RTUB</PageTitle>
 
-<AuthorizeView>
+<AuthorizeView Context="outerAuthContext">
     <Authorized>
         @if (board == null)
         {
@@ -43,9 +43,13 @@
                         <i class="bi bi-kanban text-primary me-2"></i>
                         <span>@board.Name</span>
                     </h1>
-                    <button class="btn btn-success" @onclick="OpenCreateListModal">
-                        <i class="bi bi-plus-lg"></i> Adicionar Lista
-                    </button>
+                    <AuthorizeView Roles="Admin" Context="adminAuthContext">
+                        <Authorized>
+                            <button class="btn btn-success" @onclick="OpenCreateListModal">
+                                <i class="bi bi-plus-lg"></i> Adicionar Lista
+                            </button>
+                        </Authorized>
+                    </AuthorizeView>
                 </div>
                 
                 @if (!string.IsNullOrWhiteSpace(board.Description))
@@ -90,23 +94,27 @@
                         <div class="kanban-list" data-list-id="@list.Id">
                             <div class="kanban-list-header position-relative d-flex justify-content-between align-items-center">
                                 <h5 class="mb-0">@list.Name</h5>
-                                <div class="d-flex gap-1">
-                                    <button class="btn btn-sm btn-success" 
-                                            @onclick="() => OpenCreateCardModal(list.Id)" 
-                                            title="Adicionar Cartão">
-                                        <i class="bi bi-plus-lg"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-light" 
-                                            @onclick="() => OpenEditListModal(list)" 
-                                            title="Editar">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger" 
-                                            @onclick="() => OpenDeleteListModal(list)" 
-                                            title="Eliminar">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
+                                <AuthorizeView Roles="Admin" Context="listAdminContext">
+                                    <Authorized>
+                                        <div class="d-flex gap-1">
+                                            <button class="btn btn-sm btn-success" 
+                                                    @onclick="() => OpenCreateCardModal(list.Id)" 
+                                                    title="Adicionar Cartão">
+                                                <i class="bi bi-plus-lg"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-light" 
+                                                    @onclick="() => OpenEditListModal(list)" 
+                                                    title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" 
+                                                    @onclick="() => OpenDeleteListModal(list)" 
+                                                    title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </Authorized>
+                                </AuthorizeView>
                             </div>
                             <div class="kanban-cards" data-list-id="@list.Id">
                                 @foreach (var card in GetFilteredCards(list.Cards))

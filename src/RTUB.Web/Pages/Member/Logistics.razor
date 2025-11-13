@@ -10,6 +10,7 @@
 @inject IEventService EventService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
+@inject UserManager<ApplicationUser> UserManager
 
 <PageTitle>Quadros de Logística - RTUB</PageTitle>
 
@@ -19,7 +20,7 @@
             <h1 class="mb-2"><i class="bi bi-kanban"></i> Quadros de Logística</h1>
             <p class="text-light-theme mb-0">Gerencie os seus quadros de tarefas e atuações.</p>
         </div>
-        <AuthorizeView>
+        <AuthorizeView Roles="Admin">
             <Authorized>
                 <button class="btn btn-success" @onclick="OpenCreateBoardModal">
                     <i class="bi bi-plus-lg"></i> Criar Quadro
@@ -58,6 +59,7 @@
                     {
                         <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
                             <BoardCard Board="@board"
+                                       ShowActions="@isAdmin"
                                        OnView="@(() => Navigation.NavigateTo($"/logistics/{board.Id}"))"
                                        OnEdit="@(() => OpenEditBoardModal(board))"
                                        OnDelete="@(() => OpenDeleteBoardModal(board))" />
@@ -202,6 +204,7 @@
     private int pageSize = 12;
     private int totalCount = 0;
     private string searchTerm = string.Empty;
+    private bool isAdmin = false;
 
     // Board modal state
     private bool showBoardModal = false;
@@ -221,7 +224,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await CheckUserRole();
         await LoadData();
+    }
+
+    private async Task CheckUserRole()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isAdmin = user.IsInRole("Admin");
     }
 
     private async Task LoadData()

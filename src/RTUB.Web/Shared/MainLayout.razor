@@ -44,23 +44,30 @@
 
                 <li class="nav-item"><NavLink class="nav-link" href="/roles"><i class="bi bi-bank"></i> Órgãos Sociais</NavLink></li>
 
-                <AuthorizeView>
+                <AuthorizeView Context="mainAuthContext">
                     <Authorized>
                         <li class="nav-item"><NavLink class="nav-link" href="/hierarchy"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
-                        <li class="nav-item"><NavLink class="nav-link" href="/logistics"><i class="bi bi-kanban"></i> Logística</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
-                        <li class="nav-item"><NavLink class="nav-link" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
-                        @if (currentUser != null && !currentUser.IsLeitao())
-                        {
-                            <li class="nav-item"><NavLink class="nav-link" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
-                        }
-                    </Authorized>
-                </AuthorizeView>
-
-                <AuthorizeView Roles="Admin">
-                    <Authorized>
-                        <li class="nav-item"><NavLink class="nav-link" href="/admin/slideshow-management"><i class="bi bi-images"></i> Imagens</NavLink></li>
+                        
+                        <li class="nav-item dropdown">
+                            <button class="nav-link dropdown-toggle" type="button" id="managementDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                                <i class="bi bi-gear-fill"></i> Gestão
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="managementDropdown">
+                                @if (currentUser != null && !currentUser.IsLeitao())
+                                {
+                                    <li><NavLink class="dropdown-item" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
+                                }
+                                <li><NavLink class="dropdown-item" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/logistics"><i class="bi bi-kanban"></i> Logística</NavLink></li>
+                                <AuthorizeView Roles="Admin" Context="adminContext">
+                                    <Authorized>
+                                        <li><NavLink class="dropdown-item" href="/admin/slideshow-management"><i class="bi bi-images"></i> Imagens</NavLink></li>
+                                    </Authorized>
+                                </AuthorizeView>
+                            </ul>
+                        </li>
                     </Authorized>
                 </AuthorizeView>
 
