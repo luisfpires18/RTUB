@@ -217,7 +217,7 @@ else
                                     TunaName="@attendance.User?.Nickname"
                                     FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}")"
                                     InstrumentText="@instrumentDisplay"
-                                    Notes=""
+                                    Notes="@attendance.Notes"
                                     AltText="@attendance.User?.GetDisplayName()"
                                     ShowEditButton="false"
                                     ShowDeleteButton="@(isOwner && isSelectedRehearsalPast && attendance.Attended)"
