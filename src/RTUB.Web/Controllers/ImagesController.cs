@@ -23,32 +23,35 @@ public class ImagesController : ControllerBase
     /// <summary>
     /// Serves an image file with E-Tag caching support.
     /// Returns 304 Not Modified if the E-Tag matches.
+    /// Supports subdirectories (e.g., "hierarchy/bag_leitao.webp")
     /// </summary>
-    /// <param name="filename">The image filename (e.g., "default-avatar.webp")</param>
-    [HttpGet("{filename}")]
-    public IActionResult GetImage(string filename)
+    /// <param name="**">The image path including subdirectories and filename</param>
+    [HttpGet("{**imagePath}")]
+    public IActionResult GetImage(string imagePath)
     {
         try
         {
-            // Security: Only allow specific safe filenames to prevent directory traversal
-            if (string.IsNullOrWhiteSpace(filename) || 
-                filename.Contains("..") || 
-                filename.Contains("/") || 
-                filename.Contains("\\"))
+            // Security: Only allow specific safe paths to prevent directory traversal
+            if (string.IsNullOrWhiteSpace(imagePath) || 
+                imagePath.Contains("..") || 
+                imagePath.Contains("\\"))
             {
-                return BadRequest("Invalid filename");
+                return BadRequest("Invalid image path");
             }
 
+            // Normalize path separators
+            var normalizedPath = imagePath.Replace("/", Path.DirectorySeparatorChar.ToString());
+            
             // Get the file path
-            var imagePath = Path.Combine(_environment.WebRootPath, "images", filename);
+            var fullImagePath = Path.Combine(_environment.WebRootPath, "images", normalizedPath);
 
-            if (!System.IO.File.Exists(imagePath))
+            if (!System.IO.File.Exists(fullImagePath))
             {
                 return NotFound();
             }
 
             // Get file info for E-Tag generation
-            var fileInfo = new FileInfo(imagePath);
+            var fileInfo = new FileInfo(fullImagePath);
             var lastModified = fileInfo.LastWriteTimeUtc;
 
             // Generate E-Tag based on last modified time and file size
@@ -84,7 +87,8 @@ public class ImagesController : ControllerBase
             }
 
             // Determine content type based on file extension
-            var contentType = filename.ToLowerInvariant() switch
+            var fileName = Path.GetFileName(imagePath);
+            var contentType = fileName.ToLowerInvariant() switch
             {
                 var f when f.EndsWith(".webp") => "image/webp",
                 var f when f.EndsWith(".png") => "image/png",
@@ -99,7 +103,7 @@ public class ImagesController : ControllerBase
             Response.Headers.CacheControl = "no-cache";
 
             // Return the file with E-Tag header
-            var fileBytes = System.IO.File.ReadAllBytes(imagePath);
+            var fileBytes = System.IO.File.ReadAllBytes(fullImagePath);
             Response.GetTypedHeaders().ETag = etag;
             
             return File(fileBytes, contentType);
@@ -107,8 +111,8 @@ public class ImagesController : ControllerBase
         catch (Exception ex)
         {
             // Sanitize filename for logging to prevent log forging
-            var sanitizedFilename = filename?.Replace("\r", "").Replace("\n", "") ?? "unknown";
-            _logger.LogError(ex, "Error serving image {Filename}", sanitizedFilename);
+            var sanitizedPath = imagePath?.Replace("\r", "").Replace("\n", "") ?? "unknown";
+            _logger.LogError(ex, "Error serving image {ImagePath}", sanitizedPath);
             return StatusCode(StatusCodes.Status500InternalServerError);
         }
     }
