@@ -8,10 +8,11 @@
     margin-bottom: 1.5rem;
 }
 
-/* Left section - Search (flexible, takes remaining space) */
+/* Left section - Search (flexible, but not greedy) */
 .members-toolbar-search {
-    flex: 1;
-    min-width: 0; /* Allow flexbox to shrink below content size */
+    flex: 1 1 auto;
+    min-width: 200px;
+    max-width: 500px; /* Prevent search from taking all space */
 }
 
 /* Right section - Filters container */
@@ -21,10 +22,11 @@
     align-items: center;
 }
 
-/* Individual filter controls - flexible width */
+/* Individual filter controls - compact width */
 .members-toolbar-filter {
-    flex: 0 1 auto;
-    min-width: 180px;
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 160px;
 }
 
 /* Ensure all controls have uniform height */
@@ -51,13 +53,18 @@
     align-items: center;
 }
 
-/* Responsive: Keep on same row, allow wrapping if needed */
+/* Responsive: Keep compact on all screens */
 @media (max-width: 768px) {
     .members-toolbar {
         gap: 0.75rem;
     }
     
+    .members-toolbar-search {
+        max-width: 300px;
+        min-width: 150px;
+    }
+    
     .members-toolbar-filter {
-        min-width: 140px;
+        min-width: 120px;
     }
 }
