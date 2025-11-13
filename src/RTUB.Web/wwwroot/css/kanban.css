@@ -206,6 +206,10 @@
     background: #e74c3c;
 }
 
+.kanban-card.card-in-progress .card-status-bar {
+    background: #f39c12;
+}
+
 .kanban-card.card-done .card-status-bar {
     background: #00bc8c;
 }

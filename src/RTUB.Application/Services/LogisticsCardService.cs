@@ -81,6 +81,14 @@ public class LogisticsCardService : ILogisticsCardService
         if (card == null)
             throw new InvalidOperationException($"Cartão com ID {id} não encontrado");
 
+        // Validate that event exists if eventId is provided
+        if (eventId.HasValue)
+        {
+            var eventExists = await _context.Events.AnyAsync(e => e.Id == eventId.Value);
+            if (!eventExists)
+                throw new InvalidOperationException($"Evento com ID {eventId.Value} não encontrado");
+        }
+
         card.AssociateWithEvent(eventId);
         await _context.SaveChangesAsync();
     }
@@ -90,6 +98,14 @@ public class LogisticsCardService : ILogisticsCardService
         var card = await _context.LogisticsCards.FindAsync(id);
         if (card == null)
             throw new InvalidOperationException($"Cartão com ID {id} não encontrado");
+
+        // Validate that user exists if userId is provided
+        if (!string.IsNullOrEmpty(userId))
+        {
+            var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
+            if (!userExists)
+                throw new InvalidOperationException($"Utilizador com ID {userId} não encontrado");
+        }
 
         card.AssignToUser(userId);
         await _context.SaveChangesAsync();
