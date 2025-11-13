@@ -13,80 +13,104 @@
 
 <PageTitle>Discussão - @(eventItem?.Name ?? "Evento")</PageTitle>
 
-<div class="discussion-container">
+<div class="discussion-page-wrapper">
     @if (eventItem == null)
     {
-        <p>A carregar evento...</p>
+        <div class="discussion-container">
+            <LoadingSpinner />
+        </div>
     }
     else
     {
-        <div class="discussion-header">
-            <div class="d-flex align-items-center mb-3">
-                <button class="btn btn-outline-secondary me-3" @onclick="NavigateBack">
-                    <i class="bi bi-arrow-left"></i>
-                </button>
-                <div>
-                    <h2 class="mb-0">Discussão</h2>
-                    <p class="text-muted mb-0">@eventItem.Name</p>
+        <!-- Page Header -->
+        <div class="discussion-page-header">
+            <div class="discussion-container">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-outline-secondary me-3" @onclick="NavigateBack">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <div class="flex-grow-1">
+                        <h2 class="mb-1">Discussão</h2>
+                        <p class="text-muted mb-0">@eventItem.Name</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        @if (canCreatePost)
-        {
-            <div class="post-composer-section mb-4">
-                <PostComposer OnSubmit="@(async (tuple) => await CreatePost(tuple.Item1, tuple.Item2))" />
+        <div class="discussion-container">
+            <!-- Post Composer Card -->
+            @if (canCreatePost)
+            {
+                <div class="card composer-card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">
+                            <i class="bi bi-pencil-square me-2"></i>Criar Novo Post
+                        </h5>
+                        <PostComposer OnSubmit="@(async (tuple) => await CreatePost(tuple.Item1, tuple.Item2))" />
+                    </div>
+                </div>
+            }
+
+            <!-- Search Bar -->
+            <div class="search-bar-wrapper mb-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" 
+                           class="form-control" 
+                           placeholder="Pesquisar posts por título, conteúdo ou autor..." 
+                           @bind="searchTerm" 
+                           @bind:event="oninput" 
+                           @onkeyup="HandleSearch" />
+                </div>
             </div>
-        }
 
-        <div class="search-section mb-3">
-            <input type="text" 
-                   class="form-control" 
-                   placeholder="Pesquisar posts..." 
-                   @bind="searchTerm" 
-                   @bind:event="oninput" 
-                   @onkeyup="HandleSearch" />
-        </div>
-
-        @if (posts == null)
-        {
-            <p>A carregar discussão...</p>
-        }
-        else if (posts.Count == 0)
-        {
-            <EmptyState Title="Nenhum post ainda" 
-                       Message="Seja o primeiro a iniciar uma discussão sobre este evento!" 
-                       Icon="bi-chat-dots" />
-        }
-        else
-        {
-            <div class="posts-list">
-                @foreach (var post in posts)
+            <!-- Posts Section -->
+            <div class="posts-section">
+                @if (posts == null)
                 {
-                    <PostCard Post="@post" 
-                             CanEdit="@(IsAuthor(post) || isAdmin)"
-                             CanPin="@isAdmin"
-                             CanLock="@isAdmin"
-                             CanDelete="@isAdmin"
-                             OnClick="@(() => NavigateToPost(post.Id))"
-                             OnEdit="@(() => EditPost(post))"
-                             OnPin="@(() => TogglePin(post))"
-                             OnLock="@(() => ToggleLock(post))"
-                             OnDelete="@(() => DeletePost(post))" />
+                    <LoadingSpinner />
+                }
+                else if (posts.Count == 0)
+                {
+                    <EmptyState Title="Nenhum post encontrado" 
+                               Message="@(string.IsNullOrWhiteSpace(searchTerm) ? "Seja o primeiro a iniciar uma discussão sobre este evento!" : "Nenhum resultado encontrado para a sua pesquisa.")" 
+                               Icon="bi-chat-dots" />
+                }
+                else
+                {
+                    <div class="posts-list">
+                        @foreach (var post in posts)
+                        {
+                            <PostCard Post="@post" 
+                                     CanEdit="@(IsAuthor(post) || isAdmin)"
+                                     CanPin="@isAdmin"
+                                     CanLock="@isAdmin"
+                                     CanDelete="@isAdmin"
+                                     OnClick="@(() => NavigateToPost(post.Id))"
+                                     OnEdit="@(() => EditPost(post))"
+                                     OnPin="@(() => TogglePin(post))"
+                                     OnLock="@(() => ToggleLock(post))"
+                                     OnDelete="@(() => DeletePost(post))" />
+                        }
+                    </div>
+
+                    @if (totalPosts > pageSize)
+                    {
+                        <div class="pagination-wrapper mt-4">
+                            <TablePagination CurrentPage="@currentPage"
+                                            PageSize="@pageSize"
+                                            TotalItems="@totalPosts"
+                                            ItemLabel="posts"
+                                            PageSizeOptions="@(new[] { 20, 50, 100 })"
+                                            OnPageChanged="@HandlePageChange"
+                                            OnPageSizeChanged="@HandlePageSizeChange" />
+                        </div>
+                    }
                 }
             </div>
-
-            @if (totalPosts > pageSize)
-            {
-                <TablePagination CurrentPage="@currentPage"
-                                PageSize="@pageSize"
-                                TotalItems="@totalPosts"
-                                ItemLabel="posts"
-                                PageSizeOptions="@(new[] { 20, 50, 100 })"
-                                OnPageChanged="@HandlePageChange"
-                                OnPageSizeChanged="@HandlePageSizeChange" />
-            }
-        }
+        </div>
     }
 </div>
 

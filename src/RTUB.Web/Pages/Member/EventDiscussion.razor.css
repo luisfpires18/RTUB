@@ -1,24 +1,79 @@
-/* Discussion Page Specific Styles */
+/* Discussion Page Styles */
+
+/* Page wrapper and container */
+.discussion-page-wrapper {
+    min-height: 100vh;
+    padding-bottom: 2rem;
+}
 
 .discussion-container {
     max-width: 900px;
     margin: 0 auto;
-    padding: 1rem;
+    padding: 0 1.5rem;
 }
 
-.discussion-header {
+/* Page header with background */
+.discussion-page-header {
+    background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.08) 0%, rgba(var(--bs-primary-rgb), 0.02) 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1.5rem 0;
     margin-bottom: 2rem;
 }
 
-.post-composer-section {
-    background: rgba(var(--bs-dark-rgb), 0.3);
-    border-radius: 0.5rem;
-    padding: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.discussion-page-header h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--bs-light);
 }
 
-.search-section {
-    margin-bottom: 1.5rem;
+/* Composer card */
+.composer-card {
+    background: rgba(var(--bs-dark-rgb), 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.composer-card .card-title {
+    color: var(--bs-light);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.composer-card .card-body {
+    padding: 1.5rem;
+}
+
+/* Search bar */
+.search-bar-wrapper {
+    max-width: 100%;
+}
+
+.search-bar-wrapper .input-group-text {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.search-bar-wrapper .form-control {
+    background: rgba(var(--bs-dark-rgb), 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--bs-light);
+}
+
+.search-bar-wrapper .form-control:focus {
+    background: rgba(var(--bs-dark-rgb), 0.4);
+    border-color: var(--bs-primary);
+    color: var(--bs-light);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.search-bar-wrapper .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Posts section */
+.posts-section {
+    margin-top: 1rem;
 }
 
 .posts-list {
@@ -27,13 +82,42 @@
     gap: 1rem;
 }
 
+/* Pagination */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
     .discussion-container {
-        padding: 0.5rem;
+        padding: 0 1rem;
     }
 
-    .post-composer-section {
+    .discussion-page-header {
+        padding: 1rem 0;
+        margin-bottom: 1.5rem;
+    }
+
+    .discussion-page-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .composer-card .card-body {
         padding: 1rem;
+    }
+
+    .composer-card .card-title {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .discussion-container {
+        padding: 0 0.75rem;
+    }
+    
+    .discussion-page-header .btn {
+        padding: 0.375rem 0.5rem;
     }
 }

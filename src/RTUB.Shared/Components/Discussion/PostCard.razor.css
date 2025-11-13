@@ -2,48 +2,63 @@
 
 .post-card {
     background: rgba(var(--bs-dark-rgb), 0.4);
-    border-radius: 0.5rem;
-    padding: 1rem;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.2s ease;
     cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .post-card:hover {
     background: rgba(var(--bs-dark-rgb), 0.5);
-    border-color: rgba(var(--bs-primary-rgb), 0.3);
+    border-color: rgba(var(--bs-primary-rgb), 0.4);
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .post-card-header {
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
 }
 
 .post-card-title {
     font-weight: 600;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     color: var(--bs-light);
+    margin-bottom: 0.5rem;
 }
 
 .post-card-actions {
     display: flex;
     gap: 0.5rem;
+    align-items: center;
+}
+
+.post-card-actions .btn {
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
 }
 
 .post-card-body {
-    margin-bottom: 0.75rem;
-    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.75);
+    line-height: 1.5;
 }
 
 .post-card-footer {
-    padding-top: 0.75rem;
+    padding-top: 1rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.post-card-footer small {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
 }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
     .post-card {
-        padding: 0.75rem;
+        padding: 1rem;
     }
 
     .post-card-title {
@@ -56,6 +71,24 @@
 
     .post-card-actions .btn {
         padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .post-card-body {
+        font-size: 0.9rem;
+    }
+
+    .post-card-footer small {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .post-card-actions .btn {
+        padding: 0.2rem 0.4rem;
+    }
+
+    .post-card-actions .btn i {
         font-size: 0.875rem;
     }
 }
