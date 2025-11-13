@@ -22,9 +22,17 @@
     border-width: 0.3rem;
 }
 
-/* Improved grid spacing */
+/* Improved grid spacing - ensure proper flex behavior */
 .logistics-page-container .row {
     margin-bottom: 0;
+    display: flex !important;
+    flex-wrap: wrap !important;
+}
+
+/* Ensure columns properly flow in the grid */
+.logistics-page-container .row > [class*="col-"] {
+    display: flex !important;
+    flex-direction: column;
 }
 
 /* Board card hover effect enhancement */
@@ -34,4 +42,21 @@
 
 .logistics-page-container .logistics-board-card:hover {
     transform: translateY(-5px) scale(1.02);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 576px) {
+    .logistics-page-container h1 {
+        font-size: 1.5rem;
+    }
+    
+    .logistics-page-container .d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    
+    .logistics-page-container .btn {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
 }

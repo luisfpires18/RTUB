@@ -104,3 +104,61 @@
     opacity: 0.8;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .logistics-board-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .logistics-board-header .d-flex {
+        flex-direction: column;
+        gap: 0.5rem !important;
+    }
+    
+    .logistics-board-header .btn {
+        width: 100%;
+    }
+    
+    .kanban-board {
+        flex-direction: column !important;
+        overflow-x: visible !important;
+    }
+    
+    .kanban-list {
+        width: 100% !important;
+        min-width: 100% !important;
+        margin-bottom: 1rem;
+    }
+    
+    .kanban-list-header {
+        flex-wrap: wrap;
+    }
+    
+    .kanban-list-header .d-flex {
+        gap: 0.25rem !important;
+    }
+    
+    .kanban-list-header .btn-sm {
+        font-size: 0.7rem;
+        padding: 0.15rem 0.3rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .logistics-board-header {
+        padding: 1rem;
+    }
+    
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+    }
+    
+    .kanban-card {
+        font-size: 0.9rem;
+    }
+}
+

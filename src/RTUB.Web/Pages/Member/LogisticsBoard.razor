@@ -576,9 +576,13 @@
                     </div>
                 </div>
                 <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn btn-danger" @onclick="DeleteCurrentCard">
-                        <i class="bi bi-trash me-2"></i>Eliminar
-                    </button>
+                    <AuthorizeView Roles="Admin" Context="deleteCardContext">
+                        <Authorized>
+                            <button type="button" class="btn btn-danger" @onclick="DeleteCurrentCard">
+                                <i class="bi bi-trash me-2"></i>Eliminar
+                            </button>
+                        </Authorized>
+                    </AuthorizeView>
                     <button type="button" class="btn btn-secondary ms-auto" @onclick="CloseCardDetailsModal">
                         <i class="bi bi-x-circle me-2"></i>Fechar
                     </button>
