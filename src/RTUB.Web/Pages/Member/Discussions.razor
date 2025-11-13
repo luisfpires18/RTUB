@@ -1,0 +1,329 @@
+@page "/events/{EventId:int}/discussions"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Shared
+@inject IDiscussionService DiscussionService
+@inject IPostService PostService
+@inject IEventService EventService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@attribute [Authorize]
+
+<link rel="stylesheet" href="css/discussion.css" />
+
+<PageTitle>Discussão - @eventName</PageTitle>
+
+<div class="container py-4">
+    <div class="d-flex align-items-center mb-3">
+        <button class="btn btn-outline-secondary me-3" @onclick="NavigateBack">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </button>
+        <h1 class="mb-0">Discussão: @eventName</h1>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">A carregar...</span>
+            </div>
+        </div>
+    }
+    else if (discussion == null)
+    {
+        <EmptyState Title="Discussão não encontrada"
+                   Message="Não foi possível carregar a discussão deste evento."
+                   Icon="bi-chat-left-text" />
+    }
+    else
+    {
+        <!-- Create New Post Section -->
+        <div class="discussion-create-post">
+            <h5 class="mb-3">Criar Publicação</h5>
+            <EditForm Model="@newPostContent" OnValidSubmit="CreatePost">
+                <div class="mb-3">
+                    <InputTextArea class="form-control" 
+                                   @bind-Value="newPostContent" 
+                                   rows="4" 
+                                   placeholder="@postPlaceholder"
+                                   maxlength="5000" />
+                    <small class="text-muted">@newPostContent.Length / 5000 caracteres</small>
+                </div>
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <Alert Type="Alert.AlertType.Error" Dismissible="true" OnDismiss="@(() => errorMessage = null)">
+                        @errorMessage
+                    </Alert>
+                }
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary btn-primary-purple" disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        }
+                        <i class="bi bi-send"></i> Publicar
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+
+        <!-- Posts List -->
+        @if (posts == null || !posts.Any())
+        {
+            <EmptyState Title="Sem publicações ainda"
+                       Message="Seja o primeiro a criar uma publicação nesta discussão!"
+                       Icon="bi-chat-left-text" />
+        }
+        else
+        {
+            <div class="discussion-posts-container">
+                @foreach (var post in posts)
+                {
+                    <PostCard Post="@post"
+                             CommentCount="@(post.Comments?.Count ?? 0)"
+                             CanEdit="@(currentUser?.Id == post.UserId || isUserAdmin)"
+                             CanDelete="@(currentUser?.Id == post.UserId || isUserAdmin)"
+                             OnClick="@(() => NavigateToPost(post.Id))"
+                             OnEdit="@(() => OpenEditPostModal(post))"
+                             OnDelete="@(() => OpenDeletePostModal(post))" />
+                }
+            </div>
+        }
+    }
+</div>
+
+<!-- Edit Post Modal -->
+<Modal Show="@showEditModal" 
+       ShowChanged="@((bool show) => showEditModal = show)"
+       Title="Editar Publicação" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        @if (editingPost != null)
+        {
+            <EditForm Model="@editingPostContent" OnValidSubmit="SaveEditPost">
+                <div class="mb-3">
+                    <InputTextArea class="form-control" 
+                                   @bind-Value="editingPostContent" 
+                                   rows="6" 
+                                   maxlength="5000" />
+                    <small class="text-muted">@editingPostContent.Length / 5000 caracteres</small>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-primary-purple" disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        }
+                        Guardar
+                    </button>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+</Modal>
+
+<!-- Delete Post Confirmation Modal -->
+<Modal Show="@showDeleteModal" 
+       ShowChanged="@((bool show) => showDeleteModal = show)"
+       Title="Confirmar Eliminação" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        <p>Tem a certeza de que pretende eliminar esta publicação?</p>
+        <p class="text-muted">Esta ação não pode ser anulada e todos os comentários serão também eliminados.</p>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="DeletePost" disabled="@isSubmitting">
+            @if (isSubmitting)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            }
+            Eliminar
+        </button>
+    </FooterContent>
+</Modal>
+
+@code {
+    [Parameter] public int EventId { get; set; }
+    
+    private Discussion? discussion;
+    private Event? eventDetails;
+    private IEnumerable<Post>? posts;
+    private ApplicationUser? currentUser;
+    private bool isUserAdmin = false;
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private string newPostContent = string.Empty;
+    private string editingPostContent = string.Empty;
+    private string errorMessage = string.Empty;
+    private string eventName = string.Empty;
+    private const string postPlaceholder = "Escreve algo... Usa @username para mencionar membros";
+    
+    private bool showEditModal = false;
+    private bool showDeleteModal = false;
+    private Post? editingPost;
+    private Post? deletingPost;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentUser();
+        await LoadDiscussion();
+        isLoading = false;
+    }
+    
+    private async Task LoadCurrentUser()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userName = authState.User.Identity?.Name;
+        
+        if (!string.IsNullOrEmpty(userName))
+        {
+            currentUser = await UserManager.FindByNameAsync(userName);
+            isUserAdmin = authState.User.IsInRole("Admin") || authState.User.IsInRole("Owner");
+        }
+    }
+    
+    private async Task LoadDiscussion()
+    {
+        // Get event details
+        eventDetails = await EventService.GetEventByIdAsync(EventId);
+        eventName = eventDetails?.Name ?? "Evento";
+        
+        // Get or create discussion
+        discussion = await DiscussionService.GetDiscussionByEventIdAsync(EventId);
+        
+        if (discussion == null)
+        {
+            // Create discussion automatically
+            discussion = await DiscussionService.CreateDiscussionAsync(EventId);
+        }
+        
+        // Load posts
+        if (discussion != null)
+        {
+            posts = await PostService.GetPostsByDiscussionIdAsync(discussion.Id);
+        }
+    }
+    
+    private async Task CreatePost()
+    {
+        if (currentUser == null || discussion == null) return;
+        
+        if (string.IsNullOrWhiteSpace(newPostContent))
+        {
+            errorMessage = "O conteúdo da publicação não pode estar vazio.";
+            return;
+        }
+        
+        isSubmitting = true;
+        errorMessage = string.Empty;
+        
+        try
+        {
+            await PostService.CreatePostAsync(discussion.Id, currentUser.Id, newPostContent.Trim());
+            newPostContent = string.Empty;
+            await LoadDiscussion();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao criar publicação: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+    
+    private void OpenEditPostModal(Post post)
+    {
+        editingPost = post;
+        editingPostContent = post.Content;
+        showEditModal = true;
+    }
+    
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingPost = null;
+        editingPostContent = string.Empty;
+    }
+    
+    private async Task SaveEditPost()
+    {
+        if (editingPost == null) return;
+        
+        if (string.IsNullOrWhiteSpace(editingPostContent))
+        {
+            return;
+        }
+        
+        isSubmitting = true;
+        
+        try
+        {
+            await PostService.UpdatePostAsync(editingPost.Id, editingPostContent.Trim());
+            await LoadDiscussion();
+            CloseEditModal();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao atualizar publicação: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+    
+    private void OpenDeletePostModal(Post post)
+    {
+        deletingPost = post;
+        showDeleteModal = true;
+    }
+    
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deletingPost = null;
+    }
+    
+    private async Task DeletePost()
+    {
+        if (deletingPost == null) return;
+        
+        isSubmitting = true;
+        
+        try
+        {
+            await PostService.DeletePostAsync(deletingPost.Id);
+            await LoadDiscussion();
+            CloseDeleteModal();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao eliminar publicação: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+    
+    private void NavigateToPost(int postId)
+    {
+        Navigation.NavigateTo($"/events/{EventId}/discussions/posts/{postId}");
+    }
+    
+    private void NavigateBack()
+    {
+        Navigation.NavigateTo("/events");
+    }
+}

@@ -1,0 +1,227 @@
+/* Discussion, Post and Comment Card Styles */
+
+/* Post Card */
+.post-card {
+    background-color: var(--card-bg, #1e1e1e);
+    border: 1px solid var(--border-color, #2f2f2f);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.post-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border-color: var(--primary-color, #7c3aed);
+}
+
+.post-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.post-card-author-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.post-card-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-color, #2f2f2f);
+}
+
+.post-card-author-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.post-card-author-name {
+    font-weight: 600;
+    color: var(--text-primary, #fff);
+    font-size: 0.95rem;
+}
+
+.post-card-timestamp {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #999);
+}
+
+.post-card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.post-card-content {
+    color: var(--text-primary, #fff);
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.post-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color, #2f2f2f);
+}
+
+.post-card-comment-count {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary, #999);
+}
+
+.post-card-comment-count i {
+    font-size: 1rem;
+}
+
+/* Comment Card */
+.comment-card {
+    background-color: var(--comment-bg, #252525);
+    border: 1px solid var(--border-color, #2f2f2f);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.comment-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.comment-card-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-color, #2f2f2f);
+    flex-shrink: 0;
+}
+
+.comment-card-author-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+.comment-card-author-name {
+    font-weight: 600;
+    color: var(--text-primary, #fff);
+    font-size: 0.9rem;
+}
+
+.comment-card-timestamp {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #999);
+}
+
+.comment-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.comment-card-content {
+    color: var(--text-primary, #fff);
+    line-height: 1.5;
+    margin-left: 2.5rem;
+    font-size: 0.9rem;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* Post Mention Styling */
+.post-mention {
+    color: var(--primary-color, #7c3aed);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.post-mention:hover {
+    text-decoration: underline;
+}
+
+/* Discussion Page Specific Styles */
+.discussion-header {
+    background-color: var(--card-bg, #1e1e1e);
+    border: 1px solid var(--border-color, #2f2f2f);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.discussion-create-post {
+    background-color: var(--card-bg, #1e1e1e);
+    border: 1px solid var(--border-color, #2f2f2f);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.discussion-posts-container {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Post Details Page Specific Styles */
+.post-details-header {
+    background-color: var(--card-bg, #1e1e1e);
+    border: 1px solid var(--border-color, #2f2f2f);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.post-details-comments {
+    margin-top: 2rem;
+}
+
+.post-details-add-comment {
+    background-color: var(--card-bg, #1e1e1e);
+    border: 1px solid var(--border-color, #2f2f2f);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .post-card {
+        padding: 0.75rem;
+    }
+    
+    .post-card-avatar {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .comment-card {
+        padding: 0.5rem;
+    }
+    
+    .comment-card-avatar {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .comment-card-content {
+        margin-left: 2rem;
+    }
+}

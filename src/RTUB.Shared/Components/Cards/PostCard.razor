@@ -1,0 +1,116 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+
+@*
+    PostCard Component
+    Displays a post in a discussion with author info and comment count
+*@
+
+<div class="post-card @CssClass">
+    <!-- Post Header -->
+    <div class="post-card-header">
+        <div class="post-card-author-info">
+            <img src="@(Post.User?.ProfilePictureSrc ?? "/images/default-avatar.png")" 
+                 alt="@GetAuthorName()" 
+                 class="post-card-avatar"
+                 loading="lazy" />
+            <div class="post-card-author-details">
+                <div class="post-card-author-name">@GetAuthorName()</div>
+                <div class="post-card-timestamp">@GetFormattedDate()</div>
+            </div>
+        </div>
+        
+        <!-- Action buttons -->
+        @if (ShowActions)
+        {
+            <div class="post-card-actions">
+                @if (CanEdit)
+                {
+                    <button class="btn btn-sm btn-light" 
+                            @onclick="OnEdit" 
+                            @onclick:stopPropagation="true"
+                            title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                }
+                @if (CanDelete)
+                {
+                    <button class="btn btn-sm btn-danger" 
+                            @onclick="OnDelete" 
+                            @onclick:stopPropagation="true"
+                            title="Eliminar">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                }
+            </div>
+        }
+    </div>
+    
+    <!-- Post Content -->
+    <div class="post-card-content" @onclick="OnClick">
+        @((MarkupString)FormatContent(Post.Content))
+    </div>
+    
+    <!-- Post Footer -->
+    <div class="post-card-footer">
+        <div class="post-card-comment-count">
+            <i class="bi bi-chat-dots"></i>
+            <span>@CommentCount @(CommentCount == 1 ? "comentário" : "comentários")</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public Post Post { get; set; } = null!;
+    [Parameter] public int CommentCount { get; set; }
+    [Parameter] public bool ShowActions { get; set; } = true;
+    [Parameter] public bool CanEdit { get; set; }
+    [Parameter] public bool CanDelete { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public EventCallback OnEdit { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public string CssClass { get; set; } = string.Empty;
+    
+    private string GetAuthorName()
+    {
+        if (Post.User == null) return "Utilizador desconhecido";
+        return !string.IsNullOrEmpty(Post.User.Nickname) 
+            ? Post.User.Nickname 
+            : $"{Post.User.FirstName} {Post.User.LastName}";
+    }
+    
+    private string GetFormattedDate()
+    {
+        var timeSpan = DateTime.UtcNow - Post.CreatedAt;
+        
+        if (timeSpan.TotalMinutes < 1)
+            return "agora mesmo";
+        if (timeSpan.TotalMinutes < 60)
+            return $"há {(int)timeSpan.TotalMinutes} minuto{((int)timeSpan.TotalMinutes != 1 ? "s" : "")}";
+        if (timeSpan.TotalHours < 24)
+            return $"há {(int)timeSpan.TotalHours} hora{((int)timeSpan.TotalHours != 1 ? "s" : "")}";
+        if (timeSpan.TotalDays < 7)
+            return $"há {(int)timeSpan.TotalDays} dia{((int)timeSpan.TotalDays != 1 ? "s" : "")}";
+        
+        return Post.CreatedAt.ToString("dd MMM yyyy");
+    }
+    
+    private string FormatContent(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return string.Empty;
+        
+        // Convert line breaks to <br/>
+        content = System.Net.WebUtility.HtmlEncode(content);
+        content = content.Replace("\n", "<br/>");
+        
+        // Convert mentions (@username) to clickable links
+        content = System.Text.RegularExpressions.Regex.Replace(
+            content,
+            @"@(\w+)",
+            "<span class='post-mention'>@$1</span>"
+        );
+        
+        return content;
+    }
+}

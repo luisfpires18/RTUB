@@ -158,6 +158,13 @@
                                 title="Repertório">
                             <i class="bi bi-music-note-list"></i>
                         </button>
+                        
+                        <!-- Discussion button -->
+                        <button class="btn event-icon-btn btn-outline-success" 
+                                @onclick="OnOpenDiscussion" 
+                                title="Discussão">
+                            <i class="bi bi-chat-left-text"></i>
+                        </button>
                     </div>
 
                     <!-- Enrollment action buttons row -->
@@ -241,6 +248,13 @@
                                 @onclick="OnWatchRepertoire" 
                                 title="Repertório">
                             <i class="bi bi-music-note-list"></i>
+                        </button>
+                        
+                        <!-- Discussion button -->
+                        <button class="btn event-icon-btn btn-outline-success" 
+                                @onclick="OnOpenDiscussion" 
+                                title="Discussão">
+                            <i class="bi bi-chat-left-text"></i>
                         </button>
 
                         <!-- Trophy button (for Festival events only) -->
@@ -343,6 +357,12 @@
     /// </summary>
     [Parameter]
     public EventCallback OnViewDetails { get; set; }
+    
+    /// <summary>
+    /// Callback when the discussion button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnOpenDiscussion { get; set; }
 
     /// <summary>
     /// Callback when the view trophies button is clicked

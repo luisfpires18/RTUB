@@ -1,0 +1,444 @@
+@page "/events/{EventId:int}/discussions/posts/{PostId:int}"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Shared
+@inject IPostService PostService
+@inject ICommentService CommentService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@attribute [Authorize]
+
+<link rel="stylesheet" href="css/discussion.css" />
+
+<PageTitle>Publicação</PageTitle>
+
+<div class="container py-4">
+    <div class="d-flex align-items-center mb-3">
+        <button class="btn btn-outline-secondary me-3" @onclick="NavigateBack">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </button>
+        <h1 class="mb-0">Publicação</h1>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">A carregar...</span>
+            </div>
+        </div>
+    }
+    else if (post == null)
+    {
+        <EmptyState Title="Publicação não encontrada"
+                   Message="A publicação que procura não existe ou foi eliminada."
+                   Icon="bi-chat-left-text" />
+    }
+    else
+    {
+        <!-- Post Details -->
+        <div class="post-details-header">
+            <PostCard Post="@post"
+                     CommentCount="@(comments?.Count() ?? 0)"
+                     ShowActions="true"
+                     CanEdit="@(currentUser?.Id == post.UserId || isUserAdmin)"
+                     CanDelete="@(currentUser?.Id == post.UserId || isUserAdmin)"
+                     OnClick="@(() => {})"
+                     OnEdit="@(() => OpenEditPostModal())"
+                     OnDelete="@(() => OpenDeletePostModal())" />
+        </div>
+
+        <!-- Comments Section -->
+        <div class="post-details-comments">
+            <h5 class="mb-3">Comentários (@(comments?.Count() ?? 0))</h5>
+
+            <!-- Add Comment -->
+            <div class="post-details-add-comment">
+                <EditForm Model="@newCommentContent" OnValidSubmit="CreateComment">
+                    <div class="mb-3">
+                        <InputTextArea class="form-control" 
+                                       @bind-Value="newCommentContent" 
+                                       rows="3" 
+                                       placeholder="@commentPlaceholder"
+                                       maxlength="2000" />
+                        <small class="text-muted">@newCommentContent.Length / 2000 caracteres</small>
+                    </div>
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <Alert Type="Alert.AlertType.Error" Dismissible="true" OnDismiss="@(() => errorMessage = null)">
+                            @errorMessage
+                        </Alert>
+                    }
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary btn-primary-purple" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            }
+                            <i class="bi bi-send"></i> Comentar
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+
+            <!-- Comments List -->
+            @if (comments == null || !comments.Any())
+            {
+                <EmptyState Title="Sem comentários ainda"
+                           Message="Seja o primeiro a comentar esta publicação!"
+                           Icon="bi-chat-dots" />
+            }
+            else
+            {
+                @foreach (var comment in comments)
+                {
+                    <CommentCard Comment="@comment"
+                                CanEdit="@(currentUser?.Id == comment.UserId || isUserAdmin)"
+                                CanDelete="@(currentUser?.Id == comment.UserId || isUserAdmin)"
+                                OnEdit="@(() => OpenEditCommentModal(comment))"
+                                OnDelete="@(() => OpenDeleteCommentModal(comment))" />
+                }
+            }
+        </div>
+    }
+</div>
+
+<!-- Edit Post Modal -->
+<Modal Show="@showEditPostModal" 
+       ShowChanged="@((bool show) => showEditPostModal = show)"
+       Title="Editar Publicação" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        <EditForm Model="@editingPostContent" OnValidSubmit="SaveEditPost">
+            <div class="mb-3">
+                <InputTextArea class="form-control" 
+                               @bind-Value="editingPostContent" 
+                               rows="6" 
+                               maxlength="5000" />
+                <small class="text-muted">@editingPostContent.Length / 5000 caracteres</small>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="CloseEditPostModal">Cancelar</button>
+                <button type="submit" class="btn btn-primary btn-primary-purple" disabled="@isSubmitting">
+                    @if (isSubmitting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    }
+                    Guardar
+                </button>
+            </div>
+        </EditForm>
+    </BodyContent>
+</Modal>
+
+<!-- Delete Post Confirmation Modal -->
+<Modal Show="@showDeletePostModal" 
+       ShowChanged="@((bool show) => showDeletePostModal = show)"
+       Title="Confirmar Eliminação" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        <p>Tem a certeza de que pretende eliminar esta publicação?</p>
+        <p class="text-muted">Esta ação não pode ser anulada e todos os comentários serão também eliminados.</p>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseDeletePostModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="DeletePost" disabled="@isSubmitting">
+            @if (isSubmitting)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            }
+            Eliminar
+        </button>
+    </FooterContent>
+</Modal>
+
+<!-- Edit Comment Modal -->
+<Modal Show="@showEditCommentModal" 
+       ShowChanged="@((bool show) => showEditCommentModal = show)"
+       Title="Editar Comentário" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        @if (editingComment != null)
+        {
+            <EditForm Model="@editingCommentContent" OnValidSubmit="SaveEditComment">
+                <div class="mb-3">
+                    <InputTextArea class="form-control" 
+                                   @bind-Value="editingCommentContent" 
+                                   rows="4" 
+                                   maxlength="2000" />
+                    <small class="text-muted">@editingCommentContent.Length / 2000 caracteres</small>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditCommentModal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-primary-purple" disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        }
+                        Guardar
+                    </button>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+</Modal>
+
+<!-- Delete Comment Confirmation Modal -->
+<Modal Show="@showDeleteCommentModal" 
+       ShowChanged="@((bool show) => showDeleteCommentModal = show)"
+       Title="Confirmar Eliminação" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        <p>Tem a certeza de que pretende eliminar este comentário?</p>
+        <p class="text-muted">Esta ação não pode ser anulada.</p>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteCommentModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="DeleteComment" disabled="@isSubmitting">
+            @if (isSubmitting)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            }
+            Eliminar
+        </button>
+    </FooterContent>
+</Modal>
+
+@code {
+    [Parameter] public int EventId { get; set; }
+    [Parameter] public int PostId { get; set; }
+    
+    private Post? post;
+    private IEnumerable<Comment>? comments;
+    private ApplicationUser? currentUser;
+    private bool isUserAdmin = false;
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private string newCommentContent = string.Empty;
+    private string editingPostContent = string.Empty;
+    private string editingCommentContent = string.Empty;
+    private string errorMessage = string.Empty;
+    private const string commentPlaceholder = "Escreve um comentário... Usa @username para mencionar membros";
+    
+    private bool showEditPostModal = false;
+    private bool showDeletePostModal = false;
+    private bool showEditCommentModal = false;
+    private bool showDeleteCommentModal = false;
+    private Comment? editingComment;
+    private Comment? deletingComment;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentUser();
+        await LoadPost();
+        isLoading = false;
+    }
+    
+    private async Task LoadCurrentUser()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userName = authState.User.Identity?.Name;
+        
+        if (!string.IsNullOrEmpty(userName))
+        {
+            currentUser = await UserManager.FindByNameAsync(userName);
+            isUserAdmin = authState.User.IsInRole("Admin") || authState.User.IsInRole("Owner");
+        }
+    }
+    
+    private async Task LoadPost()
+    {
+        post = await PostService.GetPostByIdAsync(PostId);
+        
+        if (post != null)
+        {
+            comments = await CommentService.GetCommentsByPostIdAsync(PostId);
+        }
+    }
+    
+    private async Task CreateComment()
+    {
+        if (currentUser == null || post == null) return;
+        
+        if (string.IsNullOrWhiteSpace(newCommentContent))
+        {
+            errorMessage = "O conteúdo do comentário não pode estar vazio.";
+            return;
+        }
+        
+        isSubmitting = true;
+        errorMessage = string.Empty;
+        
+        try
+        {
+            await CommentService.CreateCommentAsync(post.Id, currentUser.Id, newCommentContent.Trim());
+            newCommentContent = string.Empty;
+            await LoadPost();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao criar comentário: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+    
+    private void OpenEditPostModal()
+    {
+        if (post == null) return;
+        editingPostContent = post.Content;
+        showEditPostModal = true;
+    }
+    
+    private void CloseEditPostModal()
+    {
+        showEditPostModal = false;
+        editingPostContent = string.Empty;
+    }
+    
+    private async Task SaveEditPost()
+    {
+        if (post == null) return;
+        
+        if (string.IsNullOrWhiteSpace(editingPostContent))
+        {
+            return;
+        }
+        
+        isSubmitting = true;
+        
+        try
+        {
+            await PostService.UpdatePostAsync(post.Id, editingPostContent.Trim());
+            await LoadPost();
+            CloseEditPostModal();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao atualizar publicação: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+    
+    private void OpenDeletePostModal()
+    {
+        showDeletePostModal = true;
+    }
+    
+    private void CloseDeletePostModal()
+    {
+        showDeletePostModal = false;
+    }
+    
+    private async Task DeletePost()
+    {
+        if (post == null) return;
+        
+        isSubmitting = true;
+        
+        try
+        {
+            await PostService.DeletePostAsync(post.Id);
+            NavigateBack();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao eliminar publicação: {ex.Message}";
+            isSubmitting = false;
+        }
+    }
+    
+    private void OpenEditCommentModal(Comment comment)
+    {
+        editingComment = comment;
+        editingCommentContent = comment.Content;
+        showEditCommentModal = true;
+    }
+    
+    private void CloseEditCommentModal()
+    {
+        showEditCommentModal = false;
+        editingComment = null;
+        editingCommentContent = string.Empty;
+    }
+    
+    private async Task SaveEditComment()
+    {
+        if (editingComment == null) return;
+        
+        if (string.IsNullOrWhiteSpace(editingCommentContent))
+        {
+            return;
+        }
+        
+        isSubmitting = true;
+        
+        try
+        {
+            await CommentService.UpdateCommentAsync(editingComment.Id, editingCommentContent.Trim());
+            await LoadPost();
+            CloseEditCommentModal();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao atualizar comentário: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+    
+    private void OpenDeleteCommentModal(Comment comment)
+    {
+        deletingComment = comment;
+        showDeleteCommentModal = true;
+    }
+    
+    private void CloseDeleteCommentModal()
+    {
+        showDeleteCommentModal = false;
+        deletingComment = null;
+    }
+    
+    private async Task DeleteComment()
+    {
+        if (deletingComment == null) return;
+        
+        isSubmitting = true;
+        
+        try
+        {
+            await CommentService.DeleteCommentAsync(deletingComment.Id);
+            await LoadPost();
+            CloseDeleteCommentModal();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao eliminar comentário: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+    
+    private void NavigateBack()
+    {
+        Navigation.NavigateTo($"/events/{EventId}/discussions");
+    }
+}

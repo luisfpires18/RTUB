@@ -1,0 +1,104 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+
+@*
+    CommentCard Component
+    Displays a comment on a post with author info
+*@
+
+<div class="comment-card @CssClass">
+    <!-- Comment Header -->
+    <div class="comment-card-header">
+        <img src="@(Comment.User?.ProfilePictureSrc ?? "/images/default-avatar.png")" 
+             alt="@GetAuthorName()" 
+             class="comment-card-avatar"
+             loading="lazy" />
+        <div class="comment-card-author-info">
+            <div class="comment-card-author-name">@GetAuthorName()</div>
+            <div class="comment-card-timestamp">@GetFormattedDate()</div>
+        </div>
+        
+        <!-- Action buttons -->
+        @if (ShowActions)
+        {
+            <div class="comment-card-actions">
+                @if (CanEdit)
+                {
+                    <button class="btn btn-sm btn-light" 
+                            @onclick="OnEdit" 
+                            @onclick:stopPropagation="true"
+                            title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                }
+                @if (CanDelete)
+                {
+                    <button class="btn btn-sm btn-danger" 
+                            @onclick="OnDelete" 
+                            @onclick:stopPropagation="true"
+                            title="Eliminar">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                }
+            </div>
+        }
+    </div>
+    
+    <!-- Comment Content -->
+    <div class="comment-card-content">
+        @((MarkupString)FormatContent(Comment.Content))
+    </div>
+</div>
+
+@code {
+    [Parameter] public Comment Comment { get; set; } = null!;
+    [Parameter] public bool ShowActions { get; set; } = true;
+    [Parameter] public bool CanEdit { get; set; }
+    [Parameter] public bool CanDelete { get; set; }
+    [Parameter] public EventCallback OnEdit { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+    [Parameter] public string CssClass { get; set; } = string.Empty;
+    
+    private string GetAuthorName()
+    {
+        if (Comment.User == null) return "Utilizador desconhecido";
+        return !string.IsNullOrEmpty(Comment.User.Nickname) 
+            ? Comment.User.Nickname 
+            : $"{Comment.User.FirstName} {Comment.User.LastName}";
+    }
+    
+    private string GetFormattedDate()
+    {
+        var timeSpan = DateTime.UtcNow - Comment.CreatedAt;
+        
+        if (timeSpan.TotalMinutes < 1)
+            return "agora mesmo";
+        if (timeSpan.TotalMinutes < 60)
+            return $"há {(int)timeSpan.TotalMinutes} minuto{((int)timeSpan.TotalMinutes != 1 ? "s" : "")}";
+        if (timeSpan.TotalHours < 24)
+            return $"há {(int)timeSpan.TotalHours} hora{((int)timeSpan.TotalHours != 1 ? "s" : "")}";
+        if (timeSpan.TotalDays < 7)
+            return $"há {(int)timeSpan.TotalDays} dia{((int)timeSpan.TotalDays != 1 ? "s" : "")}";
+        
+        return Comment.CreatedAt.ToString("dd MMM yyyy");
+    }
+    
+    private string FormatContent(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return string.Empty;
+        
+        // Convert line breaks to <br/>
+        content = System.Net.WebUtility.HtmlEncode(content);
+        content = content.Replace("\n", "<br/>");
+        
+        // Convert mentions (@username) to clickable links
+        content = System.Text.RegularExpressions.Regex.Replace(
+            content,
+            @"@(\w+)",
+            "<span class='post-mention'>@$1</span>"
+        );
+        
+        return content;
+    }
+}
