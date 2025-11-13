@@ -76,108 +76,66 @@
                 }
                 else
                 {
-                    <div class="accordion" id="postsAccordion">
+                    <div class="posts-list">
                         @foreach (var post in posts)
                         {
                             var postComments = GetPostComments(post.Id);
                             var commentCount = postComments.Count;
+                            var isExpanded = expandedPostIds.Contains(post.Id);
                             
-                            <div class="accordion-item mb-2">
-                                <h2 class="accordion-header" id="heading@post.Id">
-                                    <button class="accordion-button @(expandedPostIds.Contains(post.Id) ? "" : "collapsed")" 
-                                            type="button"
-                                            @onclick="@(() => TogglePost(post.Id))"
-                                            aria-expanded="@(expandedPostIds.Contains(post.Id) ? "true" : "false")"
-                                            aria-controls="collapse@post.Id">
-                                        <div class="flex-grow-1 d-flex align-items-center justify-content-between">
-                                            <div>
-                                                <strong class="text-white-full">@post.Title</strong>
-                                                @if (post.IsPinned)
+                            <div class="post-wrapper mb-3">
+                                <!-- PostCard as clickable header -->
+                                <PostCard Post="@post" 
+                                         CommentCount="@commentCount" 
+                                         OnClick="@(() => TogglePost(post.Id))" />
+                                
+                                <!-- Expanded content -->
+                                @if (isExpanded)
+                                {
+                                    <div class="post-expanded-content">
+                                        <!-- Action buttons -->
+                                        <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom border-secondary">
+                                            <div class="d-flex gap-2">
+                                                <!-- Author controls (left) -->
+                                                @if (IsAuthor(post))
                                                 {
-                                                    <span class="badge bg-warning text-dark ms-2">
-                                                        <i class="bi bi-pin-angle-fill"></i> Fixado
-                                                    </span>
+                                                    <button class="btn btn-sm btn-outline-light" @onclick="@(() => EditPost(post))" title="Editar">
+                                                        <i class="bi bi-pencil"></i> Editar
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger" @onclick="@(() => DeletePost(post))" title="Eliminar">
+                                                        <i class="bi bi-trash"></i> Eliminar
+                                                    </button>
                                                 }
-                                                @if (post.IsLocked)
-                                                {
-                                                    <span class="badge bg-danger ms-2">
-                                                        <i class="bi bi-lock-fill"></i> Bloqueado
-                                                    </span>
-                                                }
-                                            </div>
-                                            <div class="ms-3 d-flex align-items-center gap-3">
-                                                <span class="text-muted small">
-                                                    <i class="bi bi-chat-left-dots"></i> @commentCount comentários
-                                                </span>
-                                                <span class="text-muted small">
-                                                    <i class="bi bi-clock"></i> @post.LastActivityAt.ToString("dd MMM, HH:mm")
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </button>
-                                </h2>
-                                <div id="collapse@post.Id" 
-                                     class="accordion-collapse collapse @(expandedPostIds.Contains(post.Id) ? "show" : "")" 
-                                     aria-labelledby="heading@post.Id">
-                                    <div class="accordion-body">
-                                        <!-- Post Content -->
-                                        <div class="post-detail-section mb-4">
-                                            <div class="d-flex align-items-start justify-content-between mb-3">
-                                                <div class="d-flex align-items-center">
-                                                    <img src="@(post.Author.ProfilePictureSrc)" 
-                                                         class="rounded-circle me-2" 
-                                                         alt="@(post.Author.Nickname ?? post.Author.UserName)" 
-                                                         style="width: 40px; height: 40px; object-fit: cover;" />
-                                                    <div>
-                                                        <div class="fw-bold">@(post.Author.Nickname ?? post.Author.UserName)</div>
-                                                        <small class="text-muted">
-                                                            @post.CreatedAt.ToString("dd MMM yyyy, HH:mm")
-                                                            @if (post.IsEdited)
-                                                            {
-                                                                <span>(editado)</span>
-                                                            }
-                                                        </small>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="d-flex gap-2">
-                                                    <!-- Author controls (left) -->
-                                                    @if (IsAuthor(post))
-                                                    {
-                                                        <button class="btn btn-sm btn-outline-light" @onclick="@(() => EditPost(post))" title="Editar">
-                                                            <i class="bi bi-pencil"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-danger" @onclick="@(() => DeletePost(post))" title="Eliminar">
-                                                            <i class="bi bi-trash"></i>
-                                                        </button>
-                                                    }
-                                                    <!-- Admin controls (right) -->
-                                                    @if (isAdmin)
-                                                    {
-                                                        <button class="btn btn-sm @(post.IsPinned ? "btn-warning" : "btn-outline-warning")" 
-                                                                @onclick="@(() => TogglePin(post))" 
-                                                                title="@(post.IsPinned ? "Desafixar" : "Fixar")">
-                                                            <i class="bi bi-pin-angle-fill"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm @(post.IsLocked ? "btn-danger" : "btn-outline-danger")" 
-                                                                @onclick="@(() => ToggleLock(post))" 
-                                                                title="@(post.IsLocked ? "Desbloquear" : "Bloquear")">
-                                                            <i class="bi @(post.IsLocked ? "bi-unlock-fill" : "bi-lock-fill")"></i>
-                                                        </button>
-                                                    }
-                                                    <!-- Owner controls -->
-                                                    @if (isOwner)
-                                                    {
-                                                        <button class="btn btn-sm btn-danger" @onclick="@(() => DeletePost(post))" title="Eliminar Post">
-                                                            <i class="bi bi-trash"></i>
-                                                        </button>
-                                                    }
-                                                </div>
                                             </div>
                                             
-                                            <div class="post-body-text" style="white-space: pre-line; line-height: 1.6;">
-                                                @post.Body
+                                            <div class="d-flex gap-2">
+                                                <!-- Admin controls (right) -->
+                                                @if (isAdmin)
+                                                {
+                                                    <button class="btn btn-sm @(post.IsPinned ? "btn-warning" : "btn-outline-warning")" 
+                                                            @onclick="@(() => TogglePin(post))" 
+                                                            title="@(post.IsPinned ? "Desafixar" : "Fixar")">
+                                                        <i class="bi bi-pin-angle-fill"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm @(post.IsLocked ? "btn-danger" : "btn-outline-danger")" 
+                                                            @onclick="@(() => ToggleLock(post))" 
+                                                            title="@(post.IsLocked ? "Desbloquear" : "Bloquear")">
+                                                        <i class="bi @(post.IsLocked ? "bi-unlock-fill" : "bi-lock-fill")"></i>
+                                                    </button>
+                                                }
+                                                <!-- Owner controls -->
+                                                @if (isOwner)
+                                                {
+                                                    <button class="btn btn-sm btn-danger" @onclick="@(() => DeletePost(post))" title="Eliminar Post">
+                                                        <i class="bi bi-trash"></i> Eliminar
+                                                    </button>
+                                                }
                                             </div>
+                                        </div>
+                                        
+                                        <!-- Full post body -->
+                                        <div class="post-body-full mb-4" style="white-space: pre-line; line-height: 1.7; color: rgba(255, 255, 255, 0.85);">
+                                            @post.Body
                                         </div>
 
                                         <!-- Comments Section -->
@@ -220,7 +178,7 @@
                                             }
                                         </div>
                                     </div>
-                                </div>
+                                }
                             </div>
                         }
                     </div>

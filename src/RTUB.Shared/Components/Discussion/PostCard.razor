@@ -1,0 +1,75 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+
+<div class="post-card" 
+     @onclick="OnClick"
+     role="button"
+     aria-label="@($"Post: {Post.Title}")">
+    
+    <!-- Left side: Author avatar and info -->
+    <div class="post-card-avatar-section">
+        <img src="@(Post.Author.ProfilePictureSrc)" 
+             class="post-card-avatar" 
+             alt="@(Post.Author.Nickname ?? Post.Author.UserName)" />
+        <div class="post-card-author-info">
+            <div class="post-card-author-name">@(Post.Author.Nickname ?? Post.Author.UserName)</div>
+            <small class="post-card-date">@Post.CreatedAt.ToString("dd MMM yyyy")</small>
+        </div>
+    </div>
+    
+    <!-- Right side: Post content -->
+    <div class="post-card-content">
+        <div class="post-card-header">
+            <h5 class="post-card-title">
+                @Post.Title
+            </h5>
+            <div class="post-card-badges">
+                @if (Post.IsPinned)
+                {
+                    <span class="badge bg-warning text-dark">
+                        <i class="bi bi-pin-angle-fill"></i> Fixado
+                    </span>
+                }
+                @if (Post.IsLocked)
+                {
+                    <span class="badge bg-danger">
+                        <i class="bi bi-lock-fill"></i> Bloqueado
+                    </span>
+                }
+            </div>
+        </div>
+        
+        <p class="post-card-body">
+            @if (Post.Body.Length > 200)
+            {
+                @Post.Body.Substring(0, 200)<text>...</text>
+            }
+            else
+            {
+                @Post.Body
+            }
+        </p>
+        
+        <div class="post-card-meta">
+            <span class="post-card-meta-item">
+                <i class="bi bi-chat-left-dots"></i>
+                @CommentCount comentários
+            </span>
+            <span class="post-card-meta-item">
+                <i class="bi bi-clock"></i>
+                @Post.LastActivityAt.ToString("dd MMM, HH:mm")
+            </span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Post Post { get; set; } = default!;
+    
+    [Parameter]
+    public int CommentCount { get; set; }
+    
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+}
