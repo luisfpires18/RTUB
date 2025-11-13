@@ -22,9 +22,9 @@
   --bs-warning-rgb: 243, 156, 18;
   --bs-danger: #e74c3c;
   --bs-bg-opacity: 1;
-  /* Custom yellow color for WIP status (not orange warning) */
-  --yellow: #ffc107;
-  --yellow-rgb: 255, 193, 7;
+  /* Custom yellow color for WIP status (lighter yellow, not orange warning) */
+  --yellow: #ffeb3b;
+  --yellow-rgb: 255, 235, 59;
   /* Override Bootstrap's info color from teal to primary blue */
   --bs-info: #007bff;
   --bs-info-rgb: 0, 123, 255;
@@ -75,6 +75,12 @@ a {
 a:hover, a:focus {
   color: var(--bs-link-hover-color);
   text-decoration: underline;
+}
+
+/* Custom background color utility class */
+.bg-yellow {
+  --bs-bg-opacity: 1;
+  background-color: rgba(var(--yellow-rgb), var(--bs-bg-opacity)) !important;
 }
 
 /* Navbar styling */

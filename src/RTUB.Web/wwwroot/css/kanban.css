@@ -357,8 +357,8 @@
 }
 
 .btn-group .btn.status-wip:hover {
-    background-color: #e6a800 !important;
-    border-color: #e6a800 !important;
+    background-color: #fdd835 !important;
+    border-color: #fdd835 !important;
 }
 
 .btn-group .btn.status-wip.active {
