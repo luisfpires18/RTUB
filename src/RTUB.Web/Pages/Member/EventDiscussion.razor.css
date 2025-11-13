@@ -26,22 +26,27 @@
     color: var(--bs-light);
 }
 
-/* Composer card */
-.composer-card {
-    background: rgba(var(--bs-dark-rgb), 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.75rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+/* Create Post Button */
+.btn-create-post {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    padding: 0;
+    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
+    transition: all 0.3s ease;
 }
 
-.composer-card .card-title {
-    color: var(--bs-light);
-    font-weight: 600;
-    font-size: 1.1rem;
+.btn-create-post:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(25, 135, 84, 0.4);
 }
 
-.composer-card .card-body {
-    padding: 1.5rem;
+.btn-create-post:active {
+    transform: translateY(0);
 }
 
 /* Search bar */
@@ -103,12 +108,10 @@
         font-size: 1.5rem;
     }
 
-    .composer-card .card-body {
-        padding: 1rem;
-    }
-
-    .composer-card .card-title {
-        font-size: 1rem;
+    .btn-create-post {
+        width: 44px;
+        height: 44px;
+        font-size: 1.25rem;
     }
 }
 
