@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,7 +11,6 @@ namespace RTUB.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Create Discussions table
             migrationBuilder.CreateTable(
                 name: "Discussions",
                 columns: table => new
@@ -35,13 +34,6 @@ namespace RTUB.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Discussions_EventId",
-                table: "Discussions",
-                column: "EventId",
-                unique: true);
-
-            // Create Posts table
             migrationBuilder.CreateTable(
                 name: "Posts",
                 columns: table => new
@@ -81,27 +73,6 @@ namespace RTUB.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Post_DiscussionId_LastActivity",
-                table: "Posts",
-                columns: new[] { "DiscussionId", "LastActivityAt" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Posts_AuthorId",
-                table: "Posts",
-                column: "AuthorId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Posts_IsPinned",
-                table: "Posts",
-                column: "IsPinned");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Posts_IsDeleted",
-                table: "Posts",
-                column: "IsDeleted");
-
-            // Create Comments table
             migrationBuilder.CreateTable(
                 name: "Comments",
                 columns: table => new
@@ -151,14 +122,45 @@ namespace RTUB.Migrations
                 name: "IX_Comments_IsDeleted",
                 table: "Comments",
                 column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussions_EventId",
+                table: "Discussions",
+                column: "EventId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Post_DiscussionId_LastActivity",
+                table: "Posts",
+                columns: new[] { "DiscussionId", "LastActivityAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Posts_AuthorId",
+                table: "Posts",
+                column: "AuthorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Posts_IsDeleted",
+                table: "Posts",
+                column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Posts_IsPinned",
+                table: "Posts",
+                column: "IsPinned");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(name: "Comments");
-            migrationBuilder.DropTable(name: "Posts");
-            migrationBuilder.DropTable(name: "Discussions");
+            migrationBuilder.DropTable(
+                name: "Comments");
+
+            migrationBuilder.DropTable(
+                name: "Posts");
+
+            migrationBuilder.DropTable(
+                name: "Discussions");
         }
     }
 }
