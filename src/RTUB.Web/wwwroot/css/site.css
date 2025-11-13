@@ -1485,6 +1485,12 @@ th:hover {
     margin-bottom: 1rem;
 }
 
+/* Override margin when search-bar-container is inside a flex container (for inline filters) */
+.d-flex .search-bar-container {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
 .search-bar-container .input-group-text {
     background-color: #2d2d2d;
     border-color: #495057;
