@@ -1491,6 +1491,13 @@ th:hover {
     margin-bottom: 0;
 }
 
+/* Override margin when search-bar-container is inside Bootstrap grid columns (for pages like Rehearsals) */
+.row .col-md-8 .search-bar-container,
+.row .col-md-6 .search-bar-container,
+.row .col-md-4 .search-bar-container {
+    margin-top: 0;
+}
+
 .search-bar-container .input-group-text {
     background-color: #2d2d2d;
     border-color: #495057;
