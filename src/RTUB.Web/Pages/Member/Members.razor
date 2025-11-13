@@ -239,9 +239,21 @@ else
                     <option value="Leitão">Leitão</option>
                     <option value="Caloiro">Caloiro</option>
                     <option value="Tuno">Tuno</option>
-                    <option value="Fundador">Fundador</option>
                 </InputSelect>
             </div>
+            @* Fundador checkbox - only show for Tuno category *@
+            @if (editingUser.SelectedCategory == "Tuno")
+            {
+                <div class="mb-3">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input" id="fundadorCheckbox" @bind-Value="isFundador" @bind-Value:after="OnFundadorChanged" />
+                        <label class="form-check-label" for="fundadorCheckbox">
+                            Fundador (1991)
+                        </label>
+                    </div>
+                    <small class="text-muted">Marcar se o membro é fundador da Tuna (1991)</small>
+                </div>
+            }
             <div class="row">
                 @if (showYearLeitao)
                 {
@@ -263,7 +275,15 @@ else
                 {
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Ano de passagem a Tuno</label>
-                        <InputNumber class="form-control" @bind-Value="editingUser.YearTuno" placeholder="Inserir ano..." />
+                        @if (isFundador)
+                        {
+                            <input type="number" class="form-control" value="1991" disabled />
+                            <small class="text-muted">Fundadores entraram em 1991</small>
+                        }
+                        else
+                        {
+                            <InputNumber class="form-control" @bind-Value="editingUser.YearTuno" placeholder="Inserir ano..." />
+                        }
                     </div>
                 }
             </div>
@@ -278,7 +298,7 @@ else
                 </InputSelect>
             </div>
             @* Only show Padrinho field for Caloiro or Tuno (not for Leitão or Fundador) *@
-            @if (editingUser.SelectedCategory == "Caloiro" || editingUser.SelectedCategory == "Tuno")
+            @if ((editingUser.SelectedCategory == "Caloiro" || editingUser.SelectedCategory == "Tuno") && !isFundador)
             {
                 <div class="mb-3">
                     <label class="form-label">Padrinho @(editingUser.SelectedCategory == "Caloiro" ? "(Obrigatório quando passa a Caloiro)" : "")</label>
@@ -515,6 +535,7 @@ else
     private ApplicationUser? deletingUser;
     private ApplicationUser? viewingUser;
     private EditForm? memberEditForm;
+    private bool isFundador = false; // Track if user is a founder
     
     // Mentor search variables
     private string mentorSearchTerm = "";
@@ -779,6 +800,7 @@ else
     {
         isCreateMode = true;
         editingUser = new ApplicationUser();
+        isFundador = false;
         mentorSearchTerm = "";
         filteredMentors.Clear();
         selectedMentorCache = null;
@@ -810,12 +832,17 @@ else
 
         // Set SelectedCategory based on user's primary category
         var primaryCategory = user.Categories.FirstOrDefault();
+        
+        // Check if user is a Fundador
+        isFundador = primaryCategory == MemberCategory.Fundador;
+        
+        // Map Fundador to Tuno for the dropdown, since Fundador is now a checkbox
         editingUser.SelectedCategory = primaryCategory switch
         {
             MemberCategory.Leitao => "Leitão",
             MemberCategory.Caloiro => "Caloiro",
             MemberCategory.Tuno => "Tuno",
-            MemberCategory.Fundador => "Fundador",
+            MemberCategory.Fundador => "Tuno", // Map Fundador to Tuno
             _ => ""
         };
         
@@ -957,7 +984,7 @@ else
                 var generatedPassword = PasswordGenerator.GeneratePassword();
                 
                 // Special handling for Fundador: set YearTuno to 1991, clear YearLeitao and YearCaloiro
-                if (editingUser.SelectedCategory == "Fundador")
+                if (isFundador)
                 {
                     editingUser.YearTuno = 1991;
                     editingUser.YearLeitao = null;
@@ -984,12 +1011,12 @@ else
             var createdUser = await UserManager.FindByEmailAsync(editingUser.Email);
             if (createdUser != null)
             {
-                var category = editingUser.SelectedCategory switch
+                // Determine category - if Fundador checkbox is checked, use Fundador category
+                var category = isFundador ? MemberCategory.Fundador : editingUser.SelectedCategory switch
                 {
                     "Leitão" => MemberCategory.Leitao,
                     "Caloiro" => MemberCategory.Caloiro,
                     "Tuno" => MemberCategory.Tuno,
-                    "Fundador" => MemberCategory.Fundador,
                     _ => MemberCategory.Leitao
                 };
                 createdUser.Categories = new List<MemberCategory> { category };
@@ -1052,7 +1079,7 @@ else
                 existingUser.MentorId = editingUser.MentorId;
                 
                 // Special handling for Fundador: set YearTuno to 1991, clear YearLeitao and YearCaloiro
-                if (editingUser.SelectedCategory == "Fundador")
+                if (isFundador)
                 {
                     existingUser.YearTuno = 1991;
                     existingUser.YearLeitao = null;
@@ -1060,13 +1087,12 @@ else
                     existingUser.MentorId = null; // Fundadores don't have mentors
                 }
 
-                // Update category (not role)
-                var category = editingUser.SelectedCategory switch
+                // Update category (not role) - if Fundador checkbox is checked, use Fundador category
+                var category = isFundador ? MemberCategory.Fundador : editingUser.SelectedCategory switch
                 {
                     "Leitão" => MemberCategory.Leitao,
                     "Caloiro" => MemberCategory.Caloiro,
                     "Tuno" => MemberCategory.Tuno,
-                    "Fundador" => MemberCategory.Fundador,
                     _ => MemberCategory.Leitao
                 };
 
@@ -1172,17 +1198,36 @@ else
     }
 
     // Dynamic field visibility based on selected category
-    private bool showYearLeitao => !string.IsNullOrEmpty(editingUser?.SelectedCategory) && editingUser?.SelectedCategory != "Fundador";
-    private bool showYearCaloiro => (editingUser?.SelectedCategory == "Caloiro" || editingUser?.SelectedCategory == "Tuno") && editingUser?.SelectedCategory != "Fundador";
-    private bool showYearTuno => editingUser?.SelectedCategory == "Tuno" || editingUser?.SelectedCategory == "Fundador";
+    private bool showYearLeitao => !string.IsNullOrEmpty(editingUser?.SelectedCategory);
+    private bool showYearCaloiro => editingUser?.SelectedCategory == "Caloiro" || editingUser?.SelectedCategory == "Tuno";
+    private bool showYearTuno => editingUser?.SelectedCategory == "Tuno";
 
     private void OnCategoryChanged()
     {
+        // Clear Fundador flag when changing category away from Tuno
+        if (editingUser?.SelectedCategory != "Tuno")
+        {
+            isFundador = false;
+        }
+        
         // Clear category validation error when a category is selected
         if (memberEditForm?.EditContext != null && memberValidationStore != null && !string.IsNullOrEmpty(editingUser?.SelectedCategory))
         {
             memberValidationStore.Clear(() => editingUser.SelectedCategory);
             memberEditForm.EditContext.NotifyValidationStateChanged();
+        }
+        StateHasChanged();
+    }
+    
+    private void OnFundadorChanged()
+    {
+        // When Fundador is toggled, update YearTuno automatically
+        if (isFundador)
+        {
+            editingUser.YearTuno = 1991;
+            editingUser.YearLeitao = null;
+            editingUser.YearCaloiro = null;
+            editingUser.MentorId = null;
         }
         StateHasChanged();
     }
