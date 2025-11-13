@@ -2165,6 +2165,82 @@ th:hover {
         font-size: 0.875rem;
     }
 }
+
+/* CommentItem component */
+.comment-item {
+    background: #1a1a1a;
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid #2f2f2f;
+    transition: all 0.2s ease;
+}
+
+.comment-item:hover {
+    border-color: rgba(110, 86, 207, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.comment-header {
+    margin-bottom: 1rem;
+}
+
+.comment-header .fw-bold {
+    color: #e2e2e2;
+    font-size: 0.95rem;
+}
+
+.comment-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.comment-actions .btn {
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+}
+
+.comment-body {
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.6;
+}
+
+.comment-body p {
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .comment-item {
+        padding: 1rem;
+    }
+
+    .comment-actions {
+        gap: 0.25rem;
+    }
+
+    .comment-actions .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .comment-body {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .comment-item {
+        padding: 0.75rem;
+    }
+
+    .comment-actions .btn {
+        padding: 0.2rem 0.4rem;
+    }
+
+    .comment-actions .btn i {
+        font-size: 0.875rem;
+    }
+}
 /* SortableTableHeader component */
 .sortable-header {
     cursor: pointer;
