@@ -196,6 +196,12 @@ public class Program
         services.AddScoped<IProductReservationService, ProductReservationService>();
         services.AddScoped<ITrophyService, TrophyService>();
         
+        // --------- Discussion Services ---------
+        services.AddScoped<IDiscussionService, DiscussionService>();
+        services.AddScoped<IPostService, PostService>();
+        services.AddScoped<ICommentService, CommentService>();
+        services.AddScoped<IMentionService, MentionService>();
+        
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
 
