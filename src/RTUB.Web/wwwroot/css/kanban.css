@@ -217,6 +217,7 @@
     border-radius: 0.5rem;
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     overflow: hidden;
+    max-width: 350px; /* Prevent cards from stretching to full column width */
 }
 
 .logistics-board-card:hover {
