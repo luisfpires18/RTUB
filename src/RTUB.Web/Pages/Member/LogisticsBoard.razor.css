@@ -95,28 +95,12 @@
     transform: scale(1.05);
 }
 
-/* InputFile styling - match app standard */
-::deep .form-control[type="file"] {
-    color: var(--bs-body-color);
-    background-color: var(--bs-body-bg);
-    border-color: var(--bs-border-color);
+/* Cursor pointer for clickable items */
+.cursor-pointer {
+    cursor: pointer;
 }
 
-::deep .form-control[type="file"]::file-selector-button {
-    padding: 0.375rem 0.75rem;
-    margin: -0.375rem -0.75rem;
-    margin-inline-end: 0.75rem;
-    color: var(--bs-body-color);
-    background-color: var(--bs-tertiary-bg);
-    pointer-events: none;
-    border-color: inherit;
-    border-style: solid;
-    border-width: 0;
-    border-inline-end-width: 1px;
-    border-radius: 0;
-}
-
-::deep .form-control[type="file"]:hover:not(:disabled):not([readonly])::file-selector-button {
-    background-color: var(--bs-secondary-bg);
+.cursor-pointer:hover {
+    opacity: 0.8;
 }
 

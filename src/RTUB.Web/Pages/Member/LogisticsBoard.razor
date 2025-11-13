@@ -493,14 +493,19 @@
                                 @foreach (var file in uploadedFiles)
                                 {
                                     <div class="list-group-item d-flex justify-content-between align-items-center bg-dark border-secondary">
-                                        <span>
+                                        <span class="cursor-pointer" @onclick="() => DownloadFile(file)" title="Clique para descarregar">
                                             <i class="bi bi-file-earmark-@GetFileIcon(file.Name) text-primary me-2"></i>
                                             @file.Name
                                             <small class="text-light-theme ms-2">(@FormatFileSize(file.Size))</small>
                                         </span>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveFile(file)">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
+                                        <div class="d-flex gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => DownloadFile(file)" title="Descarregar">
+                                                <i class="bi bi-download"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveFile(file)" title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 }
                             </div>
@@ -510,7 +515,7 @@
                             <p class="text-light-theme small mb-2">Nenhum ficheiro anexado</p>
                         }
                         <div class="input-group input-group-sm">
-                            <InputFile OnChange="HandleFileSelected" class="form-control" accept=".pdf,.docx,.doc,.xlsx,.xls,.txt" />
+                            <InputFile OnChange="HandleFileSelected" class="form-control file-input-dark" accept=".pdf,.docx,.doc,.xlsx,.xls,.txt" />
                             <button class="btn btn-outline-primary" type="button" @onclick="UploadFile" disabled="@(selectedFile == null)">
                                 <i class="bi bi-upload"></i>
                             </button>
@@ -1110,6 +1115,18 @@
     {
         uploadedFiles?.Remove(file);
         SaveFiles().Wait();
+    }
+
+    private async Task DownloadFile(FileItem file)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("downloadFile", file.Name, file.Base64Data, file.ContentType);
+        }
+        catch (Exception)
+        {
+            // Handle error - could add user notification here
+        }
     }
 
     private async Task SaveFiles()
