@@ -461,9 +461,11 @@ else
                 <div class="modal-section-body">
                     <ProfileField Label="Instrumento Principal" 
                                 Value="@(viewingUser.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(viewingUser.MainInstrument.Value) : null)" />
-                    <ProfileField Label="Padrinho" 
-                                Value="@(viewingUserMentor != null ? viewingUserMentor.GetDisplayName() : null)" 
-                                Visible="@(!viewingUser.IsFundador())" />
+                    @if (!viewingUser.IsFundador())
+                    {
+                        <ProfileField Label="Padrinho" 
+                                    Value="@(viewingUserMentor != null ? viewingUserMentor.GetDisplayName() : null)" />
+                    }
                     
                     <!-- Unified Timeline -->
                     <div class="profile-field">

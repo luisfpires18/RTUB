@@ -122,30 +122,30 @@
 
             if (User.YearTuno.HasValue)
             {
-                // Always add TUNO item
-                items.Add(new TimelineItemModel
-                {
-                    Year = User.YearTuno.Value,
-                    Order = 3,
-                    Label = "TUNO",
-                    Type = "membership",
-                    State = "active",
-                    Category = MemberCategory.Tuno
-                });
-                
-                // If user is Fundador, also add Fundador item
+                // If user is Fundador, add Fundador item FIRST
                 if (User.IsFundador())
                 {
                     items.Add(new TimelineItemModel
                     {
                         Year = User.YearTuno.Value,
-                        Order = 4, // Same year but shown after TUNO
+                        Order = 3, // Same year, comes before TUNO
                         Label = "FUNDADOR",
                         Type = "subcategory",
                         State = "active",
                         Category = MemberCategory.Fundador
                     });
                 }
+                
+                // Then add TUNO item
+                items.Add(new TimelineItemModel
+                {
+                    Year = User.YearTuno.Value,
+                    Order = 4, // Same year but shown after FUNDADOR
+                    Label = "TUNO",
+                    Type = "membership",
+                    State = "active",
+                    Category = MemberCategory.Tuno
+                });
             }
 
             // Add VETERANO and TUNOSSAURO as separate items if qualified
