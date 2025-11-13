@@ -97,6 +97,19 @@ public class Program
         {
             options.LoginPath = "/login";
             options.AccessDeniedPath = "/login";
+            options.Events.OnSignedIn = context =>
+            {
+                var logger = context?.HttpContext?.RequestServices?.GetRequiredService<ILogger<Program>>(); 
+
+                var userName = context?.Principal?.Identity?.Name;
+
+                logger?.LogInformation(
+                    "User {UserName} signed in (cookie or explicit) at {LoginTime}",
+                    userName,
+                    DateTime.UtcNow);
+
+                return Task.CompletedTask;
+            };
         });
 
         // PDF generation service - moved to Application layer
@@ -416,8 +429,10 @@ public class Program
             await signInManager.SignInAsync(user, remember);
 
             // Log successful login
-            logger.LogInformation($"User {user.UserName} successfully logged in at {DateTime.UtcNow}.");
-            
+            logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
+                user.UserName,
+                DateTime.UtcNow);
+
             // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
             if (!string.IsNullOrEmpty(returnUrl) && RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl))
             {
