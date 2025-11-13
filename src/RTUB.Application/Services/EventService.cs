@@ -124,4 +124,26 @@ public class EventService : IEventService
         _context.Events.Remove(eventEntity);
         await _context.SaveChangesAsync();
     }
+
+    public async Task CancelEventAsync(int id, string reason)
+    {
+        var eventEntity = await _context.Events.FindAsync(id);
+        if (eventEntity == null)
+            throw new InvalidOperationException($"Event with ID {id} not found");
+
+        eventEntity.Cancel(reason);
+        _context.Events.Update(eventEntity);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UncancelEventAsync(int id)
+    {
+        var eventEntity = await _context.Events.FindAsync(id);
+        if (eventEntity == null)
+            throw new InvalidOperationException($"Event with ID {id} not found");
+
+        eventEntity.Uncancel();
+        _context.Events.Update(eventEntity);
+        await _context.SaveChangesAsync();
+    }
 }

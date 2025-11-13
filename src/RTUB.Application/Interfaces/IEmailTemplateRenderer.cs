@@ -51,4 +51,16 @@ public interface IEmailTemplateRenderer
         string birthdayPersonFullName,
         string recipientNickname = "",
         string recipientFullName = "");
+    
+    /// <summary>
+    /// Renders the event cancellation notification email
+    /// </summary>
+    Task<string> RenderEventCancellationNotificationAsync(
+        string eventTitle,
+        string dateFormatted,
+        string eventLocation,
+        string cancellationReason,
+        string eventLink,
+        string nickname = "",
+        string fullName = "");
 }

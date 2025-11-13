@@ -512,4 +512,132 @@ public class EmailNotificationService : IEmailNotificationService
             return (false, 0, $"Erro ao enviar email: {ex.Message}");
         }
     }
+
+    /// <inheritdoc/>
+    public async Task<(bool success, int count, string? errorMessage)> SendEventCancellationNotificationAsync(
+        int eventId,
+        string eventTitle,
+        DateTime eventDate,
+        string eventLocation,
+        string cancellationReason,
+        string eventLink,
+        List<string> recipientEmails,
+        Dictionary<string, (string nickname, string fullName)>? recipientData = null)
+    {
+        // Rate limit: Prevent duplicate emails for the same event cancellation within 5 minutes
+        var rateLimitKey = $"email-event-cancellation-{eventId}";
+        if (ShouldRateLimitEmail(rateLimitKey))
+        {
+            return (false, 0, "Email de cancelamento já enviado recentemente.");
+        }
+
+        try
+        {
+            // Get email settings from configuration
+            var smtpServer = _configuration["EmailSettings:SmtpServer"];
+            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
+            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
+            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
+            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
+            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
+            var enableSsl = enableSslStr != "false"; // Default to true
+
+            // Validate required email settings
+            if (string.IsNullOrEmpty(senderEmail))
+            {
+                _logger.LogError("SenderEmail is not configured in EmailSettings");
+                return (false, 0, "Configuração de email não está completa.");
+            }
+
+            // Check if SMTP is configured
+            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
+            {
+                _logger.LogWarning("SMTP not configured, skipping event cancellation notification email");
+                return (false, 0, "Servidor de email não configurado.");
+            }
+
+            // Validate recipients
+            if (recipientEmails == null || !recipientEmails.Any())
+            {
+                _logger.LogWarning("No recipient emails provided for event cancellation notification");
+                return (false, 0, "Nenhum destinatário encontrado.");
+            }
+
+            var subject = $"⚠️ Atuação cancelada: {eventTitle}";
+
+            // Format date in PT-PT format
+            var dateFormatted = eventDate.ToString("dddd, dd 'de' MMMM 'de' yyyy", 
+                new System.Globalization.CultureInfo("pt-PT"));
+
+            // If recipient data is provided, send personalized emails to each recipient
+            if (recipientData != null && recipientData.Any())
+            {
+                int successCount = 0;
+                using var smtpClient = new SmtpClient(smtpServer, smtpPort)
+                {
+                    Credentials = new NetworkCredential(smtpUsername, smtpPassword),
+                    EnableSsl = enableSsl,
+                    Timeout = 30000 // 30 second timeout
+                };
+
+                foreach (var email in recipientEmails)
+                {
+                    if (string.IsNullOrWhiteSpace(email))
+                        continue;
+
+                    try
+                    {
+                        // Get nickname and full name for this recipient
+                        var (nickname, fullName) = recipientData.TryGetValue(email, out var data) 
+                            ? data 
+                            : ("", "");
+
+                        // Render personalized email
+                        var body = await _templateRenderer.RenderEventCancellationNotificationAsync(
+                            eventTitle,
+                            dateFormatted,
+                            eventLocation,
+                            cancellationReason,
+                            eventLink,
+                            nickname,
+                            fullName);
+
+                        var mailMessage = new MailMessage
+                        {
+                            From = new MailAddress(senderEmail, senderName),
+                            Subject = subject,
+                            Body = body,
+                            IsBodyHtml = true,
+                            BodyEncoding = Encoding.UTF8,
+                            SubjectEncoding = Encoding.UTF8
+                        };
+                        mailMessage.To.Add(email);
+
+                        await smtpClient.SendMailAsync(mailMessage);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to send event cancellation notification email to {Email}", email);
+                    }
+                }
+
+                _logger.LogInformation("Event cancellation notification emails sent for event {EventId} to {SuccessCount}/{TotalCount} members", 
+                    eventId, successCount, recipientEmails.Count);
+
+                return (successCount > 0, successCount, successCount < recipientEmails.Count ? "Alguns emails falharam" : null);
+            }
+
+            // If no recipient data, send generic emails (fallback - not personalized)
+            _logger.LogWarning("No recipient data provided for event cancellation notification, emails will not be personalized");
+            return (false, 0, "Dados de destinatários não fornecidos.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending event cancellation notification email for event {EventId}", eventId);
+            return (false, 0, $"Erro ao enviar email: {ex.Message}");
+        }
+    }
 }
