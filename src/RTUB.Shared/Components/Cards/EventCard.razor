@@ -55,7 +55,7 @@
             @* Email notification and cancellation buttons in bottom-right corner *@
             @if (!IsPastEvent)
             {
-                <div class="position-absolute bottom-0 end-0 p-2 d-flex flex-column gap-2">
+                <div class="position-absolute bottom-0 end-0 p-2 d-flex flex-row gap-2">
                     @if (!Event.IsCancelled)
                     {
                         <button class="btn btn-sm btn-primary music-btn-email" 
