@@ -14,78 +14,82 @@
 
 <PageTitle>Quadros de Logística - RTUB</PageTitle>
 
-<div class="logistics-page-container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="mb-2"><i class="bi bi-kanban"></i> Quadros de Logística</h1>
-            <p class="text-light-theme mb-0">Gerencie os seus quadros de tarefas e atuações.</p>
+<div class="logistics-page-wrapper">
+    <div class="logistics-page-container">
+        <div class="page-header">
+            <div>
+                <h1 class="mb-2"><i class="bi bi-kanban"></i> Quadros de Logística</h1>
+                <p class="text-light-theme mb-0">Gerencie os seus quadros de tarefas e atuações.</p>
+            </div>
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <button class="btn btn-success" @onclick="OpenCreateBoardModal">
+                        <i class="bi bi-plus-lg"></i> Criar Quadro
+                    </button>
+                </Authorized>
+            </AuthorizeView>
         </div>
-        <AuthorizeView Roles="Admin">
+
+        <AuthorizeView>
             <Authorized>
-                <button class="btn btn-success" @onclick="OpenCreateBoardModal">
-                    <i class="bi bi-plus-lg"></i> Criar Quadro
-                </button>
+                <div class="search-bar-container">
+                    <TableSearchBar SearchTerm="@searchTerm"
+                                    Placeholder="Pesquisar quadros..."
+                                    OnSearchChanged="HandleSearch" />
+                </div>
+
+                @if (boards == null)
+                {
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">A carregar...</span>
+                        </div>
+                        <p class="mt-3 text-light-theme">A carregar quadros...</p>
+                    </div>
+                }
+                else if (!boards.Any())
+                {
+                    <EmptyState Title="Nenhum quadro criado ainda"
+                               Message="Crie o seu primeiro quadro para começar a organizar tarefas."
+                               Icon="bi-kanban"
+                               ActionText="Criar Quadro"
+                               OnAction="OpenCreateBoardModal" />
+                }
+                else
+                {
+                    <div class="boards-grid">
+                        @foreach (var board in boards)
+                        {
+                            <div class="board-grid-item">
+                                <BoardCard Board="@board"
+                                           ShowActions="@isAdmin"
+                                           OnView="@(() => Navigation.NavigateTo($"/logistics/{board.Id}"))"
+                                           OnEdit="@(() => OpenEditBoardModal(board))"
+                                           OnDelete="@(() => OpenDeleteBoardModal(board))" />
+                            </div>
+                        }
+                    </div>
+
+                    <TablePagination CurrentPage="@currentPage"
+                                     PageSize="@pageSize"
+                                     TotalItems="@totalCount"
+                                     ItemLabel="quadros"
+                                     PageSizeOptions="@(new[] { 5, 10, 15, 20, 25 })"
+                                     OnPageChanged="@HandlePageChanged"
+                                     OnPageSizeChanged="@HandlePageSizeChanged" />
+                }
             </Authorized>
+            <NotAuthorized>
+                <div class="alert alert-warning d-flex align-items-center">
+                    <i class="bi bi-lock fs-4 me-3"></i>
+                    <div>
+                        <strong>Autenticação Necessária</strong>
+                        <p class="mb-0">Precisa estar autenticado para aceder aos quadros de logística.</p>
+                    </div>
+                </div>
+            </NotAuthorized>
         </AuthorizeView>
     </div>
-
-    <AuthorizeView>
-        <Authorized>
-            <TableSearchBar SearchTerm="@searchTerm"
-                            Placeholder="Pesquisar quadros..."
-                            OnSearchChanged="HandleSearch" />
-
-            @if (boards == null)
-            {
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">A carregar...</span>
-                    </div>
-                    <p class="mt-3 text-light-theme">A carregar quadros...</p>
-                </div>
-            }
-            else if (!boards.Any())
-            {
-                <EmptyState Title="Nenhum quadro criado ainda"
-                           Message="Crie o seu primeiro quadro para começar a organizar tarefas."
-                           Icon="bi-kanban"
-                           ActionText="Criar Quadro"
-                           OnAction="OpenCreateBoardModal" />
-            }
-            else
-            {
-                <div class="row g-4 mb-4">
-                    @foreach (var board in boards)
-                    {
-                        <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
-                            <BoardCard Board="@board"
-                                       ShowActions="@isAdmin"
-                                       OnView="@(() => Navigation.NavigateTo($"/logistics/{board.Id}"))"
-                                       OnEdit="@(() => OpenEditBoardModal(board))"
-                                       OnDelete="@(() => OpenDeleteBoardModal(board))" />
-                        </div>
-                    }
-                </div>
-
-                <TablePagination CurrentPage="@currentPage"
-                                 PageSize="@pageSize"
-                                 TotalItems="@totalCount"
-                                 ItemLabel="quadros"
-                                 PageSizeOptions="@(new[] { 5, 10, 15, 20, 25 })"
-                                 OnPageChanged="@HandlePageChanged"
-                                 OnPageSizeChanged="@HandlePageSizeChanged" />
-            }
-        </Authorized>
-        <NotAuthorized>
-            <div class="alert alert-warning d-flex align-items-center">
-                <i class="bi bi-lock fs-4 me-3"></i>
-                <div>
-                    <strong>Autenticação Necessária</strong>
-                    <p class="mb-0">Precisa estar autenticado para aceder aos quadros de logística.</p>
-                </div>
-            </div>
-        </NotAuthorized>
-    </AuthorizeView>
 </div>
 
 @* Create/Edit Board Modal *@
