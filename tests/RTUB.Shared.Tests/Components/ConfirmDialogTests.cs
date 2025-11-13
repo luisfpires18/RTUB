@@ -88,7 +88,7 @@ public class ConfirmDialogTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain(warningMessage, "warning message should be displayed");
-        cut.Markup.Should().Contain("text-muted", "warning message should have muted text style");
+        cut.Markup.Should().Contain("text-danger", "warning message should be styled as danger/warning");
     }
 
     [Fact]

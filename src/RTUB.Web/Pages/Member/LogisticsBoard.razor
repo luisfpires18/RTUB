@@ -592,8 +592,8 @@
     </div>
 }
 
-@* Delete Modals using ConfirmDialog2 Component *@
-<ConfirmDialog2 Show="@showDeleteListModal"
+@* Delete Modals using ConfirmDialog Component *@
+<ConfirmDialog Show="@showDeleteListModal"
                 ShowChanged="@((show) => showDeleteListModal = show)"
                 Title="Confirmar Eliminação"
                 Message="@($"Tem a certeza que deseja eliminar a lista \"{deletingList?.Name}\"?")"
@@ -604,7 +604,7 @@
                 OnConfirm="ConfirmDeleteList"
                 OnCancel="CloseDeleteListModal" />
 
-<ConfirmDialog2 Show="@showDeleteCardModal"
+<ConfirmDialog Show="@showDeleteCardModal"
                 ShowChanged="@((show) => showDeleteCardModal = show)"
                 Title="Confirmar Eliminação"
                 Message="@($"Tem a certeza que deseja eliminar o cartão \"{deletingCard?.Title}\"?")"
