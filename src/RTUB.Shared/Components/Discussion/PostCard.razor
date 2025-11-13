@@ -1,0 +1,126 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+
+<div class="post-card" @onclick="OnClick">
+    <div class="post-card-header">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center flex-grow-1">
+                <img src="@(Post.Author.ProfilePictureSrc)" 
+                     class="rounded-circle me-2" 
+                     alt="@(Post.Author.Nickname ?? Post.Author.UserName)" 
+                     style="width: 32px; height: 32px; object-fit: cover;" />
+                <div class="flex-grow-1">
+                    <div class="post-card-title">
+                        @Post.Title
+                        @if (Post.IsPinned)
+                        {
+                            <i class="bi bi-pin-angle-fill text-warning ms-1"></i>
+                        }
+                        @if (Post.IsLocked)
+                        {
+                            <i class="bi bi-lock-fill text-danger ms-1"></i>
+                        }
+                    </div>
+                    <small class="text-muted">
+                        por @(Post.Author.Nickname ?? Post.Author.UserName) • 
+                        @Post.CreatedAt.ToString("dd MMM yyyy")
+                    </small>
+                </div>
+            </div>
+
+            @if (CanEdit || CanPin || CanLock || CanDelete)
+            {
+                <div class="post-card-actions">
+                    @if (CanEdit)
+                    {
+                        <button class="btn btn-sm btn-outline-secondary" 
+                                @onclick="OnEdit"
+                                @onclick:stopPropagation="true"
+                                title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    }
+                    @if (CanPin)
+                    {
+                        <button class="btn btn-sm btn-outline-warning" 
+                                @onclick="OnPin"
+                                @onclick:stopPropagation="true"
+                                title="@(Post.IsPinned ? "Desafixar" : "Fixar")">
+                            <i class="bi @(Post.IsPinned ? "bi-pin-angle" : "bi-pin-angle-fill")"></i>
+                        </button>
+                    }
+                    @if (CanLock)
+                    {
+                        <button class="btn btn-sm btn-outline-danger" 
+                                @onclick="OnLock"
+                                @onclick:stopPropagation="true"
+                                title="@(Post.IsLocked ? "Desbloquear" : "Bloquear")">
+                            <i class="bi @(Post.IsLocked ? "bi-unlock-fill" : "bi-lock-fill")"></i>
+                        </button>
+                    }
+                    @if (CanDelete)
+                    {
+                        <button class="btn btn-sm btn-outline-danger" 
+                                @onclick="OnDelete"
+                                @onclick:stopPropagation="true"
+                                title="Eliminar">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="post-card-body">
+        <p class="text-muted mb-0">
+            @if (Post.Body.Length > 200)
+            {
+                @Post.Body.Substring(0, 200)<text>...</text>
+            }
+            else
+            {
+                @Post.Body
+            }
+        </p>
+    </div>
+
+    <div class="post-card-footer">
+        <small class="text-muted">
+            <i class="bi bi-chat-left-dots"></i> @Post.Comments.Count comentários
+            • Última atividade: @Post.LastActivityAt.ToString("dd MMM yyyy, HH:mm")
+        </small>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Post Post { get; set; } = null!;
+
+    [Parameter]
+    public bool CanEdit { get; set; }
+
+    [Parameter]
+    public bool CanPin { get; set; }
+
+    [Parameter]
+    public bool CanLock { get; set; }
+
+    [Parameter]
+    public bool CanDelete { get; set; }
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback OnPin { get; set; }
+
+    [Parameter]
+    public EventCallback OnLock { get; set; }
+
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+}

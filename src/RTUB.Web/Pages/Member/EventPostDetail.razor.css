@@ -1,0 +1,57 @@
+/* Post Detail Page Specific Styles */
+
+.post-detail-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.post-detail-header {
+    margin-bottom: 1.5rem;
+}
+
+.post-content-section {
+    background: rgba(var(--bs-dark-rgb), 0.3);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.post-author-info {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.post-body {
+    margin-top: 1rem;
+    line-height: 1.6;
+}
+
+.comments-section {
+    margin-top: 2rem;
+}
+
+.comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.comment-composer-section {
+    background: rgba(var(--bs-dark-rgb), 0.3);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .post-detail-container {
+        padding: 0.5rem;
+    }
+
+    .post-content-section,
+    .comment-composer-section {
+        padding: 1rem;
+    }
+}

@@ -1,0 +1,39 @@
+/* Discussion Page Specific Styles */
+
+.discussion-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.discussion-header {
+    margin-bottom: 2rem;
+}
+
+.post-composer-section {
+    background: rgba(var(--bs-dark-rgb), 0.3);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.search-section {
+    margin-bottom: 1.5rem;
+}
+
+.posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .discussion-container {
+        padding: 0.5rem;
+    }
+
+    .post-composer-section {
+        padding: 1rem;
+    }
+}
