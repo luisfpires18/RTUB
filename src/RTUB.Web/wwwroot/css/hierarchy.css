@@ -55,6 +55,7 @@
 .hierarchy-card-image-wrapper {
     position: relative;
     width: 100%;
+    height: 250px; /* Fallback for browsers without aspect-ratio support */
     aspect-ratio: 4 / 3;
     overflow: hidden;
     background-color: rgba(0, 0, 0, 0.3);
@@ -64,6 +65,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
     display: block;
 }
 
