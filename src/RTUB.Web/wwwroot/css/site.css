@@ -81,6 +81,7 @@ a:hover, a:focus {
 .bg-yellow {
   --bs-bg-opacity: 1;
   background-color: rgba(var(--yellow-rgb), var(--bs-bg-opacity)) !important;
+  color: #212529 !important;
 }
 
 /* Navbar styling */
