@@ -1110,6 +1110,36 @@ input::placeholder, textarea::placeholder, select::placeholder {
   }
 }
 
+/* Responsive grid columns for Logistics page */
+.col-12 {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+/* Small devices (tablets, 576px and up) */
+@media (min-width: 576px) {
+  .col-sm-6 {
+    flex: 0 0 auto;
+    width: 50%;
+  }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+  .col-lg-4 {
+    flex: 0 0 auto;
+    width: 33.3333%;
+  }
+}
+
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+  .col-xl-3 {
+    flex: 0 0 auto;
+    width: 25%;
+  }
+}
+
 /* Margin utility classes */
 .ms-3 { margin-left: 1rem; }
 .me-2 { margin-right: 0.5rem; }
