@@ -40,7 +40,7 @@ public class RehearsalAttendanceServiceTests : IDisposable
         var instrument = InstrumentType.Guitarra;
 
         // Act
-        var result = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, instrument);
+        var result = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, instrument);
 
         // Assert
         result.Should().NotBeNull();
@@ -64,7 +64,7 @@ public class RehearsalAttendanceServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, InstrumentType.Bandolim);
+        var result = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, InstrumentType.Bandolim);
 
         // Assert
         result.Should().NotBeNull();

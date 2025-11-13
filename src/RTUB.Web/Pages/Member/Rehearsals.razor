@@ -167,7 +167,9 @@ else
     <ParticipationModal Show="@showAttendanceModal"
                        ShowChanged="@((bool show) => showAttendanceModal = show)"
                        Title="Marcar Presença"
-                       ShowWillAttend="false"
+                       ShowWillAttend="true"
+                       WillAttend="@attendanceForm.WillAttend"
+                       WillAttendChanged="@((bool value) => attendanceForm.WillAttend = value)"
                        IsLeitao="@(currentUser != null && currentUser.Categories.Contains(MemberCategory.Leitao))"
                        Instrument="@attendanceForm.Instrument"
                        InstrumentChanged="@((InstrumentType? value) => attendanceForm.Instrument = value)"
@@ -224,7 +226,11 @@ else
                                     CancelTooltip="Cancelar">
                                     <BadgeContent>
                                         <div class="enrollment-card-badges-row">
-                                            @if (attendance.Attended)
+                                            @if (!attendance.WillAttend)
+                                            {
+                                                <span class="badge bg-danger">Não Vou</span>
+                                            }
+                                            else if (attendance.Attended)
                                             {
                                                 <span class="badge bg-success">Aprovado</span>
                                             }
@@ -1014,7 +1020,7 @@ else
         {
             try
             {
-                await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, currentUserId, attendanceForm.Instrument, attendanceForm.Notes);
+                await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, currentUserId, attendanceForm.WillAttend, attendanceForm.Instrument, attendanceForm.Notes);
 
                 await LoadData();
                 CloseAttendanceModal();
@@ -1255,7 +1261,7 @@ else
         {
             // For past rehearsals, mark as attended (approved) immediately
             bool attended = isSelectedRehearsalPast;
-            await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, user.Id, null, null);
+            await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, user.Id, true, null, null);
             
             // If it's a past rehearsal, immediately approve the attendance
             if (isSelectedRehearsalPast)
@@ -1807,6 +1813,8 @@ else
 
     private class AttendanceFormModel
     {
+        public bool WillAttend { get; set; } = true;
+        
         public InstrumentType? Instrument { get; set; }
         
         [MaxLength(500, ErrorMessage = "As notas não podem exceder 500 caracteres")]

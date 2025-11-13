@@ -43,7 +43,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             .ToListAsync();
     }
 
-    public async Task<RehearsalAttendance> MarkAttendanceAsync(int rehearsalId, string userId, InstrumentType? instrument = null, string? notes = null)
+    public async Task<RehearsalAttendance> MarkAttendanceAsync(int rehearsalId, string userId, bool willAttend = true, InstrumentType? instrument = null, string? notes = null)
     {
         // Check if attendance already exists
         var existing = await _context.RehearsalAttendances
@@ -52,6 +52,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         if (existing != null)
         {
             // Update existing attendance
+            existing.WillAttend = willAttend;
             if (instrument.HasValue)
                 existing.UpdateInstrument(instrument);
             if (!string.IsNullOrWhiteSpace(notes))
@@ -64,6 +65,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
 
         // Create new attendance (defaults to pending - Attended = false)
         var attendance = RehearsalAttendance.Create(rehearsalId, userId, instrument);
+        attendance.WillAttend = willAttend;
         if (!string.IsNullOrWhiteSpace(notes))
             attendance.Notes = notes;
         
