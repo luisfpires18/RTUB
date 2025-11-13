@@ -248,14 +248,13 @@ else
                     <div class="form-check">
                         <InputCheckbox class="form-check-input" id="fundadorCheckbox" @bind-Value="isFundador" @bind-Value:after="OnFundadorChanged" />
                         <label class="form-check-label" for="fundadorCheckbox">
-                            Fundador (1991)
+                            Fundador
                         </label>
                     </div>
-                    <small class="text-muted">Marcar se o membro é fundador da Tuna (1991)</small>
                 </div>
             }
             <div class="row">
-                @if (showYearLeitao)
+                @if (showYearLeitao && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Ano de entrada Leitão</label>
@@ -263,7 +262,7 @@ else
                     </div>
                 }
 
-                @if (showYearCaloiro)
+                @if (showYearCaloiro && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Ano de passagem a Caloiro</label>
@@ -271,19 +270,11 @@ else
                     </div>
                 }
 
-                @if (showYearTuno)
+                @if (showYearTuno && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Ano de passagem a Tuno</label>
-                        @if (isFundador)
-                        {
-                            <input type="number" class="form-control" value="1991" disabled />
-                            <small class="text-muted">Fundadores entraram em 1991</small>
-                        }
-                        else
-                        {
-                            <InputNumber class="form-control" @bind-Value="editingUser.YearTuno" placeholder="Inserir ano..." />
-                        }
+                        <InputNumber class="form-control" @bind-Value="editingUser.YearTuno" placeholder="Inserir ano..." />
                     </div>
                 }
             </div>
@@ -833,16 +824,15 @@ else
         // Set SelectedCategory based on user's primary category
         var primaryCategory = user.Categories.FirstOrDefault();
         
-        // Check if user is a Fundador
-        isFundador = primaryCategory == MemberCategory.Fundador;
+        // Check if user has Fundador in their categories (as a subcategory)
+        isFundador = user.Categories.Contains(MemberCategory.Fundador);
         
-        // Map Fundador to Tuno for the dropdown, since Fundador is now a checkbox
+        // Map categories to dropdown - if user has Fundador, they must also have Tuno
         editingUser.SelectedCategory = primaryCategory switch
         {
             MemberCategory.Leitao => "Leitão",
             MemberCategory.Caloiro => "Caloiro",
             MemberCategory.Tuno => "Tuno",
-            MemberCategory.Fundador => "Tuno", // Map Fundador to Tuno
             _ => ""
         };
         
@@ -1011,15 +1001,25 @@ else
             var createdUser = await UserManager.FindByEmailAsync(editingUser.Email);
             if (createdUser != null)
             {
-                // Determine category - if Fundador checkbox is checked, use Fundador category
-                var category = isFundador ? MemberCategory.Fundador : editingUser.SelectedCategory switch
+                // Determine base category
+                var category = editingUser.SelectedCategory switch
                 {
                     "Leitão" => MemberCategory.Leitao,
                     "Caloiro" => MemberCategory.Caloiro,
                     "Tuno" => MemberCategory.Tuno,
                     _ => MemberCategory.Leitao
                 };
-                createdUser.Categories = new List<MemberCategory> { category };
+                
+                // Start with the base category
+                var categories = new List<MemberCategory> { category };
+                
+                // If Fundador checkbox is checked, add Fundador as additional category (like Veterano/Tunossauro)
+                if (isFundador && category == MemberCategory.Tuno)
+                {
+                    categories.Add(MemberCategory.Fundador);
+                }
+                
+                createdUser.Categories = categories;
                 createdUser.RequirePasswordChange = true;
                 await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(createdUser);
@@ -1087,8 +1087,8 @@ else
                     existingUser.MentorId = null; // Fundadores don't have mentors
                 }
 
-                // Update category (not role) - if Fundador checkbox is checked, use Fundador category
-                var category = isFundador ? MemberCategory.Fundador : editingUser.SelectedCategory switch
+                // Update category (not role)
+                var category = editingUser.SelectedCategory switch
                 {
                     "Leitão" => MemberCategory.Leitao,
                     "Caloiro" => MemberCategory.Caloiro,
@@ -1096,17 +1096,16 @@ else
                     _ => MemberCategory.Leitao
                 };
 
-                // Keep existing categories if they have multiple, or replace with new one
-                if (existingUser.Categories.Count <= 1)
+                // Update categories - always start fresh with base category
+                var categories = new List<MemberCategory> { category };
+                
+                // If Fundador checkbox is checked, add Fundador as additional category (like Veterano/Tunossauro)
+                if (isFundador && category == MemberCategory.Tuno)
                 {
-                    existingUser.Categories = new List<MemberCategory> { category };
+                    categories.Add(MemberCategory.Fundador);
                 }
-                else
-                {
-                    // Remove old primary category and add new one
-                    existingUser.Categories.RemoveAll(c => c == MemberCategory.Leitao || c == MemberCategory.Caloiro || c == MemberCategory.Tuno || c == MemberCategory.Fundador);
-                    existingUser.Categories.Add(category);
-                }
+                
+                existingUser.Categories = categories;
 
                 await SetAuditContextToCurrentUser();
                 var result = await UserManager.UpdateAsync(existingUser);
