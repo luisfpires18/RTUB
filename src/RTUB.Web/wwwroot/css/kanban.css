@@ -39,6 +39,19 @@
     font-size: 0.8rem;
 }
 
+.kanban-list-header .btn-success {
+    background-color: rgba(25, 135, 84, 0.9);
+    border-color: rgba(25, 135, 84, 1);
+    color: #ffffff;
+}
+
+.kanban-list-header .btn-success:hover {
+    background-color: rgba(25, 135, 84, 1);
+    border-color: rgba(25, 135, 84, 1);
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
 .kanban-list-header .btn-outline-light {
     background-color: rgba(255, 255, 255, 0.9);
     border-color: rgba(255, 255, 255, 1);
