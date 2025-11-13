@@ -19,7 +19,9 @@
   --bs-border-color: #2f2f2f;
   --bs-success: #00bc8c;
   --bs-warning: #f39c12;
+  --bs-warning-rgb: 243, 156, 18;
   --bs-danger: #e74c3c;
+  --bs-bg-opacity: 1;
   /* Override Bootstrap's info color from teal to primary blue */
   --bs-info: #007bff;
   --bs-info-rgb: 0, 123, 255;
