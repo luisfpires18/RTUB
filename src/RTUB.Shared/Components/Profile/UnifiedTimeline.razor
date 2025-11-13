@@ -122,29 +122,28 @@
 
             if (User.YearTuno.HasValue)
             {
-                // If user is Fundador, show Fundador instead of Tuno
+                // Always add TUNO item
+                items.Add(new TimelineItemModel
+                {
+                    Year = User.YearTuno.Value,
+                    Order = 3,
+                    Label = "TUNO",
+                    Type = "membership",
+                    State = "active",
+                    Category = MemberCategory.Tuno
+                });
+                
+                // If user is Fundador, also add Fundador item
                 if (User.IsFundador())
                 {
                     items.Add(new TimelineItemModel
                     {
                         Year = User.YearTuno.Value,
-                        Order = 3,
+                        Order = 4, // Same year but shown after TUNO
                         Label = "FUNDADOR",
-                        Type = "membership",
+                        Type = "subcategory",
                         State = "active",
                         Category = MemberCategory.Fundador
-                    });
-                }
-                else
-                {
-                    items.Add(new TimelineItemModel
-                    {
-                        Year = User.YearTuno.Value,
-                        Order = 3,
-                        Label = "TUNO",
-                        Type = "membership",
-                        State = "active",
-                        Category = MemberCategory.Tuno
                     });
                 }
             }
