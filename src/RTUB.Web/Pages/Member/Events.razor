@@ -60,6 +60,8 @@ else
                                    OnEdit="@(() => OpenEditModal(eventItem))"
                                    OnDelete="@(() => OpenDeleteModal(eventItem))"
                                    OnSendEmail="@(() => OpenEmailNotificationModal(eventItem))"
+                                   OnCancelEvent="@(() => OpenCancelEventModal(eventItem))"
+                                   OnUncancelEvent="@(() => UncancelEvent(eventItem))"
                                    OnEnroll="@(() => OpenEnrollModal(eventItem))"
                                    OnEditEnrollment="@(() => { if (userEnrollment != null) OpenEditEnrollmentModal(userEnrollment); })"
                                    OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
@@ -803,6 +805,78 @@ else
     </BodyContent>
 </ConfirmDialog>
 
+<!-- Cancel Event Confirmation Modal -->
+<ConfirmDialog Show="@showCancelEventModal"
+               ShowChanged="@((bool show) => showCancelEventModal = show)"
+               Title="Cancelar Evento"
+               ConfirmText="Cancelar Evento"
+               CancelText="Não Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="@ConfirmCancelEvent"
+               OnCancel="@CloseCancelEventModal"
+               Size="Modal.ModalSize.Large">
+    <BodyContent>
+        @if (selectedEventForCancellation != null)
+        {
+            <div class="mb-3">
+                <h6 class="text-white-full">Evento:</h6>
+                <div class="event-summary p-3 rounded bg-dark">
+                    <div><strong>Título:</strong> @selectedEventForCancellation.Name</div>
+                    <div><strong>Data:</strong> @selectedEventForCancellation.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"))</div>
+                    <div><strong>Local:</strong> @selectedEventForCancellation.Location</div>
+                </div>
+            </div>
+
+            @if (cancelEventLoadingSubscribers)
+            {
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">A carregar...</span>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(cancelEventErrorMessage))
+            {
+                <Alert Title="@cancelEventErrorMessage" 
+                       Type="Alert.AlertType.Error" 
+                       Dismissible="true"
+                       OnDismiss="@(() => cancelEventErrorMessage = null)" />
+            }
+            else
+            {
+                <div class="mb-3 form-check">
+                    <input class="form-check-input" type="checkbox" id="notifySubscribersCheckbox"
+                           @bind="notifySubscribersOnCancel">
+                    <label class="form-check-label text-white-full" for="notifySubscribersCheckbox">
+                        Notificar todos os inscritos por email
+                    </label>
+                </div>
+                
+                @if (notifySubscribersOnCancel)
+                {
+                    <div class="mb-3">
+                        <span class="badge bg-purple text-white p-2">
+                            @($"{cancelEventSubscribedCount} / {cancelEventTotalCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")
+                        </span>
+                    </div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Motivo do Cancelamento <span class="text-danger">*</span></label>
+                    <textarea class="form-control" rows="4" 
+                              @bind="cancelEventReason" 
+                              placeholder="Descreva o motivo do cancelamento do evento..."
+                              maxlength="1000"></textarea>
+                    @if (string.IsNullOrWhiteSpace(cancelEventReason))
+                    {
+                        <div class="text-danger small mt-1">O motivo é obrigatório.</div>
+                    }
+                </div>
+            }
+        }
+    </BodyContent>
+</ConfirmDialog>
+
 @code {
     private List<Event>? events;
     private List<Enrollment>? enrollments;
@@ -821,6 +895,7 @@ else
     private bool showTrophyDeleteModal = false;
     private bool showDeleteEnrollmentModal = false;
     private bool showEmailNotificationModal = false;
+    private bool showCancelEventModal = false;
     private bool isCreateMode = false;
     private bool isEditingEnrollment = false;
     private bool wantToPlay = false; // Toggle for "Quero tocar"
@@ -836,6 +911,7 @@ else
     private Event? selectedEventForRepertoire;
     private Event? selectedEventForTrophies;
     private Event? selectedEventForEmail;
+    private Event? selectedEventForCancellation;
     private Enrollment? enrollmentForm;
     private Enrollment? removingEnrollment;
     private Enrollment? deletingEnrollment;
@@ -882,6 +958,15 @@ else
     private int totalUsersCount = 0;
     private bool emailLoadingSubscribers = false;
     private string? emailErrorMessage;
+    
+    // Cancel event modal variables
+    private bool notifySubscribersOnCancel = false;
+    private string cancelEventReason = string.Empty;
+    private List<ApplicationUser>? cancelEventSubscribedUsers;
+    private int cancelEventSubscribedCount = 0;
+    private int cancelEventTotalCount = 0;
+    private bool cancelEventLoadingSubscribers = false;
+    private string? cancelEventErrorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1852,6 +1937,130 @@ else
                 editingEvent.EndDate = null;
             }
             StateHasChanged();
+        }
+    }
+    
+    // Cancel event methods
+    private async Task OpenCancelEventModal(Event eventItem)
+    {
+        selectedEventForCancellation = eventItem;
+        notifySubscribersOnCancel = false;
+        cancelEventReason = string.Empty;
+        cancelEventLoadingSubscribers = true;
+        cancelEventErrorMessage = null;
+        showCancelEventModal = true;
+        StateHasChanged();
+
+        try
+        {
+            // Get all users with Subscribed = true and EmailConfirmed = true
+            var allUsers = await UserManager.Users.ToListAsync();
+            cancelEventSubscribedUsers = allUsers
+                .Where(u => u.Subscribed && u.EmailConfirmed)
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .ToList();
+            
+            cancelEventSubscribedCount = cancelEventSubscribedUsers.Count;
+            cancelEventTotalCount = allUsers.Count(u => u.EmailConfirmed);
+        }
+        catch (Exception ex)
+        {
+            cancelEventErrorMessage = $"Erro ao carregar membros: {ex.Message}";
+        }
+        finally
+        {
+            cancelEventLoadingSubscribers = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseCancelEventModal()
+    {
+        showCancelEventModal = false;
+        selectedEventForCancellation = null;
+        notifySubscribersOnCancel = false;
+        cancelEventReason = string.Empty;
+        cancelEventSubscribedUsers = null;
+        cancelEventSubscribedCount = 0;
+        cancelEventTotalCount = 0;
+        cancelEventErrorMessage = null;
+    }
+
+    private async Task ConfirmCancelEvent()
+    {
+        if (selectedEventForCancellation == null || string.IsNullOrWhiteSpace(cancelEventReason))
+        {
+            cancelEventErrorMessage = "O motivo do cancelamento é obrigatório.";
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            // Cancel the event
+            await EventService.CancelEventAsync(selectedEventForCancellation.Id, cancelEventReason);
+
+            // Send notification emails if checkbox is selected
+            if (notifySubscribersOnCancel && cancelEventSubscribedUsers != null && cancelEventSubscribedUsers.Any())
+            {
+                var baseUri = Navigation.BaseUri.TrimEnd('/');
+                var eventLink = $"{baseUri}/events";
+
+                // Get recipient emails
+                var recipientEmails = cancelEventSubscribedUsers
+                    .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                    .Select(u => u.Email!)
+                    .ToList();
+
+                // Build recipient data dictionary with nickname and full name
+                var recipientData = cancelEventSubscribedUsers
+                    .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                    .ToDictionary(
+                        u => u.Email!,
+                        u => (
+                            nickname: u.Nickname ?? "",
+                            fullName: $"{u.FirstName ?? ""} {u.LastName ?? ""}".Trim()
+                        )
+                    );
+
+                // Send the cancellation notification email
+                await EmailNotificationService.SendEventCancellationNotificationAsync(
+                    selectedEventForCancellation.Id,
+                    selectedEventForCancellation.Name,
+                    selectedEventForCancellation.Date,
+                    selectedEventForCancellation.Location,
+                    cancelEventReason,
+                    eventLink,
+                    recipientEmails,
+                    recipientData
+                );
+            }
+
+            // Reload events
+            await LoadEvents();
+            await LoadPreviousEvents();
+
+            CloseCancelEventModal();
+        }
+        catch (Exception ex)
+        {
+            cancelEventErrorMessage = $"Erro ao cancelar evento: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
+    private async Task UncancelEvent(Event eventItem)
+    {
+        try
+        {
+            await EventService.UncancelEventAsync(eventItem.Id);
+            await LoadEvents();
+            await LoadPreviousEvents();
+        }
+        catch (Exception ex)
+        {
+            // Could show an error message here
+            Console.WriteLine($"Error uncanceling event: {ex.Message}");
         }
     }
 }
