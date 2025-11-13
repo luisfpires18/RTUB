@@ -211,17 +211,17 @@
   color: white;
 }
 
-/* Fundador - gold gradient with special icon */
+/* Fundador - purple variant with special icon */
 .timeline-item-unified.timeline-fundador {
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-  border: 2px solid #B8860B;
+  background-color: #3d2c5c;
+  border: 2px solid var(--bs-primary);
   font-weight: bold;
 }
 
 .timeline-item-unified.timeline-fundador .timeline-label-unified,
 .timeline-item-unified.timeline-fundador .timeline-year-unified,
 .timeline-item-unified.timeline-fundador .timeline-badge-unified {
-  color: #000000;
+  color: white;
 }
 
 /* Role - purple (all roles including Magister use same purple from badge-position) */

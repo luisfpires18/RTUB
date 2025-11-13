@@ -1308,10 +1308,10 @@ input::placeholder, textarea::placeholder, select::placeholder {
 }
 
 .badge-fundador {
-    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-    color: #000000;
+    background-color: #3d2c5c;
+    color: white;
+    border: 2px solid var(--bs-primary);
     font-weight: bold;
-    border: 2px solid #B8860B;
 }
 
 .badge-caloiro {
