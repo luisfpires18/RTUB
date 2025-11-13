@@ -1,0 +1,1350 @@
+@page "/logistics/{BoardId:int}"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Interfaces
+@using BoardEntity = RTUB.Core.Entities.LogisticsBoard
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@inject ILogisticsBoardService BoardService
+@inject ILogisticsListService ListService
+@inject ILogisticsCardService CardService
+@inject IEventService EventService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<PageTitle>@(board?.Name ?? "Logística") - RTUB</PageTitle>
+
+<AuthorizeView Context="outerAuthContext">
+    <Authorized>
+        @if (board == null)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">A carregar...</span>
+                </div>
+                <p class="mt-3 text-light-theme">A carregar quadro...</p>
+            </div>
+        }
+        else
+        {
+            <div class="logistics-board-header mb-4">
+                <!-- Top row: Back button on left, Title centered, Add List on right -->
+                <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+                    <a href="/logistics" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                    <h1 class="mb-0 text-center flex-grow-1">
+                        <i class="bi bi-kanban text-primary me-2"></i>
+                        <span>@board.Name</span>
+                    </h1>
+                    <AuthorizeView Roles="Admin" Context="adminAuthContext">
+                        <Authorized>
+                            <button class="btn btn-success" @onclick="OpenCreateListModal">
+                                <i class="bi bi-plus-lg"></i> Adicionar Lista
+                            </button>
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
+                
+                @if (!string.IsNullOrWhiteSpace(board.Description))
+                {
+                    <p class="text-light-theme mt-2 mb-0 text-center">@board.Description</p>
+                }
+                
+                @if (board.Event != null)
+                {
+                    <div class="mt-2 text-center">
+                        <span class="badge bg-primary">
+                            <i class="bi bi-calendar-event me-1"></i>@board.Event.Name
+                        </span>
+                    </div>
+                }
+                
+                <!-- Filter dropdown - after description, narrower width -->
+                <div class="d-flex justify-content-center mt-3">
+                    <div style="max-width: 300px;">
+                        <FilterDropdown IconClass="bi-tag" 
+                                       AllItemsLabel="Todas as Etiquetas"
+                                       Items="@availableLabels"
+                                       SelectedValue="@selectedLabelFilter"
+                                       SelectedValueChanged="@((value) => { selectedLabelFilter = value; StateHasChanged(); })" />
+                    </div>
+                </div>
+            </div>
+
+            @if (!lists.Any())
+            {
+                <EmptyState Title="Nenhuma lista criada ainda"
+                           Message="Crie sua primeira lista para começar a organizar tarefas."
+                           Icon="bi-list-ul"
+                           ActionText="Criar Lista"
+                           OnAction="OpenCreateListModal" />
+            }
+            else
+            {
+                <div class="kanban-board">
+                    @foreach (var list in lists.OrderBy(l => l.Position))
+                    {
+                        <div class="kanban-list" data-list-id="@list.Id">
+                            <div class="kanban-list-header position-relative d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">@list.Name</h5>
+                                <AuthorizeView Roles="Admin" Context="listAdminContext">
+                                    <Authorized>
+                                        <div class="d-flex gap-1">
+                                            <button class="btn btn-sm btn-success" 
+                                                    @onclick="() => OpenCreateCardModal(list.Id)" 
+                                                    title="Adicionar Cartão">
+                                                <i class="bi bi-plus-lg"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-light" 
+                                                    @onclick="() => OpenEditListModal(list)" 
+                                                    title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" 
+                                                    @onclick="() => OpenDeleteListModal(list)" 
+                                                    title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </Authorized>
+                                </AuthorizeView>
+                            </div>
+                            <div class="kanban-cards" data-list-id="@list.Id">
+                                @foreach (var card in GetFilteredCards(list.Cards))
+                                {
+                                    <div class="kanban-card @(card.Status == CardStatus.Done ? "card-done" : "card-todo") @(isAdmin ? "clickable" : "")" 
+                                         data-card-id="@card.Id" 
+                                         draggable="true"
+                                         @onclick="() => { if (isAdmin) OpenCardDetailsModal(card); }">
+                                        <div class="card-status-bar @(card.Status == CardStatus.Done ? "bg-success" : "bg-danger")">
+                                            <i class="bi bi-@(card.Status == CardStatus.Done ? "check" : "x")-circle-fill me-1"></i>
+                                            @(card.Status == CardStatus.Done ? "DONE" : "TODO")
+                                        </div>
+                                        <div class="card-separator"></div>
+                                        <div class="card-content">
+                                            @* Dates section - before title *@
+                                            @if (card.StartDate.HasValue || card.DueDate.HasValue)
+                                            {
+                                                <div class="mb-2 small text-light-theme">
+                                                    @if (card.StartDate.HasValue)
+                                                    {
+                                                        <span><i class="bi bi-calendar3"></i> @card.StartDate.Value.ToString("dd/MM/yyyy")</span>
+                                                    }
+                                                    @if (card.DueDate.HasValue)
+                                                    {
+                                                        @if (card.StartDate.HasValue)
+                                                        {
+                                                            <span> - </span>
+                                                        }
+                                                        <span><i class="bi bi-calendar-check"></i> @card.DueDate.Value.ToString("dd/MM/yyyy")</span>
+                                                    }
+                                                </div>
+                                            }
+                                            
+                                            <h6 class="mb-1 fw-semibold">@card.Title</h6>
+                                            @if (!string.IsNullOrWhiteSpace(card.Description))
+                                            {
+                                                <p class="small text-muted mb-2">@card.Description</p>
+                                            }
+                                            <div class="card-footer-section">
+                                                @foreach (var label in GetCardLabels(card))
+                                                {
+                                                    <span class="badge badge-label" style="background-color: @label.Color; color: white;">@label.Text</span>
+                                                }
+                                                @if (card.Event != null)
+                                                {
+                                                    <div class="badge bg-primary mt-1">
+                                                        <i class="bi bi-calendar-event"></i> @card.Event.Name
+                                                    </div>
+                                                }
+                                                @if (card.AssignedToUser != null)
+                                                {
+                                                    <div class="badge bg-secondary mt-1">
+                                                        <i class="bi bi-person"></i> @card.AssignedToUser.UserName
+                                                    </div>
+                                                }
+                                                @{
+                                                    var (checklistCompleted, checklistTotal) = GetChecklistCount(card);
+                                                    if (checklistTotal > 0)
+                                                    {
+                                                        <div class="badge bg-info mt-1">
+                                                            <i class="bi bi-check-square"></i> @checklistCompleted/@checklistTotal
+                                                        </div>
+                                                    }
+                                                }
+                                                 @{
+                                                    var attachmentCount = GetAttachmentsCount(card);
+                                                    if (attachmentCount > 0)
+                                                    {
+                                                        <div class="badge bg-warning text-dark mt-1">
+                                                            <i class="bi bi-paperclip"></i> @attachmentCount
+                                                        </div>
+                                                    }
+                                                }
+                                                @{
+                                                    var linkedCardsCount = GetLinkedCardsCount(card);
+                                                    if (linkedCardsCount > 0)
+                                                    {
+                                                        <div class="badge bg-primary mt-1">
+                                                            <i class="bi bi-link-45deg"></i> @linkedCardsCount
+                                                        </div>
+                                                    }
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </Authorized>
+    <NotAuthorized>
+        <div class="alert alert-warning d-flex align-items-center">
+            <i class="bi bi-lock fs-4 me-3"></i>
+            <div>
+                <strong>Autenticação Necessária</strong>
+                <p class="mb-0">Precisa estar autenticado para aceder ao quadro de logística.</p>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@* List Modal - Create/Edit *@
+@if (showListModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title">
+                        <i class="bi bi-@(editingList == null ? "plus-circle" : "pencil-square") me-2"></i>
+                        @(editingList == null ? "Criar Lista" : "Editar Lista")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseListModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-list-ul text-primary me-2"></i>Nome da Lista
+                        </label>
+                        <input type="text" class="form-control" @bind="listName" placeholder="Nome da lista" />
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseListModal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveList" disabled="@string.IsNullOrWhiteSpace(listName)">
+                        <i class="bi bi-check-circle me-2"></i>Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Card Modal - Create/Edit *@
+@if (showCardModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title">
+                        <i class="bi bi-@(editingCard == null ? "plus-circle" : "pencil-square") me-2"></i>
+                        @(editingCard == null ? "Criar Cartão" : "Editar Cartão")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseCardModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-card-text text-primary me-2"></i>Título
+                        </label>
+                        <input type="text" class="form-control" @bind="cardTitle" placeholder="Título do cartão" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
+                        </label>
+                        <textarea class="form-control" rows="3" @bind="cardDescription" placeholder="Descrição do cartão (opcional)"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-person text-primary me-2"></i>Atribuir a (opcional)
+                        </label>
+                        <input type="text" class="form-control" placeholder="Pesquisar utilizador..." 
+                               @bind="userSearchTerm" @bind:event="oninput" />
+                        @if (!string.IsNullOrEmpty(userSearchTerm) && filteredUsers != null && filteredUsers.Any())
+                        {
+                            <div class="list-group mt-2 rounded" style="max-height: 200px; overflow-y: auto;">
+                                @foreach (var user in filteredUsers.Take(10))
+                                {
+                                    var userName = user.UserName ?? user.Email ?? string.Empty;
+                                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center" 
+                                            @onclick="() => SelectUser(user.Id, userName)">
+                                        <i class="bi bi-person text-primary me-2"></i>
+                                        @(user.UserName ?? user.Email)
+                                    </button>
+                                }
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(selectedUserName))
+                        {
+                            <div class="d-flex align-items-center mt-2 p-2 bg-secondary bg-opacity-10 rounded">
+                                <i class="bi bi-person text-secondary me-2"></i>
+                                <span class="flex-grow-1">@selectedUserName</span>
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearUserSelection">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseCardModal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveCard" disabled="@string.IsNullOrWhiteSpace(cardTitle)">
+                        <i class="bi bi-check-circle me-2"></i>Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Card Details Modal *@
+@if (showCardDetailsModal && selectedCard != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title d-flex align-items-center">
+                        <i class="bi bi-card-text text-primary me-2"></i>
+                        @selectedCard.Title
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseCardDetailsModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-primary">
+                            <i class="bi bi-toggles me-2"></i>Estado
+                        </label>
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn @(selectedCard.Status == CardStatus.Todo ? "btn-danger" : "btn-outline-danger")" 
+                                    @onclick="() => UpdateCardStatus(CardStatus.Todo)">
+                                <i class="bi bi-x-circle me-1"></i> TODO
+                            </button>
+                            <button type="button" class="btn @(selectedCard.Status == CardStatus.Done ? "btn-success" : "btn-outline-success")" 
+                                    @onclick="() => UpdateCardStatus(CardStatus.Done)">
+                                <i class="bi bi-check-circle me-1"></i> DONE
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-primary">
+                            <i class="bi bi-tags me-2"></i>Etiquetas
+                        </label>
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            @if (cardLabels != null && cardLabels.Any())
+                            {
+                                @foreach (var label in cardLabels)
+                                {
+                                    <span class="badge d-inline-flex align-items-center" style="background-color: @label.Color; color: white; padding: 0.4rem 0.6rem;">
+                                        @label.Text
+                                        <button type="button" class="btn-close btn-close-white ms-2" 
+                                                style="font-size: 0.6rem; padding: 0;" @onclick="() => RemoveLabel(label)"></button>
+                                    </span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-light-theme small">Nenhuma etiqueta adicionada</span>
+                            }
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" placeholder="Nome da etiqueta" @bind="newLabelText" />
+                            <input type="color" class="form-control form-control-color" @bind="newLabelColor" title="Escolha a cor" style="max-width: 60px;" />
+                            <button class="btn btn-outline-primary" type="button" @onclick="AddLabel" disabled="@string.IsNullOrWhiteSpace(newLabelText)">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-primary">
+                            <i class="bi bi-calendar3 me-2"></i>Datas
+                        </label>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Início</label>
+                                <input type="date" class="form-control" value="@cardStartDate" @onchange="@((e) => { cardStartDate = e.Value?.ToString(); UpdateCardDates(); })" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Prazo</label>
+                                <input type="date" class="form-control" value="@cardDueDate" @onchange="@((e) => { cardDueDate = e.Value?.ToString(); UpdateCardDates(); })" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-primary">
+                            <i class="bi bi-text-left me-2"></i>Detalhes
+                        </label>
+                        <textarea class="form-control" rows="4" placeholder="Adicionar detalhes..." 
+                                  @bind="cardDetailsText" @onblur="UpdateCardDetails"></textarea>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-primary">
+                            <i class="bi bi-check2-square me-2"></i>Checklist
+                        </label>
+                        @if (checklistItems != null && checklistItems.Any())
+                        {
+                            <div class="list-group mb-2 rounded">
+                                @foreach (var item in checklistItems)
+                                {
+                                    <div class="list-group-item d-flex align-items-center gap-2 bg-dark border-secondary">
+                                        <input class="form-check-input mt-0" type="checkbox" checked="@item.Done" 
+                                               @onchange="@((e) => ToggleChecklistItem(item))" />
+                                        <span class="flex-grow-1 @(item.Done ? "text-decoration-line-through text-muted" : "")">@item.Task</span>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveChecklistItem(item)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-light-theme small mb-2">Nenhuma tarefa adicionada</p>
+                        }
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" placeholder="Nova tarefa..." @bind="newChecklistItem" @onkeydown="HandleChecklistKeyDown" />
+                            <button class="btn btn-outline-primary" type="button" @onclick="AddChecklistItem" disabled="@string.IsNullOrWhiteSpace(newChecklistItem)">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-primary">
+                            <i class="bi bi-link-45deg me-2"></i>Ligações
+                        </label>
+                        @if (cardAttachments != null && cardAttachments.Any())
+                        {
+                            <div class="list-group mb-2 rounded">
+                                @foreach (var attachment in cardAttachments)
+                                {
+                                    <div class="list-group-item d-flex justify-content-between align-items-center bg-dark border-secondary">
+                                        <span>
+                                            <i class="bi bi-link-45deg text-primary"></i> @attachment.Name
+                                            @if (attachment.CardId.HasValue)
+                                            {
+                                                <small class="text-light-theme">(Cartão #@attachment.CardId)</small>
+                                            }
+                                        </span>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveAttachment(attachment)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-light-theme small mb-2">Nenhuma ligação adicionada</p>
+                        }
+                        <div class="input-group input-group-sm">
+                            <select class="form-select" @bind="newAttachmentCardId">
+                                <option value="">Selecionar cartão...</option>
+                                @if (allBoardCards != null)
+                                {
+                                    @foreach (var list in allBoardCards)
+                                    {
+                                        <optgroup label="@list.Key">
+                                            @foreach (var card in list.Value)
+                                            {
+                                                @if (selectedCard == null || card.Id != selectedCard.Id)
+                                                {
+                                                    <option value="@card.Id">@card.Title</option>
+                                                }
+                                            }
+                                        </optgroup>
+                                    }
+                                }
+                            </select>
+                            <button class="btn btn-outline-primary" type="button" @onclick="AddAttachment" disabled="@(!newAttachmentCardId.HasValue)">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-primary">
+                            <i class="bi bi-paperclip me-2"></i>Anexos
+                        </label>
+                        @if (uploadedFiles != null && uploadedFiles.Any())
+                        {
+                            <div class="list-group mb-2 rounded">
+                                @foreach (var file in uploadedFiles)
+                                {
+                                    <div class="list-group-item d-flex justify-content-between align-items-center bg-dark border-secondary">
+                                        <span class="cursor-pointer" @onclick="() => DownloadFile(file)" title="Clique para descarregar">
+                                            <i class="bi bi-file-earmark-@GetFileIcon(file.Name) text-primary me-2"></i>
+                                            @file.Name
+                                            <small class="text-light-theme ms-2">(@FormatFileSize(file.Size))</small>
+                                        </span>
+                                        <div class="d-flex gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => DownloadFile(file)" title="Descarregar">
+                                                <i class="bi bi-download"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveFile(file)" title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-light-theme small mb-2">Nenhum ficheiro anexado</p>
+                        }
+                        <div class="input-group input-group-sm">
+                            <InputFile OnChange="HandleFileSelected" class="form-control file-input-dark" accept=".pdf,.docx,.doc,.xlsx,.xls,.txt" />
+                            <button class="btn btn-outline-primary" type="button" @onclick="UploadFile" disabled="@(selectedFile == null)">
+                                <i class="bi bi-upload"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Formatos suportados: PDF, Word, Excel, TXT (max. 10MB)</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-primary">
+                            <i class="bi bi-person me-2"></i>Membro Atribuído
+                        </label>
+                        @if (selectedCard?.AssignedToUser != null)
+                        {
+                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                <span class="badge bg-secondary d-inline-flex align-items-center" style="padding: 0.4rem 0.6rem;">
+                                    <i class="bi bi-person me-1"></i> @selectedCard.AssignedToUser.UserName
+                                    <button type="button" class="btn-close btn-close-white ms-2" 
+                                            style="font-size: 0.6rem; padding: 0;" @onclick="RemoveAssignedUser"></button>
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-light-theme small mb-2">Nenhum membro atribuído</p>
+                        }
+                        @if (selectedCard?.AssignedToUser == null)
+                        {
+                            <div class="input-group input-group-sm position-relative">
+                                <input type="text" class="form-control" placeholder="Pesquisar utilizador..." 
+                                       @bind="memberSearchTerm" @bind:event="oninput" />
+                                @if (!string.IsNullOrEmpty(memberSearchTerm) && filteredMembersForAssignment != null && filteredMembersForAssignment.Any())
+                                {
+                                    <div class="position-absolute w-100 bg-dark rounded" style="top: 100%; z-index: 1000;">
+                                        <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                            @foreach (var user in filteredMembersForAssignment.Take(10))
+                                            {
+                                                var userName = user.UserName ?? user.Email ?? string.Empty;
+                                                <button type="button" class="list-group-item list-group-item-action bg-dark border-secondary d-flex align-items-center" 
+                                                        @onclick="() => AssignUser(user)">
+                                                    <i class="bi bi-person text-primary me-2"></i> @userName
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <AuthorizeView Roles="Admin" Context="deleteCardContext">
+                        <Authorized>
+                            <button type="button" class="btn btn-danger" @onclick="DeleteCurrentCard">
+                                <i class="bi bi-trash me-2"></i>Eliminar
+                            </button>
+                        </Authorized>
+                    </AuthorizeView>
+                    <button type="button" class="btn btn-secondary ms-auto" @onclick="CloseCardDetailsModal">
+                        <i class="bi bi-x-circle me-2"></i>Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Delete Modals using ConfirmDialog2 Component *@
+<ConfirmDialog2 Show="@showDeleteListModal"
+                ShowChanged="@((show) => showDeleteListModal = show)"
+                Title="Confirmar Eliminação"
+                Message="@($"Tem a certeza que deseja eliminar a lista \"{deletingList?.Name}\"?")"
+                WarningMessage="Todos os cartões desta lista também serão eliminados."
+                ConfirmText="Eliminar"
+                CancelText="Cancelar"
+                ConfirmButtonClass="btn-danger"
+                OnConfirm="ConfirmDeleteList"
+                OnCancel="CloseDeleteListModal" />
+
+<ConfirmDialog2 Show="@showDeleteCardModal"
+                ShowChanged="@((show) => showDeleteCardModal = show)"
+                Title="Confirmar Eliminação"
+                Message="@($"Tem a certeza que deseja eliminar o cartão \"{deletingCard?.Title}\"?")"
+                ConfirmText="Eliminar"
+                CancelText="Cancelar"
+                ConfirmButtonClass="btn-danger"
+                OnConfirm="ConfirmDeleteCard"
+                OnCancel="CloseDeleteCardModal" />
+
+@code {
+    // Helper classes (private to avoid naming conflicts)
+    private class LabelItem
+    {
+        public string Text { get; set; } = string.Empty;
+        public string Color { get; set; } = "#6f42c1";
+    }
+
+    private class ChecklistItem
+    {
+        public string Task { get; set; } = string.Empty;
+        public bool Done { get; set; }
+    }
+
+    private class AttachmentItem
+    {
+        public string Name { get; set; } = string.Empty;
+        public int? CardId { get; set; }
+    }
+
+    private class FileItem
+    {
+        public string Name { get; set; } = string.Empty;
+        public long Size { get; set; }
+        public string Base64Data { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+    }
+
+    [Parameter]
+    public int BoardId { get; set; }
+
+    private BoardEntity? board;
+    private List<LogisticsList> lists = new();
+    private List<Event>? events;
+    private List<ApplicationUser>? users;
+
+    // Filtering
+    private string selectedLabelFilter = string.Empty;
+    private List<string> availableLabels = new();
+
+    // List modal state
+    private bool showListModal = false;
+    private LogisticsList? editingList = null;
+    private string listName = string.Empty;
+
+    // Card modal state
+    private bool showCardModal = false;
+    private LogisticsCard? editingCard = null;
+    private int currentListId = 0;
+    private string cardTitle = string.Empty;
+    private string cardDescription = string.Empty;
+    private string selectedUserId = string.Empty;
+    private string selectedUserName = string.Empty;
+    private string userSearchTerm = string.Empty;
+    private List<ApplicationUser>? filteredUsers => users?.Where(u => 
+        string.IsNullOrEmpty(userSearchTerm) || 
+        (u.UserName != null && u.UserName.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+        (u.Email != null && u.Email.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase))).ToList();
+
+    // Card details modal state
+    private bool showCardDetailsModal = false;
+    private LogisticsCard? selectedCard = null;
+    private List<LabelItem>? cardLabels;
+    private string newLabelText = string.Empty;
+    private string newLabelColor = "#6f42c1";
+    private string? cardStartDate = null;
+    private string? cardDueDate = null;
+    private string cardDetailsText = string.Empty;
+    private List<ChecklistItem>? checklistItems;
+    private string newChecklistItem = string.Empty;
+    private List<AttachmentItem>? cardAttachments;
+    private int? newAttachmentCardId = null;
+    private Dictionary<string, List<LogisticsCard>>? allBoardCards;
+    private string memberSearchTerm = string.Empty;
+    private List<FileItem>? uploadedFiles;
+    private IBrowserFile? selectedFile;
+    private const long MaxFileSize = 10 * 1024 * 1024; // 10MB
+    private bool isAdmin = false;
+    private List<ApplicationUser>? filteredMembersForAssignment => users?.Where(u => 
+        !string.IsNullOrEmpty(memberSearchTerm) && 
+        (selectedCard == null || selectedCard.AssignedToUserId != u.Id) &&
+        ((u.UserName != null && u.UserName.Contains(memberSearchTerm, StringComparison.OrdinalIgnoreCase)) ||
+        (u.Email != null && u.Email.Contains(memberSearchTerm, StringComparison.OrdinalIgnoreCase)))).ToList();
+
+    // Delete modal state
+    private bool showDeleteListModal = false;
+    private LogisticsList? deletingList = null;
+    private bool showDeleteCardModal = false;
+    private LogisticsCard? deletingCard = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckUserRole();
+        await LoadData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && lists.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("initializeKanbanDragDrop", DotNetObjectReference.Create(this));
+        }
+    }
+
+    private async Task CheckUserRole()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isAdmin = user.IsInRole("Admin");
+    }
+
+    private async Task LoadData()
+    {
+        board = await BoardService.GetBoardWithListsAndCardsAsync(BoardId);
+        if (board != null)
+        {
+            lists = board.Lists.ToList();
+            
+            // Extract all unique labels for filtering
+            availableLabels = lists
+                .SelectMany(l => l.Cards)
+                .SelectMany(c => GetCardLabels(c))
+                .Select(l => l.Text)
+                .Distinct()
+                .OrderBy(l => l)
+                .ToList();
+            
+            // Build card lookup for attachments
+            allBoardCards = lists.ToDictionary(
+                l => l.Name,
+                l => l.Cards.OrderBy(c => c.Position).ToList()
+            );
+        }
+        events = (await EventService.GetAllEventsAsync()).ToList();
+        users = await UserManager.Users.ToListAsync();
+    }
+
+    // Filter cards by label
+    private IEnumerable<LogisticsCard> GetFilteredCards(IEnumerable<LogisticsCard> cards)
+    {
+        var orderedCards = cards.OrderBy(c => c.Position);
+        
+        if (string.IsNullOrEmpty(selectedLabelFilter))
+            return orderedCards;
+        
+        return orderedCards.Where(c =>
+        {
+            var labels = GetCardLabels(c);
+            return labels.Any(l => l.Text == selectedLabelFilter);
+        });
+    }
+
+    // List operations
+    private void OpenCreateListModal()
+    {
+        editingList = null;
+        listName = string.Empty;
+        showListModal = true;
+    }
+
+    private void OpenEditListModal(LogisticsList list)
+    {
+        editingList = list;
+        listName = list.Name;
+        showListModal = true;
+    }
+
+    private void CloseListModal()
+    {
+        showListModal = false;
+        editingList = null;
+        listName = string.Empty;
+    }
+
+    private async Task SaveList()
+    {
+        if (string.IsNullOrWhiteSpace(listName))
+            return;
+
+        try
+        {
+            if (editingList == null)
+            {
+                var maxPosition = lists.Any() ? lists.Max(l => l.Position) : -1;
+                await ListService.CreateListAsync(listName, BoardId, maxPosition + 1);
+            }
+            else
+            {
+                await ListService.UpdateListAsync(editingList.Id, listName);
+            }
+
+            await LoadData();
+            CloseListModal();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    private void OpenDeleteListModal(LogisticsList list)
+    {
+        deletingList = list;
+        showDeleteListModal = true;
+    }
+
+    private void CloseDeleteListModal()
+    {
+        showDeleteListModal = false;
+        deletingList = null;
+    }
+
+    private async Task ConfirmDeleteList()
+    {
+        if (deletingList == null)
+            return;
+
+        try
+        {
+            await ListService.DeleteListAsync(deletingList.Id);
+            await LoadData();
+            CloseDeleteListModal();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    // Card operations
+    private void OpenCreateCardModal(int listId)
+    {
+        editingCard = null;
+        currentListId = listId;
+        cardTitle = string.Empty;
+        cardDescription = string.Empty;
+        selectedUserId = string.Empty;
+        selectedUserName = string.Empty;
+        userSearchTerm = string.Empty;
+        showCardModal = true;
+    }
+
+    private void OpenEditCardModal(LogisticsCard card)
+    {
+        editingCard = card;
+        currentListId = card.ListId;
+        cardTitle = card.Title;
+        cardDescription = card.Description;
+        selectedUserId = card.AssignedToUserId ?? string.Empty;
+        selectedUserName = card.AssignedToUser?.UserName ?? string.Empty;
+        userSearchTerm = string.Empty;
+        showCardModal = true;
+    }
+
+    private void CloseCardModal()
+    {
+        showCardModal = false;
+        editingCard = null;
+        currentListId = 0;
+    }
+
+    private void SelectUser(string userId, string userName)
+    {
+        selectedUserId = userId;
+        selectedUserName = userName;
+        userSearchTerm = string.Empty;
+    }
+
+    private void ClearUserSelection()
+    {
+        selectedUserId = string.Empty;
+        selectedUserName = string.Empty;
+    }
+
+    private async Task SaveCard()
+    {
+        if (string.IsNullOrWhiteSpace(cardTitle))
+            return;
+
+        try
+        {
+            string? userId = string.IsNullOrEmpty(selectedUserId) ? null : selectedUserId;
+
+            if (editingCard == null)
+            {
+                var list = lists.FirstOrDefault(l => l.Id == currentListId);
+                var maxPosition = list?.Cards?.Any() == true ? list.Cards.Max(c => c.Position) : -1;
+                var card = await CardService.CreateCardAsync(cardTitle, currentListId, maxPosition + 1, cardDescription);
+                
+                if (!string.IsNullOrEmpty(userId))
+                    await CardService.AssignCardToUserAsync(card.Id, userId);
+            }
+            else
+            {
+                await CardService.UpdateCardAsync(editingCard.Id, cardTitle, cardDescription);
+                await CardService.AssignCardToUserAsync(editingCard.Id, userId);
+            }
+
+            await LoadData();
+            CloseCardModal();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    // Card details modal
+    private void OpenCardDetailsModal(LogisticsCard card)
+    {
+        selectedCard = card;
+        
+        // Parse labels
+        cardLabels = new List<LabelItem>();
+        if (!string.IsNullOrEmpty(card.Labels))
+        {
+            try
+            {
+                cardLabels = System.Text.Json.JsonSerializer.Deserialize<List<LabelItem>>(card.Labels) ?? new List<LabelItem>();
+            }
+            catch
+            {
+                // Fallback for old comma-separated format
+                cardLabels = card.Labels.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(l => new LabelItem { Text = l.Trim(), Color = "#6f42c1" })
+                    .ToList();
+            }
+        }
+        
+        // Parse checklist
+        checklistItems = new List<ChecklistItem>();
+        if (!string.IsNullOrEmpty(card.ChecklistJson))
+        {
+            try
+            {
+                checklistItems = System.Text.Json.JsonSerializer.Deserialize<List<ChecklistItem>>(card.ChecklistJson) ?? new List<ChecklistItem>();
+            }
+            catch { }
+        }
+        
+        // Parse attachments
+        cardAttachments = new List<AttachmentItem>();
+        if (!string.IsNullOrEmpty(card.AttachmentsJson))
+        {
+            try
+            {
+                cardAttachments = System.Text.Json.JsonSerializer.Deserialize<List<AttachmentItem>>(card.AttachmentsJson) ?? new List<AttachmentItem>();
+            }
+            catch { }
+        }
+        
+        // Parse uploaded files from description
+        uploadedFiles = new List<FileItem>();
+        cardDetailsText = card.Description ?? string.Empty;
+        if (cardDetailsText.Contains("<!-- FILES:"))
+        {
+            try
+            {
+                var startIndex = cardDetailsText.IndexOf("<!-- FILES:") + 11;
+                var endIndex = cardDetailsText.IndexOf("-->", startIndex);
+                if (endIndex > startIndex)
+                {
+                    var filesJson = cardDetailsText.Substring(startIndex, endIndex - startIndex).Trim();
+                    uploadedFiles = System.Text.Json.JsonSerializer.Deserialize<List<FileItem>>(filesJson) ?? new List<FileItem>();
+                    // Remove files marker from displayed text
+                    cardDetailsText = cardDetailsText.Substring(0, cardDetailsText.IndexOf("<!-- FILES:")).TrimEnd();
+                }
+            }
+            catch { }
+        }
+        
+        cardStartDate = card.StartDate?.ToString("yyyy-MM-dd");
+        cardDueDate = card.DueDate?.ToString("yyyy-MM-dd");
+        memberSearchTerm = string.Empty;
+        showCardDetailsModal = true;
+    }
+
+    private void CloseCardDetailsModal()
+    {
+        showCardDetailsModal = false;
+        selectedCard = null;
+    }
+
+    private async Task UpdateCardStatus(CardStatus status)
+    {
+        if (selectedCard == null) return;
+        await CardService.SetCardStatusAsync(selectedCard.Id, status);
+        selectedCard.Status = status;
+        await LoadData();
+    }
+
+    // Label methods
+    private void AddLabel()
+    {
+        if (string.IsNullOrWhiteSpace(newLabelText)) return;
+        cardLabels ??= new List<LabelItem>();
+        cardLabels.Add(new LabelItem { Text = newLabelText, Color = newLabelColor });
+        newLabelText = string.Empty;
+        newLabelColor = "#6f42c1";
+        SaveLabels();
+    }
+
+    private void RemoveLabel(LabelItem label)
+    {
+        cardLabels?.Remove(label);
+        SaveLabels();
+    }
+
+    private async void SaveLabels()
+    {
+        if (selectedCard == null) return;
+        var json = System.Text.Json.JsonSerializer.Serialize(cardLabels ?? new List<LabelItem>());
+        await CardService.SetCardLabelsAsync(selectedCard.Id, json);
+        await LoadData();
+    }
+
+    // Checklist methods
+    private void HandleChecklistKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddChecklistItem();
+        }
+    }
+
+    private void AddChecklistItem()
+    {
+        if (string.IsNullOrWhiteSpace(newChecklistItem)) return;
+        checklistItems ??= new List<ChecklistItem>();
+        checklistItems.Add(new ChecklistItem { Task = newChecklistItem, Done = false });
+        newChecklistItem = string.Empty;
+        SaveChecklist();
+    }
+
+    private void ToggleChecklistItem(ChecklistItem item)
+    {
+        item.Done = !item.Done;
+        SaveChecklist();
+    }
+
+    private void RemoveChecklistItem(ChecklistItem item)
+    {
+        checklistItems?.Remove(item);
+        SaveChecklist();
+    }
+
+    private async void SaveChecklist()
+    {
+        if (selectedCard == null) return;
+        var json = System.Text.Json.JsonSerializer.Serialize(checklistItems ?? new List<ChecklistItem>());
+        await CardService.SetCardChecklistAsync(selectedCard.Id, json);
+    }
+
+    // Attachment methods
+    private void AddAttachment()
+    {
+        if (!newAttachmentCardId.HasValue) return;
+        
+        var linkedCard = allBoardCards?.Values.SelectMany(cards => cards).FirstOrDefault(c => c.Id == newAttachmentCardId.Value);
+        if (linkedCard == null) return;
+        
+        cardAttachments ??= new List<AttachmentItem>();
+        cardAttachments.Add(new AttachmentItem { Name = linkedCard.Title, CardId = newAttachmentCardId });
+        newAttachmentCardId = null;
+        SaveAttachments();
+    }
+
+    private void RemoveAttachment(AttachmentItem attachment)
+    {
+        cardAttachments?.Remove(attachment);
+        SaveAttachments();
+    }
+
+    private async void SaveAttachments()
+    {
+        if (selectedCard == null) return;
+        var json = System.Text.Json.JsonSerializer.Serialize(cardAttachments ?? new List<AttachmentItem>());
+        await CardService.SetCardAttachmentsAsync(selectedCard.Id, json);
+    }
+
+    // File handling methods
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+
+    private async Task UploadFile()
+    {
+        if (selectedFile == null || selectedCard == null) return;
+
+        try
+        {
+            if (selectedFile.Size > MaxFileSize)
+            {
+                // File too large - could add error handling here
+                return;
+            }
+
+            using var memoryStream = new MemoryStream();
+            await selectedFile.OpenReadStream(MaxFileSize).CopyToAsync(memoryStream);
+            var base64 = Convert.ToBase64String(memoryStream.ToArray());
+
+            uploadedFiles ??= new List<FileItem>();
+            uploadedFiles.Add(new FileItem
+            {
+                Name = selectedFile.Name,
+                Size = selectedFile.Size,
+                Base64Data = base64,
+                ContentType = selectedFile.ContentType
+            });
+
+            selectedFile = null;
+            await SaveFiles();
+        }
+        catch (Exception)
+        {
+            // Handle error - file too large or other issues
+        }
+    }
+
+    private void RemoveFile(FileItem file)
+    {
+        uploadedFiles?.Remove(file);
+        SaveFiles().Wait();
+    }
+
+    private async Task DownloadFile(FileItem file)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("downloadFile", file.Name, file.Base64Data, file.ContentType);
+        }
+        catch (Exception)
+        {
+            // Handle error - could add user notification here
+        }
+    }
+
+    private async Task SaveFiles()
+    {
+        if (selectedCard == null) return;
+        var json = System.Text.Json.JsonSerializer.Serialize(uploadedFiles ?? new List<FileItem>());
+        // Store in Details field for now - could be moved to separate field later
+        await CardService.UpdateCardAsync(selectedCard.Id, selectedCard.Title, 
+            $"{cardDetailsText}\n\n<!-- FILES: {json} -->");
+    }
+
+    private string GetFileIcon(string fileName)
+    {
+        var extension = Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".pdf" => "pdf",
+            ".doc" or ".docx" => "word",
+            ".xls" or ".xlsx" => "excel",
+            ".txt" => "text",
+            _ => "file"
+        };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    // Details text method
+    private async Task UpdateCardDetails()
+    {
+        if (selectedCard == null) return;
+        await CardService.UpdateCardAsync(selectedCard.Id, selectedCard.Title, cardDetailsText);
+    }
+
+    private async Task UpdateCardDates()
+    {
+        if (selectedCard == null) return;
+        DateTime? start = string.IsNullOrEmpty(cardStartDate) ? null : DateTime.Parse(cardStartDate);
+        DateTime? due = string.IsNullOrEmpty(cardDueDate) ? null : DateTime.Parse(cardDueDate);
+        await CardService.SetCardDatesAsync(selectedCard.Id, start, due, null);
+    }
+
+    // Member assignment methods
+    private async void AssignUser(ApplicationUser user)
+    {
+        if (selectedCard == null) return;
+        await CardService.AssignCardToUserAsync(selectedCard.Id, user.Id);
+        selectedCard.AssignedToUserId = user.Id;
+        selectedCard.AssignedToUser = user;
+        memberSearchTerm = string.Empty;
+        await LoadData();
+    }
+
+    private async void RemoveAssignedUser()
+    {
+        if (selectedCard == null) return;
+        await CardService.AssignCardToUserAsync(selectedCard.Id, null);
+        selectedCard.AssignedToUserId = null;
+        selectedCard.AssignedToUser = null;
+        await LoadData();
+    }
+
+    // Card delete methods
+    private void DeleteCurrentCard()
+    {
+        if (selectedCard != null)
+        {
+            deletingCard = selectedCard;
+            showDeleteCardModal = true;
+            CloseCardDetailsModal();
+        }
+    }
+
+    private void OpenDeleteCardModal(LogisticsCard card)
+    {
+        deletingCard = card;
+        showDeleteCardModal = true;
+    }
+
+    private void CloseDeleteCardModal()
+    {
+        showDeleteCardModal = false;
+        deletingCard = null;
+    }
+
+    private async Task ConfirmDeleteCard()
+    {
+        if (deletingCard == null) return;
+        
+        try
+        {
+            await CardService.DeleteCardAsync(deletingCard.Id);
+            await LoadData();
+            CloseDeleteCardModal();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnCardMoved(int cardId, int newListId, int newPosition)
+    {
+        try
+        {
+            await CardService.MoveCardAsync(cardId, newListId, newPosition);
+            await LoadData();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    // Helper method to parse labels
+    private List<LabelItem> GetCardLabels(LogisticsCard card)
+    {
+        if (string.IsNullOrEmpty(card.Labels))
+            return new List<LabelItem>();
+
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<LabelItem>>(card.Labels) ?? new List<LabelItem>();
+        }
+        catch
+        {
+            // Fallback for old comma-separated format
+            return card.Labels.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(l => new LabelItem { Text = l.Trim(), Color = "#6f42c1" })
+                .ToList();
+        }
+    }
+
+    // Helper method to get checklist items count
+    private (int completed, int total) GetChecklistCount(LogisticsCard card)
+    {
+        if (string.IsNullOrEmpty(card.ChecklistJson))
+            return (0, 0);
+
+        try
+        {
+            var items = System.Text.Json.JsonSerializer.Deserialize<List<ChecklistItem>>(card.ChecklistJson);
+            if (items == null || !items.Any())
+                return (0, 0);
+            
+            return (items.Count(i => i.Done), items.Count);
+        }
+        catch
+        {
+            return (0, 0);
+        }
+    }
+
+    // Helper method to get attachments count
+    private int GetAttachmentsCount(LogisticsCard card)
+    {
+        if (string.IsNullOrEmpty(card.AttachmentsJson))
+            return 0;
+
+        try
+        {
+            var items = System.Text.Json.JsonSerializer.Deserialize<List<AttachmentItem>>(card.AttachmentsJson);
+            return items?.Count ?? 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    // Helper method to get linked cards count
+    private int GetLinkedCardsCount(LogisticsCard card)
+    {
+        if (string.IsNullOrEmpty(card.AttachmentsJson))
+            return 0;
+
+        try
+        {
+            var items = System.Text.Json.JsonSerializer.Deserialize<List<AttachmentItem>>(card.AttachmentsJson);
+            return items?.Count ?? 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+}

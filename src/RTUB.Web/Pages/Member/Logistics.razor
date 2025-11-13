@@ -1,0 +1,370 @@
+@page "/logistics"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using BoardEntity = RTUB.Core.Entities.LogisticsBoard
+@using RTUB.Core.Entities
+@using RTUB.Shared
+@inject ILogisticsBoardService BoardService
+@inject IEventService EventService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject UserManager<ApplicationUser> UserManager
+
+<PageTitle>Quadros de Logística - RTUB</PageTitle>
+
+<div class="logistics-page-wrapper">
+    <div class="logistics-page-container">
+        <div class="page-header">
+            <div>
+                <h1 class="mb-2"><i class="bi bi-kanban"></i> Quadros de Logística</h1>
+                <p class="text-light-theme mb-3">Gerencie os seus quadros de tarefas e atuações.</p>
+            </div>
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <button class="btn btn-success" @onclick="OpenCreateBoardModal">
+                        <i class="bi bi-plus-lg"></i> Criar Quadro
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="search-bar-container">
+                    <TableSearchBar SearchTerm="@searchTerm"
+                                    Placeholder="Pesquisar quadros..."
+                                    OnSearchChanged="HandleSearch" />
+                </div>
+
+                @if (boards == null)
+                {
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">A carregar...</span>
+                        </div>
+                        <p class="mt-3 text-light-theme">A carregar quadros...</p>
+                    </div>
+                }
+                else if (!boards.Any())
+                {
+                    <EmptyState Title="Nenhum quadro criado ainda"
+                               Message="Crie o seu primeiro quadro para começar a organizar tarefas."
+                               Icon="bi-kanban"
+                               ActionText="Criar Quadro"
+                               OnAction="OpenCreateBoardModal" />
+                }
+                else
+                {
+                    <div class="row g-4">
+                        @foreach (var board in boards)
+                        {
+                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                                <BoardCard Board="@board"
+                                           ShowActions="@isAdmin"
+                                           OnView="@(() => Navigation.NavigateTo($"/logistics/{board.Id}"))"
+                                           OnEdit="@(() => OpenEditBoardModal(board))"
+                                           OnDelete="@(() => OpenDeleteBoardModal(board))" />
+                            </div>
+                        }
+                    </div>
+
+                    <TablePagination CurrentPage="@currentPage"
+                                     PageSize="@pageSize"
+                                     TotalItems="@totalCount"
+                                     ItemLabel="quadros"
+                                     PageSizeOptions="@(new[] { 4, 8, 12, 16, 20 })"
+                                     OnPageChanged="@HandlePageChanged"
+                                     OnPageSizeChanged="@HandlePageSizeChanged" />
+                }
+            </Authorized>
+            <NotAuthorized>
+                <div class="alert alert-warning d-flex align-items-center">
+                    <i class="bi bi-lock fs-4 me-3"></i>
+                    <div>
+                        <strong>Autenticação Necessária</strong>
+                        <p class="mb-0">Precisa estar autenticado para aceder aos quadros de logística.</p>
+                    </div>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</div>
+
+@* Create/Edit Board Modal *@
+@if (showBoardModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title">
+                        <i class="bi bi-@(editingBoard == null ? "plus-circle" : "pencil-square") me-2"></i>
+                        @(editingBoard == null ? "Criar Quadro" : "Editar Quadro")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseBoardModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-kanban text-primary me-2"></i>Nome do Quadro
+                        </label>
+                        <input type="text" class="form-control" @bind="boardName" placeholder="Nome do quadro" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
+                        </label>
+                        <textarea class="form-control" rows="3" @bind="boardDescription" placeholder="Descrição do quadro (opcional)"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-event text-primary me-2"></i>Evento Associado (opcional)
+                        </label>
+                        <input type="text" class="form-control" placeholder="Pesquisar evento..." 
+                               @bind="eventSearchTerm" @bind:event="oninput" />
+                        @if (!string.IsNullOrEmpty(eventSearchTerm) && filteredEvents != null && filteredEvents.Any())
+                        {
+                            <div class="list-group mt-2 rounded" style="max-height: 200px; overflow-y: auto;">
+                                @foreach (var evt in filteredEvents.Take(10))
+                                {
+                                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center" 
+                                            @onclick="() => SelectEvent(evt.Id.ToString(), evt.Name)">
+                                        <i class="bi bi-calendar-event text-primary me-2"></i>
+                                        <div>
+                                            <div>@evt.Name</div>
+                                            <small class="text-light-theme">@evt.Date.ToString("dd/MM/yyyy")</small>
+                                        </div>
+                                    </button>
+                                }
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(selectedEventName))
+                        {
+                            <div class="d-flex align-items-center mt-2 p-2 bg-primary bg-opacity-10 rounded">
+                                <i class="bi bi-calendar-event text-primary me-2"></i>
+                                <span class="flex-grow-1">@selectedEventName</span>
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearEventSelection">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseBoardModal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveBoard" disabled="@string.IsNullOrWhiteSpace(boardName)">
+                        <i class="bi bi-check-circle me-2"></i>Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Delete Confirmation Modal *@
+@if (showDeleteBoardModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-bottom border-secondary bg-danger bg-opacity-10">
+                    <h5 class="modal-title text-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Confirmar Eliminação
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseDeleteBoardModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-start mb-3">
+                        <i class="bi bi-info-circle text-primary fs-4 me-3 mt-1"></i>
+                        <div>
+                            <p class="mb-2">Tem a certeza que deseja eliminar o quadro <strong>"@deletingBoard?.Name"</strong>?</p>
+                            <p class="text-danger mb-0">
+                                <i class="bi bi-exclamation-circle me-1"></i>
+                                <small>Todas as listas e cartões deste quadro também serão eliminados.</small>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteBoardModal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteBoard">
+                        <i class="bi bi-trash me-2"></i>Eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<BoardEntity>? boards;
+    private List<Event>? events;
+    private int currentPage = 1;
+    private int pageSize = 4;
+    private int totalCount = 0;
+    private string searchTerm = string.Empty;
+    private bool isAdmin = false;
+
+    // Board modal state
+    private bool showBoardModal = false;
+    private BoardEntity? editingBoard = null;
+    private string boardName = string.Empty;
+    private string boardDescription = string.Empty;
+    private string selectedEventId = string.Empty;
+    private string selectedEventName = string.Empty;
+    private string eventSearchTerm = string.Empty;
+    private List<Event>? filteredEvents => events?.Where(e => 
+        string.IsNullOrEmpty(eventSearchTerm) || 
+        e.Name.Contains(eventSearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    // Delete modal state
+    private bool showDeleteBoardModal = false;
+    private BoardEntity? deletingBoard = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckUserRole();
+        await LoadData();
+    }
+
+    private async Task CheckUserRole()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isAdmin = user.IsInRole("Admin");
+    }
+
+    private async Task LoadData()
+    {
+        var result = await BoardService.GetBoardsPagedAsync(currentPage, pageSize, searchTerm);
+        boards = result.Boards.ToList();
+        totalCount = result.TotalCount;
+        events = (await EventService.GetAllEventsAsync()).ToList();
+    }
+
+    private async Task HandleSearch(string search)
+    {
+        searchTerm = search;
+        currentPage = 1;
+        await LoadData();
+    }
+
+    private async Task HandlePageChanged(int page)
+    {
+        currentPage = page;
+        await LoadData();
+    }
+
+    private async Task HandlePageSizeChanged(int size)
+    {
+        pageSize = size;
+        currentPage = 1;
+        await LoadData();
+    }
+
+    private void OpenCreateBoardModal()
+    {
+        editingBoard = null;
+        boardName = string.Empty;
+        boardDescription = string.Empty;
+        selectedEventId = string.Empty;
+        selectedEventName = string.Empty;
+        eventSearchTerm = string.Empty;
+        showBoardModal = true;
+    }
+
+    private void OpenEditBoardModal(BoardEntity board)
+    {
+        editingBoard = board;
+        boardName = board.Name;
+        boardDescription = board.Description;
+        selectedEventId = board.EventId?.ToString() ?? string.Empty;
+        selectedEventName = board.Event?.Name ?? string.Empty;
+        eventSearchTerm = string.Empty;
+        showBoardModal = true;
+    }
+
+    private void CloseBoardModal()
+    {
+        showBoardModal = false;
+        editingBoard = null;
+    }
+
+    private void SelectEvent(string eventId, string eventName)
+    {
+        selectedEventId = eventId;
+        selectedEventName = eventName;
+        eventSearchTerm = string.Empty;
+    }
+
+    private void ClearEventSelection()
+    {
+        selectedEventId = string.Empty;
+        selectedEventName = string.Empty;
+    }
+
+    private async Task SaveBoard()
+    {
+        if (string.IsNullOrWhiteSpace(boardName))
+            return;
+
+        try
+        {
+            int? eventId = string.IsNullOrEmpty(selectedEventId) ? null : int.Parse(selectedEventId);
+
+            if (editingBoard == null)
+            {
+                var board = await BoardService.CreateBoardAsync(boardName, boardDescription);
+                if (eventId.HasValue)
+                    await BoardService.AssociateBoardWithEventAsync(board.Id, eventId);
+            }
+            else
+            {
+                await BoardService.UpdateBoardAsync(editingBoard.Id, boardName, boardDescription);
+                await BoardService.AssociateBoardWithEventAsync(editingBoard.Id, eventId);
+            }
+
+            await LoadData();
+            CloseBoardModal();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    private void OpenDeleteBoardModal(BoardEntity board)
+    {
+        deletingBoard = board;
+        showDeleteBoardModal = true;
+    }
+
+    private void CloseDeleteBoardModal()
+    {
+        showDeleteBoardModal = false;
+        deletingBoard = null;
+    }
+
+    private async Task ConfirmDeleteBoard()
+    {
+        if (deletingBoard == null)
+            return;
+
+        try
+        {
+            await BoardService.DeleteBoardAsync(deletingBoard.Id);
+            await LoadData();
+            CloseDeleteBoardModal();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+}

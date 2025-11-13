@@ -1,0 +1,359 @@
+/* Kanban Board Styles - Dark Theme (Black + Purple) */
+.kanban-board {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 20px;
+    min-height: 500px;
+}
+
+.kanban-list {
+    background: #1a1a1a;
+    border: 1px solid #2f2f2f;
+    border-radius: 8px;
+    min-width: 300px;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+}
+
+.kanban-list-header {
+    padding: 12px 16px;
+    display: flex;
+    justify-content-between;
+    align-items: center;
+    border-bottom: 1px solid #2f2f2f;
+    background: #0f0f10;
+}
+
+.kanban-list-header h5 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #e2e2e2;
+}
+
+.kanban-list-header .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+.kanban-list-header .btn-success {
+    background-color: rgba(25, 135, 84, 0.9);
+    border-color: rgba(25, 135, 84, 1);
+    color: #ffffff;
+}
+
+.kanban-list-header .btn-success:hover {
+    background-color: rgba(25, 135, 84, 1);
+    border-color: rgba(25, 135, 84, 1);
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+.kanban-list-header .btn-outline-light {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 1);
+    color: #000000;
+}
+
+.kanban-list-header .btn-outline-light:hover {
+    background-color: rgba(255, 255, 255, 1);
+    border-color: rgba(255, 255, 255, 1);
+    color: #000000;
+    transform: scale(1.05);
+}
+
+.kanban-list-header .btn-outline-danger {
+    background-color: rgba(220, 53, 69, 0.9);
+    border-color: rgba(220, 53, 69, 1);
+    color: #ffffff;
+}
+
+.kanban-list-header .btn-outline-danger:hover {
+    background-color: rgba(220, 53, 69, 1);
+    border-color: rgba(220, 53, 69, 1);
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+.kanban-cards {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    min-height: 100px;
+    transition: background-color 0.2s ease;
+}
+
+.kanban-cards.drag-over {
+    background-color: rgba(111, 66, 193, 0.1);
+}
+
+.kanban-card {
+    background: #212121;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    cursor: move;
+    transition: box-shadow 0.2s ease, transform 0.1s ease;
+    border: 2px solid transparent;
+    overflow: hidden;
+}
+
+.kanban-card:hover {
+    box-shadow: 0 2px 8px rgba(111, 66, 193, 0.3);
+    border-color: #6f42c1;
+}
+
+.kanban-card.dragging {
+    opacity: 0.5;
+    transform: rotate(3deg);
+}
+
+/* Card Status Bar - Top Section */
+.card-status-bar {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: white;
+}
+
+.card-status-bar i {
+    font-size: 16px;
+}
+
+.card-separator {
+    height: 1px;
+    background: #2f2f2f;
+}
+
+/* Card Content */
+.card-content {
+    padding: 12px;
+}
+
+.card-content h6 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e2e2;
+    word-wrap: break-word;
+}
+
+.card-content p {
+    margin: 0;
+    font-size: 13px;
+    color: #999;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+/* Card Footer Section */
+.card-footer-section {
+    border-top: 1px solid #2f2f2f;
+    padding-top: 8px;
+    margin-top: 8px;
+}
+
+.badge-label {
+    background: #6f42c1;
+    color: white;
+    font-size: 11px;
+    padding: 4px 8px;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    display: inline-block;
+}
+
+.kanban-card .badge {
+    font-size: 11px;
+    padding: 4px 8px;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.kanban-list button {
+    background: none;
+    border: none;
+    color: #999;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.kanban-list button:hover {
+    background-color: rgba(111, 66, 193, 0.1);
+    color: #a88ee5;
+}
+
+.kanban-list .dropdown-toggle::after {
+    display: none;
+}
+
+/* Card Status Variants */
+.kanban-card.card-todo .card-status-bar {
+    background: #e74c3c;
+}
+
+.kanban-card.card-done .card-status-bar {
+    background: #00bc8c;
+}
+
+/* Board Card Styles - Mirroring RequestCard Design */
+.logistics-board-card {
+    background-color: #151516;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+}
+
+.logistics-board-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(var(--bs-primary-rgb), 0.6);
+    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.25);
+}
+
+/* Board icon header with circle - matching RequestCard */
+.board-icon-header {
+    width: 100%;
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.15) 0%, rgba(var(--bs-primary-rgb), 0.05) 100%);
+    border-bottom: 2px solid rgba(var(--bs-primary-rgb), 0.3);
+}
+
+.board-icon-circle {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background-color: rgba(var(--bs-primary-rgb), 0.2);
+    border: 2px solid var(--bs-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.logistics-board-card:hover .board-icon-circle {
+    background-color: rgba(var(--bs-primary-rgb), 0.3);
+    transform: scale(1.05);
+}
+
+.board-icon-circle i {
+    font-size: 1.875rem;
+    color: var(--bs-link-color);
+}
+
+/* Admin overlay for BoardCard - top-right positioning */
+.board-admin-overlay {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+    opacity: 0.85;
+    transition: opacity 0.2s ease;
+}
+
+.logistics-board-card:hover .board-admin-overlay {
+    opacity: 1;
+}
+
+/* Board actions section */
+.board-actions {
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(var(--bs-primary-rgb), 0.15);
+}
+
+.logistics-board-card .card-body {
+    color: #e2e2e2;
+}
+
+.logistics-board-card .card-title {
+    color: #e2e2e2;
+}
+
+.text-light-theme {
+    color: #999 !important;
+}
+
+/* Modal backdrop */
+.modal.fade.show {
+    display: block;
+}
+
+.modal-content {
+    background: #1a1a1a;
+    border: 1px solid #2f2f2f;
+    color: #e2e2e2;
+}
+
+.modal-header {
+    border-bottom-color: #2f2f2f;
+}
+
+.modal-footer {
+    border-top-color: #2f2f2f;
+}
+
+/* Form controls in dark theme */
+.modal-content .form-control,
+.modal-content .form-select {
+    background: #212121;
+    border-color: #2f2f2f;
+    color: #e2e2e2;
+}
+
+.modal-content .form-control:focus,
+.modal-content .form-select:focus {
+    background: #212121;
+    border-color: #6f42c1;
+    color: #e2e2e2;
+    box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.25);
+}
+
+/* Scrollbar styling */
+.kanban-cards::-webkit-scrollbar {
+    width: 8px;
+}
+
+.kanban-cards::-webkit-scrollbar-track {
+    background: #0f0f10;
+    border-radius: 4px;
+}
+
+.kanban-cards::-webkit-scrollbar-thumb {
+    background: #6f42c1;
+    border-radius: 4px;
+}
+
+.kanban-cards::-webkit-scrollbar-thumb:hover {
+    background: #8a5dd3;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .kanban-board {
+        flex-direction: column;
+    }
+
+    .kanban-list {
+        max-width: 100%;
+        min-width: 100%;
+    }
+}

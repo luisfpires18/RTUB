@@ -65,16 +65,19 @@ public class Program
             // Log but don't fail if directory creation fails - let SQLite handle the error
             Console.WriteLine($"Warning: Could not ensure database directory exists: {ex.Message}");
         }
-        
-        services.AddDbContext<ApplicationDbContext>(o => 
+
+        services.AddDbContext<ApplicationDbContext>(o =>
         {
-            o.UseSqlite(connectionString, b => 
+            o.UseSqlite(connectionString, b =>
             {
                 b.MigrationsAssembly("RTUB");
                 // Configure query splitting to prevent N+1 query performance issues when loading multiple collections
                 b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-            });
+            })
+            .ConfigureWarnings(w =>
+                w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         });
+
 
         // ---------- Identity ----------
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -122,6 +125,9 @@ public class Program
         services.AddScoped<IActivityService, ActivityService>();
         services.AddScoped<IEnrollmentService, EnrollmentService>();
         services.AddScoped<IUserProfileService, UserProfileService>();
+        services.AddScoped<ILogisticsBoardService, LogisticsBoardService>();
+        services.AddScoped<ILogisticsListService, LogisticsListService>();
+        services.AddScoped<ILogisticsCardService, LogisticsCardService>();
         
         // --------- Cloudflare R2 S3 Client (Singleton) ---------
         // Register a single shared AmazonS3Client with exact config that works with Cloudflare R2

@@ -1,0 +1,68 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+
+<div class="card logistics-board-card h-100">
+    <div class="position-relative">
+        @if (ShowActions)
+        {
+            <div class="board-admin-overlay">
+                <button class="btn btn-sm music-btn-edit" @onclick="() => OnEdit.InvokeAsync(Board)" 
+                        @onclick:stopPropagation="true" title="Editar">
+                    <i class="bi bi-pencil music-icon-edit"></i>
+                </button>
+                <button class="btn btn-sm music-btn-delete" @onclick="() => OnDelete.InvokeAsync(Board)" 
+                        @onclick:stopPropagation="true" title="Eliminar">
+                    <i class="bi bi-trash music-icon-delete"></i>
+                </button>
+            </div>
+        }
+        <div class="board-icon-header">
+            <div class="board-icon-circle">
+                <i class="bi bi-kanban"></i>
+            </div>
+        </div>
+    </div>
+    <div class="card-body d-flex flex-column">
+        <h5 class="card-title mb-2 fw-semibold">@Board.Name</h5>
+        
+        @if (!string.IsNullOrWhiteSpace(Board.Description))
+        {
+            <p class="card-text text-light-theme small mb-2">@Board.Description</p>
+        }
+        
+        @if (Board.Event != null)
+        {
+            <div class="mb-2">
+                <span class="badge bg-primary d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-calendar-event"></i> @Board.Event.Name
+                </span>
+            </div>
+        }
+        
+        <div class="board-actions mt-auto">
+            <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center gap-1 w-100" 
+                    @onclick="(() => OnView.InvokeAsync(Board))" 
+                    title="Abrir Quadro">
+                <i class="bi bi-kanban"></i>
+                <span>Abrir Quadro</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public LogisticsBoard Board { get; set; } = null!;
+
+    [Parameter]
+    public bool ShowActions { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<LogisticsBoard> OnView { get; set; }
+
+    [Parameter]
+    public EventCallback<LogisticsBoard> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<LogisticsBoard> OnDelete { get; set; }
+}

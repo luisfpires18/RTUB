@@ -1,0 +1,150 @@
+@namespace RTUB.Shared
+@* 
+    Enhanced Confirm Dialog Component (Version 2)
+    Used for delete confirmations and other yes/no dialogs
+    Features improved styling with gradient headers and icons
+*@
+
+@if (Show)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-bottom border-secondary @(ConfirmButtonClass == "btn-danger" ? "bg-danger bg-opacity-10" : "")">
+                    <h5 class="modal-title @(ConfirmButtonClass == "btn-danger" ? "text-danger" : "")">
+                        @if (ConfirmButtonClass == "btn-danger")
+                        {
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                        }
+                        @Title
+                    </h5>
+                    @if (ShowCloseButton)
+                    {
+                        <button type="button" class="btn-close" @onclick="HandleCancel"></button>
+                    }
+                </div>
+                <div class="modal-body">
+                    @if (BodyContent != null)
+                    {
+                        @BodyContent
+                    }
+                    else
+                    {
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-info-circle text-primary fs-4 me-3 mt-1"></i>
+                            <div>
+                                @if (!string.IsNullOrEmpty(Message))
+                                {
+                                    <p class="mb-2">@Message</p>
+                                }
+                                @if (!string.IsNullOrEmpty(WarningMessage))
+                                {
+                                    <p class="text-danger mb-0">
+                                        <i class="bi bi-exclamation-circle me-1"></i>
+                                        <small>@WarningMessage</small>
+                                    </p>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
+                        <i class="bi bi-x-circle me-2"></i>@CancelText
+                    </button>
+                    <button type="button" class="btn @ConfirmButtonClass" @onclick="HandleConfirm">
+                        <i class="bi bi-@(ConfirmButtonClass == "btn-danger" ? "trash" : "check-circle") me-2"></i>@ConfirmText
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// Controls whether the dialog is visible
+    /// </summary>
+    [Parameter]
+    public bool Show { get; set; }
+
+    /// <summary>
+    /// Event callback when Show state changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> ShowChanged { get; set; }
+
+    /// <summary>
+    /// Dialog title
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = "Confirmar";
+
+    /// <summary>
+    /// Simple message to display (alternative to BodyContent)
+    /// </summary>
+    [Parameter]
+    public string? Message { get; set; }
+
+    /// <summary>
+    /// Warning message displayed below main message
+    /// </summary>
+    [Parameter]
+    public string? WarningMessage { get; set; }
+
+    /// <summary>
+    /// Custom body content
+    /// </summary>
+    [Parameter]
+    public RenderFragment? BodyContent { get; set; }
+
+    /// <summary>
+    /// Text for confirm button
+    /// </summary>
+    [Parameter]
+    public string ConfirmText { get; set; } = "Confirmar";
+
+    /// <summary>
+    /// Text for cancel button
+    /// </summary>
+    [Parameter]
+    public string CancelText { get; set; } = "Cancelar";
+
+    /// <summary>
+    /// CSS class for confirm button (e.g., "btn-danger" for delete)
+    /// </summary>
+    [Parameter]
+    public string ConfirmButtonClass { get; set; } = "btn-primary";
+
+    /// <summary>
+    /// Event callback when user confirms
+    /// </summary>
+    [Parameter]
+    public EventCallback OnConfirm { get; set; }
+
+    /// <summary>
+    /// Event callback when user cancels
+    /// </summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    /// <summary>
+    /// Whether to show close button in header
+    /// </summary>
+    [Parameter]
+    public bool ShowCloseButton { get; set; } = true;
+
+    private async Task HandleConfirm()
+    {
+        await OnConfirm.InvokeAsync();
+        Show = false;
+        await ShowChanged.InvokeAsync(false);
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+        Show = false;
+        await ShowChanged.InvokeAsync(false);
+    }
+}
