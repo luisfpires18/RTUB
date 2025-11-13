@@ -1,0 +1,458 @@
+@page "/owner/permissions"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Constants
+@using RTUB.Core.Enums
+@using RTUB.Shared
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject IUserClaimsService ClaimsService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Owner")]
+
+<PageTitle>Gestão de Permissões - RTUB</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="bi bi-shield-lock me-2"></i>Gestão de Permissões</h1>
+            <p class="text-muted">Configure permissões granulares por utilizador, categoria, posição e papel.</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <Alert Type="@(isError ? Alert.AlertType.Error : Alert.AlertType.Success)" 
+               Message="@message" 
+               Dismissible="true"
+               OnDismiss="@(() => message = string.Empty)" />
+    }
+
+    <!-- Tabs for different permission views -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "overview" ? "active" : "")" 
+                    @onclick="@(() => activeTab = "overview")">
+                <i class="bi bi-eye me-1"></i>Visão Geral
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "users" ? "active" : "")" 
+                    @onclick="@(() => activeTab = "users")">
+                <i class="bi bi-people me-1"></i>Por Utilizador
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "categories" ? "active" : "")" 
+                    @onclick="@(() => activeTab = "categories")">
+                <i class="bi bi-tags me-1"></i>Por Categoria
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "positions" ? "active" : "")" 
+                    @onclick="@(() => activeTab = "positions")">
+                <i class="bi bi-award me-1"></i>Por Posição
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "pages" ? "active" : "")" 
+                    @onclick="@(() => activeTab = "pages")">
+                <i class="bi bi-file-earmark me-1"></i>Por Página
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        @if (activeTab == "overview")
+        {
+            @OverviewTab()
+        }
+        else if (activeTab == "users")
+        {
+            @UsersPermissionTab()
+        }
+        else if (activeTab == "categories")
+        {
+            @CategoriesPermissionTab()
+        }
+        else if (activeTab == "positions")
+        {
+            @PositionsPermissionTab()
+        }
+        else if (activeTab == "pages")
+        {
+            @PagesPermissionTab()
+        }
+    </div>
+</div>
+
+@code {
+    private string activeTab = "overview";
+    private string message = string.Empty;
+    private bool isError = false;
+    private List<ApplicationUser> users = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsersAsync();
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        users = UserManager.Users.OrderBy(u => u.Nickname).ToList();
+    }
+
+    private async Task HandlePermissionChanged()
+    {
+        message = "Permissões atualizadas com sucesso!";
+        isError = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // Overview Tab Component
+    private RenderFragment OverviewTab() => __builder =>
+    {
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-info-circle text-primary me-2"></i>
+                            Sistema de Permissões
+                        </h5>
+                        <p class="card-text">
+                            Este sistema permite configurar permissões granulares para utilizadores baseadas em:
+                        </p>
+                        <ul>
+                            <li><strong>Papéis</strong>: Owner, Admin, Member</li>
+                            <li><strong>Categorias</strong>: Leitão, Caloiro, Tuno, Veterano, etc.</li>
+                            <li><strong>Posições</strong>: Magister, Ensaiador, Tesoureiro, etc.</li>
+                            <li><strong>Páginas</strong>: Controlo de acesso por página</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-people text-success me-2"></i>
+                            Utilizadores
+                        </h5>
+                        <p class="card-text">
+                            <strong>@users.Count</strong> utilizadores no sistema
+                        </p>
+                        <hr />
+                        <small class="text-muted">
+                            Gerir permissões individuais por utilizador no separador "Por Utilizador"
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-shield-check text-warning me-2"></i>
+                            Permissões Automáticas
+                        </h5>
+                        <p class="card-text">
+                            Permissões são automaticamente atribuídas com base em:
+                        </p>
+                        <ul class="small">
+                            <li><strong>Magister</strong>: Todas as permissões financeiras</li>
+                            <li><strong>Ensaiador</strong>: Gestão de ensaios e repertório</li>
+                            <li><strong>Tesoureiros</strong>: Gestão financeira limitada</li>
+                            <li><strong>Tuno+</strong>: Pode ser mentor, votar, etc.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info">
+            <h6 class="alert-heading">
+                <i class="bi bi-lightbulb me-2"></i>Como Funciona
+            </h6>
+            <p class="mb-0">
+                As permissões são sincronizadas automaticamente quando:
+            </p>
+            <ul class="mb-0">
+                <li>Um utilizador faz login</li>
+                <li>As categorias ou posições de um utilizador são alteradas</li>
+                <li>Permissões personalizadas são adicionadas/removidas manualmente</li>
+            </ul>
+        </div>
+    };
+
+    // Users Permission Tab Component (simplified - would need full implementation)
+    private RenderFragment UsersPermissionTab() => __builder =>
+    {
+        <div>
+            <p class="text-muted">Selecione um utilizador para gerir as suas permissões individuais.</p>
+            
+            @if (!users.Any())
+            {
+                <EmptyState Title="Nenhum utilizador encontrado"
+                           Message="Não existem utilizadores no sistema."
+                           Icon="bi-people" />
+            }
+            else
+            {
+                <div class="row">
+                    @foreach (var user in users.Take(10))
+                    {
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <img src="@user.ProfilePictureSrc" alt="@user.Nickname"
+                                             class="member-avatar-small me-3" />
+                                        <div>
+                                            <h6 class="mb-0">@user.Nickname</h6>
+                                            <small class="text-muted">@user.Email</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <strong>Categorias:</strong>
+                                        @foreach (var cat in user.Categories)
+                                        {
+                                            <span class="badge @GetCategoryBadgeClass(cat) ms-1">@cat</span>
+                                        }
+                                    </div>
+                                    
+                                    @if (user.Positions.Any())
+                                    {
+                                        <div class="mb-2">
+                                            <strong>Posições:</strong>
+                                            @foreach (var pos in user.Positions)
+                                            {
+                                                <span class="badge bg-primary ms-1">@pos</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                
+                @if (users.Count > 10)
+                {
+                    <p class="text-muted text-center mt-3">
+                        A mostrar 10 de @users.Count utilizadores. 
+                        Use a pesquisa para encontrar utilizadores específicos.
+                    </p>
+                }
+            }
+        </div>
+    };
+
+    // Categories Permission Tab
+    private RenderFragment CategoriesPermissionTab() => __builder =>
+    {
+        <div class="alert alert-info mb-4">
+            <h6 class="alert-heading">Permissões por Categoria</h6>
+            <p class="mb-0">
+                As permissões são automaticamente atribuídas com base na categoria do membro.
+                Esta tabela mostra as permissões padrão para cada categoria.
+            </p>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Categoria</th>
+                        <th>Acesso a Páginas de Membros</th>
+                        <th>Inscrição em Eventos</th>
+                        <th>Atuar em Eventos</th>
+                        <th>Ser Mentor</th>
+                        <th>Votar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-leitao">Leitão</span></td>
+                        <td><i class="bi bi-x-circle text-danger"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i> Limitado</td>
+                        <td><i class="bi bi-x-circle text-danger"></i></td>
+                        <td><i class="bi bi-x-circle text-danger"></i></td>
+                        <td><i class="bi bi-x-circle text-danger"></i></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-caloiro">Caloiro</span></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-x-circle text-danger"></i></td>
+                        <td><i class="bi bi-x-circle text-danger"></i></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-tuno">Tuno</span></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-veterano">Veterano</span></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    };
+
+    // Positions Permission Tab
+    private RenderFragment PositionsPermissionTab() => __builder =>
+    {
+        <div class="alert alert-info mb-4">
+            <h6 class="alert-heading">Permissões por Posição</h6>
+            <p class="mb-0">
+                Posições da estrutura corporativa concedem permissões específicas automaticamente.
+            </p>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Magister</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>Permissões Automáticas:</h6>
+                        <ul>
+                            <li><i class="bi bi-check-circle text-success"></i> Gerir todas as finanças</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Atribuir todas as posições</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Ver registos de auditoria</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Todas as permissões administrativas</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Ensaiador</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>Permissões Automáticas:</h6>
+                        <ul>
+                            <li><i class="bi bi-check-circle text-success"></i> Gerir todos os ensaios</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Gerir repertório</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Agendar ensaios</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Registar presenças</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">Tesoureiros (1º e 2º)</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>Permissões Automáticas:</h6>
+                        <ul>
+                            <li><i class="bi bi-check-circle text-success"></i> Gerir finanças (âmbito limitado)</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Criar/editar transações</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Ver relatórios financeiros</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    };
+
+    // Pages Permission Tab
+    private RenderFragment PagesPermissionTab() => __builder =>
+    {
+        <div class="alert alert-info mb-4">
+            <h6 class="alert-heading">Controlo de Acesso por Página</h6>
+            <p class="mb-0">
+                Esta tabela mostra quem pode aceder a cada área do sistema.
+            </p>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Página/Área</th>
+                        <th>Leitão</th>
+                        <th>Caloiro/Tuno (Member)</th>
+                        <th>Admin</th>
+                        <th>Owner</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><i class="bi bi-house-door me-2"></i>Páginas Públicas</td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                    </tr>
+                    <tr>
+                        <td><i class="bi bi-people me-2"></i>Membros</td>
+                        <td><i class="bi bi-x-circle text-danger"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                    </tr>
+                    <tr>
+                        <td><i class="bi bi-calendar-event me-2"></i>Eventos</td>
+                        <td><i class="bi bi-dash-circle text-warning"></i> Ver apenas</td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                    </tr>
+                    <tr>
+                        <td><i class="bi bi-cash-coin me-2"></i>Finanças</td>
+                        <td><i class="bi bi-x-circle text-danger"></i></td>
+                        <td><i class="bi bi-dash-circle text-warning"></i> Ver apenas</td>
+                        <td><i class="bi bi-dash-circle text-warning"></i> Ver apenas</td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                    </tr>
+                    <tr>
+                        <td><i class="bi bi-shield-lock me-2"></i>Gestão de Utilizadores</td>
+                        <td><i class="bi bi-x-circle text-danger"></i></td>
+                        <td><i class="bi bi-x-circle text-danger"></i></td>
+                        <td><i class="bi bi-x-circle text-danger"></i></td>
+                        <td><i class="bi bi-check-circle text-success"></i></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    };
+
+    private string GetCategoryBadgeClass(MemberCategory category)
+    {
+        return category switch
+        {
+            MemberCategory.Leitao => "badge-leitao",
+            MemberCategory.Caloiro => "badge-caloiro",
+            MemberCategory.Tuno => "badge-tuno",
+            MemberCategory.Veterano => "badge-veterano",
+            MemberCategory.Tunossauro => "badge-tunossauro",
+            MemberCategory.TunoHonorario => "badge-honorario",
+            MemberCategory.Fundador => "badge-fundador",
+            _ => "bg-secondary"
+        };
+    }
+}
