@@ -302,6 +302,119 @@ public class RehearsalAttendanceServiceTests : IDisposable
         result.Should().NotContainKey("user2");
     }
 
+    [Fact]
+    public async Task MarkAttendanceAsync_WithNotes_PersistsNotes()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+
+        var userId = "user123";
+        var instrument = InstrumentType.Guitarra;
+        var notes = "These are my notes for the rehearsal";
+
+        // Act
+        var result = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, instrument, notes);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Notes.Should().Be(notes);
+        
+        // Verify in database
+        var fromDb = await _context.RehearsalAttendances.FirstOrDefaultAsync(a => a.Id == result.Id);
+        fromDb.Should().NotBeNull();
+        fromDb!.Notes.Should().Be(notes);
+    }
+
+    [Fact]
+    public async Task MarkAttendanceAsync_UpdateExistingNotes_UpdatesCorrectly()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+
+        var userId = "user123";
+        var instrument = InstrumentType.Guitarra;
+        var initialNotes = "Initial notes";
+        var updatedNotes = "Updated notes after change";
+
+        // Create initial attendance with notes
+        var initial = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, instrument, initialNotes);
+        initial.Notes.Should().Be(initialNotes);
+
+        // Act - Update with new notes
+        var updated = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, instrument, updatedNotes);
+
+        // Assert
+        updated.Id.Should().Be(initial.Id); // Same attendance record
+        updated.Notes.Should().Be(updatedNotes);
+        
+        // Verify in database
+        var fromDb = await _context.RehearsalAttendances.FirstOrDefaultAsync(a => a.Id == initial.Id);
+        fromDb.Should().NotBeNull();
+        fromDb!.Notes.Should().Be(updatedNotes);
+    }
+
+    [Fact]
+    public async Task MarkAttendanceAsync_ClearNotes_AllowsClearingNotes()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+
+        var userId = "user123";
+        var instrument = InstrumentType.Guitarra;
+        var initialNotes = "Initial notes";
+
+        // Create initial attendance with notes
+        var initial = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, instrument, initialNotes);
+        initial.Notes.Should().Be(initialNotes);
+
+        // Act - Clear notes by passing null
+        var updated = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, instrument, null);
+
+        // Assert
+        updated.Id.Should().Be(initial.Id); // Same attendance record
+        updated.Notes.Should().BeNull();
+        
+        // Verify in database
+        var fromDb = await _context.RehearsalAttendances.FirstOrDefaultAsync(a => a.Id == initial.Id);
+        fromDb.Should().NotBeNull();
+        fromDb!.Notes.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task MarkAttendanceAsync_ClearNotesWithEmptyString_AllowsClearingNotes()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+
+        var userId = "user123";
+        var instrument = InstrumentType.Guitarra;
+        var initialNotes = "Initial notes";
+
+        // Create initial attendance with notes
+        var initial = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, instrument, initialNotes);
+        initial.Notes.Should().Be(initialNotes);
+
+        // Act - Clear notes by passing empty string
+        var updated = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, instrument, "");
+
+        // Assert
+        updated.Id.Should().Be(initial.Id); // Same attendance record
+        updated.Notes.Should().Be("");
+        
+        // Verify in database
+        var fromDb = await _context.RehearsalAttendances.FirstOrDefaultAsync(a => a.Id == initial.Id);
+        fromDb.Should().NotBeNull();
+        fromDb!.Notes.Should().Be("");
+    }
+
     public void Dispose()
     {
         _context.Database.EnsureDeleted();

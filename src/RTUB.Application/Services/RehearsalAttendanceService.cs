@@ -55,8 +55,8 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             existing.WillAttend = willAttend;
             if (instrument.HasValue)
                 existing.UpdateInstrument(instrument);
-            if (!string.IsNullOrWhiteSpace(notes))
-                existing.Notes = notes;
+            // Always update notes, even if empty (allows clearing notes)
+            existing.Notes = notes;
             
             _context.RehearsalAttendances.Update(existing);
             await _context.SaveChangesAsync();
@@ -66,8 +66,8 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         // Create new attendance (defaults to pending - Attended = false)
         var attendance = RehearsalAttendance.Create(rehearsalId, userId, instrument);
         attendance.WillAttend = willAttend;
-        if (!string.IsNullOrWhiteSpace(notes))
-            attendance.Notes = notes;
+        // Always set notes, even if empty
+        attendance.Notes = notes;
         
         _context.RehearsalAttendances.Add(attendance);
         await _context.SaveChangesAsync();
