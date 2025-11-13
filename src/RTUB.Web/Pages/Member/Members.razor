@@ -1231,6 +1231,11 @@ else
             editingUser.YearCaloiro = null;
             editingUser.MentorId = null;
         }
+        else
+        {
+            // When deselecting Fundador, clear the YearTuno field
+            editingUser.YearTuno = null;
+        }
         StateHasChanged();
     }
 
