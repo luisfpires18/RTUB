@@ -26,12 +26,12 @@
                     <div class="d-flex gap-2">
                         <button type="button" 
                                 class="btn @(WillAttend ? "btn-success" : "btn-outline-secondary") flex-fill"
-                                @onclick="() => WillAttend = true">
+                                @onclick="@(() => OnWillAttendChanged(true))">
                             <i class="bi bi-check-circle me-1"></i> Vou
                         </button>
                         <button type="button" 
                                 class="btn @(!WillAttend ? "btn-danger" : "btn-outline-secondary") flex-fill"
-                                @onclick="() => WillAttend = false">
+                                @onclick="@(() => OnWillAttendChanged(false))">
                             <i class="bi bi-x-circle me-1"></i> Não vou
                         </button>
                     </div>
@@ -229,6 +229,12 @@
     private void OnWantToPlayChanged(bool value)
     {
         WantToPlay = value;
+    }
+
+    private async Task OnWillAttendChanged(bool value)
+    {
+        WillAttend = value;
+        await WillAttendChanged.InvokeAsync(value);
     }
 
     private async Task OnInstrumentChangedInternal()
