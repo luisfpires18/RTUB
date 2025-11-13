@@ -39,8 +39,16 @@
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.kanban-card:hover {
+.kanban-card.clickable {
+    cursor: pointer;
+}
+
+.kanban-card.clickable:hover {
     transform: translateY(-2px);
+}
+
+.kanban-card:not(.clickable) {
+    cursor: default;
 }
 
 /* Improved list header */
