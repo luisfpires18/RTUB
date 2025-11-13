@@ -34,6 +34,50 @@
     color: #e2e2e2;
 }
 
+.kanban-list-header .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+.kanban-list-header .btn-success {
+    background-color: rgba(25, 135, 84, 0.9);
+    border-color: rgba(25, 135, 84, 1);
+    color: #ffffff;
+}
+
+.kanban-list-header .btn-success:hover {
+    background-color: rgba(25, 135, 84, 1);
+    border-color: rgba(25, 135, 84, 1);
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+.kanban-list-header .btn-outline-light {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 1);
+    color: #000000;
+}
+
+.kanban-list-header .btn-outline-light:hover {
+    background-color: rgba(255, 255, 255, 1);
+    border-color: rgba(255, 255, 255, 1);
+    color: #000000;
+    transform: scale(1.05);
+}
+
+.kanban-list-header .btn-outline-danger {
+    background-color: rgba(220, 53, 69, 0.9);
+    border-color: rgba(220, 53, 69, 1);
+    color: #ffffff;
+}
+
+.kanban-list-header .btn-outline-danger:hover {
+    background-color: rgba(220, 53, 69, 1);
+    border-color: rgba(220, 53, 69, 1);
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
 .kanban-cards {
     flex: 1;
     overflow-y: auto;
@@ -166,17 +210,74 @@
     background: #00bc8c;
 }
 
-/* Board Card Styles */
+/* Board Card Styles - Mirroring RequestCard Design */
 .logistics-board-card {
-    background: #1a1a1a;
-    border: 1px solid #2f2f2f;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background-color: #151516;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
 }
 
 .logistics-board-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
-    border-color: #6f42c1;
+    transform: translateY(-3px);
+    border-color: rgba(var(--bs-primary-rgb), 0.6);
+    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.25);
+}
+
+/* Board icon header with circle - matching RequestCard */
+.board-icon-header {
+    width: 100%;
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.15) 0%, rgba(var(--bs-primary-rgb), 0.05) 100%);
+    border-bottom: 2px solid rgba(var(--bs-primary-rgb), 0.3);
+}
+
+.board-icon-circle {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background-color: rgba(var(--bs-primary-rgb), 0.2);
+    border: 2px solid var(--bs-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.logistics-board-card:hover .board-icon-circle {
+    background-color: rgba(var(--bs-primary-rgb), 0.3);
+    transform: scale(1.05);
+}
+
+.board-icon-circle i {
+    font-size: 1.875rem;
+    color: var(--bs-link-color);
+}
+
+/* Admin overlay for BoardCard - top-right positioning */
+.board-admin-overlay {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+    opacity: 0.85;
+    transition: opacity 0.2s ease;
+}
+
+.logistics-board-card:hover .board-admin-overlay {
+    opacity: 1;
+}
+
+/* Board actions section */
+.board-actions {
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(var(--bs-primary-rgb), 0.15);
 }
 
 .logistics-board-card .card-body {
