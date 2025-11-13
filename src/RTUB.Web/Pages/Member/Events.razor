@@ -293,6 +293,7 @@ else
                        NotesPlaceholder="Informações adicionais..."
                        SubmitButtonText="@(isEditingEnrollment ? "Atualizar" : "Inscrever")"
                        WantToPlay="@wantToPlay"
+                       WantToPlayChanged="@((bool value) => wantToPlay = value)"
                        OnSubmit="@SaveEnrollment"
                        OnCancel="@CloseEnrollModal" />
 }

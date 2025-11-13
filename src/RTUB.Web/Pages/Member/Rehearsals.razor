@@ -179,6 +179,7 @@ else
                        NotesPlaceholder="Adicione alguma nota..."
                        SubmitButtonText="Confirmar"
                        WantToPlay="@wantToPlayRehearsal"
+                       WantToPlayChanged="@((bool value) => wantToPlayRehearsal = value)"
                        OnSubmit="@ConfirmMarkAttendance"
                        OnCancel="@CloseAttendanceModal" />
 }

@@ -83,14 +83,14 @@
 
                 <div class="mb-3">
                     <label class="form-label text-white-full">Notas (opcional)</label>
-                    <InputTextArea class="form-control" rows="@NotesRows" @bind-Value="Notes" placeholder="@NotesPlaceholder" />
+                    <InputTextArea class="form-control" rows="@NotesRows" @bind-Value="Notes" @bind-Value:after="OnNotesChanged" placeholder="@NotesPlaceholder" />
                 </div>
             }
             else
             {
                 <div class="mb-3">
                     <label class="form-label text-white-full">Notas (opcional)</label>
-                    <InputTextArea class="form-control" rows="@NotesRows" @bind-Value="Notes" placeholder="@NotesPlaceholder" />
+                    <InputTextArea class="form-control" rows="@NotesRows" @bind-Value="Notes" @bind-Value:after="OnNotesChanged" placeholder="@NotesPlaceholder" />
                 </div>
             }
 
@@ -226,15 +226,27 @@
         }
     }
 
-    private void OnWantToPlayChanged(bool value)
+    /// <summary>
+    /// WantToPlay changed callback
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> WantToPlayChanged { get; set; }
+
+    private async Task OnWantToPlayChanged(bool value)
     {
         WantToPlay = value;
+        await WantToPlayChanged.InvokeAsync(value);
     }
 
     private async Task OnWillAttendChanged(bool value)
     {
         WillAttend = value;
         await WillAttendChanged.InvokeAsync(value);
+    }
+
+    private async Task OnNotesChanged()
+    {
+        await NotesChanged.InvokeAsync(Notes);
     }
 
     private async Task OnInstrumentChangedInternal()
