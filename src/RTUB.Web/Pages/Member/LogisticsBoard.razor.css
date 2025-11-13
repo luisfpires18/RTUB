@@ -112,6 +112,58 @@
     opacity: 0.8;
 }
 
+/* Card status button styling - show correct colors with purple border on selected */
+.btn-group .btn.status-todo {
+    background-color: #e74c3c;
+    border-color: #e74c3c;
+    color: white;
+}
+
+.btn-group .btn.status-todo:hover {
+    background-color: #c0392b;
+    border-color: #c0392b;
+}
+
+.btn-group .btn.status-todo.active {
+    background-color: #e74c3c;
+    border-color: #6f42c1;
+    box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.5);
+}
+
+.btn-group .btn.status-wip {
+    background-color: #f39c12;
+    border-color: #f39c12;
+    color: white;
+}
+
+.btn-group .btn.status-wip:hover {
+    background-color: #e67e22;
+    border-color: #e67e22;
+}
+
+.btn-group .btn.status-wip.active {
+    background-color: #f39c12;
+    border-color: #6f42c1;
+    box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.5);
+}
+
+.btn-group .btn.status-done {
+    background-color: #00bc8c;
+    border-color: #00bc8c;
+    color: white;
+}
+
+.btn-group .btn.status-done:hover {
+    background-color: #00a378;
+    border-color: #00a378;
+}
+
+.btn-group .btn.status-done.active {
+    background-color: #00bc8c;
+    border-color: #6f42c1;
+    box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.5);
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
     .logistics-board-header h1 {

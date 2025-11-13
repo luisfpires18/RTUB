@@ -343,15 +343,15 @@
                             <i class="bi bi-toggles me-2"></i>Estado
                         </label>
                         <div class="btn-group w-100" role="group">
-                            <button type="button" class="btn @(selectedCard.Status == CardStatus.Todo ? "btn-danger" : "btn-outline-danger")" 
+                            <button type="button" class="btn status-todo @(selectedCard.Status == CardStatus.Todo ? "active" : "")" 
                                     @onclick="() => UpdateCardStatus(CardStatus.Todo)">
                                 <i class="bi bi-x-circle me-1"></i> TODO
                             </button>
-                            <button type="button" class="btn @(selectedCard.Status == CardStatus.InProgress ? "btn-warning" : "btn-outline-warning")" 
+                            <button type="button" class="btn status-wip @(selectedCard.Status == CardStatus.InProgress ? "active" : "")" 
                                     @onclick="() => UpdateCardStatus(CardStatus.InProgress)">
                                 <i class="bi bi-hourglass-split me-1"></i> WIP
                             </button>
-                            <button type="button" class="btn @(selectedCard.Status == CardStatus.Done ? "btn-success" : "btn-outline-success")" 
+                            <button type="button" class="btn status-done @(selectedCard.Status == CardStatus.Done ? "active" : "")" 
                                     @onclick="() => UpdateCardStatus(CardStatus.Done)">
                                 <i class="bi bi-check-circle me-1"></i> DONE
                             </button>
