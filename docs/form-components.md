@@ -108,6 +108,8 @@ Same as FormTextField, plus:
 
 ## Complete Example
 
+### Example 1: Simple Form with FormSection
+
 ```razor
 @page "/example"
 @using RTUB.Shared
@@ -170,6 +172,76 @@ Same as FormTextField, plus:
     private string? eventDescription;
     private string? eventType;
 }
+```
+
+### Example 2: Modal Form (Logistics Board)
+
+Real-world example from Logistics.razor showing form components in a modal:
+
+```razor
+<div class="modal-body">
+    <FormSection>
+        <FormTextField Label="Nome do Quadro"
+                      Icon="kanban"
+                      @bind-Value="boardName"
+                      Placeholder="Nome do quadro"
+                      Required="true" />
+        
+        <FormTextArea Label="Descrição"
+                     Icon="text-paragraph"
+                     @bind-Value="boardDescription"
+                     Rows="3"
+                     Placeholder="Descrição do quadro (opcional)" />
+        
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-calendar-event text-primary me-2"></i>Evento Associado (opcional)
+            </label>
+            <input type="text" class="form-control" placeholder="Pesquisar evento..." 
+                   @bind="eventSearchTerm" @bind:event="oninput" />
+            @* Event search results... *@
+        </div>
+    </FormSection>
+</div>
+```
+
+### Example 3: Using with EditForm Validation
+
+For forms requiring validation, use InputText/InputDate/InputSelect with icon labels:
+
+```razor
+<EditForm Model="editingEvent" OnValidSubmit="SaveEvent">
+    <DataAnnotationsValidator />
+    
+    <div class="mb-3">
+        <label class="form-label fw-semibold">
+            <i class="bi bi-kanban text-primary me-2"></i>Nome da Atuação
+        </label>
+        <InputText class="form-control" @bind-Value="editingEvent!.Name" />
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-calendar3 text-primary me-2"></i>Data
+            </label>
+            <InputDate class="form-control" @bind-Value="editingEvent!.Date" />
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-clock text-primary me-2"></i>Hora
+            </label>
+            <input type="time" class="form-control" @bind="eventTime" />
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-semibold">
+            <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
+        </label>
+        <InputTextArea class="form-control" rows="4" @bind-Value="editingEvent!.Description" />
+    </div>
+</EditForm>
 ```
 
 ## Icons Reference
@@ -264,3 +336,137 @@ To migrate existing forms to use these components:
 4. **Accessibility** - Proper label-input associations
 5. **Icons** - Easy to add visual context
 6. **Responsive** - Mobile-friendly by default
+
+## Migration Notes
+
+### Real-World Migration Experience
+
+**Pages Successfully Migrated:**
+- ✅ Logistics.razor - Board create/edit modal
+- ✅ LogisticsBoard.razor - List and Card create modals
+- ✅ Events.razor - Event create/edit form (with validation)
+- ✅ Members.razor - Member create/edit form
+- ✅ Shop.razor - Product create/edit form
+- ✅ Inventory.razor - Instrument create/edit form
+
+### Key Patterns Discovered
+
+#### Pattern 1: Simple Forms (No Validation)
+Use FormTextField, FormTextArea, and FormSelect components directly:
+```razor
+<FormSection>
+    <FormTextField Label="Nome" Icon="person" @bind-Value="name" Required="true" />
+    <FormTextArea Label="Descrição" Icon="text-paragraph" @bind-Value="description" Rows="3" />
+</FormSection>
+```
+
+#### Pattern 2: Forms with EditForm Validation
+Keep InputText/InputDate/InputSelect for validation, but add icons to labels:
+```razor
+<EditForm Model="model" OnValidSubmit="Save">
+    <div class="mb-3">
+        <label class="form-label fw-semibold">
+            <i class="bi bi-person text-primary me-2"></i>Nome
+        </label>
+        <InputText class="form-control" @bind-Value="model.Name" />
+    </div>
+</EditForm>
+```
+
+#### Pattern 3: Mixed Forms
+Combine both patterns - use FormSection for grouping, custom labels for special fields:
+```razor
+<FormSection>
+    <FormTextField Label="Título" Icon="card-text" @bind-Value="title" />
+    
+    <!-- Custom field with search functionality -->
+    <div class="mb-3">
+        <label class="form-label fw-semibold">
+            <i class="bi bi-person text-primary me-2"></i>Atribuir a
+        </label>
+        <input type="text" class="form-control" @bind="userSearch" />
+        @* Search results... *@
+    </div>
+</FormSection>
+```
+
+### Icon Selection Guide
+
+**Discovered Icon Patterns:**
+
+**Data Entry:**
+- `kanban` - Project/Board names
+- `card-text` - Title/Heading fields
+- `text-paragraph` - Description/Text areas
+- `tag` - Category/Type selectors
+
+**Dates & Time:**
+- `calendar3` - General dates
+- `calendar-event` - Event dates
+- `calendar-check` - Completion/Due dates
+- `calendar-plus` - Start dates
+- `clock` - Time fields
+
+**People & Contact:**
+- `person` - Name fields
+- `star` - Nickname/Display name
+- `envelope` - Email
+- `telephone` - Phone
+
+**Location & Items:**
+- `geo-alt` - Location/Address
+- `box` - Product/Item name
+- `boxes` - Stock/Quantity
+- `music-note-beamed` - Instrument/Music
+- `bookmark` - Brand/Label
+- `hash` - Serial number/ID
+
+**Files & Media:**
+- `image` - Image upload
+- `file-text` - Notes/Documents
+- `paperclip` - Attachments
+
+**Financial:**
+- `currency-euro` - Price/Cost
+
+### Lessons Learned
+
+1. **FormSection is optional** - You can use form components without wrapping in FormSection if you prefer inline styling.
+
+2. **Validation compatibility** - For forms requiring DataAnnotationsValidator, stick with Microsoft.AspNetCore.Components.Forms components (InputText, etc.) and just add icons to labels.
+
+3. **Icon consistency** - Use `fw-semibold` class on labels for visual consistency with icons.
+
+4. **Color scheme** - Icons use `text-primary` class to match the purple theme throughout the app.
+
+5. **Flexibility** - Mix and match patterns as needed - not all fields need to use form components if they have special functionality.
+
+### Migration Checklist
+
+When migrating a form:
+
+- [ ] Identify form type (simple or with validation)
+- [ ] Choose appropriate pattern
+- [ ] Select meaningful icons for each field
+- [ ] Wrap simple forms in FormSection for grouping
+- [ ] Add `fw-semibold` to labels with icons
+- [ ] Maintain all `@bind-Value` and event handlers
+- [ ] Test functionality after migration
+- [ ] Verify mobile responsiveness
+
+### Performance Notes
+
+- Form components are lightweight with minimal overhead
+- No JavaScript dependencies
+- Server-side rendering compatible
+- Icons loaded from Bootstrap Icons (already in use)
+
+### Future Enhancements
+
+Potential improvements identified during migration:
+
+1. **FormDateField** - Dedicated component for date inputs with icon
+2. **FormNumberField** - Dedicated component for number inputs
+3. **FormCheckbox** - Checkbox with icon and label
+4. **FormFileUpload** - File upload with icon and preview
+5. **Validation support** - Add built-in validation message display

@@ -182,7 +182,9 @@ else
             }
 
             <div class="mb-3">
-                <label class="form-label">Nome da Atuação</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-kanban text-primary me-2"></i>Nome da Atuação
+                </label>
                 <InputText class="form-control" @bind-Value="editingEvent!.Name" />
             </div>
 
@@ -200,7 +202,9 @@ else
                 @if (!isDateRange)
                 {
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Data</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 text-primary me-2"></i>Data
+                        </label>
                         <InputDate class="form-control" @bind-Value="editingEvent!.Date" @bind-Value:after="OnDateChanged" />
                         @if (!string.IsNullOrEmpty(dateValidationError))
                         {
@@ -208,14 +212,18 @@ else
                         }
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Hora</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-clock text-primary me-2"></i>Hora
+                        </label>
                         <input type="time" class="form-control" value="@eventTimeString" @onchange="@((ChangeEventArgs e) => { eventTimeString = e.Value?.ToString() ?? "19:00"; OnTimeChanged(); })" />
                     </div>
                 }
                 else
                 {
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Data Início</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 text-primary me-2"></i>Data Início
+                        </label>
                         <InputDate class="form-control" @bind-Value="editingEvent!.Date" @bind-Value:after="OnDateChanged" />
                         @if (!string.IsNullOrEmpty(dateValidationError))
                         {
@@ -223,19 +231,25 @@ else
                         }
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Data Fim (opcional)</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-check text-primary me-2"></i>Data Fim (opcional)
+                        </label>
                         <InputDate class="form-control" @bind-Value="editingEvent!.EndDate" />
                     </div>
                 }
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Localização</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-geo-alt text-primary me-2"></i>Localização
+                </label>
                 <InputText class="form-control" @bind-Value="editingEvent!.Location" />
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Tipo de Atuação</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-tag text-primary me-2"></i>Tipo de Atuação
+                </label>
                 <InputSelect class="form-select" @bind-Value="editingEvent!.Type">
                     @foreach (var type in Enum.GetValues<EventType>())
                     {
@@ -252,7 +266,9 @@ else
                                OnFileSelected="HandleImageUpload" />
 
             <div class="mb-3">
-                <label class="form-label">Descrição</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
+                </label>
                 <InputTextArea class="form-control" rows="4" @bind-Value="editingEvent!.Description" />
             </div>
 

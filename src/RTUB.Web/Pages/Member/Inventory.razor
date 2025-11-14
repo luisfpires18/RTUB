@@ -191,11 +191,15 @@ else
 
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label class="form-label">Nome *</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-music-note-beamed text-primary me-2"></i>Nome *
+                    </label>
                     <InputText class="form-control" @bind-Value="instrument.Name" />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Tipo *</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-tag text-primary me-2"></i>Tipo *
+                    </label>
                     <InputSelect class="form-select" @bind-Value="instrument.Category">
                         <option value="">Selecione...</option>
                         @foreach (var category in categories)
@@ -208,18 +212,24 @@ else
 
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label class="form-label">Marca</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-bookmark text-primary me-2"></i>Marca
+                    </label>
                     <InputText class="form-control" @bind-Value="instrument.Brand" />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Número de Série</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-hash text-primary me-2"></i>Número de Série
+                    </label>
                     <InputText class="form-control" @bind-Value="instrument.SerialNumber" />
                 </div>
             </div>
 
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label class="form-label">Condição *</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-star text-primary me-2"></i>Condição *
+                    </label>
                     <InputSelect class="form-select" @bind-Value="instrument.Condition">
                         @foreach (InstrumentCondition condition in Enum.GetValues(typeof(InstrumentCondition)))
                         {
@@ -228,24 +238,32 @@ else
                     </InputSelect>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Localização</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização
+                    </label>
                     <InputText class="form-control" @bind-Value="instrument.Location" />
                 </div>
             </div>
 
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label class="form-label">Data Última Manutenção</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-calendar-check text-primary me-2"></i>Data Última Manutenção
+                    </label>
                     <InputDate class="form-control" @bind-Value="instrument.LastMaintenanceDate" />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Notas de Manutenção</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-file-text text-primary me-2"></i>Notas de Manutenção
+                    </label>
                     <InputTextArea class="form-control" @bind-Value="instrument.MaintenanceNotes" rows="3" />
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Imagem</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-image text-primary me-2"></i>Imagem
+                </label>
                 <InputFile class="form-control file-input-dark" OnChange="HandleInstrumentImageUpload" accept="image/*" />
                 @if (!string.IsNullOrEmpty(editingInstrument?.ImageUrl) && uploadedInstrumentImagePath == null)
                 {
