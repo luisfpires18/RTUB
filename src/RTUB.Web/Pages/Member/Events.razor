@@ -265,20 +265,16 @@ else
 </Modal>
 
 <!-- Delete Confirmation Modal -->
-<Modal Show="@showDeleteModal" 
-       ShowChanged="@((bool show) => showDeleteModal = show)"
-       Title="Confirmar Eliminação" 
-       Size="Modal.ModalSize.Default"
-       Centered="true">
-    <BodyContent>
-        <p>Tem a certeza de que pretende eliminar a atuação <strong>@deletingEvent?.Name</strong>?</p>
-        <p class="text-muted">Esta ação não pode ser anulada..</p>
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="DeleteEvent">Eliminar</button>
-    </FooterContent>
-</Modal>
+<ConfirmDialog Show="@showDeleteModal"
+               ShowChanged="@((bool show) => showDeleteModal = show)"
+               Title="Confirmar Eliminação"
+               Message="@($"Tem a certeza de que pretende eliminar a atuação {deletingEvent?.Name}?")"
+               WarningMessage="Esta ação não pode ser anulada."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="DeleteEvent"
+               OnCancel="CloseDeleteModal" />
 
 <!-- Enrollment Modal (using unified ParticipationModal) -->
 @if (enrollmentForm != null)
@@ -648,39 +644,28 @@ else
 </Modal>
 
 <!-- Trophy Delete Modal -->
-<Modal Show="@showTrophyDeleteModal"
-       ShowChanged="@((bool show) => showTrophyDeleteModal = show)"
-       Title="Confirmar Eliminação"
-       Size="Modal.ModalSize.Default"
-       Centered="true">
-    <BodyContent>
-        <p>Tem a certeza que deseja eliminar o prémio <strong>@deletingTrophy?.Name</strong>?</p>
-        <p class="text-muted small">Esta ação não pode ser revertida.</p>
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseTrophyDeleteModal">Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="DeleteTrophy">Eliminar</button>
-    </FooterContent>
-</Modal>
+<ConfirmDialog Show="@showTrophyDeleteModal"
+               ShowChanged="@((bool show) => showTrophyDeleteModal = show)"
+               Title="Confirmar Eliminação"
+               Message="@($"Tem a certeza que deseja eliminar o prémio {deletingTrophy?.Name}?")"
+               WarningMessage="Esta ação não pode ser revertida."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="DeleteTrophy"
+               OnCancel="CloseTrophyDeleteModal" />
 
 <!-- Delete Enrollment Confirmation Modal (Owner Only) -->
-<Modal Show="@showDeleteEnrollmentModal"
-       ShowChanged="@((bool show) => showDeleteEnrollmentModal = show)"
-       Title="Confirmar Eliminação de Inscrição"
-       Size="Modal.ModalSize.Default"
-       Centered="true">
-    <BodyContent>
-        @if (deletingEnrollment != null)
-        {
-            <p>Tem a certeza que deseja eliminar a inscrição de <strong>@deletingEnrollment.User?.GetDisplayName()</strong> neste evento?</p>
-            <p class="text-muted small">Esta ação não pode ser revertida.</p>
-        }
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteEnrollmentModal">Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="DeleteEnrollment">Eliminar</button>
-    </FooterContent>
-</Modal>
+<ConfirmDialog Show="@showDeleteEnrollmentModal"
+               ShowChanged="@((bool show) => showDeleteEnrollmentModal = show)"
+               Title="Confirmar Eliminação de Inscrição"
+               Message="@($"Tem a certeza que deseja eliminar a inscrição de {deletingEnrollment?.User?.GetDisplayName()} neste evento?")"
+               WarningMessage="Esta ação não pode ser revertida."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="DeleteEnrollment"
+               OnCancel="CloseDeleteEnrollmentModal" />
 
 <!-- Email Notification Confirmation Modal -->
 <Modal Show="@showEmailNotificationModal"
