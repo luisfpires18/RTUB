@@ -202,6 +202,9 @@ public class Program
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IMentionService, MentionService>();
         
+        // --------- Poll Services ---------
+        services.AddScoped<IPollService, PollService>();
+        
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
 

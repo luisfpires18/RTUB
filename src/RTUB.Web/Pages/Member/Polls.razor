@@ -1,0 +1,517 @@
+@page "/polls"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
+@using RTUB.Shared
+@inject IPollService PollService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject RTUB.Application.Services.AuditContext AuditContext
+@attribute [Authorize]
+
+<h1>Votações</h1>
+<p>Sistema de votação democrática da RTUB.</p>
+
+<AuthorizeView Roles="Admin,Member">
+    <Authorized>
+        <div class="mb-3">
+            <button class="btn btn-success" @onclick="OpenCreateModal" title="Criar Nova Votação">
+                <i class="bi bi-plus-lg"></i> Criar Votação
+            </button>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+<!-- Filter by Status -->
+<div class="mb-3">
+    <select class="form-select" @bind="selectedStatusFilter" @bind:after="LoadPolls" style="max-width: 300px;">
+        <option value="">Todas as Votações</option>
+        <option value="@((int)PollStatus.Active)">Ativas</option>
+        <option value="@((int)PollStatus.Closed)">Encerradas</option>
+        <option value="@((int)PollStatus.Scheduled)">Agendadas</option>
+    </select>
+</div>
+
+@if (polls == null)
+{
+    <div class="text-center p-4">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">A carregar...</span>
+        </div>
+    </div>
+}
+else if (!polls.Any())
+{
+    <EmptyState Title="Nenhuma votação criada"
+                Icon="bi-box-ballot"
+                Message="Crie uma votação para começar." />
+}
+else
+{
+    <div class="polls-grid">
+        @foreach (var poll in polls)
+        {
+            var results = pollResults.ContainsKey(poll.Id) ? pollResults[poll.Id] : new Dictionary<int, int>();
+            var totalVotes = results.Values.Sum();
+            var hasVoted = userVotes.ContainsKey(poll.Id) && userVotes[poll.Id].Any();
+            var canVote = poll.IsActive() && !hasVoted;
+
+            <div class="poll-card">
+                <div class="poll-card-header">
+                    <h5 class="poll-card-title">@poll.Title</h5>
+                    <div class="poll-status-badge">
+                        @if (poll.Status == PollStatus.Active && poll.IsActive())
+                        {
+                            <span class="badge bg-success">Ativa</span>
+                        }
+                        else if (poll.Status == PollStatus.Closed)
+                        {
+                            <span class="badge bg-secondary">Encerrada</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning">Agendada</span>
+                        }
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(poll.Description))
+                {
+                    <p class="poll-description">@poll.Description</p>
+                }
+
+                <div class="poll-meta">
+                    <small class="text-muted">
+                        <i class="bi bi-person"></i> @poll.CreatedByUser?.GetDisplayName()
+                    </small>
+                    <small class="text-muted">
+                        <i class="bi bi-calendar"></i> @poll.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                    </small>
+                </div>
+
+                @if (poll.EndDate.HasValue)
+                {
+                    <div class="poll-deadline">
+                        <small class="text-muted">
+                            <i class="bi bi-clock"></i> Termina: @poll.EndDate.Value.ToString("dd/MM/yyyy HH:mm")
+                        </small>
+                    </div>
+                }
+
+                <div class="poll-type-info">
+                    <small>
+                        @if (poll.PollType == PollType.SingleChoice)
+                        {
+                            <span><i class="bi bi-check-circle"></i> Escolha única</span>
+                        }
+                        else
+                        {
+                            <span><i class="bi bi-check-square"></i> Múltipla escolha (máx: @poll.MaxVotesPerUser)</span>
+                        }
+                        @if (poll.IsAnonymous)
+                        {
+                            <span class="ms-2"><i class="bi bi-incognito"></i> Anónimo</span>
+                        }
+                    </small>
+                </div>
+
+                <!-- Voting Interface or Results -->
+                @if (canVote)
+                {
+                    <div class="poll-options mt-3">
+                        @foreach (var option in poll.Options)
+                        {
+                            <div class="form-check poll-option">
+                                @if (poll.PollType == PollType.SingleChoice)
+                                {
+                                    <input class="form-check-input" type="radio" 
+                                           name="poll-@poll.Id" 
+                                           id="option-@option.Id"
+                                           @onchange="() => SelectSingleOption(poll.Id, option.Id)">
+                                }
+                                else
+                                {
+                                    <input class="form-check-input" type="checkbox" 
+                                           id="option-@option.Id"
+                                           checked="@selectedOptions[poll.Id].Contains(option.Id)"
+                                           @onchange="() => ToggleOption(poll.Id, option.Id)">
+                                }
+                                <label class="form-check-label" for="option-@option.Id">
+                                    @option.Text
+                                </label>
+                            </div>
+                        }
+                    </div>
+
+                    <button class="btn btn-primary btn-sm mt-2" 
+                            @onclick="() => SubmitVote(poll.Id)"
+                            disabled="@(!selectedOptions[poll.Id].Any())">
+                        <i class="bi bi-check-lg"></i> Votar
+                    </button>
+                }
+                else
+                {
+                    <!-- Results Display -->
+                    <div class="poll-results mt-3">
+                        <div class="results-header mb-2">
+                            <strong>Resultados</strong>
+                            <span class="text-muted">(@totalVotes votos)</span>
+                        </div>
+                        @foreach (var option in poll.Options.OrderByDescending(o => results.ContainsKey(o.Id) ? results[o.Id] : 0))
+                        {
+                            var votes = results.ContainsKey(option.Id) ? results[option.Id] : 0;
+                            var percentage = totalVotes > 0 ? (votes * 100.0 / totalVotes) : 0;
+                            var isUserChoice = hasVoted && userVotes[poll.Id].Contains(option.Id);
+
+                            <div class="result-item">
+                                <div class="result-label">
+                                    <span>@option.Text</span>
+                                    @if (isUserChoice)
+                                    {
+                                        <i class="bi bi-check-circle-fill text-success" title="Seu voto"></i>
+                                    }
+                                </div>
+                                <div class="result-bar-container">
+                                    <div class="result-bar" style="width: @percentage.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"></div>
+                                </div>
+                                <div class="result-stats">
+                                    <span>@votes votos</span>
+                                    <span>@percentage.ToString("F1")%</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (hasVoted && poll.IsActive() && !poll.IsAnonymous)
+                    {
+                        <button class="btn btn-outline-secondary btn-sm mt-2" 
+                                @onclick="() => ChangeVote(poll.Id)">
+                            <i class="bi bi-arrow-repeat"></i> Alterar Voto
+                        </button>
+                    }
+                }
+
+                <!-- Admin Actions -->
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <div class="poll-actions mt-3">
+                            @if (poll.Status == PollStatus.Active)
+                            {
+                                <button class="btn btn-warning btn-sm" @onclick="() => ClosePoll(poll.Id)">
+                                    <i class="bi bi-lock"></i> Encerrar
+                                </button>
+                            }
+                            <button class="btn btn-danger btn-sm" @onclick="() => DeletePoll(poll.Id)">
+                                <i class="bi bi-trash"></i> Eliminar
+                            </button>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        }
+    </div>
+}
+
+<!-- Create Poll Modal -->
+<Modal Show="@showCreateModal" 
+       ShowChanged="@((bool show) => showCreateModal = show)"
+       Title="Criar Nova Votação" 
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        <EditForm Model="@newPoll" OnValidSubmit="CreatePoll">
+            <DataAnnotationsValidator />
+            <ErrorDisplay />
+
+            <div class="mb-3">
+                <label class="form-label">Título <span class="text-danger">*</span></label>
+                <InputText class="form-control" @bind-Value="newPoll.Title" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Descrição</label>
+                <InputTextArea class="form-control" @bind-Value="newPoll.Description" rows="3" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tipo de Votação <span class="text-danger">*</span></label>
+                <InputSelect class="form-select" @bind-Value="newPoll.PollType">
+                    <option value="@PollType.SingleChoice">Escolha Única</option>
+                    <option value="@PollType.MultipleChoice">Múltipla Escolha</option>
+                </InputSelect>
+            </div>
+
+            @if (newPoll.PollType == PollType.MultipleChoice)
+            {
+                <div class="mb-3">
+                    <label class="form-label">Máximo de Votos por Utilizador</label>
+                    <InputNumber class="form-control" @bind-Value="newPoll.MaxVotesPerUser" min="1" max="100" />
+                </div>
+            }
+
+            <div class="mb-3">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" id="isAnonymous" @bind-Value="newPoll.IsAnonymous" />
+                    <label class="form-check-label" for="isAnonymous">
+                        Votação Anónima
+                    </label>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Data de Início</label>
+                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="newPoll.StartDate" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Data de Término</label>
+                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="newPoll.EndDate" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Opções <span class="text-danger">*</span></label>
+                @for (int i = 0; i < newPollOptions.Count; i++)
+                {
+                    int index = i;
+                    var placeholderText = $"Opção {index + 1}";
+                    <div class="input-group mb-2">
+                        <InputText class="form-control" @bind-Value="newPollOptions[index]" placeholder="@placeholderText" />
+                        @if (newPollOptions.Count > 2)
+                        {
+                            <button class="btn btn-outline-danger" type="button" @onclick="() => RemoveOption(index)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        }
+                    </div>
+                }
+                <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="AddOption">
+                    <i class="bi bi-plus"></i> Adicionar Opção
+                </button>
+            </div>
+        </EditForm>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="() => showCreateModal = false">Cancelar</button>
+        <button type="button" class="btn btn-primary" @onclick="CreatePoll">Criar</button>
+    </FooterContent>
+</Modal>
+
+@code {
+    private List<Poll> polls = null!;
+    private Dictionary<int, Dictionary<int, int>> pollResults = new();
+    private Dictionary<int, List<int>> userVotes = new();
+    private Dictionary<int, HashSet<int>> selectedOptions = new();
+    
+    private bool showCreateModal = false;
+    private CreatePollModel newPoll = new();
+    private List<string> newPollOptions = new() { "", "" };
+    
+    private string? selectedStatusFilter = null;
+    private string? currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            currentUserId = appUser?.Id;
+            
+            AuditContext.SetUser(user.Identity.Name, currentUserId);
+        }
+
+        await LoadPolls();
+    }
+
+    private async Task LoadPolls()
+    {
+        PollStatus? filterStatus = null;
+        if (!string.IsNullOrEmpty(selectedStatusFilter))
+        {
+            filterStatus = (PollStatus)int.Parse(selectedStatusFilter);
+        }
+
+        polls = (await PollService.GetAllPollsAsync(filterStatus)).ToList();
+        
+        // Load results and user votes for each poll
+        foreach (var poll in polls)
+        {
+            pollResults[poll.Id] = await PollService.GetPollResultsAsync(poll.Id);
+            
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                userVotes[poll.Id] = await PollService.GetUserVotesForPollAsync(poll.Id, currentUserId);
+            }
+            
+            selectedOptions[poll.Id] = new HashSet<int>();
+        }
+    }
+
+    private void OpenCreateModal()
+    {
+        newPoll = new CreatePollModel();
+        newPollOptions = new() { "", "" };
+        showCreateModal = true;
+    }
+
+    private void AddOption()
+    {
+        newPollOptions.Add("");
+    }
+
+    private void RemoveOption(int index)
+    {
+        if (newPollOptions.Count > 2)
+        {
+            newPollOptions.RemoveAt(index);
+        }
+    }
+
+    private async Task CreatePoll()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return;
+            }
+
+            // Validate options
+            var validOptions = newPollOptions.Where(o => !string.IsNullOrWhiteSpace(o)).ToList();
+            if (validOptions.Count < 2)
+            {
+                return;
+            }
+
+            var poll = await PollService.CreatePollAsync(
+                newPoll.Title,
+                newPoll.Description,
+                currentUserId,
+                newPoll.PollType,
+                newPoll.IsAnonymous,
+                newPoll.MaxVotesPerUser,
+                newPoll.StartDate,
+                newPoll.EndDate
+            );
+
+            // Add options
+            foreach (var optionText in validOptions)
+            {
+                await PollService.AddOptionAsync(poll.Id, optionText);
+            }
+
+            showCreateModal = false;
+            await LoadPolls();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating poll: {ex.Message}");
+        }
+    }
+
+    private void SelectSingleOption(int pollId, int optionId)
+    {
+        selectedOptions[pollId].Clear();
+        selectedOptions[pollId].Add(optionId);
+    }
+
+    private void ToggleOption(int pollId, int optionId)
+    {
+        var poll = polls.FirstOrDefault(p => p.Id == pollId);
+        if (poll == null) return;
+
+        if (selectedOptions[pollId].Contains(optionId))
+        {
+            selectedOptions[pollId].Remove(optionId);
+        }
+        else
+        {
+            if (selectedOptions[pollId].Count < poll.MaxVotesPerUser)
+            {
+                selectedOptions[pollId].Add(optionId);
+            }
+        }
+    }
+
+    private async Task SubmitVote(int pollId)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(currentUserId) || !selectedOptions[pollId].Any())
+            {
+                return;
+            }
+
+            await PollService.VoteAsync(pollId, currentUserId, selectedOptions[pollId].ToList());
+            await LoadPolls();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error submitting vote: {ex.Message}");
+        }
+    }
+
+    private async Task ChangeVote(int pollId)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return;
+            }
+
+            await PollService.RemoveVoteAsync(pollId, currentUserId);
+            await LoadPolls();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error changing vote: {ex.Message}");
+        }
+    }
+
+    private async Task ClosePoll(int pollId)
+    {
+        try
+        {
+            await PollService.ClosePollAsync(pollId);
+            await LoadPolls();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error closing poll: {ex.Message}");
+        }
+    }
+
+    private async Task DeletePoll(int pollId)
+    {
+        try
+        {
+            await PollService.DeletePollAsync(pollId);
+            await LoadPolls();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting poll: {ex.Message}");
+        }
+    }
+
+    private class CreatePollModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public PollType PollType { get; set; } = PollType.SingleChoice;
+        public bool IsAnonymous { get; set; } = false;
+        public int MaxVotesPerUser { get; set; } = 1;
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+    }
+}
