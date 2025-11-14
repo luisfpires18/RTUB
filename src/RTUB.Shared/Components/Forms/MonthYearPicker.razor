@@ -132,23 +132,28 @@
     // Track month and year independently
     private int? selectedMonth;
     private int? selectedYear;
+    private bool isInternalUpdate = false;
 
     private string? SelectedMonth => selectedMonth?.ToString() ?? "";
     private string? SelectedYear => selectedYear?.ToString() ?? "";
 
     protected override void OnParametersSet()
     {
-        // Sync local state with incoming Value
-        if (Value.HasValue)
+        // Only sync from external Value changes, not our own internal updates
+        if (!isInternalUpdate)
         {
-            selectedMonth = Value.Value.Month;
-            selectedYear = Value.Value.Year;
+            if (Value.HasValue)
+            {
+                selectedMonth = Value.Value.Month;
+                selectedYear = Value.Value.Year;
+            }
+            else
+            {
+                selectedMonth = null;
+                selectedYear = null;
+            }
         }
-        else
-        {
-            selectedMonth = null;
-            selectedYear = null;
-        }
+        isInternalUpdate = false;
     }
 
     private async Task OnMonthChanged(ChangeEventArgs e)
@@ -172,10 +177,12 @@
             }
             else
             {
+                // Keep month selected but don't create DateTime yet
                 Value = null;
             }
         }
         
+        isInternalUpdate = true;
         await ValueChanged.InvokeAsync(Value);
     }
 
@@ -200,10 +207,12 @@
             }
             else
             {
+                // Keep year selected but don't create DateTime yet
                 Value = null;
             }
         }
         
+        isInternalUpdate = true;
         await ValueChanged.InvokeAsync(Value);
     }
 }
