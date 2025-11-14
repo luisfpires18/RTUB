@@ -149,29 +149,77 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
 
         // Track role changes (critical action)
+        // Collect IDs during change tracking, then resolve names asynchronously after save
+        var pendingRoleAudits = new List<(string Action, string TargetUserId, string RoleId, string? CachedUsername, string? CachedRoleName)>();
+        
         foreach (var entry in ChangeTracker.Entries<IdentityUserRole<string>>())
         {
             if (entry.State == EntityState.Added || entry.State == EntityState.Deleted)
             {
                 var action = entry.State == EntityState.Added ? "Role Added" : "Role Removed";
                 
-                // Resolve username from UserId
-                // Note: Using Local first to avoid DB queries, then Find() which checks cache before querying.
-                // This is done during SaveChanges, so async operations are not possible here.
-                var targetUser = Users.Local.FirstOrDefault(u => u.Id == entry.Entity.UserId)
-                    ?? Users.Find(entry.Entity.UserId);
-                var targetUsername = targetUser?.UserName ?? entry.Entity.UserId;
+                // Try to resolve from Local cache only (no database queries)
+                var targetUser = Users.Local.FirstOrDefault(u => u.Id == entry.Entity.UserId);
+                var role = Roles.Local.FirstOrDefault(r => r.Id == entry.Entity.RoleId);
                 
-                // Resolve role name from RoleId
-                var role = Roles.Local.FirstOrDefault(r => r.Id == entry.Entity.RoleId)
-                    ?? Roles.Find(entry.Entity.RoleId);
-                var roleName = role?.Name ?? entry.Entity.RoleId;
+                // Store IDs and any cached values for async resolution after save
+                pendingRoleAudits.Add((
+                    action,
+                    entry.Entity.UserId,
+                    entry.Entity.RoleId,
+                    targetUser?.UserName,
+                    role?.Name
+                ));
+            }
+        }
+
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        // Resolve any missing user/role names asynchronously after the main save
+        if (pendingRoleAudits.Any())
+        {
+            // Collect IDs that need to be resolved
+            var userIdsToResolve = pendingRoleAudits
+                .Where(p => p.CachedUsername == null)
+                .Select(p => p.TargetUserId)
+                .Distinct()
+                .ToList();
+            
+            var roleIdsToResolve = pendingRoleAudits
+                .Where(p => p.CachedRoleName == null)
+                .Select(p => p.RoleId)
+                .Distinct()
+                .ToList();
+            
+            // Asynchronously fetch missing users and roles in batch
+            var resolvedUsers = userIdsToResolve.Any()
+                ? await Users.Where(u => userIdsToResolve.Contains(u.Id))
+                    .Select(u => new { u.Id, u.UserName })
+                    .ToDictionaryAsync(u => u.Id, u => u.UserName, cancellationToken)
+                : new Dictionary<string, string?>();
+            
+            var resolvedRoles = roleIdsToResolve.Any()
+                ? await Roles.Where(r => roleIdsToResolve.Contains(r.Id))
+                    .Select(r => new { r.Id, r.Name })
+                    .ToDictionaryAsync(r => r.Id, r => r.Name, cancellationToken)
+                : new Dictionary<string, string?>();
+            
+            // Create audit logs with resolved names
+            foreach (var pending in pendingRoleAudits)
+            {
+                var targetUsername = pending.CachedUsername
+                    ?? (resolvedUsers.TryGetValue(pending.TargetUserId, out var resolvedUser) ? resolvedUser : null)
+                    ?? pending.TargetUserId;
+                
+                var roleName = pending.CachedRoleName
+                    ?? (resolvedRoles.TryGetValue(pending.RoleId, out var resolvedRole) ? resolvedRole : null)
+                    ?? pending.RoleId;
                 
                 auditEntries.Add(new AuditLog
                 {
                     EntityType = "UserRole",
                     EntityId = null,
-                    Action = action,
+                    Action = pending.Action,
                     UserId = userId,
                     UserName = username,
                     Timestamp = DateTime.UtcNow,
@@ -185,8 +233,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 });
             }
         }
-
-        var result = await base.SaveChangesAsync(cancellationToken);
 
         // Save audit logs after successful save (disable auditing to prevent infinite loop)
         if (auditEntries.Any())
