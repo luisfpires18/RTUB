@@ -233,13 +233,11 @@
                     <button type="button" class="btn-close" @onclick="CloseListModal"></button>
                 </div>
                 <div class="modal-body">
-                    <FormSection>
-                        <FormTextField Label="Nome da Lista"
-                                      Icon="list-ul"
-                                      @bind-Value="listName"
-                                      Placeholder="Nome da lista"
-                                      Required="true" />
-                    </FormSection>
+                    <FormTextField Label="Nome da Lista"
+                                  Icon="list-ul"
+                                  @bind-Value="listName"
+                                  Placeholder="Nome da lista"
+                                  Required="true" />
                 </div>
                 <div class="modal-footer border-top border-secondary">
                     <button type="button" class="btn btn-secondary" @onclick="CloseListModal">
@@ -268,51 +266,49 @@
                     <button type="button" class="btn-close" @onclick="CloseCardModal"></button>
                 </div>
                 <div class="modal-body">
-                    <FormSection>
-                        <FormTextField Label="Título"
-                                      Icon="card-text"
-                                      @bind-Value="cardTitle"
-                                      Placeholder="Título do cartão"
-                                      Required="true" />
-                        
-                        <FormTextArea Label="Descrição"
-                                     Icon="text-paragraph"
-                                     @bind-Value="cardDescription"
-                                     Rows="3"
-                                     Placeholder="Descrição do cartão (opcional)" />
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-person text-primary me-2"></i>Atribuir a (opcional)
-                            </label>
-                            <input type="text" class="form-control" placeholder="Pesquisar utilizador..." 
-                                   @bind="userSearchTerm" @bind:event="oninput" />
-                            @if (!string.IsNullOrEmpty(userSearchTerm) && filteredUsers != null && filteredUsers.Any())
-                            {
-                                <div class="list-group mt-2 rounded" style="max-height: 200px; overflow-y: auto;">
-                                    @foreach (var user in filteredUsers.Take(10))
-                                    {
-                                        var userName = user.UserName ?? user.Email ?? string.Empty;
-                                        <button type="button" class="list-group-item list-group-item-action d-flex align-items-center" 
-                                                @onclick="() => SelectUser(user.Id, userName)">
-                                            <i class="bi bi-person text-primary me-2"></i>
-                                            @(user.UserName ?? user.Email)
-                                        </button>
-                                    }
-                                </div>
-                            }
-                            @if (!string.IsNullOrEmpty(selectedUserName))
-                            {
-                                <div class="d-flex align-items-center mt-2 p-2 bg-secondary bg-opacity-10 rounded">
-                                    <i class="bi bi-person text-secondary me-2"></i>
-                                    <span class="flex-grow-1">@selectedUserName</span>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearUserSelection">
-                                        <i class="bi bi-x-lg"></i>
+                    <FormTextField Label="Título"
+                                  Icon="card-text"
+                                  @bind-Value="cardTitle"
+                                  Placeholder="Título do cartão"
+                                  Required="true" />
+                    
+                    <FormTextArea Label="Descrição"
+                                 Icon="text-paragraph"
+                                 @bind-Value="cardDescription"
+                                 Rows="3"
+                                 Placeholder="Descrição do cartão (opcional)" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-person text-primary me-2"></i>Atribuir a (opcional)
+                        </label>
+                        <input type="text" class="form-control" placeholder="Pesquisar utilizador..." 
+                               @bind="userSearchTerm" @bind:event="oninput" />
+                        @if (!string.IsNullOrEmpty(userSearchTerm) && filteredUsers != null && filteredUsers.Any())
+                        {
+                            <div class="list-group mt-2 rounded" style="max-height: 200px; overflow-y: auto;">
+                                @foreach (var user in filteredUsers.Take(10))
+                                {
+                                    var userName = user.UserName ?? user.Email ?? string.Empty;
+                                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center" 
+                                            @onclick="() => SelectUser(user.Id, userName)">
+                                        <i class="bi bi-person text-primary me-2"></i>
+                                        @(user.UserName ?? user.Email)
                                     </button>
-                                </div>
-                            }
-                        </div>
-                    </FormSection>
+                                }
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(selectedUserName))
+                        {
+                            <div class="d-flex align-items-center mt-2 p-2 bg-secondary bg-opacity-10 rounded">
+                                <i class="bi bi-person text-secondary me-2"></i>
+                                <span class="flex-grow-1">@selectedUserName</span>
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearUserSelection">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
                 </div>
                 <div class="modal-footer border-top border-secondary">
                     <button type="button" class="btn btn-secondary" @onclick="CloseCardModal">

@@ -106,53 +106,51 @@
                     <button type="button" class="btn-close" @onclick="CloseBoardModal"></button>
                 </div>
                 <div class="modal-body">
-                    <FormSection>
-                        <FormTextField Label="Nome do Quadro"
-                                      Icon="kanban"
-                                      @bind-Value="boardName"
-                                      Placeholder="Nome do quadro"
-                                      Required="true" />
-                        
-                        <FormTextArea Label="Descrição"
-                                     Icon="text-paragraph"
-                                     @bind-Value="boardDescription"
-                                     Rows="3"
-                                     Placeholder="Descrição do quadro (opcional)" />
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-calendar-event text-primary me-2"></i>Evento Associado (opcional)
-                            </label>
-                            <input type="text" class="form-control" placeholder="Pesquisar evento..." 
-                                   @bind="eventSearchTerm" @bind:event="oninput" />
-                            @if (!string.IsNullOrEmpty(eventSearchTerm) && filteredEvents != null && filteredEvents.Any())
-                            {
-                                <div class="list-group mt-2 rounded" style="max-height: 200px; overflow-y: auto;">
-                                    @foreach (var evt in filteredEvents.Take(10))
-                                    {
-                                        <button type="button" class="list-group-item list-group-item-action d-flex align-items-center" 
-                                                @onclick="() => SelectEvent(evt.Id.ToString(), evt.Name)">
-                                            <i class="bi bi-calendar-event text-primary me-2"></i>
-                                            <div>
-                                                <div>@evt.Name</div>
-                                                <small class="text-light-theme">@evt.Date.ToString("dd/MM/yyyy")</small>
-                                            </div>
-                                        </button>
-                                    }
-                                </div>
-                            }
-                            @if (!string.IsNullOrEmpty(selectedEventName))
-                            {
-                                <div class="d-flex align-items-center mt-2 p-2 bg-primary bg-opacity-10 rounded">
-                                    <i class="bi bi-calendar-event text-primary me-2"></i>
-                                    <span class="flex-grow-1">@selectedEventName</span>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearEventSelection">
-                                        <i class="bi bi-x-lg"></i>
+                    <FormTextField Label="Nome do Quadro"
+                                  Icon="kanban"
+                                  @bind-Value="boardName"
+                                  Placeholder="Nome do quadro"
+                                  Required="true" />
+                    
+                    <FormTextArea Label="Descrição"
+                                 Icon="text-paragraph"
+                                 @bind-Value="boardDescription"
+                                 Rows="3"
+                                 Placeholder="Descrição do quadro (opcional)" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-event text-primary me-2"></i>Evento Associado (opcional)
+                        </label>
+                        <input type="text" class="form-control" placeholder="Pesquisar evento..." 
+                               @bind="eventSearchTerm" @bind:event="oninput" />
+                        @if (!string.IsNullOrEmpty(eventSearchTerm) && filteredEvents != null && filteredEvents.Any())
+                        {
+                            <div class="list-group mt-2 rounded" style="max-height: 200px; overflow-y: auto;">
+                                @foreach (var evt in filteredEvents.Take(10))
+                                {
+                                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center" 
+                                            @onclick="() => SelectEvent(evt.Id.ToString(), evt.Name)">
+                                        <i class="bi bi-calendar-event text-primary me-2"></i>
+                                        <div>
+                                            <div>@evt.Name</div>
+                                            <small class="text-light-theme">@evt.Date.ToString("dd/MM/yyyy")</small>
+                                        </div>
                                     </button>
-                                </div>
-                            }
-                        </div>
-                    </FormSection>
+                                }
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(selectedEventName))
+                        {
+                            <div class="d-flex align-items-center mt-2 p-2 bg-primary bg-opacity-10 rounded">
+                                <i class="bi bi-calendar-event text-primary me-2"></i>
+                                <span class="flex-grow-1">@selectedEventName</span>
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearEventSelection">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
                 </div>
                 <div class="modal-footer border-top border-secondary">
                     <button type="button" class="btn btn-secondary" @onclick="CloseBoardModal">
