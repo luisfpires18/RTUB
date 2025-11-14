@@ -1,0 +1,170 @@
+@page "/forms-demo"
+@rendermode InteractiveServer
+@using RTUB.Shared
+
+<PageTitle>Form Components Demo - RTUB</PageTitle>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-xl-9">
+            <h1 class="text-center mb-4">
+                <i class="bi bi-ui-checks-grid text-primary me-2"></i>
+                Modern Form Components
+            </h1>
+            <p class="text-center text-light-theme mb-5">
+                Beautiful, consistent form components with icons following DetailsModal and Profile design patterns
+            </p>
+
+            <!-- Example Form Section 1: Personal Information -->
+            <FormSection Title="Informações Pessoais" Icon="person-fill">
+                <div class="row">
+                    <div class="col-md-6">
+                        <FormTextField Label="Nome Completo"
+                                      Icon="person"
+                                      @bind-Value="fullName"
+                                      Placeholder="Inserir nome completo..."
+                                      Required="true" />
+                    </div>
+                    <div class="col-md-6">
+                        <FormTextField Label="Nome de Tuna"
+                                      Icon="star"
+                                      @bind-Value="tunaName"
+                                      Placeholder="Inserir nome de tuna..."
+                                      HelpText="O seu apelido na tuna" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <FormTextField Label="Email"
+                                      Icon="envelope"
+                                      @bind-Value="email"
+                                      Placeholder="exemplo@rtub.pt"
+                                      Required="true" />
+                    </div>
+                    <div class="col-md-6">
+                        <FormTextField Label="Contacto"
+                                      Icon="telephone"
+                                      @bind-Value="phone"
+                                      Placeholder="+351 912 345 678" />
+                    </div>
+                </div>
+            </FormSection>
+
+            <!-- Example Form Section 2: Event Details -->
+            <FormSection Title="Detalhes do Evento" Icon="calendar-event">
+                <FormTextField Label="Nome do Evento"
+                              Icon="kanban"
+                              @bind-Value="eventName"
+                              Placeholder="Nome da atuação..."
+                              Required="true" />
+
+                <FormTextArea Label="Descrição"
+                             Icon="text-paragraph"
+                             @bind-Value="eventDescription"
+                             Rows="4"
+                             Placeholder="Descreva o evento..." />
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <FormTextField Label="Localização"
+                                      Icon="geo-alt"
+                                      @bind-Value="eventLocation"
+                                      Placeholder="Local do evento..." />
+                    </div>
+                    <div class="col-md-6">
+                        <FormSelect Label="Tipo de Evento"
+                                   Icon="tag"
+                                   @bind-Value="eventType"
+                                   DefaultOption="Selecione o tipo...">
+                            <option value="concert">Concerto</option>
+                            <option value="rehearsal">Ensaio</option>
+                            <option value="social">Convívio</option>
+                            <option value="other">Outro</option>
+                        </FormSelect>
+                    </div>
+                </div>
+            </FormSection>
+
+            <!-- Example Form Section 3: Music Information -->
+            <FormSection Title="Informações Musicais" Icon="music-note-beamed">
+                <FormTextField Label="Título da Música"
+                              Icon="music-note"
+                              @bind-Value="songTitle"
+                              Placeholder="Título da música..." />
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <FormTextField Label="Autor (Letra)"
+                                      Icon="pen"
+                                      @bind-Value="lyricAuthor"
+                                      Placeholder="Autor da letra..." />
+                    </div>
+                    <div class="col-md-6">
+                        <FormTextField Label="Autor (Música)"
+                                      Icon="file-music"
+                                      @bind-Value="musicAuthor"
+                                      Placeholder="Autor da música..." />
+                    </div>
+                </div>
+
+                <FormSelect Label="Instrumento Principal"
+                           Icon="soundwave"
+                           @bind-Value="mainInstrument"
+                           DefaultOption="Selecione o instrumento...">
+                    <option value="guitar">Guitarra</option>
+                    <option value="bass">Baixo</option>
+                    <option value="drums">Bateria</option>
+                    <option value="keyboard">Teclado</option>
+                    <option value="vocals">Voz</option>
+                </FormSelect>
+            </FormSection>
+
+            <!-- Preview Section -->
+            <div class="card mt-4" style="background: rgba(30, 30, 30, 0.5); border: 1px solid rgba(var(--bs-primary-rgb), 0.2);">
+                <div class="card-header" style="background: rgba(var(--bs-primary-rgb), 0.05); border-bottom: 2px solid rgba(var(--bs-primary-rgb), 0.3);">
+                    <h5 class="mb-0">
+                        <i class="bi bi-eye text-primary me-2"></i>
+                        Preview dos Dados
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Nome:</strong> @(string.IsNullOrEmpty(fullName) ? "N/A" : fullName)</p>
+                    <p><strong>Nome de Tuna:</strong> @(string.IsNullOrEmpty(tunaName) ? "N/A" : tunaName)</p>
+                    <p><strong>Email:</strong> @(string.IsNullOrEmpty(email) ? "N/A" : email)</p>
+                    <p><strong>Telefone:</strong> @(string.IsNullOrEmpty(phone) ? "N/A" : phone)</p>
+                    <p><strong>Evento:</strong> @(string.IsNullOrEmpty(eventName) ? "N/A" : eventName)</p>
+                    <p><strong>Tipo:</strong> @(string.IsNullOrEmpty(eventType) ? "N/A" : eventType)</p>
+                    <p class="mb-0"><strong>Música:</strong> @(string.IsNullOrEmpty(songTitle) ? "N/A" : songTitle)</p>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-circle me-2"></i>
+                    Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Personal Information
+    private string? fullName;
+    private string? tunaName;
+    private string? email;
+    private string? phone;
+
+    // Event Details
+    private string? eventName;
+    private string? eventDescription;
+    private string? eventLocation;
+    private string? eventType;
+
+    // Music Information
+    private string? songTitle;
+    private string? lyricAuthor;
+    private string? musicAuthor;
+    private string? mainInstrument;
+}

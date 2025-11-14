@@ -1,0 +1,47 @@
+@namespace RTUB.Shared
+
+@*
+    FormSection Component
+    Container for grouping form fields with modern design, following InfoSection and DetailsModal patterns
+*@
+
+<div class="form-section @CssClass">
+    <div class="form-section-header">
+        <h6 class="form-section-title">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <i class="bi bi-@Icon me-2 text-primary"></i>
+            }
+            @Title
+        </h6>
+    </div>
+    <div class="form-section-body">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Title of the form section
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Bootstrap icon class name (without "bi-" prefix, e.g., "info-circle-fill")
+    /// </summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    /// <summary>
+    /// Additional CSS class for the section
+    /// </summary>
+    [Parameter]
+    public string CssClass { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Content of the section (form fields)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}
