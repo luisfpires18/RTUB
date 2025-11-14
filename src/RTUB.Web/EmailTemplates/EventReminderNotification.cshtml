@@ -1,7 +1,7 @@
 @model RTUB.Web.EmailTemplates.Models.EventReminderNotificationModel
 @{
     Layout = "~/EmailTemplates/_EmailLayout.cshtml";
-    ViewData["Preheader"] = "Lembrete: a atuação aproxima-se — confirma a tua presença.";
+    ViewData["Preheader"] = "Lembrete: a atuação aproxima-se. Confirma a tua presença.";
 }
 
 @{
@@ -10,8 +10,8 @@
         : Model.Nickname;
     
     var daysText = Model.DaysUntilEvent == 1 
-        ? "1 dia" 
-        : $"{Model.DaysUntilEvent} dias";
+        ? "Falta apenas 1 dia" 
+        : $"Faltam apenas {Model.DaysUntilEvent} dias";
 }
 
 <h1 style="margin: 0 0 16px 0; padding: 0; font-size: 28px; line-height: 1.3; font-weight: 600; color: #0B0B0F;">
@@ -23,7 +23,7 @@
 </p>
 
 <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
-    A atuação <strong>@Html.Raw(Model.EventTitle)</strong> está a aproximar-se — faltam apenas <strong>@Html.Raw(daysText)</strong>!
+    A atuação <strong>@Html.Raw(Model.EventTitle)</strong> está a aproximar-se. <strong>@Html.Raw(daysText)</strong>!
 </p>
 
 <!-- Event Details -->
@@ -62,7 +62,7 @@
             Consulta a <strong>secção de publicações</strong> para organizar veículos e logística da deslocação.
         </li>
         <li style="margin-bottom: 0;">
-            Não te esqueças de indicar se vais ou não — a tua resposta é fundamental para o sucesso da atuação!
+            Não te esqueças de indicar se vais ou não, a tua resposta é fundamental para o sucesso da atuação!
         </li>
     </ul>
 </div>
