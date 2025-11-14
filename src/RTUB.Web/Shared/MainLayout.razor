@@ -50,24 +50,26 @@
                         <li class="nav-item"><NavLink class="nav-link" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
                         <li class="nav-item"><NavLink class="nav-link" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
                         
-                        <li class="nav-item dropdown">
-                            <button class="nav-link dropdown-toggle" type="button" id="managementDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
-                                <i class="bi bi-gear-fill"></i> Gestão
-                            </button>
-                            <ul class="dropdown-menu" aria-labelledby="managementDropdown">
-                                @if (currentUser != null && !currentUser.IsLeitao())
-                                {
-                                    <li><NavLink class="dropdown-item" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
-                                }
-                                <li><NavLink class="dropdown-item" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
-                                <li><NavLink class="dropdown-item" href="/logistics"><i class="bi bi-kanban"></i> Logística</NavLink></li>
-                                <AuthorizeView Roles="Admin" Context="adminContext">
-                                    <Authorized>
+                        @if (ShouldShowGestaoDropdown())
+                        {
+                            <li class="nav-item dropdown">
+                                <button class="nav-link dropdown-toggle" type="button" id="managementDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                                    <i class="bi bi-gear-fill"></i> Gestão
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="managementDropdown">
+                                    @if (currentUser != null && !currentUser.IsLeitao())
+                                    {
+                                        <li><NavLink class="dropdown-item" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
+                                    }
+                                    <li><NavLink class="dropdown-item" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                                    <li><NavLink class="dropdown-item" href="/logistics"><i class="bi bi-kanban"></i> Logística</NavLink></li>
+                                    @if (ShouldShowImagesMenuItem())
+                                    {
                                         <li><NavLink class="dropdown-item" href="/images"><i class="bi bi-images"></i> Imagens</NavLink></li>
-                                    </Authorized>
-                                </AuthorizeView>
-                            </ul>
-                        </li>
+                                    }
+                                </ul>
+                            </li>
+                        }
                     </Authorized>
                 </AuthorizeView>
 
@@ -364,5 +366,50 @@
         NavigationManager.LocationChanged -= HandleLocationChanged;
         ProfilePictureUpdateService.OnProfilePictureUpdated -= HandleProfilePictureUpdated;
         _debounceTimer?.Dispose();
+    }
+    
+    /// <summary>
+    /// Determines if the "Gestão" dropdown should be shown to the current user.
+    /// Hidden from Leitão and Caloiro users who are NOT Admin/Owner.
+    /// Shown to: Admin (any category), Owner (any category), Tuno and other categories.
+    /// </summary>
+    private bool ShouldShowGestaoDropdown()
+    {
+        if (currentUser == null) return false;
+        
+        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
+        var isAdmin = authState.User.IsInRole("Admin");
+        var isOwner = authState.User.IsInRole("Owner");
+        
+        // Show to Admin or Owner regardless of category
+        if (isAdmin || isOwner) return true;
+        
+        // Hide from Leitão and Caloiro who are not Admin/Owner
+        if (currentUser.IsLeitao() || currentUser.IsCaloiro()) return false;
+        
+        // Show to everyone else (Tuno, Veterano, Tunossauro, etc.)
+        return true;
+    }
+    
+    /// <summary>
+    /// Determines if the "Images" menu item should be shown.
+    /// Hidden from Caloiro users even if they are Admin.
+    /// Shown to: Admin who are NOT Caloiro, Owner.
+    /// </summary>
+    private bool ShouldShowImagesMenuItem()
+    {
+        if (currentUser == null) return false;
+        
+        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
+        var isAdmin = authState.User.IsInRole("Admin");
+        var isOwner = authState.User.IsInRole("Owner");
+        
+        // Show to Owner regardless of category
+        if (isOwner) return true;
+        
+        // Show to Admin who are NOT Caloiro
+        if (isAdmin && !currentUser.IsCaloiro()) return true;
+        
+        return false;
     }
 }

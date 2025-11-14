@@ -12,9 +12,12 @@
                 <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
                     <i class="bi bi-pencil music-icon-edit"></i>
                 </button>
-                <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
-                    <i class="bi bi-trash music-icon-delete"></i>
-                </button>
+                @if (ShowDeleteButton)
+                {
+                    <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
+                        <i class="bi bi-trash music-icon-delete"></i>
+                    </button>
+                }
             </div>
         }
         <div class="rehearsal-icon-header">
@@ -208,6 +211,13 @@
     /// </summary>
     [Parameter]
     public EventCallback OnViewDetails { get; set; }
+    
+    /// <summary>
+    /// Whether to show the delete button (default: true)
+    /// Can be set to false for users with restricted permissions (e.g., Caloiro Admins)
+    /// </summary>
+    [Parameter]
+    public bool ShowDeleteButton { get; set; } = true;
 
     // Handler methods to ensure events fire properly
     private async Task HandleViewAttendances()

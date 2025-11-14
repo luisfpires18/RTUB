@@ -90,6 +90,7 @@ else
                                AttendanceCount="@attendanceCount"
                                IsAdmin="@isAdmin"
                                IsPastRehearsal="false"
+                               ShowDeleteButton="@CanDeleteRehearsal()"
                                OnEdit="@(() => OpenEditModal(rehearsal))"
                                OnDelete="@(() => OpenDeleteModal(rehearsal))"
                                OnMarkAttendance="@(() => MarkAttendance(rehearsal))"
@@ -139,6 +140,7 @@ else
                                    AttendanceCount="@attendanceCount"
                                    IsAdmin="@isAdmin"
                                    IsPastRehearsal="true"
+                                   ShowDeleteButton="@CanDeleteRehearsal()"
                                    OnEdit="@(() => OpenEditModal(rehearsal))"
                                    OnDelete="@(() => OpenDeleteModal(rehearsal))"
                                    OnMarkAttendance="@(() => {})"
@@ -1849,5 +1851,24 @@ else
         
         [MaxLength(500, ErrorMessage = "As notas não podem exceder 500 caracteres")]
         public string? Notes { get; set; }
+    }
+    
+    /// <summary>
+    /// Determines if the current user is a Caloiro with Admin role.
+    /// These users have restricted permissions compared to other Admins.
+    /// </summary>
+    private bool IsCaloiroAdmin()
+    {
+        if (currentUser == null) return false;
+        return currentUser.IsCaloiro() && isAdmin && !isOwner;
+    }
+    
+    /// <summary>
+    /// Determines if the delete action should be available for rehearsals.
+    /// Hidden from Caloiro Admins.
+    /// </summary>
+    private bool CanDeleteRehearsal()
+    {
+        return isAdmin && !IsCaloiroAdmin();
     }
 }

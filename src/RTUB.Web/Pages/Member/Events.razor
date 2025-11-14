@@ -57,6 +57,8 @@ else
                                    EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
                                    IsAdmin="@isUserAdmin"
                                    IsPastEvent="false"
+                                   ShowDeleteButton="@CanDeleteEvent()"
+                                   ShowCancelButton="@CanCancelEvent()"
                                    OnEdit="@(() => OpenEditModal(eventItem))"
                                    OnDelete="@(() => OpenDeleteModal(eventItem))"
                                    OnSendEmail="@(() => OpenEmailNotificationModal(eventItem))"
@@ -1981,6 +1983,34 @@ else
             // Could show an error message here
             Console.WriteLine($"Error uncanceling event: {ex.Message}");
         }
+    }
+    
+    /// <summary>
+    /// Determines if the current user is a Caloiro with Admin role.
+    /// These users have restricted permissions compared to other Admins.
+    /// </summary>
+    private bool IsCaloiroAdmin()
+    {
+        if (currentUser == null) return false;
+        return currentUser.IsCaloiro() && isUserAdmin && !isUserOwner;
+    }
+    
+    /// <summary>
+    /// Determines if the delete action should be available for events.
+    /// Hidden from Caloiro Admins.
+    /// </summary>
+    private bool CanDeleteEvent()
+    {
+        return isUserAdmin && !IsCaloiroAdmin();
+    }
+    
+    /// <summary>
+    /// Determines if the cancel action should be available for events.
+    /// Hidden from Caloiro Admins.
+    /// </summary>
+    private bool CanCancelEvent()
+    {
+        return isUserAdmin && !IsCaloiroAdmin();
     }
 }
 

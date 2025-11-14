@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Identity
 @using RTUB.Core.Enums
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
@@ -13,6 +14,7 @@
 @inject IRequestService RequestService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
 
 <h1>Gestão de Pedidos</h1>
 <p class="lead mb-4 lead-light">Gerir todos os pedidos submetidos através do website.</p>
@@ -46,7 +48,7 @@
                 <Authorized Context="ownerContext">
                     <RequestCard Request="@req"
                                 IsOwner="true"
-                                ShowAdminActions="@isAdmin"
+                                ShowAdminActions="@CanApproveRefuseRequests()"
                                 OnViewDetails="@(() => ViewRequest(req))"
                                 OnDelete="@(() => OpenDeleteModal(req))"
                                 OnApprove="@(() => OpenApproveModal(req))"
@@ -55,7 +57,7 @@
                 <NotAuthorized>
                     <RequestCard Request="@req"
                                 IsOwner="false"
-                                ShowAdminActions="@isAdmin"
+                                ShowAdminActions="@CanApproveRefuseRequests()"
                                 OnViewDetails="@(() => ViewRequest(req))"
                                 OnDelete="@(() => {})"
                                 OnApprove="@(() => OpenApproveModal(req))"
@@ -235,11 +237,13 @@ else
     private Request? deletingRequest = null;
     private Request? approvingRequest = null;
     private Request? rejectingRequest = null;
+    private ApplicationUser? currentUser = null;
     
     private bool showApproveDialog = false;
     private bool showCreateEventDialog = false;
     private bool showRejectDialog = false;
     private bool isAdmin = false;
+    private bool isOwner = false;
 
     // Filter state
     private string selectedStatusFilter = string.Empty;
@@ -261,10 +265,21 @@ else
         SortHelper.SortAscending = false;
         await LoadItemsAsync();
         
-        // Check if user is admin
+        // Check if user is admin and load current user
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         isAdmin = user.IsInRole("Admin");
+        isOwner = user.IsInRole("Owner");
+        
+        // Load current user
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userName = user.Identity.Name;
+            if (!string.IsNullOrEmpty(userName))
+            {
+                currentUser = await UserManager.FindByNameAsync(userName);
+            }
+        }
         
         ApplyFiltersAndPagination();
     }
@@ -442,6 +457,25 @@ else
             await RefreshDataAsync();
             CloseDeleteModal();
         }
+    }
+    
+    /// <summary>
+    /// Determines if the current user is a Caloiro with Admin role.
+    /// These users have restricted permissions compared to other Admins.
+    /// </summary>
+    private bool IsCaloiroAdmin()
+    {
+        if (currentUser == null) return false;
+        return currentUser.IsCaloiro() && isAdmin && !isOwner;
+    }
+    
+    /// <summary>
+    /// Determines if approve/refuse actions should be available.
+    /// Hidden from Caloiro Admins.
+    /// </summary>
+    private bool CanApproveRefuseRequests()
+    {
+        return isAdmin && !IsCaloiroAdmin();
     }
 }
 
