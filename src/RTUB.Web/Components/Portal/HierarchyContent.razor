@@ -35,15 +35,6 @@
                 <img src="/images/hierarchy/bag_leitao.webp"
                      class="hierarchy-card-image"
                      alt="Leitão - Traje de recruta com saco" />
-                @if (leitaoCardTitle != null)
-                {
-                    <div class="hierarchy-edit-button"
-                         role="button"
-                         tabindex="0"
-                         @onclick="() => OpenEditModal(leitaoCardTitle)">
-                        <i class="bi bi-pencil-fill"></i>
-                    </div>
-                }
             </div>
             <div class="hierarchy-card-content">
                 <div class="hierarchy-stage-badge">
@@ -51,6 +42,9 @@
                 </div>
                 <div class="hierarchy-card-header">
                     <h3 class="hierarchy-card-title">@(leitaoCardTitle?.Content ?? "Recruta")</h3>
+                    <LabelEditButton CurrentLabel="@leitaoCardTitle"
+                                     OnEditClick="@OpenEditModal"
+                                     CssClass="hierarchy-title-edit" />
                 </div>
                 <div class="hierarchy-card-description-wrapper">
                     <p class="hierarchy-card-description">@(leitaoCardDesc?.Content ?? "Traje saco de lixo.")</p>
@@ -67,15 +61,6 @@
                 <img src="/images/hierarchy/cords_caloiro.webp"
                      class="hierarchy-card-image"
                      alt="Caloiro - Cordões brancos" />
-                @if (caloiroCardTitle != null)
-                {
-                    <div class="hierarchy-edit-button"
-                         role="button"
-                         tabindex="0"
-                         @onclick="() => OpenEditModal(caloiroCardTitle)">
-                        <i class="bi bi-pencil-fill"></i>
-                    </div>
-                }
             </div>
             <div class="hierarchy-card-content">
                 <div class="hierarchy-stage-badge">
@@ -83,6 +68,9 @@
                 </div>
                 <div class="hierarchy-card-header">
                     <h3 class="hierarchy-card-title">@(caloiroCardTitle?.Content ?? "Novo Membro")</h3>
+                    <LabelEditButton CurrentLabel="@caloiroCardTitle"
+                                     OnEditClick="@OpenEditModal"
+                                     CssClass="hierarchy-title-edit" />
                 </div>
                 <div class="hierarchy-card-description-wrapper">
                     <p class="hierarchy-card-description">@(caloiroCardDesc?.Content ?? "Cordões Brancos.")</p>
@@ -99,15 +87,6 @@
                 <img src="/images/hierarchy/cords_tuno.webp"
                      class="hierarchy-card-image"
                      alt="Tuno - Cordões pretos" />
-                @if (tunoCardTitle != null)
-                {
-                    <div class="hierarchy-edit-button"
-                         role="button"
-                         tabindex="0"
-                         @onclick="() => OpenEditModal(tunoCardTitle)">
-                        <i class="bi bi-pencil-fill"></i>
-                    </div>
-                }
             </div>
             <div class="hierarchy-card-content">
                 <div class="hierarchy-stage-badge">
@@ -115,6 +94,9 @@
                 </div>
                 <div class="hierarchy-card-header">
                     <h3 class="hierarchy-card-title">@(tunoCardTitle?.Content ?? "Membro Experiente")</h3>
+                    <LabelEditButton CurrentLabel="@tunoCardTitle"
+                                     OnEditClick="@OpenEditModal"
+                                     CssClass="hierarchy-title-edit" />
                 </div>
                 <div class="hierarchy-card-description-wrapper">
                     <p class="hierarchy-card-description">@(tunoCardDesc?.Content ?? "Cordões Pretos.")</p>
@@ -131,15 +113,6 @@
                 <img src="/images/hierarchy/cords_magister.webp"
                      class="hierarchy-card-image"
                      alt="Magister - Cordões roxos, presidente da tuna" />
-                @if (magisterCardTitle != null)
-                {
-                    <div class="hierarchy-edit-button"
-                         role="button"
-                         tabindex="0"
-                         @onclick="() => OpenEditModal(magisterCardTitle)">
-                        <i class="bi bi-pencil-fill"></i>
-                    </div>
-                }
             </div>
             <div class="hierarchy-card-content">
                 <div class="hierarchy-stage-badge">
@@ -147,6 +120,9 @@
                 </div>
                 <div class="hierarchy-card-header">
                     <h3 class="hierarchy-card-title">@(magisterCardTitle?.Content ?? "Presidente")</h3>
+                    <LabelEditButton CurrentLabel="@magisterCardTitle"
+                                     OnEditClick="@OpenEditModal"
+                                     CssClass="hierarchy-title-edit" />
                 </div>
                 <div class="hierarchy-card-description-wrapper">
                     <p class="hierarchy-card-description">@(magisterCardDesc?.Content ?? "Cordões roxos.")</p>
