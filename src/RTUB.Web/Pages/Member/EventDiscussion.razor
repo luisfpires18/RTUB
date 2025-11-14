@@ -122,7 +122,7 @@
                                                     {
                                                         <CommentItem Comment="@comment" 
                                                                     CanEdit="@(IsCommentAuthor(comment))"
-                                                                    CanDelete="@(isAdmin || isOwner || IsCommentAuthor(comment))"
+                                                                    CanDelete="@(isOwner || IsCommentAuthor(comment))"
                                                                     OnEdit="@(async (body) => await EditComment(comment, body))"
                                                                     OnDelete="@(() => ShowDeleteCommentConfirm(comment, post.Id))" />
                                                     }
