@@ -345,6 +345,15 @@ namespace RTUB.Migrations
                     b.Property<int?>("YearTuno")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("MonthCaloiro")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("MonthLeitao")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("MonthTuno")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("MentorId");

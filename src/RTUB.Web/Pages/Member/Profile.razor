@@ -277,26 +277,26 @@ else
                                 <div class="row mb-3">
                                     <div class="col-md-4">
                                         <label class="form-label text-white-full fw-semibold">
-                                            <i class="bi bi-calendar3 text-primary me-2"></i>Ano LEITÃO
+                                            <i class="bi bi-calendar3 text-primary me-2"></i>Mês/Ano LEITÃO
                                         </label>
-                                        <InputNumber class="form-control" @bind-Value="editUser.YearLeitao" placeholder="Inserir ano..." />
+                                        <InputDate Type="InputDateType.Month" class="form-control" @bind-Value="LeitaoDate" />
                                     </div>
                                     @if (!user.IsOnlyLeitao())
                                     {
                                         <div class="col-md-4">
                                             <label class="form-label text-white-full fw-semibold">
-                                                <i class="bi bi-calendar3 text-primary me-2"></i>Ano CALOIRO
+                                                <i class="bi bi-calendar3 text-primary me-2"></i>Mês/Ano CALOIRO
                                             </label>
-                                            <InputNumber class="form-control" @bind-Value="editUser.YearCaloiro" placeholder="Inserir ano..." />
+                                            <InputDate Type="InputDateType.Month" class="form-control" @bind-Value="CaloiroDate" />
                                         </div>
                                     }
                                     @if (user.IsTunoOrHigher())
                                     {
                                         <div class="col-md-4">
                                             <label class="form-label text-white-full fw-semibold">
-                                                <i class="bi bi-calendar3 text-primary me-2"></i>Ano TUNO
+                                                <i class="bi bi-calendar3 text-primary me-2"></i>Mês/Ano TUNO
                                             </label>
-                                            <InputNumber class="form-control" @bind-Value="editUser.YearTuno" placeholder="Inserir ano..." />
+                                            <InputDate Type="InputDateType.Month" class="form-control" @bind-Value="TunoDate" />
                                         </div>
                                     }
                                 </div>
@@ -440,6 +440,49 @@ else
     private string? ChangePasswordMessage;
     private bool ChangePasswordSucceeded;
     private int imageRefreshTrigger = 0;
+    
+    // Helper properties for month/year date pickers
+    private DateTime? LeitaoDate
+    {
+        get => editUser != null ? GetDateFromYearMonth(editUser.YearLeitao, editUser.MonthLeitao) : null;
+        set
+        {
+            if (editUser != null)
+            {
+                var (year, month) = GetYearMonthFromDate(value);
+                editUser.YearLeitao = year;
+                editUser.MonthLeitao = month;
+            }
+        }
+    }
+    
+    private DateTime? CaloiroDate
+    {
+        get => editUser != null ? GetDateFromYearMonth(editUser.YearCaloiro, editUser.MonthCaloiro) : null;
+        set
+        {
+            if (editUser != null)
+            {
+                var (year, month) = GetYearMonthFromDate(value);
+                editUser.YearCaloiro = year;
+                editUser.MonthCaloiro = month;
+            }
+        }
+    }
+    
+    private DateTime? TunoDate
+    {
+        get => editUser != null ? GetDateFromYearMonth(editUser.YearTuno, editUser.MonthTuno) : null;
+        set
+        {
+            if (editUser != null)
+            {
+                var (year, month) = GetYearMonthFromDate(value);
+                editUser.YearTuno = year;
+                editUser.MonthTuno = month;
+            }
+        }
+    }
     
     // Section editing state
     private string? editingSection = null;
@@ -656,8 +699,11 @@ else
             DateOfBirth = user.DateOfBirth,
             Degree = user.Degree,
             YearLeitao = user.YearLeitao,
+            MonthLeitao = user.MonthLeitao,
             YearCaloiro = user.YearCaloiro,
+            MonthCaloiro = user.MonthCaloiro,
             YearTuno = user.YearTuno,
+            MonthTuno = user.MonthTuno,
             MainInstrument = user.MainInstrument,
             MentorId = user.MentorId
         };
@@ -724,8 +770,11 @@ else
         user.MainInstrument = editUser.MainInstrument;
         user.MentorId = editUser.MentorId;
         user.YearLeitao = editUser.YearLeitao;
+        user.MonthLeitao = editUser.MonthLeitao;
         user.YearCaloiro = editUser.YearCaloiro;
+        user.MonthCaloiro = editUser.MonthCaloiro;
         user.YearTuno = editUser.YearTuno;
+        user.MonthTuno = editUser.MonthTuno;
 
         await SetAuditContextToCurrentUser();
         await UserManager.UpdateAsync(user);
@@ -923,6 +972,26 @@ else
         var userName = authState.User.Identity?.Name;
         var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         AuditContext.SetUser(userName, userId);
+    }
+    
+    // Helper methods for converting between DateTime and Year+Month
+    private DateTime? GetDateFromYearMonth(int? year, int? month)
+    {
+        if (!year.HasValue) return null;
+        var monthValue = month ?? 1; // Default to January if month not set
+        return new DateTime(year.Value, monthValue, 1);
+    }
+    
+    private (int? year, int? month) GetYearMonthFromDate(DateTime? date)
+    {
+        if (date.HasValue)
+        {
+            return (date.Value.Year, date.Value.Month);
+        }
+        else
+        {
+            return (null, null);
+        }
     }
 
 }

@@ -276,9 +276,9 @@ else
                 {
                     <div class="col-md-4 mb-3">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar-plus text-primary me-2"></i>Ano de entrada Leitão
+                            <i class="bi bi-calendar-plus text-primary me-2"></i>Mês/Ano de entrada Leitão
                         </label>
-                        <InputNumber class="form-control" @bind-Value="editingUser.YearLeitao" placeholder="Inserir ano..." />
+                        <InputDate Type="InputDateType.Month" class="form-control" @bind-Value="LeitaoDate" />
                     </div>
                 }
 
@@ -286,9 +286,9 @@ else
                 {
                     <div class="col-md-4 mb-3">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar-event text-primary me-2"></i>Ano de passagem a Caloiro
+                            <i class="bi bi-calendar-event text-primary me-2"></i>Mês/Ano de passagem a Caloiro
                         </label>
-                        <InputNumber class="form-control" @bind-Value="editingUser.YearCaloiro" placeholder="Inserir ano..." />
+                        <InputDate Type="InputDateType.Month" class="form-control" @bind-Value="CaloiroDate" />
                     </div>
                 }
 
@@ -296,9 +296,9 @@ else
                 {
                     <div class="col-md-4 mb-3">
                         <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar-check text-primary me-2"></i>Ano de passagem a Tuno
+                            <i class="bi bi-calendar-check text-primary me-2"></i>Mês/Ano de passagem a Tuno
                         </label>
-                        <InputNumber class="form-control" @bind-Value="editingUser.YearTuno" placeholder="Inserir ano..." />
+                        <InputDate Type="InputDateType.Month" class="form-control" @bind-Value="TunoDate" />
                     </div>
                 }
             </div>
@@ -552,6 +552,40 @@ else
     private ApplicationUser? viewingUser;
     private EditForm? memberEditForm;
     private bool isFundador = false; // Track if user is a founder
+    
+    // Helper properties for month/year date pickers
+    private DateTime? LeitaoDate
+    {
+        get => GetDateFromYearMonth(editingUser.YearLeitao, editingUser.MonthLeitao);
+        set
+        {
+            var (year, month) = GetYearMonthFromDate(value);
+            editingUser.YearLeitao = year;
+            editingUser.MonthLeitao = month;
+        }
+    }
+    
+    private DateTime? CaloiroDate
+    {
+        get => GetDateFromYearMonth(editingUser.YearCaloiro, editingUser.MonthCaloiro);
+        set
+        {
+            var (year, month) = GetYearMonthFromDate(value);
+            editingUser.YearCaloiro = year;
+            editingUser.MonthCaloiro = month;
+        }
+    }
+    
+    private DateTime? TunoDate
+    {
+        get => GetDateFromYearMonth(editingUser.YearTuno, editingUser.MonthTuno);
+        set
+        {
+            var (year, month) = GetYearMonthFromDate(value);
+            editingUser.YearTuno = year;
+            editingUser.MonthTuno = month;
+        }
+    }
     
     // Mentor search variables
     private string mentorSearchTerm = "";
@@ -1002,8 +1036,11 @@ else
                 if (isFundador)
                 {
                     editingUser.YearTuno = 1991;
+                    editingUser.MonthTuno = 1; // January 1991
                     editingUser.YearLeitao = null;
+                    editingUser.MonthLeitao = null;
                     editingUser.YearCaloiro = null;
+                    editingUser.MonthCaloiro = null;
                     editingUser.MentorId = null; // Fundadores don't have mentors
                 }
             
@@ -1098,8 +1135,11 @@ else
                 existingUser.DateOfBirth = editingUser.DateOfBirth;
                 existingUser.Degree = editingUser.Degree;
                 existingUser.YearLeitao = editingUser.YearLeitao;
+                existingUser.MonthLeitao = editingUser.MonthLeitao;
                 existingUser.YearCaloiro = editingUser.YearCaloiro;
+                existingUser.MonthCaloiro = editingUser.MonthCaloiro;
                 existingUser.YearTuno = editingUser.YearTuno;
+                existingUser.MonthTuno = editingUser.MonthTuno;
                 existingUser.MainInstrument = editingUser.MainInstrument;
                 existingUser.MentorId = editingUser.MentorId;
                 
@@ -1107,8 +1147,11 @@ else
                 if (isFundador)
                 {
                     existingUser.YearTuno = 1991;
+                    existingUser.MonthTuno = 1; // January 1991
                     existingUser.YearLeitao = null;
+                    existingUser.MonthLeitao = null;
                     existingUser.YearCaloiro = null;
+                    existingUser.MonthCaloiro = null;
                     existingUser.MentorId = null; // Fundadores don't have mentors
                 }
 
@@ -1249,14 +1292,18 @@ else
         if (isFundador)
         {
             editingUser.YearTuno = 1991;
+            editingUser.MonthTuno = 1; // January 1991
             editingUser.YearLeitao = null;
+            editingUser.MonthLeitao = null;
             editingUser.YearCaloiro = null;
+            editingUser.MonthCaloiro = null;
             editingUser.MentorId = null;
         }
         else
         {
             // When deselecting Fundador, clear the YearTuno field
             editingUser.YearTuno = null;
+            editingUser.MonthTuno = null;
         }
         StateHasChanged();
     }
@@ -1267,6 +1314,26 @@ else
         var userName = authState.User.Identity?.Name;
         var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         AuditContext.SetUser(userName, userId);
+    }
+    
+    // Helper methods for converting between DateTime and Year+Month
+    private DateTime? GetDateFromYearMonth(int? year, int? month)
+    {
+        if (!year.HasValue) return null;
+        var monthValue = month ?? 1; // Default to January if month not set
+        return new DateTime(year.Value, monthValue, 1);
+    }
+    
+    private (int? year, int? month) GetYearMonthFromDate(DateTime? date)
+    {
+        if (date.HasValue)
+        {
+            return (date.Value.Year, date.Value.Month);
+        }
+        else
+        {
+            return (null, null);
+        }
     }
 }
 
