@@ -2033,6 +2033,10 @@ th:hover {
     pointer-events: all;
 }
 
+.post-card-actions-right {
+    margin-left: auto;
+}
+
 .post-card-actions .btn {
     padding: 0.375rem 0.75rem;
     font-size: 1rem;
