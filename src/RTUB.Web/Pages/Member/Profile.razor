@@ -276,27 +276,27 @@ else
                             {
                                 <div class="row mb-3">
                                     <div class="col-md-4">
-                                        <label class="form-label text-white-full fw-semibold">
-                                            <i class="bi bi-calendar3 text-primary me-2"></i>Mês/Ano LEITÃO
-                                        </label>
-                                        <InputDate Type="InputDateType.Month" class="form-control" @bind-Value="LeitaoDate" />
+                                        <MonthYearPicker Label="Mês/Ano LEITÃO"
+                                                         Icon="calendar3"
+                                                         LabelCssClass="text-white-full"
+                                                         @bind-Value="LeitaoDate" />
                                     </div>
                                     @if (!user.IsOnlyLeitao())
                                     {
                                         <div class="col-md-4">
-                                            <label class="form-label text-white-full fw-semibold">
-                                                <i class="bi bi-calendar3 text-primary me-2"></i>Mês/Ano CALOIRO
-                                            </label>
-                                            <InputDate Type="InputDateType.Month" class="form-control" @bind-Value="CaloiroDate" />
+                                            <MonthYearPicker Label="Mês/Ano CALOIRO"
+                                                             Icon="calendar3"
+                                                             LabelCssClass="text-white-full"
+                                                             @bind-Value="CaloiroDate" />
                                         </div>
                                     }
                                     @if (user.IsTunoOrHigher())
                                     {
                                         <div class="col-md-4">
-                                            <label class="form-label text-white-full fw-semibold">
-                                                <i class="bi bi-calendar3 text-primary me-2"></i>Mês/Ano TUNO
-                                            </label>
-                                            <InputDate Type="InputDateType.Month" class="form-control" @bind-Value="TunoDate" />
+                                            <MonthYearPicker Label="Mês/Ano TUNO"
+                                                             Icon="calendar3"
+                                                             LabelCssClass="text-white-full"
+                                                             @bind-Value="TunoDate" />
                                         </div>
                                     }
                                 </div>

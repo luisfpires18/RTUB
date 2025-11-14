@@ -1,0 +1,172 @@
+@namespace RTUB.Shared
+
+@*
+    MonthYearPicker Component
+    User-friendly month/year selector with dropdown menus instead of native HTML5 month input
+*@
+
+<div class="form-group @CssClass">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="form-label fw-semibold @LabelCssClass">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <i class="bi bi-@Icon text-primary me-2"></i>
+            }
+            @Label
+            @if (Required)
+            {
+                <span class="text-danger ms-1">*</span>
+            }
+        </label>
+    }
+    
+    <div class="row g-2">
+        <div class="col-6">
+            <select class="form-select @InputCssClass" 
+                    @onchange="OnMonthChanged" 
+                    disabled="@Disabled"
+                    value="@SelectedMonth">
+                <option value="">Mês</option>
+                <option value="1">Janeiro</option>
+                <option value="2">Fevereiro</option>
+                <option value="3">Março</option>
+                <option value="4">Abril</option>
+                <option value="5">Maio</option>
+                <option value="6">Junho</option>
+                <option value="7">Julho</option>
+                <option value="8">Agosto</option>
+                <option value="9">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+            </select>
+        </div>
+        <div class="col-6">
+            <select class="form-select @InputCssClass" 
+                    @onchange="OnYearChanged" 
+                    disabled="@Disabled"
+                    value="@SelectedYear">
+                <option value="">Ano</option>
+                @for (int year = DateTime.Now.Year; year >= MinYear; year--)
+                {
+                    <option value="@year">@year</option>
+                }
+            </select>
+        </div>
+    </div>
+    
+    @if (!string.IsNullOrEmpty(HelpText))
+    {
+        <small class="form-text text-muted mt-1 d-block">@HelpText</small>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Label text for the picker
+    /// </summary>
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Bootstrap icon class name (without "bi-" prefix, e.g., "calendar", "calendar3")
+    /// </summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    /// <summary>
+    /// Current value as DateTime (only month and year are used)
+    /// </summary>
+    [Parameter]
+    public DateTime? Value { get; set; }
+
+    /// <summary>
+    /// Event callback when value changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<DateTime?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Whether the field is required
+    /// </summary>
+    [Parameter]
+    public bool Required { get; set; }
+
+    /// <summary>
+    /// Whether the field is disabled
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Help text displayed below the picker
+    /// </summary>
+    [Parameter]
+    public string? HelpText { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes for the form group
+    /// </summary>
+    [Parameter]
+    public string CssClass { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Additional CSS classes for the label
+    /// </summary>
+    [Parameter]
+    public string LabelCssClass { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Additional CSS classes for the inputs
+    /// </summary>
+    [Parameter]
+    public string InputCssClass { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Minimum year to show in the year dropdown (default: 1990)
+    /// </summary>
+    [Parameter]
+    public int MinYear { get; set; } = 1990;
+
+    private string? SelectedMonth => Value?.Month.ToString() ?? "";
+    private string? SelectedYear => Value?.Year.ToString() ?? "";
+
+    private async Task OnMonthChanged(ChangeEventArgs e)
+    {
+        var monthStr = e.Value?.ToString();
+        
+        if (string.IsNullOrEmpty(monthStr))
+        {
+            // Month cleared - clear the entire value
+            Value = null;
+        }
+        else if (int.TryParse(monthStr, out int month))
+        {
+            // Set month, keeping existing year or defaulting to current year
+            int year = Value?.Year ?? DateTime.Now.Year;
+            Value = new DateTime(year, month, 1);
+        }
+        
+        await ValueChanged.InvokeAsync(Value);
+    }
+
+    private async Task OnYearChanged(ChangeEventArgs e)
+    {
+        var yearStr = e.Value?.ToString();
+        
+        if (string.IsNullOrEmpty(yearStr))
+        {
+            // Year cleared - clear the entire value
+            Value = null;
+        }
+        else if (int.TryParse(yearStr, out int year))
+        {
+            // Set year, keeping existing month or defaulting to January
+            int month = Value?.Month ?? 1;
+            Value = new DateTime(year, month, 1);
+        }
+        
+        await ValueChanged.InvokeAsync(Value);
+    }
+}

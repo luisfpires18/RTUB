@@ -275,30 +275,27 @@ else
                 @if (showYearLeitao && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar-plus text-primary me-2"></i>Mês/Ano de entrada Leitão
-                        </label>
-                        <InputDate Type="InputDateType.Month" class="form-control" @bind-Value="LeitaoDate" />
+                        <MonthYearPicker Label="Mês/Ano de entrada Leitão"
+                                         Icon="calendar-plus"
+                                         @bind-Value="LeitaoDate" />
                     </div>
                 }
 
                 @if (showYearCaloiro && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar-event text-primary me-2"></i>Mês/Ano de passagem a Caloiro
-                        </label>
-                        <InputDate Type="InputDateType.Month" class="form-control" @bind-Value="CaloiroDate" />
+                        <MonthYearPicker Label="Mês/Ano de passagem a Caloiro"
+                                         Icon="calendar-event"
+                                         @bind-Value="CaloiroDate" />
                     </div>
                 }
 
                 @if (showYearTuno && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-calendar-check text-primary me-2"></i>Mês/Ano de passagem a Tuno
-                        </label>
-                        <InputDate Type="InputDateType.Month" class="form-control" @bind-Value="TunoDate" />
+                        <MonthYearPicker Label="Mês/Ano de passagem a Tuno"
+                                         Icon="calendar-check"
+                                         @bind-Value="TunoDate" />
                     </div>
                 }
             </div>
