@@ -152,6 +152,75 @@ public class SlideshowServiceTests : IDisposable
             .WithMessage("Slideshow with ID 999 not found");
     }
 
+    [Fact]
+    public async Task UpdateSlideshowWithImageAsync_UpdatesSlideshowDetailsAndImage()
+    {
+        // Arrange
+        var slideshow = await _service.CreateSlideshowAsync("Original", 1, "Old desc", 3000);
+        var imageUrl = "https://example.com/test-image.webp";
+        
+        _imageStorageServiceMock
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(imageUrl);
+
+        // Act
+        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+        await _service.UpdateSlideshowWithImageAsync(slideshow.Id, "Updated", "New desc", 2, 4000, imageStream, "test.webp", "image/webp");
+        var updated = await _service.GetSlideshowByIdAsync(slideshow.Id);
+
+        // Assert
+        updated!.Title.Should().Be("Updated");
+        updated.Description.Should().Be("New desc");
+        updated.Order.Should().Be(2);
+        updated.IntervalMs.Should().Be(4000);
+        updated.ImageUrl.Should().Be(imageUrl);
+        
+        // Verify image was uploaded
+        _imageStorageServiceMock.Verify(
+            x => x.UploadImageAsync(It.IsAny<Stream>(), "test.webp", "image/webp", "slideshows", slideshow.Id.ToString()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateSlideshowWithImageAsync_WithExistingImage_DeletesOldImage()
+    {
+        // Arrange
+        var slideshow = await _service.CreateSlideshowAsync("Test", 1);
+        var oldImageUrl = "https://example.com/old-image.webp";
+        var newImageUrl = "https://example.com/new-image.webp";
+        
+        // Set initial image
+        slideshow.SetImage(oldImageUrl);
+        _context.Slideshows.Update(slideshow);
+        await _context.SaveChangesAsync();
+        
+        _imageStorageServiceMock
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(newImageUrl);
+
+        // Act
+        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+        await _service.UpdateSlideshowWithImageAsync(slideshow.Id, "New Title", "New desc", 2, 5000, imageStream, "test.webp", "image/webp");
+
+        // Assert
+        _imageStorageServiceMock.Verify(
+            x => x.DeleteImageAsync(oldImageUrl),
+            Times.Once,
+            "Old image should be deleted");
+    }
+
+    [Fact]
+    public async Task UpdateSlideshowWithImageAsync_WithInvalidId_ThrowsException()
+    {
+        // Arrange
+        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+
+        // Act & Assert
+        var act = async () => await _service.UpdateSlideshowWithImageAsync(999, "Title", "Desc", 1, 5000, imageStream, "test.webp", "image/webp");
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*not found*");
+    }
+
 
 
     [Fact]

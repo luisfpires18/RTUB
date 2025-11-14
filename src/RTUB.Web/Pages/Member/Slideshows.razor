@@ -353,20 +353,31 @@ else
         }
         else
         {
-            await SlideshowService.UpdateSlideshowAsync(
-                editingSlide.Id,
-                editingSlide.Title,
-                editingSlide.Description ?? string.Empty,
-                editingSlide.Order,
-                editingSlide.IntervalMs
-            );
-
-            // Upload new image to R2 if one was cropped
+            // Check if we're updating both details and image - combine into single transaction to avoid duplicate audit logs
             if (croppedSlideshowImageBytes != null && croppedSlideshowImageBytes.Length > 0 && uploadedImagePath != null)
             {
                 using var stream = new MemoryStream(croppedSlideshowImageBytes);
-                await SlideshowService.SetSlideshowImageAsync(editingSlide.Id, stream, croppedSlideshowImageFileName!, "image/webp");
+                await SlideshowService.UpdateSlideshowWithImageAsync(
+                    editingSlide.Id,
+                    editingSlide.Title,
+                    editingSlide.Description ?? string.Empty,
+                    editingSlide.Order,
+                    editingSlide.IntervalMs,
+                    stream,
+                    croppedSlideshowImageFileName!,
+                    "image/webp");
                 imageRefreshTrigger++;
+            }
+            else
+            {
+                // Only updating slideshow details (no new image)
+                await SlideshowService.UpdateSlideshowAsync(
+                    editingSlide.Id,
+                    editingSlide.Title,
+                    editingSlide.Description ?? string.Empty,
+                    editingSlide.Order,
+                    editingSlide.IntervalMs
+                );
             }
 
             if (editingSlide.IsActive)

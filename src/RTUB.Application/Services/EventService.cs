@@ -89,6 +89,38 @@ public class EventService : IEventService
         await _context.SaveChangesAsync();
     }
 
+    public async Task UpdateEventWithImageAsync(int id, string name, DateTime date, string location, string description, DateTime? endDate, Stream imageStream, string fileName, string contentType)
+    {
+        var eventEntity = await _context.Events.FindAsync(id);
+        if (eventEntity == null)
+            throw new InvalidOperationException($"Event with ID {id} not found");
+
+        // Update event details
+        eventEntity.UpdateDetails(name, date, location, description);
+        
+        if (endDate.HasValue)
+        {
+            eventEntity.SetEndDate(endDate);
+        }
+        else
+        {
+            eventEntity.EndDate = null;
+        }
+
+        // Delete old image if it exists
+        if (!string.IsNullOrEmpty(eventEntity.ImageUrl))
+        {
+            await _imageStorageService.DeleteImageAsync(eventEntity.ImageUrl);
+        }
+
+        // Upload new image to Cloudflare R2
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", id.ToString());
+        eventEntity.SetImage(imageUrl);
+        
+        _context.Events.Update(eventEntity);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task SetEventImageAsync(int id, Stream imageStream, string fileName, string contentType)
     {
         var eventEntity = await _context.Events.FindAsync(id);

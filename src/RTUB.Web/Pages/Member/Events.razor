@@ -1209,21 +1209,33 @@ else
         }
         else
         {
-            await EventService.UpdateEventAsync(
-                editingEvent.Id,
-                editingEvent.Name,
-                editingEvent.Date,
-                editingEvent.Location,
-                editingEvent.Description ?? string.Empty,
-                editingEvent.EndDate
-            );
-
-            // Upload new image to R2 if one was cropped
+            // Check if we're updating both details and image - combine into single transaction to avoid duplicate audit logs
             if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
             {
                 using var stream = new MemoryStream(croppedImageBytes);
-                await EventService.SetEventImageAsync(editingEvent.Id, stream, croppedImageFileName!, "image/webp");
+                await EventService.UpdateEventWithImageAsync(
+                    editingEvent.Id,
+                    editingEvent.Name,
+                    editingEvent.Date,
+                    editingEvent.Location,
+                    editingEvent.Description ?? string.Empty,
+                    editingEvent.EndDate,
+                    stream,
+                    croppedImageFileName!,
+                    "image/webp");
                 imageRefreshTrigger++;
+            }
+            else
+            {
+                // Only updating event details (no new image)
+                await EventService.UpdateEventAsync(
+                    editingEvent.Id,
+                    editingEvent.Name,
+                    editingEvent.Date,
+                    editingEvent.Location,
+                    editingEvent.Description ?? string.Empty,
+                    editingEvent.EndDate
+                );
             }
         }
 

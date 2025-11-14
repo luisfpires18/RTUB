@@ -59,6 +59,29 @@ public class SlideshowService : ISlideshowService
         await _context.SaveChangesAsync();
     }
 
+    public async Task UpdateSlideshowWithImageAsync(int id, string title, string description, int order, int intervalMs, Stream imageStream, string fileName, string contentType)
+    {
+        var slideshow = await _context.Slideshows.FindAsync(id);
+        if (slideshow == null)
+            throw new InvalidOperationException($"Slideshow with ID {id} not found");
+
+        // Update slideshow details
+        slideshow.UpdateDetails(title, description, order, intervalMs);
+
+        // Delete old image if it exists
+        if (!string.IsNullOrEmpty(slideshow.ImageUrl))
+        {
+            await _imageStorageService.DeleteImageAsync(slideshow.ImageUrl);
+        }
+
+        // Upload new image to Cloudflare R2
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", id.ToString());
+        slideshow.SetImage(imageUrl);
+        
+        _context.Slideshows.Update(slideshow);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task SetSlideshowImageAsync(int id, Stream imageStream, string fileName, string contentType)
     {
         var slideshow = await _context.Slideshows.FindAsync(id);
