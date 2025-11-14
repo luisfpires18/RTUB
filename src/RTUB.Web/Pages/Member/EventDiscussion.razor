@@ -84,55 +84,22 @@
                             var isExpanded = expandedPostIds.Contains(post.Id);
                             
                             <div class="post-wrapper mb-3">
-                                <!-- PostCard as clickable header -->
+                                <!-- PostCard as clickable header with action buttons -->
                                 <PostCard Post="@post" 
                                          CommentCount="@commentCount" 
-                                         OnClick="@(() => TogglePost(post.Id))" />
+                                         OnClick="@(() => TogglePost(post.Id))"
+                                         ShowAuthorControls="@IsAuthor(post)"
+                                         ShowAdminControls="@isAdmin"
+                                         ShowOwnerControls="@(isOwner && !IsAuthor(post))"
+                                         OnEdit="@(() => OpenEditPostModal(post))"
+                                         OnDelete="@(() => ShowDeletePostConfirm(post))"
+                                         OnTogglePin="@(() => TogglePin(post))"
+                                         OnToggleLock="@(() => ToggleLock(post))" />
                                 
                                 <!-- Expanded content -->
                                 @if (isExpanded)
                                 {
                                     <div class="post-expanded-content">
-                                        <!-- Action buttons -->
-                                        <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom border-secondary">
-                                            <div class="d-flex gap-2">
-                                                <!-- Author controls (left) -->
-                                                @if (IsAuthor(post))
-                                                {
-                                                    <button class="btn btn-sm btn-outline-light" @onclick="@(() => EditPost(post))" title="Editar">
-                                                        <i class="bi bi-pencil"></i> Editar
-                                                    </button>
-                                                    <button class="btn btn-sm btn-danger" @onclick="@(() => ShowDeletePostConfirm(post))" title="Eliminar">
-                                                        <i class="bi bi-trash"></i> Eliminar
-                                                    </button>
-                                                }
-                                            </div>
-                                            
-                                            <div class="d-flex gap-2">
-                                                <!-- Admin controls (right) -->
-                                                @if (isAdmin)
-                                                {
-                                                    <button class="btn btn-sm @(post.IsPinned ? "btn-warning" : "btn-outline-warning")" 
-                                                            @onclick="@(() => TogglePin(post))" 
-                                                            title="@(post.IsPinned ? "Desafixar" : "Fixar")">
-                                                        <i class="bi bi-pin-angle-fill"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm @(post.IsLocked ? "btn-danger" : "btn-outline-danger")" 
-                                                            @onclick="@(() => ToggleLock(post))" 
-                                                            title="@(post.IsLocked ? "Desbloquear" : "Bloquear")">
-                                                        <i class="bi @(post.IsLocked ? "bi-unlock-fill" : "bi-lock-fill")"></i>
-                                                    </button>
-                                                }
-                                                <!-- Owner controls -->
-                                                @if (isOwner)
-                                                {
-                                                    <button class="btn btn-sm btn-danger" @onclick="@(() => ShowDeletePostConfirm(post))" title="Eliminar Post">
-                                                        <i class="bi bi-trash"></i> Eliminar
-                                                    </button>
-                                                }
-                                            </div>
-                                        </div>
-                                        
                                         <!-- Full post body -->
                                         <div class="post-body-full mb-4" style="white-space: pre-line; line-height: 1.7; color: rgba(255, 255, 255, 0.85);">
                                             @post.Body
@@ -156,7 +123,7 @@
                                                         <CommentItem Comment="@comment" 
                                                                     CanEdit="@(IsCommentAuthor(comment))"
                                                                     CanDelete="@(isAdmin || isOwner || IsCommentAuthor(comment))"
-                                                                    OnEdit="@(() => EditComment(comment))"
+                                                                    OnEdit="@(async (body) => await EditComment(comment, body))"
                                                                     OnDelete="@(() => ShowDeleteCommentConfirm(comment, post.Id))" />
                                                     }
                                                 </div>
@@ -212,6 +179,22 @@
     </BodyContent>
 </Modal>
 
+<!-- Edit Post Modal -->
+<Modal Show="@showEditPostModal" 
+       ShowChanged="@((show) => showEditPostModal = show)"
+       Title="Editar Post"
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (postToEdit != null)
+        {
+            <PostComposer Title="@postToEdit.Title"
+                         Body="@postToEdit.Body"
+                         OnSubmit="@(async (tuple) => await UpdatePost(tuple.Item1, tuple.Item2))" />
+        }
+    </BodyContent>
+</Modal>
+
 <!-- Delete Post Confirmation -->
 <ConfirmDialog Show="@showDeletePostConfirm"
                ShowChanged="@((value) => showDeletePostConfirm = value)"
@@ -249,10 +232,12 @@
     private int pageSize = 20;
     private int totalPosts = 0;
     private bool showCreatePostModal = false;
+    private bool showEditPostModal = false;
     private HashSet<int> expandedPostIds = new HashSet<int>();
     private bool showDeletePostConfirm = false;
     private bool showDeleteCommentConfirm = false;
     private Post? postToDelete = null;
+    private Post? postToEdit = null;
     private Comment? commentToDelete = null;
     private int commentPostId = 0;
 
@@ -362,6 +347,23 @@
     {
         showCreatePostModal = true;
     }
+    
+    private void OpenEditPostModal(Post post)
+    {
+        postToEdit = post;
+        showEditPostModal = true;
+    }
+    
+    private async Task UpdatePost(string title, string body)
+    {
+        if (postToEdit == null) return;
+        
+        await PostService.UpdateAsync(postToEdit.Id, title, body);
+        await LoadPostsAsync();
+        showEditPostModal = false;
+        postToEdit = null;
+        StateHasChanged();
+    }
 
     private bool IsAuthor(Post post)
     {
@@ -399,8 +401,7 @@
 
     private async Task EditPost(Post post)
     {
-        // TODO: Implement edit modal
-        await Task.CompletedTask;
+        OpenEditPostModal(post);
     }
 
     private async Task TogglePin(Post post)
@@ -446,10 +447,11 @@
         }
     }
 
-    private async Task EditComment(Comment comment)
+    private async Task EditComment(Comment comment, string newBody)
     {
-        // TODO: Implement edit modal
-        await Task.CompletedTask;
+        await CommentService.UpdateAsync(comment.Id, newBody);
+        await LoadCommentsForPost(comment.PostId);
+        StateHasChanged();
     }
 
     private void ShowDeleteCommentConfirm(Comment comment, int postId)
