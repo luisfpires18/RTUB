@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251114201500_AddMonthFieldsToApplicationUser")]
+    partial class AddMonthFieldsToApplicationUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
@@ -411,96 +414,6 @@ namespace RTUB.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("AuditLogs");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Comment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AuthorId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsEdited")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("MentionsJson")
-                        .HasMaxLength(2000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("PostId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("BLOB");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AuthorId");
-
-                    b.HasIndex("IsDeleted");
-
-                    b.HasIndex("PostId", "CreatedAt")
-                        .HasDatabaseName("IX_Comment_PostId_CreatedAt");
-
-                    b.ToTable("Comments");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Discussion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("EventId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EventId")
-                        .IsUnique();
-
-                    b.ToTable("Discussions");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Enrollment", b =>
@@ -918,87 +831,6 @@ namespace RTUB.Migrations
                     b.HasIndex("BoardId");
 
                     b.ToTable("LogisticsLists");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AuthorId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("DiscussionId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsEdited")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsLocked")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsPinned")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime>("LastActivityAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MentionsJson")
-                        .HasMaxLength(2000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("BLOB");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AuthorId");
-
-                    b.HasIndex("IsDeleted");
-
-                    b.HasIndex("IsPinned");
-
-                    b.HasIndex("DiscussionId", "LastActivityAt")
-                        .HasDatabaseName("IX_Post_DiscussionId_LastActivity");
-
-                    b.ToTable("Posts");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Product", b =>
@@ -1652,36 +1484,6 @@ namespace RTUB.Migrations
                     b.Navigation("Mentor");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.Comment", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.Post", "Post")
-                        .WithMany("Comments")
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Author");
-
-                    b.Navigation("Post");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Discussion", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.Event", "Event")
-                        .WithMany()
-                        .HasForeignKey("EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Event");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.Enrollment", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.Event", "Event")
@@ -1718,68 +1520,6 @@ namespace RTUB.Migrations
                     b.Navigation("Event");
 
                     b.Navigation("Song");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.LogisticsBoard", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.Event", "Event")
-                        .WithMany()
-                        .HasForeignKey("EventId");
-
-                    b.Navigation("Event");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCard", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "AssignedToUser")
-                        .WithMany()
-                        .HasForeignKey("AssignedToUserId");
-
-                    b.HasOne("RTUB.Core.Entities.Event", "Event")
-                        .WithMany()
-                        .HasForeignKey("EventId");
-
-                    b.HasOne("RTUB.Core.Entities.LogisticsList", "List")
-                        .WithMany("Cards")
-                        .HasForeignKey("ListId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AssignedToUser");
-
-                    b.Navigation("Event");
-
-                    b.Navigation("List");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.LogisticsList", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.LogisticsBoard", "Board")
-                        .WithMany("Lists")
-                        .HasForeignKey("BoardId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Board");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.Discussion", "Discussion")
-                        .WithMany("Posts")
-                        .HasForeignKey("DiscussionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Author");
-
-                    b.Navigation("Discussion");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.ProductReservation", b =>
@@ -1873,6 +1613,49 @@ namespace RTUB.Migrations
                     b.Navigation("Event");
                 });
 
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsBoard", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.Event", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId");
+
+                    b.Navigation("Event");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsCard", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "AssignedToUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedToUserId");
+
+                    b.HasOne("RTUB.Core.Entities.Event", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId");
+
+                    b.HasOne("RTUB.Core.Entities.LogisticsList", "List")
+                        .WithMany("Cards")
+                        .HasForeignKey("ListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AssignedToUser");
+
+                    b.Navigation("Event");
+
+                    b.Navigation("List");
+                });
+
+            modelBuilder.Entity("RTUB.Core.Entities.LogisticsList", b =>
+                {
+                    b.HasOne("RTUB.Core.Entities.LogisticsBoard", "Board")
+                        .WithMany("Lists")
+                        .HasForeignKey("BoardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Board");
+                });
+
             modelBuilder.Entity("RTUB.Core.Entities.Activity", b =>
                 {
                     b.Navigation("Transactions");
@@ -1881,11 +1664,6 @@ namespace RTUB.Migrations
             modelBuilder.Entity("RTUB.Core.Entities.Album", b =>
                 {
                     b.Navigation("Songs");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Discussion", b =>
-                {
-                    b.Navigation("Posts");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Event", b =>
@@ -1905,11 +1683,6 @@ namespace RTUB.Migrations
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsList", b =>
                 {
                     b.Navigation("Cards");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
-                {
-                    b.Navigation("Comments");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Rehearsal", b =>
