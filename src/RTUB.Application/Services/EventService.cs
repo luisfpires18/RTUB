@@ -60,11 +60,43 @@ public class EventService : IEventService
             .ToListAsync();
     }
 
-    public async Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "")
+    public async Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null)
     {
         var eventEntity = Event.Create(name, date, location, type, description);
+        
+        if (endDate.HasValue)
+        {
+            eventEntity.SetEndDate(endDate);
+        }
+        
         _context.Events.Add(eventEntity);
         await _context.SaveChangesAsync();
+        return eventEntity;
+    }
+
+    public async Task<Event> CreateEventWithImageAsync(string name, DateTime date, string location, EventType type, string description, DateTime? endDate, Stream imageStream, string fileName, string contentType)
+    {
+        var eventEntity = Event.Create(name, date, location, type, description);
+        
+        if (endDate.HasValue)
+        {
+            eventEntity.SetEndDate(endDate);
+        }
+        
+        _context.Events.Add(eventEntity);
+        
+        // Save to get the ID - this creates the "Created" audit log
+        await _context.SaveChangesAsync();
+        
+        // Upload image to Cloudflare R2 using the generated ID
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", eventEntity.Id.ToString());
+        
+        // Set the image URL - EF Core is still tracking this entity
+        eventEntity.SetImage(imageUrl);
+        
+        // Save again - this will create a "Modified" audit log with ImageUrl change
+        await _context.SaveChangesAsync();
+        
         return eventEntity;
     }
 

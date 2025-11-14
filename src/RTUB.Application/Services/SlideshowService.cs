@@ -48,6 +48,32 @@ public class SlideshowService : ISlideshowService
         return slideshow;
     }
 
+    public async Task<Slideshow> CreateSlideshowWithImageAsync(string title, int order, string description, int intervalMs, bool isActive, Stream imageStream, string fileName, string contentType)
+    {
+        var slideshow = Slideshow.Create(title, order, description, intervalMs);
+        
+        if (!isActive)
+        {
+            slideshow.Deactivate();
+        }
+        
+        _context.Slideshows.Add(slideshow);
+        
+        // Save to get the ID - this creates the "Created" audit log
+        await _context.SaveChangesAsync();
+        
+        // Upload image to Cloudflare R2 using the generated ID
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", slideshow.Id.ToString());
+        
+        // Set the image URL - EF Core is still tracking this entity
+        slideshow.SetImage(imageUrl);
+        
+        // Save again - this will create a "Modified" audit log with ImageUrl change
+        await _context.SaveChangesAsync();
+        
+        return slideshow;
+    }
+
     public async Task UpdateSlideshowAsync(int id, string title, string description, int order, int intervalMs)
     {
         var slideshow = await _context.Slideshows.FindAsync(id);

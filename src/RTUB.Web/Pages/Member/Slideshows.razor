@@ -335,21 +335,17 @@ else
                 return;
             }
             
-            var newSlide = await SlideshowService.CreateSlideshowAsync(
+            // Create slideshow with image in single transaction to avoid duplicate audit logs
+            using var stream = new MemoryStream(croppedSlideshowImageBytes);
+            var newSlide = await SlideshowService.CreateSlideshowWithImageAsync(
                 editingSlide.Title,
                 editingSlide.Order,
                 editingSlide.Description ?? string.Empty,
-                editingSlide.IntervalMs
-            );
-            
-            // Upload image to R2
-            using var stream = new MemoryStream(croppedSlideshowImageBytes);
-            await SlideshowService.SetSlideshowImageAsync(newSlide.Id, stream, croppedSlideshowImageFileName!, "image/webp");
-            
-            if (editingSlide.IsActive)
-            {
-                await SlideshowService.ActivateSlideshowAsync(newSlide.Id);
-            }
+                editingSlide.IntervalMs,
+                editingSlide.IsActive,
+                stream,
+                croppedSlideshowImageFileName!,
+                "image/webp");
         }
         else
         {

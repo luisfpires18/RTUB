@@ -52,6 +52,26 @@ public class AlbumService : IAlbumService
         return album;
     }
 
+    public async Task<Album> CreateAlbumWithCoverAsync(string title, int? year, string? description, Stream imageStream, string fileName, string contentType)
+    {
+        var album = Album.Create(title, year, description);
+        _context.Albums.Add(album);
+        
+        // Save to get the ID - this creates the "Created" audit log
+        await _context.SaveChangesAsync();
+        
+        // Upload image to Cloudflare R2 using the generated ID
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", album.Id.ToString());
+        
+        // Set the image URL - EF Core is still tracking this entity
+        album.SetCoverImage(imageUrl);
+        
+        // Save again - this will create a "Modified" audit log with ImageUrl change
+        await _context.SaveChangesAsync();
+        
+        return album;
+    }
+
     public async Task UpdateAlbumAsync(int id, string title, int? year, string? description)
     {
         var album = await _context.Albums.FindAsync(id);

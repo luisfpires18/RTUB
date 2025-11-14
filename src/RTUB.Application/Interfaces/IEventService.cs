@@ -14,7 +14,8 @@ public interface IEventService
     Task<IEnumerable<Event>> GetUpcomingEventsAsync(int count = 10);
     Task<IEnumerable<Event>> GetPastEventsAsync(int count = 10);
     Task<IEnumerable<Event>> GetEventsByTypeAsync(EventType type);
-    Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "");
+    Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null);
+    Task<Event> CreateEventWithImageAsync(string name, DateTime date, string location, EventType type, string description, DateTime? endDate, Stream imageStream, string fileName, string contentType);
     Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, DateTime? endDate = null);
     Task UpdateEventWithImageAsync(int id, string name, DateTime date, string location, string description, DateTime? endDate, Stream imageStream, string fileName, string contentType);
     Task SetEventImageAsync(int id, Stream imageStream, string fileName, string contentType);
