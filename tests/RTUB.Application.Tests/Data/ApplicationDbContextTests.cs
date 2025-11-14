@@ -1296,6 +1296,70 @@ public class ApplicationDbContextTests : IDisposable
         auditLogs.Should().BeEmpty("LastLoginDate changes should not create audit logs");
     }
 
+    [Fact]
+    public async Task SaveChangesAsync_WhenRoleAddedAndEntitiesNotInLocalCache_ResolvesNamesAsynchronously()
+    {
+        // Arrange - Create role and user in database first
+        var testRole = new Microsoft.AspNetCore.Identity.IdentityRole
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Coordinator",
+            NormalizedName = "COORDINATOR"
+        };
+        _context.Roles.Add(testRole);
+        
+        var testUser = new ApplicationUser
+        {
+            Id = Guid.NewGuid().ToString(),
+            UserName = "coordinator1",
+            Email = "coordinator@example.com",
+            FirstName = "Coord",
+            LastName = "Inator",
+            PhoneContact = "123456789",
+            Nickname = "CoordUser",
+        };
+        _context.Users.Add(testUser);
+        await _context.SaveChangesAsync();
+
+        // Clear audit logs
+        var existingLogs = await _context.AuditLogs.ToListAsync();
+        _context.AuditLogs.RemoveRange(existingLogs);
+        await _context.SaveChangesAsync();
+
+        // Clear the change tracker to ensure user and role are NOT in Local cache
+        _context.ChangeTracker.Clear();
+
+        // Verify they are not in Local cache
+        _context.Users.Local.Should().BeEmpty();
+        _context.Roles.Local.Should().BeEmpty();
+
+        // Act - Add user to role (user and role not in Local cache, must be resolved asynchronously)
+        var userRole = new Microsoft.AspNetCore.Identity.IdentityUserRole<string>
+        {
+            UserId = testUser.Id,
+            RoleId = testRole.Id
+        };
+        _context.UserRoles.Add(userRole);
+        await _context.SaveChangesAsync();
+
+        // Assert
+        var auditLogs = await _context.AuditLogs.ToListAsync();
+        auditLogs.Should().ContainSingle();
+        
+        var auditLog = auditLogs.First();
+        auditLog.EntityType.Should().Be("UserRole");
+        auditLog.Action.Should().Be("Role Added");
+        auditLog.IsCriticalAction.Should().BeTrue();
+        
+        // Verify the changes contain resolved username and role name (not IDs)
+        // This proves async resolution worked correctly
+        auditLog.Changes.Should().Contain("coordinator1");
+        auditLog.Changes.Should().Contain("Coordinator");
+        auditLog.Changes.Should().NotContain(testUser.Id);
+        auditLog.Changes.Should().NotContain(testRole.Id);
+        auditLog.EntityDisplayName.Should().Be("coordinator1 - Coordinator");
+    }
+
     public void Dispose()
     {
         _context.Dispose();
