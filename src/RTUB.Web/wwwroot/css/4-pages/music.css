@@ -12,20 +12,40 @@
     padding: 6px 10px;
 }
 
+.music-btn-delete:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.music-btn-delete:hover i {
+    transform: scale(1.15);
+}
+
 .music-btn-edit {
     background-color: white;
     border: none;
     padding: 6px 10px;
 }
 
+.music-btn-edit:hover {
+    background-color: white;
+    border-color: white;
+}
+
+.music-btn-edit:hover i {
+    transform: scale(1.15);
+}
+
 .music-icon-edit {
     font-size: 1.1rem;
     color: black;
+    transition: transform 0.2s ease;
 }
 
 .music-icon-delete {
     font-size: 1.1rem;
     color: white;
+    transition: transform 0.2s ease;
 }
 
 .music-icon-large {

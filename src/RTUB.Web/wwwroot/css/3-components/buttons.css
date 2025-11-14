@@ -111,3 +111,62 @@
 }
 
 /* Badge positioning and sizing */
+
+/* ========================================
+   Generic Admin Buttons
+   Used across all card components for consistent edit/delete styling
+   ======================================== */
+
+/* Generic admin edit button - white background with black icon */
+.admin-btn-edit {
+    background-color: rgba(255, 255, 255, 0.95);
+    border: none;
+    padding: 6px 10px;
+    color: #212529;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.admin-btn-edit:hover {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-color: rgba(255, 255, 255, 0.95);
+    color: #212529;
+    transform: scale(1.05);
+}
+
+.admin-btn-edit:hover i {
+    transform: scale(1.15);
+}
+
+.admin-btn-edit i {
+    font-size: 1.1rem;
+    color: #212529;
+    transition: transform 0.2s ease;
+}
+
+/* Generic admin delete button - red background with white icon */
+.admin-btn-delete {
+    background-color: rgba(220, 53, 69, 0.95);
+    border: none;
+    padding: 6px 10px;
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.admin-btn-delete:hover {
+    background-color: rgba(220, 53, 69, 0.95);
+    border-color: rgba(220, 53, 69, 0.95);
+    color: #fff;
+    transform: scale(1.05);
+}
+
+.admin-btn-delete:hover i {
+    transform: scale(1.15);
+}
+
+.admin-btn-delete i {
+    font-size: 1.1rem;
+    color: #fff;
+    transition: transform 0.2s ease;
+}
