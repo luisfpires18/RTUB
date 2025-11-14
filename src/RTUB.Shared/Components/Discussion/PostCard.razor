@@ -26,7 +26,7 @@
                 @if (Post.IsPinned)
                 {
                     <span class="badge bg-warning text-dark">
-                        <i class="bi bi-pin-angle-fill"></i> Fixado
+                        <i class="bi bi-pin-fill"></i> Fixado
                     </span>
                 }
                 @if (Post.IsLocked)
@@ -71,7 +71,7 @@
                         @onclick="OnEdit"
                         @onclick:stopPropagation="true"
                         title="Editar">
-                    <i class="bi bi-pencil"></i>
+                    <i class="bi bi-pencil-fill"></i>
                 </button>
                 <button class="btn btn-sm btn-danger" 
                         @onclick="OnDelete"
@@ -92,13 +92,13 @@
                             @onclick="OnTogglePin"
                             @onclick:stopPropagation="true"
                             title="@(Post.IsPinned ? "Desafixar" : "Fixar")">
-                        <i class="bi bi-pin-angle-fill"></i>
+                        <i class="bi bi-pin-fill"></i>
                     </button>
                     <button class="btn btn-sm @(Post.IsLocked ? "btn-danger" : "btn-outline-danger")" 
                             @onclick="OnToggleLock"
                             @onclick:stopPropagation="true"
                             title="@(Post.IsLocked ? "Desbloquear" : "Bloquear")">
-                        <i class="bi @(Post.IsLocked ? "bi-unlock-fill" : "bi-lock-fill")"></i>
+                        <i class="bi bi-lock-fill"></i>
                     </button>
                 }
                 @if (ShowOwnerControls)
