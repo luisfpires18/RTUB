@@ -300,19 +300,15 @@ else
 }
 
 <!-- Remove Enrollment Confirmation Modal -->
-<Modal Show="@showRemoveEnrollmentModal" 
-       ShowChanged="@((bool show) => showRemoveEnrollmentModal = show)"
-       Title="Confirmar Cancelamento de Inscrição" 
-       Size="Modal.ModalSize.Default"
-       Centered="true">
-    <BodyContent>
-        <p>Tem certeza que deseja cancelar sua inscrição neste evento?</p>
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseRemoveEnrollmentModal">Não</button>
-        <button type="button" class="btn btn-danger" @onclick="RemoveEnrollment">Sim, Cancelar</button>
-    </FooterContent>
-</Modal>
+<ConfirmDialog Show="@showRemoveEnrollmentModal"
+               ShowChanged="@((bool show) => showRemoveEnrollmentModal = show)"
+               Title="Confirmar Cancelamento de Inscrição"
+               Message="Tem certeza que deseja cancelar sua inscrição neste evento?"
+               ConfirmText="Sim, Cancelar"
+               CancelText="Não"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="RemoveEnrollment"
+               OnCancel="CloseRemoveEnrollmentModal" />
 
 <!-- View Enrollments Modal -->
 @if (selectedEvent != null)
