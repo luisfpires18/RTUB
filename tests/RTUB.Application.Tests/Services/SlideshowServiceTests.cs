@@ -222,62 +222,6 @@ public class SlideshowServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateSlideshowWithImageAsync_CreatesActiveSlideshowWithImage()
-    {
-        // Arrange
-        var title = "New Slideshow";
-        var order = 5;
-        var description = "Test slideshow";
-        var intervalMs = 7000;
-        var isActive = true;
-        var imageUrl = "https://example.com/slideshow-image.webp";
-        
-        _imageStorageServiceMock
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(imageUrl);
-
-        // Act
-        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        var slideshow = await _service.CreateSlideshowWithImageAsync(title, order, description, intervalMs, isActive, imageStream, "slide.webp", "image/webp");
-        
-        // Assert
-        slideshow.Should().NotBeNull();
-        slideshow.Title.Should().Be(title);
-        slideshow.Order.Should().Be(order);
-        slideshow.Description.Should().Be(description);
-        slideshow.IntervalMs.Should().Be(intervalMs);
-        slideshow.IsActive.Should().Be(isActive);
-        slideshow.ImageUrl.Should().Be(imageUrl);
-        
-        // Verify image was uploaded
-        _imageStorageServiceMock.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "slide.webp", "image/webp", "slideshows", slideshow.Id.ToString()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task CreateSlideshowWithImageAsync_CreatesInactiveSlideshowWithImage()
-    {
-        // Arrange
-        var title = "Inactive Slideshow";
-        var imageUrl = "https://example.com/slideshow.webp";
-        
-        _imageStorageServiceMock
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(imageUrl);
-
-        // Act
-        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        var slideshow = await _service.CreateSlideshowWithImageAsync(title, 1, "Desc", 5000, false, imageStream, "slide.webp", "image/webp");
-        
-        // Assert
-        slideshow.IsActive.Should().BeFalse();
-        slideshow.ImageUrl.Should().Be(imageUrl);
-    }
-
-
-
-    [Fact]
     public async Task ActivateSlideshowAsync_ActivatesSlideshow()
     {
         // Arrange

@@ -74,44 +74,6 @@ public class EventService : IEventService
         return eventEntity;
     }
 
-    public async Task<Event> CreateEventWithImageAsync(string name, DateTime date, string location, EventType type, string description, DateTime? endDate, Stream imageStream, string fileName, string contentType)
-    {
-        var eventEntity = Event.Create(name, date, location, type, description);
-        
-        if (endDate.HasValue)
-        {
-            eventEntity.SetEndDate(endDate);
-        }
-        
-        _context.Events.Add(eventEntity);
-        
-        // Disable auditing for the initial save to get the ID
-        _context.DisableAuditing();
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        finally
-        {
-            _context.EnableAuditing();
-        }
-        
-        // Upload image to Cloudflare R2 using the generated ID
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", eventEntity.Id.ToString());
-        
-        // Set the image URL
-        eventEntity.SetImage(imageUrl);
-        
-        // Mark the entity as Added again to create a single Created audit log with all fields
-        _context.Entry(eventEntity).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
-        _context.Events.Add(eventEntity);
-        
-        // Save with auditing enabled - this will create a single "Created" log with all fields including ImageUrl
-        await _context.SaveChangesAsync();
-        
-        return eventEntity;
-    }
-
     public async Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, DateTime? endDate = null)
     {
         var eventEntity = await _context.Events.FindAsync(id);

@@ -301,42 +301,6 @@ public class EventServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateEventWithImageAsync_CreatesEventWithImageAndEndDate()
-    {
-        // Arrange
-        var name = "New Event";
-        var date = DateTime.Now.AddDays(7);
-        var location = "Test Location";
-        var type = EventType.Festival;
-        var description = "Test event with image";
-        var endDate = DateTime.Now.AddDays(8);
-        var imageUrl = "https://example.com/event-image.webp";
-        
-        _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(imageUrl);
-
-        // Act
-        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        var evt = await _eventService.CreateEventWithImageAsync(name, date, location, type, description, endDate, imageStream, "event.webp", "image/webp");
-        
-        // Assert
-        evt.Should().NotBeNull();
-        evt.Name.Should().Be(name);
-        evt.Date.Should().Be(date);
-        evt.Location.Should().Be(location);
-        evt.Type.Should().Be(type);
-        evt.Description.Should().Be(description);
-        evt.EndDate.Should().Be(endDate);
-        evt.ImageUrl.Should().Be(imageUrl);
-        
-        // Verify image was uploaded
-        _mockImageStorageService.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "event.webp", "image/webp", "events", evt.Id.ToString()),
-            Times.Once);
-    }
-
-    [Fact]
     public async Task CreateEventAsync_WithEndDate_CreatesEventWithEndDate()
     {
         // Arrange

@@ -237,38 +237,6 @@ public class AlbumServiceTests : IDisposable
             .WithMessage("*not found*");
     }
 
-    [Fact]
-    public async Task CreateAlbumWithCoverAsync_CreatesAlbumWithImage()
-    {
-        // Arrange
-        var title = "New Album";
-        var year = 2024;
-        var description = "Test album with cover";
-        var imageUrl = "https://example.com/album-cover.webp";
-        
-        _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync(imageUrl);
-
-        // Act
-        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        var album = await _albumService.CreateAlbumWithCoverAsync(title, year, description, imageStream, "cover.webp", "image/webp");
-        
-        // Assert
-        album.Should().NotBeNull();
-        album.Title.Should().Be(title);
-        album.Year.Should().Be(year);
-        album.Description.Should().Be(description);
-        album.ImageUrl.Should().Be(imageUrl);
-        
-        // Verify image was uploaded with correct parameters
-        _mockImageStorageService.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "cover.webp", "image/webp", "albums", album.Id.ToString()),
-            Times.Once);
-    }
-
-
-
     public void Dispose()
     {
         _context?.Dispose();

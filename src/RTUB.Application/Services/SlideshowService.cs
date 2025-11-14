@@ -48,44 +48,6 @@ public class SlideshowService : ISlideshowService
         return slideshow;
     }
 
-    public async Task<Slideshow> CreateSlideshowWithImageAsync(string title, int order, string description, int intervalMs, bool isActive, Stream imageStream, string fileName, string contentType)
-    {
-        var slideshow = Slideshow.Create(title, order, description, intervalMs);
-        
-        if (!isActive)
-        {
-            slideshow.Deactivate();
-        }
-        
-        _context.Slideshows.Add(slideshow);
-        
-        // Disable auditing for the initial save to get the ID
-        _context.DisableAuditing();
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        finally
-        {
-            _context.EnableAuditing();
-        }
-        
-        // Upload image to Cloudflare R2 using the generated ID
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", slideshow.Id.ToString());
-        
-        // Set the image URL
-        slideshow.SetImage(imageUrl);
-        
-        // Mark the entity as Added again to create a single Created audit log with all fields
-        _context.Entry(slideshow).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
-        _context.Slideshows.Add(slideshow);
-        
-        // Save with auditing enabled - this will create a single "Created" log with all fields including ImageUrl
-        await _context.SaveChangesAsync();
-        
-        return slideshow;
-    }
-
     public async Task UpdateSlideshowAsync(int id, string title, string description, int order, int intervalMs, bool isActive)
     {
         var slideshow = await _context.Slideshows.FindAsync(id);

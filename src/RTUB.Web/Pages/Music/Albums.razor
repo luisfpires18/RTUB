@@ -290,26 +290,17 @@ else
 
         if (isCreateMode)
         {
-            // Check if we're creating with an image - combine into single transaction to avoid duplicate audit logs
+            var newAlbum = await AlbumService.CreateAlbumAsync(
+                editingAlbum.Title,
+                editingAlbum.Year,
+                editingAlbum.Description ?? string.Empty
+            );
+
+            // Upload image to R2 if one was cropped
             if (croppedImageBytes != null && croppedImageBytes.Length > 0)
             {
                 using var stream = new MemoryStream(croppedImageBytes);
-                var newAlbum = await AlbumService.CreateAlbumWithCoverAsync(
-                    editingAlbum.Title,
-                    editingAlbum.Year,
-                    editingAlbum.Description ?? string.Empty,
-                    stream,
-                    croppedImageFileName!,
-                    "image/webp");
-            }
-            else
-            {
-                // Creating without image
-                await AlbumService.CreateAlbumAsync(
-                    editingAlbum.Title,
-                    editingAlbum.Year,
-                    editingAlbum.Description ?? string.Empty
-                );
+                await AlbumService.SetAlbumCoverAsync(newAlbum.Id, stream, croppedImageFileName!, "image/webp");
             }
         }
         else

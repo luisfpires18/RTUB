@@ -52,38 +52,6 @@ public class AlbumService : IAlbumService
         return album;
     }
 
-    public async Task<Album> CreateAlbumWithCoverAsync(string title, int? year, string? description, Stream imageStream, string fileName, string contentType)
-    {
-        var album = Album.Create(title, year, description);
-        _context.Albums.Add(album);
-        
-        // Disable auditing for the initial save to get the ID
-        _context.DisableAuditing();
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        finally
-        {
-            _context.EnableAuditing();
-        }
-        
-        // Upload image to Cloudflare R2 using the generated ID
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", album.Id.ToString());
-        
-        // Set the image URL
-        album.SetCoverImage(imageUrl);
-        
-        // Mark the entity as Added again to create a single Created audit log with all fields
-        _context.Entry(album).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
-        _context.Albums.Add(album);
-        
-        // Save with auditing enabled - this will create a single "Created" log with all fields including ImageUrl
-        await _context.SaveChangesAsync();
-        
-        return album;
-    }
-
     public async Task UpdateAlbumAsync(int id, string title, int? year, string? description)
     {
         var album = await _context.Albums.FindAsync(id);

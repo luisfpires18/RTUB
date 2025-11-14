@@ -1182,32 +1182,20 @@ else
 
         if (isCreateMode)
         {
-            // Check if we're creating with an image - combine into single transaction to avoid duplicate audit logs
+            var newEvent = await EventService.CreateEventAsync(
+                editingEvent.Name,
+                editingEvent.Date,
+                editingEvent.Location,
+                editingEvent.Type,
+                editingEvent.Description ?? string.Empty,
+                editingEvent.EndDate
+            );
+
+            // Upload image to R2 if one was cropped
             if (croppedImageBytes != null && croppedImageBytes.Length > 0)
             {
                 using var stream = new MemoryStream(croppedImageBytes);
-                var newEvent = await EventService.CreateEventWithImageAsync(
-                    editingEvent.Name,
-                    editingEvent.Date,
-                    editingEvent.Location,
-                    editingEvent.Type,
-                    editingEvent.Description ?? string.Empty,
-                    editingEvent.EndDate,
-                    stream,
-                    croppedImageFileName!,
-                    "image/webp");
-            }
-            else
-            {
-                // Creating without image - include EndDate in creation to avoid separate Modified log
-                var newEvent = await EventService.CreateEventAsync(
-                    editingEvent.Name,
-                    editingEvent.Date,
-                    editingEvent.Location,
-                    editingEvent.Type,
-                    editingEvent.Description ?? string.Empty,
-                    editingEvent.EndDate
-                );
+                await EventService.SetEventImageAsync(newEvent.Id, stream, croppedImageFileName!, "image/webp");
             }
         }
         else
