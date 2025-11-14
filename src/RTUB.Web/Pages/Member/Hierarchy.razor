@@ -143,7 +143,10 @@ else
             {
                 <div class="children-connector"></div>
                 <div class="children-container">
-                    @foreach (var afilhado in mentorToAfilhados[member.Id].OrderBy(a => a.FirstName).ThenBy(a => a.LastName))
+                    @foreach (var afilhado in mentorToAfilhados[member.Id]
+                        .OrderBy(a => a.YearCaloiro.HasValue ? a.YearCaloiro.Value : int.MaxValue)
+                        .ThenBy(a => a.FirstName)
+                        .ThenBy(a => a.LastName))
                     {
                         <div class="child-node">
                             @RenderMemberNode(afilhado)
