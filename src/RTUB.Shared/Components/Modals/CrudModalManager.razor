@@ -34,27 +34,34 @@
 @* Delete Confirmation Modal *@
 @if (ShowDeleteModal)
 {
-    <Modal Show="@ShowDeleteModal" 
-           ShowChanged="@OnDeleteModalShowChanged"
-           Title="@DeleteTitle" 
-           Centered="true"
-           OnClose="@CloseDeleteModal">
-        <BodyContent>
-            @if (DeleteConfirmationContent != null)
-            {
+    @if (DeleteConfirmationContent != null)
+    {
+        <ConfirmDialog Show="@ShowDeleteModal"
+                       ShowChanged="@OnDeleteModalShowChanged"
+                       Title="@DeleteTitle"
+                       ConfirmText="Eliminar"
+                       CancelText="Cancelar"
+                       ConfirmButtonClass="btn-danger"
+                       OnConfirm="OnDeleteConfirmed"
+                       OnCancel="CloseDeleteModal">
+            <BodyContent>
                 @DeleteConfirmationContent(DeletingEntity)
-            }
-            else
-            {
-                <p>Tem a certeza que quer eliminar este item?</p>
-                <p class="text-muted">Esta ação não pode ser revertida.</p>
-            }
-        </BodyContent>
-        <FooterContent>
-            <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
-            <button type="button" class="btn btn-danger" @onclick="OnDeleteConfirmed">Eliminar</button>
-        </FooterContent>
-    </Modal>
+            </BodyContent>
+        </ConfirmDialog>
+    }
+    else
+    {
+        <ConfirmDialog Show="@ShowDeleteModal"
+                       ShowChanged="@OnDeleteModalShowChanged"
+                       Title="@DeleteTitle"
+                       Message="Tem a certeza que quer eliminar este item?"
+                       WarningMessage="Esta ação não pode ser revertida."
+                       ConfirmText="Eliminar"
+                       CancelText="Cancelar"
+                       ConfirmButtonClass="btn-danger"
+                       OnConfirm="OnDeleteConfirmed"
+                       OnCancel="CloseDeleteModal" />
+    }
 }
 
 @code {

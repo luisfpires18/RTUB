@@ -441,6 +441,18 @@ else
                OnConfirm="ConfirmDeleteAttendance"
                OnCancel="CloseDeleteAttendanceModal" />
 
+<!-- Cancel My Attendance Confirmation Modal -->
+<ConfirmDialog Show="@showCancelMyAttendanceModal"
+               ShowChanged="@((bool show) => showCancelMyAttendanceModal = show)"
+               Title="Cancelar Presença"
+               Message="Tem a certeza que deseja cancelar a sua presença neste ensaio?"
+               WarningMessage="Esta ação irá remover a sua inscrição."
+               ConfirmText="Cancelar Presença"
+               CancelText="Não Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmCancelMyAttendance"
+               OnCancel="CloseCancelMyAttendanceModal" />
+
 <!-- Create Single Rehearsal Modal (Admin Only) -->
 @if (showCreateModal && isAdmin)
 {
@@ -780,6 +792,7 @@ else
     private bool showEditModal = false;
     private bool showDeleteModal = false;
     private bool showDeleteAttendanceModal = false;
+    private bool showCancelMyAttendanceModal = false;
     private bool showCreateModal = false;
     private bool showStatsModal = false;
     private bool showDateRangeModal = false;
@@ -791,6 +804,7 @@ else
     private Rehearsal? editingRehearsal;
     private Rehearsal? deletingRehearsal;
     private RehearsalAttendance? deletingAttendance;
+    private RehearsalAttendance? cancellingMyAttendance;
     private AttendanceFormModel? attendanceForm;
     private bool wantToPlayRehearsal = true;
     private string editLocation = "";
@@ -1340,13 +1354,29 @@ else
         StateHasChanged();
     }
 
-    private async Task RemoveAttendance(Rehearsal rehearsal)
+    private void RemoveAttendance(Rehearsal rehearsal)
     {
         var attendance = GetUserAttendance(rehearsal.Id);
         if (attendance != null)
         {
-            await AttendanceService.DeleteAttendanceAsync(attendance.Id);
+            cancellingMyAttendance = attendance;
+            showCancelMyAttendanceModal = true;
+        }
+    }
+    
+    private void CloseCancelMyAttendanceModal()
+    {
+        showCancelMyAttendanceModal = false;
+        cancellingMyAttendance = null;
+    }
+    
+    private async Task ConfirmCancelMyAttendance()
+    {
+        if (cancellingMyAttendance != null)
+        {
+            await AttendanceService.DeleteAttendanceAsync(cancellingMyAttendance.Id);
             await LoadData();
+            CloseCancelMyAttendanceModal();
             StateHasChanged();
         }
     }

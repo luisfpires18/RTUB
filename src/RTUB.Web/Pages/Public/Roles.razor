@@ -829,6 +829,18 @@ else
     </FooterContent>
 </Modal>
 
+<!-- Remove Assignment Confirmation Modal (Admin only) -->
+<ConfirmDialog Show="@showRemoveAssignmentModal"
+               ShowChanged="@((bool show) => showRemoveAssignmentModal = show)"
+               Title="Confirmar Remoção"
+               Message="@($"Tem a certeza que deseja remover {removingAssignment?.User?.GetDisplayName() ?? "este membro"} do cargo de {GetPositionDisplayName(removingAssignment?.Position ?? Position.Magister)}?")"
+               WarningMessage="Esta ação irá atualizar o perfil do membro se for do ano letivo atual."
+               ConfirmText="Remover"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmRemoveAssignment"
+               OnCancel="CloseRemoveAssignmentModal" />
+
 @code {
     private int currentFiscalYearStartYear;
     private string currentFiscalYearString = "";
@@ -846,9 +858,11 @@ else
     // Admin modal state
     private bool showCreateFiscalYearModal = false;
     private bool showAssignMemberModal = false;
+    private bool showRemoveAssignmentModal = false;
     private int newStartYear = DateTime.Now.Year;
     private List<int> availableFiscalYearStartYears = new();
     private string errorMessage = "";
+    private RoleAssignment? removingAssignment;
     
     private Position? selectedPosition;
     private string selectedPositionName = "";
@@ -1227,23 +1241,43 @@ else
 
     private async Task RemoveAssignment(int assignmentId)
     {
-        // Get assignment details before deleting
+        // Load assignment to show in confirmation modal
         var assignment = await RoleAssignmentService.GetRoleAssignmentByIdAsync(assignmentId);
         if (assignment == null) return;
-
-        await RoleAssignmentService.DeleteRoleAssignmentAsync(assignmentId);
+        
+        // Load user info if not already loaded
+        if (assignment.User == null)
+        {
+            assignment.User = await UserManager.FindByIdAsync(assignment.UserId);
+        }
+        
+        removingAssignment = assignment;
+        showRemoveAssignmentModal = true;
+    }
+    
+    private void CloseRemoveAssignmentModal()
+    {
+        showRemoveAssignmentModal = false;
+        removingAssignment = null;
+    }
+    
+    private async Task ConfirmRemoveAssignment()
+    {
+        if (removingAssignment == null) return;
+        
+        await RoleAssignmentService.DeleteRoleAssignmentAsync(removingAssignment.Id);
 
         // Remove from user's current Positions property ONLY if fiscal year is current
         int currentFiscalStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
-        bool isFiscalYearCurrent = (assignment.StartYear == currentFiscalStartYear);
+        bool isFiscalYearCurrent = (removingAssignment.StartYear == currentFiscalStartYear);
 
-        var user = await UserManager.FindByIdAsync(assignment.UserId);
+        var user = await UserManager.FindByIdAsync(removingAssignment.UserId);
         if (user != null && isFiscalYearCurrent)
         {
             var positions = user.Positions.ToList();
-            if (positions.Contains(assignment.Position))
+            if (positions.Contains(removingAssignment.Position))
             {
-                positions.Remove(assignment.Position);
+                positions.Remove(removingAssignment.Position);
                 user.Positions = positions;
                 await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(user);
@@ -1265,6 +1299,28 @@ else
         }
 
         await LoadRoleAssignments();
+        CloseRemoveAssignmentModal();
+    }
+    
+    private string GetPositionDisplayName(Position position)
+    {
+        return position switch
+        {
+            Position.Magister => "Magister",
+            Position.ViceMagister => "Vice-Magister",
+            Position.Secretario => "Secretário",
+            Position.PrimeiroTesoureiro => "1º Tesoureiro",
+            Position.SegundoTesoureiro => "2º Tesoureiro",
+            Position.PresidenteMesaAssembleia => "Presidente Mesa Assembleia",
+            Position.PrimeiroSecretarioMesaAssembleia => "1º Secretário Mesa Assembleia",
+            Position.SegundoSecretarioMesaAssembleia => "2º Secretário Mesa Assembleia",
+            Position.PresidenteConselhoFiscal => "Presidente Conselho Fiscal",
+            Position.PrimeiroRelatorConselhoFiscal => "1º Relator Conselho Fiscal",
+            Position.SegundoRelatorConselhoFiscal => "2º Relator Conselho Fiscal",
+            Position.PresidenteConselhoVeteranos => "Presidente Conselho de Veteranos",
+            Position.Ensaiador => "Ensaiador",
+            _ => position.ToString()
+        };
     }
 
     private async Task SetAuditContextToCurrentUser()
