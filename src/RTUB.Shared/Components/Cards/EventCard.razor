@@ -45,11 +45,14 @@
                         title="Editar evento">
                     <i class="bi bi-pencil music-icon-edit"></i>
                 </button>
-                <button class="btn btn-sm music-btn-delete" 
-                        @onclick="OnDelete" 
-                        title="Eliminar evento">
-                    <i class="bi bi-trash music-icon-delete"></i>
-                </button>
+                @if (ShowDeleteButton)
+                {
+                    <button class="btn btn-sm music-btn-delete" 
+                            @onclick="OnDelete" 
+                            title="Eliminar evento">
+                        <i class="bi bi-trash music-icon-delete"></i>
+                    </button>
+                }
             </div>
             
             @* Email notification and cancellation buttons in bottom-right corner *@
@@ -63,11 +66,14 @@
                                 title="Notificar por email">
                             <i class="bi bi-envelope-fill"></i>
                         </button>
-                        <button class="btn btn-sm btn-danger music-btn-cancel" 
-                                @onclick="OnCancelEvent" 
-                                title="Cancelar evento">
-                            <i class="bi bi-x-circle-fill"></i>
-                        </button>
+                        @if (ShowCancelButton)
+                        {
+                            <button class="btn btn-sm btn-danger music-btn-cancel" 
+                                    @onclick="OnCancelEvent" 
+                                    title="Cancelar evento">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        }
                     }
                     else
                     {
@@ -391,6 +397,20 @@
     /// </summary>
     [Parameter]
     public bool ShowOnlyTrophy { get; set; }
+    
+    /// <summary>
+    /// Whether to show the delete button (default: true)
+    /// Can be set to false for users with restricted permissions (e.g., Caloiro Admins)
+    /// </summary>
+    [Parameter]
+    public bool ShowDeleteButton { get; set; } = true;
+    
+    /// <summary>
+    /// Whether to show the cancel event button (default: true)
+    /// Can be set to false for users with restricted permissions (e.g., Caloiro Admins)
+    /// </summary>
+    [Parameter]
+    public bool ShowCancelButton { get; set; } = true;
 }
 
 <style>

@@ -3,13 +3,19 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
 @using RTUB.Shared
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "Admin,Owner")]
 @inherits CrudTablePageBase<Slideshow>
 @inject ISlideshowService SlideshowService
 @inject IWebHostEnvironment Environment
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
 
 <h1>Gestão de Apresentação</h1>
 <p class="lead mb-4 text-light-theme">Gerir imagens de apresentação na página inicial.</p>
@@ -158,9 +164,31 @@ else
     private byte[]? croppedSlideshowImageBytes;
     private string? croppedSlideshowImageFileName = "slideshow-image.webp";
     private EditForm? slideshowEditForm;
+    private ApplicationUser? currentUser;
 
     protected override async Task OnInitializedAsync()
     {
+        // Check if user is Caloiro Admin and redirect them
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userName = user.Identity.Name;
+            if (!string.IsNullOrEmpty(userName))
+            {
+                currentUser = await UserManager.FindByNameAsync(userName);
+                
+                // Redirect Caloiro Admins - they should not access this page
+                if (currentUser != null && currentUser.IsCaloiro() && 
+                    user.IsInRole("Admin") && !user.IsInRole("Owner"))
+                {
+                    Navigation.NavigateTo("/");
+                    return;
+                }
+            }
+        }
+        
         SortHelper.SortColumn = nameof(Slideshow.Order);
         PaginationHelper.PageSize = 3; // Default page size for slideshow list
         await LoadItemsAsync();
