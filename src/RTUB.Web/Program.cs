@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using Microsoft.Extensions.Caching.Memory;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 
 namespace RTUB;
@@ -97,18 +99,45 @@ public class Program
         {
             options.LoginPath = "/login";
             options.AccessDeniedPath = "/login";
-            options.Events.OnSignedIn = context =>
+            options.Events = new CookieAuthenticationEvents
             {
-                var logger = context?.HttpContext?.RequestServices?.GetRequiredService<ILogger<Program>>(); 
+                OnValidatePrincipal = context =>
+                {
+                    var logger = context.HttpContext?.RequestServices?.GetRequiredService<ILogger<Program>>();
+                    var cache = context.HttpContext?.RequestServices?.GetService<IMemoryCache>();
 
-                var userName = context?.Principal?.Identity?.Name;
+                    if (logger == null || cache == null)
+                    {
+                        return Task.CompletedTask;
+                    }
 
-                logger?.LogInformation(
-                    "User {UserName} signed in (cookie or explicit) at {LoginTime}",
-                    userName,
-                    DateTime.UtcNow);
+                    var userName = context.Principal?.Identity?.Name;
 
-                return Task.CompletedTask;
+                    if (string.IsNullOrWhiteSpace(userName))
+                    {
+                        return Task.CompletedTask;
+                    }
+
+                    var issuedUtc = context.Properties?.IssuedUtc?.UtcDateTime ?? DateTime.MinValue;
+                    var cacheKey = $"login-log:{userName}:{issuedUtc.Ticks}";
+
+                    if (cache.TryGetValue(cacheKey, out _))
+                    {
+                        return Task.CompletedTask;
+                    }
+
+                    cache.Set(cacheKey, true, new MemoryCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(12)
+                    });
+
+                    logger.LogInformation(
+                        "User {UserName} authenticated via cookie validation at {LoginTime}",
+                        userName,
+                        DateTime.UtcNow);
+
+                    return Task.CompletedTask;
+                }
             };
         });
 
