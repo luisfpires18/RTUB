@@ -166,6 +166,77 @@ public class AlbumServiceTests : IDisposable
             .WithMessage("*not found*");
     }
 
+    [Fact]
+    public async Task UpdateAlbumWithCoverAsync_UpdatesAlbumDetailsAndCover()
+    {
+        // Arrange
+        var album = await _albumService.CreateAlbumAsync("Original Title", 2020);
+        var newTitle = "Updated Title";
+        var newYear = 2021;
+        var newDescription = "Updated description";
+        var imageUrl = "https://example.com/test-image.webp";
+        
+        _mockImageStorageService
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(imageUrl);
+
+        // Act
+        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+        await _albumService.UpdateAlbumWithCoverAsync(album.Id, newTitle, newYear, newDescription, imageStream, "test.webp", "image/webp");
+        var updated = await _albumService.GetAlbumByIdAsync(album.Id);
+
+        // Assert
+        updated!.Title.Should().Be(newTitle);
+        updated.Year.Should().Be(newYear);
+        updated.Description.Should().Be(newDescription);
+        updated.ImageUrl.Should().Be(imageUrl);
+        
+        // Verify image was uploaded
+        _mockImageStorageService.Verify(
+            x => x.UploadImageAsync(It.IsAny<Stream>(), "test.webp", "image/webp", "albums", album.Id.ToString()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAlbumWithCoverAsync_WithExistingImage_DeletesOldImage()
+    {
+        // Arrange
+        var album = await _albumService.CreateAlbumAsync("Original Title", 2020);
+        var oldImageUrl = "https://example.com/old-image.webp";
+        var newImageUrl = "https://example.com/new-image.webp";
+        
+        // Set initial image
+        album.SetCoverImage(oldImageUrl);
+        _context.Albums.Update(album);
+        await _context.SaveChangesAsync();
+        
+        _mockImageStorageService
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(newImageUrl);
+
+        // Act
+        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+        await _albumService.UpdateAlbumWithCoverAsync(album.Id, "New Title", 2021, "New desc", imageStream, "test.webp", "image/webp");
+
+        // Assert
+        _mockImageStorageService.Verify(
+            x => x.DeleteImageAsync(oldImageUrl),
+            Times.Once,
+            "Old image should be deleted");
+    }
+
+    [Fact]
+    public async Task UpdateAlbumWithCoverAsync_WithInvalidId_ThrowsException()
+    {
+        // Arrange
+        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+
+        // Act & Assert
+        var act = async () => await _albumService.UpdateAlbumWithCoverAsync(999, "Title", 2020, "Description", imageStream, "test.webp", "image/webp");
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*not found*");
+    }
+
 
 
     public void Dispose()
