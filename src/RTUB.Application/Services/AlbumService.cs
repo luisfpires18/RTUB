@@ -79,6 +79,29 @@ public class AlbumService : IAlbumService
         await _context.SaveChangesAsync();
     }
 
+    public async Task UpdateAlbumWithCoverAsync(int id, string title, int? year, string? description, Stream imageStream, string fileName, string contentType)
+    {
+        var album = await _context.Albums.FindAsync(id);
+        if (album == null)
+            throw new InvalidOperationException($"Album with ID {id} not found");
+
+        // Update album details
+        album.UpdateDetails(title, year, description);
+
+        // Delete old image if it exists
+        if (!string.IsNullOrEmpty(album.ImageUrl))
+        {
+            await _imageStorageService.DeleteImageAsync(album.ImageUrl);
+        }
+
+        // Upload new image to Cloudflare R2
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", id.ToString());
+        album.SetCoverImage(imageUrl);
+        
+        _context.Albums.Update(album);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task SetAlbumCoverAsync(int id, Stream imageStream, string fileName, string contentType)
     {
         var album = await _context.Albums.FindAsync(id);

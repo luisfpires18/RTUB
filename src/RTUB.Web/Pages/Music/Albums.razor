@@ -305,19 +305,29 @@ else
         }
         else
         {
-            await AlbumService.UpdateAlbumAsync(
-                editingAlbum.Id,
-                editingAlbum.Title,
-                editingAlbum.Year,
-                editingAlbum.Description ?? string.Empty
-            );
-
-            // Upload new image to R2 if one was cropped
+            // Check if we're updating both details and image - combine into single transaction to avoid duplicate audit logs
             if (croppedImageBytes != null && croppedImageBytes.Length > 0 && uploadedImagePath != null)
             {
                 using var stream = new MemoryStream(croppedImageBytes);
-                await AlbumService.SetAlbumCoverAsync(editingAlbum.Id, stream, croppedImageFileName!, "image/webp");
+                await AlbumService.UpdateAlbumWithCoverAsync(
+                    editingAlbum.Id,
+                    editingAlbum.Title,
+                    editingAlbum.Year,
+                    editingAlbum.Description ?? string.Empty,
+                    stream,
+                    croppedImageFileName!,
+                    "image/webp");
                 imageRefreshTrigger++;
+            }
+            else
+            {
+                // Only updating album details (no new image)
+                await AlbumService.UpdateAlbumAsync(
+                    editingAlbum.Id,
+                    editingAlbum.Title,
+                    editingAlbum.Year,
+                    editingAlbum.Description ?? string.Empty
+                );
             }
         }
 
