@@ -212,32 +212,44 @@ else
 
             <div class="row">
                 <div class="col-md-8 mb-3">
-                    <label class="form-label">Título <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-music-note text-primary me-2"></i>Título <span class="text-danger">*</span>
+                    </label>
                     <InputText class="form-control" @bind-Value="editingSong!.Title" placeholder="Inserir título da música..." />
                 </div>
                 <div class="col-md-4 mb-3">
-                    <label class="form-label">Número da Faixa</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-hash text-primary me-2"></i>Número da Faixa
+                    </label>
                     <InputNumber class="form-control" @bind-Value="editingSong!.TrackNumber" placeholder="Ex: 1" />
                 </div>
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Autor (Letra)</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-pen text-primary me-2"></i>Autor (Letra)
+                    </label>
                     <InputText class="form-control" @bind-Value="editingSong!.LyricAuthor" placeholder="Inserir autor da letra..." />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Autor (Música)</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-music-note-beamed text-primary me-2"></i>Autor (Música)
+                    </label>
                     <InputText class="form-control" @bind-Value="editingSong!.MusicAuthor" placeholder="Inserir autor da música..." />
                 </div>
             </div>
             <div class="mb-3">
-                <label class="form-label">Adaptação</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-arrow-repeat text-primary me-2"></i>Adaptação
+                </label>
                 <InputText class="form-control" @bind-Value="editingSong!.Adaptation" placeholder="Inserir adaptação..." />
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Spotify URL</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-spotify text-primary me-2"></i>Spotify URL
+                </label>
                 <InputText class="form-control" @bind-Value="editingSong!.SpotifyUrl" placeholder="Inserir URL do Spotify..." />
             </div>
 
@@ -245,13 +257,15 @@ else
                 <div class="form-check">
                     <InputCheckbox class="form-check-input" id="createHasMusic" @bind-Value="editingSong!.HasMusic" />
                     <label class="form-check-label" for="createHasMusic">
-                        Tem ficheiro de música disponível
+                        <i class="bi bi-file-music text-primary me-2"></i>Tem ficheiro de música disponível
                     </label>
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">YouTube URLs</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-youtube text-primary me-2"></i>YouTube URLs
+                </label>
                 @if (editingYouTubeUrls != null)
                 {
                     @for (int i = 0; i < editingYouTubeUrls.Count; i++)
@@ -271,7 +285,9 @@ else
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Letra</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-file-text text-primary me-2"></i>Letra
+                </label>
                 <InputTextArea class="form-control" rows="15" @bind-Value="editingSong!.Lyrics" placeholder="Adicionar letra apenas se a música não estiver no cancioneiro..." />
             </div>
 
@@ -297,28 +313,38 @@ else
 
             <div class="row">
                 <div class="col-md-12 mb-3">
-                    <label class="form-label">Título</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-music-note text-primary me-2"></i>Título
+                    </label>
                     <InputText class="form-control" @bind-Value="editingSong!.Title" readonly />
                 </div>
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Autor (Letra)</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-pen text-primary me-2"></i>Autor (Letra)
+                    </label>
                     <InputText class="form-control" @bind-Value="editingSong!.LyricAuthor" placeholder="Inserir autor da letra..." />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Autor (Música)</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-music-note-beamed text-primary me-2"></i>Autor (Música)
+                    </label>
                     <InputText class="form-control" @bind-Value="editingSong!.MusicAuthor" placeholder="Inserir autor da música..." />
                 </div>
             </div>
             <div class="mb-3">
-                <label class="form-label">Adaptação</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-arrow-repeat text-primary me-2"></i>Adaptação
+                </label>
                 <InputText class="form-control" @bind-Value="editingSong!.Adaptation" placeholder="Inserir adaptação..." />
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Spotify URL</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-spotify text-primary me-2"></i>Spotify URL
+                </label>
                 <InputText class="form-control" @bind-Value="editingSong!.SpotifyUrl" placeholder="Inserir URL do Spotify..." />
             </div>
 
@@ -326,13 +352,15 @@ else
                 <div class="form-check">
                     <InputCheckbox class="form-check-input" id="editHasMusic" @bind-Value="editingSong!.HasMusic" />
                     <label class="form-check-label" for="editHasMusic">
-                        Tem ficheiro de música disponível
+                        <i class="bi bi-file-music text-primary me-2"></i>Tem ficheiro de música disponível
                     </label>
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">YouTube URLs</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-youtube text-primary me-2"></i>YouTube URLs
+                </label>
                 @if (editingYouTubeUrls != null)
                 {
                     @for (int i = 0; i < editingYouTubeUrls.Count; i++)
@@ -352,7 +380,9 @@ else
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Letra</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-file-text text-primary me-2"></i>Letra
+                </label>
                 <InputTextArea class="form-control" rows="15" @bind-Value="editingSong!.Lyrics" placeholder="Adicionar letra apenas se a música não estiver no cancioneiro..." />
             </div>
 

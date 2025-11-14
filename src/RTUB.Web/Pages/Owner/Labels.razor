@@ -130,18 +130,24 @@ else
             <ErrorDisplay />
 
             <div class="mb-3">
-                <label class="form-label text-white-full">Referência</label>
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-tag text-primary me-2"></i>Referência
+                </label>
                 <InputText class="form-control" @bind-Value="label!.Reference" placeholder="Inserir referência..." />
                 <small class="text-light-theme">Identificador único para esta etiqueta (minúsculas, sem espaços)</small>
             </div>
 
             <div class="mb-3">
-                <label class="form-label text-white-full">Título</label>
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-card-text text-primary me-2"></i>Título
+                </label>
                 <InputText class="form-control" @bind-Value="label!.Title" placeholder="Inserir título..." />
             </div>
 
             <div class="mb-3">
-                <label class="form-label text-white-full">Conteúdo</label>
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-file-text text-primary me-2"></i>Conteúdo
+                </label>
                 <InputTextArea class="form-control" rows="15" @bind-Value="label!.Content" placeholder="Inserir conteúdo..." />
                 <small class="text-light-theme">Dica: Use quebras de linha para parágrafos</small>
             </div>
@@ -149,7 +155,7 @@ else
             <div class="mb-3 form-check">
                 <InputCheckbox class="form-check-input" @bind-Value="label!.IsActive" id="activeCheck" />
                 <label class="form-check-label text-white-full" for="activeCheck">
-                    Ativo
+                    <i class="bi bi-check-circle text-primary me-2"></i>Ativo
                 </label>
             </div>
         </EditForm>

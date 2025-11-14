@@ -7,7 +7,9 @@
         <ErrorDisplay />
 
         <div class="mb-3">
-            <label class="form-label">Título</label>
+            <label class="form-label fw-semibold">
+                <i class="bi bi-card-text text-primary me-2"></i>Título
+            </label>
             <InputText class="form-control" 
                        @bind-Value="model.Title" 
                        placeholder="Título do post (3-120 caracteres)" 
@@ -16,6 +18,9 @@
         </div>
 
         <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-text-paragraph text-primary me-2"></i>Conteúdo
+            </label>
             <InputTextArea class="form-control" 
                           rows="5" 
                           @bind-Value="model.Body" 

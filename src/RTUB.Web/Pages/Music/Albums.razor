@@ -109,17 +109,23 @@ else
             <ErrorDisplay />
 
             <div class="mb-3">
-                <label class="form-label">Título</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-disc text-primary me-2"></i>Título
+                </label>
                 <InputText class="form-control" @bind-Value="album!.Title" placeholder="Inserir título do álbum..." />
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Ano (opcional)</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-calendar3 text-primary me-2"></i>Ano (opcional)
+                </label>
                 <InputNumber class="form-control" @bind-Value="album!.Year" />
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Descrição (opcional)</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição (opcional)
+                </label>
                 <InputTextArea class="form-control" rows="3" @bind-Value="album!.Description" placeholder="Inserir descrição..." />
             </div>
 

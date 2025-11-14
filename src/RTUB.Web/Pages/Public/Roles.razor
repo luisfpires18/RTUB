@@ -753,7 +753,9 @@ else
         else
         {
             <div class="mb-3">
-                <label class="form-label">Ano de Início</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-calendar3 text-primary me-2"></i>Ano de Início
+                </label>
                 <select class="form-select" @bind="newStartYear">
                     @foreach (var year in availableFiscalYearStartYears)
                     {
@@ -781,7 +783,9 @@ else
             <div class="alert alert-danger">@errorMessage</div>
         }
         <div class="mb-3">
-            <label class="form-label">Pesquisar Membro</label>
+            <label class="form-label fw-semibold">
+                <i class="bi bi-search text-primary me-2"></i>Pesquisar Membro
+            </label>
             <input type="text" class="form-control" placeholder="Inserir nome, email ou tuna name..."
                    @bind="memberSearchTerm" @bind:event="oninput" @onkeyup="FilterMembers" />
         </div>

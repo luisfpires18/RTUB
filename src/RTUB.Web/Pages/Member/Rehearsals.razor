@@ -474,19 +474,27 @@ else
                 <ErrorDisplay />
 
                 <div class="mb-3">
-                    <label class="form-label">Data *</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-calendar3 text-primary me-2"></i>Data *
+                    </label>
                     <InputDate class="form-control" @bind-Value="createRehearsalForm.Date" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Localização *</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização *
+                    </label>
                     <InputText class="form-control" @bind-Value="createRehearsalForm.Location" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Tema (Opcional)</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-music-note-list text-primary me-2"></i>Tema (Opcional)
+                    </label>
                     <InputText class="form-control" @bind-Value="createRehearsalForm.Theme" />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Notas (Opcional)</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-file-text text-primary me-2"></i>Notas (Opcional)
+                    </label>
                     <InputTextArea class="form-control" rows="3" @bind-Value="createRehearsalForm.Notes" />
                 </div>
 
@@ -620,19 +628,27 @@ else
                         <ErrorDisplay />
 
                         <div class="mb-3">
-                            <label class="form-label">Data Início *</label>
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-plus text-primary me-2"></i>Data Início *
+                            </label>
                             <InputDate class="form-control" @bind-Value="rangeRehearsalForm.StartDate" min="@DateTime.Today" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Data Fim *</label>
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-check text-primary me-2"></i>Data Fim *
+                            </label>
                             <InputDate class="form-control" @bind-Value="rangeRehearsalForm.EndDate" max="@maxRangeDate" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Localização *</label>
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-geo-alt text-primary me-2"></i>Localização *
+                            </label>
                             <InputText class="form-control" @bind-Value="rangeRehearsalForm.Location" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Tema (Opcional)</label>
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-music-note-list text-primary me-2"></i>Tema (Opcional)
+                            </label>
                             <InputText class="form-control" @bind-Value="rangeRehearsalForm.Theme" />
                         </div>
                         <p class="text-muted">

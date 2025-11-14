@@ -22,7 +22,9 @@
             @if (ShowWillAttend)
             {
                 <div class="mb-4">
-                    <label class="form-label text-white-full">Vais participar?</label>
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-person-check text-primary me-2"></i>Vais participar?
+                    </label>
                     <div class="d-flex gap-2">
                         <button type="button" 
                                 class="btn @(WillAttend ? "btn-success" : "btn-outline-secondary") flex-fill"
@@ -56,7 +58,9 @@
                     @if (WantToPlay)
                     {
                         <div class="mb-3">
-                            <label class="form-label text-white-full">Instrumento *</label>
+                            <label class="form-label text-white-full fw-semibold">
+                                <i class="bi bi-music-note-beamed text-primary me-2"></i>Instrumento *
+                            </label>
                             <InputSelect class="form-select form-select-dark" @bind-Value="Instrument" @bind-Value:after="@OnInstrumentChangedInternal">
                                 <option value="">Selecionar...</option>
                                 @foreach (var instrument in Enum.GetValues<InstrumentType>())
@@ -70,7 +74,9 @@
                 else
                 {
                     <div class="mb-3">
-                        <label class="form-label text-white-full">Instrumento (Opcional)</label>
+                        <label class="form-label text-white-full fw-semibold">
+                            <i class="bi bi-music-note-beamed text-primary me-2"></i>Instrumento (Opcional)
+                        </label>
                         <InputSelect class="form-select form-select-dark" @bind-Value="Instrument">
                             <option value="">Selecionar...</option>
                             @foreach (var instrument in Enum.GetValues<InstrumentType>())
@@ -82,14 +88,18 @@
                 }
 
                 <div class="mb-3">
-                    <label class="form-label text-white-full">Notas (opcional)</label>
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-file-text text-primary me-2"></i>Notas (opcional)
+                    </label>
                     <InputTextArea class="form-control" rows="@NotesRows" @bind-Value="Notes" @bind-Value:after="OnNotesChanged" placeholder="@NotesPlaceholder" />
                 </div>
             }
             else
             {
                 <div class="mb-3">
-                    <label class="form-label text-white-full">Notas (opcional)</label>
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-file-text text-primary me-2"></i>Notas (opcional)
+                    </label>
                     <InputTextArea class="form-control" rows="@NotesRows" @bind-Value="Notes" @bind-Value:after="OnNotesChanged" placeholder="@NotesPlaceholder" />
                 </div>
             }
