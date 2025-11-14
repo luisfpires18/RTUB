@@ -19,7 +19,7 @@
         <div class="page-header">
             <div>
                 <h1 class="mb-2"><i class="bi bi-kanban"></i> Quadros de Logística</h1>
-                <p class="text-light-theme mb-3">Gerencie os seus quadros de tarefas e atuações.</p>
+                <p class="lead mb-4 text-light-theme">Gerencie os seus quadros de tarefas e atuações.</p>
             </div>
             <AuthorizeView Roles="Admin">
                 <Authorized>
@@ -98,7 +98,7 @@
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header border-bottom border-secondary">
+                <div class="modal-header border-bottom border-secondary" style="background: rgba(var(--bs-primary-rgb), 0.1);">
                     <h5 class="modal-title">
                         <i class="bi bi-@(editingBoard == null ? "plus-circle" : "pencil-square") me-2"></i>
                         @(editingBoard == null ? "Criar Quadro" : "Editar Quadro")
@@ -106,18 +106,18 @@
                     <button type="button" class="btn-close" @onclick="CloseBoardModal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-kanban text-primary me-2"></i>Nome do Quadro
-                        </label>
-                        <input type="text" class="form-control" @bind="boardName" placeholder="Nome do quadro" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
-                        </label>
-                        <textarea class="form-control" rows="3" @bind="boardDescription" placeholder="Descrição do quadro (opcional)"></textarea>
-                    </div>
+                    <FormTextField Label="Nome do Quadro"
+                                  Icon="kanban"
+                                  @bind-Value="boardName"
+                                  Placeholder="Nome do quadro"
+                                  Required="true" />
+                    
+                    <FormTextArea Label="Descrição"
+                                 Icon="text-paragraph"
+                                 @bind-Value="boardDescription"
+                                 Rows="3"
+                                 Placeholder="Descrição do quadro (opcional)" />
+                    
                     <div class="mb-3">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-calendar-event text-primary me-2"></i>Evento Associado (opcional)

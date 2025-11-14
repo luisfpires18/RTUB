@@ -17,8 +17,8 @@
 @inject RTUB.Application.Services.AuditContext AuditContext
 @attribute [Authorize]
 
-<h1>Membros</h1>
-<p>Lista de todos os membros da RTUB.</p>
+<h1 class="mb-2"><i class="bi bi-people"></i> Membros</h1>
+<p class="lead mb-4 text-light-theme">Lista de todos os membros da RTUB.</p>
 
 <AuthorizeView Roles="Admin">
     <Authorized>
@@ -194,46 +194,64 @@ else
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Primeiro Nome <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-person text-primary me-2"></i>Primeiro Nome <span class="text-danger">*</span>
+                    </label>
                     <InputText class="form-control" @bind-Value="editingUser.FirstName" />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Último Nome <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-person text-primary me-2"></i>Último Nome <span class="text-danger">*</span>
+                    </label>
                     <InputText class="form-control" @bind-Value="editingUser.LastName" />
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Nome de Tuna / Username <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-star text-primary me-2"></i>Nome de Tuna / Username <span class="text-danger">*</span>
+                    </label>
                     <InputText class="form-control" @bind-Value="editingUser.Nickname" />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Contacto <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-telephone text-primary me-2"></i>Contacto <span class="text-danger">*</span>
+                    </label>
                     <InputText class="form-control" @bind-Value="editingUser.PhoneContact" />
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Email <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-envelope text-primary me-2"></i>Email <span class="text-danger">*</span>
+                    </label>
                     <InputText type="email" class="form-control" @bind-Value="editingUser.Email" />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Data de Nascimento</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-calendar3 text-primary me-2"></i>Data de Nascimento
+                    </label>
                     <InputDate class="form-control" @bind-Value="editingUser.DateOfBirth" />
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Curso</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-book text-primary me-2"></i>Curso
+                    </label>
                     <InputText class="form-control" @bind-Value="editingUser.Degree" placeholder="Inserir curso..." />
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Cidade</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>Cidade
+                    </label>
                     <InputText class="form-control" @bind-Value="editingUser.City" placeholder="Inserir cidade..." />
                 </div>
             </div>
             <div class="mb-3">
-                <label class="form-label">Categoria <span class="text-danger">*</span></label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-tag text-primary me-2"></i>Categoria <span class="text-danger">*</span>
+                </label>
                 <InputSelect class="form-select" @bind-Value="editingUser.SelectedCategory" @bind-Value:after="OnCategoryChanged">
                     <option value="">Selecionar Categoria</option>
                     <option value="Leitão">Leitão</option>
@@ -257,7 +275,9 @@ else
                 @if (showYearLeitao && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Ano de entrada Leitão</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-plus text-primary me-2"></i>Ano de entrada Leitão
+                        </label>
                         <InputNumber class="form-control" @bind-Value="editingUser.YearLeitao" placeholder="Inserir ano..." />
                     </div>
                 }
@@ -265,7 +285,9 @@ else
                 @if (showYearCaloiro && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Ano de passagem a Caloiro</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-event text-primary me-2"></i>Ano de passagem a Caloiro
+                        </label>
                         <InputNumber class="form-control" @bind-Value="editingUser.YearCaloiro" placeholder="Inserir ano..." />
                     </div>
                 }
@@ -273,13 +295,17 @@ else
                 @if (showYearTuno && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Ano de passagem a Tuno</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-check text-primary me-2"></i>Ano de passagem a Tuno
+                        </label>
                         <InputNumber class="form-control" @bind-Value="editingUser.YearTuno" placeholder="Inserir ano..." />
                     </div>
                 }
             </div>
             <div class="mb-3">
-                <label class="form-label">Instrumento Principal</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-music-note-beamed text-primary me-2"></i>Instrumento Principal
+                </label>
                 <InputSelect class="form-select" @bind-Value="editingUser.MainInstrument">
                     <option value="">Sem instrumento</option>
                     @foreach (var instrument in Enum.GetValues<InstrumentType>())

@@ -21,8 +21,8 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 
-<h1>Finanças</h1>
-<p class="lead mb-4">Relatórios financeiros anuais.</p>
+<h1 class="mb-2"><i class="bi bi-currency-dollar"></i> Finanças</h1>
+<p class="lead mb-4 text-light-theme">Relatórios financeiros anuais.</p>
 
 @if (isLeitao)
 {
@@ -128,7 +128,9 @@ else
                 else
                 {
                     <div class="mb-3">
-                        <label class="form-label">Ano Letivo</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar3 text-primary me-2"></i>Ano Letivo
+                        </label>
                         <select class="form-select" @bind="fiscalYearInput">
                             @foreach (var year in availableFiscalYearStartYears)
                             {

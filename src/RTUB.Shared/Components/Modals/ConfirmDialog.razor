@@ -10,7 +10,7 @@
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
         <div class="modal-dialog @SizeClass modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header border-bottom border-secondary @(ConfirmButtonClass == "btn-danger" ? "bg-danger bg-opacity-10" : "")">
+                <div class="modal-header border-bottom border-secondary @(ConfirmButtonClass == "btn-danger" ? "bg-danger bg-opacity-10" : "")" style="@(ConfirmButtonClass != "btn-danger" ? "background: rgba(var(--bs-primary-rgb), 0.1);" : "")">
                     <h5 class="modal-title @(ConfirmButtonClass == "btn-danger" ? "text-danger" : "")">
                         @if (ConfirmButtonClass == "btn-danger")
                         {

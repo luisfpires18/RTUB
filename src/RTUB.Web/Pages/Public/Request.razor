@@ -16,7 +16,7 @@
 @inject ILogger<Request> Logger
 
 
-<h1>Pedidos</h1>
+<h1 class="mb-2"><i class="bi bi-send"></i> Pedidos</h1>
 <p class="lead mb-4 text-light-theme">Preencha o formulário abaixo para solicitar a RTUB para o seu evento.</p>
 
 @if (showSuccessMessage)
@@ -45,22 +45,30 @@
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="name" class="form-label">Nome *</label>
+                            <label for="name" class="form-label fw-semibold">
+                                <i class="bi bi-person text-primary me-2"></i>Nome *
+                            </label>
                             <InputText id="name" class="form-control" @bind-Value="request.Name" placeholder="Inserir nome completo..." />
                         </div>
                         <div class="col-md-6">
-                            <label for="email" class="form-label">Email *</label>
+                            <label for="email" class="form-label fw-semibold">
+                                <i class="bi bi-envelope text-primary me-2"></i>Email *
+                            </label>
                             <InputText id="email" type="email" class="form-control" @bind-Value="request.Email" placeholder="Inserir email..." />
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="phone" class="form-label">Telefone *</label>
+                            <label for="phone" class="form-label fw-semibold">
+                                <i class="bi bi-telephone text-primary me-2"></i>Telefone *
+                            </label>
                             <InputText id="phone" class="form-control" @bind-Value="request.Phone" placeholder="Inserir telefone..." />
                         </div>
                         <div class="col-md-6">
-                            <label for="eventType" class="form-label">Tipo de Evento *</label>
+                            <label for="eventType" class="form-label fw-semibold">
+                                <i class="bi bi-calendar-event text-primary me-2"></i>Tipo de Evento *
+                            </label>
                             <InputText id="eventType" class="form-control" @bind-Value="request.EventType" placeholder="Inserir tipo de evento..." />
                         </div>
                     </div>
@@ -76,7 +84,9 @@
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="preferredDate" class="form-label">@(request.IsDateRange ? "Data de Início *" : "Data Preferida *")</label>
+                            <label for="preferredDate" class="form-label fw-semibold">
+                                <i class="bi bi-calendar3 text-primary me-2"></i>@(request.IsDateRange ? "Data de Início *" : "Data Preferida *")
+                            </label>
                             <InputDate id="preferredDate" class="form-control" @bind-Value="request.PreferredDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
                             @if (!string.IsNullOrEmpty(dateValidationError))
                             {
@@ -86,7 +96,9 @@
                         @if (request.IsDateRange)
                         {
                             <div class="col-md-6">
-                                <label for="preferredEndDate" class="form-label">Data de Fim *</label>
+                                <label for="preferredEndDate" class="form-label fw-semibold">
+                                    <i class="bi bi-calendar-check text-primary me-2"></i>Data de Fim *
+                                </label>
                                 <InputDate id="preferredEndDate" class="form-control" @bind-Value="request.PreferredEndDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
                                 @if (!string.IsNullOrEmpty(endDateValidationError))
                                 {
@@ -97,7 +109,9 @@
                         else
                         {
                             <div class="col-md-6">
-                                <label for="location" class="form-label">Localização *</label>
+                                <label for="location" class="form-label fw-semibold">
+                                    <i class="bi bi-geo-alt text-primary me-2"></i>Localização *
+                                </label>
                                 <InputText id="location" class="form-control" @bind-Value="request.Location" placeholder="Inserir localização..." />
                             </div>
                         }
@@ -107,14 +121,18 @@
                     {
                         <div class="row mb-3">
                             <div class="col-md-12">
-                                <label for="location" class="form-label">Localização *</label>
+                                <label for="location" class="form-label fw-semibold">
+                                    <i class="bi bi-geo-alt text-primary me-2"></i>Localização *
+                                </label>
                                 <InputText id="location" class="form-control" @bind-Value="request.Location" placeholder="Inserir localização..." />
                             </div>
                         </div>
                     }
 
                     <div class="mb-3">
-                        <label for="message" class="form-label">Informações Adicionais</label>
+                        <label for="message" class="form-label fw-semibold">
+                            <i class="bi bi-chat-text text-primary me-2"></i>Informações Adicionais
+                        </label>
                         <InputTextArea id="message" class="form-control" @bind-Value="request.Message" rows="5"
                                        placeholder="Inserir informações adicionais..." />
                     </div>
@@ -204,12 +222,16 @@
                 <ErrorDisplay />
 
                 <div class="mb-3">
-                    <label class="form-label">Título</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-card-text text-primary me-2"></i>Título
+                    </label>
                     <InputText class="form-control" @bind-Value="editingLabel.Title" placeholder="Inserir título..." />
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Conteúdo</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-file-text text-primary me-2"></i>Conteúdo
+                    </label>
                     <InputTextArea class="form-control" rows="10" @bind-Value="editingLabel.Content" 
                                    placeholder="Inserir conteúdo (uma linha por item)..." />
                     <small class="text-muted">Dica: Use uma linha por item da lista</small>

@@ -32,6 +32,7 @@
 /* Form Elements */
 @import url('3-components/buttons.css');
 @import url('3-components/forms.css');
+@import url('3-components/form-components.css');
 @import url('3-components/form-checks-tabs.css');
 @import url('3-components/input-groups-misc.css');
 

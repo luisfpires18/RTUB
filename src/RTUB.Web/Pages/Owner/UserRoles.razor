@@ -13,8 +13,8 @@
 @attribute [Authorize(Roles = "Owner")]
 @inherits CrudTablePageBase<ApplicationUser>
 
-<h1>Gestão de Funções de Utilizadores</h1>
-<p>Gerir funções dos utilizadores entre Member, Admin e Owner.</p>
+<h1 class="mb-2"><i class="bi bi-person-gear"></i> Gestão de Funções de Utilizadores</h1>
+<p class="lead mb-4 text-light-theme">Gerir funções dos utilizadores entre Member, Admin e Owner.</p>
 
 <!-- Success/Error Message -->
 @if (!string.IsNullOrEmpty(message))

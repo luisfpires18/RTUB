@@ -225,7 +225,7 @@
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header border-bottom border-secondary">
+                <div class="modal-header border-bottom border-secondary" style="background: rgba(var(--bs-primary-rgb), 0.1);">
                     <h5 class="modal-title">
                         <i class="bi bi-@(editingList == null ? "plus-circle" : "pencil-square") me-2"></i>
                         @(editingList == null ? "Criar Lista" : "Editar Lista")
@@ -233,12 +233,11 @@
                     <button type="button" class="btn-close" @onclick="CloseListModal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-list-ul text-primary me-2"></i>Nome da Lista
-                        </label>
-                        <input type="text" class="form-control" @bind="listName" placeholder="Nome da lista" />
-                    </div>
+                    <FormTextField Label="Nome da Lista"
+                                  Icon="list-ul"
+                                  @bind-Value="listName"
+                                  Placeholder="Nome da lista"
+                                  Required="true" />
                 </div>
                 <div class="modal-footer border-top border-secondary">
                     <button type="button" class="btn btn-secondary" @onclick="CloseListModal">
@@ -259,7 +258,7 @@
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header border-bottom border-secondary">
+                <div class="modal-header border-bottom border-secondary" style="background: rgba(var(--bs-primary-rgb), 0.1);">
                     <h5 class="modal-title">
                         <i class="bi bi-@(editingCard == null ? "plus-circle" : "pencil-square") me-2"></i>
                         @(editingCard == null ? "Criar Cartão" : "Editar Cartão")
@@ -267,18 +266,18 @@
                     <button type="button" class="btn-close" @onclick="CloseCardModal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-card-text text-primary me-2"></i>Título
-                        </label>
-                        <input type="text" class="form-control" @bind="cardTitle" placeholder="Título do cartão" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
-                        </label>
-                        <textarea class="form-control" rows="3" @bind="cardDescription" placeholder="Descrição do cartão (opcional)"></textarea>
-                    </div>
+                    <FormTextField Label="Título"
+                                  Icon="card-text"
+                                  @bind-Value="cardTitle"
+                                  Placeholder="Título do cartão"
+                                  Required="true" />
+                    
+                    <FormTextArea Label="Descrição"
+                                 Icon="text-paragraph"
+                                 @bind-Value="cardDescription"
+                                 Rows="3"
+                                 Placeholder="Descrição do cartão (opcional)" />
+                    
                     <div class="mb-3">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-person text-primary me-2"></i>Atribuir a (opcional)
@@ -330,7 +329,7 @@
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.7);">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header border-bottom border-secondary">
+                <div class="modal-header border-bottom border-secondary" style="background: rgba(var(--bs-primary-rgb), 0.1);">
                     <h5 class="modal-title d-flex align-items-center">
                         <i class="bi bi-card-text text-primary me-2"></i>
                         @selectedCard.Title

@@ -13,8 +13,8 @@
 @inject IImageStorageService ImageStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<h1>Loja RTUB</h1>
-<p class="lead mb-4">Produtos oficiais da Real Tuna Universitária de Bragança</p>
+<h1 class="mb-2"><i class="bi bi-cart"></i> Loja RTUB</h1>
+<p class="lead mb-4 text-light-theme">Produtos oficiais da Real Tuna Universitária de Bragança</p>
 
 <AuthorizeView Roles="Admin,Owner">
     <Authorized>
@@ -197,22 +197,30 @@ else
 
             <div class="row mb-3">
                 <div class="col-md-8">
-                    <label class="form-label">Nome *</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-box text-primary me-2"></i>Nome *
+                    </label>
                     <InputText class="form-control" @bind-Value="product.Name" />
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Tipo *</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-tag text-primary me-2"></i>Tipo *
+                    </label>
                     <InputText class="form-control" @bind-Value="product.Type" placeholder="Álbum, Pin, T-shirt..." />
                 </div>
             </div>
 
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label class="form-label">Preço (€) *</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-currency-euro text-primary me-2"></i>Preço (€) *
+                    </label>
                     <InputNumber class="form-control" @bind-Value="product.Price" min="0.01" step="0.01" />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Stock</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-boxes text-primary me-2"></i>Stock
+                    </label>
                     <InputNumber class="form-control" @bind-Value="product.Stock" min="0" />
                 </div>
             </div>
@@ -230,13 +238,17 @@ else
 
             <div class="row mb-3">
                 <div class="col-md-12">
-                    <label class="form-label">Descrição</label>
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-text-paragraph text-primary me-2"></i>Descrição
+                    </label>
                     <InputTextArea class="form-control" @bind-Value="product.Description" rows="3" />
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Imagem do Produto</label>
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-image text-primary me-2"></i>Imagem do Produto
+                </label>
                 <InputFile class="form-control file-input-dark" OnChange="HandleImageUpload" accept="image/*" />
                 @if (!string.IsNullOrEmpty(editingProduct?.ImageUrl) && uploadedImagePath == null)
                 {
