@@ -2027,6 +2027,40 @@ th:hover {
     background: rgba(0, 0, 0, 0.5);
 }
 
+.post-card-actions {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.post-card-actions-left,
+.post-card-actions-right {
+    display: flex;
+    gap: 0.25rem;
+    pointer-events: all;
+}
+
+.post-card-actions .btn {
+    padding: 0.25rem 0.5rem;
+    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.7);
+    border-width: 1px;
+}
+
+.post-card-actions .btn:hover {
+    background: rgba(0, 0, 0, 0.85);
+}
+
+.post-card {
+    position: relative;
+}
+
 .post-card-content {
     flex: 1;
     padding: 1.25rem 1.5rem;

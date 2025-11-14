@@ -2,12 +2,11 @@
 @using RTUB.Core.Entities
 
 <div class="post-card" 
-     @onclick="OnClick"
      role="button"
      aria-label="@($"Post: {Post.Title}")">
     
     <!-- Left side: Author avatar and info -->
-    <div class="post-card-avatar-section">
+    <div class="post-card-avatar-section" @onclick="OnClick">
         <img src="@(Post.Author.ProfilePictureSrc)" 
              class="post-card-avatar" 
              alt="@(Post.Author.Nickname ?? Post.Author.UserName)" />
@@ -18,7 +17,7 @@
     </div>
     
     <!-- Right side: Post content -->
-    <div class="post-card-content">
+    <div class="post-card-content" @onclick="OnClick">
         <div class="post-card-header">
             <h5 class="post-card-title">
                 @Post.Title
@@ -61,6 +60,59 @@
             </span>
         </div>
     </div>
+    
+    <!-- Action buttons overlay - top left for author, top right for admin/owner -->
+    <div class="post-card-actions">
+        <!-- Author controls (top-left) -->
+        @if (ShowAuthorControls)
+        {
+            <div class="post-card-actions-left" @onclick:stopPropagation="true">
+                <button class="btn btn-sm btn-outline-light" 
+                        @onclick="OnEdit"
+                        @onclick:stopPropagation="true"
+                        title="Editar">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" 
+                        @onclick="OnDelete"
+                        @onclick:stopPropagation="true"
+                        title="Eliminar">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        }
+        
+        <!-- Admin/Owner controls (top-right) -->
+        @if (ShowAdminControls || ShowOwnerControls)
+        {
+            <div class="post-card-actions-right" @onclick:stopPropagation="true">
+                @if (ShowAdminControls)
+                {
+                    <button class="btn btn-sm @(Post.IsPinned ? "btn-warning" : "btn-outline-warning")" 
+                            @onclick="OnTogglePin"
+                            @onclick:stopPropagation="true"
+                            title="@(Post.IsPinned ? "Desafixar" : "Fixar")">
+                        <i class="bi bi-pin-angle-fill"></i>
+                    </button>
+                    <button class="btn btn-sm @(Post.IsLocked ? "btn-danger" : "btn-outline-danger")" 
+                            @onclick="OnToggleLock"
+                            @onclick:stopPropagation="true"
+                            title="@(Post.IsLocked ? "Desbloquear" : "Bloquear")">
+                        <i class="bi @(Post.IsLocked ? "bi-unlock-fill" : "bi-lock-fill")"></i>
+                    </button>
+                }
+                @if (ShowOwnerControls)
+                {
+                    <button class="btn btn-sm btn-danger" 
+                            @onclick="OnDelete"
+                            @onclick:stopPropagation="true"
+                            title="Eliminar Post">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                }
+            </div>
+        }
+    </div>
 </div>
 
 @code {
@@ -72,4 +124,25 @@
     
     [Parameter]
     public EventCallback OnClick { get; set; }
+    
+    [Parameter]
+    public bool ShowAuthorControls { get; set; }
+    
+    [Parameter]
+    public bool ShowAdminControls { get; set; }
+    
+    [Parameter]
+    public bool ShowOwnerControls { get; set; }
+    
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+    
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+    
+    [Parameter]
+    public EventCallback OnTogglePin { get; set; }
+    
+    [Parameter]
+    public EventCallback OnToggleLock { get; set; }
 }

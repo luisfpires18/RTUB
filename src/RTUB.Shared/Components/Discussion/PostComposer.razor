@@ -39,9 +39,24 @@
 @code {
     [Parameter]
     public EventCallback<(string title, string body)> OnSubmit { get; set; }
+    
+    [Parameter]
+    public string? Title { get; set; }
+    
+    [Parameter]
+    public string? Body { get; set; }
 
     private PostComposerModel model = new();
     private bool isSubmitting = false;
+    
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(Title) || !string.IsNullOrEmpty(Body))
+        {
+            model.Title = Title ?? string.Empty;
+            model.Body = Body ?? string.Empty;
+        }
+    }
 
     private async Task HandleSubmit()
     {
