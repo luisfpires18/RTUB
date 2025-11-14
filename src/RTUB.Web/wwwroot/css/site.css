@@ -2085,16 +2085,24 @@ th:hover {
     font-size: 0.9rem;
 }
 
+.post-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: auto;
+    gap: 1rem;
+}
+
 .post-card-badges {
     display: flex;
     gap: 0.5rem;
     flex-shrink: 0;
+    align-items: center;
 }
 
 .post-card-meta {
     display: flex;
     gap: 1.5rem;
-    margin-top: auto;
 }
 
 .post-card-meta-item {
@@ -2169,9 +2177,19 @@ th:hover {
         gap: 0.5rem;
     }
 
+    .post-card-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
     .post-card-meta {
         flex-direction: column;
         gap: 0.5rem;
+    }
+
+    .post-card-badges {
+        align-self: flex-end;
     }
 
     .post-card-title {
