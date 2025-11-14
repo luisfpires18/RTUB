@@ -27,20 +27,23 @@
         <div class="discussion-page-header">
             <div class="discussion-container">
                 <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center flex-grow-1">
-                        <button class="btn btn-outline-secondary me-3" @onclick="NavigateBack">
-                            <i class="bi bi-arrow-left"></i>
-                        </button>
-                        <div>
-                            <p class="text-muted mb-1 small">@eventItem.Name</p>
-                            <h2 class="mb-0">Discussão</h2>
-                        </div>
+                    <button class="btn btn-outline-secondary" @onclick="NavigateBack">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <div class="text-center flex-grow-1">
+                        <p class="text-muted mb-1 small">@eventItem.Name</p>
+                        <h2 class="mb-0">Discussão</h2>
                     </div>
                     @if (canCreatePost)
                     {
                         <button class="btn btn-success btn-create-post" @onclick="OpenCreatePostModal" title="Criar Novo Post">
                             <i class="bi bi-plus-lg"></i>
                         </button>
+                    }
+                    else
+                    {
+                        <!-- Invisible placeholder to maintain centering -->
+                        <div style="width: 48px;"></div>
                     }
                 </div>
             </div>
