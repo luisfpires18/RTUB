@@ -22,30 +22,6 @@
             <h5 class="post-card-title">
                 @Post.Title
             </h5>
-        </div>
-        
-        <p class="post-card-body">
-            @if (Post.Body.Length > 200)
-            {
-                @Post.Body.Substring(0, 200)<text>...</text>
-            }
-            else
-            {
-                @Post.Body
-            }
-        </p>
-        
-        <div class="post-card-footer">
-            <div class="post-card-meta">
-                <span class="post-card-meta-item">
-                    <i class="bi bi-chat-left-dots"></i>
-                    @CommentCount comentários
-                </span>
-                <span class="post-card-meta-item">
-                    <i class="bi bi-clock"></i>
-                    @Post.LastActivityAt.ToString("dd MMM, HH:mm")
-                </span>
-            </div>
             <div class="post-card-badges">
                 @if (Post.IsPinned)
                 {
@@ -60,6 +36,28 @@
                     </span>
                 }
             </div>
+        </div>
+        
+        <p class="post-card-body">
+            @if (Post.Body.Length > 200)
+            {
+                @Post.Body.Substring(0, 200)<text>...</text>
+            }
+            else
+            {
+                @Post.Body
+            }
+        </p>
+        
+        <div class="post-card-meta">
+            <span class="post-card-meta-item">
+                <i class="bi bi-chat-left-dots"></i>
+                @CommentCount comentários
+            </span>
+            <span class="post-card-meta-item">
+                <i class="bi bi-clock"></i>
+                @Post.LastActivityAt.ToString("dd MMM, HH:mm")
+            </span>
         </div>
     </div>
     
