@@ -45,7 +45,7 @@ public class Song : BaseEntity
     // Private constructor for EF Core
     public Song() { }
 
-    public static Song Create(string title, int albumId, int? trackNumber = null)
+    public static Song Create(string title, int albumId, int? trackNumber = null, string? lyricAuthor = null, string? musicAuthor = null, string? adaptation = null, int? duration = null, string? spotifyUrl = null, bool hasMusic = false)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título da música não pode estar vazio", nameof(title));
@@ -54,7 +54,13 @@ public class Song : BaseEntity
         {
             Title = title,
             AlbumId = albumId,
-            TrackNumber = trackNumber
+            TrackNumber = trackNumber,
+            LyricAuthor = lyricAuthor,
+            MusicAuthor = musicAuthor,
+            Adaptation = adaptation,
+            Duration = duration,
+            SpotifyUrl = spotifyUrl,
+            HasMusic = hasMusic
         };
     }
 

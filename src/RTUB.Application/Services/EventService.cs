@@ -85,16 +85,28 @@ public class EventService : IEventService
         
         _context.Events.Add(eventEntity);
         
-        // Save to get the ID - this creates the "Created" audit log
-        await _context.SaveChangesAsync();
+        // Disable auditing for the initial save to get the ID
+        _context.DisableAuditing();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        finally
+        {
+            _context.EnableAuditing();
+        }
         
         // Upload image to Cloudflare R2 using the generated ID
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", eventEntity.Id.ToString());
         
-        // Set the image URL - EF Core is still tracking this entity
+        // Set the image URL
         eventEntity.SetImage(imageUrl);
         
-        // Save again - this will create a "Modified" audit log with ImageUrl change
+        // Mark the entity as Added again to create a single Created audit log with all fields
+        _context.Entry(eventEntity).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+        _context.Events.Add(eventEntity);
+        
+        // Save with auditing enabled - this will create a single "Created" log with all fields including ImageUrl
         await _context.SaveChangesAsync();
         
         return eventEntity;

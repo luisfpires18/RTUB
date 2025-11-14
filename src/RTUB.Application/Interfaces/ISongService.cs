@@ -11,7 +11,7 @@ public interface ISongService
     Task<Song?> GetSongByIdAsync(int id);
     Task<IEnumerable<Song>> GetAllSongsAsync();
     Task<IEnumerable<Song>> GetSongsByAlbumIdAsync(int albumId);
-    Task<Song> CreateSongAsync(string title, int albumId, int? trackNumber = null);
+    Task<Song> CreateSongAsync(string title, int albumId, int? trackNumber = null, string? lyricAuthor = null, string? musicAuthor = null, string? adaptation = null, int? duration = null, string? spotifyUrl = null, bool hasMusic = false);
     Task UpdateSongAsync(int id, string title, int? trackNumber, string? lyricAuthor, string? musicAuthor, string? adaptation, int? duration);
     Task SetSongLyricsAsync(int id, string? lyrics);
     Task SetSongSpotifyUrlAsync(int id, string? url);

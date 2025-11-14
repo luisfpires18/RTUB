@@ -59,33 +59,56 @@ public class SlideshowService : ISlideshowService
         
         _context.Slideshows.Add(slideshow);
         
-        // Save to get the ID - this creates the "Created" audit log
-        await _context.SaveChangesAsync();
+        // Disable auditing for the initial save to get the ID
+        _context.DisableAuditing();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        finally
+        {
+            _context.EnableAuditing();
+        }
         
         // Upload image to Cloudflare R2 using the generated ID
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", slideshow.Id.ToString());
         
-        // Set the image URL - EF Core is still tracking this entity
+        // Set the image URL
         slideshow.SetImage(imageUrl);
         
-        // Save again - this will create a "Modified" audit log with ImageUrl change
+        // Mark the entity as Added again to create a single Created audit log with all fields
+        _context.Entry(slideshow).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+        _context.Slideshows.Add(slideshow);
+        
+        // Save with auditing enabled - this will create a single "Created" log with all fields including ImageUrl
         await _context.SaveChangesAsync();
         
         return slideshow;
     }
 
-    public async Task UpdateSlideshowAsync(int id, string title, string description, int order, int intervalMs)
+    public async Task UpdateSlideshowAsync(int id, string title, string description, int order, int intervalMs, bool isActive)
     {
         var slideshow = await _context.Slideshows.FindAsync(id);
         if (slideshow == null)
             throw new InvalidOperationException($"Slideshow with ID {id} not found");
 
         slideshow.UpdateDetails(title, description, order, intervalMs);
+        
+        // Update active state
+        if (isActive && !slideshow.IsActive)
+        {
+            slideshow.Activate();
+        }
+        else if (!isActive && slideshow.IsActive)
+        {
+            slideshow.Deactivate();
+        }
+        
         _context.Slideshows.Update(slideshow);
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateSlideshowWithImageAsync(int id, string title, string description, int order, int intervalMs, Stream imageStream, string fileName, string contentType)
+    public async Task UpdateSlideshowWithImageAsync(int id, string title, string description, int order, int intervalMs, bool isActive, Stream imageStream, string fileName, string contentType)
     {
         var slideshow = await _context.Slideshows.FindAsync(id);
         if (slideshow == null)
@@ -93,6 +116,16 @@ public class SlideshowService : ISlideshowService
 
         // Update slideshow details
         slideshow.UpdateDetails(title, description, order, intervalMs);
+        
+        // Update active state
+        if (isActive && !slideshow.IsActive)
+        {
+            slideshow.Activate();
+        }
+        else if (!isActive && slideshow.IsActive)
+        {
+            slideshow.Deactivate();
+        }
 
         // Delete old image if it exists
         if (!string.IsNullOrEmpty(slideshow.ImageUrl))

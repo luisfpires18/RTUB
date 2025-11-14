@@ -131,7 +131,7 @@ public class SlideshowServiceTests : IDisposable
         var slideshow = await _service.CreateSlideshowAsync("Original", 1, "Old desc", 3000);
 
         // Act
-        await _service.UpdateSlideshowAsync(slideshow.Id, "Updated", "New desc", 2, 4000);
+        await _service.UpdateSlideshowAsync(slideshow.Id, "Updated", "New desc", 2, 4000, true);
 
         // Assert
         var updated = await _service.GetSlideshowByIdAsync(slideshow.Id);
@@ -145,7 +145,7 @@ public class SlideshowServiceTests : IDisposable
     public async Task UpdateSlideshowAsync_WithNonExistentId_ThrowsException()
     {
         // Act
-        var act = async () => await _service.UpdateSlideshowAsync(999, "Test", "Test", 1, 5000);
+        var act = async () => await _service.UpdateSlideshowAsync(999, "Test", "Test", 1, 5000, true);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -165,7 +165,7 @@ public class SlideshowServiceTests : IDisposable
 
         // Act
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        await _service.UpdateSlideshowWithImageAsync(slideshow.Id, "Updated", "New desc", 2, 4000, imageStream, "test.webp", "image/webp");
+        await _service.UpdateSlideshowWithImageAsync(slideshow.Id, "Updated", "New desc", 2, 4000, true, imageStream, "test.webp", "image/webp");
         var updated = await _service.GetSlideshowByIdAsync(slideshow.Id);
 
         // Assert
@@ -200,7 +200,7 @@ public class SlideshowServiceTests : IDisposable
 
         // Act
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        await _service.UpdateSlideshowWithImageAsync(slideshow.Id, "New Title", "New desc", 2, 5000, imageStream, "test.webp", "image/webp");
+        await _service.UpdateSlideshowWithImageAsync(slideshow.Id, "New Title", "New desc", 2, 5000, true, imageStream, "test.webp", "image/webp");
 
         // Assert
         _imageStorageServiceMock.Verify(
@@ -216,7 +216,7 @@ public class SlideshowServiceTests : IDisposable
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
 
         // Act & Assert
-        var act = async () => await _service.UpdateSlideshowWithImageAsync(999, "Title", "Desc", 1, 5000, imageStream, "test.webp", "image/webp");
+        var act = async () => await _service.UpdateSlideshowWithImageAsync(999, "Title", "Desc", 1, 5000, true, imageStream, "test.webp", "image/webp");
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*not found*");
     }

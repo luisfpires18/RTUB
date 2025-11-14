@@ -704,34 +704,20 @@ else
             return; // Unauthorized
         }
 
-        // Create new song
+        // Create new song with all properties in single operation to avoid duplicate audit logs
         var newSong = await SongService.CreateSongAsync(
             editingSong.Title.Trim(),
             AlbumId,
-            editingSong.TrackNumber
-        );
-
-        // Update additional properties
-        await SongService.UpdateSongAsync(
-            newSong.Id,
-            newSong.Title,
-            newSong.TrackNumber,
+            editingSong.TrackNumber,
             editingSong.LyricAuthor,
             editingSong.MusicAuthor,
             editingSong.Adaptation,
-            editingSong.Duration
+            editingSong.Duration,
+            !string.IsNullOrWhiteSpace(editingSong.SpotifyUrl) ? editingSong.SpotifyUrl : null,
+            editingSong.HasMusic
         );
 
-        // Set Spotify URL
-        if (!string.IsNullOrWhiteSpace(editingSong.SpotifyUrl))
-        {
-            await SongService.SetSongSpotifyUrlAsync(newSong.Id, editingSong.SpotifyUrl);
-        }
-
-        // Set HasMusic
-        await SongService.SetSongHasMusicAsync(newSong.Id, editingSong.HasMusic);
-
-        // Set lyrics
+        // Set lyrics if provided (separate because it can be large)
         if (!string.IsNullOrWhiteSpace(editingSong.Lyrics))
         {
             await SongService.SetSongLyricsAsync(newSong.Id, editingSong.Lyrics);

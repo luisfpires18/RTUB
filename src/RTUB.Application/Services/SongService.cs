@@ -46,9 +46,9 @@ public class SongService : ISongService
             .ToListAsync();
     }
 
-    public async Task<Song> CreateSongAsync(string title, int albumId, int? trackNumber = null)
+    public async Task<Song> CreateSongAsync(string title, int albumId, int? trackNumber = null, string? lyricAuthor = null, string? musicAuthor = null, string? adaptation = null, int? duration = null, string? spotifyUrl = null, bool hasMusic = false)
     {
-        var song = Song.Create(title, albumId, trackNumber);
+        var song = Song.Create(title, albumId, trackNumber, lyricAuthor, musicAuthor, adaptation, duration, spotifyUrl, hasMusic);
         _context.Songs.Add(song);
         await _context.SaveChangesAsync();
         return song;

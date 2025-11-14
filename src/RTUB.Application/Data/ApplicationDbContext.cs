@@ -817,4 +817,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         
         return null;
     }
+
+    /// <summary>
+    /// Temporarily disables audit logging for operations that need to save multiple times
+    /// but should only create a single audit log entry.
+    /// Use with caution and always re-enable auditing afterwards.
+    /// </summary>
+    public void DisableAuditing()
+    {
+        _isAuditingEnabled = false;
+    }
+
+    /// <summary>
+    /// Re-enables audit logging after it was temporarily disabled.
+    /// </summary>
+    public void EnableAuditing()
+    {
+        _isAuditingEnabled = true;
+    }
 }

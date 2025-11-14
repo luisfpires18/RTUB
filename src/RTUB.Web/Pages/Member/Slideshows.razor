@@ -359,6 +359,7 @@ else
                     editingSlide.Description ?? string.Empty,
                     editingSlide.Order,
                     editingSlide.IntervalMs,
+                    editingSlide.IsActive,
                     stream,
                     croppedSlideshowImageFileName!,
                     "image/webp");
@@ -372,17 +373,9 @@ else
                     editingSlide.Title,
                     editingSlide.Description ?? string.Empty,
                     editingSlide.Order,
-                    editingSlide.IntervalMs
+                    editingSlide.IntervalMs,
+                    editingSlide.IsActive
                 );
-            }
-
-            if (editingSlide.IsActive)
-            {
-                await SlideshowService.ActivateSlideshowAsync(editingSlide.Id);
-            }
-            else
-            {
-                await SlideshowService.DeactivateSlideshowAsync(editingSlide.Id);
             }
         }
 
