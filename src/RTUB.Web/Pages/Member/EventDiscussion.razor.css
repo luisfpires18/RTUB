@@ -1,86 +1,12 @@
 /* Discussion Page Styles */
 
-/* Page wrapper and container */
+/* Page wrapper */
 .discussion-page-wrapper {
     min-height: 100vh;
     padding-bottom: 2rem;
 }
 
-.discussion-container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 0 1.5rem;
-}
-
-/* Page header with background */
-.discussion-page-header {
-    background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.08) 0%, rgba(var(--bs-primary-rgb), 0.02) 100%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 1.5rem 0;
-    margin-bottom: 2rem;
-}
-
-.discussion-page-header h2 {
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: var(--bs-light);
-}
-
-/* Create Post Button */
-.btn-create-post {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    padding: 0;
-    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
-    transition: all 0.3s ease;
-}
-
-.btn-create-post:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(25, 135, 84, 0.4);
-}
-
-.btn-create-post:active {
-    transform: translateY(0);
-}
-
-/* Search bar */
-.search-bar-wrapper {
-    max-width: 100%;
-}
-
-.search-bar-wrapper .input-group-text {
-    border-color: rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.search-bar-wrapper .form-control {
-    background: rgba(var(--bs-dark-rgb), 0.3);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: var(--bs-light);
-}
-
-.search-bar-wrapper .form-control:focus {
-    background: rgba(var(--bs-dark-rgb), 0.4);
-    border-color: var(--bs-primary);
-    color: var(--bs-light);
-    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
-}
-
-.search-bar-wrapper .form-control::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-}
-
 /* Posts section */
-.posts-section {
-    margin-top: 1rem;
-}
-
 .posts-list {
     display: flex;
     flex-direction: column;
@@ -101,12 +27,6 @@
     margin-top: -1rem;
 }
 
-.post-body-full {
-    font-size: 1rem;
-    line-height: 1.7;
-    color: rgba(255, 255, 255, 0.85);
-}
-
 .comments-section h6 {
     color: #e2e2e2;
     font-weight: 600;
@@ -116,36 +36,4 @@
 .pagination-wrapper {
     display: flex;
     justify-content: center;
-}
-
-/* Mobile responsive */
-@media (max-width: 768px) {
-    .discussion-container {
-        padding: 0 1rem;
-    }
-
-    .discussion-page-header {
-        padding: 1rem 0;
-        margin-bottom: 1.5rem;
-    }
-
-    .discussion-page-header h2 {
-        font-size: 1.5rem;
-    }
-
-    .btn-create-post {
-        width: 44px;
-        height: 44px;
-        font-size: 1.25rem;
-    }
-}
-
-@media (max-width: 576px) {
-    .discussion-container {
-        padding: 0 0.75rem;
-    }
-    
-    .discussion-page-header .btn {
-        padding: 0.375rem 0.5rem;
-    }
 }

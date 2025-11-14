@@ -17,154 +17,139 @@
 <div class="discussion-page-wrapper">
     @if (eventItem == null)
     {
-        <div class="discussion-container">
-            <LoadingSpinner />
-        </div>
+        <LoadingSpinner />
     }
     else
     {
         <!-- Page Header -->
-        <div class="discussion-page-header">
-            <div class="discussion-container">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center flex-grow-1">
-                        <button class="btn btn-outline-secondary me-3" @onclick="NavigateBack">
-                            <i class="bi bi-arrow-left"></i>
-                        </button>
-                        <div>
-                            <p class="text-muted mb-1 small">@eventItem.Name</p>
-                            <h2 class="mb-0">Discussão</h2>
-                        </div>
-                    </div>
-                    @if (canCreatePost)
-                    {
-                        <button class="btn btn-success btn-create-post" @onclick="OpenCreatePostModal" title="Criar Novo Post">
-                            <i class="bi bi-plus-lg"></i>
-                        </button>
-                    }
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="NavigateBack">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
+                <div>
+                    <h1 class="mb-0">Discussão</h1>
                 </div>
+            </div>
+            @if (canCreatePost)
+            {
+                <button class="btn btn-success" @onclick="OpenCreatePostModal" title="Criar Novo Post">
+                    <i class="bi bi-plus-lg"></i> Novo Post
+                </button>
+            }
+        </div>
+        <p class="mb-4">@eventItem.Name</p>
+
+        <!-- Search Bar -->
+        <div class="mb-4">
+            <div class="input-group">
+                <span class="input-group-text bg-transparent">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" 
+                       class="form-control" 
+                       placeholder="Pesquisar posts por título, conteúdo ou autor..." 
+                       @bind="searchTerm" 
+                       @bind:event="oninput" 
+                       @onkeyup="HandleSearch" />
             </div>
         </div>
 
-        <div class="discussion-container">
-            <!-- Search Bar -->
-            <div class="search-bar-wrapper mb-4">
-                <div class="input-group">
-                    <span class="input-group-text bg-transparent">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input type="text" 
-                           class="form-control" 
-                           placeholder="Pesquisar posts por título, conteúdo ou autor..." 
-                           @bind="searchTerm" 
-                           @bind:event="oninput" 
-                           @onkeyup="HandleSearch" />
-                </div>
-            </div>
-
-            <!-- Posts Section -->
-            <div class="posts-section">
-                @if (posts == null)
+        <!-- Posts Section -->
+        @if (posts == null)
+        {
+            <LoadingSpinner />
+        }
+        else if (posts.Count == 0)
+        {
+            <EmptyState Title="Nenhum post encontrado" 
+                       Message="@(string.IsNullOrWhiteSpace(searchTerm) ? "Seja o primeiro a iniciar uma discussão sobre este evento!" : "Nenhum resultado encontrado para a sua pesquisa.")" 
+                       Icon="bi-chat-dots" />
+        }
+        else
+        {
+            <div class="posts-list">
+                @foreach (var post in posts)
                 {
-                    <LoadingSpinner />
-                }
-                else if (posts.Count == 0)
-                {
-                    <EmptyState Title="Nenhum post encontrado" 
-                               Message="@(string.IsNullOrWhiteSpace(searchTerm) ? "Seja o primeiro a iniciar uma discussão sobre este evento!" : "Nenhum resultado encontrado para a sua pesquisa.")" 
-                               Icon="bi-chat-dots" />
-                }
-                else
-                {
-                    <div class="posts-list">
-                        @foreach (var post in posts)
+                    var postComments = GetPostComments(post.Id);
+                    var commentCount = postComments.Count;
+                    var isExpanded = expandedPostIds.Contains(post.Id);
+                    
+                    <div class="post-wrapper mb-3">
+                        <!-- PostCard as clickable header with action buttons -->
+                        <PostCard Post="@post" 
+                                 CommentCount="@commentCount" 
+                                 OnClick="@(() => TogglePost(post.Id))"
+                                 ShowAuthorControls="@IsAuthor(post)"
+                                 ShowAdminControls="@isAdmin"
+                                 ShowOwnerControls="@(isOwner && !IsAuthor(post))"
+                                 OnEdit="@(() => OpenEditPostModal(post))"
+                                 OnDelete="@(() => ShowDeletePostConfirm(post))"
+                                 OnTogglePin="@(() => TogglePin(post))"
+                                 OnToggleLock="@(() => ToggleLock(post))" />
+                        
+                        <!-- Expanded content -->
+                        @if (isExpanded)
                         {
-                            var postComments = GetPostComments(post.Id);
-                            var commentCount = postComments.Count;
-                            var isExpanded = expandedPostIds.Contains(post.Id);
-                            
-                            <div class="post-wrapper mb-3">
-                                <!-- PostCard as clickable header with action buttons -->
-                                <PostCard Post="@post" 
-                                         CommentCount="@commentCount" 
-                                         OnClick="@(() => TogglePost(post.Id))"
-                                         ShowAuthorControls="@IsAuthor(post)"
-                                         ShowAdminControls="@isAdmin"
-                                         ShowOwnerControls="@(isOwner && !IsAuthor(post))"
-                                         OnEdit="@(() => OpenEditPostModal(post))"
-                                         OnDelete="@(() => ShowDeletePostConfirm(post))"
-                                         OnTogglePin="@(() => TogglePin(post))"
-                                         OnToggleLock="@(() => ToggleLock(post))" />
-                                
-                                <!-- Expanded content -->
-                                @if (isExpanded)
-                                {
-                                    <div class="post-expanded-content">
-                                        <!-- Full post body -->
-                                        <div class="post-body-full mb-4" style="white-space: pre-line; line-height: 1.7; color: rgba(255, 255, 255, 0.85);">
-                                            @post.Body
-                                        </div>
-
-                                        <!-- Comments Section -->
-                                        <div class="comments-section">
-                                            <h6 class="mb-3">
-                                                <i class="bi bi-chat-left-text me-2"></i>Comentários (@commentCount)
-                                            </h6>
-                                            
-                                            @if (commentCount == 0)
+                            <div class="post-expanded-content">
+                                <!-- Comments Section -->
+                                <div class="comments-section">
+                                    <h6 class="mb-3">
+                                        <i class="bi bi-chat-left-text me-2"></i>Comentários (@commentCount)
+                                    </h6>
+                                    
+                                    @if (commentCount == 0)
+                                    {
+                                        <p class="text-muted"><em>Nenhum comentário ainda.</em></p>
+                                    }
+                                    else
+                                    {
+                                        <div class="comments-list mb-3">
+                                            @foreach (var comment in postComments)
                                             {
-                                                <p class="text-muted"><em>Nenhum comentário ainda.</em></p>
-                                            }
-                                            else
-                                            {
-                                                <div class="comments-list mb-3">
-                                                    @foreach (var comment in postComments)
-                                                    {
-                                                        <CommentItem Comment="@comment" 
-                                                                    CanEdit="@(IsCommentAuthor(comment))"
-                                                                    CanDelete="@(isOwner || IsCommentAuthor(comment))"
-                                                                    OnEdit="@(async (body) => await EditComment(comment, body))"
-                                                                    OnDelete="@(() => ShowDeleteCommentConfirm(comment, post.Id))" />
-                                                    }
-                                                </div>
-                                            }
-
-                                            <!-- Add Comment -->
-                                            @if (!post.IsLocked && canCreatePost)
-                                            {
-                                                <div class="mt-3">
-                                                    <CommentComposer OnSubmit="@(async (body) => await CreateComment(post.Id, body))" />
-                                                </div>
-                                            }
-                                            else if (post.IsLocked)
-                                            {
-                                                <div class="alert alert-warning mt-3 d-flex align-items-center">
-                                                    <i class="bi bi-lock-fill me-2"></i>
-                                                    <span>Este post está bloqueado. Não é possível adicionar novos comentários.</span>
-                                                </div>
+                                                <CommentItem Comment="@comment" 
+                                                            CanEdit="@(IsCommentAuthor(comment))"
+                                                            CanDelete="@(isOwner || IsCommentAuthor(comment))"
+                                                            OnEdit="@(async (body) => await EditComment(comment, body))"
+                                                            OnDelete="@(() => ShowDeleteCommentConfirm(comment, post.Id))" />
                                             }
                                         </div>
-                                    </div>
-                                }
+                                    }
+
+                                    <!-- Add Comment -->
+                                    @if (!post.IsLocked && canCreatePost)
+                                    {
+                                        <div class="mt-3">
+                                            <CommentComposer OnSubmit="@(async (body) => await CreateComment(post.Id, body))" />
+                                        </div>
+                                    }
+                                    else if (post.IsLocked)
+                                    {
+                                        <div class="alert alert-warning mt-3 d-flex align-items-center">
+                                            <i class="bi bi-lock-fill me-2"></i>
+                                            <span>Este post está bloqueado. Não é possível adicionar novos comentários.</span>
+                                        </div>
+                                    }
+                                </div>
                             </div>
                         }
                     </div>
-
-                    @if (totalPosts > pageSize)
-                    {
-                        <div class="pagination-wrapper mt-4">
-                            <TablePagination CurrentPage="@currentPage"
-                                            PageSize="@pageSize"
-                                            TotalItems="@totalPosts"
-                                            ItemLabel="posts"
-                                            PageSizeOptions="@(new[] { 20, 50, 100 })"
-                                            OnPageChanged="@HandlePageChange"
-                                            OnPageSizeChanged="@HandlePageSizeChange" />
-                        </div>
-                    }
                 }
             </div>
-        </div>
+
+            @if (totalPosts > pageSize)
+            {
+                <div class="pagination-wrapper mt-4">
+                    <TablePagination CurrentPage="@currentPage"
+                                    PageSize="@pageSize"
+                                    TotalItems="@totalPosts"
+                                    ItemLabel="posts"
+                                    PageSizeOptions="@(new[] { 20, 50, 100 })"
+                                    OnPageChanged="@HandlePageChange"
+                                    OnPageSizeChanged="@HandlePageSizeChange" />
+                </div>
+            }
+        }
     }
 </div>
 
