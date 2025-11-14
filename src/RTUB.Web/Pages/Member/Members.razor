@@ -372,20 +372,16 @@ else
 </Modal>
 
 <!-- Delete Confirmation Modal -->
-<Modal Show="@showDeleteModal" 
-       ShowChanged="@((bool show) => showDeleteModal = show)"
-       Title="Confirmar Eliminação" 
-       Size="Modal.ModalSize.Default"
-       Centered="true">
-    <BodyContent>
-        <p>Tem certeza que deseja eliminar <strong>@deletingUser?.GetDisplayName()</strong>?</p>
-        <p class="text-muted">Esta ação não pode ser desfeita.</p>
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="DeleteMember">Eliminar</button>
-    </FooterContent>
-</Modal>
+<ConfirmDialog Show="@showDeleteModal"
+               ShowChanged="@((bool show) => showDeleteModal = show)"
+               Title="Confirmar Eliminação"
+               Message="@($"Tem certeza que deseja eliminar {deletingUser?.GetDisplayName()}?")"
+               WarningMessage="Esta ação não pode ser desfeita."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="DeleteMember"
+               OnCancel="CloseDeleteModal" />
 
 <!-- View Details Modal -->
 @if (viewingUser != null)

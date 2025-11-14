@@ -1,0 +1,69 @@
+/* Navbar styling */
+
+/* Navbar styling */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #121212;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--bs-border-color);
+  color: #fff;
+}
+.navbar-brand {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #fff;
+}
+.navbar-brand:hover { color: var(--bs-link-hover-color); }
+.navbar-nav {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nav-link {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  color: #eee;
+  border-radius: 0.25rem;
+  /* Minimum touch target size for mobile */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* Add spacing between icon and text */
+}
+
+.nav-link i {
+  /* Ensure icons align consistently */
+  width: 1rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-link:hover, .nav-link:focus {
+  background-color: rgba(var(--bs-primary-rgb), 0.2);
+  color: #fff;
+}
+.nav-link.active {
+  background-color: var(--bs-primary);
+  color: #fff;
+}
+
+/* Navbar dropdown button styling */
+.nav-link.dropdown-toggle[type="button"] {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: inherit;
+}
+.nav-link.dropdown-toggle[type="button"]:hover,
+.nav-link.dropdown-toggle[type="button"]:focus {
+  background-color: rgba(var(--bs-primary-rgb), 0.2); /* Fallback */
+  background-color: rgba(var(--bs-primary-rgb), 0.2);
+  color: #fff;
+  text-decoration: none;
+}
+

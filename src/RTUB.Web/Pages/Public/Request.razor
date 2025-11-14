@@ -36,8 +36,8 @@
 }
 
 <div class="row">
-    <div class="col-lg-8">
-        <div class="card shadow-sm">
+    <div class="col-12">
+        <div class="card shadow-sm mb-3">
             <div class="card-body">
                 <EditForm Model="request" OnValidSubmit="HandleSubmit">
                     <DataAnnotationsValidator />
@@ -136,51 +136,55 @@
                 </EditForm>
             </div>
         </div>
-    </div>
 
-    <div class="col-lg-4">
-        <div class="card shadow-sm mb-3 card-purple-no-border">
-            <div class="card-body position-relative">
-                <h5 class="card-title text-white">
-                    <i class="bi bi-info-circle"></i> @(whatToExpectLabel?.Title ?? "O que esperar")
-                    <AuthorizeView Roles="Admin">
-                        <Authorized>
-                            <button class="btn btn-sm btn-link text-white position-absolute top-0 end-0 mt-2 me-2" 
-                                    @onclick="OpenEditModal" 
-                                    title="Editar conteúdo">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                        </Authorized>
-                    </AuthorizeView>
-                </h5>
-                @if (whatToExpectLabel != null && !string.IsNullOrEmpty(whatToExpectLabel.Content))
-                {
-                    <ul class="text-white text-white-opacity">
-                        @foreach (var line in whatToExpectLabel.Content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100 card-purple-no-border">
+                    <div class="card-body position-relative">
+                        <h5 class="card-title text-white">
+                            <i class="bi bi-info-circle"></i> @(whatToExpectLabel?.Title ?? "O que esperar")
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <button class="btn btn-sm btn-link text-white position-absolute top-0 end-0 mt-2 me-2" 
+                                            @onclick="OpenEditModal" 
+                                            title="Editar conteúdo">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </Authorized>
+                            </AuthorizeView>
+                        </h5>
+                        @if (whatToExpectLabel != null && !string.IsNullOrEmpty(whatToExpectLabel.Content))
                         {
-                            <li>@line</li>
+                            <ul class="text-white text-white-opacity">
+                                @foreach (var line in whatToExpectLabel.Content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                                {
+                                    <li>@line</li>
+                                }
+                            </ul>
                         }
-                    </ul>
-                }
-                else
-                {
-                    <ul class="text-white text-white-opacity">
-                        <li>Analisaremos o seu pedido dentro de 48 horas</li>
-                        <li>Um membro da equipa entrará em contacto para discutir detalhes</li>
-                        <li>Forneceremos um orçamento baseado nos seus requisitos</li>
-                        <li>Reserve cedo para garantir disponibilidade</li>
-                    </ul>
-                }
+                        else
+                        {
+                            <ul class="text-white text-white-opacity">
+                                <li>Analisaremos o seu pedido dentro de 48 horas</li>
+                                <li>Um membro da equipa entrará em contacto para discutir detalhes</li>
+                                <li>Forneceremos um orçamento baseado nos seus requisitos</li>
+                                <li>Reserve cedo para garantir disponibilidade</li>
+                            </ul>
+                        }
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-envelope"></i> Contacte-nos</h5>
-                <p class="mb-2 text-light-theme">
-                    <strong>Email:</strong><br />
-                    <a href="mailto:realtunab@gmail.comt">realtunab@gmail.com</a>
-                </p>
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-envelope"></i> Contacte-nos</h5>
+                        <p class="mb-2 text-light-theme">
+                            <strong>Email:</strong><br />
+                            <a href="mailto:realtunab@gmail.com">realtunab@gmail.com</a>
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

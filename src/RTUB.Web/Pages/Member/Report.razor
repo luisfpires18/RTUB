@@ -359,37 +359,28 @@ else
 </Modal>
 
 <!-- Delete Activity Confirmation Modal -->
-<Modal Show="@showDeleteActivityModal" 
-   ShowChanged="@((bool show) => showDeleteActivityModal = show)"
-     Title="Confirmar Eliminação" 
- Centered="true"
-       ShowCloseButton="true">
- <BodyContent>
-      <p>Tem certeza que deseja eliminar a atividade <strong>@deletingActivity?.Name</strong>?</p>
-        <p class="text-danger"><strong>Aviso:</strong> Todas as transações associadas serão também eliminadas!</p>
-        <p class="text-muted">Esta ação não pode ser desfeita.</p>
-    </BodyContent>
-    <FooterContent>
-    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteActivityModal">Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="DeleteActivity">Eliminar</button>
-    </FooterContent>
-</Modal>
+<ConfirmDialog Show="@showDeleteActivityModal"
+               ShowChanged="@((bool show) => showDeleteActivityModal = show)"
+               Title="Confirmar Eliminação"
+               Message="@($"Tem certeza que deseja eliminar a atividade {deletingActivity?.Name}?")"
+               WarningMessage="Todas as transações associadas serão também eliminadas! Esta ação não pode ser desfeita."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="DeleteActivity"
+               OnCancel="CloseDeleteActivityModal" />
 
 <!-- Delete Transaction Confirmation Modal -->
-<Modal Show="@showDeleteTransactionModal" 
-       ShowChanged="@((bool show) => showDeleteTransactionModal = show)"
-       Title="Confirmar Eliminação" 
-       Centered="true"
-       ShowCloseButton="true">
-  <BodyContent>
-   <p>Tem certeza que deseja eliminar esta transação?</p>
-      <p class="text-muted">Esta ação não pode ser desfeita.</p>
-    </BodyContent>
-    <FooterContent>
-     <button type="button" class="btn btn-secondary" @onclick="CloseDeleteTransactionModal">Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="DeleteTransaction">Eliminar</button>
-    </FooterContent>
-</Modal>
+<ConfirmDialog Show="@showDeleteTransactionModal"
+               ShowChanged="@((bool show) => showDeleteTransactionModal = show)"
+               Title="Confirmar Eliminação"
+               Message="Tem certeza que deseja eliminar esta transação?"
+               WarningMessage="Esta ação não pode ser desfeita."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="DeleteTransaction"
+               OnCancel="CloseDeleteTransactionModal" />
 
 @code {
     [Parameter]

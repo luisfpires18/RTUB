@@ -365,20 +365,16 @@ else
 </Modal>
 
 <!-- Delete Song Confirmation Modal -->
-<Modal Show="@showDeleteModal" 
-       ShowChanged="@((value) => showDeleteModal = value)"
-       Title="Confirmar Eliminação" 
-       Centered="true"
-       OnClose="@CloseDeleteModal">
-    <BodyContent>
-        <p>Tem certeza que deseja eliminar a música <strong>@deletingSong?.Title</strong>?</p>
-        <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> Esta ação não pode ser revertida.</p>
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="DeleteSong">Eliminar</button>
-    </FooterContent>
-</Modal>
+<ConfirmDialog Show="@showDeleteModal"
+               ShowChanged="@((value) => showDeleteModal = value)"
+               Title="Confirmar Eliminação"
+               Message="@($"Tem certeza que deseja eliminar a música {deletingSong?.Title}?")"
+               WarningMessage="Esta ação não pode ser revertida."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="DeleteSong"
+               OnCancel="CloseDeleteModal" />
 
 @code {
     [Parameter]

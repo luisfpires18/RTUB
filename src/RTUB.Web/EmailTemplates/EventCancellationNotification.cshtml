@@ -1,7 +1,8 @@
 @model RTUB.Web.EmailTemplates.Models.EventCancellationNotificationModel
 @{
     Layout = "~/EmailTemplates/_EmailLayout.cshtml";
-    ViewData["Preheader"] = "Atuação cancelada — lê os detalhes.";
+    ViewData["Preheader"] = "Atuação cancelada! Lê os detalhes.";
+    ViewData["PreferencesLink"] = Model.PreferencesLink;
 }
 
 @{
@@ -64,15 +65,3 @@
     BgColor = "#6E56CF",
     TextColor = "#FFFFFF"
 })
-
-<!-- Divider -->
-<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 24px 0;">
-    <tr>
-        <td style="border-top: 1px solid #E5E7EB;"></td>
-    </tr>
-</table>
-
-<!-- Preferences Link -->
-<p class="meta-text" style="font-size: 14px; color: #6B7280; line-height: 1.5; text-align: center; margin: 16px 0 0 0;">
-    Se não quiseres receber notificações por email, podes <a href="@Model.PreferencesLink" style="color: #6E56CF; text-decoration: underline;">alterar as tuas preferências</a> no teu perfil.
-</p>

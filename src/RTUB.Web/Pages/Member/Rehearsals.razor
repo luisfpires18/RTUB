@@ -417,50 +417,41 @@ else
     </div>
 }
 
-@if (showDeleteModal && deletingRehearsal != null)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Eliminar Ensaio</h5>
-                    <button type="button" class="btn-close" @onclick="CloseDeleteModal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Tem a certeza que deseja eliminar o ensaio de <strong>@deletingRehearsal.Date.ToString("dd MMM yyyy")</strong>?</p>
-                    <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> Esta ação não pode ser revertida.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
-                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">Eliminar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+<!-- Delete Rehearsal Confirmation Modal -->
+<ConfirmDialog Show="@showDeleteModal"
+               ShowChanged="@((bool show) => showDeleteModal = show)"
+               Title="Eliminar Ensaio"
+               Message="@($"Tem a certeza que deseja eliminar o ensaio de {deletingRehearsal?.Date.ToString("dd MMM yyyy")}?")"
+               WarningMessage="Esta ação não pode ser revertida."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmDelete"
+               OnCancel="CloseDeleteModal" />
 
 <!-- Delete Attendance Confirmation Modal (Owner Only) -->
-@if (showDeleteAttendanceModal && deletingAttendance != null)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirmar Eliminação de Presença</h5>
-                    <button type="button" class="btn-close" @onclick="CloseDeleteAttendanceModal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Tem a certeza que deseja eliminar a presença de <strong>@(deletingAttendance.User?.FirstName ?? "") "@(deletingAttendance.User?.Nickname ?? deletingAttendance.UserId)"</strong> neste ensaio?</p>
-                    <p class="text-muted small">Esta ação não pode ser revertida.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteAttendanceModal">Cancelar</button>
-                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteAttendance">Eliminar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+<ConfirmDialog Show="@showDeleteAttendanceModal"
+               ShowChanged="@((bool show) => showDeleteAttendanceModal = show)"
+               Title="Confirmar Eliminação de Presença"
+               Message="@($"Tem a certeza que deseja eliminar a presença de {deletingAttendance?.User?.FirstName ?? ""} \"{deletingAttendance?.User?.Nickname ?? deletingAttendance?.UserId}\" neste ensaio?")"
+               WarningMessage="Esta ação não pode ser revertida."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmDeleteAttendance"
+               OnCancel="CloseDeleteAttendanceModal" />
+
+<!-- Cancel My Attendance Confirmation Modal -->
+<ConfirmDialog Show="@showCancelMyAttendanceModal"
+               ShowChanged="@((bool show) => showCancelMyAttendanceModal = show)"
+               Title="Cancelar Presença"
+               Message="Tem a certeza que deseja cancelar a sua presença neste ensaio?"
+               WarningMessage="Esta ação irá remover a sua inscrição."
+               ConfirmText="Cancelar Presença"
+               CancelText="Não Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmCancelMyAttendance"
+               OnCancel="CloseCancelMyAttendanceModal" />
 
 <!-- Create Single Rehearsal Modal (Admin Only) -->
 @if (showCreateModal && isAdmin)
@@ -801,6 +792,7 @@ else
     private bool showEditModal = false;
     private bool showDeleteModal = false;
     private bool showDeleteAttendanceModal = false;
+    private bool showCancelMyAttendanceModal = false;
     private bool showCreateModal = false;
     private bool showStatsModal = false;
     private bool showDateRangeModal = false;
@@ -812,6 +804,7 @@ else
     private Rehearsal? editingRehearsal;
     private Rehearsal? deletingRehearsal;
     private RehearsalAttendance? deletingAttendance;
+    private RehearsalAttendance? cancellingMyAttendance;
     private AttendanceFormModel? attendanceForm;
     private bool wantToPlayRehearsal = true;
     private string editLocation = "";
@@ -1361,13 +1354,29 @@ else
         StateHasChanged();
     }
 
-    private async Task RemoveAttendance(Rehearsal rehearsal)
+    private void RemoveAttendance(Rehearsal rehearsal)
     {
         var attendance = GetUserAttendance(rehearsal.Id);
         if (attendance != null)
         {
-            await AttendanceService.DeleteAttendanceAsync(attendance.Id);
+            cancellingMyAttendance = attendance;
+            showCancelMyAttendanceModal = true;
+        }
+    }
+    
+    private void CloseCancelMyAttendanceModal()
+    {
+        showCancelMyAttendanceModal = false;
+        cancellingMyAttendance = null;
+    }
+    
+    private async Task ConfirmCancelMyAttendance()
+    {
+        if (cancellingMyAttendance != null)
+        {
+            await AttendanceService.DeleteAttendanceAsync(cancellingMyAttendance.Id);
             await LoadData();
+            CloseCancelMyAttendanceModal();
             StateHasChanged();
         }
     }

@@ -1,0 +1,215 @@
+/* Hierarquia Family Tree Styles */
+
+/* Hierarquia Family Tree Styles */
+
+/* Viewport wrapper - allows full horizontal scrolling without clipping */
+.family-tree-viewport {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+    /* Remove any inherited constraints */
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.family-tree-container {
+    padding: 20px;
+    min-height: 400px;
+    /* Let the tree size itself naturally */
+    display: inline-block;
+    min-width: 100%;
+    width: fit-content;
+}
+
+.tree-level {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    /* Start from left instead of center to prevent left-clipping */
+    justify-content: flex-start;
+    margin-bottom: 20px;
+    /* Ensure tree can expand */
+    min-width: fit-content;
+}
+
+.tree-node-wrapper {
+    flex: 0 0 auto;
+}
+
+.member-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.member-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+    background: rgba(var(--bs-primary-rgb), 0.1);
+    border: 2px solid var(--bs-primary);
+    border-radius: 15px;
+    min-width: 150px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.member-card:hover {
+    background: rgba(var(--bs-primary-rgb), 0.2);
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(var(--bs-primary-rgb), 0.3);
+}
+
+.member-info {
+    text-align: center;
+    margin-top: 8px;
+}
+
+.member-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--bs-body-color);
+}
+
+.member-nickname {
+    font-size: 12px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.children-connector {
+    width: 2px;
+    height: 30px;
+    background: var(--bs-primary);
+    margin: 10px auto;
+}
+
+.children-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    justify-content: center;
+    position: relative;
+}
+
+.children-container::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 60px);
+    height: 2px;
+    background: var(--bs-primary);
+}
+
+.child-node {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.child-node::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 10px;
+    background: var(--bs-primary);
+}
+
+@media (max-width: 768px) {
+    .family-tree-viewport {
+        /* Ensure viewport takes full width and allows scrolling */
+        width: 100vw;
+        /* Break out of all parent containers completely */
+        position: relative;
+        left: 50%;
+        right: 50%;
+        margin-left: -50vw;
+        margin-right: -50vw;
+        /* Ensure no clipping */
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .family-tree-container {
+        /* Add significant horizontal padding so tree can be centered with scroll space on both sides */
+        padding: 10px 50vw 10px 50vw;
+        /* Ensure tree can be wider than viewport */
+        min-width: 100vw;
+        /* Don't set display flex - tree-level handles that */
+    }
+
+    .tree-level {
+        gap: 15px;
+        /* Prevent wrapping on mobile for better tree structure visibility */
+        flex-wrap: nowrap;
+        /* Ensure tree can expand horizontally */
+        min-width: fit-content;
+        /* Center the root nodes within the available space */
+        justify-content: center;
+        /* Ensure the tree-level itself is sized properly */
+        display: flex;
+    }
+    
+    .children-container {
+        gap: 15px;
+        /* Prevent wrapping on mobile for better tree structure visibility */
+        flex-wrap: nowrap;
+        /* Ensure tree can expand horizontally */
+        min-width: fit-content;
+    }
+
+    .member-node {
+        /* Ensure nodes maintain structure on mobile */
+        min-width: fit-content;
+    }
+
+    .member-card {
+        min-width: 100px;
+        padding: 8px;
+        /* Slightly smaller cards on mobile */
+        border-width: 1.5px;
+    }
+
+    .member-avatar-medium {
+        width: 50px;
+        height: 50px;
+    }
+
+    .member-name {
+        font-size: 11px;
+        /* Better text wrapping for mobile */
+        word-break: break-word;
+        max-width: 100px;
+    }
+
+    .member-nickname {
+        font-size: 10px;
+        word-break: break-word;
+        max-width: 100px;
+    }
+
+    .children-connector {
+        height: 20px;
+        margin: 5px auto;
+    }
+
+    .children-container::before {
+        /* Adjust connector line for tighter mobile spacing */
+        width: calc(100% - 30px);
+    }
+
+    .child-node::before {
+        /* Adjust vertical connector for tighter spacing */
+        height: 5px;
+        top: -5px;
+    }
+}

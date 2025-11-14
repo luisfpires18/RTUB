@@ -1,0 +1,111 @@
+/* Music pages styles */
+
+/* Music pages styles */
+.music-btn-primary {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.music-btn-delete {
+    background-color: #dc3545;
+    border: none;
+    padding: 6px 10px;
+}
+
+.music-btn-delete:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.music-btn-delete:hover i {
+    transform: scale(1.15);
+}
+
+.music-btn-edit {
+    background-color: white;
+    border: none;
+    padding: 6px 10px;
+}
+
+.music-btn-edit:hover {
+    background-color: white;
+    border-color: white;
+}
+
+.music-btn-edit:hover i {
+    transform: scale(1.15);
+}
+
+.music-icon-edit {
+    font-size: 1.1rem;
+    color: black;
+    transition: transform 0.2s ease;
+}
+
+.music-icon-delete {
+    font-size: 1.1rem;
+    color: white;
+    transition: transform 0.2s ease;
+}
+
+.music-icon-large {
+    font-size: 4rem;
+}
+
+.music-icon-medium {
+    font-size: 3rem;
+}
+
+.music-icon-social {
+    font-size: 1.5rem;
+}
+
+.music-card-clickable {
+    cursor: pointer;
+}
+
+.music-album-image {
+    max-height: 310px;
+    width: 310px;
+    object-fit: cover;
+}
+
+/* Square images for music album cards */
+.music-square-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    background-color: #1a1a1b;
+    border-radius: 0.375rem 0.375rem 0 0;
+    transition: transform 0.3s ease;
+}
+
+.music-square-placeholder {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+/* Hover effects for music square images */
+.album-card:hover .music-square-image {
+    transform: scale(1.05);
+}
+
+.music-album-preview {
+    max-width: 200px;
+    max-height: 150px;
+    object-fit: cover;
+}
+
+.music-text-light {
+    color: #ffffff;
+}
+
+.music-text-secondary {
+    color: #e2e2e2;
+}
+

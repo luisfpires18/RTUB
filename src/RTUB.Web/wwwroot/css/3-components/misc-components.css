@@ -1,0 +1,449 @@
+/* Miscellaneous component styles */
+
+        padding: 0.2rem 0.4rem;
+    }
+
+    .comment-actions .btn i {
+        font-size: 0.875rem;
+    }
+}
+/* SortableTableHeader component */
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.sortable-header:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+/* MainLayout component */
+.page-content {
+    padding: 20px;
+}
+
+.top-row {
+    background-color: #1c1c1e;
+    border-bottom: 1px solid #2f2f2f;
+    padding: 0.5rem 1rem;
+    height: 3.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.top-row a {
+    color: #e2e2e2;
+    text-decoration: none;
+}
+
+.navbar-toggler {
+    background-color: rgba(var(--bs-primary-rgb), 0.8);
+    border: none;
+    padding: 0.25rem 0.5rem;
+}
+
+/* ImageCropper component */
+.image-cropper-container {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.crop-area {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    overflow: hidden;
+    background-color: #1c1c1d;
+    border: 2px solid var(--bs-primary);
+    border-radius: 0.375rem;
+}
+
+.crop-preview {
+    width: 200px;
+    height: 200px;
+    overflow: hidden;
+    border-radius: 50%;
+    border: 3px solid var(--bs-primary);
+    margin: 1rem auto;
+}
+
+/* Portal Content components */
+.portal-content-section {
+    padding: 2rem 0;
+}
+
+.portal-content-text {
+    color: #e2e2e2;
+    line-height: 1.8;
+}
+
+.portal-content-list {
+    color: #e2e2e2;
+}
+
+.portal-content-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.375rem;
+    border: 2px solid var(--bs-primary);
+}
+
+/* Index page specific */
+.carousel-image {
+    height: 440px;
+    object-fit: cover;
+}
+
+.logo-main {
+    max-width: 300px;
+    height: auto;
+}
+
+.social-facebook {
+    background-color: #1877f2;
+    border-color: #1877f2;
+}
+
+.social-instagram {
+    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    border: none;
+}
+
+.social-youtube {
+    background-color: #ff0000;
+    border-color: #ff0000;
+}
+
+.social-spotify {
+    background-color: #1db954;
+    border-color: #1db954;
+}
+
+/* Music pages (Albums, Songs) */
+.album-cover {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.album-cover-large {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 3px solid var(--bs-primary);
+}
+
+.track-duration {
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
+/* Admin pages */
+.report-card {
+    background-color: #151516;
+    border: 1px solid #2f2f2f;
+    border-radius: 0.375rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.report-stat {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--bs-primary);
+}
+
+.finance-summary {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    border-left: 4px solid var(--bs-primary);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.slideshow-preview {
+    max-width: 300px;
+    border-radius: 0.375rem;
+    border: 2px solid var(--bs-primary);
+}
+
+/* Identity pages */
+.identity-container {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: #151516;
+    border-radius: 0.375rem;
+    border: 1px solid #2f2f2f;
+}
+
+.identity-logo {
+    max-width: 200px;
+    margin-bottom: 1.5rem;
+}
+
+/* Login page - centered card layout */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 120px);
+    padding: 2rem 1rem;
+}
+
+.login-card {
+    max-width: 450px;
+    width: 100%;
+    padding: 2.5rem;
+    background-color: #151516;
+    border-radius: 0.5rem;
+    border: 1px solid #2f2f2f;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Public pages */
+.public-content {
+    padding: 2rem 0;
+}
+
+.hierarchy-section {
+    margin-bottom: 2rem;
+}
+
+.governing-body-card {
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Member pages */
+.member-card {
+    background-color: #151516;
+    border: 1px solid #2f2f2f;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: transform 0.2s;
+}
+
+.member-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--bs-primary);
+}
+
+.event-card {
+    background-color: #151516;
+    border: 1px solid #2f2f2f;
+    border-radius: 0.375rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.event-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--bs-primary);
+    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.3);
+}
+
+.event-date {
+    background-color: var(--bs-primary);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: bold;
+}
+
+.profile-section {
+    background-color: #151516;
+    border: 1px solid #2f2f2f;
+    border-radius: 0.375rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Owner pages */
+.role-assignment-card {
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+    padding: 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Utility classes for text colors */
+.text-light-theme {
+    color: #e2e2e2;
+}
+
+.text-muted-theme {
+    color: #aaa;
+}
+
+/* Form elements with specific styling */
+.form-control-dark {
+    background-color: #1c1c1d;
+    border-color: #2f2f2f;
+    color: #e2e2e2;
+}
+
+.form-control-dark:focus {
+    background-color: #1c1c1d;
+    border-color: var(--bs-primary);
+    color: #e2e2e2;
+}
+
+.form-select-dark {
+    background-color: #1c1c1d;
+    border-color: #2f2f2f;
+    color: #e2e2e2;
+}
+
+/* Additional button styles */
+.btn-outline-primary-theme {
+    border-color: var(--bs-primary);
+    color: var(--bs-primary);
+}
+
+.btn-outline-primary-theme:hover {
+    background-color: var(--bs-primary);
+    color: white;
+}
+
+/* MainLayout specific styles */
+.navbar-main {
+    background-color: #0f0f10;
+}
+
+.logout-form {
+    margin: 0;
+}
+
+.content-main {
+    min-height: calc(100vh - 56px);
+}
+
+.footer-main {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: #0f0f10;
+}
+
+.footer-text {
+    color: #999;
+    margin: 0;
+}
+
+.footer-credit {
+    color: #666;
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.footer-credit a {
+    color: var(--bs-primary);
+    text-decoration: none;
+}
+
+.navbar-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--bs-primary);
+}
+
+.navbar-category-badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 0.25rem;
+}
+
+.navbar-category-leitao {
+    background-color: #6c757d;
+    color: white;
+}
+
+.navbar-category-caloiro {
+    background-color: #ffffff;
+    color: #000000;
+}
+
+.navbar-category-tuno {
+    background-color: #000000;
+    color: white;
+}
+
+/* ImageCropper specific styles */
+/* Note: .cropper-container is used by cropper.js library - do not override */
+.image-cropper-wrapper {
+    max-height: 500px;
+    overflow: auto;
+}
+
+.cropper-image {
+    max-width: 100%;
+    display: block;
+}
+
+/* Portal Content Components */
+.portal-title {
+    color: var(--bs-primary);
+}
+
+.portal-subtitle {
+    color: #e2e2e2;
+}
+
+.portal-intro-text {
+    color: #e2e2e2;
+    font-size: 1.1rem;
+}
+
+.portal-content-preformatted {
+    white-space: pre-wrap;
+    color: #e2e2e2;
+    text-align: left;
+}
+
+.portal-event-image {
+    height: 200px;
+    object-fit: cover;
+}
+
+.portal-event-placeholder {
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.portal-governing-body-card {
+    background-color: #1a1a1b;
+    border: 1px solid #333;
+}
+
+.portal-event-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.portal-event-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.3);
+}
+
+.portal-icon-large {
+    font-size: 4rem;
+    color: var(--bs-primary);
+}
+
+.portal-card-text {
+    color: #e2e2e2;
+}
+

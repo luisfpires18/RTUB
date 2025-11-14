@@ -148,23 +148,16 @@ else
 </Modal>
 
 <!-- Delete Confirmation Modal -->
-<Modal Show="@showDeleteModal" 
-       ShowChanged="@((value) => showDeleteModal = value)"
-       Title="Confirmar Eliminação" 
-       Centered="true"
-       OnClose="@CloseDeleteModal">
-    <BodyContent>
-        @if (deletingReport != null)
-        {
-            <p>Eliminar relatório <strong>@deletingReport.Title</strong>?</p>
-            <p class="text-danger"><strong>Esta ação é irreversível.</strong></p>
-        }
-    </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="DeleteReport">Eliminar</button>
-    </FooterContent>
-</Modal>
+<ConfirmDialog Show="@showDeleteModal"
+               ShowChanged="@((value) => showDeleteModal = value)"
+               Title="Confirmar Eliminação"
+               Message="@($"Eliminar relatório {deletingReport?.Title}?")"
+               WarningMessage="Esta ação é irreversível."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="DeleteReport"
+               OnCancel="CloseDeleteModal" />
 
 <!-- Publish Confirmation Modal -->
 <Modal Show="@showPublishModal" 

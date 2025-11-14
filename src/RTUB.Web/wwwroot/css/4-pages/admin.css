@@ -1,0 +1,38 @@
+/* Admin pages styles */
+
+/* Admin pages styles */
+.admin-icon-edit {
+    font-size: 1.1rem;
+    color: black;
+}
+
+.admin-icon-delete {
+    font-size: 1.1rem;
+    color: white;
+}
+
+.admin-btn-delete {
+    background-color: #dc3545;
+    border: none;
+    padding: 6px 10px;
+}
+
+.admin-btn-edit {
+    background-color: white;
+    border: none;
+    padding: 6px 10px;
+}
+
+.admin-image-preview {
+    max-width: 100%;
+    height: auto;
+    max-height: 300px;
+    object-fit: contain;
+}
+
+.admin-slideshow-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+

@@ -1,0 +1,98 @@
+/* Horizontal Instrument Counter Section */
+
+/* Horizontal Instrument Counter Section */
+.instrument-counter-section {
+  background-color: #151516;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0;
+  border: 1px solid var(--bs-border-color);
+}
+
+.instrument-counter-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: var(--bs-primary);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.instrument-counter-header i {
+  font-size: 1.125rem;
+}
+
+.instrument-counter-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-start;
+}
+
+.instrument-counter-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #0f0f10;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+  padding: 0.75rem 0.5rem;
+  min-width: 70px;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.instrument-counter-box:hover {
+  border-color: var(--bs-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(var(--bs-primary-rgb), 0.2);
+}
+
+.instrument-counter-number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--bs-body-color);
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.instrument-counter-label {
+  font-size: 0.75rem;
+  color: #a0a0a0;
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 576px) {
+  .instrument-counter-section {
+    padding: 0.75rem;
+  }
+  
+  .instrument-counter-grid {
+    gap: 0.375rem;
+  }
+  
+  .instrument-counter-box {
+    min-width: 60px;
+    padding: 0.625rem 0.375rem;
+  }
+  
+  .instrument-counter-number {
+    font-size: 1.25rem;
+  }
+  
+  .instrument-counter-label {
+    font-size: 0.6875rem;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 577px) and (max-width: 768px) {
+  .instrument-counter-box {
+    min-width: 75px;
+  }
+}

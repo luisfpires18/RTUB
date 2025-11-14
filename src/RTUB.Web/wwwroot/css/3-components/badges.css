@@ -1,0 +1,41 @@
+/* Badge styles */
+
+.badge {
+    font-size: 0.85em;
+    padding: 0.35em 0.65em;
+}
+
+/* Position badges - purple theme */
+.badge-position {
+    background-color: var(--bs-primary);
+    color: white;
+    font-weight: bold;
+    border: 2px solid var(--bs-primary);
+}
+
+/* Category badges */
+.badge-tuno {
+    background-color: #000000;
+    color: white;
+}
+
+.badge-veterano {
+    background-color: #1a1a2e;
+    color: white;
+    border: 1px solid var(--bs-primary);
+}
+
+.badge-tunossauro {
+    background-color: #2c2c54;
+    color: white;
+    border: 2px solid var(--bs-primary);
+    font-weight: bold;
+}
+
+.badge-honorario {
+    background: linear-gradient(135deg, var(--bs-primary) 0%, #764ba2 100%);
+    color: white;
+    font-weight: bold;
+}
+
+.badge-fundador {

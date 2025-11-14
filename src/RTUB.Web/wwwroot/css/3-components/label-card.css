@@ -1,0 +1,166 @@
+/* Label Card Styles */
+
+/* Label Card Styles (similar to SongCard) */
+.label-card {
+  background-color: #151516;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.label-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(var(--bs-primary-rgb), 0.6);
+  box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.label-header {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.15) 0%, rgba(var(--bs-primary-rgb), 0.05) 100%);
+  border-bottom: 2px solid rgba(var(--bs-primary-rgb), 0.3);
+  position: relative;
+}
+
+.label-icon-circle {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background-color: rgba(var(--bs-primary-rgb), 0.2);
+  border: 2px solid var(--bs-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.label-card:hover .label-icon-circle {
+  background-color: rgba(var(--bs-primary-rgb), 0.3);
+  transform: scale(1.05);
+}
+
+.label-icon-circle i {
+  font-size: 1.75rem;
+  color: var(--bs-link-color);
+}
+
+.label-info {
+  margin-bottom: 0.875rem;
+}
+
+.label-reference {
+  margin-bottom: 0.5rem;
+}
+
+.label-reference-code {
+  background-color: rgba(var(--bs-primary-rgb), 0.15);
+  color: var(--bs-primary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
+}
+
+.label-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--bs-body-color);
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.label-status-row {
+  margin-bottom: 0.5rem;
+}
+
+.label-info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.label-icon {
+  color: var(--bs-primary);
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  width: 0.875rem;
+  text-align: center;
+}
+
+.label-text {
+  color: #aaa;
+  font-weight: 400;
+}
+
+.label-actions {
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(var(--bs-primary-rgb), 0.15);
+}
+
+.label-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+  min-height: 38px;
+}
+
+.label-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(var(--bs-primary-rgb), 0.3);
+}
+
+.label-action-btn i {
+  font-size: 1rem;
+}
+
+/* Label grid layout */
+.label-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .label-card {
+    max-width: 100%;
+  }
+  
+  .label-header {
+    height: 100px;
+  }
+  
+  .label-icon-circle {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .label-icon-circle i {
+    font-size: 1.5rem;
+  }
+  
+  .label-title {
+    font-size: 1rem;
+  }
+  
+  .label-grid {
+    grid-template-columns: 1fr;
+  }
+}
