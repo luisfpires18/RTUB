@@ -27,7 +27,7 @@
                     @onchange="OnMonthChanged" 
                     disabled="@Disabled"
                     value="@SelectedMonth">
-                <option value="">Mês</option>
+                <option value="" disabled>Selecionar...</option>
                 <option value="1">Janeiro</option>
                 <option value="2">Fevereiro</option>
                 <option value="3">Março</option>
@@ -47,7 +47,7 @@
                     @onchange="OnYearChanged" 
                     disabled="@Disabled"
                     value="@SelectedYear">
-                <option value="">Ano</option>
+                <option value="" disabled>Selecionar...</option>
                 @for (int year = DateTime.Now.Year; year >= MinYear; year--)
                 {
                     <option value="@year">@year</option>
@@ -129,8 +129,27 @@
     [Parameter]
     public int MinYear { get; set; } = 1990;
 
-    private string? SelectedMonth => Value?.Month.ToString() ?? "";
-    private string? SelectedYear => Value?.Year.ToString() ?? "";
+    // Track month and year independently
+    private int? selectedMonth;
+    private int? selectedYear;
+
+    private string? SelectedMonth => selectedMonth?.ToString() ?? "";
+    private string? SelectedYear => selectedYear?.ToString() ?? "";
+
+    protected override void OnParametersSet()
+    {
+        // Sync local state with incoming Value
+        if (Value.HasValue)
+        {
+            selectedMonth = Value.Value.Month;
+            selectedYear = Value.Value.Year;
+        }
+        else
+        {
+            selectedMonth = null;
+            selectedYear = null;
+        }
+    }
 
     private async Task OnMonthChanged(ChangeEventArgs e)
     {
@@ -138,14 +157,23 @@
         
         if (string.IsNullOrEmpty(monthStr))
         {
-            // Month cleared - clear the entire value
+            // Month cleared - set to null
+            selectedMonth = null;
             Value = null;
         }
         else if (int.TryParse(monthStr, out int month))
         {
-            // Set month, keeping existing year or defaulting to current year
-            int year = Value?.Year ?? DateTime.Now.Year;
-            Value = new DateTime(year, month, 1);
+            selectedMonth = month;
+            
+            // Only create DateTime if both month and year are set
+            if (selectedYear.HasValue)
+            {
+                Value = new DateTime(selectedYear.Value, month, 1);
+            }
+            else
+            {
+                Value = null;
+            }
         }
         
         await ValueChanged.InvokeAsync(Value);
@@ -157,14 +185,23 @@
         
         if (string.IsNullOrEmpty(yearStr))
         {
-            // Year cleared - clear the entire value
+            // Year cleared - set to null
+            selectedYear = null;
             Value = null;
         }
         else if (int.TryParse(yearStr, out int year))
         {
-            // Set year, keeping existing month or defaulting to January
-            int month = Value?.Month ?? 1;
-            Value = new DateTime(year, month, 1);
+            selectedYear = year;
+            
+            // Only create DateTime if both month and year are set
+            if (selectedMonth.HasValue)
+            {
+                Value = new DateTime(year, selectedMonth.Value, 1);
+            }
+            else
+            {
+                Value = null;
+            }
         }
         
         await ValueChanged.InvokeAsync(Value);
