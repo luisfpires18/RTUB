@@ -2,6 +2,7 @@
 @{
     Layout = "~/EmailTemplates/_EmailLayout.cshtml";
     ViewData["Preheader"] = $"{Model.BirthdayPersonNickname} está de aniversário hoje!";
+    ViewData["PreferencesLink"] = Model.PreferencesLink;
 }
 
 @{
@@ -42,16 +43,4 @@
 
 <p style="margin: 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
     A RTUB deseja-lhe um feliz dia de aniversário. Parabéns! 🎵
-</p>
-
-<!-- Divider -->
-<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 24px 0;">
-    <tr>
-        <td style="border-top: 1px solid #E5E7EB;"></td>
-    </tr>
-</table>
-
-<!-- Preferences Link -->
-<p class="meta-text" style="font-size: 14px; color: #6B7280; line-height: 1.5; text-align: center; margin: 16px 0 0 0;">
-    Se não quiseres receber notificações por email, podes <a href="@Model.PreferencesLink" style="color: #6E56CF; text-decoration: underline;">alterar as tuas preferências</a> no teu perfil.
 </p>
