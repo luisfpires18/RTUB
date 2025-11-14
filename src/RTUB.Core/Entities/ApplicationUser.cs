@@ -126,7 +126,20 @@ public class ApplicationUser : IdentityUser
         get
         {
             if (YearTuno == null) return "N/A";
-            var yearsAsTuno = DateTime.Now.Year - YearTuno.Value;
+            
+            var now = DateTime.Now;
+            var yearsAsTuno = now.Year - YearTuno.Value;
+            
+            // Adjust for month if MonthTuno is set
+            if (MonthTuno.HasValue)
+            {
+                // If current month is before the Tuno month, subtract one year
+                if (now.Month < MonthTuno.Value)
+                {
+                    yearsAsTuno--;
+                }
+            }
+            
             if (yearsAsTuno >= 6) return "TUNOSSAURO";
             if (yearsAsTuno >= 2) return "VETERANO";
             return "TUNO";

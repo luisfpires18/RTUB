@@ -472,6 +472,117 @@ public class ApplicationUserExtensionsTests
         user.QualifiesForTunossauro().Should().BeFalse();
     }
     
+    [Fact]
+    public void GetYearsAsTuno_WithMonthTuno_BeforeCurrentMonth_ReturnsCorrectYears()
+    {
+        // Arrange - User became Tuno in January 2021, and current month is after January
+        var currentYear = DateTime.Now.Year;
+        var currentMonth = DateTime.Now.Month;
+        
+        // Only run this test if current month is after January
+        if (currentMonth > 1)
+        {
+            var user = CreateUserWithYearTuno(currentYear - 3);
+            user.MonthTuno = 1; // January
+            
+            // Act
+            var years = user.GetYearsAsTuno();
+            
+            // Assert - Should be 3 years since we're past January
+            years.Should().Be(3);
+        }
+    }
+    
+    [Fact]
+    public void GetYearsAsTuno_WithMonthTuno_AfterCurrentMonth_ReturnsCorrectYears()
+    {
+        // Arrange - User became Tuno in December, and current month is before December
+        var currentYear = DateTime.Now.Year;
+        var currentMonth = DateTime.Now.Month;
+        
+        // Only run this test if current month is before December
+        if (currentMonth < 12)
+        {
+            var user = CreateUserWithYearTuno(currentYear - 3);
+            user.MonthTuno = 12; // December
+            
+            // Act
+            var years = user.GetYearsAsTuno();
+            
+            // Assert - Should be 2 years since we haven't reached December yet
+            years.Should().Be(2);
+        }
+    }
+    
+    [Fact]
+    public void GetYearsAsTuno_WithMonthTuno_SameAsCurrentMonth_ReturnsCorrectYears()
+    {
+        // Arrange - User became Tuno in the same month as current
+        var currentYear = DateTime.Now.Year;
+        var currentMonth = DateTime.Now.Month;
+        var user = CreateUserWithYearTuno(currentYear - 3);
+        user.MonthTuno = currentMonth;
+        
+        // Act
+        var years = user.GetYearsAsTuno();
+        
+        // Assert - Should be 3 years (we're at or past the anniversary month)
+        years.Should().Be(3);
+    }
+    
+    [Fact]
+    public void GetYearsAsTuno_WithoutMonthTuno_UsesYearOnly()
+    {
+        // Arrange - User became Tuno without specifying month
+        var currentYear = DateTime.Now.Year;
+        var user = CreateUserWithYearTuno(currentYear - 3);
+        user.MonthTuno = null;
+        
+        // Act
+        var years = user.GetYearsAsTuno();
+        
+        // Assert - Should be 3 years (year-only calculation)
+        years.Should().Be(3);
+    }
+    
+    [Fact]
+    public void QualifiesForVeterano_WithMonthTuno_ConsidersMonth()
+    {
+        // Arrange - User became Tuno 2 years ago but in a future month
+        var currentYear = DateTime.Now.Year;
+        var currentMonth = DateTime.Now.Month;
+        
+        // Only run if we can test with a future month
+        if (currentMonth < 12)
+        {
+            var user = CreateUserWithYearTuno(currentYear - 2);
+            user.MonthTuno = 12; // December (future month)
+            
+            // Act & Assert
+            // Should not qualify yet since we haven't reached the 2-year anniversary
+            user.QualifiesForVeterano().Should().BeFalse();
+        }
+    }
+    
+    [Fact]
+    public void QualifiesForTunossauro_WithMonthTuno_ConsidersMonth()
+    {
+        // Arrange - User became Tuno 6 years ago but in a future month
+        var currentYear = DateTime.Now.Year;
+        var currentMonth = DateTime.Now.Month;
+        
+        // Only run if we can test with a future month
+        if (currentMonth < 12)
+        {
+            var user = CreateUserWithYearTuno(currentYear - 6);
+            user.MonthTuno = 12; // December (future month)
+            
+            // Act & Assert
+            // Should not qualify yet since we haven't reached the 6-year anniversary
+            user.QualifiesForTunossauro().Should().BeFalse();
+        }
+    }
+    
     #endregion
     
     #region Edge Cases

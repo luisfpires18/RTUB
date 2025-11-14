@@ -294,4 +294,147 @@ public class ApplicationUserTests
     }
 
     #endregion
+    
+    #region CurrentRole Tests
+    
+    [Fact]
+    public void CurrentRole_WithoutYearTuno_ReturnsNA()
+    {
+        // Arrange
+        var user = new ApplicationUser
+        {
+            YearTuno = null
+        };
+        
+        // Act
+        var role = user.CurrentRole;
+        
+        // Assert
+        role.Should().Be("N/A");
+    }
+    
+    [Fact]
+    public void CurrentRole_WithLessThan2Years_ReturnsTuno()
+    {
+        // Arrange
+        var currentYear = DateTime.Now.Year;
+        var user = new ApplicationUser
+        {
+            YearTuno = currentYear - 1
+        };
+        
+        // Act
+        var role = user.CurrentRole;
+        
+        // Assert
+        role.Should().Be("TUNO");
+    }
+    
+    [Fact]
+    public void CurrentRole_With2To5Years_ReturnsVeterano()
+    {
+        // Arrange
+        var currentYear = DateTime.Now.Year;
+        var user = new ApplicationUser
+        {
+            YearTuno = currentYear - 3
+        };
+        
+        // Act
+        var role = user.CurrentRole;
+        
+        // Assert
+        role.Should().Be("VETERANO");
+    }
+    
+    [Fact]
+    public void CurrentRole_With6OrMoreYears_ReturnsTunossauro()
+    {
+        // Arrange
+        var currentYear = DateTime.Now.Year;
+        var user = new ApplicationUser
+        {
+            YearTuno = currentYear - 7
+        };
+        
+        // Act
+        var role = user.CurrentRole;
+        
+        // Assert
+        role.Should().Be("TUNOSSAURO");
+    }
+    
+    [Fact]
+    public void CurrentRole_WithMonthTuno_BeforeCurrentMonth_CalculatesCorrectly()
+    {
+        // Arrange - User became Tuno in January, current month is after
+        var currentYear = DateTime.Now.Year;
+        var currentMonth = DateTime.Now.Month;
+        
+        // Only run if current month is after January
+        if (currentMonth > 1)
+        {
+            var user = new ApplicationUser
+            {
+                YearTuno = currentYear - 2,
+                MonthTuno = 1 // January
+            };
+            
+            // Act
+            var role = user.CurrentRole;
+            
+            // Assert - Should be VETERANO (2 full years have passed)
+            role.Should().Be("VETERANO");
+        }
+    }
+    
+    [Fact]
+    public void CurrentRole_WithMonthTuno_AfterCurrentMonth_CalculatesCorrectly()
+    {
+        // Arrange - User became Tuno in December, current month is before
+        var currentYear = DateTime.Now.Year;
+        var currentMonth = DateTime.Now.Month;
+        
+        // Only run if current month is before December
+        if (currentMonth < 12)
+        {
+            var user = new ApplicationUser
+            {
+                YearTuno = currentYear - 2,
+                MonthTuno = 12 // December
+            };
+            
+            // Act
+            var role = user.CurrentRole;
+            
+            // Assert - Should still be TUNO (haven't reached 2-year anniversary)
+            role.Should().Be("TUNO");
+        }
+    }
+    
+    [Fact]
+    public void CurrentRole_WithMonthTuno_AtTunossauroThreshold_CalculatesCorrectly()
+    {
+        // Arrange - User became Tuno 6 years ago in a future month
+        var currentYear = DateTime.Now.Year;
+        var currentMonth = DateTime.Now.Month;
+        
+        // Only run if current month is before December
+        if (currentMonth < 12)
+        {
+            var user = new ApplicationUser
+            {
+                YearTuno = currentYear - 6,
+                MonthTuno = 12 // December (future month)
+            };
+            
+            // Act
+            var role = user.CurrentRole;
+            
+            // Assert - Should be VETERANO (not yet 6 full years)
+            role.Should().Be("VETERANO");
+        }
+    }
+    
+    #endregion
 }

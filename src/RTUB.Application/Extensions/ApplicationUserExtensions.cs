@@ -141,13 +141,28 @@ public static class ApplicationUserExtensions
     #region Years Calculation
     
     /// <summary>
-    /// Gets the number of years as Tuno (from YearTuno to current year)
+    /// Gets the number of years as Tuno (from YearTuno/MonthTuno to current date)
     /// Returns null if YearTuno is not set
+    /// Takes into account the month if MonthTuno is set for more precise calculation
     /// </summary>
     public static int? GetYearsAsTuno(this ApplicationUser user)
     {
         if (user.YearTuno == null) return null;
-        return DateTime.Now.Year - user.YearTuno.Value;
+        
+        var now = DateTime.Now;
+        var yearsAsTuno = now.Year - user.YearTuno.Value;
+        
+        // Adjust for month if MonthTuno is set
+        if (user.MonthTuno.HasValue)
+        {
+            // If current month is before the Tuno month, subtract one year
+            if (now.Month < user.MonthTuno.Value)
+            {
+                yearsAsTuno--;
+            }
+        }
+        
+        return yearsAsTuno;
     }
     
     /// <summary>
