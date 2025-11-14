@@ -1,0 +1,21 @@
+/* Roles page - Admin action chips */
+
+/* Roles page - Admin action chips */
+.admin-action-chips {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.admin-action-chips .btn {
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .admin-action-chips {
+    flex-wrap: wrap;
+  }
+}

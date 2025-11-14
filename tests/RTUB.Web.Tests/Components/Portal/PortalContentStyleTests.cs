@@ -13,11 +13,11 @@ public class PortalContentStyleTests
 
     /// <summary>
     /// Tests that verify CSS file organization for portal sections.
-    /// Each portal section should have its own dedicated CSS file.
+    /// Each portal section should have its own dedicated CSS file in the 4-pages directory.
     /// </summary>
     [Theory]
-    [InlineData("aboutus.css")]
-    [InlineData("joinus.css")]
+    [InlineData("about-us.css")]
+    [InlineData("join-us.css")]
     [InlineData("history.css")]
     [InlineData("hierarchy.css")]
     [InlineData("fitab.css")]
@@ -25,14 +25,15 @@ public class PortalContentStyleTests
     {
         // Arrange
         var projectRoot = GetProjectRoot();
-        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", cssFileName);
+        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", "4-pages", cssFileName);
 
         // Act & Assert
-        File.Exists(cssFilePath).Should().BeTrue($"{cssFileName} should exist for isolated portal section styles");
+        File.Exists(cssFilePath).Should().BeTrue($"{cssFileName} should exist for isolated portal section styles in 4-pages directory");
     }
 
     /// <summary>
-    /// Tests that verify shared portal styles exist in site.css.
+    /// Tests that verify shared portal styles exist (either in site.css or in component files).
+    /// After CSS refactoring, portal styles are in 3-components/portal-headers.css and imported via site.css.
     /// </summary>
     [Fact]
     public void PortalSections_HaveSharedStylesInSiteCSS()
@@ -40,22 +41,27 @@ public class PortalContentStyleTests
         // Arrange
         var projectRoot = GetProjectRoot();
         var siteCssPath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", "site.css");
+        var portalHeadersCssPath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", "3-components", "portal-headers.css");
 
         // Act
-        var content = File.ReadAllText(siteCssPath);
+        var siteCssContent = File.ReadAllText(siteCssPath);
+        var portalHeadersContent = File.ReadAllText(portalHeadersCssPath);
 
-        // Assert
-        content.Should().Contain(".portal-section-header", "Shared portal header styles should exist");
-        content.Should().Contain(".portal-section-title", "Shared portal title styles should exist");
-        content.Should().Contain(".portal-section-divider", "Shared portal divider styles should exist");
+        // Assert - site.css should import portal headers
+        siteCssContent.Should().Contain("portal-headers.css", "site.css should import portal headers component");
+        
+        // Assert - portal headers CSS should contain the actual styles
+        portalHeadersContent.Should().Contain(".portal-section-header", "Shared portal header styles should exist in portal-headers.css");
+        portalHeadersContent.Should().Contain(".portal-section-title", "Shared portal title styles should exist in portal-headers.css");
+        portalHeadersContent.Should().Contain(".portal-section-divider", "Shared portal divider styles should exist in portal-headers.css");
     }
 
     /// <summary>
     /// Tests that verify text alignment is properly configured in CSS files.
     /// </summary>
     [Theory]
-    [InlineData("aboutus.css", ".about-us-content")]
-    [InlineData("joinus.css", ".join-us-intro-text")]
+    [InlineData("about-us.css", ".about-us-content")]
+    [InlineData("join-us.css", ".join-us-intro-text")]
     [InlineData("history.css", ".history-intro-text")]
     [InlineData("hierarchy.css", ".hierarchy-intro-text")]
     [InlineData("fitab.css", ".fitab-intro-text")]
@@ -63,7 +69,7 @@ public class PortalContentStyleTests
     {
         // Arrange
         var projectRoot = GetProjectRoot();
-        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", cssFileName);
+        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", "4-pages", cssFileName);
 
         // Act
         var content = File.ReadAllText(cssFilePath);
@@ -83,7 +89,7 @@ public class PortalContentStyleTests
     {
         // Arrange
         var projectRoot = GetProjectRoot();
-        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", cssFileName);
+        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", "4-pages", cssFileName);
 
         // Act
         var content = File.ReadAllText(cssFilePath);
@@ -105,8 +111,8 @@ public class PortalContentStyleTests
     /// Tests responsive breakpoints exist for mobile layouts.
     /// </summary>
     [Theory]
-    [InlineData("aboutus.css")]
-    [InlineData("joinus.css")]
+    [InlineData("about-us.css")]
+    [InlineData("join-us.css")]
     [InlineData("history.css")]
     [InlineData("hierarchy.css")]
     [InlineData("fitab.css")]
@@ -114,7 +120,7 @@ public class PortalContentStyleTests
     {
         // Arrange
         var projectRoot = GetProjectRoot();
-        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", cssFileName);
+        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", "4-pages", cssFileName);
 
         // Act
         var content = File.ReadAllText(cssFilePath);
@@ -127,8 +133,8 @@ public class PortalContentStyleTests
     /// Tests that dedicated CSS files do not contain generic site-wide styles.
     /// </summary>
     [Theory]
-    [InlineData("aboutus.css", "about-us")]
-    [InlineData("joinus.css", "join-us")]
+    [InlineData("about-us.css", "about-us")]
+    [InlineData("join-us.css", "join-us")]
     [InlineData("history.css", "history")]
     [InlineData("hierarchy.css", "hierarchy")]
     [InlineData("fitab.css", "fitab")]
@@ -136,7 +142,7 @@ public class PortalContentStyleTests
     {
         // Arrange
         var projectRoot = GetProjectRoot();
-        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", cssFileName);
+        var cssFilePath = Path.Combine(projectRoot, "src", "RTUB.Web", "wwwroot", "css", "4-pages", cssFileName);
 
         // Act
         var content = File.ReadAllText(cssFilePath);

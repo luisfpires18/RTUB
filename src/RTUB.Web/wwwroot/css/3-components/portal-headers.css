@@ -1,0 +1,44 @@
+/* Standardized Portal Section Header Styles */
+
+/* Standardized Portal Section Header Styles */
+.portal-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 1rem;
+}
+
+.portal-section-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #e2e2e2;
+    margin: 0;
+}
+
+.portal-section-divider {
+    height: 3px;
+    background: linear-gradient(90deg, var(--bs-primary) 0%, rgba(var(--bs-primary-rgb), 0.3) 100%);
+    border-radius: 2px;
+    margin-bottom: 1.75rem;
+}
+
+/* Mobile responsive styles for Portal Section Headers */
+@media (max-width: 768px) {
+    .portal-section-title {
+        font-size: 1.875rem;
+    }
+
+    .portal-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 375px) {
+    .portal-section-title {
+        font-size: 1.625rem;
+    }
+}
+
+

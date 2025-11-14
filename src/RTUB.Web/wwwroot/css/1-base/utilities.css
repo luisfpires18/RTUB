@@ -1,0 +1,99 @@
+/* Utility classes */
+
+/* Misc */
+.card {
+  background-color: #151516;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  color: #e2e2e2;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+
+
+
+/* wider shell on very large screens */
+@media (min-width: 1400px) {
+    .rtub-wide {
+        max-width: 1500px;
+    }
+}
+/* was 1320 */
+@media (min-width: 1800px) {
+    .rtub-wide {
+        max-width: 1680px;
+    }
+}
+
+/* ensure readable table text in dark theme */
+.table, .table td, .table th {
+    color: var(--bs-body-color, #e6e6e6);
+}
+
+    .table thead th {
+        font-weight: 600;
+    }
+
+/* Dropdown menu hover fix */
+.dropdown-menu .dropdown-item {
+    color: #e2e2e2;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dropdown-menu .dropdown-item i {
+    width: 1rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu .dropdown-item:focus {
+    color: #000000 !important;
+    background-color: #f8f9fa;
+}
+
+/* Fix text-muted to be white for dark background */
+.text-muted {
+    --bs-text-opacity: 1;
+    color: #ffffff !important;
+}
+
+
+
+/* Additional utility classes */
+.text-white-full {
+    color: #ffffff;
+}
+
+.lead-white {
+    color: #ffffff;
+}
+
+.form-label-white {
+    color: #ffffff;
+}
+
+.clickable-row {
+    cursor: pointer;
+}
+
+.lyrics-display {
+    white-space: pre-wrap;
+    color: #e2e2e2;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.card-purple-no-border {
+    background-color: var(--bs-primary) !important;
+    border: none;
+}
+
+.activity-highlight {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+

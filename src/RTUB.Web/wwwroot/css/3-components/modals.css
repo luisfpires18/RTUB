@@ -1,0 +1,59 @@
+/* Modal styling enhancements */
+
+/* Modal styling enhancements */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal-text {
+    color: #e2e2e2;
+}
+
+.modal-text-pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Modal close button - white color for dark theme */
+.btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+    opacity: 0.8;
+}
+
+.btn-close:hover {
+    opacity: 1;
+}
+
+/* Primary button with purple styling */
+.btn-primary-purple {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.btn-primary-purple:hover {
+    background-color: #5a32a3;
+    border-color: #5a32a3;
+}
+
+/* Text color utilities for dark theme */
+.text-light-gray {
+    color: #e2e2e2;
+}
+
+.text-dark-theme {
+    color: #e2e2e2 !important;
+}
+
+/* Card styling for info boxes */
+.card-info-purple {
+    background-color: var(--bs-primary) !important;
+    border: none;
+}
+
+/* Lead text styling */
+.lead-light {
+    color: #e2e2e2;
+}
+

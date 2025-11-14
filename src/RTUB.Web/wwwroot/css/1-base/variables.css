@@ -1,0 +1,33 @@
+/*
+ * CSS Variables for RTUB
+ * Custom dark + purple theme colors and design tokens
+ */
+
+/* Color variables */
+:root {
+  --bs-primary: #6f42c1; /* purple */
+  --bs-primary-rgb: 111, 66, 193;
+  --bs-secondary: #343a40;
+  --bs-secondary-rgb: 52, 58, 64;
+  --bs-light: #f8f9fa;
+  --bs-dark: #0f0f10;
+  --bs-body-bg: #0f0f10;
+  --bs-body-color: #e2e2e2;
+  --bs-link-color: #a88ee5;
+  --bs-link-hover-color: #c7a7ff;
+  --bs-border-color: #2f2f2f;
+  --bs-success: #00bc8c;
+  --bs-warning: #f39c12;
+  --bs-warning-rgb: 243, 156, 18;
+  --bs-danger: #e74c3c;
+  --bs-bg-opacity: 1;
+  /* Custom yellow color for WIP status (lighter yellow, not orange warning) */
+  --yellow: #ffeb3b;
+  --yellow-rgb: 255, 235, 59;
+  /* Override Bootstrap's info color from teal to primary blue */
+  --bs-info: #007bff;
+  --bs-info-rgb: 0, 123, 255;
+  /* Override Bootstrap's secondary color to white */
+  --bs-secondary-color: #ffffff !important;
+  --bs-secondary-color-rgb: 255, 255, 255;
+}
