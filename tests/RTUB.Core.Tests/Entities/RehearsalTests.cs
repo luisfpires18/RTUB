@@ -147,7 +147,7 @@ public class RehearsalTests
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
 
         // Assert
-        rehearsal.StartTime.Should().Be(new TimeSpan(21, 0, 0));
+        rehearsal.StartTime.Should().Be(new TimeSpan(21, 30, 0));
     }
 
     [Fact]

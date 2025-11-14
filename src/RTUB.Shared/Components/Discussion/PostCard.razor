@@ -1,0 +1,150 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+
+<div class="post-card" 
+     role="button"
+     aria-label="@($"Post: {Post.Title}")">
+    
+    <!-- Left side: Author avatar and info -->
+    <div class="post-card-avatar-section" @onclick="OnClick">
+        <img src="@(Post.Author.ProfilePictureSrc)" 
+             class="post-card-avatar" 
+             alt="@(Post.Author.Nickname ?? Post.Author.UserName)" />
+        <div class="post-card-author-info">
+            <div class="post-card-author-name">@(Post.Author.Nickname ?? Post.Author.UserName)</div>
+            <small class="post-card-date">@Post.CreatedAt.ToString("dd MMM yyyy")</small>
+        </div>
+    </div>
+    
+    <!-- Right side: Post content -->
+    <div class="post-card-content" @onclick="OnClick">
+        <div class="post-card-header">
+            <h5 class="post-card-title">
+                @Post.Title
+            </h5>
+        </div>
+        
+        <p class="post-card-body">
+            @if (Post.Body.Length > 200)
+            {
+                @Post.Body.Substring(0, 200)<text>...</text>
+            }
+            else
+            {
+                @Post.Body
+            }
+        </p>
+        
+        <div class="post-card-footer">
+            <div class="post-card-meta">
+                <span class="post-card-meta-item">
+                    <i class="bi bi-chat-left-dots"></i>
+                    @CommentCount comentários
+                </span>
+                <span class="post-card-meta-item">
+                    <i class="bi bi-clock"></i>
+                    @Post.LastActivityAt.ToString("dd MMM, HH:mm")
+                </span>
+            </div>
+            <div class="post-card-badges">
+                @if (Post.IsPinned)
+                {
+                    <span class="badge bg-warning text-dark">
+                        <i class="bi bi-pin-fill"></i> Fixado
+                    </span>
+                }
+                @if (Post.IsLocked)
+                {
+                    <span class="badge bg-danger">
+                        <i class="bi bi-lock-fill"></i> Bloqueado
+                    </span>
+                }
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action buttons overlay - top left for author, top right for admin/owner -->
+    <div class="post-card-actions">
+        <!-- Author controls (top-left) -->
+        @if (ShowAuthorControls)
+        {
+            <div class="post-card-actions-left" @onclick:stopPropagation="true">
+                <button class="btn btn-sm btn-outline-light" 
+                        @onclick="OnEdit"
+                        @onclick:stopPropagation="true"
+                        title="Editar">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" 
+                        @onclick="OnDelete"
+                        @onclick:stopPropagation="true"
+                        title="Eliminar">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        }
+        
+        <!-- Admin/Owner controls (top-right) -->
+        @if (ShowAdminControls || ShowOwnerControls)
+        {
+            <div class="post-card-actions-right" @onclick:stopPropagation="true">
+                @if (ShowAdminControls)
+                {
+                    <button class="btn btn-sm @(Post.IsPinned ? "btn-warning" : "btn-outline-warning")" 
+                            @onclick="OnTogglePin"
+                            @onclick:stopPropagation="true"
+                            title="@(Post.IsPinned ? "Desafixar" : "Fixar")">
+                        <i class="bi bi-pin-fill"></i>
+                    </button>
+                    <button class="btn btn-sm @(Post.IsLocked ? "btn-danger" : "btn-outline-danger")" 
+                            @onclick="OnToggleLock"
+                            @onclick:stopPropagation="true"
+                            title="@(Post.IsLocked ? "Desbloquear" : "Bloquear")">
+                        <i class="bi bi-lock-fill"></i>
+                    </button>
+                }
+                @if (ShowOwnerControls)
+                {
+                    <button class="btn btn-sm btn-danger" 
+                            @onclick="OnDelete"
+                            @onclick:stopPropagation="true"
+                            title="Eliminar Post">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Post Post { get; set; } = default!;
+    
+    [Parameter]
+    public int CommentCount { get; set; }
+    
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+    
+    [Parameter]
+    public bool ShowAuthorControls { get; set; }
+    
+    [Parameter]
+    public bool ShowAdminControls { get; set; }
+    
+    [Parameter]
+    public bool ShowOwnerControls { get; set; }
+    
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+    
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+    
+    [Parameter]
+    public EventCallback OnTogglePin { get; set; }
+    
+    [Parameter]
+    public EventCallback OnToggleLock { get; set; }
+}

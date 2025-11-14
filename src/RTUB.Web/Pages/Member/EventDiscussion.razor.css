@@ -1,0 +1,39 @@
+/* Discussion Page Styles */
+
+/* Page wrapper */
+.discussion-page-wrapper {
+    min-height: 100vh;
+    padding-bottom: 2rem;
+}
+
+/* Posts section */
+.posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.post-wrapper {
+    margin-bottom: 1rem;
+}
+
+/* Expanded post content */
+.post-expanded-content {
+    background-color: #1a1a1a;
+    border: 1px solid #2f2f2f;
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    padding: 1.5rem;
+    margin-top: -1rem;
+}
+
+.comments-section h6 {
+    color: #e2e2e2;
+    font-weight: 600;
+}
+
+/* Pagination */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+}

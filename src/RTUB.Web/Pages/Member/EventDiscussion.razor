@@ -1,0 +1,468 @@
+@page "/events/{eventId:int}/discussion"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@inject IEventService EventService
+@inject IDiscussionService DiscussionService
+@inject IPostService PostService
+@inject ICommentService CommentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+
+<PageTitle>Discussão - @(eventItem?.Name ?? "Evento")</PageTitle>
+
+<div class="discussion-page-wrapper">
+    @if (eventItem == null)
+    {
+        <LoadingSpinner />
+    }
+    else
+    {
+        <!-- Page Header -->
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="NavigateBack">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
+                <div>
+                    <h1 class="mb-0">Discussão</h1>
+                </div>
+            </div>
+            @if (canCreatePost)
+            {
+                <button class="btn btn-success" @onclick="OpenCreatePostModal" title="Criar Novo Post">
+                    <i class="bi bi-plus-lg"></i> Novo Post
+                </button>
+            }
+        </div>
+        <p class="mb-4">@eventItem.Name</p>
+
+        <!-- Search Bar -->
+        <div class="mb-4">
+            <div class="input-group">
+                <span class="input-group-text bg-transparent">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" 
+                       class="form-control" 
+                       placeholder="Pesquisar posts por título, conteúdo ou autor..." 
+                       @bind="searchTerm" 
+                       @bind:event="oninput" 
+                       @onkeyup="HandleSearch" />
+            </div>
+        </div>
+
+        <!-- Posts Section -->
+        @if (posts == null)
+        {
+            <LoadingSpinner />
+        }
+        else if (posts.Count == 0)
+        {
+            <EmptyState Title="Nenhum post encontrado" 
+                       Message="@(string.IsNullOrWhiteSpace(searchTerm) ? "Seja o primeiro a iniciar uma discussão sobre este evento!" : "Nenhum resultado encontrado para a sua pesquisa.")" 
+                       Icon="bi-chat-dots" />
+        }
+        else
+        {
+            <div class="posts-list">
+                @foreach (var post in posts)
+                {
+                    var postComments = GetPostComments(post.Id);
+                    var commentCount = postComments.Count;
+                    var isExpanded = expandedPostIds.Contains(post.Id);
+                    
+                    <div class="post-wrapper mb-3">
+                        <!-- PostCard as clickable header with action buttons -->
+                        <PostCard Post="@post" 
+                                 CommentCount="@commentCount" 
+                                 OnClick="@(() => TogglePost(post.Id))"
+                                 ShowAuthorControls="@IsAuthor(post)"
+                                 ShowAdminControls="@isAdmin"
+                                 ShowOwnerControls="@(isOwner && !IsAuthor(post))"
+                                 OnEdit="@(() => OpenEditPostModal(post))"
+                                 OnDelete="@(() => ShowDeletePostConfirm(post))"
+                                 OnTogglePin="@(() => TogglePin(post))"
+                                 OnToggleLock="@(() => ToggleLock(post))" />
+                        
+                        <!-- Expanded content -->
+                        @if (isExpanded)
+                        {
+                            <div class="post-expanded-content">
+                                <!-- Comments Section -->
+                                <div class="comments-section">
+                                    <h6 class="mb-3">
+                                        <i class="bi bi-chat-left-text me-2"></i>Comentários (@commentCount)
+                                    </h6>
+                                    
+                                    @if (commentCount == 0)
+                                    {
+                                        <p class="text-muted"><em>Nenhum comentário ainda.</em></p>
+                                    }
+                                    else
+                                    {
+                                        <div class="comments-list mb-3">
+                                            @foreach (var comment in postComments)
+                                            {
+                                                <CommentItem Comment="@comment" 
+                                                            CanEdit="@(IsCommentAuthor(comment))"
+                                                            CanDelete="@(isOwner || IsCommentAuthor(comment))"
+                                                            OnEdit="@(async (body) => await EditComment(comment, body))"
+                                                            OnDelete="@(() => ShowDeleteCommentConfirm(comment, post.Id))" />
+                                            }
+                                        </div>
+                                    }
+
+                                    <!-- Add Comment -->
+                                    @if (!post.IsLocked && canCreatePost)
+                                    {
+                                        <div class="mt-3">
+                                            <CommentComposer OnSubmit="@(async (body) => await CreateComment(post.Id, body))" />
+                                        </div>
+                                    }
+                                    else if (post.IsLocked)
+                                    {
+                                        <div class="alert alert-warning mt-3 d-flex align-items-center">
+                                            <i class="bi bi-lock-fill me-2"></i>
+                                            <span>Este post está bloqueado. Não é possível adicionar novos comentários.</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            @if (totalPosts > pageSize)
+            {
+                <div class="pagination-wrapper mt-4">
+                    <TablePagination CurrentPage="@currentPage"
+                                    PageSize="@pageSize"
+                                    TotalItems="@totalPosts"
+                                    ItemLabel="posts"
+                                    PageSizeOptions="@(new[] { 20, 50, 100 })"
+                                    OnPageChanged="@HandlePageChange"
+                                    OnPageSizeChanged="@HandlePageSizeChange" />
+                </div>
+            }
+        }
+    }
+</div>
+
+<!-- Create Post Modal -->
+<Modal Show="@showCreatePostModal" 
+       ShowChanged="@((show) => showCreatePostModal = show)"
+       Title="Criar Novo Post"
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        <PostComposer OnSubmit="@(async (tuple) => await CreatePost(tuple.Item1, tuple.Item2))" />
+    </BodyContent>
+</Modal>
+
+<!-- Edit Post Modal -->
+<Modal Show="@showEditPostModal" 
+       ShowChanged="@((show) => showEditPostModal = show)"
+       Title="Editar Post"
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (postToEdit != null)
+        {
+            <PostComposer Title="@postToEdit.Title"
+                         Body="@postToEdit.Body"
+                         OnSubmit="@(async (tuple) => await UpdatePost(tuple.Item1, tuple.Item2))" />
+        }
+    </BodyContent>
+</Modal>
+
+<!-- Delete Post Confirmation -->
+<ConfirmDialog Show="@showDeletePostConfirm"
+               ShowChanged="@((value) => showDeletePostConfirm = value)"
+               Title="Confirmar Eliminação"
+               Message="Tem a certeza que deseja eliminar este post? Esta ação não pode ser desfeita."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmDeletePost" />
+
+<!-- Delete Comment Confirmation -->
+<ConfirmDialog Show="@showDeleteCommentConfirm"
+               ShowChanged="@((value) => showDeleteCommentConfirm = value)"
+               Title="Confirmar Eliminação"
+               Message="Tem a certeza que deseja eliminar este comentário?"
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="ConfirmDeleteComment" />
+
+@code {
+    [Parameter]
+    public int EventId { get; set; }
+
+    private Event? eventItem;
+    private Discussion? discussion;
+    private List<Post> posts = new();
+    private Dictionary<int, List<Comment>> postCommentsCache = new();
+    private ApplicationUser? currentUser;
+    private bool isAdmin = false;
+    private bool isOwner = false;
+    private bool canCreatePost = false;
+    private string searchTerm = string.Empty;
+    private int currentPage = 1;
+    private int pageSize = 20;
+    private int totalPosts = 0;
+    private bool showCreatePostModal = false;
+    private bool showEditPostModal = false;
+    private HashSet<int> expandedPostIds = new HashSet<int>();
+    private bool showDeletePostConfirm = false;
+    private bool showDeleteCommentConfirm = false;
+    private Post? postToDelete = null;
+    private Post? postToEdit = null;
+    private Comment? commentToDelete = null;
+    private int commentPostId = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEventAsync();
+        await LoadCurrentUserAsync();
+        await LoadDiscussionAsync();
+        await LoadPostsAsync();
+    }
+
+    private async Task LoadEventAsync()
+    {
+        eventItem = await EventService.GetEventByIdAsync(EventId);
+    }
+
+    private async Task LoadCurrentUserAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userName = authState.User.Identity?.Name;
+
+        if (!string.IsNullOrEmpty(userName))
+        {
+            currentUser = await UserManager.FindByNameAsync(userName);
+            isAdmin = authState.User.IsInRole("Admin");
+            isOwner = authState.User.IsInRole("Owner");
+            canCreatePost = currentUser != null;
+        }
+    }
+
+    private async Task LoadDiscussionAsync()
+    {
+        if (eventItem == null) return;
+        discussion = await DiscussionService.GetOrCreateForEventAsync(EventId);
+    }
+
+    private async Task LoadPostsAsync()
+    {
+        if (discussion == null) return;
+
+        totalPosts = await PostService.GetCountByDiscussionIdAsync(discussion.Id, searchTerm);
+        var loadedPosts = await PostService.GetByDiscussionIdAsync(
+            discussion.Id, 
+            currentPage, 
+            pageSize, 
+            searchTerm
+        );
+        posts = loadedPosts.ToList();
+    }
+
+    private async Task TogglePost(int postId)
+    {
+        if (expandedPostIds.Contains(postId))
+        {
+            expandedPostIds.Remove(postId);
+        }
+        else
+        {
+            expandedPostIds.Add(postId);
+            // Load comments for this post if not already loaded
+            if (!postCommentsCache.ContainsKey(postId))
+            {
+                await LoadCommentsForPost(postId);
+            }
+        }
+    }
+
+    private async Task LoadCommentsForPost(int postId)
+    {
+        var comments = await CommentService.GetByPostIdAsync(postId, 1, 50);
+        postCommentsCache[postId] = comments.ToList();
+    }
+
+    private List<Comment> GetPostComments(int postId)
+    {
+        return postCommentsCache.ContainsKey(postId) ? postCommentsCache[postId] : new List<Comment>();
+    }
+
+    private async Task CreatePost(string title, string body)
+    {
+        if (discussion == null || currentUser == null) return;
+
+        await PostService.CreateAsync(discussion.Id, currentUser.Id, title, body);
+        await LoadPostsAsync();
+        showCreatePostModal = false;
+        StateHasChanged();
+    }
+
+    private async Task CreateComment(int postId, string body)
+    {
+        if (currentUser == null) return;
+
+        await CommentService.CreateAsync(postId, currentUser.Id, body);
+        await LoadCommentsForPost(postId);
+        
+        // Update the post to refresh last activity and comment count
+        var postIndex = posts.FindIndex(p => p.Id == postId);
+        if (postIndex >= 0)
+        {
+            posts[postIndex] = await PostService.GetByIdAsync(postId);
+        }
+        
+        StateHasChanged();
+    }
+
+    private void OpenCreatePostModal()
+    {
+        showCreatePostModal = true;
+    }
+    
+    private void OpenEditPostModal(Post post)
+    {
+        postToEdit = post;
+        showEditPostModal = true;
+    }
+    
+    private async Task UpdatePost(string title, string body)
+    {
+        if (postToEdit == null) return;
+        
+        await PostService.UpdateAsync(postToEdit.Id, title, body);
+        await LoadPostsAsync();
+        showEditPostModal = false;
+        postToEdit = null;
+        StateHasChanged();
+    }
+
+    private bool IsAuthor(Post post)
+    {
+        return currentUser != null && post.AuthorId == currentUser.Id;
+    }
+
+    private bool IsCommentAuthor(Comment comment)
+    {
+        return currentUser != null && comment.AuthorId == currentUser.Id;
+    }
+
+    private void NavigateBack()
+    {
+        Navigation.NavigateTo("/events");
+    }
+
+    private async Task HandleSearch()
+    {
+        currentPage = 1;
+        await LoadPostsAsync();
+    }
+
+    private async Task HandlePageChange(int newPage)
+    {
+        currentPage = newPage;
+        await LoadPostsAsync();
+    }
+
+    private async Task HandlePageSizeChange(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1;
+        await LoadPostsAsync();
+    }
+
+    private async Task EditPost(Post post)
+    {
+        OpenEditPostModal(post);
+    }
+
+    private async Task TogglePin(Post post)
+    {
+        if (post.IsPinned)
+        {
+            await PostService.UnpinAsync(post.Id);
+        }
+        else
+        {
+            await PostService.PinAsync(post.Id);
+        }
+        await LoadPostsAsync();
+    }
+
+    private async Task ToggleLock(Post post)
+    {
+        if (post.IsLocked)
+        {
+            await PostService.UnlockAsync(post.Id);
+        }
+        else
+        {
+            await PostService.LockAsync(post.Id);
+        }
+        await LoadPostsAsync();
+    }
+
+    private void ShowDeletePostConfirm(Post post)
+    {
+        postToDelete = post;
+        showDeletePostConfirm = true;
+    }
+
+    private async Task ConfirmDeletePost()
+    {
+        if (postToDelete != null)
+        {
+            await PostService.SoftDeleteAsync(postToDelete.Id);
+            expandedPostIds.Remove(postToDelete.Id);
+            postToDelete = null;
+            await LoadPostsAsync();
+        }
+    }
+
+    private async Task EditComment(Comment comment, string newBody)
+    {
+        await CommentService.UpdateAsync(comment.Id, newBody);
+        await LoadCommentsForPost(comment.PostId);
+        StateHasChanged();
+    }
+
+    private void ShowDeleteCommentConfirm(Comment comment, int postId)
+    {
+        commentToDelete = comment;
+        commentPostId = postId;
+        showDeleteCommentConfirm = true;
+    }
+
+    private async Task ConfirmDeleteComment()
+    {
+        if (commentToDelete != null)
+        {
+            await CommentService.SoftDeleteAsync(commentToDelete.Id);
+            await LoadCommentsForPost(commentPostId);
+            
+            // Update the post to refresh comment count
+            var postIndex = posts.FindIndex(p => p.Id == commentPostId);
+            if (postIndex >= 0)
+            {
+                posts[postIndex] = await PostService.GetByIdAsync(commentPostId);
+            }
+            
+            commentToDelete = null;
+            commentPostId = 0;
+            StateHasChanged();
+        }
+    }
+}

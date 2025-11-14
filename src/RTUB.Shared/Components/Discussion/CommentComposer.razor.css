@@ -1,0 +1,25 @@
+/* Comment Composer Styles */
+
+.comment-composer {
+    width: 100%;
+}
+
+.comment-composer .form-control,
+.comment-composer textarea.form-control {
+    background: rgba(var(--bs-dark-rgb), 0.6);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--bs-light);
+}
+
+.comment-composer .form-control:focus,
+.comment-composer textarea.form-control:focus {
+    background: rgba(var(--bs-dark-rgb), 0.7);
+    border-color: var(--bs-primary);
+    color: var(--bs-light);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.comment-composer textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}

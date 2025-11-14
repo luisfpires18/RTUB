@@ -62,6 +62,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     
     // Audit Log DbSet
     public DbSet<AuditLog> AuditLogs { get; set; }
+    
+    // Discussion DbSets
+    public DbSet<Discussion> Discussions { get; set; }
+    public DbSet<Post> Posts { get; set; }
+    public DbSet<Comment> Comments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
