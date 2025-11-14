@@ -256,7 +256,17 @@ else
             <div class="row">
                 @if (showYearLeitao && !isFundador)
                 {
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Mês Leitão</label>
+                        <InputSelect class="form-control" @bind-Value="editingUser.MonthLeitao">
+                            <option value="">Sem mês</option>
+                            @for (int i = 1; i <= 12; i++)
+                            {
+                                <option value="@i">@i</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3 mb-3">
                         <label class="form-label">Ano de entrada Leitão</label>
                         <InputNumber class="form-control" @bind-Value="editingUser.YearLeitao" placeholder="Inserir ano..." />
                     </div>
@@ -264,7 +274,17 @@ else
 
                 @if (showYearCaloiro && !isFundador)
                 {
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Mês Caloiro</label>
+                        <InputSelect class="form-control" @bind-Value="editingUser.MonthCaloiro">
+                            <option value="">Sem mês</option>
+                            @for (int i = 1; i <= 12; i++)
+                            {
+                                <option value="@i">@i</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3 mb-3">
                         <label class="form-label">Ano de passagem a Caloiro</label>
                         <InputNumber class="form-control" @bind-Value="editingUser.YearCaloiro" placeholder="Inserir ano..." />
                     </div>
@@ -272,7 +292,17 @@ else
 
                 @if (showYearTuno && !isFundador)
                 {
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Mês Tuno</label>
+                        <InputSelect class="form-control" @bind-Value="editingUser.MonthTuno">
+                            <option value="">Sem mês</option>
+                            @for (int i = 1; i <= 12; i++)
+                            {
+                                <option value="@i">@i</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3 mb-3">
                         <label class="form-label">Ano de passagem a Tuno</label>
                         <InputNumber class="form-control" @bind-Value="editingUser.YearTuno" placeholder="Inserir ano..." />
                     </div>
@@ -813,8 +843,11 @@ else
             DateOfBirth = user.DateOfBirth,
             Degree = user.Degree,
             YearLeitao = user.YearLeitao,
+            MonthLeitao = user.MonthLeitao,
             YearCaloiro = user.YearCaloiro,
+            MonthCaloiro = user.MonthCaloiro,
             YearTuno = user.YearTuno,
+            MonthTuno = user.MonthTuno,
             MainInstrument = user.MainInstrument,
             EmailConfirmed = user.EmailConfirmed,
             MentorId = user.MentorId
@@ -976,8 +1009,11 @@ else
                 if (isFundador)
                 {
                     editingUser.YearTuno = 1991;
+                    editingUser.MonthTuno = null;
                     editingUser.YearLeitao = null;
+                    editingUser.MonthLeitao = null;
                     editingUser.YearCaloiro = null;
+                    editingUser.MonthCaloiro = null;
                     editingUser.MentorId = null; // Fundadores don't have mentors
                 }
             
@@ -1072,8 +1108,11 @@ else
                 existingUser.DateOfBirth = editingUser.DateOfBirth;
                 existingUser.Degree = editingUser.Degree;
                 existingUser.YearLeitao = editingUser.YearLeitao;
+                existingUser.MonthLeitao = editingUser.MonthLeitao;
                 existingUser.YearCaloiro = editingUser.YearCaloiro;
+                existingUser.MonthCaloiro = editingUser.MonthCaloiro;
                 existingUser.YearTuno = editingUser.YearTuno;
+                existingUser.MonthTuno = editingUser.MonthTuno;
                 existingUser.MainInstrument = editingUser.MainInstrument;
                 existingUser.MentorId = editingUser.MentorId;
                 
@@ -1081,8 +1120,11 @@ else
                 if (isFundador)
                 {
                     existingUser.YearTuno = 1991;
+                    existingUser.MonthTuno = null;
                     existingUser.YearLeitao = null;
+                    existingUser.MonthLeitao = null;
                     existingUser.YearCaloiro = null;
+                    existingUser.MonthCaloiro = null;
                     existingUser.MentorId = null; // Fundadores don't have mentors
                 }
 
@@ -1223,8 +1265,11 @@ else
         if (isFundador)
         {
             editingUser.YearTuno = 1991;
+            editingUser.MonthTuno = null;
             editingUser.YearLeitao = null;
+            editingUser.MonthLeitao = null;
             editingUser.YearCaloiro = null;
+            editingUser.MonthCaloiro = null;
             editingUser.MentorId = null;
         }
         else

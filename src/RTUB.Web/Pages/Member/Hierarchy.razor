@@ -145,6 +145,7 @@ else
                 <div class="children-container">
                     @foreach (var afilhado in mentorToAfilhados[member.Id]
                         .OrderBy(a => a.YearCaloiro.HasValue ? a.YearCaloiro.Value : int.MaxValue)
+                        .ThenBy(a => a.MonthCaloiro.HasValue ? a.MonthCaloiro.Value : int.MaxValue)
                         .ThenBy(a => a.FirstName)
                         .ThenBy(a => a.LastName))
                     {

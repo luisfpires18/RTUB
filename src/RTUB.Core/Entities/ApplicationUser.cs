@@ -37,8 +37,11 @@ public class ApplicationUser : IdentityUser
     public DateTime? DateOfBirth { get; set; }
     public string? Degree { get; set; }
     public int? YearLeitao { get; set; }
+    public int? MonthLeitao { get; set; }
     public int? YearCaloiro { get; set; }
+    public int? MonthCaloiro { get; set; }
     public int? YearTuno { get; set; }
+    public int? MonthTuno { get; set; }
     public InstrumentType? MainInstrument { get; set; }
     public bool RequirePasswordChange { get; set; } = false;
     public DateTime? LastLoginDate { get; set; }

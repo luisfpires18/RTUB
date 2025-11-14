@@ -21,8 +21,11 @@ public sealed class MemberBuilder
     private readonly List<Position> _positions = new();
     private readonly List<MemberCategory> _categories = new();
     private int? _yearTuno;
+    private int? _monthTuno;
     private int? _yearCaloiro;
+    private int? _monthCaloiro;
     private int? _yearLeitao;
+    private int? _monthLeitao;
     private string? _mentorId;
     private string _password = "Rtub123!";
 
@@ -40,8 +43,11 @@ public sealed class MemberBuilder
     public MemberBuilder Position(Position pos) { _positions.Add(pos); return this; }
     public MemberBuilder Category(MemberCategory cat) { _categories.Add(cat); return this; }
     public MemberBuilder YearTuno(int year) { _yearTuno = year; return this; }
+    public MemberBuilder MonthTuno(int month) { _monthTuno = month; return this; }
     public MemberBuilder YearCaloiro(int year) { _yearCaloiro = year; return this; }
+    public MemberBuilder MonthCaloiro(int month) { _monthCaloiro = month; return this; }
     public MemberBuilder YearLeitao(int year) { _yearLeitao = year; return this; }
+    public MemberBuilder MonthLeitao(int month) { _monthLeitao = month; return this; }
     public MemberBuilder Mentor(string mentorId) { _mentorId = mentorId; return this; }
     public MemberBuilder Password(string password) { _password = password; return this; }
 
@@ -62,8 +68,11 @@ public sealed class MemberBuilder
             _positions,
             _categories,
             _yearTuno,
+            _monthTuno,
             _yearCaloiro,
+            _monthCaloiro,
             _yearLeitao,
+            _monthLeitao,
             _mentorId
         );
     }
@@ -104,8 +113,11 @@ public sealed class MemberBuilder
         List<Position>? positions,
         List<MemberCategory>? categories,
         int? yearTuno = null,
+        int? monthTuno = null,
         int? yearCaloiro = null,
+        int? monthCaloiro = null,
         int? yearLeitao = null,
+        int? monthLeitao = null,
         string? mentorId = null)
     {
         var username = UsernameFromNickname(nickname);
@@ -125,8 +137,11 @@ public sealed class MemberBuilder
                 Degree = degree,
                 MainInstrument = instrument,
                 YearTuno = yearTuno,
+                MonthTuno = monthTuno,
                 YearCaloiro = yearCaloiro,
+                MonthCaloiro = monthCaloiro,
                 YearLeitao = yearLeitao,
+                MonthLeitao = monthLeitao,
                 PhoneNumber = new Random().Next(900000000, 999999999).ToString(),
                 Subscribed = false,
                 Positions = positions ?? new List<Position>(),
@@ -156,8 +171,11 @@ public sealed class MemberBuilder
             user.Positions = positions ?? new List<Position>();
             user.Categories = categories ?? new List<MemberCategory>();
             user.YearTuno = yearTuno;
+            user.MonthTuno = monthTuno;
             user.YearCaloiro = yearCaloiro;
+            user.MonthCaloiro = monthCaloiro;
             user.YearLeitao = yearLeitao;
+            user.MonthLeitao = monthLeitao;
             user.MainInstrument = instrument;
 
             await userManager.UpdateAsync(user);
