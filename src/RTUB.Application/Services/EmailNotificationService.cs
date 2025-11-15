@@ -772,4 +772,95 @@ public class EmailNotificationService : IEmailNotificationService
             return (false, 0, $"Erro ao enviar email: {ex.Message}");
         }
     }
+
+    /// <inheritdoc/>
+    public async Task<(bool success, int count, string? errorMessage)> SendMeetingNotificationAsync(
+        int meetingId,
+        string subject,
+        string body,
+        List<string> recipientEmails,
+        Dictionary<string, (string nickname, string fullName)>? recipientData = null)
+    {
+        // Rate limit: Prevent duplicate emails for the same meeting within 5 minutes
+        var rateLimitKey = $"email-meeting-{meetingId}-{DateTime.UtcNow:yyyyMMddHHmm}";
+        if (ShouldRateLimitEmail(rateLimitKey))
+        {
+            _logger.LogWarning("Rate limit hit for meeting notification {MeetingId}", meetingId);
+            return (false, 0, "Email já enviado recentemente.");
+        }
+
+        try
+        {
+            // Get email configuration
+            var smtpServer = _configuration["EmailSettings:SmtpServer"];
+            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
+            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
+            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
+            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
+            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
+            var enableSsl = enableSslStr != "false"; // Default to true
+
+            // Validate email settings
+            if (string.IsNullOrEmpty(senderEmail) || string.IsNullOrEmpty(smtpServer) || 
+                string.IsNullOrEmpty(smtpUsername) || string.IsNullOrEmpty(smtpPassword))
+            {
+                _logger.LogError("Email settings are not properly configured");
+                return (false, 0, "Configurações de email não definidas.");
+            }
+
+            if (recipientEmails == null || !recipientEmails.Any())
+            {
+                _logger.LogWarning("No recipients for meeting notification {MeetingId}", meetingId);
+                return (false, 0, "Nenhum destinatário especificado.");
+            }
+
+            // Send emails to each recipient
+            int successCount = 0;
+            int failureCount = 0;
+
+            using (var smtpClient = new SmtpClient(smtpServer, smtpPort))
+            {
+                smtpClient.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
+                smtpClient.EnableSsl = enableSsl;
+
+                foreach (var recipientEmail in recipientEmails)
+                {
+                    try
+                    {
+                        var mailMessage = new MailMessage
+                        {
+                            From = new MailAddress(senderEmail, senderName),
+                            Subject = subject,
+                            Body = body,
+                            IsBodyHtml = false
+                        };
+                        mailMessage.To.Add(recipientEmail);
+
+                        await smtpClient.SendMailAsync(mailMessage);
+                        successCount++;
+                        _logger.LogInformation("Meeting notification email sent to {Email} for meeting {MeetingId}", 
+                            recipientEmail, meetingId);
+                    }
+                    catch (Exception ex)
+                    {
+                        failureCount++;
+                        _logger.LogError(ex, "Failed to send meeting notification email to {Email} for meeting {MeetingId}", 
+                            recipientEmail, meetingId);
+                    }
+                }
+            }
+
+            _logger.LogInformation("Meeting notification sent for meeting {MeetingId}: {SuccessCount}/{TotalCount} successful", 
+                meetingId, successCount, recipientEmails.Count);
+
+            return (successCount > 0, successCount, successCount < recipientEmails.Count ? "Alguns emails falharam" : null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending meeting notification email for meeting {MeetingId}", meetingId);
+            return (false, 0, $"Erro ao enviar email: {ex.Message}");
+        }
+    }
 }

@@ -17,6 +17,7 @@ public class MeetingServiceTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly MeetingService _meetingService;
     private readonly ApplicationUser _veteranoUser;
+    private readonly ApplicationUser _tunossauroUser;
     private readonly ApplicationUser _nonVeteranoUser;
 
     public MeetingServiceTests()
@@ -46,6 +47,20 @@ public class MeetingServiceTests : IDisposable
             CategoriesJson = "[1]"  // Veterano enum value
         };
 
+        _tunossauroUser = new ApplicationUser
+        {
+            Id = "tunossauro-user-id",
+            UserName = "tunossauro@test.com",
+            NormalizedUserName = "TUNOSSAURO@TEST.COM",
+            Email = "tunossauro@test.com",
+            NormalizedEmail = "TUNOSSAURO@TEST.COM",
+            FirstName = "Tunossauro",
+            LastName = "User",
+            Nickname = "TunoTest",
+            PhoneContact = "111222333",
+            CategoriesJson = "[2]"  // Tunossauro enum value
+        };
+
         _nonVeteranoUser = new ApplicationUser
         {
             Id = "non-veterano-user-id",
@@ -61,6 +76,7 @@ public class MeetingServiceTests : IDisposable
         };
 
         _context.Users.Add(_veteranoUser);
+        _context.Users.Add(_tunossauroUser);
         _context.Users.Add(_nonVeteranoUser);
         _context.SaveChanges();
         
@@ -147,6 +163,37 @@ public class MeetingServiceTests : IDisposable
 
         // Act
         var result = await _meetingService.GetAllMeetingsAsync(null, 1, 10, _veteranoUser.Id);
+
+        // Assert
+        var meetings = result.ToList();
+        meetings.Should().HaveCount(2);
+        meetings.Should().Contain(m => m.Type == MeetingType.ConselhoVeteranos);
+    }
+
+    [Fact]
+    public async Task GetAllMeetingsAsync_TunossauroUser_IncludesCVMeetings()
+    {
+        // Arrange
+        _context.Meetings.Add(new Meeting
+        {
+            Type = MeetingType.AssembleiaGeralOrdinaria,
+            Title = "AGO Meeting",
+            Date = DateTime.Now.AddDays(7),
+            Statement = "AGO Statement"
+        });
+
+        _context.Meetings.Add(new Meeting
+        {
+            Type = MeetingType.ConselhoVeteranos,
+            Title = "CV Meeting",
+            Date = DateTime.Now.AddDays(8),
+            Statement = "CV Statement"
+        });
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _meetingService.GetAllMeetingsAsync(null, 1, 10, _tunossauroUser.Id);
 
         // Assert
         var meetings = result.ToList();
@@ -294,6 +341,29 @@ public class MeetingServiceTests : IDisposable
 
         // Act
         var result = await _meetingService.GetMeetingByIdAsync(cvMeeting.Id, _veteranoUser.Id);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(cvMeeting.Id);
+        result.Type.Should().Be(MeetingType.ConselhoVeteranos);
+    }
+
+    [Fact]
+    public async Task GetMeetingByIdAsync_CVMeeting_TunossauroUser_ReturnsMeeting()
+    {
+        // Arrange
+        var cvMeeting = new Meeting
+        {
+            Type = MeetingType.ConselhoVeteranos,
+            Title = "CV Meeting",
+            Date = DateTime.Now.AddDays(7),
+            Statement = "CV Statement"
+        };
+        _context.Meetings.Add(cvMeeting);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _meetingService.GetMeetingByIdAsync(cvMeeting.Id, _tunossauroUser.Id);
 
         // Assert
         result.Should().NotBeNull();

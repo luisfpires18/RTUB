@@ -59,8 +59,11 @@ public class MeetingService : IMeetingService
         // Check if user has permission to view this meeting
         if (meeting.Type == MeetingType.ConselhoVeteranos)
         {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null || !user.IsVeterano())
+            // Use FirstOrDefaultAsync to ensure we get a fully materialized user object
+            var user = await _context.Users
+                .Where(u => u.Id == userId)
+                .FirstOrDefaultAsync();
+            if (user == null || (!user.IsVeterano() && !user.IsTunossauro()))
                 return null;
         }
         
@@ -121,14 +124,18 @@ public class MeetingService : IMeetingService
 
     /// <summary>
     /// Applies Veterano visibility filtering to the query
-    /// Filters out CV meetings if user is not Veterano
+    /// Filters out CV meetings if user is not Veterano or Tunossauro
     /// </summary>
     private async Task<IQueryable<Meeting>> ApplyVeteranoFilterAsync(IQueryable<Meeting> query, string userId)
     {
-        var user = await _context.Users.FindAsync(userId);
+        // Use FirstOrDefaultAsync to ensure we get a fully materialized user object
+        // FindAsync may not properly deserialize JSON properties like Categories
+        var user = await _context.Users
+            .Where(u => u.Id == userId)
+            .FirstOrDefaultAsync();
         
-        // If user is not found or not Veterano, filter out CV meetings
-        if (user == null || !user.IsVeterano())
+        // If user is not found or not Veterano/Tunossauro, filter out CV meetings
+        if (user == null || (!user.IsVeterano() && !user.IsTunossauro()))
         {
             query = query.Where(m => m.Type != MeetingType.ConselhoVeteranos);
         }

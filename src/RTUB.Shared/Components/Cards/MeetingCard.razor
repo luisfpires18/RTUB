@@ -18,6 +18,15 @@
                     <i class="bi bi-trash music-icon-delete"></i>
                 </button>
             </div>
+            
+            @* Email notification button in bottom-right corner *@
+            <div class="position-absolute bottom-0 end-0 p-2">
+                <button class="btn btn-sm btn-primary music-btn-email" 
+                        @onclick="HandleSendEmail" 
+                        title="Notificar por email">
+                    <i class="bi bi-envelope-fill"></i>
+                </button>
+            </div>
         }
         <div class="meeting-header">
             <div class="meeting-type-badge @GetMeetingTypeCssClass()">
@@ -96,6 +105,12 @@
     [Parameter]
     public EventCallback OnViewDetails { get; set; }
 
+    /// <summary>
+    /// Callback when the send email button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSendEmail { get; set; }
+
     private async Task HandleEdit()
     {
         if (OnEdit.HasDelegate)
@@ -117,6 +132,14 @@
         if (OnViewDetails.HasDelegate)
         {
             await OnViewDetails.InvokeAsync();
+        }
+    }
+
+    private async Task HandleSendEmail()
+    {
+        if (OnSendEmail.HasDelegate)
+        {
+            await OnSendEmail.InvokeAsync();
         }
     }
 

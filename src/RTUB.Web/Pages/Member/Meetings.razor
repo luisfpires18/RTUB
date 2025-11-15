@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
 @using RTUB.Core.Entities
@@ -11,6 +12,7 @@
 @using RTUB.Shared
 @attribute [Authorize(Roles = "Admin,Owner")]
 @inject IMeetingService MeetingService
+@inject IEmailNotificationService EmailNotificationService
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -54,7 +56,8 @@ else
                         IsAdmin="true"
                         OnEdit="@(() => OpenEditModal(meeting))"
                         OnDelete="@(() => OpenDeleteModal(meeting))"
-                        OnViewDetails="@(() => OpenViewDetailsModal(meeting))" />
+                        OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
+                        OnSendEmail="@(() => OpenEmailNotificationModal(meeting))" />
         }
     </div>
 
@@ -133,7 +136,7 @@ else
                         <i class="bi bi-tag text-primary me-2"></i>Tipo de Reunião
                     </label>
                     <InputSelect class="form-select" @bind-Value="editingMeeting.Type">
-                        @if (currentUser?.IsVeterano() == true)
+                        @if (currentUser?.IsVeterano() == true || currentUser?.IsTunossauro() == true)
                         {
                             <option value="@MeetingType.AssembleiaGeralOrdinaria">Assembleia Geral Ordinária (AGO)</option>
                             <option value="@MeetingType.AssembleiaGeralExtraordinaria">Assembleia Geral Extraordinária (AGE)</option>
@@ -210,6 +213,108 @@ else
     </FooterContent>
 </Modal>
 
+<!-- Email Notification Modal -->
+<Modal Show="@showEmailNotificationModal"
+       ShowChanged="@((bool show) => showEmailNotificationModal = show)"
+       Title="Enviar notificação da reunião"
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true">
+    <BodyContent>
+        @if (selectedMeetingForEmail != null)
+        {
+            <div class="mb-3">
+                <h6 class="text-white-full">Detalhes da Reunião:</h6>
+                <div class="event-summary p-3 rounded bg-dark">
+                    <div><strong>Tipo:</strong> @GetMeetingTypeFullName(selectedMeetingForEmail.Type)</div>
+                    <div><strong>Título:</strong> @selectedMeetingForEmail.Title</div>
+                    <div><strong>Data:</strong> @selectedMeetingForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"))</div>
+                    @if (!string.IsNullOrEmpty(selectedMeetingForEmail.Location))
+                    {
+                        <div><strong>Local:</strong> @selectedMeetingForEmail.Location</div>
+                    }
+                </div>
+            </div>
+
+            @if (emailLoadingSubscribers)
+            {
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">A carregar...</span>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(emailErrorMessage))
+            {
+                <Alert Title="@emailErrorMessage" 
+                       Type="Alert.AlertType.Error" 
+                       Dismissible="true"
+                       OnDismiss="@(() => emailErrorMessage = null)" />
+            }
+            else
+            {
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Assunto <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" @bind="emailSubject" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Corpo do Email <span class="text-danger">*</span></label>
+                    <textarea class="form-control" rows="12" @bind="emailBody"></textarea>
+                    <small class="text-muted">Pode editar o conteúdo antes de enviar.</small>
+                </div>
+
+                @if (selectedMeetingForEmail.Type == MeetingType.ConselhoVeteranos && emailTunoUsers != null)
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-white-full">Adicionar um Tuno (opcional)</label>
+                        <select class="form-select" @bind="selectedTunoId">
+                            <option value="">-- Selecionar Tuno --</option>
+                            @foreach (var tuno in emailTunoUsers)
+                            {
+                                <option value="@tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}")</option>
+                            }
+                        </select>
+                        <small class="text-muted">Opcionalmente adicione um Tuno à lista de destinatários para reuniões CV.</small>
+                    </div>
+                }
+                
+                <div class="mb-3">
+                    <span class="badge bg-purple text-white p-2">
+                        @($"{subscribedUsersCount} membros irão receber esta mensagem.")
+                    </span>
+                </div>
+
+                @if (subscribedUsers != null && subscribedUsers.Any())
+                {
+                    <div class="mb-3">
+                        <h6 class="text-white-full mb-2">Destinatários:</h6>
+                        <div class="subscriber-list" style="max-height: 200px; overflow-y: auto;">
+                            @foreach (var user in subscribedUsers.OrderBy(u => u.Nickname ?? u.FirstName))
+                            {
+                                <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                                    @(user.Nickname ?? $"{user.FirstName} {user.LastName}")
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <Alert Title="Nenhum destinatário encontrado." 
+                           Type="Alert.AlertType.Warning" />
+                }
+            }
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEmailNotificationModal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendMeetingNotification" disabled="@(subscribedUsers == null || !subscribedUsers.Any() || string.IsNullOrWhiteSpace(emailSubject) || string.IsNullOrWhiteSpace(emailBody))">
+            Enviar Notificação
+        </button>
+    </FooterContent>
+</Modal>
+
 @code {
     private List<Meeting> meetings = new();
     private bool isLoading = true;
@@ -221,13 +326,25 @@ else
     private bool showEditModal = false;
     private bool showDeleteModal = false;
     private bool showViewDetailsModal = false;
+    private bool showEmailNotificationModal = false;
     private bool isCreateMode = false;
     private Meeting? editingMeeting;
     private Meeting? deletingMeeting;
     private Meeting? viewingMeeting;
+    private Meeting? selectedMeetingForEmail;
     
     private ApplicationUser? currentUser;
     private string currentUserId = string.Empty;
+
+    // Email notification modal variables
+    private List<ApplicationUser>? subscribedUsers;
+    private List<ApplicationUser>? emailTunoUsers;
+    private int subscribedUsersCount = 0;
+    private bool emailLoadingSubscribers = false;
+    private string? emailErrorMessage;
+    private string emailSubject = string.Empty;
+    private string emailBody = string.Empty;
+    private string selectedTunoId = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -407,6 +524,172 @@ else
             MeetingType.ConselhoVeteranos => "bg-warning text-dark",
             _ => "bg-secondary"
         };
+    }
+
+    // Email notification methods
+    private async Task OpenEmailNotificationModal(Meeting meeting)
+    {
+        selectedMeetingForEmail = meeting;
+        emailLoadingSubscribers = true;
+        emailErrorMessage = null;
+        selectedTunoId = string.Empty;
+        showEmailNotificationModal = true;
+        StateHasChanged();
+
+        try
+        {
+            var allUsers = await UserManager.Users.ToListAsync();
+            
+            // Build recipient list based on meeting type
+            if (meeting.Type == MeetingType.ConselhoVeteranos)
+            {
+                // CV meetings: Veterano + Tunossauro + Magister
+                subscribedUsers = allUsers
+                    .Where(u => u.Subscribed && u.EmailConfirmed && 
+                           (u.IsVeterano() || u.IsTunossauro() || u.Positions.Contains(Position.Magister)))
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+
+                // Get list of Tuno users for selection
+                emailTunoUsers = allUsers
+                    .Where(u => u.EmailConfirmed && u.IsTuno() && !u.IsVeterano() && !u.IsTunossauro())
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+            }
+            else
+            {
+                // AGO/AGE meetings: All members EXCEPT Leitão
+                subscribedUsers = allUsers
+                    .Where(u => u.Subscribed && u.EmailConfirmed && !u.IsLeitao())
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+                
+                emailTunoUsers = null;
+            }
+            
+            subscribedUsersCount = subscribedUsers.Count;
+
+            // Pre-fill email subject and body
+            emailSubject = $"[RTUB] Reunião: {GetMeetingTypeFullName(meeting.Type)} - {meeting.Title}";
+            
+            // Build email body with meeting details and signature
+            var dateStr = meeting.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
+            var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
+            
+            emailBody = $@"Tipo de Reunião: {GetMeetingTypeFullName(meeting.Type)}
+Título: {meeting.Title}
+Data: {dateStr}";
+
+            if (!string.IsNullOrEmpty(meeting.Location))
+            {
+                emailBody += $"\nLocal: {meeting.Location}";
+            }
+
+            emailBody += $@"
+
+Declaração:
+{meeting.Statement}
+
+---
+Bragança, {currentDate}
+Presidente da Mesa da Assembleia
+Ambrosio";
+        }
+        catch (Exception ex)
+        {
+            emailErrorMessage = $"Erro ao carregar destinatários: {ex.Message}";
+        }
+        finally
+        {
+            emailLoadingSubscribers = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseEmailNotificationModal()
+    {
+        showEmailNotificationModal = false;
+        selectedMeetingForEmail = null;
+        subscribedUsers = null;
+        emailTunoUsers = null;
+        subscribedUsersCount = 0;
+        emailErrorMessage = null;
+        emailSubject = string.Empty;
+        emailBody = string.Empty;
+        selectedTunoId = string.Empty;
+    }
+
+    private async Task SendMeetingNotification()
+    {
+        if (selectedMeetingForEmail == null || subscribedUsers == null || !subscribedUsers.Any())
+        {
+            CloseEmailNotificationModal();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(emailSubject) || string.IsNullOrWhiteSpace(emailBody))
+        {
+            emailErrorMessage = "Assunto e corpo do email são obrigatórios.";
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            // If CV meeting and a Tuno is selected, add them to recipients
+            var finalRecipients = subscribedUsers.ToList();
+            if (selectedMeetingForEmail.Type == MeetingType.ConselhoVeteranos && 
+                !string.IsNullOrEmpty(selectedTunoId) && 
+                emailTunoUsers != null)
+            {
+                var selectedTuno = emailTunoUsers.FirstOrDefault(t => t.Id == selectedTunoId);
+                if (selectedTuno != null && !finalRecipients.Any(r => r.Id == selectedTuno.Id))
+                {
+                    finalRecipients.Add(selectedTuno);
+                }
+            }
+
+            // Get recipient emails
+            var recipientEmails = finalRecipients
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .Select(u => u.Email!)
+                .ToList();
+
+            // Build recipient data dictionary
+            var recipientData = finalRecipients
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .ToDictionary(
+                    u => u.Email!,
+                    u => (
+                        nickname: u.Nickname ?? "",
+                        fullName: $"{u.FirstName ?? ""} {u.LastName ?? ""}".Trim()
+                    )
+                );
+
+            // Send the meeting notification
+            var result = await EmailNotificationService.SendMeetingNotificationAsync(
+                selectedMeetingForEmail.Id,
+                emailSubject,
+                emailBody,
+                recipientEmails,
+                recipientData);
+
+            if (result.success)
+            {
+                // Close modal on success
+                CloseEmailNotificationModal();
+                await LoadMeetingsAsync();
+            }
+            else
+            {
+                emailErrorMessage = result.errorMessage ?? "Erro ao enviar notificação.";
+            }
+        }
+        catch (Exception ex)
+        {
+            emailErrorMessage = $"Erro ao enviar notificação: {ex.Message}";
+            StateHasChanged();
+        }
     }
 }
 
