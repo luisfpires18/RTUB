@@ -14,6 +14,7 @@ public static class ApplicationUserExtensions
     /// <summary>
     /// Checks if the user has Leitao category
     /// </summary>
+    [Obsolete("Use ClaimsPrincipal.IsCategory(CategoryClaims.Leitao) instead for claims-based authorization.")]
     public static bool IsLeitao(this ApplicationUser user)
     {
         return user.Categories.Contains(MemberCategory.Leitao);
@@ -22,6 +23,7 @@ public static class ApplicationUserExtensions
     /// <summary>
     /// Checks if the user has Caloiro category
     /// </summary>
+    [Obsolete("Use ClaimsPrincipal.IsCategory(CategoryClaims.Caloiro) instead for claims-based authorization.")]
     public static bool IsCaloiro(this ApplicationUser user)
     {
         return user.Categories.Contains(MemberCategory.Caloiro);
@@ -30,6 +32,7 @@ public static class ApplicationUserExtensions
     /// <summary>
     /// Checks if the user has Tuno category
     /// </summary>
+    [Obsolete("Use ClaimsPrincipal.IsCategory(CategoryClaims.Tuno) instead for claims-based authorization.")]
     public static bool IsTuno(this ApplicationUser user)
     {
         return user.Categories.Contains(MemberCategory.Tuno);
@@ -38,6 +41,7 @@ public static class ApplicationUserExtensions
     /// <summary>
     /// Checks if the user has Veterano category (2+ years as Tuno)
     /// </summary>
+    [Obsolete("Use ClaimsPrincipal.IsCategory(CategoryClaims.Veterano) instead for claims-based authorization.")]
     public static bool IsVeterano(this ApplicationUser user)
     {
         return user.Categories.Contains(MemberCategory.Veterano);
@@ -46,6 +50,7 @@ public static class ApplicationUserExtensions
     /// <summary>
     /// Checks if the user has Tunossauro category (6+ years as Tuno)
     /// </summary>
+    [Obsolete("Use ClaimsPrincipal.IsCategory(CategoryClaims.Tunossauro) instead for claims-based authorization.")]
     public static bool IsTunossauro(this ApplicationUser user)
     {
         return user.Categories.Contains(MemberCategory.Tunossauro);
@@ -54,6 +59,7 @@ public static class ApplicationUserExtensions
     /// <summary>
     /// Checks if the user has TunoHonorario category
     /// </summary>
+    [Obsolete("Use ClaimsPrincipal.IsCategory(CategoryClaims.TunoHonorario) instead for claims-based authorization.")]
     public static bool IsTunoHonorario(this ApplicationUser user)
     {
         return user.Categories.Contains(MemberCategory.TunoHonorario);
@@ -62,6 +68,7 @@ public static class ApplicationUserExtensions
     /// <summary>
     /// Checks if the user has Fundador category (Founder of the Tuna)
     /// </summary>
+    [Obsolete("Use ClaimsPrincipal.IsFounder() instead for claims-based authorization.")]
     public static bool IsFundador(this ApplicationUser user)
     {
         return user.Categories.Contains(MemberCategory.Fundador);
@@ -75,6 +82,7 @@ public static class ApplicationUserExtensions
     /// Checks if the user is ONLY Leitao (not Caloiro, Tuno, Veterano, or Tunossauro)
     /// Used for permission checks and UI visibility
     /// </summary>
+    [Obsolete("Use ClaimsPrincipal.IsOnlyLeitao() instead for claims-based authorization.")]
     public static bool IsOnlyLeitao(this ApplicationUser user)
     {
         var categories = user.Categories;
@@ -89,6 +97,7 @@ public static class ApplicationUserExtensions
     /// Checks if the user is Tuno or higher (Tuno, Veterano, or Tunossauro)
     /// Used for mentor eligibility and permission checks
     /// </summary>
+    [Obsolete("Use ClaimsPrincipal.IsAtLeastCategory(CategoryClaims.Tuno) instead for claims-based authorization.")]
     public static bool IsTunoOrHigher(this ApplicationUser user)
     {
         var categories = user.Categories;
@@ -101,6 +110,7 @@ public static class ApplicationUserExtensions
     /// Checks if the user is an effective member (Caloiro, Tuno, Veterano, or Tunossauro)
     /// Excludes Leitao who are not yet official members
     /// </summary>
+    [Obsolete("Use ClaimsPrincipal.IsAtLeastCategory(CategoryClaims.Caloiro) instead for claims-based authorization.")]
     public static bool IsEffectiveMember(this ApplicationUser user)
     {
         var categories = user.Categories;
@@ -114,6 +124,7 @@ public static class ApplicationUserExtensions
     /// Checks if the user can be a mentor (Tuno or higher)
     /// Same as IsTunoOrHigher but more semantic for mentor-related logic
     /// </summary>
+    [Obsolete("Use ClaimsPrincipal.CanBeMentor() instead for claims-based authorization.")]
     public static bool CanBeMentor(this ApplicationUser user)
     {
         return user.IsTunoOrHigher();
@@ -123,6 +134,7 @@ public static class ApplicationUserExtensions
     /// Checks if the user can hold president position (not Leitao or Caloiro)
     /// Requires Tuno or higher category
     /// </summary>
+    [Obsolete("Use ClaimsPrincipal.CanHoldPresidentPosition() instead for claims-based authorization.")]
     public static bool CanHoldPresidentPosition(this ApplicationUser user)
     {
         return user.IsTunoOrHigher();
@@ -131,6 +143,7 @@ public static class ApplicationUserExtensions
     /// <summary>
     /// Checks if the user is not just a Leitao (has progressed to Caloiro or beyond)
     /// </summary>
+    [Obsolete("Use !ClaimsPrincipal.IsOnlyLeitao() instead for claims-based authorization.")]
     public static bool IsNotOnlyLeitao(this ApplicationUser user)
     {
         return !user.IsOnlyLeitao();

@@ -7,6 +7,8 @@
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Core.Entities
+@using RTUB.Core.Constants
+@using RTUB.Core.Extensions
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SignInManager<ApplicationUser> SignInManager
@@ -58,7 +60,7 @@
                                     <i class="bi bi-gear-fill"></i> Gestão
                                 </button>
                                 <ul class="dropdown-menu" aria-labelledby="managementDropdown">
-                                    @if (currentUser != null && !currentUser.IsLeitao())
+                                    @if (userPrincipal != null && !userPrincipal.IsOnlyLeitao())
                                     {
                                         <li><NavLink class="dropdown-item" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
                                     }
@@ -94,23 +96,23 @@
             <AuthorizeView>
                 <Authorized>
                     <ul class="navbar-nav mb-2 mb-lg-0">
-                        @if (currentUser != null)
+                        @if (userPrincipal != null && currentUser != null)
                         {
-                            @if (currentUser.IsLeitao())
+                            @if (userPrincipal.IsOnlyLeitao())
                             {
                                 <li class="nav-item d-flex align-items-center">
                                     <CategoryBadge Category="MemberCategory.Leitao" AdditionalClasses="me-1" />
                                 </li>
                             }
-                            else if (currentUser.IsCaloiro())
+                            else if (userPrincipal.IsCategory(CategoryClaims.Caloiro) && !userPrincipal.IsCategory(CategoryClaims.Tuno))
                             {
                                 <li class="nav-item d-flex align-items-center">
                                     <CategoryBadge Category="MemberCategory.Caloiro" AdditionalClasses="me-1" />
                                 </li>
                             }
-                            else if (currentUser.IsTuno())
+                            else if (userPrincipal.IsAtLeastCategory(CategoryClaims.Tuno))
                             {
-                                if (currentUser.Positions.Contains(Position.Magister))
+                                if (userPrincipal.HasPosition(PositionClaims.Magister))
                                 {
                                     <li class="nav-item d-flex align-items-center">
                                         <PositionBadge Position="Position.Magister" AdditionalClasses="me-1" />
@@ -218,6 +220,7 @@
 
 @code {
     private ApplicationUser? currentUser;
+    private System.Security.Claims.ClaimsPrincipal? userPrincipal;
     private string? _lastLocation;
     private System.Threading.Timer? _debounceTimer;
     private bool _isFirstRender = true;
@@ -298,6 +301,7 @@
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var claimsPrincipal = authState.User;
+        userPrincipal = claimsPrincipal; // Store for use in UI
 
         if (claimsPrincipal?.Identity?.IsAuthenticated == true)
         {
@@ -370,17 +374,16 @@
     /// </summary>
     private bool ShouldShowGestaoDropdown()
     {
-        if (currentUser == null) return false;
+        if (userPrincipal == null) return false;
         
-        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
-        var isAdmin = authState.User.IsInRole("Admin");
-        var isOwner = authState.User.IsInRole("Owner");
+        var isAdmin = userPrincipal.IsInRole("Admin");
+        var isOwner = userPrincipal.IsInRole("Owner");
         
         // Show to Admin or Owner regardless of category
         if (isAdmin || isOwner) return true;
         
         // Hide from Leitão and Caloiro who are not Admin/Owner
-        if (currentUser.IsLeitao() || currentUser.IsCaloiro()) return false;
+        if (userPrincipal.IsOnlyLeitao() || (userPrincipal.IsCategory(CategoryClaims.Caloiro) && !userPrincipal.IsAtLeastCategory(CategoryClaims.Tuno))) return false;
         
         // Show to everyone else (Tuno, Veterano, Tunossauro, etc.)
         return true;
@@ -393,17 +396,16 @@
     /// </summary>
     private bool ShouldShowImagesMenuItem()
     {
-        if (currentUser == null) return false;
+        if (userPrincipal == null) return false;
         
-        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
-        var isAdmin = authState.User.IsInRole("Admin");
-        var isOwner = authState.User.IsInRole("Owner");
+        var isAdmin = userPrincipal.IsInRole("Admin");
+        var isOwner = userPrincipal.IsInRole("Owner");
         
         // Show to Owner regardless of category
         if (isOwner) return true;
         
-        // Show to Admin who are NOT Caloiro
-        if (isAdmin && !currentUser.IsCaloiro()) return true;
+        // Show to Admin who are NOT Caloiro (or who have progressed beyond Caloiro to Tuno)
+        if (isAdmin && !userPrincipal.IsCaloiroAdmin()) return true;
         
         return false;
     }
