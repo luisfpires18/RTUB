@@ -1,4 +1,4 @@
-@page "/docs"
+@page "/documentation"
 @rendermode InteractiveServer
 @using RTUB.Application.Interfaces
 @using Microsoft.AspNetCore.Components.Authorization
@@ -48,8 +48,15 @@ else
     @foreach (var folder in folders)
     {
         var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{folder}";
-        var documents = folderDocuments.ContainsKey(folder) ? folderDocuments[folder] : new List<DocumentMetadata>();
+        var allDocuments = folderDocuments.ContainsKey(folder) ? folderDocuments[folder] : new List<DocumentMetadata>();
         var isFirstFolder = folders.IndexOf(folder) == 0;
+        
+        // Get pagination state for this folder
+        var paginationState = GetOrCreatePaginationState(folder);
+        
+        // Calculate paginated documents
+        var skip = (paginationState.CurrentPage - 1) * paginationState.PageSize;
+        var documents = allDocuments.Skip(skip).Take(paginationState.PageSize).ToList();
         
         <FolderCard FolderName="@folder"
                    FolderPath="@folderPath"
@@ -60,6 +67,20 @@ else
                    OnDocumentView="@HandleDocumentView"
                    OnDocumentDownload="@HandleDocumentDownload"
                    OnDocumentDelete="@HandleDocumentDeleteRequest" />
+        
+        @* Pagination for this folder *@
+        @if (allDocuments.Count > 0)
+        {
+            <div class="mb-4">
+                <TablePagination CurrentPage="@paginationState.CurrentPage"
+                                PageSize="@paginationState.PageSize"
+                                TotalItems="@allDocuments.Count"
+                                ItemLabel="documentos"
+                                PageSizeOptions="@(new[] { 3, 6, 9, 12, 15 })"
+                                OnPageChanged="@(page => HandlePageChanged(folder, page))"
+                                OnPageSizeChanged="@(size => HandlePageSizeChanged(folder, size))" />
+            </div>
+        }
     }
 }
 
@@ -208,6 +229,15 @@ else
     
     private List<string> folders = new();
     private Dictionary<string, List<DocumentMetadata>> folderDocuments = new();
+    
+    // Per-folder pagination state
+    private Dictionary<string, FolderPaginationState> folderPaginationStates = new();
+    
+    private class FolderPaginationState
+    {
+        public int CurrentPage { get; set; } = 1;
+        public int PageSize { get; set; } = 3;
+    }
     
     // Create folder modal
     private bool showCreateFolderModal = false;
@@ -525,5 +555,31 @@ else
             return $"{bytes / (1024.0 * 1024.0):F1} MB";
         else
             return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} GB";
+    }
+    
+    private FolderPaginationState GetOrCreatePaginationState(string folder)
+    {
+        if (!folderPaginationStates.ContainsKey(folder))
+        {
+            folderPaginationStates[folder] = new FolderPaginationState();
+        }
+        return folderPaginationStates[folder];
+    }
+    
+    private Task HandlePageChanged(string folder, int page)
+    {
+        var state = GetOrCreatePaginationState(folder);
+        state.CurrentPage = page;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+    
+    private Task HandlePageSizeChanged(string folder, int size)
+    {
+        var state = GetOrCreatePaginationState(folder);
+        state.PageSize = size;
+        state.CurrentPage = 1; // Reset to first page when changing page size
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 }
