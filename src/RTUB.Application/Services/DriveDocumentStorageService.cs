@@ -16,7 +16,6 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
     private readonly string _bucketName;
     private readonly ILogger<DriveDocumentStorageService> _logger;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
-    private const int S3_MAX_DELETE_BATCH_SIZE = 1000; // S3 allows max 1000 objects per delete batch
 
     public DriveDocumentStorageService(IConfiguration configuration, ILogger<DriveDocumentStorageService> logger)
     {
@@ -353,99 +352,14 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
         }
     }
 
-    public async Task DeleteDocumentAsync(string documentPath)
+    public Task DeleteDocumentAsync(string documentPath)
     {
-        try
-        {
-            _logger.LogInformation("Attempting to delete document from bucket '{Bucket}' with key: {DocumentPath}", _bucketName, documentPath);
-
-            var request = new DeleteObjectRequest
-            {
-                BucketName = _bucketName,
-                Key = documentPath
-            };
-
-            var response = await _s3Client.DeleteObjectAsync(request);
-            
-            _logger.LogInformation("Successfully deleted document: {DocumentPath}. Response status: {StatusCode}", 
-                documentPath, response.HttpStatusCode);
-        }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "S3 error deleting document. Bucket: '{BucketName}', Key: '{DocumentPath}', ErrorCode: {ErrorCode}, StatusCode: {StatusCode}, Message: {Message}", 
-                _bucketName, documentPath, ex.ErrorCode, ex.StatusCode, ex.Message);
-            throw new InvalidOperationException($"Failed to delete document '{documentPath}' from bucket '{_bucketName}'. Error: {ex.ErrorCode} - {ex.Message}", ex);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error deleting document: {DocumentPath}", documentPath);
-            throw;
-        }
+        throw new NotImplementedException("Delete operations are not supported for DriveDocumentStorageService. Use CloudflareDocumentStorageService instead.");
     }
 
-    public async Task DeleteFolderAsync(string folderPath)
+    public Task DeleteFolderAsync(string folderPath)
     {
-        try
-        {
-            // Ensure folder path ends with /
-            if (!folderPath.EndsWith("/"))
-            {
-                folderPath += "/";
-            }
-
-            _logger.LogInformation("Attempting to delete folder from bucket '{Bucket}' with prefix: {FolderPath}", _bucketName, folderPath);
-
-            // List all objects in the folder
-            var objectsToDelete = new List<string>();
-            var request = new ListObjectsV2Request
-            {
-                BucketName = _bucketName,
-                Prefix = folderPath
-            };
-
-            ListObjectsV2Response response;
-            do
-            {
-                response = await _s3Client.ListObjectsV2Async(request);
-                
-                foreach (var obj in response.S3Objects)
-                {
-                    objectsToDelete.Add(obj.Key);
-                }
-
-                request.ContinuationToken = response.NextContinuationToken;
-            } while (response.IsTruncated == true);
-
-            _logger.LogInformation("Found {Count} objects to delete in folder: {FolderPath}", objectsToDelete.Count, folderPath);
-
-            // Delete all objects in batches (S3 allows max 1000 per batch)
-            for (int i = 0; i < objectsToDelete.Count; i += S3_MAX_DELETE_BATCH_SIZE)
-            {
-                var batch = objectsToDelete.Skip(i).Take(S3_MAX_DELETE_BATCH_SIZE).ToList();
-                
-                var deleteRequest = new DeleteObjectsRequest
-                {
-                    BucketName = _bucketName,
-                    Objects = batch.Select(key => new KeyVersion { Key = key }).ToList()
-                };
-
-                var deleteResponse = await _s3Client.DeleteObjectsAsync(deleteRequest);
-                _logger.LogInformation("Deleted batch of {Count} objects from folder: {FolderPath}", deleteResponse.DeletedObjects.Count, folderPath);
-            }
-
-            _logger.LogInformation("Successfully deleted folder and all contents: {FolderPath}", folderPath);
-        }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "S3 error deleting folder. Bucket: '{BucketName}', Key: '{FolderPath}', ErrorCode: {ErrorCode}, StatusCode: {StatusCode}, Message: {Message}", 
-                _bucketName, folderPath, ex.ErrorCode, ex.StatusCode, ex.Message);
-            throw new InvalidOperationException($"Failed to delete folder '{folderPath}' from bucket '{_bucketName}'. Error: {ex.ErrorCode} - {ex.Message}", ex);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error deleting folder: {FolderPath}", folderPath);
-            throw;
-        }
+        throw new NotImplementedException("Delete operations are not supported for DriveDocumentStorageService. Use CloudflareDocumentStorageService instead.");
     }
 
     public void Dispose()
