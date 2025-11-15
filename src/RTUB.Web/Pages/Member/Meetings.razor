@@ -261,8 +261,24 @@ else
 
                 <div class="mb-3">
                     <label class="form-label text-white-full">Corpo do Email <span class="text-danger">*</span></label>
-                    <textarea class="form-control" rows="12" @bind="emailBody"></textarea>
-                    <small class="text-muted">Pode editar o conteúdo antes de enviar.</small>
+                    <textarea class="form-control" rows="12" @bind="emailPlainTextBody"></textarea>
+                    <small class="text-muted">Escreva a mensagem da reunião em texto simples. Será formatada automaticamente no email.</small>
+                </div>
+                
+                <div class="mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ToggleEmailPreview">
+                        <i class="bi bi-eye"></i> @(showEmailPreview ? "Ocultar" : "Ver") Pré-visualização
+                    </button>
+                    
+                    @if (showEmailPreview)
+                    {
+                        <div class="mt-2 p-3 border rounded" style="background-color: #f8f9fa; max-height: 400px; overflow-y: auto;">
+                            <h6 class="text-muted mb-2">Pré-visualização do Email:</h6>
+                            <div>
+                                @((MarkupString)emailPreviewHtml)
+                            </div>
+                        </div>
+                    }
                 </div>
 
                 @if (selectedMeetingForEmail.Type == MeetingType.ConselhoVeteranos && emailTunoUsers != null)
@@ -310,7 +326,7 @@ else
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="CloseEmailNotificationModal">Cancelar</button>
-        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendMeetingNotification" disabled="@(subscribedUsers == null || !subscribedUsers.Any() || string.IsNullOrWhiteSpace(emailSubject) || string.IsNullOrWhiteSpace(emailBody))">
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendMeetingNotification" disabled="@(subscribedUsers == null || !subscribedUsers.Any() || string.IsNullOrWhiteSpace(emailSubject) || string.IsNullOrWhiteSpace(emailPlainTextBody))">
             Enviar Notificação
         </button>
     </FooterContent>
@@ -345,7 +361,12 @@ else
     private string? emailErrorMessage;
     private string emailSubject = string.Empty;
     private string emailBody = string.Empty;
+    private string emailPlainTextBody = string.Empty;
     private string selectedTunoId = string.Empty;
+    
+    // Email preview variables
+    private bool showEmailPreview = false;
+    private string emailPreviewHtml = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -570,25 +591,12 @@ else
             
             subscribedUsersCount = subscribedUsers.Count;
 
-            // Pre-fill email subject and body
+            // Pre-fill email subject and plain text body
             emailSubject = $"[RTUB] Reunião: {GetMeetingTypeFullName(meeting.Type)} - {meeting.Title}";
             
-            // Build email body using template renderer
-            var dateStr = meeting.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
-            var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
-            var senderCity = $"Bragança, {currentDate}";
-            var senderNickname = currentUser?.Nickname ?? "Admin";
-            
-            emailBody = await EmailTemplateRenderer.RenderMeetingNotificationAsync(
-                meetingType: GetMeetingTypeFullName(meeting.Type),
-                meetingTitle: meeting.Title,
-                dateFormatted: dateStr,
-                location: meeting.Location ?? string.Empty,
-                statement: meeting.Statement ?? string.Empty,
-                senderNickname: senderNickname,
-                senderCity: senderCity,
-                nickname: "",
-                fullName: "");
+            // Set plain text body to the meeting statement (HTML will be generated when sending)
+            emailPlainTextBody = meeting.Statement ?? string.Empty;
+            emailBody = string.Empty; // Will be generated when sending
         }
         catch (Exception ex)
         {
@@ -611,7 +619,10 @@ else
         emailErrorMessage = null;
         emailSubject = string.Empty;
         emailBody = string.Empty;
+        emailPlainTextBody = string.Empty;
         selectedTunoId = string.Empty;
+        showEmailPreview = false;
+        emailPreviewHtml = string.Empty;
     }
 
     private async Task SendMeetingNotification()
@@ -622,7 +633,7 @@ else
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(emailSubject) || string.IsNullOrWhiteSpace(emailBody))
+        if (string.IsNullOrWhiteSpace(emailSubject) || string.IsNullOrWhiteSpace(emailPlainTextBody))
         {
             emailErrorMessage = "Assunto e corpo do email são obrigatórios.";
             StateHasChanged();
@@ -631,6 +642,23 @@ else
 
         try
         {
+            // Generate HTML email body from plain text before sending
+            var dateStr = selectedMeetingForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
+            var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
+            var senderCity = $"Bragança, {currentDate}";
+            var senderNickname = currentUser?.Nickname ?? "Admin";
+            
+            emailBody = await EmailTemplateRenderer.RenderMeetingNotificationAsync(
+                meetingType: GetMeetingTypeFullName(selectedMeetingForEmail.Type),
+                meetingTitle: selectedMeetingForEmail.Title,
+                dateFormatted: dateStr,
+                location: selectedMeetingForEmail.Location ?? string.Empty,
+                statement: emailPlainTextBody, // Use the plain text from the editor
+                senderNickname: senderNickname,
+                senderCity: senderCity,
+                nickname: "",
+                fullName: "");
+            
             // If CV meeting and a Tuno is selected, add them to recipients
             var finalRecipients = subscribedUsers.ToList();
             if (selectedMeetingForEmail.Type == MeetingType.ConselhoVeteranos && 
@@ -684,6 +712,31 @@ else
         {
             emailErrorMessage = $"Erro ao enviar notificação: {ex.Message}";
             StateHasChanged();
+        }
+    }
+    
+    private async Task ToggleEmailPreview()
+    {
+        showEmailPreview = !showEmailPreview;
+        
+        if (showEmailPreview && selectedMeetingForEmail != null)
+        {
+            // Generate preview
+            var dateStr = selectedMeetingForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
+            var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
+            var senderCity = $"Bragança, {currentDate}";
+            var senderNickname = currentUser?.Nickname ?? "Admin";
+            
+            emailPreviewHtml = await EmailTemplateRenderer.RenderMeetingNotificationAsync(
+                meetingType: GetMeetingTypeFullName(selectedMeetingForEmail.Type),
+                meetingTitle: selectedMeetingForEmail.Title,
+                dateFormatted: dateStr,
+                location: selectedMeetingForEmail.Location ?? string.Empty,
+                statement: emailPlainTextBody, // Use the plain text being edited
+                senderNickname: senderNickname,
+                senderCity: senderCity,
+                nickname: "Exemplo",
+                fullName: "Nome Completo");
         }
     }
 }
