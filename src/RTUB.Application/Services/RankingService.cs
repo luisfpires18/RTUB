@@ -30,14 +30,18 @@ public class RankingService : IRankingService
 
     public async Task<int> CalculateTotalXpAsync(string userId)
     {
-        // Count rehearsal attendances where Attended == true
+        var now = DateTime.UtcNow;
+        
+        // Count rehearsal attendances where Attended == true AND rehearsal date is in the past
         var rehearsalXp = await _context.RehearsalAttendances
-            .Where(ra => ra.UserId == userId && ra.Attended)
+            .Include(ra => ra.Rehearsal)
+            .Where(ra => ra.UserId == userId && ra.Attended && ra.Rehearsal!.Date < now)
             .CountAsync() * _config.XpPerRehearsal;
 
-        // Count event enrollments where WillAttend == true
+        // Count event enrollments where WillAttend == true AND event date is in the past
         var eventXp = await _context.Enrollments
-            .Where(e => e.UserId == userId && e.WillAttend)
+            .Include(e => e.Event)
+            .Where(e => e.UserId == userId && e.WillAttend && e.Event!.Date < now)
             .CountAsync() * _config.XpPerEvent;
 
         return rehearsalXp + eventXp;

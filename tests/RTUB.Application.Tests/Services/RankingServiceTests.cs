@@ -68,8 +68,8 @@ public class RankingServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var rehearsal1 = new Rehearsal { Id = 1, Date = DateTime.Now };
-        var rehearsal2 = new Rehearsal { Id = 2, Date = DateTime.Now };
+        var rehearsal1 = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
+        var rehearsal2 = new Rehearsal { Id = 2, Date = DateTime.UtcNow.AddDays(-2) };
         
         await _context.Rehearsals.AddRangeAsync(rehearsal1, rehearsal2);
         var attendance1 = RehearsalAttendance.Create(1, userId);
@@ -93,8 +93,8 @@ public class RankingServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var event1 = new Event { Id = 1, Name = "Event 1", Date = DateTime.Now };
-        var event2 = new Event { Id = 2, Name = "Event 2", Date = DateTime.Now };
+        var event1 = new Event { Id = 1, Name = "Event 1", Date = DateTime.UtcNow.AddDays(-1) };
+        var event2 = new Event { Id = 2, Name = "Event 2", Date = DateTime.UtcNow.AddDays(-2) };
         
         await _context.Events.AddRangeAsync(event1, event2);
         var enrollment1 = Enrollment.Create(userId, 1);
@@ -118,8 +118,8 @@ public class RankingServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var rehearsal = new Rehearsal { Id = 1, Date = DateTime.Now };
-        var eventEntity = new Event { Id = 1, Name = "Event 1", Date = DateTime.Now };
+        var rehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
+        var eventEntity = new Event { Id = 1, Name = "Event 1", Date = DateTime.UtcNow.AddDays(-1) };
         
         await _context.Rehearsals.AddAsync(rehearsal);
         await _context.Events.AddAsync(eventEntity);
@@ -143,8 +143,8 @@ public class RankingServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var rehearsal1 = new Rehearsal { Id = 1, Date = DateTime.Now };
-        var rehearsal2 = new Rehearsal { Id = 2, Date = DateTime.Now };
+        var rehearsal1 = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
+        var rehearsal2 = new Rehearsal { Id = 2, Date = DateTime.UtcNow.AddDays(-2) };
         
         await _context.Rehearsals.AddRangeAsync(rehearsal1, rehearsal2);
         var attendance1 = RehearsalAttendance.Create(1, userId);
@@ -166,8 +166,8 @@ public class RankingServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var event1 = new Event { Id = 1, Name = "Event 1", Date = DateTime.Now };
-        var event2 = new Event { Id = 2, Name = "Event 2", Date = DateTime.Now };
+        var event1 = new Event { Id = 1, Name = "Event 1", Date = DateTime.UtcNow.AddDays(-1) };
+        var event2 = new Event { Id = 2, Name = "Event 2", Date = DateTime.UtcNow.AddDays(-2) };
         
         await _context.Events.AddRangeAsync(event1, event2);
         var enrollment1 = Enrollment.Create(userId, 1);
@@ -182,6 +182,52 @@ public class RankingServiceTests : IDisposable
 
         // Assert - Only 1 confirmed enrollment * 20 XP = 20
         result.Should().Be(20);
+    }
+
+    [Fact]
+    public async Task CalculateTotalXpAsync_DoesNotCountFutureEvents()
+    {
+        // Arrange
+        var userId = "user-123";
+        var pastEvent = new Event { Id = 1, Name = "Past Event", Date = DateTime.UtcNow.AddDays(-1) };
+        var futureEvent = new Event { Id = 2, Name = "Future Event", Date = DateTime.UtcNow.AddDays(1) };
+        
+        await _context.Events.AddRangeAsync(pastEvent, futureEvent);
+        var enrollment1 = Enrollment.Create(userId, 1);
+        enrollment1.WillAttend = true;
+        var enrollment2 = Enrollment.Create(userId, 2);
+        enrollment2.WillAttend = true;
+        await _context.Enrollments.AddRangeAsync(enrollment1, enrollment2);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.CalculateTotalXpAsync(userId);
+
+        // Assert - Only past event counts: 1 event * 20 XP = 20
+        result.Should().Be(20);
+    }
+
+    [Fact]
+    public async Task CalculateTotalXpAsync_DoesNotCountFutureRehearsals()
+    {
+        // Arrange
+        var userId = "user-123";
+        var pastRehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
+        var futureRehearsal = new Rehearsal { Id = 2, Date = DateTime.UtcNow.AddDays(1) };
+        
+        await _context.Rehearsals.AddRangeAsync(pastRehearsal, futureRehearsal);
+        var attendance1 = RehearsalAttendance.Create(1, userId);
+        attendance1.Attended = true;
+        var attendance2 = RehearsalAttendance.Create(2, userId);
+        attendance2.Attended = true;
+        await _context.RehearsalAttendances.AddRangeAsync(attendance1, attendance2);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.CalculateTotalXpAsync(userId);
+
+        // Assert - Only past rehearsal counts: 1 rehearsal * 10 XP = 10
+        result.Should().Be(10);
     }
 
     [Fact]
