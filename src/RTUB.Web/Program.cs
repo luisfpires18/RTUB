@@ -125,8 +125,8 @@ public class Program
 
                     var issuedUtc = context.Properties?.IssuedUtc?.UtcDateTime ?? DateTime.MinValue;
 
-                    // Log user authentication, but cache for a short time (30 seconds) to avoid duplicate logs
-                    // from multiple requests within the same page load (Blazor makes multiple requests per page)
+                    // Log user authentication once per session (cache for 1 hour to avoid duplicate logs)
+                    // The cache key includes issuedUtc.Ticks to ensure each new login session is logged once
                     var logCacheKey = $"login-log:{userName}:{issuedUtc.Ticks}";
                     
                     if (!cache.TryGetValue(logCacheKey, out _))
@@ -136,10 +136,11 @@ public class Program
                             userName,
                             DateTime.UtcNow);
                         
-                        // Cache for 30 seconds to prevent duplicate logs from the same page load
+                        // Cache for 1 hour to prevent duplicate logs from the same session
+                        // This ensures the log appears only once per login session
                         cache.Set(logCacheKey, true, new MemoryCacheEntryOptions
                         {
-                            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+                            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
                         });
                     }
 
