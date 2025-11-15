@@ -1,5 +1,6 @@
 @page "/logistics/{BoardId:int}"
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Components.Forms
@@ -9,6 +10,7 @@
 @using BoardEntity = RTUB.Core.Entities.LogisticsBoard
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
+@attribute [Authorize]
 @inject ILogisticsBoardService BoardService
 @inject ILogisticsListService ListService
 @inject ILogisticsCardService CardService

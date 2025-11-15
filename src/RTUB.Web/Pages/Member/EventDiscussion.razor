@@ -1,9 +1,11 @@
 @page "/events/{eventId:int}/discussion"
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
+@attribute [Authorize]
 @inject IEventService EventService
 @inject IDiscussionService DiscussionService
 @inject IPostService PostService

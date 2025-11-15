@@ -24,13 +24,14 @@ public class LogisticsPagesTests : IntegrationTestBase
     #region Logistics Main Page Tests (/logistics)
 
     [Fact]
-    public async Task LogisticsPage_WithoutAuth_LoadsPage()
+    public async Task LogisticsPage_WithoutAuth_RedirectsToLogin()
     {
         // Arrange & Act
         var response = await _client.GetAsync("/logistics");
 
         // Assert
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     [Fact]
@@ -61,7 +62,7 @@ public class LogisticsPagesTests : IntegrationTestBase
     #region Logistics Board Page Tests (/logistics/{id})
 
     [Fact]
-    public async Task LogisticsBoardPage_WithoutAuth_LoadsPage()
+    public async Task LogisticsBoardPage_WithoutAuth_RedirectsToLogin()
     {
         // Arrange
         var boardId = 1;
@@ -70,7 +71,8 @@ public class LogisticsPagesTests : IntegrationTestBase
         var response = await _client.GetAsync($"/logistics/{boardId}");
 
         // Assert
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect, HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     [Fact]
@@ -92,13 +94,14 @@ public class LogisticsPagesTests : IntegrationTestBase
     [InlineData(1)]
     [InlineData(5)]
     [InlineData(999)]
-    public async Task LogisticsBoardPage_WithVariousIds_IsAccessible(int boardId)
+    public async Task LogisticsBoardPage_WithVariousIds_RedirectsToLogin(int boardId)
     {
         // Arrange & Act
         var response = await _client.GetAsync($"/logistics/{boardId}");
 
         // Assert
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect, HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     [Fact]
@@ -219,15 +222,17 @@ public class LogisticsPagesTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task LogisticsPages_AreAccessible()
+    public async Task LogisticsPages_RequireAuthentication()
     {
         // Arrange & Act
         var mainResponse = await _client.GetAsync("/logistics");
         var boardResponse = await _client.GetAsync("/logistics/1");
 
         // Assert
-        mainResponse.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
-        boardResponse.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect, HttpStatusCode.NotFound);
+        mainResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        mainResponse.Headers.Location?.ToString().Should().Contain("/login");
+        boardResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        boardResponse.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion
@@ -235,30 +240,27 @@ public class LogisticsPagesTests : IntegrationTestBase
     #region HTTP Method Tests
 
     [Fact]
-    public async Task LogisticsPage_GetMethod_ShouldWork()
+    public async Task LogisticsPage_GetMethod_RedirectsToLogin()
     {
         // Arrange & Act
         var response = await _client.GetAsync("/logistics");
 
         // Assert
         response.Should().NotBeNull("GET request should return a response");
-        response.StatusCode.Should().BeOneOf(
-            HttpStatusCode.OK, 
-            HttpStatusCode.Redirect);
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     [Fact]
-    public async Task LogisticsBoardPage_GetMethod_ShouldWork()
+    public async Task LogisticsBoardPage_GetMethod_RedirectsToLogin()
     {
         // Arrange & Act
         var response = await _client.GetAsync("/logistics/1");
 
         // Assert
         response.Should().NotBeNull("GET request should return a response");
-        response.StatusCode.Should().BeOneOf(
-            HttpStatusCode.OK, 
-            HttpStatusCode.Redirect,
-            HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion
@@ -269,14 +271,15 @@ public class LogisticsPagesTests : IntegrationTestBase
     [InlineData("/logistics?page=1")]
     [InlineData("/logistics?page=2&pageSize=8")]
     [InlineData("/logistics?search=test")]
-    public async Task LogisticsPage_WithQueryParameters_ShouldWork(string url)
+    public async Task LogisticsPage_WithQueryParameters_RedirectsToLogin(string url)
     {
         // Arrange & Act
         var response = await _client.GetAsync(url);
 
         // Assert
         response.Should().NotBeNull("Requests with query parameters should work");
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location?.ToString().Should().Contain("/login");
     }
 
     #endregion
