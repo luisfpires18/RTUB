@@ -27,7 +27,7 @@
                     @onchange="OnMonthChanged" 
                     disabled="@Disabled"
                     value="@SelectedMonth">
-                <option value="" disabled selected hidden>Selecionar...</option>
+                <option value="" disabled hidden>Selecionar...</option>
                 <option value="1">Janeiro</option>
                 <option value="2">Fevereiro</option>
                 <option value="3">Março</option>
@@ -47,7 +47,7 @@
                     @onchange="OnYearChanged" 
                     disabled="@Disabled"
                     value="@SelectedYear">
-                <option value="" disabled selected hidden>Selecionar...</option>
+                <option value="" disabled hidden>Selecionar...</option>
                 @for (int year = DateTime.Now.Year; year >= MinYear; year--)
                 {
                     <option value="@year">@year</option>
