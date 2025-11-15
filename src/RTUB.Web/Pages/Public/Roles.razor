@@ -3,6 +3,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
+@using RTUB.Application.Services
 @using RTUB.Core.Enums
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.Authorization
@@ -13,6 +14,7 @@
 @inject IFiscalYearService FiscalYearService
 @inject UserManager<ApplicationUser> UserManager
 @inject IDocumentStorageService DocumentStorageService
+@inject DriveDocumentStorageService DriveDocumentStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject RTUB.Application.Services.AuditContext AuditContext
@@ -1017,8 +1019,8 @@ else
         
         try
         {
-            // Generate presigned URL for RGI PDF (docs/rtub_rgi.pdf)
-            rgiPdfUrl = await DocumentStorageService.GetDocumentUrlAsync("docs/rtub_rgi.pdf");
+            // Generate presigned URL for RGI PDF from IDrive (docs/rtub_rgi.pdf)
+            rgiPdfUrl = await DriveDocumentStorageService.GetDocumentUrlAsync("docs/rtub_rgi.pdf");
             
             isLoadingRgi = false;
             StateHasChanged();
