@@ -144,34 +144,9 @@ public class Program
                         });
                     }
 
-                    // Update LastLoginDate to reflect current activity
-                    // This ensures the "Estado de login" on /owner/user-roles shows accurate online status
-                    // Use cache to update periodically (every 5 minutes) instead of on every request to avoid excessive DB writes
-                    var lastLoginUpdateCacheKey = $"lastlogin-update:{userName}:{issuedUtc.Ticks}";
-                    
-                    if (!cache.TryGetValue(lastLoginUpdateCacheKey, out _))
-                    {
-                        try
-                        {
-                            var user = await userManager.FindByNameAsync(userName);
-                            if (user != null)
-                            {
-                                user.LastLoginDate = DateTime.UtcNow;
-                                await userManager.UpdateAsync(user);
-                                
-                                // Cache this update for 5 minutes to avoid excessive database writes
-                                cache.Set(lastLoginUpdateCacheKey, true, new MemoryCacheEntryOptions
-                                {
-                                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
-                                });
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            // Log error but don't fail authentication
-                            logger.LogError(ex, "Failed to update LastLoginDate for user {UserName} during cookie validation", userName);
-                        }
-                    }
+                    // Note: LastLoginDate is updated at login time in /auth/login endpoint.
+                    // We don't update it here to avoid concurrent update conflicts that cause
+                    // optimistic concurrency failures when multiple requests fire immediately after login.
                 }
             };
         });
@@ -433,7 +408,8 @@ public class Program
                                           SignInManager<ApplicationUser> signInManager,
                                           UserManager<ApplicationUser> userManager,
                                           ILogger<Program> logger,
-                                          AuditContext auditContext) =>
+                                          AuditContext auditContext,
+                                          IMemoryCache cache) =>
         {
             var form = await http.Request.ReadFormAsync();
             var username = form["Username"].ToString();
@@ -500,10 +476,20 @@ public class Program
             // All security checks (lockout, password validation, failed attempt tracking) are handled above
             await signInManager.SignInAsync(user, remember);
 
-            // Log successful login
-            logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
-                user.UserName,
-                DateTime.UtcNow);
+            // Log successful login (use cache to prevent duplicate logs from concurrent requests)
+            var loginLogCacheKey = $"login-success:{user.Id}";
+            if (!cache.TryGetValue(loginLogCacheKey, out _))
+            {
+                logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
+                    user.UserName,
+                    DateTime.UtcNow);
+                
+                // Cache for 5 seconds to prevent duplicate logs from concurrent login requests
+                cache.Set(loginLogCacheKey, true, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(5)
+                });
+            }
 
             // Validate and redirect to return URL if provided and is a local URL, otherwise redirect to home
             if (!string.IsNullOrEmpty(returnUrl) && RTUB.Application.Helpers.UrlHelper.IsLocalUrl(returnUrl))
