@@ -1,6 +1,8 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -14,14 +16,14 @@ namespace RTUB.Application.Tests.Services;
 /// <summary>
 /// Tests for CloudflareDocumentStorageService
 /// </summary>
-public class CloudflareDocumentStorageServiceTests
+public class CloudflareDocumentStorageServiceTests : IDisposable
 {
     private readonly Mock<ILogger<CloudflareDocumentStorageService>> _mockLogger;
     private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly Mock<IAmazonS3> _mockS3Client;
     private readonly Mock<IHostEnvironment> _mockHostEnvironment;
-    private readonly Mock<ApplicationDbContext> _mockContext;
-    private readonly Mock<AuditContext> _mockAuditContext;
+    private readonly ApplicationDbContext _context;
+    private readonly AuditContext _auditContext;
 
     public CloudflareDocumentStorageServiceTests()
     {
@@ -30,8 +32,23 @@ public class CloudflareDocumentStorageServiceTests
         _mockS3Client = new Mock<IAmazonS3>();
         _mockHostEnvironment = new Mock<IHostEnvironment>();
         _mockHostEnvironment.Setup(e => e.EnvironmentName).Returns("Development");
-        _mockContext = new Mock<ApplicationDbContext>();
-        _mockAuditContext = new Mock<AuditContext>();
+        
+        // Create real AuditContext and set user
+        _auditContext = new AuditContext();
+        _auditContext.SetUser("TestUser", "test-user-id");
+        
+        // Use in-memory database for testing
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
+            .Options;
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        _context = new ApplicationDbContext(options, mockHttpContextAccessor.Object, _auditContext);
+    }
+
+    public void Dispose()
+    {
+        _context.Database.EnsureDeleted();
+        _context.Dispose();
     }
 
     [Fact]
@@ -41,7 +58,7 @@ public class CloudflareDocumentStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns((string?)null);
 
         // Act & Assert
-        Action act = () => new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _mockContext.Object, _mockAuditContext.Object);
+        Action act = () => new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*bucket name not configured*");
     }
@@ -53,7 +70,7 @@ public class CloudflareDocumentStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
 
         // Act
-        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _mockContext.Object, _mockAuditContext.Object);
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
 
         // Assert
         service.Should().NotBeNull();
@@ -66,7 +83,7 @@ public class CloudflareDocumentStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
 
         // Act & Assert
-        Action act = () => new CloudflareDocumentStorageService(null!, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _mockContext.Object, _mockAuditContext.Object);
+        Action act = () => new CloudflareDocumentStorageService(null!, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -96,7 +113,7 @@ public class CloudflareDocumentStorageServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
-        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _mockContext.Object, _mockAuditContext.Object);
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
         
         var deleteResponse = new DeleteObjectResponse
         {
@@ -122,7 +139,7 @@ public class CloudflareDocumentStorageServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
-        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _mockContext.Object, _mockAuditContext.Object);
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
         
         _mockS3Client.Setup(s => s.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), default))
             .ThrowsAsync(new AmazonS3Exception("Access denied"));
@@ -140,7 +157,7 @@ public class CloudflareDocumentStorageServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
-        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _mockContext.Object, _mockAuditContext.Object);
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
         
         _mockS3Client.Setup(s => s.GetObjectMetadataAsync(It.IsAny<GetObjectMetadataRequest>(), default))
             .ReturnsAsync(new GetObjectMetadataResponse());
@@ -157,7 +174,7 @@ public class CloudflareDocumentStorageServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
-        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _mockContext.Object, _mockAuditContext.Object);
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
         
         var notFoundException = new AmazonS3Exception("Not found")
         {
@@ -179,7 +196,7 @@ public class CloudflareDocumentStorageServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
-        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _mockContext.Object, _mockAuditContext.Object);
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
         
         var metadataResponse = new GetObjectMetadataResponse
         {
@@ -201,7 +218,7 @@ public class CloudflareDocumentStorageServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
-        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _mockContext.Object, _mockAuditContext.Object);
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
         
         var notFoundException = new AmazonS3Exception("Not found")
         {
@@ -223,7 +240,7 @@ public class CloudflareDocumentStorageServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
-        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _mockContext.Object, _mockAuditContext.Object);
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
         
         var listResponse = new ListObjectsV2Response
         {
@@ -274,7 +291,7 @@ public class CloudflareDocumentStorageServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
-        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _mockContext.Object, _mockAuditContext.Object);
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
         
         var listResponse = new ListObjectsV2Response
         {
@@ -307,7 +324,7 @@ public class CloudflareDocumentStorageServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
-        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _mockContext.Object, _mockAuditContext.Object);
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
         
         var listResponse = new ListObjectsV2Response
         {
@@ -340,7 +357,7 @@ public class CloudflareDocumentStorageServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
-        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _mockContext.Object, _mockAuditContext.Object);
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
         
         _mockS3Client.Setup(s => s.ListObjectsV2Async(It.IsAny<ListObjectsV2Request>(), default))
             .ThrowsAsync(new AmazonS3Exception("Access denied"));
