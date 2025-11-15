@@ -10,6 +10,8 @@
 @using RTUB.Application.Extensions
 @using RTUB.Application.Utilities
 @using RTUB.Shared
+@using RTUB.Core.Constants
+@using RTUB.Core.Extensions
 @attribute [Authorize(Roles = "Admin,Owner")]
 @inherits CrudTablePageBase<Slideshow>
 @inject ISlideshowService SlideshowService
@@ -177,12 +179,14 @@ else
     private string? croppedSlideshowImageFileName = "slideshow-image.webp";
     private EditForm? slideshowEditForm;
     private ApplicationUser? currentUser;
+    private System.Security.Claims.ClaimsPrincipal? userPrincipal;
 
     protected override async Task OnInitializedAsync()
     {
         // Check if user is Caloiro Admin and redirect them
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
+        userPrincipal = user; // Store ClaimsPrincipal for use
         
         if (user.Identity?.IsAuthenticated == true)
         {
@@ -192,8 +196,8 @@ else
                 currentUser = await UserManager.FindByNameAsync(userName);
                 
                 // Redirect Caloiro Admins - they should not access this page
-                if (currentUser != null && currentUser.IsCaloiro() && 
-                    user.IsInRole("Admin") && !user.IsInRole("Owner"))
+                // Check if Admin who is Caloiro but not Owner
+                if (userPrincipal.IsCaloiroAdmin())
                 {
                     Navigation.NavigateTo("/");
                     return;

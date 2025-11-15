@@ -9,6 +9,8 @@
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Shared
+@using RTUB.Core.Constants
+@using RTUB.Core.Extensions
 @using ReportEntity = RTUB.Core.Entities.Report
 @attribute [Authorize]
 @inherits CrudTablePageBase<ReportEntity>
@@ -190,6 +192,7 @@
     private bool isOwner = false;
     private bool isLeitao = false;
     private string currentUserId = "";
+    private System.Security.Claims.ClaimsPrincipal? userPrincipal;
 
     protected override async Task OnInitializedAsync()
     {
@@ -204,17 +207,20 @@
         // Get current user and roles
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
+        userPrincipal = user; // Store ClaimsPrincipal for use
         
         if (user.Identity?.IsAuthenticated == true)
         {
             isAdmin = user.IsInRole("Admin");
             isOwner = user.IsInRole("Owner");
             
+            // Check if user is Leitao using claims-based check
+            isLeitao = userPrincipal.IsOnlyLeitao();
+            
             var appUser = await UserManager.GetUserAsync(user);
             if (appUser != null)
             {
                 currentUserId = appUser.Id;
-                isLeitao = appUser.IsLeitao();
             }
         }
         

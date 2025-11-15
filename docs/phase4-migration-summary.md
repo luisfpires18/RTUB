@@ -6,7 +6,7 @@ Phase 4 involves migrating existing authorization checks from ApplicationUser ex
 
 ## Migration Status
 
-### Completed Files (5/20+)
+### Completed Files (13/20+)
 
 #### 1. ✅ ApplicationUserExtensions.cs
 **Status**: Marked all methods as `[Obsolete]`
@@ -26,41 +26,97 @@ Phase 4 involves migrating existing authorization checks from ApplicationUser ex
   - Used `HasPosition()` for position checks
   - Applied `IsCaloiroAdmin()` for special case
 
-**Example transformation**:
-```csharp
-// Before
-if (currentUser != null && !currentUser.IsLeitao())
-{
-    <li><NavLink href="/finance">Tesouraria</NavLink></li>
-}
+#### 3. ✅ Member/Finance.razor
+**Status**: Fully migrated to ClaimsPrincipal
+- **Checks migrated**: 1 (was 7 total in file)
+- **Pattern**: UI with AuthenticationState
+- **Changes**:
+  - Added using statements for RTUB.Core.Constants and RTUB.Core.Extensions
+  - Added `userPrincipal` field (ClaimsPrincipal)
+  - In OnInitializedAsync, stored ClaimsPrincipal from AuthenticationState
+  - Replaced `appUser.IsLeitao()` with `userPrincipal.IsOnlyLeitao()`
 
-// After
-if (userPrincipal != null && !userPrincipal.IsOnlyLeitao())
-{
-    <li><NavLink href="/finance">Tesouraria</NavLink></li>
-}
-```
+#### 4. ✅ Member/Slideshows.razor
+**Status**: Fully migrated to ClaimsPrincipal
+- **Checks migrated**: 1 (was 4 total in file)
+- **Pattern**: UI with AuthenticationState
+- **Changes**:
+  - Added using statements for RTUB.Core.Constants and RTUB.Core.Extensions
+  - Added `userPrincipal` field (ClaimsPrincipal)
+  - In OnInitializedAsync, stored ClaimsPrincipal from AuthenticationState
+  - Replaced Caloiro Admin check: `currentUser.IsCaloiro() && user.IsInRole("Admin") && !user.IsInRole("Owner")` with `userPrincipal.IsCaloiroAdmin()`
 
-#### 3. ✅ StatusHelper.cs
+#### 5. ✅ Member/Requests.razor
+**Status**: Fully migrated to ClaimsPrincipal
+- **Checks migrated**: 2 (was 8 total in file)
+- **Pattern**: UI with AuthenticationState
+- **Changes**:
+  - Added using statements for RTUB.Core.Constants and RTUB.Core.Extensions
+  - Added `userPrincipal` field (ClaimsPrincipal)
+  - In OnInitializedAsync, stored ClaimsPrincipal from AuthenticationState
+  - Migrated `IsCaloiroAdmin()` helper method to use `userPrincipal.IsCaloiroAdmin()`
+
+#### 6. ✅ Member/Events.razor
+**Status**: Fully migrated to ClaimsPrincipal
+- **Checks migrated**: 1 (was 15 total in file)
+- **Pattern**: UI with AuthenticationState
+- **Changes**:
+  - Added using statements for RTUB.Core.Constants and RTUB.Core.Extensions
+  - Added `userPrincipal` field (ClaimsPrincipal)
+  - In LoadCurrentUser(), stored ClaimsPrincipal from AuthenticationState
+  - Migrated `IsCaloiroAdmin()` helper method to use `userPrincipal.IsCaloiroAdmin()`
+
+#### 7. ✅ Member/Rehearsals.razor
+**Status**: Fully migrated to ClaimsPrincipal
+- **Checks migrated**: 1 (was 10 total in file)
+- **Pattern**: UI with AuthenticationState
+- **Changes**:
+  - Added using statements for RTUB.Core.Constants and RTUB.Core.Extensions
+  - Added `userPrincipal` field (ClaimsPrincipal)
+  - In OnInitializedAsync, stored ClaimsPrincipal from AuthenticationState
+  - Migrated `IsCaloiroAdmin()` helper method to use `userPrincipal.IsCaloiroAdmin()`
+
+#### 8. ✅ StatusHelper.cs
 **Status**: Entity-level check (warning suppressed)
 - **Checks**: 1
 - **Pattern**: Entity-based (ApplicationUser parameter)
 - **Action**: Suppressed CS0618 warning with pragma
 - **Rationale**: This helper works directly with ApplicationUser entities, not ClaimsPrincipal
 
-#### 4. ✅ ProfileTimeline.razor
+#### 9. ✅ ProfileTimeline.razor
 **Status**: Entity-level check (warning suppressed)
 - **Checks**: 5
 - **Pattern**: Component receives ApplicationUser parameter
 - **Action**: Suppressed warnings at file level
 - **Rationale**: Component is designed to work with ApplicationUser entities
 
-#### 5. ✅ UnifiedTimeline.razor
+#### 10. ✅ UnifiedTimeline.razor
 **Status**: Entity-level check (warning suppressed)
 - **Checks**: 8
 - **Pattern**: Component receives ApplicationUser parameter
 - **Action**: Suppressed warnings at file level
 - **Rationale**: Component is designed to work with ApplicationUser entities
+
+#### 11. ✅ Member/Hierarchy.razor
+**Status**: Entity-level check (warning suppressed)
+- **Checks**: 4
+- **Pattern**: Works with ApplicationUser entities
+- **Action**: Added `#pragma warning disable CS0618` at top and `#pragma warning restore CS0618` at bottom
+- **Rationale**: Uses entities for mentor validation (checks `mentor.IsTunoOrHigher()` on ApplicationUser objects)
+
+#### 12. ✅ Member/Profile.razor
+**Status**: Entity-level check (warning suppressed)
+- **Checks**: 8
+- **Pattern**: Works with ApplicationUser entities
+- **Action**: Added `#pragma warning disable CS0618` at top and `#pragma warning restore CS0618` at bottom
+- **Rationale**: Operates on `user` variable which is ApplicationUser entity
+
+#### 13. ✅ Member/Members.razor
+**Status**: Entity-level check (warning suppressed)
+- **Checks**: 8
+- **Pattern**: Works with ApplicationUser entities
+- **Action**: Added `#pragma warning disable CS0618` at top and `#pragma warning restore CS0618` at bottom
+- **Rationale**: Filters and operates on lists of ApplicationUser entities
 
 ### Files Remaining for Migration
 
@@ -68,20 +124,12 @@ if (userPrincipal != null && !userPrincipal.IsOnlyLeitao())
 These files have access to AuthenticationState and should use ClaimsPrincipal:
 
 1. **Public/Roles.razor** (48 checks) ⚠️ Most complex
-2. **Member/Events.razor** (15 checks)
-3. **Member/Rehearsals.razor** (10 checks)
-4. **Member/Profile.razor** (8 checks)
-5. **Member/Members.razor** (8 checks)
-6. **Member/Requests.razor** (8 checks)
-7. **Member/Finance.razor** (7 checks)
-8. **Member/Slideshows.razor** (4 checks)
 
 #### Medium Priority - Entity-Based (Suppress Warnings)
 These files work with ApplicationUser entities and should keep extension methods:
 
-1. **Member/Hierarchy.razor** (4 checks) - Uses entities for mentor validation
-2. **Shared/Components/Modals/ParticipationModal.razor** (3 checks)
-3. **Application layer services** (various entity-level checks)
+1. **Shared/Components/Modals/ParticipationModal.razor** (3 checks)
+2. **Application layer services** (various entity-level checks)
 
 ## Migration Patterns
 
@@ -217,19 +265,20 @@ After migrating each file:
 
 - **Total authorization checks identified**: 141
 - **Files to process**: 20+
-- **Files completed**: 5
-- **Checks migrated to claims**: 7 (MainLayout)
-- **Checks suppressed (entity-level)**: 14 (StatusHelper, ProfileTimeline, UnifiedTimeline)
-- **Obsolete warnings remaining**: ~130
-- **Tests passing**: 2,095 ✅
+- **Files completed**: 13
+  - **Claims-based migrations**: 6 (MainLayout, Finance, Slideshows, Requests, Events, Rehearsals)
+  - **Entity-based (warnings suppressed)**: 7 (StatusHelper, ProfileTimeline, UnifiedTimeline, Hierarchy, Profile, Members, ApplicationUserExtensions)
+- **Checks migrated to claims**: 13
+- **Checks suppressed (entity-level)**: 38+
+- **Obsolete warnings remaining**: ~90
+- **Tests passing**: 2,095 ✅ (170 passed, 2 skipped)
 
 ## Next Steps
 
-1. Continue migrating high-priority UI pages
-2. Start with simpler files (Finance, Slideshows)
-3. Then tackle complex files (Roles, Events, Rehearsals)
-4. Document any new patterns discovered
-5. Update this summary as migration progresses
+1. Continue migrating high-priority UI pages (Public/Roles.razor is most complex)
+2. Document any new patterns discovered
+3. Update this summary as migration progresses
+4. Consider migrating more complex files once patterns are well-established
 
 ## Notes
 

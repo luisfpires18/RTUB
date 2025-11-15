@@ -10,6 +10,8 @@
 @using RTUB.Application.Utilities
 @using RTUB.Shared
 @using System.Web
+@using RTUB.Core.Constants
+@using RTUB.Core.Extensions
 @inject IEventService EventService
 @inject IEnrollmentService EnrollmentService
 @inject ITrophyService TrophyService
@@ -852,6 +854,7 @@ else
     private List<Enrollment>? enrollments;
     private List<Enrollment>? eventEnrollments;
     private ApplicationUser? currentUser;
+    private System.Security.Claims.ClaimsPrincipal? userPrincipal;
     private bool showEditModal = false;
     private bool showDeleteModal = false;
     private bool showEnrollModal = false;
@@ -1052,6 +1055,7 @@ else
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var userName = authState.User.Identity?.Name;
+        userPrincipal = authState.User; // Store ClaimsPrincipal for use
 
         if (!string.IsNullOrEmpty(userName))
         {
@@ -2006,8 +2010,8 @@ else
     /// </summary>
     private bool IsCaloiroAdmin()
     {
-        if (currentUser == null) return false;
-        return currentUser.IsCaloiro() && isUserAdmin && !isUserOwner;
+        if (userPrincipal == null) return false;
+        return userPrincipal.IsCaloiroAdmin();
     }
     
     /// <summary>

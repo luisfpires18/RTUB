@@ -9,6 +9,8 @@
 @using RTUB.Application.Extensions
 @using RTUB.Application.Helpers
 @using RTUB.Shared
+@using RTUB.Core.Constants
+@using RTUB.Core.Extensions
 @attribute [Authorize]
 @inherits CrudTablePageBase<Request>
 @inject IRequestService RequestService
@@ -238,6 +240,7 @@ else
     private Request? approvingRequest = null;
     private Request? rejectingRequest = null;
     private ApplicationUser? currentUser = null;
+    private System.Security.Claims.ClaimsPrincipal? userPrincipal;
     
     private bool showApproveDialog = false;
     private bool showCreateEventDialog = false;
@@ -268,6 +271,7 @@ else
         // Check if user is admin and load current user
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
+        userPrincipal = user; // Store ClaimsPrincipal for use
         isAdmin = user.IsInRole("Admin");
         isOwner = user.IsInRole("Owner");
         
@@ -465,8 +469,8 @@ else
     /// </summary>
     private bool IsCaloiroAdmin()
     {
-        if (currentUser == null) return false;
-        return currentUser.IsCaloiro() && isAdmin && !isOwner;
+        if (userPrincipal == null) return false;
+        return userPrincipal.IsCaloiroAdmin();
     }
     
     /// <summary>

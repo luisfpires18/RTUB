@@ -11,6 +11,8 @@
 @using RTUB.Application.Extensions
 @using RTUB.Shared
 @using RTUB.Core.Enums
+@using RTUB.Core.Constants
+@using RTUB.Core.Extensions
 @attribute [Authorize]
 @inject IRehearsalService RehearsalService
 @inject IRehearsalAttendanceService AttendanceService
@@ -807,6 +809,7 @@ else
     private bool isOwner = false;
     private string? currentUserId;
     private ApplicationUser? currentUser;
+    private System.Security.Claims.ClaimsPrincipal? userPrincipal;
 
     private List<Rehearsal> upcomingRehearsals = new();
     private List<Rehearsal> filteredUpcomingRehearsals = new();
@@ -906,6 +909,7 @@ else
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
+        userPrincipal = user; // Store ClaimsPrincipal for use
 
         if (user.Identity?.IsAuthenticated == true)
         {
@@ -1975,8 +1979,8 @@ else
     /// </summary>
     private bool IsCaloiroAdmin()
     {
-        if (currentUser == null) return false;
-        return currentUser.IsCaloiro() && isAdmin && !isOwner;
+        if (userPrincipal == null) return false;
+        return userPrincipal.IsCaloiroAdmin();
     }
     
     /// <summary>
