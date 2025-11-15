@@ -1,0 +1,108 @@
+@using RTUB.Core.Entities
+@namespace RTUB.Shared
+
+@*
+    DocumentCard Component
+    Displays a document file with name, extension icon, size, and action buttons
+*@
+
+<div class="card document-card h-100">
+    <div class="card-body d-flex flex-column">
+        <div class="document-icon-header text-center mb-3">
+            <i class="@GetFileIcon() document-icon"></i>
+        </div>
+        
+        <div class="document-info flex-grow-1">
+            <h6 class="document-name text-truncate" title="@Document.Name">
+                @Document.Name
+            </h6>
+            <div class="document-meta text-muted small">
+                <div><i class="bi bi-file-earmark"></i> @Document.Extension.ToUpperInvariant()</div>
+                <div><i class="bi bi-hdd"></i> @FormatFileSize(Document.Size)</div>
+                <div><i class="bi bi-calendar3"></i> @Document.UploadedDate.ToString("dd MMM yyyy")</div>
+            </div>
+        </div>
+
+        <div class="document-actions mt-3">
+            <div class="d-flex gap-2 justify-content-center">
+                <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                        @onclick="HandleView"
+                        title="Visualizar">
+                    <i class="bi bi-eye"></i>
+                    <span class="d-none d-sm-inline">Ver</span>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                        @onclick="HandleDownload"
+                        title="Descarregar">
+                    <i class="bi bi-download"></i>
+                    <span class="d-none d-sm-inline">Download</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The document to display
+    /// </summary>
+    [Parameter]
+    public CloudflareDocument Document { get; set; } = null!;
+
+    /// <summary>
+    /// Callback when the view button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnView { get; set; }
+
+    /// <summary>
+    /// Callback when the download button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDownload { get; set; }
+
+    private async Task HandleView()
+    {
+        if (OnView.HasDelegate)
+        {
+            await OnView.InvokeAsync();
+        }
+    }
+
+    private async Task HandleDownload()
+    {
+        if (OnDownload.HasDelegate)
+        {
+            await OnDownload.InvokeAsync();
+        }
+    }
+
+    private string GetFileIcon()
+    {
+        return Document.Extension.ToLowerInvariant() switch
+        {
+            "pdf" => "bi bi-filetype-pdf",
+            "doc" or "docx" => "bi bi-filetype-docx",
+            "xls" or "xlsx" => "bi bi-filetype-xlsx",
+            "ppt" or "pptx" => "bi bi-filetype-pptx",
+            "txt" => "bi bi-filetype-txt",
+            "csv" => "bi bi-filetype-csv",
+            _ => "bi bi-file-earmark"
+        };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+
+        return $"{len:0.##} {sizes[order]}";
+    }
+}

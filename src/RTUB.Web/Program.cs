@@ -209,6 +209,7 @@ public class Program
         });
         
         services.AddScoped<IImageStorageService, CloudflareImageStorageService>();
+        services.AddScoped<ICloudflareDocumentService, CloudflareDocumentService>();
         services.AddScoped<IEmailNotificationService, EmailNotificationService>();
         services.AddScoped<IFiscalYearService, FiscalYearService>();
         services.AddScoped<IEventRepertoireService, EventRepertoireService>();
