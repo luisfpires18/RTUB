@@ -7,19 +7,6 @@
 *@
 
 <div class="card folder-card mb-3">
-    @* Admin Delete Button (top-right corner) *@
-    @if (IsAdmin)
-    {
-        <div class="folder-admin-overlay">
-            <button class="btn btn-sm btn-danger" 
-                    @onclick="HandleDelete" 
-                    @onclick:stopPropagation="true"
-                    title="Eliminar pasta">
-                <i class="bi bi-trash"></i>
-            </button>
-        </div>
-    }
-    
     <div class="folder-card-header @(IsExpanded ? "expanded" : "")" @onclick="ToggleExpand">
         <div class="d-flex align-items-center justify-content-between w-100">
             <div class="d-flex align-items-center gap-2">
@@ -38,6 +25,13 @@
                                     title="Carregar documento">
                                 <i class="bi bi-upload"></i>
                                 <span class="d-none d-md-inline ms-1">Carregar</span>
+                            </button>
+                            <button class="btn btn-sm btn-danger" 
+                                    @onclick="HandleDelete" 
+                                    @onclick:stopPropagation="true"
+                                    title="Eliminar pasta">
+                                <i class="bi bi-trash"></i>
+                                <span class="d-none d-md-inline ms-1">Eliminar</span>
                             </button>
                         </Authorized>
                     </AuthorizeView>

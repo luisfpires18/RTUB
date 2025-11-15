@@ -81,20 +81,6 @@
   background-color: #151516;
 }
 
-/* Admin delete button overlay (top-right corner) */
-.folder-admin-overlay {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 10;
-  opacity: 0.85;
-  transition: opacity 0.2s ease;
-}
-
-.folder-card:hover .folder-admin-overlay {
-  opacity: 1;
-}
-
 /* Responsive behavior */
 @media (max-width: 768px) {
   .folder-card-header {
