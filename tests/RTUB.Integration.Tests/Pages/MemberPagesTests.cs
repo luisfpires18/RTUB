@@ -123,6 +123,35 @@ public class MemberPagesTests : IntegrationTestBase
 
     #endregion
 
+    #region Event Discussion Page Tests
+
+    [Fact]
+    public async Task EventDiscussionPage_WithoutAuth_RedirectsToLogin()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/events/1/discussion");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location?.ToString().Should().Contain("/login");
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(5)]
+    [InlineData(999)]
+    public async Task EventDiscussionPage_WithVariousEventIds_RedirectsToLogin(int eventId)
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync($"/events/{eventId}/discussion");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location?.ToString().Should().Contain("/login");
+    }
+
+    #endregion
+
     #region Authorization Tests
 
     [Theory]
@@ -130,6 +159,7 @@ public class MemberPagesTests : IntegrationTestBase
     [InlineData("/hierarchy")]
     [InlineData("/rehearsals")]
     [InlineData("/profile")]
+    [InlineData("/events/1/discussion")]
     public async Task MemberPages_RequireAuthentication(string url)
     {
         // Arrange & Act
@@ -146,7 +176,7 @@ public class MemberPagesTests : IntegrationTestBase
     public async Task MemberPages_AllRequireAuthenticationInSequence()
     {
         // Arrange
-        var memberUrls = new[] { "/members", "/hierarchy", "/rehearsals", "/profile" };
+        var memberUrls = new[] { "/members", "/hierarchy", "/rehearsals", "/profile", "/events/1/discussion" };
 
         // Act & Assert
         foreach (var url in memberUrls)

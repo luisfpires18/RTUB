@@ -9,7 +9,7 @@
 @using RTUB.Application.Extensions
 @using RTUB.Application.Helpers
 @using RTUB.Shared
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Admin,Owner")]
 @inherits CrudTablePageBase<Request>
 @inject IRequestService RequestService
 @inject NavigationManager Navigation

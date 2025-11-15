@@ -9,7 +9,7 @@
 @using RTUB.Application.Extensions
 @using RTUB.Shared
 @using ReportEntity = RTUB.Core.Entities.Report
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Admin,Owner")]
 @inject IReportService ReportService
 @inject IActivityService ActivityService
 @inject ITransactionService TransactionService

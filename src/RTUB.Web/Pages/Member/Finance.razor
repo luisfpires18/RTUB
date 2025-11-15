@@ -10,7 +10,7 @@
 @using RTUB.Application.Extensions
 @using RTUB.Shared
 @using ReportEntity = RTUB.Core.Entities.Report
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Admin,Owner")]
 @inherits CrudTablePageBase<ReportEntity>
 @inject IReportService ReportService
 @inject IActivityService ActivityService
