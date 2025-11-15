@@ -1,0 +1,160 @@
+@namespace RTUB.Shared
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@inject IEnrollmentService EnrollmentService
+@inject IEventService EventService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+
+@*
+    My Enrollments Button Component
+    Shows user's enrollment history in events
+    Available to all authenticated users
+*@
+
+<button class="btn btn-outline-secondary" @onclick="OpenMyEnrollmentsModal" title="Minhas Inscrições">
+    <i class="bi bi-calendar-check"></i> Minhas Inscrições
+</button>
+
+<!-- Minhas Inscrições Modal -->
+@if (showMyEnrollmentsModal)
+{
+    <Modal Show="@showMyEnrollmentsModal"
+           ShowChanged="@((bool show) => showMyEnrollmentsModal = show)"
+           Title="Minhas Inscrições Recentes"
+           Size="Modal.ModalSize.Large"
+           Centered="true">
+        <BodyContent>
+            @if (eventEnrollments == null || !eventEnrollments.Any())
+            {
+                <EmptyState 
+                    Title="Sem inscrições registadas." 
+                    Icon="bi-info-circle" />
+            }
+            else
+            {
+                <div class="mb-3">
+                    <strong>Taxa de Participação (últimas 10 atuações):</strong>
+                    <span class="badge bg-primary">@enrollmentCount / @totalRecentEvents atuações</span>
+                    @if (totalRecentEvents > 0)
+                    {
+                        <span class="ms-2">(@(Math.Round((double)enrollmentCount / totalRecentEvents * 100, 1))%)</span>
+                    }
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Atuação</th>
+                                <th>Instrumento</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in eventEnrollments)
+                            {
+                                <tr>
+                                    <td>@item.Event.Date.ToString("dd MMM yyyy")</td>
+                                    <td>@item.Event.Name</td>
+                                    <td>@(item.Instrument?.ToString() ?? "-")</td>
+                                    <td>
+                                        @if (item.WillAttend)
+                                        {
+                                            <span class="badge bg-success">Foi</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">Não foi</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseMyEnrollmentsModal">Fechar</button>
+        </FooterContent>
+    </Modal>
+}
+
+@code {
+    private bool showMyEnrollmentsModal = false;
+    private List<EventEnrollmentDisplay> eventEnrollments = new();
+    private int enrollmentCount = 0;
+    private int totalRecentEvents = 0;
+    private string? currentUserId;
+
+    private class EventEnrollmentDisplay
+    {
+        public Event Event { get; set; } = null!;
+        public Enrollment? Enrollment { get; set; }
+        public bool WillAttend => Enrollment?.WillAttend ?? false;
+        public InstrumentType? Instrument => Enrollment?.Instrument;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                currentUserId = appUser.Id;
+            }
+        }
+    }
+
+    private async Task OpenMyEnrollmentsModal()
+    {
+        await LoadMyEnrollments();
+        showMyEnrollmentsModal = true;
+    }
+
+    private void CloseMyEnrollmentsModal()
+    {
+        showMyEnrollmentsModal = false;
+    }
+
+    private async Task LoadMyEnrollments()
+    {
+        if (currentUserId == null) return;
+
+        try
+        {
+            // Get last 10 past events (globally)
+            var recentEvents = await EventService.GetPastEventsAsync(10);
+            var pastEvents = recentEvents
+                .Where(e => !e.IsCancelled && e.Date < DateTime.Today)
+                .OrderByDescending(e => e.Date)
+                .Take(10)
+                .ToList();
+
+            // Get user's enrollments
+            var userEnrollments = (await EnrollmentService.GetEnrollmentsByUserIdAsync(currentUserId))
+                .ToDictionary(e => e.EventId, e => e);
+
+            // Create display list combining events with enrollment status
+            eventEnrollments = pastEvents.Select(e => new EventEnrollmentDisplay
+            {
+                Event = e,
+                Enrollment = userEnrollments.ContainsKey(e.Id) ? userEnrollments[e.Id] : null
+            }).ToList();
+
+            totalRecentEvents = eventEnrollments.Count;
+            enrollmentCount = eventEnrollments.Count(e => e.WillAttend);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading enrollments: {ex.Message}");
+            eventEnrollments = new List<EventEnrollmentDisplay>();
+        }
+    }
+}

@@ -23,15 +23,22 @@
 <h1 class="mb-2"><i class="bi bi-calendar-event"></i> Atuações</h1>
 <p class="lead mb-4 text-light-theme">Próximas atuações e atividades.</p>
 
-<AuthorizeView Roles="Admin">
-    <Authorized>
-        <div class="mb-3">
-            <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Evento">
+<!-- Header Controls -->
+<div class="mb-3">
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <button class="btn btn-success me-2" @onclick="OpenCreateModal" title="Adicionar Novo Evento">
                 <i class="bi bi-plus-lg"></i> Adicionar
             </button>
-        </div>
-    </Authorized>
-</AuthorizeView>
+            <EnrollmentStatisticsButton IsAdmin="@isUserAdmin" />
+        </Authorized>
+    </AuthorizeView>
+    <AuthorizeView>
+        <Authorized>
+            <MyEnrollmentsButton />
+        </Authorized>
+    </AuthorizeView>
+</div>
 
 @if (events == null)
 {

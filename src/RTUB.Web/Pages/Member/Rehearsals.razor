@@ -199,11 +199,23 @@ else
                 <div class="modal-body">
                     @if (selectedRehearsalAttendances != null && selectedRehearsalAttendances.Any())
                     {
-                        <!-- Search Bar -->
-                        <div class="mb-3">
-                            <TableSearchBar SearchTerm="@attendanceSearchTerm"
-                                           Placeholder="Pesquisar por nome..."
-                                           OnSearchChanged="@HandleAttendanceSearchChanged" />
+                        <!-- Filter and Search Row -->
+                        <div class="row g-2 mb-3">
+                            @if (isAdmin && isSelectedRehearsalPast)
+                            {
+                                <div class="col-12 col-md-4">
+                                    <select class="form-select" @bind="attendanceApprovalFilter" @bind:after="FilterAttendances">
+                                        <option value="Todos">Todos</option>
+                                        <option value="Pendente">Pendente</option>
+                                        <option value="Aprovado">Aprovado</option>
+                                    </select>
+                                </div>
+                            }
+                            <div class="@(isAdmin && isSelectedRehearsalPast ? "col-12 col-md-8" : "col-12")">
+                                <TableSearchBar SearchTerm="@attendanceSearchTerm"
+                                               Placeholder="Pesquisar por nome..."
+                                               OnSearchChanged="@HandleAttendanceSearchChanged" />
+                            </div>
                         </div>
                         
                         var attendingMembers = paginatedAttendances.Where(a => a.WillAttend).ToList();
@@ -561,11 +573,18 @@ else
                                             <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.UserName))"></i>
                                         }
                                     </th>
-                                    <th @onclick="() => SortStatsBy(nameof(UserAttendanceStats.Count))" class="clickable-row">
-                                        Total de Presenças
-                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserAttendanceStats.Count)))
+                                    <th @onclick="() => SortStatsBy(nameof(UserAttendanceStats.PastApprovedCount))" class="clickable-row">
+                                        Participações Passadas
+                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserAttendanceStats.PastApprovedCount)))
                                         {
-                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.Count))"></i>
+                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.PastApprovedCount))"></i>
+                                        }
+                                    </th>
+                                    <th @onclick="() => SortStatsBy(nameof(UserAttendanceStats.FutureCount))" class="clickable-row">
+                                        Participações Futuras
+                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserAttendanceStats.FutureCount)))
+                                        {
+                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.FutureCount))"></i>
                                         }
                                     </th>
                                 </tr>
@@ -575,7 +594,8 @@ else
                                 {
                                     <tr>
                                         <td>@stat.UserName</td>
-                                        <td>@stat.Count</td>
+                                        <td>@stat.PastCountDisplay</td>
+                                        <td>@stat.FutureCount</td>
                                     </tr>
                                 }
                             </tbody>
@@ -717,7 +737,7 @@ else
            Size="Modal.ModalSize.Large"
            Centered="true">
         <BodyContent>
-            @if (myAttendances == null || !myAttendances.Any())
+            @if (rehearsalAttendances == null || !rehearsalAttendances.Any())
             {
                 <EmptyState 
                     Title="Sem presenças registadas." 
@@ -743,19 +763,28 @@ else
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var attendance in myAttendances.Where(a => a.Rehearsal != null && a.Rehearsal.Date < DateTime.Today).OrderByDescending(a => a.Rehearsal!.Date).Take(10))
+                            @foreach (var item in rehearsalAttendances)
                             {
                                 <tr>
-                                    <td>@attendance.Rehearsal?.Date.ToString("dd MMM yyyy")</td>
-                                    <td>@(attendance.Instrument?.ToString() ?? "-")</td>
+                                    <td>@item.Rehearsal.Date.ToString("dd MMM yyyy")</td>
+                                    <td>@(item.Instrument?.ToString() ?? "-")</td>
                                     <td>
-                                        @if (attendance.Attended)
+                                        @if (item.WillAttend)
                                         {
-                                            <span class="badge bg-success">Aprovado</span>
+                                            @if (item.Attended)
+                                            {
+                                                <span class="badge bg-success">Foi</span>
+                                                <span class="badge bg-success ms-1">Aprovado</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">Foi</span>
+                                                <span class="badge bg-warning ms-1">Pendente</span>
+                                            }
                                         }
                                         else
                                         {
-                                            <span class="badge bg-warning">Pendente</span>
+                                            <span class="badge bg-danger">Não foi</span>
                                         }
                                     </td>
                                 </tr>
@@ -783,9 +812,18 @@ else
     private List<Rehearsal> filteredUpcomingRehearsals = new();
     private List<Rehearsal> paginatedUpcomingRehearsals = new();
     private PaginationHelper<Rehearsal> upcomingRehearsalsPagination = new() { PageSize = 12 };
-    private List<RehearsalAttendance> myAttendances = new();
+    private List<RehearsalAttendanceDisplay> rehearsalAttendances = new();
     private int attendanceCount = 0;
     private int totalRecentRehearsals = 0;
+
+    private class RehearsalAttendanceDisplay
+    {
+        public Rehearsal Rehearsal { get; set; } = null!;
+        public RehearsalAttendance? Attendance { get; set; }
+        public bool WillAttend => Attendance?.WillAttend ?? false;
+        public bool Attended => Attendance?.Attended ?? false;
+        public InstrumentType? Instrument => Attendance?.Instrument;
+    }
 
     // Previous rehearsals (admin only)
     private List<Rehearsal> previousRehearsals = new();
@@ -830,6 +868,7 @@ else
     private List<RehearsalAttendance> filteredAttendances = new();
     private List<RehearsalAttendance> paginatedAttendances = new();
     private string attendanceSearchTerm = "";
+    private string attendanceApprovalFilter = "Todos"; // "Todos", "Pendente", "Aprovado"
     private PaginationHelper<RehearsalAttendance> attendancesPagination = new() { PageSize = 8 };
 
     // Add member to rehearsal functionality
@@ -854,13 +893,13 @@ else
     private bool rangeFeedbackIsError = false;
 
     // Stats data
-    private DateTime statsStartDate = DateTime.Today.AddDays(-30);
-    private DateTime statsEndDate = DateTime.Today;
+    private DateTime statsStartDate = DateTime.Today.AddMonths(-1);
+    private DateTime statsEndDate = DateTime.Today.AddMonths(1);
     private List<UserAttendanceStats>? attendanceStatsUsers;
     private List<UserAttendanceStats> filteredStatsUsers = new();
     private List<UserAttendanceStats> paginatedStatsUsers = new();
     private string statsSearchTerm = string.Empty;
-    private SortableTableHelper<UserAttendanceStats> statsSortHelper = new() { SortColumn = nameof(UserAttendanceStats.Count), SortAscending = false };
+    private SortableTableHelper<UserAttendanceStats> statsSortHelper = new() { SortColumn = nameof(UserAttendanceStats.PastApprovedCount), SortAscending = false };
     private PaginationHelper<UserAttendanceStats> statsPaginationHelper = new() { PageSize = 10 };
 
     protected override async Task OnInitializedAsync()
@@ -951,27 +990,27 @@ else
         // Load user's recent attendances
         if (currentUserId != null)
         {
-            myAttendances = (await AttendanceService.GetAttendancesByUserIdAsync(currentUserId)).ToList();
-
-            // Calculate attendance stats for last 10 past rehearsals
-            var recentEnd = DateTime.Today;
-            var recentStart = DateTime.Today.AddDays(-90); // Look back 90 days (3 months)
-
-            // Get all past rehearsals in the period
-            var recentRehearsals = await RehearsalService.GetRehearsalsAsync(recentStart, recentEnd);
+            // Get last 10 past rehearsals (globally)
+            var recentRehearsals = await RehearsalService.GetRehearsalsAsync(DateTime.Today.AddMonths(-6), DateTime.Today);
             var pastRehearsals = recentRehearsals
                 .Where(r => !r.IsCanceled && r.Date < DateTime.Today)
                 .OrderByDescending(r => r.Date)
                 .Take(10)
                 .ToList();
 
-            totalRecentRehearsals = pastRehearsals.Count;
+            // Get user's attendances
+            var userAttendances = (await AttendanceService.GetAttendancesByUserIdAsync(currentUserId))
+                .ToDictionary(a => a.RehearsalId, a => a);
 
-            // Count only approved attendances for these specific rehearsals
-            var pastRehearsalIds = pastRehearsals.Select(r => r.Id).ToHashSet();
-            attendanceCount = myAttendances.Count(a =>
-                a.Attended &&
-                pastRehearsalIds.Contains(a.RehearsalId));
+            // Create display list combining rehearsals with attendance status
+            rehearsalAttendances = pastRehearsals.Select(r => new RehearsalAttendanceDisplay
+            {
+                Rehearsal = r,
+                Attendance = userAttendances.ContainsKey(r.Id) ? userAttendances[r.Id] : null
+            }).ToList();
+
+            totalRecentRehearsals = rehearsalAttendances.Count;
+            attendanceCount = rehearsalAttendances.Count(a => a.Attended);
         }
 
         FilterRehearsals();
@@ -1037,7 +1076,7 @@ else
 
     private RehearsalAttendance? GetUserAttendance(int rehearsalId)
     {
-        return myAttendances?.FirstOrDefault(a => a.RehearsalId == rehearsalId);
+        return rehearsalAttendances?.FirstOrDefault(a => a.Rehearsal.Id == rehearsalId)?.Attendance;
     }
 
     private void MarkAttendance(Rehearsal rehearsal)
@@ -1133,6 +1172,7 @@ else
         // Initialize filtered attendances and reset pagination
         filteredAttendances = selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName).ToList();
         attendanceSearchTerm = "";
+        attendanceApprovalFilter = "Todos";
         attendancesPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
         UpdatePaginatedAttendances();
 
@@ -1169,31 +1209,49 @@ else
     private async Task HandleAttendanceSearchChanged(string searchTerm)
     {
         attendanceSearchTerm = searchTerm;
-        
-        if (selectedRehearsalAttendances != null)
-        {
-            if (string.IsNullOrWhiteSpace(searchTerm))
-            {
-                filteredAttendances = selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName).ToList();
-            }
-            else
-            {
-                var search = searchTerm.ToLower();
-                filteredAttendances = selectedRehearsalAttendances
-                    .Where(a => (a.User?.FirstName?.ToLower().Contains(search) ?? false) ||
-                               (a.User?.LastName?.ToLower().Contains(search) ?? false) ||
-                               (a.User?.Nickname?.ToLower().Contains(search) ?? false))
-                    .OrderByDescending(a => a.Attended)
-                    .ThenBy(a => a.User?.FirstName)
-                    .ToList();
-            }
-            
-            // Reset to page 1 when search changes
-            attendancesPagination.GoToPage(1);
-            UpdatePaginatedAttendances();
-        }
-        
+        FilterAttendances();
         await Task.CompletedTask;
+    }
+    
+    private void FilterAttendances()
+    {
+        if (selectedRehearsalAttendances == null)
+        {
+            filteredAttendances = new();
+            UpdatePaginatedAttendances();
+            return;
+        }
+
+        var filtered = selectedRehearsalAttendances.AsEnumerable();
+
+        // Apply approval status filter
+        if (attendanceApprovalFilter == "Pendente")
+        {
+            filtered = filtered.Where(a => a.WillAttend && !a.Attended);
+        }
+        else if (attendanceApprovalFilter == "Aprovado")
+        {
+            filtered = filtered.Where(a => a.WillAttend && a.Attended);
+        }
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(attendanceSearchTerm))
+        {
+            var search = attendanceSearchTerm.ToLower();
+            filtered = filtered.Where(a => 
+                (a.User?.FirstName?.ToLower().Contains(search) ?? false) ||
+                (a.User?.LastName?.ToLower().Contains(search) ?? false) ||
+                (a.User?.Nickname?.ToLower().Contains(search) ?? false));
+        }
+
+        filteredAttendances = filtered
+            .OrderByDescending(a => a.Attended)
+            .ThenBy(a => a.User?.FirstName)
+            .ToList();
+
+        // Reset to page 1 when filters change
+        attendancesPagination.GoToPage(1);
+        UpdatePaginatedAttendances();
     }
     
     private void UpdatePaginatedAttendances()
@@ -1604,19 +1662,48 @@ else
     {
         try
         {
-            var stats = await AttendanceService.GetAttendanceStatsAsync(statsStartDate, statsEndDate);
+            // Get all rehearsals in the date range
+            var rehearsals = await RehearsalService.GetRehearsalsAsync(statsStartDate, statsEndDate);
+            var rehearsalIds = rehearsals.Select(r => r.Id).ToHashSet();
+            
+            // Get all attendances for these rehearsals
+            var allAttendances = new List<RehearsalAttendance>();
+            foreach (var rehearsalId in rehearsalIds)
+            {
+                var attendances = await AttendanceService.GetAttendancesByRehearsalIdAsync(rehearsalId);
+                allAttendances.AddRange(attendances);
+            }
+            
+            // Filter to only WillAttend entries
+            var filteredAttendances = allAttendances
+                .Where(a => a.Rehearsal != null && a.WillAttend)
+                .ToList();
+
+            // Group by user and count future, past approved, and past pending
+            var stats = filteredAttendances
+                .GroupBy(a => a.UserId)
+                .Select(g => new { 
+                    UserId = g.Key, 
+                    FutureCount = g.Count(a => a.Rehearsal!.Date >= DateTime.Today),
+                    PastApprovedCount = g.Count(a => a.Rehearsal!.Date < DateTime.Today && a.Attended),
+                    PastPendingCount = g.Count(a => a.Rehearsal!.Date < DateTime.Today && !a.Attended)
+                })
+                .ToList();
+
             attendanceStatsUsers = new List<UserAttendanceStats>();
             
             foreach (var stat in stats)
             {
-                var user = await UserManager.FindByIdAsync(stat.Key);
+                var user = await UserManager.FindByIdAsync(stat.UserId);
                 if (user != null)
                 {
                     attendanceStatsUsers.Add(new UserAttendanceStats
                     {
-                        UserId = stat.Key,
-                        UserName = $"{user.FirstName} \"{user.Nickname}\"",
-                        Count = stat.Value
+                        UserId = stat.UserId,
+                        UserName = user.GetDisplayName(),
+                        FutureCount = stat.FutureCount,
+                        PastApprovedCount = stat.PastApprovedCount,
+                        PastPendingCount = stat.PastPendingCount
                     });
                 }
             }
@@ -1657,7 +1744,8 @@ else
         var columnSelectors = new Dictionary<string, Func<UserAttendanceStats, IComparable>>
         {
             { nameof(UserAttendanceStats.UserName), s => s.UserName },
-            { nameof(UserAttendanceStats.Count), s => s.Count }
+            { nameof(UserAttendanceStats.FutureCount), s => s.FutureCount },
+            { nameof(UserAttendanceStats.PastApprovedCount), s => s.PastApprovedCount }
         };
         filteredStatsUsers = statsSortHelper.ApplySort(filteredStatsUsers, columnSelectors);
 
@@ -1832,7 +1920,10 @@ else
     {
         public string UserId { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
-        public int Count { get; set; }
+        public int FutureCount { get; set; }
+        public int PastApprovedCount { get; set; }
+        public int PastPendingCount { get; set; }
+        public string PastCountDisplay => $"{PastApprovedCount} aprovadas / {PastPendingCount} por aprovar";
     }
 
     // Form models for validation
