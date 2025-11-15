@@ -73,6 +73,8 @@
 @import url('3-components/song-card.css');
 @import url('3-components/request-card.css');
 @import url('3-components/label-card.css');
+@import url('3-components/document-card.css');
+@import url('3-components/folder-card.css');
 
 /* Miscellaneous Components */
 @import url('3-components/misc-components.css');

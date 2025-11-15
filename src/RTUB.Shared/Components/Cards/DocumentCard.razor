@@ -1,0 +1,139 @@
+@namespace RTUB.Shared
+@using RTUB.Application.Interfaces
+@*
+    DocumentCard Component
+    Displays a document with file information and actions (view/download)
+*@
+
+<div class="card document-card h-100">
+    @* Admin Delete Button (top-right corner) *@
+    @if (IsAdmin)
+    {
+        <div class="document-admin-overlay">
+            <button class="btn btn-sm btn-danger" 
+                    @onclick="HandleDelete" 
+                    title="Eliminar documento">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    }
+    
+    <div class="document-icon-header">
+        <div class="document-icon-circle">
+            <i class="bi @GetFileIcon()"></i>
+        </div>
+    </div>
+    <div class="card-body d-flex flex-column">
+        <div class="document-info">
+            <div class="document-name" title="@Document.FileName">
+                @Document.FileName
+            </div>
+            <div class="document-details">
+                <span class="document-extension">@Document.Extension.TrimStart('.').ToUpper()</span>
+                <span class="document-size">@FormatFileSize(Document.SizeBytes)</span>
+            </div>
+        </div>
+
+        <div class="document-actions mt-auto">
+            @if (IsPdf)
+            {
+                <button class="btn btn-sm btn-outline-primary" 
+                        @onclick="HandleView" 
+                        title="Ver documento">
+                    <i class="bi bi-eye-fill"></i>
+                    <span class="d-none d-sm-inline ms-1">Ver</span>
+                </button>
+            }
+            <button class="btn btn-sm btn-purple" 
+                    @onclick="HandleDownload" 
+                    title="Transferir documento">
+                <i class="bi bi-download"></i>
+                <span class="d-none d-sm-inline ms-1">Transferir</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The document metadata to display
+    /// </summary>
+    [Parameter]
+    public DocumentMetadata Document { get; set; } = null!;
+    
+    /// <summary>
+    /// Whether the current user is an admin
+    /// </summary>
+    [Parameter]
+    public bool IsAdmin { get; set; }
+
+    /// <summary>
+    /// Callback when the view button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<DocumentMetadata> OnView { get; set; }
+
+    /// <summary>
+    /// Callback when the download button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<DocumentMetadata> OnDownload { get; set; }
+    
+    /// <summary>
+    /// Callback when the delete button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<DocumentMetadata> OnDelete { get; set; }
+
+    private bool IsPdf => Document.Extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase);
+
+    private string GetFileIcon()
+    {
+        var extension = Document.Extension.ToLowerInvariant();
+        return extension switch
+        {
+            ".pdf" => "bi-file-pdf",
+            ".txt" => "bi-file-text",
+            ".doc" or ".docx" => "bi-file-word",
+            ".xls" or ".xlsx" or ".csv" => "bi-file-excel",
+            ".ppt" or ".pptx" => "bi-file-earmark-slides",
+            _ => "bi-file-earmark"
+        };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024)
+            return $"{bytes} B";
+        else if (bytes < 1024 * 1024)
+            return $"{bytes / 1024.0:F1} KB";
+        else if (bytes < 1024 * 1024 * 1024)
+            return $"{bytes / (1024.0 * 1024.0):F1} MB";
+        else
+            return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} GB";
+    }
+
+    private async Task HandleView()
+    {
+        if (OnView.HasDelegate)
+        {
+            await OnView.InvokeAsync(Document);
+        }
+    }
+
+    private async Task HandleDownload()
+    {
+        if (OnDownload.HasDelegate)
+        {
+            await OnDownload.InvokeAsync(Document);
+        }
+    }
+    
+    private async Task HandleDelete()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync(Document);
+        }
+    }
+}
