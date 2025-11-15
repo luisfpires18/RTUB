@@ -276,7 +276,7 @@ else
                             {
                                 <div class="row mb-3">
                                     <div class="col-md-4">
-                                        <MonthYearPicker Label="Mês/Ano LEITÃO"
+                                        <MonthYearPicker Label="Entrada a Leitão"
                                                          Icon="calendar3"
                                                          LabelCssClass="text-white-full"
                                                          @bind-Year="@editUser!.YearLeitao"
@@ -286,7 +286,7 @@ else
                                     @if (!user.IsOnlyLeitao())
                                     {
                                         <div class="col-md-4">
-                                            <MonthYearPicker Label="Mês/Ano CALOIRO"
+                                            <MonthYearPicker Label="Passagem a caloiro"
                                                              Icon="calendar3"
                                                              LabelCssClass="text-white-full"
                                                              @bind-Year="@editUser!.YearCaloiro"
@@ -297,7 +297,7 @@ else
                                     @if (user.IsTunoOrHigher())
                                     {
                                         <div class="col-md-4">
-                                            <MonthYearPicker Label="Mês/Ano TUNO"
+                                            <MonthYearPicker Label="Passagem a tuno"
                                                              Icon="calendar3"
                                                              LabelCssClass="text-white-full"
                                                              @bind-Year="@editUser!.YearTuno"
