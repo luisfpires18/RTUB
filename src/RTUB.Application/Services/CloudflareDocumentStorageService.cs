@@ -233,7 +233,8 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
                 Key = documentPath,
                 InputStream = fileStream,
                 ContentType = contentType,
-                UseChunkEncoding = false // Required for Cloudflare R2 compatibility
+                UseChunkEncoding = false, // Required for Cloudflare R2 compatibility
+                DisablePayloadSigning = true // Disable checksum calculation for non-seekable streams
             };
 
             var response = await _s3Client.PutObjectAsync(request);
