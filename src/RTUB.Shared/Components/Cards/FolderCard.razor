@@ -1,0 +1,130 @@
+@namespace RTUB.Shared
+@using RTUB.Application.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+@*
+    FolderCard Component
+    Displays a collapsible folder with documents
+*@
+
+<div class="card folder-card mb-3">
+    <div class="folder-card-header @(IsExpanded ? "expanded" : "")" @onclick="ToggleExpand">
+        <div class="d-flex align-items-center justify-content-between w-100">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi @(IsExpanded ? "bi-folder-open" : "bi-folder") folder-icon"></i>
+                <h5 class="folder-title mb-0">@FolderName</h5>
+                <span class="folder-count">(@DocumentCount @(DocumentCount == 1 ? "documento" : "documentos"))</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                @if (IsAdmin)
+                {
+                    <AuthorizeView Roles="Admin">
+                        <Authorized>
+                            <button class="btn btn-sm btn-success folder-upload-btn" 
+                                    @onclick="HandleUploadClick" 
+                                    @onclick:stopPropagation="true"
+                                    title="Carregar documento">
+                                <i class="bi bi-upload"></i>
+                                <span class="d-none d-md-inline ms-1">Carregar</span>
+                            </button>
+                        </Authorized>
+                    </AuthorizeView>
+                }
+                <i class="bi @(IsExpanded ? "bi-chevron-up" : "bi-chevron-down") folder-toggle-icon"></i>
+            </div>
+        </div>
+    </div>
+    
+    @if (IsExpanded)
+    {
+        <div class="folder-card-body">
+            @if (Documents == null || !Documents.Any())
+            {
+                <EmptyState Title="Pasta vazia"
+                           Message="Ainda não existem documentos nesta pasta."
+                           Icon="bi-inbox" />
+            }
+            else
+            {
+                <div class="document-grid">
+                    @foreach (var doc in Documents)
+                    {
+                        <DocumentCard Document="@doc"
+                                    OnView="@OnDocumentView"
+                                    OnDownload="@OnDocumentDownload" />
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Name of the folder
+    /// </summary>
+    [Parameter]
+    public string FolderName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Full folder path
+    /// </summary>
+    [Parameter]
+    public string FolderPath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// List of documents in this folder
+    /// </summary>
+    [Parameter]
+    public List<DocumentMetadata>? Documents { get; set; }
+
+    /// <summary>
+    /// Whether this folder should be expanded by default
+    /// </summary>
+    [Parameter]
+    public bool DefaultExpanded { get; set; } = false;
+
+    /// <summary>
+    /// Whether the current user is an admin
+    /// </summary>
+    [Parameter]
+    public bool IsAdmin { get; set; } = false;
+
+    /// <summary>
+    /// Callback when upload button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnUpload { get; set; }
+
+    /// <summary>
+    /// Callback when a document view is requested
+    /// </summary>
+    [Parameter]
+    public EventCallback<DocumentMetadata> OnDocumentView { get; set; }
+
+    /// <summary>
+    /// Callback when a document download is requested
+    /// </summary>
+    [Parameter]
+    public EventCallback<DocumentMetadata> OnDocumentDownload { get; set; }
+
+    private bool IsExpanded { get; set; }
+    private int DocumentCount => Documents?.Count ?? 0;
+
+    protected override void OnInitialized()
+    {
+        IsExpanded = DefaultExpanded;
+    }
+
+    private void ToggleExpand()
+    {
+        IsExpanded = !IsExpanded;
+    }
+
+    private async Task HandleUploadClick()
+    {
+        if (OnUpload.HasDelegate)
+        {
+            await OnUpload.InvokeAsync(FolderPath);
+        }
+    }
+}

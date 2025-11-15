@@ -120,6 +120,218 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
         }
     }
 
+    public async Task<List<string>> ListFoldersAsync(string prefix = "docs/")
+    {
+        try
+        {
+            var folders = new HashSet<string>();
+            var request = new ListObjectsV2Request
+            {
+                BucketName = _bucketName,
+                Prefix = prefix,
+                Delimiter = "/"
+            };
+
+            ListObjectsV2Response response;
+            do
+            {
+                response = await _s3Client.ListObjectsV2Async(request);
+                
+                // Add common prefixes (folders)
+                foreach (var commonPrefix in response.CommonPrefixes)
+                {
+                    // Extract folder name from prefix (e.g., "docs/General/" -> "General")
+                    var folderName = commonPrefix.TrimEnd('/').Substring(prefix.Length);
+                    if (!string.IsNullOrEmpty(folderName))
+                    {
+                        folders.Add(folderName);
+                    }
+                }
+
+                request.ContinuationToken = response.NextContinuationToken;
+            } while (response.IsTruncated == true);
+
+            return folders.OrderBy(f => f).ToList();
+        }
+        catch (AmazonS3Exception ex)
+        {
+            _logger.LogError(ex, "S3 error listing folders. Bucket: '{BucketName}', Prefix: '{Prefix}', ErrorCode: {ErrorCode}, Message: {Message}", 
+                _bucketName, prefix, ex.ErrorCode, ex.Message);
+            return new List<string>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error listing folders with prefix: {Prefix}", prefix);
+            return new List<string>();
+        }
+    }
+
+    public async Task<List<DocumentMetadata>> ListDocumentsInFolderAsync(string folderPath)
+    {
+        try
+        {
+            var documents = new List<DocumentMetadata>();
+            
+            // Ensure folder path ends with /
+            if (!folderPath.EndsWith("/"))
+            {
+                folderPath += "/";
+            }
+
+            var request = new ListObjectsV2Request
+            {
+                BucketName = _bucketName,
+                Prefix = folderPath,
+                Delimiter = "/" // Only get files in this folder, not subfolders
+            };
+
+            ListObjectsV2Response response;
+            do
+            {
+                response = await _s3Client.ListObjectsV2Async(request);
+                
+                foreach (var obj in response.S3Objects)
+                {
+                    // Skip the folder marker itself
+                    if (obj.Key.EndsWith("/"))
+                        continue;
+
+                    var fileName = Path.GetFileName(obj.Key);
+                    var extension = Path.GetExtension(obj.Key);
+
+                    documents.Add(new DocumentMetadata
+                    {
+                        FileName = fileName,
+                        FilePath = obj.Key,
+                        SizeBytes = obj.Size ?? 0,
+                        LastModified = obj.LastModified ?? DateTime.UtcNow,
+                        Extension = extension
+                    });
+                }
+
+                request.ContinuationToken = response.NextContinuationToken;
+            } while (response.IsTruncated == true);
+
+            return documents.OrderBy(d => d.FileName).ToList();
+        }
+        catch (AmazonS3Exception ex)
+        {
+            _logger.LogError(ex, "S3 error listing documents in folder. Bucket: '{BucketName}', FolderPath: '{FolderPath}', ErrorCode: {ErrorCode}, Message: {Message}", 
+                _bucketName, folderPath, ex.ErrorCode, ex.Message);
+            return new List<DocumentMetadata>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error listing documents in folder: {FolderPath}", folderPath);
+            return new List<DocumentMetadata>();
+        }
+    }
+
+    public async Task<string> UploadDocumentAsync(string folderPath, string fileName, Stream fileStream, string contentType)
+    {
+        try
+        {
+            // Ensure folder path ends with /
+            if (!folderPath.EndsWith("/"))
+            {
+                folderPath += "/";
+            }
+
+            var documentPath = folderPath + fileName;
+
+            var request = new PutObjectRequest
+            {
+                BucketName = _bucketName,
+                Key = documentPath,
+                InputStream = fileStream,
+                ContentType = contentType
+            };
+
+            await _s3Client.PutObjectAsync(request);
+            
+            _logger.LogInformation("Successfully uploaded document: {DocumentPath}", documentPath);
+            return documentPath;
+        }
+        catch (AmazonS3Exception ex)
+        {
+            _logger.LogError(ex, "S3 error uploading document. Bucket: '{BucketName}', Path: '{Path}', ErrorCode: {ErrorCode}, Message: {Message}", 
+                _bucketName, folderPath + fileName, ex.ErrorCode, ex.Message);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error uploading document: {FileName} to {FolderPath}", fileName, folderPath);
+            throw;
+        }
+    }
+
+    public async Task CreateFolderAsync(string folderPath)
+    {
+        try
+        {
+            // Ensure folder path ends with /
+            if (!folderPath.EndsWith("/"))
+            {
+                folderPath += "/";
+            }
+
+            // Create an empty object with "/" suffix to represent a folder
+            var request = new PutObjectRequest
+            {
+                BucketName = _bucketName,
+                Key = folderPath,
+                InputStream = new MemoryStream(),
+                ContentType = "application/x-directory"
+            };
+
+            await _s3Client.PutObjectAsync(request);
+            
+            _logger.LogInformation("Successfully created folder: {FolderPath}", folderPath);
+        }
+        catch (AmazonS3Exception ex)
+        {
+            _logger.LogError(ex, "S3 error creating folder. Bucket: '{BucketName}', Path: '{FolderPath}', ErrorCode: {ErrorCode}, Message: {Message}", 
+                _bucketName, folderPath, ex.ErrorCode, ex.Message);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error creating folder: {FolderPath}", folderPath);
+            throw;
+        }
+    }
+
+    public async Task<long> GetFileSizeAsync(string documentPath)
+    {
+        try
+        {
+            var request = new GetObjectMetadataRequest
+            {
+                BucketName = _bucketName,
+                Key = documentPath
+            };
+
+            var response = await _s3Client.GetObjectMetadataAsync(request);
+            return response.ContentLength;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Document not found when getting file size: {DocumentPath}", documentPath);
+            return 0;
+        }
+        catch (AmazonS3Exception ex)
+        {
+            _logger.LogError(ex, "S3 error getting file size. Bucket: '{BucketName}', Path: '{DocumentPath}', ErrorCode: {ErrorCode}, Message: {Message}", 
+                _bucketName, documentPath, ex.ErrorCode, ex.Message);
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error getting file size for: {DocumentPath}", documentPath);
+            return 0;
+        }
+    }
+
     public void Dispose()
     {
         _s3Client?.Dispose();

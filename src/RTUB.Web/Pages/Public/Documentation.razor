@@ -1,0 +1,460 @@
+@page "/docs"
+@rendermode InteractiveServer
+@using RTUB.Application.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@inject IDocumentStorageService DocumentStorageService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
+
+<h1 class="mb-2"><i class="bi bi-file-earmark-text"></i> Documentação</h1>
+<p class="lead mb-4 text-light-theme">Documentos e recursos importantes da RTUB organizados por categoria.</p>
+
+@* Admin Create Folder button *@
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <div class="mb-3">
+            <button class="btn btn-success mb-2" @onclick="OpenCreateFolderModal" title="Criar Nova Pasta">
+                <i class="bi bi-folder-plus"></i>
+                <span class="ms-1 d-none d-md-inline">Criar Pasta</span>
+            </button>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">A carregar...</span>
+        </div>
+        <p class="mt-3">A carregar documentação...</p>
+    </div>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <ErrorDisplay Title="Erro ao carregar documentação" Errors="@(new[] { errorMessage })" />
+}
+else if (!folders.Any())
+{
+    <EmptyState Title="Nenhuma pasta encontrada"
+                Message="Ainda não existem pastas de documentação. Administradores podem criar pastas."
+                Icon="bi-folder-x" />
+}
+else
+{
+    @foreach (var folder in folders)
+    {
+        var folderPath = $"docs/{folder}";
+        var documents = folderDocuments.ContainsKey(folder) ? folderDocuments[folder] : new List<DocumentMetadata>();
+        var isFirstFolder = folders.IndexOf(folder) == 0;
+        
+        <FolderCard FolderName="@folder"
+                   FolderPath="@folderPath"
+                   Documents="@documents"
+                   DefaultExpanded="@isFirstFolder"
+                   IsAdmin="@isAdmin"
+                   OnUpload="@HandleUploadRequest"
+                   OnDocumentView="@HandleDocumentView"
+                   OnDocumentDownload="@HandleDocumentDownload" />
+    }
+}
+
+@* Create Folder Modal *@
+<Modal Show="@showCreateFolderModal" 
+       ShowChanged="@((bool show) => showCreateFolderModal = show)"
+       Title="Criar Nova Pasta"
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        @if (!string.IsNullOrEmpty(createFolderError))
+        {
+            <div class="alert alert-danger">@createFolderError</div>
+        }
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-folder text-primary me-2"></i>Nome da Pasta
+            </label>
+            <input type="text" 
+                   class="form-control" 
+                   placeholder="Ex: Regulamentos, Atas, etc."
+                   @bind="newFolderName"
+                   @bind:event="oninput"
+                   maxlength="50" />
+            <div class="form-text">Apenas letras, números, espaços e hífens são permitidos.</div>
+        </div>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseCreateFolderModal">Cancelar</button>
+        <button type="button" 
+                class="btn btn-primary" 
+                @onclick="CreateFolder" 
+                disabled="@string.IsNullOrWhiteSpace(newFolderName)">
+            Criar
+        </button>
+    </FooterContent>
+</Modal>
+
+@* Upload Document Modal *@
+<Modal Show="@showUploadModal" 
+       ShowChanged="@((bool show) => showUploadModal = show)"
+       Title="@($"Carregar Documento - {selectedFolderName}")"
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        @if (!string.IsNullOrEmpty(uploadError))
+        {
+            <div class="alert alert-danger">@uploadError</div>
+        }
+        @if (!string.IsNullOrEmpty(uploadSuccess))
+        {
+            <div class="alert alert-success">@uploadSuccess</div>
+        }
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-file-earmark-arrow-up text-primary me-2"></i>Selecionar Ficheiro
+            </label>
+            <InputFile OnChange="@HandleFileSelected" 
+                      class="form-control" 
+                      accept=".pdf,.txt,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx" />
+            <div class="form-text">
+                Tipos permitidos: PDF, TXT, DOC, DOCX, XLS, XLSX, CSV, PPT, PPTX (máx. 50 MB)
+            </div>
+        </div>
+        @if (selectedFile != null)
+        {
+            <div class="alert alert-info">
+                <strong>Ficheiro selecionado:</strong> @selectedFile.Name (@FormatFileSize(selectedFile.Size))
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseUploadModal">Cancelar</button>
+        <button type="button" 
+                class="btn btn-primary" 
+                @onclick="UploadDocument" 
+                disabled="@(selectedFile == null || isUploading)">
+            @if (isUploading)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                <span>A carregar...</span>
+            }
+            else
+            {
+                <span>Carregar</span>
+            }
+        </button>
+    </FooterContent>
+</Modal>
+
+@* View Document Modal *@
+<Modal Show="@showViewModal" 
+       ShowChanged="@((bool show) => showViewModal = show)"
+       Title="@viewingDocument?.FileName"
+       Size="Modal.ModalSize.ExtraLarge"
+       Centered="true"
+       OnClose="@CloseViewModal">
+    <BodyContent>
+        @if (isLoadingDocument)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">A carregar...</span>
+                </div>
+                <p class="mt-3">A carregar documento...</p>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(documentUrl))
+        {
+            <div class="pdf-viewer-container" style="height: 80vh;">
+                <iframe src="@(documentUrl + "#toolbar=0&navpanes=0&scrollbar=0")" 
+                        style="width: 100%; height: 100%; border: none;"
+                        title="@viewingDocument?.FileName">
+                </iframe>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> 
+                O documento não está disponível no momento.
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseViewModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
+@code {
+    private bool isLoading = true;
+    private bool isAdmin = false;
+    private string errorMessage = "";
+    
+    private List<string> folders = new();
+    private Dictionary<string, List<DocumentMetadata>> folderDocuments = new();
+    
+    // Create folder modal
+    private bool showCreateFolderModal = false;
+    private string newFolderName = "";
+    private string createFolderError = "";
+    
+    // Upload modal
+    private bool showUploadModal = false;
+    private string selectedFolderPath = "";
+    private string selectedFolderName = "";
+    private IBrowserFile? selectedFile;
+    private bool isUploading = false;
+    private string uploadError = "";
+    private string uploadSuccess = "";
+    
+    // View document modal
+    private bool showViewModal = false;
+    private bool isLoadingDocument = false;
+    private string? documentUrl;
+    private DocumentMetadata? viewingDocument;
+    
+    // Allowed file extensions
+    private readonly string[] allowedExtensions = { ".pdf", ".txt", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".ppt", ".pptx" };
+    private const long maxFileSize = 50 * 1024 * 1024; // 50 MB
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Check if user is admin
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            isAdmin = authState.User.IsInRole("Admin");
+            
+            await LoadDocumentation();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar documentação: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadDocumentation()
+    {
+        try
+        {
+            // Load folders
+            folders = await DocumentStorageService.ListFoldersAsync("docs/");
+            
+            // Load documents for each folder
+            folderDocuments.Clear();
+            foreach (var folder in folders)
+            {
+                var documents = await DocumentStorageService.ListDocumentsInFolderAsync($"docs/{folder}");
+                folderDocuments[folder] = documents;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar pastas e documentos: {ex.Message}";
+        }
+    }
+
+    private void OpenCreateFolderModal()
+    {
+        newFolderName = "";
+        createFolderError = "";
+        showCreateFolderModal = true;
+    }
+
+    private void CloseCreateFolderModal()
+    {
+        showCreateFolderModal = false;
+        newFolderName = "";
+        createFolderError = "";
+    }
+
+    private async Task CreateFolder()
+    {
+        createFolderError = "";
+        
+        if (string.IsNullOrWhiteSpace(newFolderName))
+        {
+            createFolderError = "O nome da pasta não pode estar vazio.";
+            return;
+        }
+        
+        // Validate folder name (only alphanumeric, spaces, and hyphens)
+        if (!System.Text.RegularExpressions.Regex.IsMatch(newFolderName, @"^[a-zA-Z0-9\s\-]+$"))
+        {
+            createFolderError = "O nome da pasta só pode conter letras, números, espaços e hífens.";
+            return;
+        }
+        
+        // Check if folder already exists
+        if (folders.Contains(newFolderName))
+        {
+            createFolderError = "Uma pasta com este nome já existe.";
+            return;
+        }
+        
+        try
+        {
+            var folderPath = $"docs/{newFolderName}";
+            await DocumentStorageService.CreateFolderAsync(folderPath);
+            
+            // Reload folders
+            await LoadDocumentation();
+            
+            CloseCreateFolderModal();
+        }
+        catch (Exception ex)
+        {
+            createFolderError = $"Erro ao criar pasta: {ex.Message}";
+        }
+    }
+
+    private void HandleUploadRequest(string folderPath)
+    {
+        selectedFolderPath = folderPath;
+        selectedFolderName = folderPath.Replace("docs/", "").TrimEnd('/');
+        selectedFile = null;
+        uploadError = "";
+        uploadSuccess = "";
+        showUploadModal = true;
+    }
+
+    private void CloseUploadModal()
+    {
+        showUploadModal = false;
+        selectedFolderPath = "";
+        selectedFolderName = "";
+        selectedFile = null;
+        uploadError = "";
+        uploadSuccess = "";
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        uploadError = "";
+        uploadSuccess = "";
+        
+        // Validate file extension
+        var extension = Path.GetExtension(selectedFile.Name).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension))
+        {
+            uploadError = $"Tipo de ficheiro não permitido: {extension}. Tipos permitidos: {string.Join(", ", allowedExtensions)}";
+            selectedFile = null;
+            return;
+        }
+        
+        // Validate file size
+        if (selectedFile.Size > maxFileSize)
+        {
+            uploadError = $"O ficheiro é muito grande ({FormatFileSize(selectedFile.Size)}). Tamanho máximo: {FormatFileSize(maxFileSize)}";
+            selectedFile = null;
+            return;
+        }
+    }
+
+    private async Task UploadDocument()
+    {
+        if (selectedFile == null || string.IsNullOrEmpty(selectedFolderPath))
+            return;
+        
+        uploadError = "";
+        uploadSuccess = "";
+        isUploading = true;
+        
+        try
+        {
+            // Get content type
+            var contentType = selectedFile.ContentType;
+            
+            // Upload the file
+            using var stream = selectedFile.OpenReadStream(maxFileSize);
+            await DocumentStorageService.UploadDocumentAsync(selectedFolderPath, selectedFile.Name, stream, contentType);
+            
+            uploadSuccess = $"Ficheiro '{selectedFile.Name}' carregado com sucesso!";
+            
+            // Reload documents for this folder
+            var folderName = selectedFolderPath.Replace("docs/", "").TrimEnd('/');
+            if (folderDocuments.ContainsKey(folderName))
+            {
+                folderDocuments[folderName] = await DocumentStorageService.ListDocumentsInFolderAsync(selectedFolderPath);
+            }
+            
+            StateHasChanged();
+            
+            // Auto-close after 2 seconds
+            await Task.Delay(2000);
+            CloseUploadModal();
+        }
+        catch (Exception ex)
+        {
+            uploadError = $"Erro ao carregar ficheiro: {ex.Message}";
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private async Task HandleDocumentView(DocumentMetadata document)
+    {
+        viewingDocument = document;
+        isLoadingDocument = true;
+        showViewModal = true;
+        StateHasChanged();
+        
+        try
+        {
+            documentUrl = await DocumentStorageService.GetDocumentUrlAsync(document.FilePath);
+        }
+        catch (Exception)
+        {
+            documentUrl = null;
+        }
+        finally
+        {
+            isLoadingDocument = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleDocumentDownload(DocumentMetadata document)
+    {
+        try
+        {
+            var url = await DocumentStorageService.GetDocumentUrlAsync(document.FilePath);
+            if (!string.IsNullOrEmpty(url))
+            {
+                await JSRuntime.InvokeVoidAsync("open", url, "_blank");
+            }
+        }
+        catch (Exception)
+        {
+            // Silently fail
+        }
+    }
+
+    private void CloseViewModal()
+    {
+        showViewModal = false;
+        isLoadingDocument = false;
+        documentUrl = null;
+        viewingDocument = null;
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024)
+            return $"{bytes} B";
+        else if (bytes < 1024 * 1024)
+            return $"{bytes / 1024.0:F1} KB";
+        else if (bytes < 1024 * 1024 * 1024)
+            return $"{bytes / (1024.0 * 1024.0):F1} MB";
+        else
+            return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} GB";
+    }
+}
