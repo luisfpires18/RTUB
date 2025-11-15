@@ -133,7 +133,7 @@ else
                 <label class="form-label text-white-full fw-semibold">
                     <i class="bi bi-tag text-primary me-2"></i>Referência
                 </label>
-                <InputText class="form-control" @bind-Value="label!.Reference" placeholder="Inserir referência..." />
+                <InputText class="form-control" @bind-Value="label!.Reference" placeholder="Inserir referência..." disabled="@(!isCreateMode)" />
                 <small class="text-light-theme">Identificador único para esta etiqueta (minúsculas, sem espaços)</small>
             </div>
 
