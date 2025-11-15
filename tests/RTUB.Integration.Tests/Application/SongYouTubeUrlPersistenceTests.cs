@@ -6,7 +6,7 @@ using RTUB.Application.Services;
 using RTUB.Application.Interfaces;
 using Moq;
 
-namespace RTUB.Application.Tests.Integration;
+namespace RTUB.Integration.Tests;
 
 /// <summary>
 /// Integration tests for YouTube URL persistence in Song management

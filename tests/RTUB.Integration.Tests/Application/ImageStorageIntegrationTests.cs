@@ -5,10 +5,11 @@ using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
 using Xunit;
 
-namespace RTUB.Application.Tests.Integration;
+namespace RTUB.Integration.Tests;
 
 /// <summary>
 /// Integration tests for image storage functionality across services
@@ -43,10 +44,11 @@ public class ImageStorageIntegrationTests : IDisposable
     {
         // Arrange
         var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
+        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(album.Title);
         var imageUrl = "https://pub-test.r2.dev/rtub/images/album/1/cover.jpg";
         
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", album.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", normalizedName))
             .ReturnsAsync(imageUrl);
 
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
@@ -56,7 +58,7 @@ public class ImageStorageIntegrationTests : IDisposable
 
         // Assert
         _mockImageStorageService.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "cover.jpg", "image/jpeg", "albums", album.Id.ToString()),
+            x => x.UploadImageAsync(It.IsAny<Stream>(), "cover.jpg", "image/jpeg", "albums", normalizedName),
             Times.Once);
 
         var updatedAlbum = await _albumService.GetAlbumByIdAsync(album.Id);
@@ -69,12 +71,13 @@ public class ImageStorageIntegrationTests : IDisposable
     {
         // Arrange
         var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
+        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(album.Title);
         var oldImageUrl = "https://pub-test.r2.dev/rtub/images/album/1/old-cover.jpg";
         var newImageUrl = "https://pub-test.r2.dev/rtub/images/album/1/new-cover.jpg";
         
         // Set initial cover
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", album.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", normalizedName))
             .ReturnsAsync(oldImageUrl);
         
         using (var oldImageStream = new MemoryStream(new byte[] { 1, 2, 3 }))
@@ -84,7 +87,7 @@ public class ImageStorageIntegrationTests : IDisposable
 
         // Setup for new upload
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", album.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", normalizedName))
             .ReturnsAsync(newImageUrl);
 
         using var newImageStream = new MemoryStream(new byte[] { 4, 5, 6 });
@@ -106,10 +109,11 @@ public class ImageStorageIntegrationTests : IDisposable
     {
         // Arrange
         var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
+        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(album.Title);
         var imageUrl = "https://pub-test.r2.dev/rtub/images/album/1/cover.jpg";
         
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", album.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "albums", normalizedName))
             .ReturnsAsync(imageUrl);
 
         using (var imageStream = new MemoryStream(new byte[] { 1, 2, 3 }))
@@ -144,10 +148,11 @@ public class ImageStorageIntegrationTests : IDisposable
             Core.Enums.EventType.Festival,
             "Test Description");
         
+        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(eventEntity.Name);
         var imageUrl = "https://pub-test.r2.dev/rtub/images/event/1/event.jpg";
         
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "events", eventEntity.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "events", normalizedName))
             .ReturnsAsync(imageUrl);
 
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
@@ -157,7 +162,7 @@ public class ImageStorageIntegrationTests : IDisposable
 
         // Assert
         _mockImageStorageService.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "event.jpg", "image/jpeg", "events", eventEntity.Id.ToString()),
+            x => x.UploadImageAsync(It.IsAny<Stream>(), "event.jpg", "image/jpeg", "events", normalizedName),
             Times.Once);
 
         var updatedEvent = await _eventService.GetEventByIdAsync(eventEntity.Id);
@@ -176,10 +181,11 @@ public class ImageStorageIntegrationTests : IDisposable
             Core.Enums.EventType.Festival,
             "Test Description");
         
+        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(eventEntity.Name);
         var imageUrl = "https://pub-test.r2.dev/rtub/images/event/1/event.jpg";
         
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "events", eventEntity.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "events", normalizedName))
             .ReturnsAsync(imageUrl);
 
         using (var imageStream = new MemoryStream(new byte[] { 1, 2, 3 }))
@@ -208,10 +214,11 @@ public class ImageStorageIntegrationTests : IDisposable
     {
         // Arrange
         var slideshow = await _slideshowService.CreateSlideshowAsync("Test Slideshow", 1, "Test Description", 5000);
+        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(slideshow.Title);
         var imageUrl = "https://pub-test.r2.dev/rtub/images/slideshow/1/slide.jpg";
         
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "slideshows", slideshow.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "slideshows", normalizedName))
             .ReturnsAsync(imageUrl);
 
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
@@ -221,7 +228,7 @@ public class ImageStorageIntegrationTests : IDisposable
 
         // Assert
         _mockImageStorageService.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "slide.jpg", "image/jpeg", "slideshows", slideshow.Id.ToString()),
+            x => x.UploadImageAsync(It.IsAny<Stream>(), "slide.jpg", "image/jpeg", "slideshows", normalizedName),
             Times.Once);
 
         var updatedSlideshow = await _slideshowService.GetSlideshowByIdAsync(slideshow.Id);
@@ -234,10 +241,11 @@ public class ImageStorageIntegrationTests : IDisposable
     {
         // Arrange
         var slideshow = await _slideshowService.CreateSlideshowAsync("Test Slideshow", 1, "Test Description", 5000);
+        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(slideshow.Title);
         var imageUrl = "https://pub-test.r2.dev/rtub/images/slideshow/1/slide.jpg";
         
         _mockImageStorageService
-            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "slideshows", slideshow.Id.ToString()))
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), "slideshows", normalizedName))
             .ReturnsAsync(imageUrl);
 
         using (var imageStream = new MemoryStream(new byte[] { 1, 2, 3 }))
