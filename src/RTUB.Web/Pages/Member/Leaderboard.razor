@@ -70,7 +70,8 @@ else
             {
                 var levelDef = allLevels[i];
                 <div class="rank-timeline-item">
-                    <span class="rank-timeline-label">LEVEL @levelDef.Level – @levelDef.Name.ToUpper()</span>
+                    <span class="rank-timeline-level">LEVEL @levelDef.Level</span>
+                    <span class="rank-timeline-label">@levelDef.Name.ToUpper()</span>
                 </div>
                 
                 @if (i < lastIndex)

@@ -29,22 +29,33 @@
 
 .rank-timeline-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
     background: #000000;
     border-radius: 0.5rem;
     border: 2px solid #8a2be2;
     transition: all 0.2s ease;
     position: relative;
     flex-shrink: 0;
+    min-width: 120px;
+}
+
+.rank-timeline-level {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: #ffffff;
+    white-space: nowrap;
 }
 
 .rank-timeline-label {
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     color: #ffffff;
     white-space: nowrap;
+    text-transform: uppercase;
 }
 
 .rank-timeline-connector {
