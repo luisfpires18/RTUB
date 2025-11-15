@@ -42,6 +42,10 @@ public static partial class SeedData
 
         await SeedEventsAsync(dbContext);
 
+        await SeedEnrollmentsAsync(dbContext, userManager);
+
+        await SeedRehearsalsAsync(dbContext, userManager);
+
         await SeedMusicAsync(dbContext);
     }
 }

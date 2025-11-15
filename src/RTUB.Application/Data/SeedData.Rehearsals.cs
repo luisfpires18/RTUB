@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Core.Entities;
@@ -12,90 +15,88 @@ public static partial class SeedData
 {
     public static async Task SeedRehearsalsAsync(ApplicationDbContext dbContext, UserManager<ApplicationUser> userManager)
     {
-        // Only seed if no rehearsals exist
         if (await dbContext.Rehearsals.AnyAsync())
             return;
 
-        var rehearsals = new List<Rehearsal>();
-
-        // Past rehearsals (last 12 weeks)
         var today = DateTime.Today;
-        var startDate = today.AddDays(-84); // 12 weeks
-        
-        // Generate past rehearsals for Tuesdays and Thursdays
-        for (var date = startDate; date < today; date = date.AddDays(1))
+        var startDate = today.AddDays(-84);
+        var endDate = today.AddDays(84);
+
+        var rehearsalsToCreate = new List<Rehearsal>();
+
+        for (var date = startDate; date <= endDate; date = date.AddDays(1))
         {
-            if (date.DayOfWeek == DayOfWeek.Tuesday || date.DayOfWeek == DayOfWeek.Thursday)
+            if (date.DayOfWeek != DayOfWeek.Tuesday && date.DayOfWeek != DayOfWeek.Thursday)
             {
-                var rehearsal = Rehearsal.Create(
-                    date,
-                    "Quinta de Santa Apolónia",
-                    GetThemeForDate(date)
-                );
-                
-                // Add some notes for certain rehearsals
-                if (date.Day % 7 == 0)
-                {
-                    rehearsal.UpdateDetails(
-                        rehearsal.Location,
-                        rehearsal.Theme,
-                        "Ensaio focado em repertório de Natal"
-                    );
-                }
-                
-                rehearsals.Add(rehearsal);
+                continue;
             }
+
+            var rehearsal = Rehearsal.Create(
+                date,
+                "Quinta de Santa Apolónia",
+                GetThemeForDate(date)
+            );
+
+            if (date < today && date.Day % 7 == 0)
+            {
+                rehearsal.UpdateDetails(
+                    rehearsal.Location,
+                    rehearsal.Theme,
+                    "Ensaio focado em repertório de Natal"
+                );
+            }
+
+            if (date > today && date == today.AddDays(14) && date.DayOfWeek == DayOfWeek.Thursday)
+            {
+                rehearsal.Cancel();
+                rehearsal.UpdateDetails(
+                    rehearsal.Location,
+                    rehearsal.Theme,
+                    "Cancelado devido a feriado"
+                );
+            }
+
+            rehearsalsToCreate.Add(rehearsal);
         }
 
-        // Future rehearsals (next 12 weeks)
-        var endDate = today.AddDays(84); // 12 weeks
-        for (var date = today; date <= endDate; date = date.AddDays(1))
-        {
-            if (date.DayOfWeek == DayOfWeek.Tuesday || date.DayOfWeek == DayOfWeek.Thursday)
-            {
-                var rehearsal = Rehearsal.Create(
-                    date,
-                    "Quinta de Santa Apolónia",
-                    GetThemeForDate(date)
-                );
-                
-                // Cancel one future rehearsal as an example
-                if (date == today.AddDays(14) && date.DayOfWeek == DayOfWeek.Thursday)
-                {
-                    rehearsal.Cancel();
-                    rehearsal.UpdateDetails(
-                        rehearsal.Location,
-                        rehearsal.Theme,
-                        "Cancelado devido a feriado"
-                    );
-                }
-                
-                rehearsals.Add(rehearsal);
-            }
-        }
+        if (rehearsalsToCreate.Count == 0)
+            return;
 
-        dbContext.Rehearsals.AddRange(rehearsals);
+        await dbContext.Rehearsals.AddRangeAsync(rehearsalsToCreate);
         await dbContext.SaveChangesAsync();
 
-        // Now seed attendance data for past rehearsals
-        var members = await userManager.Users.AsNoTracking().ToListAsync();
+        var members = await userManager.Users
+            .AsNoTracking()
+            .OrderBy(m => m.Id)
+            .ToListAsync();
         if (members.Count == 0)
             return;
 
-        var attendances = new List<RehearsalAttendance>();
-        var random = new Random(42); // Fixed seed for reproducibility
+        var pastRehearsals = await dbContext.Rehearsals
+            .AsNoTracking()
+            .Where(r => r.Date < today)
+            .OrderBy(r => r.Date)
+            .ToListAsync();
+        if (pastRehearsals.Count == 0)
+            return;
 
-        // Only add attendance for past rehearsals
-        var pastRehearsals = rehearsals.Where(r => r.Date < today).ToList();
-        
+        var attendances = new List<RehearsalAttendance>();
+
         foreach (var rehearsal in pastRehearsals)
         {
-            // Randomly select 60-80% of members to attend each rehearsal
-            var attendanceRate = 0.6 + (random.NextDouble() * 0.2); // 60-80%
-            var attendingCount = (int)(members.Count * attendanceRate);
-            
+            var seed = (int)((((long)rehearsal.Id * 92821L) ^ rehearsal.Date.DayOfYear) & 0x7FFFFFFF);
+            if (seed == 0)
+            {
+                seed = rehearsal.Id + 7;
+            }
+
+            var random = new Random(seed);
+
+            var attendanceRate = 0.6 + (random.NextDouble() * 0.2);
+            var attendingCount = Math.Clamp((int)Math.Round(members.Count * attendanceRate), 3, members.Count);
+
             var attendingMembers = members
-                .OrderBy(x => random.Next())
+                .OrderBy(_ => random.Next())
                 .Take(attendingCount)
                 .ToList();
 
@@ -106,26 +107,37 @@ public static partial class SeedData
                     member.Id,
                     member.MainInstrument
                 );
-                
-                // Approve most attendances (simulate admin approval for past rehearsals)
-                // 5% remain pending as examples
-                if (random.NextDouble() > 0.05) // 95% approval rate
+
+                var willAttend = random.NextDouble() > 0.08;
+                attendance.WillAttend = willAttend;
+
+                if (willAttend && random.NextDouble() > 0.1)
                 {
-                    attendance.MarkAttendance(true); // Approved by admin
+                    attendance.MarkAttendance(true);
                 }
-                // else: remains false (pending approval)
-                
+
+                if (random.NextDouble() < 0.15)
+                {
+                    attendance.Notes = "Chegou alguns minutos atrasado";
+                }
+                else if (random.NextDouble() < 0.15)
+                {
+                    attendance.Notes = "Participou na preparação do repertório";
+                }
+
                 attendances.Add(attendance);
             }
         }
 
-        dbContext.RehearsalAttendances.AddRange(attendances);
-        await dbContext.SaveChangesAsync();
+        if (attendances.Count > 0)
+        {
+            await dbContext.RehearsalAttendances.AddRangeAsync(attendances);
+            await dbContext.SaveChangesAsync();
+        }
     }
 
     private static string? GetThemeForDate(DateTime date)
     {
-        // Assign themes based on the time of year
         var month = date.Month;
         var day = date.Day;
 
@@ -142,6 +154,6 @@ public static partial class SeedData
         else if (day % 5 == 0)
             return "Repertório Tradicional";
         else
-            return null; // Some rehearsals without specific theme
+            return null;
     }
 }
