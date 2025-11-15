@@ -7,6 +7,19 @@
 *@
 
 <div class="card folder-card mb-3">
+    @* Admin Delete Button (top-right corner) *@
+    @if (IsAdmin)
+    {
+        <div class="folder-admin-overlay">
+            <button class="btn btn-sm btn-danger" 
+                    @onclick="HandleDelete" 
+                    @onclick:stopPropagation="true"
+                    title="Eliminar pasta">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    }
+    
     <div class="folder-card-header @(IsExpanded ? "expanded" : "")" @onclick="ToggleExpand">
         <div class="d-flex align-items-center justify-content-between w-100">
             <div class="d-flex align-items-center gap-2">
@@ -114,6 +127,12 @@
     /// </summary>
     [Parameter]
     public EventCallback<DocumentMetadata> OnDocumentDelete { get; set; }
+    
+    /// <summary>
+    /// Callback when folder delete is requested
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnFolderDelete { get; set; }
 
     private bool IsExpanded { get; set; }
     private int DocumentCount => Documents?.Count ?? 0;
@@ -133,6 +152,14 @@
         if (OnUpload.HasDelegate)
         {
             await OnUpload.InvokeAsync(FolderPath);
+        }
+    }
+    
+    private async Task HandleDelete()
+    {
+        if (OnFolderDelete.HasDelegate)
+        {
+            await OnFolderDelete.InvokeAsync(FolderName);
         }
     }
 }
