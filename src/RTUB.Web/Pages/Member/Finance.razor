@@ -21,18 +21,9 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 
-<h1 class="mb-2"><i class="bi bi-currency-dollar"></i> Finanças</h1>
+<h1 class="mb-2"><i class="bi bi-currency-euro"></i> Finanças</h1>
 <p class="lead mb-4 text-light-theme">Relatórios financeiros anuais.</p>
 
-@if (isLeitao)
-{
-    <div class="alert alert-warning">
-        <i class="bi bi-exclamation-triangle"></i>
-        Esta página não está disponível para a categoria Leitão.
-    </div>
-}
-else
-{
     <AuthorizeView Roles="Admin">
         <Authorized>
             <div class="mb-3">
@@ -99,7 +90,6 @@ else
             OnPageChanged="ChangePage"
             OnPageSizeChanged="ChangePageSize" />
     }
-}
 
 <!-- Create/Edit ReportEntity Modal -->
 <Modal Show="@showEditModal" 

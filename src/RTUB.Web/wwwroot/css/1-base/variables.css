@@ -30,4 +30,7 @@
   /* Override Bootstrap's secondary color to white */
   --bs-secondary-color: #ffffff !important;
   --bs-secondary-color-rgb: 255, 255, 255;
+  /* Override dropdown active state to use primary purple color */
+  --bs-dropdown-link-active-bg: var(--bs-primary);
+  --bs-dropdown-link-active-color: #ffffff;
 }
