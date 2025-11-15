@@ -125,6 +125,25 @@ public class Program
 
                     var issuedUtc = context.Properties?.IssuedUtc?.UtcDateTime ?? DateTime.MinValue;
 
+                    // Log user authentication once per session (cache for 8 hours to avoid duplicate logs)
+                    // The cache key includes issuedUtc.Ticks to ensure each new login session is logged once
+                    var logCacheKey = $"login-log:{userName}:{issuedUtc.Ticks}";
+                    
+                    if (!cache.TryGetValue(logCacheKey, out _))
+                    {
+                        logger.LogInformation(
+                            "User {UserName} authenticated via cookie validation at {LoginTime}",
+                            userName,
+                            DateTime.UtcNow);
+                        
+                        // Cache for 8 hours to prevent duplicate logs from the same session
+                        // This ensures the log appears only once per login session
+                        cache.Set(logCacheKey, true, new MemoryCacheEntryOptions
+                        {
+                            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(8)
+                        });
+                    }
+
                     // Update LastLoginDate to reflect current activity
                     // This ensures the "Estado de login" on /owner/user-roles shows accurate online status
                     // Use cache to update periodically (every 5 minutes) instead of on every request to avoid excessive DB writes
