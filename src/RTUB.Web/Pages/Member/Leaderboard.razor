@@ -62,26 +62,21 @@ else
             <h3><i class="bi bi-trophy"></i> Níveis de Classificação</h3>
         </div>
         <div class="ranks-timeline">
-            @foreach (var levelDef in RankingConfig.Value.Levels.OrderBy(l => l.Level))
+            @{
+                var allLevels = RankingConfig.Value.Levels.OrderBy(l => l.Level).ToList();
+                var lastIndex = allLevels.Count - 1;
+            }
+            @for (int i = 0; i < allLevels.Count; i++)
             {
-                var nextLevel = RankingConfig.Value.Levels.Where(l => l.Level > levelDef.Level).OrderBy(l => l.Level).FirstOrDefault();
-                var xpRange = nextLevel != null 
-                    ? $"{levelDef.XpThreshold} - {nextLevel.XpThreshold - 1} XP"
-                    : $"{levelDef.XpThreshold}+ XP";
-                
+                var levelDef = allLevels[i];
                 <div class="rank-timeline-item">
-                    <div class="rank-timeline-badge">
-                        <div class="rank-level-circle">@levelDef.Level</div>
-                    </div>
-                    <div class="rank-timeline-content">
-                        <div class="rank-timeline-name">Nível @levelDef.Level – @levelDef.Name</div>
-                        <div class="rank-timeline-xp">@xpRange</div>
-                    </div>
-                    @if (nextLevel != null)
-                    {
-                        <div class="rank-timeline-connector"></div>
-                    }
+                    <span class="rank-timeline-label">LEVEL @levelDef.Level – @levelDef.Name.ToUpper()</span>
                 </div>
+                
+                @if (i < lastIndex)
+                {
+                    <div class="rank-timeline-connector"></div>
+                }
             }
         </div>
     </div>
