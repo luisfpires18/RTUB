@@ -191,9 +191,9 @@ public class AlbumServiceTests : IDisposable
         updated.Description.Should().Be(newDescription);
         updated.ImageUrl.Should().Be(imageUrl);
         
-        // Verify image was uploaded
+        // Verify image was uploaded with normalized title (not ID)
         _mockImageStorageService.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "test.webp", "image/webp", "albums", album.Id.ToString()),
+            x => x.UploadImageAsync(It.IsAny<Stream>(), "test.webp", "image/webp", "albums", "updated_title"),
             Times.Once);
     }
 

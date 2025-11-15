@@ -2,6 +2,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
+using RTUB.Application.Utilities;
 
 
 namespace RTUB.Application.Services;
@@ -94,8 +95,9 @@ public class AlbumService : IAlbumService
             await _imageStorageService.DeleteImageAsync(album.ImageUrl);
         }
 
-        // Upload new image to Cloudflare R2
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", id.ToString());
+        // Upload new image to Cloudflare R2 using normalized album title
+        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(title);
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", normalizedName);
         album.SetCoverImage(imageUrl);
         
         _context.Albums.Update(album);
@@ -114,8 +116,9 @@ public class AlbumService : IAlbumService
             await _imageStorageService.DeleteImageAsync(album.ImageUrl);
         }
 
-        // Upload new image to Cloudflare R2
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", id.ToString());
+        // Upload new image to Cloudflare R2 using normalized album title
+        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(album.Title);
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", normalizedName);
         album.SetCoverImage(imageUrl);
         
         _context.Albums.Update(album);

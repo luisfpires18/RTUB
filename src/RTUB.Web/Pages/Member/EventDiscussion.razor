@@ -256,7 +256,8 @@
     private async Task LoadDiscussionAsync()
     {
         if (eventItem == null) return;
-        discussion = await DiscussionService.GetOrCreateForEventAsync(EventId);
+        // Only get existing discussion, don't create on page load
+        discussion = await DiscussionService.GetByEventIdAsync(EventId);
     }
 
     private async Task LoadPostsAsync()
@@ -303,7 +304,13 @@
 
     private async Task CreatePost(string title, string body)
     {
-        if (discussion == null || currentUser == null) return;
+        if (currentUser == null) return;
+
+        // Create discussion if it doesn't exist yet (first post creates the discussion)
+        if (discussion == null)
+        {
+            discussion = await DiscussionService.CreateForEventAsync(EventId);
+        }
 
         await PostService.CreateAsync(discussion.Id, currentUser.Id, title, body);
         await LoadPostsAsync();

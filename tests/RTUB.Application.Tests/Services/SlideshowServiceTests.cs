@@ -175,9 +175,9 @@ public class SlideshowServiceTests : IDisposable
         updated.IntervalMs.Should().Be(4000);
         updated.ImageUrl.Should().Be(imageUrl);
         
-        // Verify image was uploaded
+        // Verify image was uploaded with normalized title (not ID)
         _imageStorageServiceMock.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "test.webp", "image/webp", "slideshows", slideshow.Id.ToString()),
+            x => x.UploadImageAsync(It.IsAny<Stream>(), "test.webp", "image/webp", "slideshows", "updated"),
             Times.Once);
     }
 

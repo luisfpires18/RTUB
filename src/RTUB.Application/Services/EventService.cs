@@ -3,6 +3,7 @@ using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
+using RTUB.Application.Utilities;
 
 
 namespace RTUB.Application.Services;
@@ -119,8 +120,9 @@ public class EventService : IEventService
             await _imageStorageService.DeleteImageAsync(eventEntity.ImageUrl);
         }
 
-        // Upload new image to Cloudflare R2
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", id.ToString());
+        // Upload new image to Cloudflare R2 using normalized event name
+        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(name);
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", normalizedName);
         eventEntity.SetImage(imageUrl);
         
         _context.Events.Update(eventEntity);
@@ -139,8 +141,9 @@ public class EventService : IEventService
             await _imageStorageService.DeleteImageAsync(eventEntity.ImageUrl);
         }
 
-        // Upload new image to Cloudflare R2
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", id.ToString());
+        // Upload new image to Cloudflare R2 using normalized event name
+        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(eventEntity.Name);
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", normalizedName);
         eventEntity.SetImage(imageUrl);
         
         _context.Events.Update(eventEntity);

@@ -2,6 +2,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
+using RTUB.Application.Utilities;
 
 
 namespace RTUB.Application.Services;
@@ -95,8 +96,9 @@ public class SlideshowService : ISlideshowService
             await _imageStorageService.DeleteImageAsync(slideshow.ImageUrl);
         }
 
-        // Upload new image to Cloudflare R2
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", id.ToString());
+        // Upload new image to Cloudflare R2 using normalized slideshow title
+        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(title);
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", normalizedName);
         slideshow.SetImage(imageUrl);
         
         _context.Slideshows.Update(slideshow);
@@ -115,8 +117,9 @@ public class SlideshowService : ISlideshowService
             await _imageStorageService.DeleteImageAsync(slideshow.ImageUrl);
         }
 
-        // Upload new image to Cloudflare R2
-        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", id.ToString());
+        // Upload new image to Cloudflare R2 using normalized slideshow title
+        var normalizedName = S3KeyNormalizer.NormalizeForS3Key(slideshow.Title);
+        var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", normalizedName);
         slideshow.SetImage(imageUrl);
         
         _context.Slideshows.Update(slideshow);

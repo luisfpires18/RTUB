@@ -254,9 +254,9 @@ public class EventServiceTests : IDisposable
         updated.EndDate.Should().Be(newEndDate);
         updated.ImageUrl.Should().Be(imageUrl);
         
-        // Verify image was uploaded
+        // Verify image was uploaded with normalized name (not ID)
         _mockImageStorageService.Verify(
-            x => x.UploadImageAsync(It.IsAny<Stream>(), "test.webp", "image/webp", "events", eventEntity.Id.ToString()),
+            x => x.UploadImageAsync(It.IsAny<Stream>(), "test.webp", "image/webp", "events", "updated_name"),
             Times.Once);
     }
 
