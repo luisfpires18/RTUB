@@ -239,6 +239,8 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
 
             var documentPath = folderPath + fileName;
 
+            _logger.LogInformation("Attempting to upload document to bucket '{Bucket}' with key: {DocumentPath}", _bucketName, documentPath);
+
             var request = new PutObjectRequest
             {
                 BucketName = _bucketName,
@@ -247,16 +249,17 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
                 ContentType = contentType
             };
 
-            await _s3Client.PutObjectAsync(request);
+            var response = await _s3Client.PutObjectAsync(request);
             
-            _logger.LogInformation("Successfully uploaded document: {DocumentPath}", documentPath);
+            _logger.LogInformation("Successfully uploaded document: {DocumentPath}. Response status: {StatusCode}", 
+                documentPath, response.HttpStatusCode);
             return documentPath;
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error uploading document. Bucket: '{BucketName}', Path: '{Path}', ErrorCode: {ErrorCode}, Message: {Message}", 
-                _bucketName, folderPath + fileName, ex.ErrorCode, ex.Message);
-            throw;
+            _logger.LogError(ex, "S3 error uploading document. Bucket: '{BucketName}', Key: '{Path}', ErrorCode: {ErrorCode}, StatusCode: {StatusCode}, Message: {Message}", 
+                _bucketName, folderPath + fileName, ex.ErrorCode, ex.StatusCode, ex.Message);
+            throw new InvalidOperationException($"Failed to upload document '{fileName}' to '{folderPath}' in bucket '{_bucketName}'. Error: {ex.ErrorCode} - {ex.Message}. Please verify that your IDrive credentials have write permissions to this bucket.", ex);
         }
         catch (Exception ex)
         {
@@ -275,6 +278,8 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
                 folderPath += "/";
             }
 
+            _logger.LogInformation("Attempting to create folder in bucket '{Bucket}' with key: {FolderPath}", _bucketName, folderPath);
+
             // Create an empty object with "/" suffix to represent a folder
             var request = new PutObjectRequest
             {
@@ -284,15 +289,16 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
                 ContentType = "application/x-directory"
             };
 
-            await _s3Client.PutObjectAsync(request);
+            var response = await _s3Client.PutObjectAsync(request);
             
-            _logger.LogInformation("Successfully created folder: {FolderPath}", folderPath);
+            _logger.LogInformation("Successfully created folder: {FolderPath}. Response status: {StatusCode}", 
+                folderPath, response.HttpStatusCode);
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error creating folder. Bucket: '{BucketName}', Path: '{FolderPath}', ErrorCode: {ErrorCode}, Message: {Message}", 
-                _bucketName, folderPath, ex.ErrorCode, ex.Message);
-            throw;
+            _logger.LogError(ex, "S3 error creating folder. Bucket: '{BucketName}', Key: '{FolderPath}', ErrorCode: {ErrorCode}, StatusCode: {StatusCode}, Message: {Message}", 
+                _bucketName, folderPath, ex.ErrorCode, ex.StatusCode, ex.Message);
+            throw new InvalidOperationException($"Failed to create folder '{folderPath}' in bucket '{_bucketName}'. Error: {ex.ErrorCode} - {ex.Message}. Please verify that your IDrive credentials have write permissions to this bucket.", ex);
         }
         catch (Exception ex)
         {
