@@ -275,7 +275,7 @@ else
                 @if (showYearLeitao && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
-                        <MonthYearPicker Label="Mês/Ano de entrada Leitão"
+                        <MonthYearPicker Label="Entrada a Leitão"
                                          Icon="calendar-plus"
                                          @bind-Year="@editingUser.YearLeitao"
                                          @bind-Month="@editingUser.MonthLeitao"
@@ -286,7 +286,7 @@ else
                 @if (showYearCaloiro && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
-                        <MonthYearPicker Label="Mês/Ano de passagem a Caloiro"
+                        <MonthYearPicker Label="Ano de passagem a Caloiro"
                                          Icon="calendar-event"
                                          @bind-Year="@editingUser.YearCaloiro"
                                          @bind-Month="@editingUser.MonthCaloiro"
@@ -297,7 +297,7 @@ else
                 @if (showYearTuno && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
-                        <MonthYearPicker Label="Mês/Ano de passagem a Tuno"
+                        <MonthYearPicker Label="Ano de passagem a Tuno"
                                          Icon="calendar-check"
                                          @bind-Year="@editingUser.YearTuno"
                                          @bind-Month="@editingUser.MonthTuno"
@@ -876,11 +876,14 @@ else
             DateOfBirth = user.DateOfBirth,
             Degree = user.Degree,
             YearLeitao = user.YearLeitao,
+            MonthLeitao = user.MonthLeitao,
             YearCaloiro = user.YearCaloiro,
+            MonthCaloiro = user.MonthCaloiro,
             YearTuno = user.YearTuno,
+            MonthTuno = user.MonthTuno,
             MainInstrument = user.MainInstrument,
             EmailConfirmed = user.EmailConfirmed,
-            MentorId = user.MentorId
+            MentorId = user.MentorId,
         };
 
         // Set SelectedCategory based on user's primary category
