@@ -306,18 +306,21 @@ else
     private async Task LoadLeaderboard()
     {
         var users = await UserManager.Users.ToListAsync();
+        var now = DateTime.UtcNow;
         
         // Batch load all attendance and enrollment data in two queries to avoid N+1
+        // Only count past rehearsals where Attended == true
         var allRehearsalAttendances = await DbContext.RehearsalAttendances
-            .Where(a => a.Attended)
+            .Include(ra => ra.Rehearsal)
+            .Where(a => a.Attended && a.Rehearsal!.Date < now)
             .GroupBy(a => a.UserId)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.UserId, x => x.Count);
         
-        // Load enrollments with event types
+        // Load enrollments with event types - only past events where WillAttend == true
         var allEnrollmentsWithTypes = await DbContext.Enrollments
             .Include(e => e.Event)
-            .Where(e => e.WillAttend && e.Event != null)
+            .Where(e => e.WillAttend && e.Event != null && e.Event!.Date < now)
             .Select(e => new { e.UserId, EventType = e.Event!.Type })
             .ToListAsync();
         

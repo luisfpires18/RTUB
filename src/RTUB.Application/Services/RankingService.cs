@@ -45,9 +45,14 @@ public class RankingService : IRankingService
             .Select(e => e.Event!.Type.ToString())
             .ToListAsync();
 
-        var eventXp = eventTypes
-            .Where(eventType => _rankingConfig.Value.XpPerEventType.ContainsKey(eventType))
-            .Sum(eventType => _rankingConfig.Value.XpPerEventType[eventType]);
+        var eventXp = 0;
+        foreach (var eventType in eventTypes)
+        {
+            if (_rankingConfig.Value.XpPerEventType.TryGetValue(eventType, out var xp))
+            {
+                eventXp += xp;
+            }
+        }
 
         return rehearsalXp + eventXp;
     }
