@@ -7,12 +7,14 @@
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
+@using RTUB.Application.Utilities
 @using RTUB.Shared
 @using System.Web
 @inject IEventService EventService
 @inject IEnrollmentService EnrollmentService
 @inject ITrophyService TrophyService
 @inject IEmailNotificationService EmailNotificationService
+@inject IImageStorageService ImageStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IWebHostEnvironment Environment
@@ -1182,21 +1184,24 @@ else
 
         if (isCreateMode)
         {
-            var newEvent = await EventService.CreateEventAsync(
+            // Upload image BEFORE creating entity to include in single Create audit log
+            string? imageUrl = null;
+            if (croppedImageBytes != null && croppedImageBytes.Length > 0)
+            {
+                using var stream = new MemoryStream(croppedImageBytes);
+                var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingEvent.Name);
+                imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "events", normalizedName);
+            }
+
+            await EventService.CreateEventAsync(
                 editingEvent.Name,
                 editingEvent.Date,
                 editingEvent.Location,
                 editingEvent.Type,
                 editingEvent.Description ?? string.Empty,
-                editingEvent.EndDate
+                editingEvent.EndDate,
+                imageUrl
             );
-
-            // Upload image to R2 if one was cropped
-            if (croppedImageBytes != null && croppedImageBytes.Length > 0)
-            {
-                using var stream = new MemoryStream(croppedImageBytes);
-                await EventService.SetEventImageAsync(newEvent.Id, stream, croppedImageFileName!, "image/webp");
-            }
         }
         else
         {

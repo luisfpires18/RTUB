@@ -4,9 +4,11 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using RTUB.Application.Interfaces
+@using RTUB.Application.Utilities
 @using RTUB.Shared
 @inject IAlbumService AlbumService
 @inject ISongService SongService
+@inject IImageStorageService ImageStorageService
 @inject NavigationManager NavigationManager
 @inject IWebHostEnvironment Environment
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -290,18 +292,21 @@ else
 
         if (isCreateMode)
         {
-            var newAlbum = await AlbumService.CreateAlbumAsync(
-                editingAlbum.Title,
-                editingAlbum.Year,
-                editingAlbum.Description ?? string.Empty
-            );
-
-            // Upload image to R2 if one was cropped
+            // Upload image BEFORE creating entity to include in single Create audit log
+            string? imageUrl = null;
             if (croppedImageBytes != null && croppedImageBytes.Length > 0)
             {
                 using var stream = new MemoryStream(croppedImageBytes);
-                await AlbumService.SetAlbumCoverAsync(newAlbum.Id, stream, croppedImageFileName!, "image/webp");
+                var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingAlbum.Title);
+                imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedImageFileName!, "image/webp", "albums", normalizedName);
             }
+
+            await AlbumService.CreateAlbumAsync(
+                editingAlbum.Title,
+                editingAlbum.Year,
+                editingAlbum.Description ?? string.Empty,
+                imageUrl
+            );
         }
         else
         {

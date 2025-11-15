@@ -41,9 +41,13 @@ public class SlideshowService : ISlideshowService
             .ToListAsync();
     }
 
-    public async Task<Slideshow> CreateSlideshowAsync(string title, int order, string description = "", int intervalMs = 5000)
+    public async Task<Slideshow> CreateSlideshowAsync(string title, int order, string description = "", int intervalMs = 5000, string? imageUrl = null)
     {
         var slideshow = Slideshow.Create(title, order, description, intervalMs);
+        if (!string.IsNullOrEmpty(imageUrl))
+        {
+            slideshow.SetImage(imageUrl);
+        }
         _context.Slideshows.Add(slideshow);
         await _context.SaveChangesAsync();
         return slideshow;

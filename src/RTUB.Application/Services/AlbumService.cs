@@ -45,9 +45,13 @@ public class AlbumService : IAlbumService
             .FirstOrDefaultAsync(a => a.Id == id);
     }
 
-    public async Task<Album> CreateAlbumAsync(string title, int? year, string? description = null)
+    public async Task<Album> CreateAlbumAsync(string title, int? year, string? description = null, string? imageUrl = null)
     {
         var album = Album.Create(title, year, description);
+        if (!string.IsNullOrEmpty(imageUrl))
+        {
+            album.SetCoverImage(imageUrl);
+        }
         _context.Albums.Add(album);
         await _context.SaveChangesAsync();
         return album;

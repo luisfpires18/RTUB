@@ -61,13 +61,18 @@ public class EventService : IEventService
             .ToListAsync();
     }
 
-    public async Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null)
+    public async Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null, string? imageUrl = null)
     {
         var eventEntity = Event.Create(name, date, location, type, description);
         
         if (endDate.HasValue)
         {
             eventEntity.SetEndDate(endDate);
+        }
+        
+        if (!string.IsNullOrEmpty(imageUrl))
+        {
+            eventEntity.SetImage(imageUrl);
         }
         
         _context.Events.Add(eventEntity);

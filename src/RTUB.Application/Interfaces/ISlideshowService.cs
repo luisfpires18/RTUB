@@ -11,7 +11,7 @@ public interface ISlideshowService
     Task<Slideshow?> GetSlideshowByIdAsync(int id);
     Task<IEnumerable<Slideshow>> GetAllSlideshowsAsync();
     Task<IEnumerable<Slideshow>> GetActiveSlideshowsAsync();
-    Task<Slideshow> CreateSlideshowAsync(string title, int order, string description = "", int intervalMs = 5000);
+    Task<Slideshow> CreateSlideshowAsync(string title, int order, string description = "", int intervalMs = 5000, string? imageUrl = null);
     Task UpdateSlideshowAsync(int id, string title, string description, int order, int intervalMs, bool isActive);
     Task UpdateSlideshowWithImageAsync(int id, string title, string description, int order, int intervalMs, bool isActive, Stream imageStream, string fileName, string contentType);
     Task SetSlideshowImageAsync(int id, Stream imageStream, string fileName, string contentType);
