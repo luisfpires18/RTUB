@@ -34,7 +34,6 @@ public class RankingServiceTests : IDisposable
         // Setup test configuration
         _config = new RankingConfiguration
         {
-            Enabled = true,
             XpPerRehearsal = 10,
             XpPerEventType = new Dictionary<string, int>
             {

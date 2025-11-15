@@ -8,7 +8,6 @@ public class RankingConfiguration
 {
     public const string SectionName = "Ranking";
     
-    public bool Enabled { get; set; } = true;
     public int XpPerRehearsal { get; set; } = 10;
     public Dictionary<string, int> XpPerEventType { get; set; } = new();
     public List<LevelDefinition> Levels { get; set; } = new();
