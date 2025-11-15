@@ -76,4 +76,18 @@ public interface IEmailTemplateRenderer
         string nickname = "",
         string fullName = "",
         string eventDescription = "");
+    
+    /// <summary>
+    /// Renders the meeting notification email
+    /// </summary>
+    Task<string> RenderMeetingNotificationAsync(
+        string meetingType,
+        string meetingTitle,
+        string dateFormatted,
+        string location,
+        string statement,
+        string senderNickname,
+        string senderCity,
+        string nickname = "",
+        string fullName = "");
 }

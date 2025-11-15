@@ -13,6 +13,7 @@
 @attribute [Authorize(Roles = "Admin,Owner")]
 @inject IMeetingService MeetingService
 @inject IEmailNotificationService EmailNotificationService
+@inject IEmailTemplateRenderer EmailTemplateRenderer
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -572,28 +573,22 @@ else
             // Pre-fill email subject and body
             emailSubject = $"[RTUB] Reunião: {GetMeetingTypeFullName(meeting.Type)} - {meeting.Title}";
             
-            // Build email body with meeting details and signature
+            // Build email body using template renderer
             var dateStr = meeting.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
             var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
+            var senderCity = $"Bragança, {currentDate}";
+            var senderNickname = currentUser?.Nickname ?? "Admin";
             
-            emailBody = $@"Tipo de Reunião: {GetMeetingTypeFullName(meeting.Type)}
-Título: {meeting.Title}
-Data: {dateStr}";
-
-            if (!string.IsNullOrEmpty(meeting.Location))
-            {
-                emailBody += $"\nLocal: {meeting.Location}";
-            }
-
-            emailBody += $@"
-
-Declaração:
-{meeting.Statement}
-
----
-Bragança, {currentDate}
-Presidente da Mesa da Assembleia
-Ambrosio";
+            emailBody = await EmailTemplateRenderer.RenderMeetingNotificationAsync(
+                meetingType: GetMeetingTypeFullName(meeting.Type),
+                meetingTitle: meeting.Title,
+                dateFormatted: dateStr,
+                location: meeting.Location ?? string.Empty,
+                statement: meeting.Statement ?? string.Empty,
+                senderNickname: senderNickname,
+                senderCity: senderCity,
+                nickname: "",
+                fullName: "");
         }
         catch (Exception ex)
         {

@@ -834,7 +834,7 @@ public class EmailNotificationService : IEmailNotificationService
                             From = new MailAddress(senderEmail, senderName),
                             Subject = subject,
                             Body = body,
-                            IsBodyHtml = false
+                            IsBodyHtml = true
                         };
                         mailMessage.To.Add(recipientEmail);
 
