@@ -1,0 +1,149 @@
+.rank-card {
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.15) 0%, rgba(75, 0, 130, 0.1) 100%);
+    border: 2px solid rgba(138, 43, 226, 0.3);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.rank-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.rank-icon-container {
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8a2be2 0%, #4b0082 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(138, 43, 226, 0.3);
+}
+
+.rank-icon {
+    font-size: 1.8rem;
+    color: #ffd700;
+}
+
+.rank-info {
+    flex: 1;
+}
+
+.rank-title {
+    color: #ffffff;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.rank-xp-text {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.9rem;
+}
+
+.current-xp {
+    font-weight: 600;
+    color: #ffd700;
+}
+
+.xp-separator {
+    margin: 0 0.5rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.next-level-text {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.max-level-text {
+    color: #ffd700;
+    font-weight: 600;
+}
+
+.rank-progress-container {
+    margin-top: 1rem;
+}
+
+.rank-progress-bar {
+    height: 28px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.rank-progress-bar .progress-bar {
+    background: linear-gradient(90deg, #8a2be2 0%, #9370db 100%);
+    transition: width 0.6s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.progress-text {
+    font-size: 0.85rem;
+}
+
+.rank-level-markers {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+}
+
+.level-marker {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.level-marker.current-level {
+    font-weight: 600;
+    color: #8a2be2;
+}
+
+.level-marker.next-level {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 576px) {
+    .rank-card {
+        padding: 1rem;
+    }
+
+    .rank-icon-container {
+        width: 50px;
+        height: 50px;
+    }
+
+    .rank-icon {
+        font-size: 1.5rem;
+    }
+
+    .rank-title {
+        font-size: 1rem;
+    }
+
+    .rank-xp-text {
+        font-size: 0.85rem;
+    }
+
+    .rank-progress-bar {
+        height: 24px;
+    }
+
+    .progress-text {
+        font-size: 0.75rem;
+    }
+
+    .rank-level-markers {
+        font-size: 0.75rem;
+    }
+}
