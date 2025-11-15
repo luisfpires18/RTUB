@@ -74,7 +74,7 @@ else
        ShowChanged="@((bool show) => showViewDetailsModal = show)"
        Size="Modal.ModalSize.Large"
        Title="Detalhes da Reunião">
-    <ModalBody>
+    <BodyContent>
         @if (viewingMeeting != null)
         {
             <div class="mb-3">
@@ -110,10 +110,10 @@ else
                 <p class="text-light-theme" style="white-space: pre-line;">@viewingMeeting.Statement</p>
             </div>
         }
-    </ModalBody>
-    <ModalFooter>
+    </BodyContent>
+    <FooterContent>
         <button class="btn btn-secondary" @onclick="CloseViewDetailsModal">Fechar</button>
-    </ModalFooter>
+    </FooterContent>
 </Modal>
 
 <!-- Create/Edit Modal -->
@@ -121,7 +121,7 @@ else
        ShowChanged="@((bool show) => showEditModal = show)"
        Size="Modal.ModalSize.Large"
        Title="@(isCreateMode ? "Nova Reunião" : "Editar Reunião")">
-    <ModalBody>
+    <BodyContent>
         @if (editingMeeting != null)
         {
             <EditForm Model="editingMeeting" OnValidSubmit="SaveMeeting">
@@ -182,32 +182,32 @@ else
                 </div>
             </EditForm>
         }
-    </ModalBody>
-    <ModalFooter>
+    </BodyContent>
+    <FooterContent>
         <button class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
         <button class="btn btn-primary" @onclick="SaveMeeting">
             <i class="bi bi-save"></i> Guardar
         </button>
-    </ModalFooter>
+    </FooterContent>
 </Modal>
 
 <!-- Delete Confirmation Modal -->
 <Modal Show="@showDeleteModal" 
        ShowChanged="@((bool show) => showDeleteModal = show)"
        Title="Confirmar Eliminação">
-    <ModalBody>
+    <BodyContent>
         @if (deletingMeeting != null)
         {
             <p>Tem a certeza que quer eliminar a reunião <strong>@deletingMeeting.Title</strong>?</p>
             <p class="text-muted">Esta ação não pode ser revertida.</p>
         }
-    </ModalBody>
-    <ModalFooter>
+    </BodyContent>
+    <FooterContent>
         <button class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
         <button class="btn btn-danger" @onclick="DeleteMeeting">
             <i class="bi bi-trash"></i> Eliminar
         </button>
-    </ModalFooter>
+    </FooterContent>
 </Modal>
 
 @code {
