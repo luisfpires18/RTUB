@@ -757,9 +757,18 @@ else
                                     <td>@item.Rehearsal.Date.ToString("dd MMM yyyy")</td>
                                     <td>@(item.Instrument?.ToString() ?? "-")</td>
                                     <td>
-                                        @if (item.Attended)
+                                        @if (item.WillAttend)
                                         {
-                                            <span class="badge bg-success">Foi</span>
+                                            @if (item.Attended)
+                                            {
+                                                <span class="badge bg-success">Foi</span>
+                                                <span class="badge bg-success ms-1">Aprovado</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">Foi</span>
+                                                <span class="badge bg-warning ms-1">Pendente</span>
+                                            }
                                         }
                                         else
                                         {
@@ -799,6 +808,7 @@ else
     {
         public Rehearsal Rehearsal { get; set; } = null!;
         public RehearsalAttendance? Attendance { get; set; }
+        public bool WillAttend => Attendance?.WillAttend ?? false;
         public bool Attended => Attendance?.Attended ?? false;
         public InstrumentType? Instrument => Attendance?.Instrument;
     }
