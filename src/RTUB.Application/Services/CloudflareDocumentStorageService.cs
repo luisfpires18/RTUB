@@ -153,13 +153,16 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
                 response = await _s3Client.ListObjectsV2Async(request);
                 
                 // Add common prefixes (folders)
-                foreach (var commonPrefix in response.CommonPrefixes)
+                if (response.CommonPrefixes != null)
                 {
-                    // Extract folder name from prefix (e.g., "docs/Production/General/" -> "General")
-                    var folderName = commonPrefix.TrimEnd('/').Substring(environmentPrefix.Length);
-                    if (!string.IsNullOrEmpty(folderName))
+                    foreach (var commonPrefix in response.CommonPrefixes)
                     {
-                        folders.Add(folderName);
+                        // Extract folder name from prefix (e.g., "docs/Production/General/" -> "General")
+                        var folderName = commonPrefix.TrimEnd('/').Substring(environmentPrefix.Length);
+                        if (!string.IsNullOrEmpty(folderName))
+                        {
+                            folders.Add(folderName);
+                        }
                     }
                 }
 
