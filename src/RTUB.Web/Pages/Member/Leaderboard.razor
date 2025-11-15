@@ -56,30 +56,95 @@ else if (!leaderboardUsers.Any())
 }
 else
 {
-    <!-- Ranks Timeline Section -->
+    <!-- Ranks Timeline Section - Collapsible -->
     <div class="ranks-timeline-container mb-4">
-        <div class="ranks-timeline-header">
-            <h3><i class="bi bi-trophy"></i> Níveis de Classificação</h3>
+        <div class="ranks-timeline-header" @onclick="ToggleClassificationLevels" style="cursor: pointer;">
+            <h3>
+                <i class="bi bi-trophy"></i> Níveis de Classificação
+                <i class="bi @(isClassificationExpanded ? "bi-chevron-up" : "bi-chevron-down") ms-2"></i>
+            </h3>
         </div>
-        <div class="ranks-timeline">
-            @{
-                var allLevels = RankingConfig.Value.Levels.OrderBy(l => l.Level).ToList();
-                var lastIndex = allLevels.Count - 1;
-            }
-            @for (int i = 0; i < allLevels.Count; i++)
-            {
-                var levelDef = allLevels[i];
-                <div class="rank-timeline-item">
-                    <span class="rank-timeline-level">LEVEL @levelDef.Level</span>
-                    <span class="rank-timeline-label">@levelDef.Name.ToUpper()</span>
-                </div>
-                
-                @if (i < lastIndex)
-                {
-                    <div class="rank-timeline-connector"></div>
+        @if (isClassificationExpanded)
+        {
+            <div class="ranks-grid">
+                @{
+                    var allLevels = RankingConfig.Value.Levels.OrderBy(l => l.Level).ToList();
+                    // Custom visual order to create a snake pattern: 1,2,3 -> 6,5,4 -> 7,8,9 -> 10
+                    // This maps visual grid positions to level indices (0-based)
+                    var visualOrder = new[] { 0, 1, 2, 5, 4, 3, 6, 7, 8, 9 }; // indices for levels 1-10
                 }
-            }
-        </div>
+                @for (int visualIndex = 0; visualIndex < allLevels.Count; visualIndex++)
+                {
+                    var i = visualOrder[visualIndex]; // actual level index (0-based)
+                    var levelDef = allLevels[i];
+                    var isLastLevel = levelDef.Level == 10;
+                    var actualLevel = levelDef.Level; // 1-based level number
+                    
+                    // Grid positioning based on visual index
+                    var gridRow = (visualIndex / 3) + 1;
+                    var gridCol = (visualIndex % 3) + 1;
+                    
+                    // Special positioning for Level 10: place it under Level 9 (column 3)
+                    if (isLastLevel)
+                    {
+                        gridCol = 3;
+                    }
+                    
+                    <div class="rank-grid-item @(isLastLevel ? "rank-final" : "")" style="grid-row: @gridRow; grid-column: @gridCol;">
+                        <div class="rank-card">
+                            @if (isLastLevel)
+                            {
+                                <i class="bi bi-trophy-fill rank-trophy-icon"></i>
+                            }
+                            <span class="rank-level">LEVEL @levelDef.Level</span>
+                            <span class="rank-name">@levelDef.Name.ToUpper()</span>
+                        </div>
+                        
+                        @* Sequential connector logic: connect each level to the next (1→2→3→4→5→6→7→8→9→10) *@
+                        @if (actualLevel < 10)
+                        {
+                            // Find where the next level is positioned visually
+                            var nextLevelIndex = actualLevel; // next level is actualLevel + 1, but we need 0-based index
+                            var nextVisualIndex = Array.IndexOf(visualOrder, nextLevelIndex);
+                            
+                            var currentRow = (visualIndex / 3);
+                            var currentCol = (visualIndex % 3);
+                            var nextRow = (nextVisualIndex / 3);
+                            var nextCol = (nextVisualIndex % 3);
+                            
+                            @* Horizontal connector within the same row *@
+                            if (nextRow == currentRow)
+                            {
+                                @if (nextCol > currentCol)
+                                {
+                                    <div class="rank-connector-horizontal-right"></div>
+                                }
+                                else
+                                {
+                                    <div class="rank-connector-horizontal-left"></div>
+                                }
+                            }
+                            @* Vertical connector to next row *@
+                            else
+                            {
+                                @if (actualLevel == 3) @* 3→4: down *@
+                                {
+                                    <div class="rank-connector-down-right"></div>
+                                }
+                                else if (actualLevel == 6) @* 6→7: down *@
+                                {
+                                    <div class="rank-connector-down-left"></div>
+                                }
+                                else if (actualLevel == 9) @* 9→10: simple vertical connector *@
+                                {
+                                    <div class="rank-connector-down-right"></div>
+                                }
+                            }
+                        }
+                    </div>
+                }
+            </div>
+        }
     </div>
 
     <!-- Leaderboard Panel -->
@@ -89,9 +154,9 @@ else
         </div>
         <div class="leaderboard-body">
             @{
-                int position = 0;
+                int position = (currentPage - 1) * pageSize;
             }
-            @foreach (var item in leaderboardUsers)
+            @foreach (var item in paginatedLeaderboardUsers)
             {
                 position++;
                 <LeaderboardCard 
@@ -107,6 +172,15 @@ else
                     EventsAttended="@item.TotalEvents"
                     OnClick="@(() => OpenDetailsModal(item))" />
             }
+            
+            <!-- Pagination Component -->
+            <TablePagination CurrentPage="@currentPage"
+                             PageSize="@pageSize"
+                             TotalItems="@leaderboardUsers.Count"
+                             ItemLabel="membros"
+                             PageSizeOptions="@(new[] { 10, 20, 30, 40, 50 })"
+                             OnPageChanged="@HandlePageChanged"
+                             OnPageSizeChanged="@HandlePageSizeChanged" />
         </div>
     </div>
 }
@@ -194,9 +268,17 @@ else
 
 @code {
     private List<LeaderboardEntry>? leaderboardUsers;
+    private List<LeaderboardEntry> paginatedLeaderboardUsers = new();
     private LeaderboardEntry? viewingItem;
     private bool showDetailsModal = false;
     private bool showLeaderboard = false;
+    
+    // Classification levels collapsible state
+    private bool isClassificationExpanded = false;
+    
+    // Pagination state
+    private int currentPage = 1;
+    private int pageSize = 10;
 
 
 
@@ -272,6 +354,41 @@ else
             .OrderByDescending(e => e.RankProgress.CurrentLevel)
             .ThenByDescending(e => e.RankProgress.CurrentXp)
             .ToList();
+        
+        // Apply initial pagination
+        ApplyPagination();
+    }
+    
+    private void ToggleClassificationLevels()
+    {
+        isClassificationExpanded = !isClassificationExpanded;
+    }
+    
+    private void ApplyPagination()
+    {
+        if (leaderboardUsers == null)
+        {
+            paginatedLeaderboardUsers = new();
+            return;
+        }
+        
+        var skip = (currentPage - 1) * pageSize;
+        paginatedLeaderboardUsers = leaderboardUsers.Skip(skip).Take(pageSize).ToList();
+    }
+    
+    private Task HandlePageChanged(int newPage)
+    {
+        currentPage = newPage;
+        ApplyPagination();
+        return Task.CompletedTask;
+    }
+    
+    private Task HandlePageSizeChanged(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1; // Reset to first page when page size changes
+        ApplyPagination();
+        return Task.CompletedTask;
     }
 
     private void OpenDetailsModal(LeaderboardEntry item)
