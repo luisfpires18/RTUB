@@ -23,6 +23,7 @@ Backend:
 * Use design patterns only if applicable.
 * Use SOLID.
 * Isolate logic methods in classes; don’t write everything in Razor pages.
+* Creating migrations for entity framework will require a designer.cs associated with it.
 
 Tests:
 
