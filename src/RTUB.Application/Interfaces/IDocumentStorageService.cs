@@ -93,4 +93,10 @@ public interface IDocumentStorageService
     /// </summary>
     /// <param name="documentPath">The full path to the document to delete</param>
     Task DeleteDocumentAsync(string documentPath);
+    
+    /// <summary>
+    /// Deletes an entire folder and all its contents from storage
+    /// </summary>
+    /// <param name="folderPath">The full path to the folder to delete</param>
+    Task DeleteFolderAsync(string folderPath);
 }
