@@ -123,14 +123,13 @@
 /* Connector from Level 9 to Level 10 (L-shaped: left then down) */
 .rank-connector-to-final {
     position: absolute;
-    left: 50%;
+    right: 50%;
     top: 50%;
     width: calc(50% + 1rem);
     height: 2px;
     background: #6c757d;
     z-index: 1;
     pointer-events: none;
-    transform: translateX(-50%);
 }
 
 .rank-connector-to-final::after {
