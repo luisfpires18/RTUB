@@ -46,6 +46,10 @@ public class ApplicationUser : IdentityUser
     public bool RequirePasswordChange { get; set; } = false;
     public DateTime? LastLoginDate { get; set; }
 
+    // Ranking/Level system
+    public int ExperiencePoints { get; set; } = 0;
+    public int Level { get; set; } = 1;
+
     // Email notification preferences
     public bool Subscribed { get; set; } = true;
     

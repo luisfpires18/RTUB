@@ -43,6 +43,10 @@ public class Program
         services.AddHttpContextAccessor();
         services.AddScoped<AuditContext>(); // For audit logging in Blazor InteractiveServer components
 
+        // Configure Ranking system
+        services.Configure<RTUB.Application.Configuration.RankingConfiguration>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.RankingConfiguration.SectionName));
+
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
                                ?? "Data Source=app.db";
@@ -215,6 +219,7 @@ public class Program
         services.AddScoped<IRehearsalService, RehearsalService>();
         services.AddScoped<IRehearsalAttendanceService, RehearsalAttendanceService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
+        services.AddScoped<IRankingService, RankingService>();
         services.AddSingleton<IAudioStorageService, DriveAudioStorageService>();
         services.AddSingleton<ILyricStorageService, DriveLyricStorageService>();
         services.AddSingleton<IDocumentStorageService, DriveDocumentStorageService>();

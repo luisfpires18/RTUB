@@ -354,6 +354,12 @@ namespace RTUB.Migrations
                     b.Property<int?>("MonthTuno")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ExperiencePoints")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("MentorId");

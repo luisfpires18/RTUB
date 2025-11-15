@@ -1,0 +1,60 @@
+@namespace RTUB.Shared
+
+@*
+    RankCard Component
+    Displays user rank/level information with progress bar
+*@
+
+<div class="rank-card">
+    <div class="rank-header">
+        <div class="rank-icon-container">
+            <i class="bi bi-trophy-fill rank-icon"></i>
+        </div>
+        <div class="rank-info">
+            <h6 class="rank-title mb-1">
+                <strong>Nível @RankProgress.CurrentLevel</strong> - @RankProgress.CurrentRankName
+            </h6>
+            <div class="rank-xp-text">
+                <span class="current-xp">@RankProgress.CurrentXp XP</span>
+                @if (!RankProgress.IsMaxLevel)
+                {
+                    <span class="xp-separator">•</span>
+                    <span class="next-level-text">@RankProgress.XpToNextLevel XP para próximo nível</span>
+                }
+                else
+                {
+                    <span class="xp-separator">•</span>
+                    <span class="max-level-text">Nível Máximo!</span>
+                }
+            </div>
+        </div>
+    </div>
+    
+    @if (!RankProgress.IsMaxLevel)
+    {
+        <div class="rank-progress-container">
+            <div class="progress rank-progress-bar">
+                <div class="progress-bar" 
+                     role="progressbar" 
+                     style="width: @RankProgress.ProgressPercentage.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"
+                     aria-valuenow="@RankProgress.ProgressPercentage" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                    @if (RankProgress.ProgressPercentage > 15)
+                    {
+                        <span class="progress-text">@RankProgress.ProgressPercentage.ToString("F0")%</span>
+                    }
+                </div>
+            </div>
+            <div class="rank-level-markers">
+                <span class="level-marker current-level">Nível @RankProgress.CurrentLevel</span>
+                <span class="level-marker next-level">Nível @(RankProgress.CurrentLevel + 1)</span>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public RTUB.Application.Interfaces.RankProgressInfo RankProgress { get; set; } = null!;
+}
