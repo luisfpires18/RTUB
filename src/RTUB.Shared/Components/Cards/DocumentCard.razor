@@ -6,6 +6,18 @@
 *@
 
 <div class="card document-card h-100">
+    @* Admin Delete Button (top-right corner) *@
+    @if (IsAdmin)
+    {
+        <div class="document-admin-overlay">
+            <button class="btn btn-sm btn-danger" 
+                    @onclick="HandleDelete" 
+                    title="Eliminar documento">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    }
+    
     <div class="document-icon-header">
         <div class="document-icon-circle">
             <i class="bi @GetFileIcon()"></i>
@@ -48,6 +60,12 @@
     /// </summary>
     [Parameter]
     public DocumentMetadata Document { get; set; } = null!;
+    
+    /// <summary>
+    /// Whether the current user is an admin
+    /// </summary>
+    [Parameter]
+    public bool IsAdmin { get; set; }
 
     /// <summary>
     /// Callback when the view button is clicked
@@ -60,6 +78,12 @@
     /// </summary>
     [Parameter]
     public EventCallback<DocumentMetadata> OnDownload { get; set; }
+    
+    /// <summary>
+    /// Callback when the delete button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback<DocumentMetadata> OnDelete { get; set; }
 
     private bool IsPdf => Document.Extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase);
 
@@ -102,6 +126,14 @@
         if (OnDownload.HasDelegate)
         {
             await OnDownload.InvokeAsync(Document);
+        }
+    }
+    
+    private async Task HandleDelete()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync(Document);
         }
     }
 }

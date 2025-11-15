@@ -58,7 +58,8 @@ else
                    IsAdmin="@isAdmin"
                    OnUpload="@HandleUploadRequest"
                    OnDocumentView="@HandleDocumentView"
-                   OnDocumentDownload="@HandleDocumentDownload" />
+                   OnDocumentDownload="@HandleDocumentDownload"
+                   OnDocumentDelete="@HandleDocumentDeleteRequest" />
     }
 }
 
@@ -188,6 +189,18 @@ else
     </FooterContent>
 </Modal>
 
+@* Delete Document Confirmation Dialog *@
+<ConfirmDialog Show="@showDeleteDialog"
+               ShowChanged="@((bool show) => showDeleteDialog = show)"
+               Title="Eliminar Documento"
+               Message="@($"Tem a certeza que pretende eliminar o documento '{documentToDelete?.FileName}'?")"
+               WarningMessage="Esta ação não pode ser revertida."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="@ConfirmDeleteDocument"
+               OnCancel="@CancelDeleteDocument" />
+
 @code {
     private bool isLoading = true;
     private bool isAdmin = false;
@@ -215,6 +228,10 @@ else
     private bool isLoadingDocument = false;
     private string? documentUrl;
     private DocumentMetadata? viewingDocument;
+    
+    // Delete document dialog
+    private bool showDeleteDialog = false;
+    private DocumentMetadata? documentToDelete;
     
     // Allowed file extensions
     private readonly string[] allowedExtensions = { ".pdf", ".txt", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".ppt", ".pptx" };
@@ -450,6 +467,52 @@ else
         isLoadingDocument = false;
         documentUrl = null;
         viewingDocument = null;
+    }
+    
+    private void HandleDocumentDeleteRequest(DocumentMetadata document)
+    {
+        documentToDelete = document;
+        showDeleteDialog = true;
+    }
+    
+    private async Task ConfirmDeleteDocument()
+    {
+        if (documentToDelete == null)
+            return;
+            
+        try
+        {
+            await DocumentStorageService.DeleteDocumentAsync(documentToDelete.FilePath);
+            
+            // Reload documents for the folder containing this document
+            // Extract folder name from path like "docs/Development/FolderName/file.pdf" -> "FolderName"
+            var pathParts = documentToDelete.FilePath.Split('/');
+            if (pathParts.Length >= 3)
+            {
+                var folderName = pathParts[2]; // Index 2 is the folder name after docs/Environment/
+                if (folderDocuments.ContainsKey(folderName))
+                {
+                    var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{folderName}";
+                    folderDocuments[folderName] = await DocumentStorageService.ListDocumentsInFolderAsync(folderPath);
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao eliminar documento: {ex.Message}";
+        }
+        finally
+        {
+            documentToDelete = null;
+            showDeleteDialog = false;
+        }
+    }
+    
+    private void CancelDeleteDocument()
+    {
+        documentToDelete = null;
+        showDeleteDialog = false;
     }
 
     private string FormatFileSize(long bytes)

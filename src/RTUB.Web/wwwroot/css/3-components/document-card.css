@@ -102,6 +102,20 @@
   padding: 1.25rem;
 }
 
+/* Admin delete button overlay (top-right corner) */
+.document-admin-overlay {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 10;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+.document-card:hover .document-admin-overlay {
+  opacity: 1;
+}
+
 /* Actions section */
 .document-actions {
   display: flex;

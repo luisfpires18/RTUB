@@ -352,6 +352,36 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
         }
     }
 
+    public async Task DeleteDocumentAsync(string documentPath)
+    {
+        try
+        {
+            _logger.LogInformation("Attempting to delete document from bucket '{Bucket}' with key: {DocumentPath}", _bucketName, documentPath);
+
+            var request = new DeleteObjectRequest
+            {
+                BucketName = _bucketName,
+                Key = documentPath
+            };
+
+            var response = await _s3Client.DeleteObjectAsync(request);
+            
+            _logger.LogInformation("Successfully deleted document: {DocumentPath}. Response status: {StatusCode}", 
+                documentPath, response.HttpStatusCode);
+        }
+        catch (AmazonS3Exception ex)
+        {
+            _logger.LogError(ex, "S3 error deleting document. Bucket: '{BucketName}', Key: '{DocumentPath}', ErrorCode: {ErrorCode}, StatusCode: {StatusCode}, Message: {Message}", 
+                _bucketName, documentPath, ex.ErrorCode, ex.StatusCode, ex.Message);
+            throw new InvalidOperationException($"Failed to delete document '{documentPath}' from bucket '{_bucketName}'. Error: {ex.ErrorCode} - {ex.Message}", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error deleting document: {DocumentPath}", documentPath);
+            throw;
+        }
+    }
+
     public void Dispose()
     {
         _s3Client?.Dispose();
