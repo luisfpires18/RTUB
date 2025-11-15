@@ -279,8 +279,8 @@ else
                                         <MonthYearPicker Label="Mês/Ano LEITÃO"
                                                          Icon="calendar3"
                                                          LabelCssClass="text-white-full"
-                                                         Year="@editUser?.YearLeitao"
-                                                         Month="@editUser?.MonthLeitao"
+                                                         @bind-Year="@editUser!.YearLeitao"
+                                                         @bind-Month="@editUser!.MonthLeitao"
                                                          @bind-Value="LeitaoDate" />
                                     </div>
                                     @if (!user.IsOnlyLeitao())
@@ -289,8 +289,8 @@ else
                                             <MonthYearPicker Label="Mês/Ano CALOIRO"
                                                              Icon="calendar3"
                                                              LabelCssClass="text-white-full"
-                                                             Year="@editUser?.YearCaloiro"
-                                                             Month="@editUser?.MonthCaloiro"
+                                                             @bind-Year="@editUser!.YearCaloiro"
+                                                             @bind-Month="@editUser!.MonthCaloiro"
                                                              @bind-Value="CaloiroDate" />
                                         </div>
                                     }
@@ -300,8 +300,8 @@ else
                                             <MonthYearPicker Label="Mês/Ano TUNO"
                                                              Icon="calendar3"
                                                              LabelCssClass="text-white-full"
-                                                             Year="@editUser?.YearTuno"
-                                                             Month="@editUser?.MonthTuno"
+                                                             @bind-Year="@editUser!.YearTuno"
+                                                             @bind-Month="@editUser!.MonthTuno"
                                                              @bind-Value="TunoDate" />
                                         </div>
                                     }

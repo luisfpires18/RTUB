@@ -277,8 +277,8 @@ else
                     <div class="col-md-4 mb-3">
                         <MonthYearPicker Label="Mês/Ano de entrada Leitão"
                                          Icon="calendar-plus"
-                                         Year="@editingUser.YearLeitao"
-                                         Month="@editingUser.MonthLeitao"
+                                         @bind-Year="@editingUser.YearLeitao"
+                                         @bind-Month="@editingUser.MonthLeitao"
                                          @bind-Value="LeitaoDate" />
                     </div>
                 }
@@ -288,8 +288,8 @@ else
                     <div class="col-md-4 mb-3">
                         <MonthYearPicker Label="Mês/Ano de passagem a Caloiro"
                                          Icon="calendar-event"
-                                         Year="@editingUser.YearCaloiro"
-                                         Month="@editingUser.MonthCaloiro"
+                                         @bind-Year="@editingUser.YearCaloiro"
+                                         @bind-Month="@editingUser.MonthCaloiro"
                                          @bind-Value="CaloiroDate" />
                     </div>
                 }
@@ -299,8 +299,8 @@ else
                     <div class="col-md-4 mb-3">
                         <MonthYearPicker Label="Mês/Ano de passagem a Tuno"
                                          Icon="calendar-check"
-                                         Year="@editingUser.YearTuno"
-                                         Month="@editingUser.MonthTuno"
+                                         @bind-Year="@editingUser.YearTuno"
+                                         @bind-Month="@editingUser.MonthTuno"
                                          @bind-Value="TunoDate" />
                     </div>
                 }

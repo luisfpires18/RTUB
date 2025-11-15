@@ -100,10 +100,22 @@
     public int? Year { get; set; }
 
     /// <summary>
+    /// Event callback when year changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<int?> YearChanged { get; set; }
+
+    /// <summary>
     /// Direct month value (optional, overrides Value if provided)
     /// </summary>
     [Parameter]
     public int? Month { get; set; }
+
+    /// <summary>
+    /// Event callback when month changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<int?> MonthChanged { get; set; }
 
     /// <summary>
     /// Whether the field is required
@@ -207,7 +219,13 @@
         }
         
         isInternalUpdate = true;
+        
+        // Emit both the combined Value and individual Month change
         await ValueChanged.InvokeAsync(Value);
+        if (MonthChanged.HasDelegate)
+        {
+            await MonthChanged.InvokeAsync(selectedMonth);
+        }
     }
 
     private async Task OnYearChanged(ChangeEventArgs e)
@@ -237,6 +255,12 @@
         }
         
         isInternalUpdate = true;
+        
+        // Emit both the combined Value and individual Year change
         await ValueChanged.InvokeAsync(Value);
+        if (YearChanged.HasDelegate)
+        {
+            await YearChanged.InvokeAsync(selectedYear);
+        }
     }
 }
