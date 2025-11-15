@@ -61,7 +61,7 @@ else
     <div class="ranks-timeline-container mb-4">
         <div class="ranks-timeline-header" @onclick="ToggleClassificationLevels" style="cursor: pointer;">
             <h3>
-                <i class="bi bi-trophy"></i> Níveis de Classificação
+                <i class="bi bi-trophy"></i> Níveis de Alcoolismo
                 <i class="bi @(isClassificationExpanded ? "bi-chevron-up" : "bi-chevron-down") ms-2"></i>
             </h3>
         </div>
@@ -78,10 +78,10 @@ else
                         </div>
                     }
                     <h5 class="text-white mb-3">
-                        <i class="bi bi-info-circle-fill text-primary me-2"></i>@rankingStoryLabel.Title
+                        <i class="bi bi-info-circle-fill text-primary me-2"></i>@rankingStoryLabel!.Title
                     </h5>
                     <div class="text-white-opacity" style="white-space: pre-line; line-height: 1.6;">
-                        @rankingStoryLabel.Content
+                        @rankingStoryLabel!.Content
                     </div>
                 </div>
             }
