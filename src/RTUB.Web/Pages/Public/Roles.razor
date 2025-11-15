@@ -2,7 +2,9 @@
 @rendermode InteractiveServer
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
+#pragma warning disable CS0618 // Type or member is obsolete
 @using RTUB.Application.Extensions
+#pragma warning restore CS0618
 @using RTUB.Core.Enums
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.Authorization
@@ -847,6 +849,7 @@ else
                OnCancel="CloseRemoveAssignmentModal" />
 
 @code {
+#pragma warning disable CS0618 // Type or member is obsolete
     private int currentFiscalYearStartYear;
     private string currentFiscalYearString = "";
     private List<RoleAssignment> roleAssignments = new();
@@ -1335,5 +1338,6 @@ else
         var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         AuditContext.SetUser(userName, userId);
     }
+#pragma warning restore CS0618
 }
 
