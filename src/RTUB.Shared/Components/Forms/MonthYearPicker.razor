@@ -5,7 +5,7 @@
     User-friendly month/year selector with dropdown menus instead of native HTML5 month input
 *@
 
-<div class="form-group @CssClass">
+<div class="form-group month-year-picker-wrapper @CssClass">
     @if (!string.IsNullOrEmpty(Label))
     {
         <label class="form-label fw-semibold @LabelCssClass">
@@ -26,7 +26,8 @@
             <select class="form-select @InputCssClass month-year-picker" 
                     @bind="SelectedMonthString"
                     @bind:event="onchange"
-                    disabled="@Disabled">
+                    disabled="@Disabled"
+                    aria-label="@GetMonthAriaLabel()">
                 <option value="" disabled>Selecionar...</option>
                 <option value="1">Janeiro</option>
                 <option value="2">Fevereiro</option>
@@ -46,7 +47,8 @@
             <select class="form-select @InputCssClass month-year-picker" 
                     @bind="SelectedYearString"
                     @bind:event="onchange"
-                    disabled="@Disabled">
+                    disabled="@Disabled"
+                    aria-label="@GetYearAriaLabel()">
                 <option value="" disabled>Selecionar...</option>
                 @for (int year = DateTime.Now.Year; year >= MinYear; year--)
                 {
@@ -63,8 +65,61 @@
 </div>
 
 <style>
+    /* Hide disabled placeholder options to prevent hover effects */
     .month-year-picker option[disabled] {
         display: none;
+    }
+
+    /* Mobile responsiveness - improve touch targets on small screens */
+    .month-year-picker-wrapper .form-select {
+        min-height: 44px; /* iOS recommended minimum touch target size */
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+
+    /* Larger touch targets on mobile */
+    @@media (max-width: 768px) {
+        .month-year-picker-wrapper .form-select {
+            min-height: 48px;
+            font-size: 16px;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .month-year-picker-wrapper .row {
+            margin-left: 0;
+            margin-right: 0;
+        }
+
+        .month-year-picker-wrapper .col-6 {
+            padding-left: 0.25rem;
+            padding-right: 0.25rem;
+        }
+    }
+
+    /* Extra small screens - stack dropdowns vertically if needed */
+    @@media (max-width: 360px) {
+        .month-year-picker-wrapper .col-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        .month-year-picker-wrapper .row {
+            row-gap: 0.5rem;
+        }
+    }
+
+    /* Improve focus visibility for accessibility */
+    .month-year-picker:focus {
+        outline: 2px solid #0d6efd;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    /* Dark mode support */
+    @@media (prefers-color-scheme: dark) {
+        .month-year-picker option {
+            background-color: #212529;
+            color: #fff;
+        }
     }
 </style>
 
@@ -247,5 +302,23 @@
             }
         }
         isInternalUpdate = false;
+    }
+
+    /// <summary>
+    /// Gets the aria-label for the month dropdown for accessibility
+    /// </summary>
+    private string GetMonthAriaLabel()
+    {
+        var baseLabel = !string.IsNullOrEmpty(Label) ? $"{Label} - Mês" : "Mês";
+        return Required ? $"{baseLabel} (obrigatório)" : baseLabel;
+    }
+
+    /// <summary>
+    /// Gets the aria-label for the year dropdown for accessibility
+    /// </summary>
+    private string GetYearAriaLabel()
+    {
+        var baseLabel = !string.IsNullOrEmpty(Label) ? $"{Label} - Ano" : "Ano";
+        return Required ? $"{baseLabel} (obrigatório)" : baseLabel;
     }
 }
