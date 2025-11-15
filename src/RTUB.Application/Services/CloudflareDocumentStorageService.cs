@@ -40,7 +40,7 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
         }
     }
 
-    public async Task<string?> GetDocumentUrlAsync(string documentPath)
+    public async Task<string?> GetDocumentUrlAsync(string documentPath, bool forceDownload = false)
     {
         try
         {
@@ -52,17 +52,31 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
                 return null;
             }
 
-            // Generate pre-signed URL with content type for PDF
+            // Generate pre-signed URL
             var request = new GetPreSignedUrlRequest
             {
                 BucketName = _bucketName,
                 Key = documentPath,
-                Expires = DateTime.UtcNow.AddMinutes(_urlExpirationMinutes),
-                ResponseHeaderOverrides = new ResponseHeaderOverrides
+                Expires = DateTime.UtcNow.AddMinutes(_urlExpirationMinutes)
+            };
+
+            // If forceDownload is true, set content-disposition to attachment
+            // Otherwise, set content-type for PDF viewing
+            if (forceDownload)
+            {
+                var fileName = Path.GetFileName(documentPath);
+                request.ResponseHeaderOverrides = new ResponseHeaderOverrides
+                {
+                    ContentDisposition = $"attachment; filename=\"{fileName}\""
+                };
+            }
+            else
+            {
+                request.ResponseHeaderOverrides = new ResponseHeaderOverrides
                 {
                     ContentType = "application/pdf"
-                }
-            };
+                };
+            }
 
             var url = _s3Client.GetPreSignedURL(request);
             return url;
