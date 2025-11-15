@@ -56,6 +56,13 @@
     background-color: #f8f9fa;
 }
 
+/* Override Bootstrap's dropdown active state to use purple primary color */
+.dropdown-item.active,
+.dropdown-item:active {
+    color: #ffffff !important;
+    background-color: var(--bs-primary) !important;
+}
+
 /* Fix text-muted to be white for dark background */
 .text-muted {
     --bs-text-opacity: 1;
