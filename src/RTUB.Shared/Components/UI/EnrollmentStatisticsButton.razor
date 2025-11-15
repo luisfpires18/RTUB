@@ -1,0 +1,258 @@
+@namespace RTUB.Shared
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Helpers
+@inject IEnrollmentService EnrollmentService
+@inject UserManager<ApplicationUser> UserManager
+
+@*
+    Enrollment Statistics Button Component
+    Shows statistics of member enrollments in events
+    Admin-only component
+*@
+
+@if (IsAdmin)
+{
+    <button class="btn btn-outline-primary me-2" @onclick="OpenStatsModal" title="Ver Estatísticas">
+        <i class="bi bi-bar-chart"></i> Estatísticas
+    </button>
+}
+
+<!-- Statistics Modal -->
+@if (showStatsModal)
+{
+    <Modal Show="@showStatsModal"
+           ShowChanged="@((bool show) => showStatsModal = show)"
+           Title="Estatísticas de Inscrições"
+           Size="Modal.ModalSize.Large"
+           Centered="true">
+        <BodyContent>
+            <div class="mb-3">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Data Início</label>
+                        <input type="date" class="form-control" @bind="statsStartDate" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Data Fim</label>
+                        <input type="date" class="form-control" @bind="statsEndDate" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary w-100 d-block" @onclick="LoadStats">Carregar Estatísticas</button>
+                    </div>
+                </div>
+            </div>
+
+            @if (enrollmentStatsUsers != null && enrollmentStatsUsers.Any())
+            {
+                <!-- Search Bar -->
+                <div class="mb-3">
+                    <TableSearchBar SearchTerm="@statsSearchTerm"
+                                   Placeholder="Pesquisar por nome..."
+                                   OnSearchChanged="@HandleStatsSearchChanged" />
+                </div>
+
+                @if (!filteredStatsUsers.Any())
+                {
+                    <EmptyState 
+                        Title="Nenhum membro encontrado com os critérios de pesquisa." 
+                        Icon="bi-search" />
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th @onclick="() => SortStatsBy(nameof(UserEnrollmentStats.UserName))" class="clickable-row">
+                                        Membro
+                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserEnrollmentStats.UserName)))
+                                        {
+                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserEnrollmentStats.UserName))"></i>
+                                        }
+                                    </th>
+                                    <th @onclick="() => SortStatsBy(nameof(UserEnrollmentStats.Count))" class="clickable-row">
+                                        Total de Inscrições
+                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserEnrollmentStats.Count)))
+                                        {
+                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserEnrollmentStats.Count))"></i>
+                                        }
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var stat in paginatedStatsUsers)
+                                {
+                                    <tr>
+                                        <td>@stat.UserName</td>
+                                        <td>@stat.Count</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <TablePagination CurrentPage="@statsPaginationHelper.CurrentPage"
+                                    PageSize="@statsPaginationHelper.PageSize"
+                                    TotalItems="@filteredStatsUsers.Count"
+                                    ItemLabel="membros"
+                                    PageSizeOptions="@(new[] { 5, 10, 15, 20 })"
+                                    OnPageChanged="@HandleStatsPageChange"
+                                    OnPageSizeChanged="@HandleStatsPageSizeChange" />
+                }
+            }
+            else if (enrollmentStatsUsers != null)
+            {
+                <EmptyState 
+                    Title="Sem dados para o período selecionado." 
+                    Icon="bi-info-circle" />
+            }
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseStatsModal">Fechar</button>
+        </FooterContent>
+    </Modal>
+}
+
+@code {
+    [Parameter]
+    public bool IsAdmin { get; set; }
+
+    private bool showStatsModal = false;
+    private DateTime statsStartDate = DateTime.Today.AddDays(-30);
+    private DateTime statsEndDate = DateTime.Today;
+    private List<UserEnrollmentStats>? enrollmentStatsUsers;
+    private List<UserEnrollmentStats> filteredStatsUsers = new();
+    private List<UserEnrollmentStats> paginatedStatsUsers = new();
+    private string statsSearchTerm = string.Empty;
+    private SortableTableHelper<UserEnrollmentStats> statsSortHelper = new() { SortColumn = nameof(UserEnrollmentStats.Count), SortAscending = false };
+    private PaginationHelper<UserEnrollmentStats> statsPaginationHelper = new() { PageSize = 10 };
+
+    private void OpenStatsModal()
+    {
+        showStatsModal = true;
+    }
+
+    private void CloseStatsModal()
+    {
+        showStatsModal = false;
+    }
+
+    private async Task LoadStats()
+    {
+        try
+        {
+            var allEnrollments = await EnrollmentService.GetAllEnrollmentsAsync();
+            
+            // Filter by date range
+            var filteredEnrollments = allEnrollments
+                .Where(e => e.Event != null && 
+                           e.Event.Date.Date >= statsStartDate.Date && 
+                           e.Event.Date.Date <= statsEndDate.Date &&
+                           e.WillAttend)
+                .ToList();
+
+            // Group by user and count
+            var stats = filteredEnrollments
+                .GroupBy(e => e.UserId)
+                .Select(g => new { UserId = g.Key, Count = g.Count() })
+                .ToList();
+
+            enrollmentStatsUsers = new List<UserEnrollmentStats>();
+            
+            foreach (var stat in stats)
+            {
+                var user = await UserManager.FindByIdAsync(stat.UserId);
+                if (user != null)
+                {
+                    enrollmentStatsUsers.Add(new UserEnrollmentStats
+                    {
+                        UserId = stat.UserId,
+                        UserName = $"{user.FirstName} \"{user.Nickname}\"",
+                        Count = stat.Count
+                    });
+                }
+            }
+            
+            FilterStats();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading stats: {ex.Message}");
+            enrollmentStatsUsers = new List<UserEnrollmentStats>();
+        }
+    }
+
+    private void FilterStats()
+    {
+        if (enrollmentStatsUsers == null)
+        {
+            filteredStatsUsers = new List<UserEnrollmentStats>();
+            paginatedStatsUsers = new List<UserEnrollmentStats>();
+            return;
+        }
+
+        // Apply search
+        if (string.IsNullOrWhiteSpace(statsSearchTerm))
+        {
+            filteredStatsUsers = enrollmentStatsUsers.ToList();
+        }
+        else
+        {
+            var search = statsSearchTerm.ToLower();
+            filteredStatsUsers = enrollmentStatsUsers
+                .Where(s => s.UserName.ToLower().Contains(search))
+                .ToList();
+        }
+
+        // Apply sorting
+        var columnSelectors = new Dictionary<string, Func<UserEnrollmentStats, IComparable>>
+        {
+            { nameof(UserEnrollmentStats.UserName), s => s.UserName },
+            { nameof(UserEnrollmentStats.Count), s => s.Count }
+        };
+        filteredStatsUsers = statsSortHelper.ApplySort(filteredStatsUsers, columnSelectors);
+
+        // Apply pagination
+        paginatedStatsUsers = statsPaginationHelper.GetPageData(filteredStatsUsers);
+    }
+
+    private async Task HandleStatsSearchChanged(string searchTerm)
+    {
+        statsSearchTerm = searchTerm;
+        FilterStats();
+        await Task.CompletedTask;
+    }
+
+    private void SortStatsBy(string columnName)
+    {
+        statsSortHelper.ChangeSortColumn(columnName);
+        FilterStats();
+    }
+
+    private async Task HandleStatsPageChange(int newPage)
+    {
+        statsPaginationHelper.GoToPage(newPage);
+        paginatedStatsUsers = statsPaginationHelper.GetPageData(filteredStatsUsers);
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleStatsPageSizeChange(int newPageSize)
+    {
+        statsPaginationHelper.PageSize = newPageSize;
+        statsPaginationHelper.Reset();
+        paginatedStatsUsers = statsPaginationHelper.GetPageData(filteredStatsUsers);
+        await Task.CompletedTask;
+    }
+
+    private class UserEnrollmentStats
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+}
