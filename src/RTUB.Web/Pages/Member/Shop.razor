@@ -728,17 +728,17 @@ else
             
             if (isProductCreateMode)
             {
-                await ProductService.CreateAsync(editingProduct);
-                
-                // If image was cropped, upload it now with normalized name
+                // If image was cropped, upload it BEFORE creating entity
                 if (croppedProductImageBytes != null && croppedProductImageBytes.Length > 0)
                 {
                     using var stream = new MemoryStream(croppedProductImageBytes);
                     var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingProduct.Name);
                     var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/webp", "products", normalizedName);
                     editingProduct.ImageUrl = imageUrl;
-                    await ProductService.UpdateAsync(editingProduct);
                 }
+                
+                // Create entity with imageUrl already set (single audit log)
+                await ProductService.CreateAsync(editingProduct);
             }
             else
             {

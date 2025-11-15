@@ -489,9 +489,7 @@ else
         {
             if (isInstrumentCreateMode)
             {
-                await InstrumentService.CreateAsync(editingInstrument);
-                
-                // If full image was cropped, upload it now with normalized name
+                // If full image was cropped, upload it BEFORE creating entity
                 if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
                 {
                     using var stream = new MemoryStream(croppedInstrumentImageBytes);
@@ -500,7 +498,7 @@ else
                     editingInstrument.ImageUrl = imageUrl;
                 }
                 
-                // If thumbnail was cropped, upload it as well
+                // If thumbnail was cropped, upload it BEFORE creating entity
                 if (croppedThumbnailImageBytes != null && croppedThumbnailImageBytes.Length > 0)
                 {
                     using var stream = new MemoryStream(croppedThumbnailImageBytes);
@@ -509,10 +507,8 @@ else
                     editingInstrument.ThumbnailUrl = thumbnailUrl;
                 }
                 
-                if (croppedInstrumentImageBytes != null || croppedThumbnailImageBytes != null)
-                {
-                    await InstrumentService.UpdateAsync(editingInstrument);
-                }
+                // Create entity with imageUrl and thumbnailUrl already set (single audit log)
+                await InstrumentService.CreateAsync(editingInstrument);
             }
             else
             {
