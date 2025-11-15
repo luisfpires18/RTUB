@@ -82,7 +82,7 @@
                                         }
                                     </th>
                                     <th @onclick="() => SortStatsBy(nameof(UserEnrollmentStats.FutureCount))" class="clickable-row">
-                                        Total de Inscrições
+                                        Participações Futuras
                                         @if (statsSortHelper.IsActiveSortColumn(nameof(UserEnrollmentStats.FutureCount)))
                                         {
                                             <i class="bi @statsSortHelper.GetSortIcon(nameof(UserEnrollmentStats.FutureCount))"></i>

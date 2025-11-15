@@ -26,7 +26,7 @@
            Size="Modal.ModalSize.Large"
            Centered="true">
         <BodyContent>
-            @if (myEnrollments == null || !myEnrollments.Any())
+            @if (eventEnrollments == null || !eventEnrollments.Any())
             {
                 <EmptyState 
                     Title="Sem inscrições registadas." 
@@ -53,14 +53,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var enrollment in myEnrollments)
+                            @foreach (var item in eventEnrollments)
                             {
                                 <tr>
-                                    <td>@enrollment.Event?.Date.ToString("dd MMM yyyy")</td>
-                                    <td>@enrollment.Event?.Name</td>
-                                    <td>@(enrollment.Instrument?.ToString() ?? "-")</td>
+                                    <td>@item.Event.Date.ToString("dd MMM yyyy")</td>
+                                    <td>@item.Event.Name</td>
+                                    <td>@(item.Instrument?.ToString() ?? "-")</td>
                                     <td>
-                                        @if (enrollment.WillAttend)
+                                        @if (item.WillAttend)
                                         {
                                             <span class="badge bg-success">Foi</span>
                                         }
@@ -84,10 +84,18 @@
 
 @code {
     private bool showMyEnrollmentsModal = false;
-    private List<Enrollment> myEnrollments = new();
+    private List<EventEnrollmentDisplay> eventEnrollments = new();
     private int enrollmentCount = 0;
     private int totalRecentEvents = 0;
     private string? currentUserId;
+
+    private class EventEnrollmentDisplay
+    {
+        public Event Event { get; set; } = null!;
+        public Enrollment? Enrollment { get; set; }
+        public bool WillAttend => Enrollment?.WillAttend ?? false;
+        public InstrumentType? Instrument => Enrollment?.Instrument;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -121,20 +129,32 @@
 
         try
         {
-            // Get user's enrollments for past events
-            myEnrollments = (await EnrollmentService.GetEnrollmentsByUserIdAsync(currentUserId))
-                .Where(e => e.Event != null && e.Event.Date < DateTime.Today)
-                .OrderByDescending(e => e.Event!.Date)
+            // Get last 10 past events (globally)
+            var recentEvents = await EventService.GetPastEventsAsync(10);
+            var pastEvents = recentEvents
+                .Where(e => !e.IsCancelled && e.Date < DateTime.Today)
+                .OrderByDescending(e => e.Date)
                 .Take(10)
                 .ToList();
 
-            totalRecentEvents = myEnrollments.Count;
-            enrollmentCount = myEnrollments.Count(e => e.WillAttend);
+            // Get user's enrollments
+            var userEnrollments = (await EnrollmentService.GetEnrollmentsByUserIdAsync(currentUserId))
+                .ToDictionary(e => e.EventId, e => e);
+
+            // Create display list combining events with enrollment status
+            eventEnrollments = pastEvents.Select(e => new EventEnrollmentDisplay
+            {
+                Event = e,
+                Enrollment = userEnrollments.ContainsKey(e.Id) ? userEnrollments[e.Id] : null
+            }).ToList();
+
+            totalRecentEvents = eventEnrollments.Count;
+            enrollmentCount = eventEnrollments.Count(e => e.WillAttend);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading enrollments: {ex.Message}");
-            myEnrollments = new List<Enrollment>();
+            eventEnrollments = new List<EventEnrollmentDisplay>();
         }
     }
 }
