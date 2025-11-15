@@ -101,42 +101,69 @@ public class Program
             options.AccessDeniedPath = "/login";
             options.Events = new CookieAuthenticationEvents
             {
-                OnValidatePrincipal = context =>
+                OnValidatePrincipal = async context =>
                 {
                     var logger = context.HttpContext?.RequestServices?.GetRequiredService<ILogger<Program>>();
                     var cache = context.HttpContext?.RequestServices?.GetService<IMemoryCache>();
+                    var userManager = context.HttpContext?.RequestServices?.GetService<UserManager<ApplicationUser>>();
 
-                    if (logger == null || cache == null)
+                    if (logger == null || cache == null || userManager == null)
                     {
-                        return Task.CompletedTask;
+                        return;
                     }
 
                     var userName = context.Principal?.Identity?.Name;
 
                     if (string.IsNullOrWhiteSpace(userName))
                     {
-                        return Task.CompletedTask;
+                        return;
                     }
 
                     var issuedUtc = context.Properties?.IssuedUtc?.UtcDateTime ?? DateTime.MinValue;
-                    var cacheKey = $"login-log:{userName}:{issuedUtc.Ticks}";
+                    var logCacheKey = $"login-log:{userName}:{issuedUtc.Ticks}";
 
-                    if (cache.TryGetValue(cacheKey, out _))
+                    // Log once per session using cache
+                    if (!cache.TryGetValue(logCacheKey, out _))
                     {
-                        return Task.CompletedTask;
+                        cache.Set(logCacheKey, true, new MemoryCacheEntryOptions
+                        {
+                            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(12)
+                        });
+
+                        logger.LogInformation(
+                            "User {UserName} authenticated via cookie validation at {LoginTime}",
+                            userName,
+                            DateTime.UtcNow);
                     }
 
-                    cache.Set(cacheKey, true, new MemoryCacheEntryOptions
+                    // Update LastLoginDate to reflect current activity
+                    // This ensures the "Estado de login" on /owner/user-roles shows accurate online status
+                    // Use a separate cache key to update periodically (every 5 minutes) instead of on every request
+                    var lastLoginUpdateCacheKey = $"lastlogin-update:{userName}:{issuedUtc.Ticks}";
+                    
+                    if (!cache.TryGetValue(lastLoginUpdateCacheKey, out _))
                     {
-                        AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(12)
-                    });
-
-                    logger.LogInformation(
-                        "User {UserName} authenticated via cookie validation at {LoginTime}",
-                        userName,
-                        DateTime.UtcNow);
-
-                    return Task.CompletedTask;
+                        try
+                        {
+                            var user = await userManager.FindByNameAsync(userName);
+                            if (user != null)
+                            {
+                                user.LastLoginDate = DateTime.UtcNow;
+                                await userManager.UpdateAsync(user);
+                                
+                                // Cache this update for 5 minutes to avoid excessive database writes
+                                cache.Set(lastLoginUpdateCacheKey, true, new MemoryCacheEntryOptions
+                                {
+                                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                                });
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // Log error but don't fail authentication
+                            logger.LogError(ex, "Failed to update LastLoginDate for user {UserName} during cookie validation", userName);
+                        }
+                    }
                 }
             };
         });
