@@ -64,17 +64,19 @@ else
                 <i class="bi bi-trophy"></i> Níveis de Classificação
                 <i class="bi @(isClassificationExpanded ? "bi-chevron-up" : "bi-chevron-down") ms-2"></i>
             </h3>
-            @if (rankingStoryLabel != null)
-            {
-                <LabelEditButton CurrentLabel="@rankingStoryLabel" OnEditClick="@OpenEditModal" CssClass="text-white" />
-            }
         </div>
         @if (isClassificationExpanded)
         {
             @* Ranking Story Section *@
             @if (rankingStoryLabel != null && rankingStoryLabel.IsActive)
             {
-                <div class="ranking-story-panel mb-4" style="background-color: #1a1a1b; border: 1px solid #343536; border-radius: 8px; padding: 1.5rem;">
+                <div class="ranking-story-panel mb-4" style="background-color: #1a1a1b; border: 1px solid #343536; border-radius: 8px; padding: 1.5rem; position: relative;">
+                    @if (rankingStoryLabel != null)
+                    {
+                        <div style="position: absolute; top: 1rem; right: 1rem;">
+                            <LabelEditButton CurrentLabel="@rankingStoryLabel" OnEditClick="@OpenEditModal" CssClass="text-white" />
+                        </div>
+                    }
                     <h5 class="text-white mb-3">
                         <i class="bi bi-info-circle-fill text-primary me-2"></i>@rankingStoryLabel.Title
                     </h5>
@@ -170,6 +172,14 @@ else
         <div class="leaderboard-header">
             <h2><i class="bi bi-trophy-fill"></i> Tabela de Classificação</h2>
         </div>
+        
+        <!-- Search Bar -->
+        <div class="px-3 pt-3">
+            <TableSearchBar SearchTerm="@searchTerm"
+                           Placeholder="Pesquisar membros na classificação..."
+                           OnSearchChanged="@HandleSearchChanged" />
+        </div>
+        
         <div class="leaderboard-body">
             @{
                 int position = (currentPage - 1) * pageSize;
@@ -194,7 +204,7 @@ else
             <!-- Pagination Component -->
             <TablePagination CurrentPage="@currentPage"
                              PageSize="@pageSize"
-                             TotalItems="@leaderboardUsers.Count"
+                             TotalItems="@GetTotalItemsCount()"
                              ItemLabel="membros"
                              PageSizeOptions="@(new[] { 10, 20, 30, 40, 50 })"
                              OnPageChanged="@HandlePageChanged"
@@ -345,6 +355,10 @@ else
     private int currentPage = 1;
     private int pageSize = 10;
 
+    // Search state
+    private string searchTerm = string.Empty;
+    private List<LeaderboardEntry>? filteredLeaderboardUsers;
+
     // Label editing
     private Label? rankingStoryLabel;
     private Label? editingLabel;
@@ -449,8 +463,46 @@ else
             return;
         }
         
+        // Apply search filter if search term exists
+        var dataToPage = string.IsNullOrWhiteSpace(searchTerm) 
+            ? leaderboardUsers 
+            : filteredLeaderboardUsers ?? leaderboardUsers;
+        
         var skip = (currentPage - 1) * pageSize;
-        paginatedLeaderboardUsers = leaderboardUsers.Skip(skip).Take(pageSize).ToList();
+        paginatedLeaderboardUsers = dataToPage.Skip(skip).Take(pageSize).ToList();
+    }
+    
+    private Task HandleSearchChanged(string newSearchTerm)
+    {
+        searchTerm = newSearchTerm;
+        currentPage = 1; // Reset to first page when search changes
+        
+        if (leaderboardUsers == null)
+        {
+            filteredLeaderboardUsers = new();
+            ApplyPagination();
+            return Task.CompletedTask;
+        }
+        
+        // Filter leaderboard entries based on search term
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredLeaderboardUsers = null;
+        }
+        else
+        {
+            var searchLower = searchTerm.ToLower();
+            filteredLeaderboardUsers = leaderboardUsers
+                .Where(e => 
+                    e.User.Nickname.ToLower().Contains(searchLower) ||
+                    e.User.FirstName.ToLower().Contains(searchLower) ||
+                    e.User.LastName.ToLower().Contains(searchLower) ||
+                    e.RankProgress.CurrentRankName.ToLower().Contains(searchLower))
+                .ToList();
+        }
+        
+        ApplyPagination();
+        return Task.CompletedTask;
     }
     
     private Task HandlePageChanged(int newPage)
@@ -478,6 +530,15 @@ else
     {
         showDetailsModal = false;
         viewingItem = null;
+    }
+
+    private int GetTotalItemsCount()
+    {
+        if (leaderboardUsers == null) return 0;
+        
+        return string.IsNullOrWhiteSpace(searchTerm)
+            ? leaderboardUsers.Count
+            : filteredLeaderboardUsers?.Count ?? 0;
     }
 
     private void OpenEditModal(Label label)
