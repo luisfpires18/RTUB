@@ -8,12 +8,15 @@
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Data
+@using RTUB.Application.Configuration
+@using RTUB.Core.Enums
 @using RTUB.Shared
 @using RTUB.Shared.Components.Ranking
 @inject UserManager<ApplicationUser> UserManager
 @inject IRankingService RankingService
 @inject ApplicationDbContext DbContext
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.Extensions.Options.IOptions<RankingConfiguration> RankingConfig
 @attribute [Authorize]
 
 @if (!showLeaderboard)
@@ -53,6 +56,36 @@ else if (!leaderboardUsers.Any())
 }
 else
 {
+    <!-- Ranks Timeline Section -->
+    <div class="ranks-timeline-container mb-4">
+        <div class="ranks-timeline-header">
+            <h3><i class="bi bi-trophy"></i> Níveis de Classificação</h3>
+        </div>
+        <div class="ranks-timeline">
+            @foreach (var levelDef in RankingConfig.Value.Levels.OrderBy(l => l.Level))
+            {
+                var nextLevel = RankingConfig.Value.Levels.Where(l => l.Level > levelDef.Level).OrderBy(l => l.Level).FirstOrDefault();
+                var xpRange = nextLevel != null 
+                    ? $"{levelDef.XpThreshold} - {nextLevel.XpThreshold - 1} XP"
+                    : $"{levelDef.XpThreshold}+ XP";
+                
+                <div class="rank-timeline-item">
+                    <div class="rank-timeline-badge">
+                        <div class="rank-level-circle">@levelDef.Level</div>
+                    </div>
+                    <div class="rank-timeline-content">
+                        <div class="rank-timeline-name">Nível @levelDef.Level – @levelDef.Name</div>
+                        <div class="rank-timeline-xp">@xpRange</div>
+                    </div>
+                    @if (nextLevel != null)
+                    {
+                        <div class="rank-timeline-connector"></div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
     <!-- Leaderboard Panel -->
     <div class="leaderboard-container">
         <div class="leaderboard-header">
@@ -74,6 +107,8 @@ else
                     Level="@item.RankProgress.CurrentLevel"
                     RankName="@item.RankProgress.CurrentRankName"
                     Xp="@item.RankProgress.CurrentXp"
+                    RehearsalsAttended="@item.TotalRehearsals"
+                    EventsAttended="@item.TotalEvents"
                     OnClick="@(() => OpenDetailsModal(item))" />
             }
         </div>
@@ -128,7 +163,23 @@ else
                 <div class="modal-section-body">
                     <ProfileField Label="XP Total" Value="@viewingItem.RankProgress.CurrentXp.ToString()" />
                     <ProfileField Label="Ensaios Frequentados" Value="@viewingItem.TotalRehearsals.ToString()" />
-                    <ProfileField Label="Atuações Participadas" Value="@viewingItem.TotalEvents.ToString()" />
+                    
+                    <!-- Events by Type -->
+                    <div class="mb-2">
+                        <strong>Atuações Participadas por Tipo:</strong>
+                    </div>
+                    @if (viewingItem.EventsByType.Any())
+                    {
+                        @foreach (var eventTypeGroup in viewingItem.EventsByType.OrderByDescending(kvp => kvp.Value))
+                        {
+                            <ProfileField Label="@StatusHelper.GetEventTypeDisplay(eventTypeGroup.Key)" 
+                                          Value="@eventTypeGroup.Value.ToString()" />
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">Nenhuma atuação registrada</p>
+                    }
                 </div>
             </div>
 
@@ -185,10 +236,21 @@ else
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.UserId, x => x.Count);
         
-        var allEnrollments = await DbContext.Enrollments
+        // Load enrollments with event types
+        var allEnrollmentsWithTypes = await DbContext.Enrollments
+            .Include(e => e.Event)
+            .Where(e => e.WillAttend && e.Event != null)
+            .Select(e => new { e.UserId, EventType = e.Event!.Type })
+            .ToListAsync();
+        
+        // Group by user, then by event type
+        var userEventsByType = allEnrollmentsWithTypes
             .GroupBy(e => e.UserId)
-            .Select(g => new { UserId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.UserId, x => x.Count);
+            .ToDictionary(
+                g => g.Key,
+                g => g.GroupBy(x => x.EventType)
+                     .ToDictionary(eg => eg.Key, eg => eg.Count())
+            );
         
         // Now build entries with cached data
         var entries = new List<LeaderboardEntry>();
@@ -196,12 +258,16 @@ else
         {
             var rankProgress = await RankingService.GetRankProgressAsync(user.Id);
             
+            var eventsByType = userEventsByType.GetValueOrDefault(user.Id, new Dictionary<EventType, int>());
+            var totalEvents = eventsByType.Values.Sum();
+            
             entries.Add(new LeaderboardEntry
             {
                 User = user,
                 RankProgress = rankProgress,
                 TotalRehearsals = allRehearsalAttendances.GetValueOrDefault(user.Id, 0),
-                TotalEvents = allEnrollments.GetValueOrDefault(user.Id, 0)
+                TotalEvents = totalEvents,
+                EventsByType = eventsByType
             });
         }
 
@@ -230,5 +296,6 @@ else
         public RankProgressInfo RankProgress { get; set; } = null!;
         public int TotalRehearsals { get; set; }
         public int TotalEvents { get; set; }
+        public Dictionary<EventType, int> EventsByType { get; set; } = new();
     }
 }

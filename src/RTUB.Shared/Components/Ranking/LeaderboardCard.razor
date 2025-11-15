@@ -21,6 +21,10 @@
         {
             <div class="leaderboard-instrument">@Instrument</div>
         }
+        <!-- Stats Line -->
+        <div class="leaderboard-stats">
+            Ensaios Frequentados: @RehearsalsAttended · Atuações Frequentadas: @EventsAttended
+        </div>
     </div>
 
     <!-- Level Badge -->
@@ -45,6 +49,8 @@
     [Parameter] public int Level { get; set; }
     [Parameter] public string RankName { get; set; } = "";
     [Parameter] public int Xp { get; set; }
+    [Parameter] public int RehearsalsAttended { get; set; }
+    [Parameter] public int EventsAttended { get; set; }
     [Parameter] public EventCallback OnClick { get; set; }
 
     private string PlayerName => !string.IsNullOrEmpty(Nickname) ? Nickname : FullName;

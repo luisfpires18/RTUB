@@ -176,4 +176,24 @@ public static class StatusHelper
         user.Categories = categories;
         return GetDisplayCategories(user);
     }
+
+    /// <summary>
+    /// Gets the Portuguese display name for an event type
+    /// </summary>
+    public static string GetEventTypeDisplay(EventType eventType)
+    {
+        return eventType switch
+        {
+            EventType.Festival => "Festival",
+            EventType.Atuacao => "Atuação",
+            EventType.Casamento => "Casamento",
+            EventType.Serenata => "Serenata",
+            EventType.Arraial => "Arraial",
+            EventType.Convivio => "Convívio",
+            EventType.Nerba => "Nerba",
+            EventType.Missa => "Missa",
+            EventType.Batizado => "Batizado",
+            _ => eventType.ToString()
+        };
+    }
 }
