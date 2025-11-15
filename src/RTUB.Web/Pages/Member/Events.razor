@@ -95,8 +95,8 @@ else
     </div>
 }
 
-<!-- Admin: Previous Events Section -->
-<AuthorizeView Roles="Admin,Owner">
+<!-- Previous Events Section -->
+<AuthorizeView>
     <Authorized>
         <hr class="my-5" />
 
@@ -124,10 +124,14 @@ else
                 @foreach (var eventItem in paginatedPreviousEvents)
                 {
                     <div class="col-md-4 mb-4">
+                        @{
+                            var userEnrollment = GetUserEnrollment(eventItem.Id);
+                        }
                         <AuthorizeView Roles="Owner">
                             <Authorized Context="editContext">
                                 <EventCard Event="@eventItem"
                                            ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
+                                           UserEnrollment="@userEnrollment"
                                            EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
                                            IsAdmin="true"
                                            IsPastEvent="true"
@@ -138,11 +142,13 @@ else
                                            OnViewEnrollments="@(() => OpenEnrollmentListModal(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
+                                           OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
                                            OnViewTrophies="@(() => OpenTrophyModal(eventItem))" />
                             </Authorized>
                             <NotAuthorized Context="adminOnlyContext">
                                 <EventCard Event="@eventItem"
                                            ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
+                                           UserEnrollment="@userEnrollment"
                                            EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
                                            IsAdmin="false"
                                            IsPastEvent="true"
@@ -151,6 +157,7 @@ else
                                            OnViewEnrollments="@(() => OpenEnrollmentListModal(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
+                                           OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
                                            OnViewTrophies="@(() => OpenTrophyModal(eventItem))" />
                             </NotAuthorized>
                         </AuthorizeView>
@@ -376,7 +383,7 @@ else
                                 Notes="@enrollment.Notes"
                                 AltText="@enrollment.User?.GetDisplayName()"
                                 ShowEditButton="false"
-                                ShowDeleteButton="@isUserOwner"
+                                ShowDeleteButton="@isUserAdmin"
                                 OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
                                 DeleteTooltip="Eliminar Inscrição">
                                 <BadgeContent>
@@ -440,7 +447,7 @@ else
                                 Notes="@enrollment.Notes"
                                 AltText="@enrollment.User?.GetDisplayName()"
                                 ShowEditButton="false"
-                                ShowDeleteButton="@isUserOwner"
+                                ShowDeleteButton="@isUserAdmin"
                                 OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
                                 DeleteTooltip="Eliminar Inscrição">
                                 <BadgeContent>
@@ -481,7 +488,7 @@ else
                                 Notes="@enrollment.Notes"
                                 AltText="@enrollment.User?.GetDisplayName()"
                                 ShowEditButton="false"
-                                ShowDeleteButton="@isUserOwner"
+                                ShowDeleteButton="@isUserAdmin"
                                 OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
                                 DeleteTooltip="Eliminar Inscrição">
                                 <BadgeContent>

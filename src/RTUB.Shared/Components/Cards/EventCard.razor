@@ -273,6 +273,19 @@
                             </button>
                         }
                     </div>
+                    
+                    <!-- Enrollment management for past events -->
+                    @if (UserEnrollment != null)
+                    {
+                        <div class="event-buttons-container mt-2">
+                            <!-- Remove enrollment button for user's own enrollment -->
+                            <button class="btn event-icon-btn btn-danger" 
+                                    @onclick="OnRemoveEnrollment" 
+                                    title="Remover Inscrição">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        </div>
+                    }
                 </div>
             }
         }
