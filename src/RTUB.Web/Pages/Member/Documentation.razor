@@ -14,15 +14,17 @@
 
 <PageTitle>Documentação - RTUB</PageTitle>
 
-<h1 class="mb-2"><i class="bi bi-file-earmark-text"></i> Documentação</h1>
-<p class="lead mb-4 text-light-theme">Acesso aos documentos e ficheiros da RTUB organizados por pastas.</p>
+<div class="documentation-header mb-4">
+    <h1 class="mb-2"><i class="bi bi-file-earmark-text"></i> Documentação</h1>
+    <p class="lead mb-0 text-light-theme">Acesso aos documentos e ficheiros da RTUB organizados por pastas.</p>
+</div>
 
 @* Admin Upload Section *@
 <AuthorizeView Roles="Admin">
     <Authorized>
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-cloud-upload"></i> Carregar Documentos</h5>
+        <div class="card mb-4 upload-card">
+            <div class="card-header text-white">
+                <h5 class="mb-0"><i class="bi bi-cloud-upload me-2"></i>Carregar Documentos</h5>
             </div>
             <div class="card-body">
                 @if (!string.IsNullOrEmpty(uploadErrorMessage))

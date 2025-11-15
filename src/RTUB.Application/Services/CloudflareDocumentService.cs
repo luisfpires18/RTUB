@@ -160,11 +160,16 @@ public class CloudflareDocumentService : ICloudflareDocumentService
             
             var objectKey = $"{folderPath}{fileName}";
 
+            // Copy to MemoryStream to make it seekable (required for checksum calculation)
+            using var memoryStream = new MemoryStream();
+            await fileStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
             var putRequest = new PutObjectRequest
             {
                 BucketName = _bucketName,
                 Key = objectKey,
-                InputStream = fileStream,
+                InputStream = memoryStream,
                 ContentType = GetContentType(fileName),
                 UseChunkEncoding = false
             };
