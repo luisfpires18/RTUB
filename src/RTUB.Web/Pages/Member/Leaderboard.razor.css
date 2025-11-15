@@ -1,0 +1,27 @@
+/* Top 3 position styling */
+.position-first {
+    position: relative;
+}
+
+.position-first .avatar-card {
+    border: 3px solid #FFD700;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.position-second {
+    position: relative;
+}
+
+.position-second .avatar-card {
+    border: 3px solid #C0C0C0;
+    box-shadow: 0 4px 12px rgba(192, 192, 192, 0.3);
+}
+
+.position-third {
+    position: relative;
+}
+
+.position-third .avatar-card {
+    border: 3px solid #CD7F32;
+    box-shadow: 0 4px 12px rgba(205, 127, 50, 0.3);
+}
