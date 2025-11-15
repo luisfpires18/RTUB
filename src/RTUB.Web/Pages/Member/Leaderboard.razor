@@ -1,0 +1,233 @@
+@page "/leaderboard"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Data
+@using RTUB.Shared
+@inject UserManager<ApplicationUser> UserManager
+@inject IRankingService RankingService
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize]
+
+<h1 class="mb-2"><i class="bi bi-trophy-fill"></i> Tabela de Classificação</h1>
+<p class="lead mb-4 text-light-theme">Membros ordenados por nível e experiência.</p>
+
+@if (!showLeaderboard)
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-lock-fill"></i> A tabela de classificação não está disponível no momento.
+    </div>
+}
+else if (leaderboardUsers == null)
+{
+    <!-- Loading skeleton cards -->
+    <div class="avatar-card-grid">
+        @for (int i = 0; i < 12; i++)
+        {
+            <div class="avatar-card-skeleton-card">
+                <div class="avatar-card-image-wrapper">
+                    <div class="avatar-card-skeleton"></div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else if (!leaderboardUsers.Any())
+{
+    <EmptyState Title="Nenhum membro encontrado"
+                Icon="bi-trophy"
+                Message="Não há membros classificados no momento." />
+}
+else
+{
+    <div class="avatar-card-grid">
+        @foreach (var item in leaderboardUsers)
+        {
+            <AvatarCard AvatarUrl="@item.User.ProfilePictureSrc"
+                       TunaName="@item.User.Nickname"
+                       FullName="@($"{item.User.FirstName} {item.User.LastName}")"
+                       InstrumentText="@(item.User.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(item.User.MainInstrument.Value) : "")"
+                       AltText="@item.User.GetDisplayName()"
+                       OnView="@(() => OpenDetailsModal(item))"
+                       ViewTooltip="Ver Detalhes"
+                       ViewButtonText="Ver Detalhes"
+                       LazyLoad="true">
+                <BadgeContent>
+                    <!-- Level and Rank Badge -->
+                    <div class="avatar-card-badges-row">
+                        <span class="badge bg-purple" title="Nível @item.RankProgress.CurrentLevel">
+                            <i class="bi bi-star-fill"></i> Nível @item.RankProgress.CurrentLevel
+                        </span>
+                    </div>
+                    <div class="avatar-card-badges-row">
+                        <span class="badge bg-info" title="@item.RankProgress.CurrentRankName">
+                            @item.RankProgress.CurrentRankName
+                        </span>
+                    </div>
+                    <div class="avatar-card-badges-row">
+                        <span class="badge bg-secondary" title="@item.RankProgress.CurrentXp XP Total">
+                            @item.RankProgress.CurrentXp XP
+                        </span>
+                    </div>
+                </BadgeContent>
+            </AvatarCard>
+        }
+    </div>
+}
+
+<!-- Details Modal -->
+@if (viewingItem != null)
+{
+    <Modal Show="@showDetailsModal" 
+           ShowChanged="@((bool show) => showDetailsModal = show)"
+           Title="Detalhes da Classificação" 
+           Size="Modal.ModalSize.Large"
+           Centered="true">
+        <BodyContent>
+            <!-- Centered Header Section -->
+            <div class="text-center mb-4">
+                <img src="@viewingItem.User.ProfilePictureSrc" alt="@viewingItem.User.GetDisplayName()"
+                     class="member-avatar-large mb-3" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--bs-primary);" />
+                
+                @if (!string.IsNullOrEmpty(viewingItem.User.Nickname))
+                {
+                    <h4 class="mb-1">@viewingItem.User.Nickname</h4>
+                    <p class="text-muted mb-2">@viewingItem.User.FirstName @viewingItem.User.LastName</p>
+                }
+                else
+                {
+                    <h4 class="mb-2">@viewingItem.User.FirstName @viewingItem.User.LastName</h4>
+                }
+                
+                <!-- Badges -->
+                <div class="d-flex justify-content-center flex-wrap gap-1 mb-2">
+                    <span class="badge bg-purple">
+                        <i class="bi bi-star-fill"></i> Nível @viewingItem.RankProgress.CurrentLevel
+                    </span>
+                    <span class="badge bg-info">
+                        @viewingItem.RankProgress.CurrentRankName
+                    </span>
+                </div>
+            </div>
+
+            <div class="mb-3"></div>
+
+            <!-- Statistics Section -->
+            <div class="modal-info-section mb-4">
+                <div class="modal-section-header">
+                    <h6 class="modal-section-title">
+                        <i class="bi bi-graph-up me-2 text-primary"></i>
+                        Estatísticas
+                    </h6>
+                </div>
+                <div class="modal-section-body">
+                    <ProfileField Label="XP Total" Value="@viewingItem.RankProgress.CurrentXp.ToString()" />
+                    <ProfileField Label="Ensaios Frequentados" Value="@viewingItem.TotalRehearsals.ToString()" />
+                    <ProfileField Label="Atuações Participadas" Value="@viewingItem.TotalEvents.ToString()" />
+                </div>
+            </div>
+
+            <!-- Rank Card Section -->
+            <div class="modal-info-section mb-3">
+                <RankCard RankProgress="@viewingItem.RankProgress" 
+                          IsCollapsible="true" 
+                          InitiallyCollapsed="true" />
+            </div>
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseDetailsModal">Fechar</button>
+        </FooterContent>
+    </Modal>
+}
+
+@code {
+    private List<LeaderboardEntry>? leaderboardUsers;
+    private LeaderboardEntry? viewingItem;
+    private bool showDetailsModal = false;
+    private bool showLeaderboard = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckLeaderboardVisibility();
+        
+        if (showLeaderboard)
+        {
+            await LoadLeaderboard();
+        }
+    }
+
+    private async Task CheckLeaderboardVisibility()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUserId = UserManager.GetUserId(authState.User);
+        
+        if (!string.IsNullOrEmpty(currentUserId))
+        {
+            showLeaderboard = await RankingService.IsRankingVisibleAsync(currentUserId);
+        }
+    }
+
+    private async Task LoadLeaderboard()
+    {
+        var users = await UserManager.Users.ToListAsync();
+        
+        // Batch load all attendance and enrollment data in two queries to avoid N+1
+        var allRehearsalAttendances = await DbContext.RehearsalAttendances
+            .Where(a => a.Attended)
+            .GroupBy(a => a.UserId)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.UserId, x => x.Count);
+        
+        var allEnrollments = await DbContext.Enrollments
+            .GroupBy(e => e.UserId)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.UserId, x => x.Count);
+        
+        // Now build entries with cached data
+        var entries = new List<LeaderboardEntry>();
+        foreach (var user in users)
+        {
+            var rankProgress = await RankingService.GetRankProgressAsync(user.Id);
+            
+            entries.Add(new LeaderboardEntry
+            {
+                User = user,
+                RankProgress = rankProgress,
+                TotalRehearsals = allRehearsalAttendances.GetValueOrDefault(user.Id, 0),
+                TotalEvents = allEnrollments.GetValueOrDefault(user.Id, 0)
+            });
+        }
+
+        // Sort by Level DESC, then by XP DESC
+        leaderboardUsers = entries
+            .OrderByDescending(e => e.RankProgress.CurrentLevel)
+            .ThenByDescending(e => e.RankProgress.CurrentXp)
+            .ToList();
+    }
+
+    private void OpenDetailsModal(LeaderboardEntry item)
+    {
+        viewingItem = item;
+        showDetailsModal = true;
+    }
+
+    private void CloseDetailsModal()
+    {
+        showDetailsModal = false;
+        viewingItem = null;
+    }
+
+    private class LeaderboardEntry
+    {
+        public ApplicationUser User { get; set; } = null!;
+        public RankProgressInfo RankProgress { get; set; } = null!;
+        public int TotalRehearsals { get; set; }
+        public int TotalEvents { get; set; }
+    }
+}
