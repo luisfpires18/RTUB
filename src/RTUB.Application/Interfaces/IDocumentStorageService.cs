@@ -87,4 +87,10 @@ public interface IDocumentStorageService
     /// <param name="documentPath">The full path to the document</param>
     /// <returns>File size in bytes, or 0 if file doesn't exist</returns>
     Task<long> GetFileSizeAsync(string documentPath);
+    
+    /// <summary>
+    /// Deletes a document from storage
+    /// </summary>
+    /// <param name="documentPath">The full path to the document to delete</param>
+    Task DeleteDocumentAsync(string documentPath);
 }

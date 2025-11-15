@@ -49,8 +49,10 @@
                     @foreach (var doc in Documents)
                     {
                         <DocumentCard Document="@doc"
+                                    IsAdmin="@IsAdmin"
                                     OnView="@OnDocumentView"
-                                    OnDownload="@OnDocumentDownload" />
+                                    OnDownload="@OnDocumentDownload"
+                                    OnDelete="@OnDocumentDelete" />
                     }
                 </div>
             }
@@ -106,6 +108,12 @@
     /// </summary>
     [Parameter]
     public EventCallback<DocumentMetadata> OnDocumentDownload { get; set; }
+    
+    /// <summary>
+    /// Callback when a document delete is requested
+    /// </summary>
+    [Parameter]
+    public EventCallback<DocumentMetadata> OnDocumentDelete { get; set; }
 
     private bool IsExpanded { get; set; }
     private int DocumentCount => Documents?.Count ?? 0;
