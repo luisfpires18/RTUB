@@ -1,12 +1,21 @@
 @namespace RTUB.Shared
+@using Microsoft.AspNetCore.Components.Web
 
 @*
     RankCard Component
     Gamified rank/level display with season pass aesthetic
+    Supports collapsible mode to show only header
 *@
 
-<div class="rank-gamified-card">
-    <div class="rank-header-area">
+<div class="rank-gamified-card @(IsCollapsible ? "rank-collapsible" : "") @(isCollapsed ? "rank-collapsed" : "")">
+    <div class="rank-header-area @(IsCollapsible ? "rank-header-clickable" : "")" 
+         @onclick="ToggleCollapsed" 
+         @onkeydown="HandleKeyDown"
+         @onkeydown:preventDefault="@IsCollapsible"
+         tabindex="@(IsCollapsible ? "0" : "-1")"
+         role="@(IsCollapsible ? "button" : "")"
+         aria-expanded="@(!isCollapsed)"
+         aria-label="@(IsCollapsible ? (isCollapsed ? "Expandir informações de rank" : "Recolher informações de rank") : "")">
         <!-- Left: Large Level Badge -->
         <div class="rank-current-level-badge">
             <div class="level-badge-inner">
@@ -35,64 +44,74 @@
                 <div class="next-level-rank-name">@GetNextLevelName()</div>
             </div>
         }
-    </div>
-
-    <!-- XP Stats Row -->
-    <div class="rank-stats-row">
-        <div class="stat-box">
-            <i class="bi bi-star-fill stat-icon"></i>
-            <div class="stat-content">
-                <div class="stat-label">XP Total</div>
-                <div class="stat-value">@RankProgress.CurrentXp</div>
-            </div>
-        </div>
-        @if (!RankProgress.IsMaxLevel)
+        
+        @if (IsCollapsible)
         {
-            <div class="stat-box">
-                <i class="bi bi-arrow-up-circle-fill stat-icon"></i>
-                <div class="stat-content">
-                    <div class="stat-label">Próximo Nível</div>
-                    <div class="stat-value stat-highlight">@RankProgress.XpToNextLevel XP</div>
-                </div>
+            <div class="rank-collapse-icon">
+                <i class="bi @(isCollapsed ? "bi-chevron-down" : "bi-chevron-up")"></i>
             </div>
         }
     </div>
 
-    <!-- Progress Bar Section -->
-    @if (!RankProgress.IsMaxLevel)
+    @if (!isCollapsed)
     {
-        <div class="rank-progress-area">
-            <!-- Checkpoint Dots -->
-            <div class="progress-checkpoints">
-                <div class="checkpoint checkpoint-current" title="Nível @RankProgress.CurrentLevel - @RankProgress.CurrentRankName">
-                    <div class="checkpoint-dot"></div>
-                    <div class="checkpoint-label">@RankProgress.CurrentLevel</div>
-                </div>
-                <div class="checkpoint checkpoint-next" title="Nível @(RankProgress.CurrentLevel + 1) - @GetNextLevelName()">
-                    <div class="checkpoint-dot"></div>
-                    <div class="checkpoint-label">@(RankProgress.CurrentLevel + 1)</div>
+        <!-- XP Stats Row -->
+        <div class="rank-stats-row">
+            <div class="stat-box">
+                <i class="bi bi-star-fill stat-icon"></i>
+                <div class="stat-content">
+                    <div class="stat-label">XP Total</div>
+                    <div class="stat-value">@RankProgress.CurrentXp</div>
                 </div>
             </div>
-
-            <!-- XP Bar -->
-            <div class="xp-bar-container">
-                <div class="xp-bar-bg">
-                    <div class="xp-bar-fill xp-bar-animated" 
-                         style="width: @RankProgress.ProgressPercentage.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"
-                         role="progressbar" 
-                         aria-valuenow="@RankProgress.ProgressPercentage" 
-                         aria-valuemin="0" 
-                         aria-valuemax="100">
-                        <div class="xp-bar-shine"></div>
+            @if (!RankProgress.IsMaxLevel)
+            {
+                <div class="stat-box">
+                    <i class="bi bi-arrow-up-circle-fill stat-icon"></i>
+                    <div class="stat-content">
+                        <div class="stat-label">Próximo Nível</div>
+                        <div class="stat-value stat-highlight">@RankProgress.XpToNextLevel XP</div>
                     </div>
                 </div>
-                <div class="xp-bar-text">
-                    <span class="xp-current">@RankProgress.CurrentXp XP</span>
-                    <span class="xp-separator">/</span>
-                    <span class="xp-max">@RankProgress.XpForNextLevel XP</span>
+            }
+        </div>
+
+        <!-- Progress Bar Section -->
+        @if (!RankProgress.IsMaxLevel)
+        {
+            <div class="rank-progress-area">
+                <!-- Checkpoint Dots -->
+                <div class="progress-checkpoints">
+                    <div class="checkpoint checkpoint-current" title="Nível @RankProgress.CurrentLevel - @RankProgress.CurrentRankName">
+                        <div class="checkpoint-dot"></div>
+                        <div class="checkpoint-label">@RankProgress.CurrentLevel</div>
+                    </div>
+                    <div class="checkpoint checkpoint-next" title="Nível @(RankProgress.CurrentLevel + 1) - @GetNextLevelName()">
+                        <div class="checkpoint-dot"></div>
+                        <div class="checkpoint-label">@(RankProgress.CurrentLevel + 1)</div>
+                    </div>
+                </div>
+
+                <!-- XP Bar -->
+                <div class="xp-bar-container">
+                    <div class="xp-bar-bg">
+                        <div class="xp-bar-fill xp-bar-animated" 
+                             style="width: @RankProgress.ProgressPercentage.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"
+                             role="progressbar" 
+                             aria-valuenow="@RankProgress.ProgressPercentage" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            <div class="xp-bar-shine"></div>
+                        </div>
+                    </div>
+                    <div class="xp-bar-text">
+                        <span class="xp-current">@RankProgress.CurrentXp XP</span>
+                        <span class="xp-separator">/</span>
+                        <span class="xp-max">@RankProgress.XpForNextLevel XP</span>
+                    </div>
                 </div>
             </div>
-        </div>
+        }
     }
 </div>
 
@@ -100,8 +119,37 @@
     [Parameter, EditorRequired]
     public RTUB.Application.Interfaces.RankProgressInfo RankProgress { get; set; } = null!;
 
+    [Parameter]
+    public bool IsCollapsible { get; set; } = false;
+
+    [Parameter]
+    public bool InitiallyCollapsed { get; set; } = false;
+
     [Inject]
     private Microsoft.Extensions.Options.IOptions<RTUB.Application.Configuration.RankingConfiguration>? RankingConfig { get; set; }
+
+    private bool isCollapsed;
+
+    protected override void OnInitialized()
+    {
+        isCollapsed = InitiallyCollapsed;
+    }
+
+    private void ToggleCollapsed()
+    {
+        if (IsCollapsible)
+        {
+            isCollapsed = !isCollapsed;
+        }
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (IsCollapsible && (e.Key == "Enter" || e.Key == " "))
+        {
+            ToggleCollapsed();
+        }
+    }
 
     private string GetNextLevelName()
     {
