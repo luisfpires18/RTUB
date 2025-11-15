@@ -254,6 +254,7 @@ public class Program
         services.AddSingleton<IAudioStorageService, DriveAudioStorageService>();
         services.AddSingleton<ILyricStorageService, DriveLyricStorageService>();
         services.AddScoped<IDocumentStorageService, CloudflareDocumentStorageService>();
+        services.AddScoped<DriveDocumentStorageService>(); // For /roles page RGI document from IDrive
         
         // --------- Inventory & Shop Services ---------
         services.AddScoped<IInstrumentService, InstrumentService>();
