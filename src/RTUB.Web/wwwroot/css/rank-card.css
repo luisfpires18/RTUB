@@ -1,0 +1,485 @@
+/* Gamified Rank Card - Season Pass Style */
+.rank-gamified-card {
+    background: linear-gradient(135deg, 
+        rgba(75, 0, 130, 0.25) 0%, 
+        rgba(138, 43, 226, 0.20) 50%,
+        rgba(75, 0, 130, 0.25) 100%);
+    border: 2px solid rgba(138, 43, 226, 0.4);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 
+        0 8px 24px rgba(138, 43, 226, 0.25),
+        0 0 40px rgba(138, 43, 226, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.rank-gamified-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 20%, rgba(138, 43, 226, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(75, 0, 130, 0.15) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.rank-gamified-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Header Area - Three Column Layout */
+.rank-header-area {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid rgba(138, 43, 226, 0.3);
+}
+
+/* Left: Current Level Badge */
+.rank-current-level-badge {
+    background: linear-gradient(135deg, #8a2be2 0%, #4b0082 100%);
+    border-radius: 50%;
+    width: 90px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+        0 6px 20px rgba(138, 43, 226, 0.6),
+        0 0 30px rgba(138, 43, 226, 0.4),
+        inset 0 2px 4px rgba(255, 255, 255, 0.2);
+    border: 3px solid rgba(255, 215, 0, 0.5);
+    position: relative;
+}
+
+.rank-current-level-badge::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, 
+        rgba(255, 215, 0, 0.4), 
+        rgba(255, 215, 0, 0) 50%, 
+        rgba(255, 215, 0, 0.4));
+    animation: badgeGlow 3s ease-in-out infinite;
+}
+
+@keyframes badgeGlow {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+.level-badge-inner {
+    text-align: center;
+}
+
+.level-badge-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgba(255, 215, 0, 0.9);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.level-badge-number {
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(255, 215, 0, 0.5);
+    line-height: 1;
+}
+
+/* Center: Rank Title */
+.rank-title-center {
+    text-align: center;
+    padding: 0 1rem;
+}
+
+.rank-name-title {
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: #fff;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 
+        0 2px 10px rgba(138, 43, 226, 0.8),
+        0 0 30px rgba(138, 43, 226, 0.6),
+        0 4px 8px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(180deg, #fff 0%, #e0b3ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.max-level-badge {
+    display: inline-block;
+    background: linear-gradient(90deg, #ffd700 0%, #ffed4e 100%);
+    color: #4b0082;
+    padding: 0.5rem 1.2rem;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-top: 0.75rem;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.5);
+    border: 2px solid rgba(255, 215, 0, 0.8);
+}
+
+/* Right: Next Level Preview */
+.rank-next-level-preview {
+    background: rgba(138, 43, 226, 0.15);
+    border: 2px solid rgba(138, 43, 226, 0.3);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    min-width: 140px;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.next-level-label {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.next-level-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0.25rem 0;
+}
+
+.next-level-rank-name {
+    font-size: 0.85rem;
+    color: #ba55d3;
+    font-weight: 600;
+}
+
+/* XP Stats Row */
+.rank-stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(138, 43, 226, 0.3);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.stat-icon {
+    font-size: 1.8rem;
+    color: #ffd700;
+    filter: drop-shadow(0 2px 6px rgba(255, 215, 0, 0.5));
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 2px 6px rgba(255, 255, 255, 0.3);
+}
+
+.stat-highlight {
+    color: #ba55d3;
+    text-shadow: 0 2px 6px rgba(186, 85, 211, 0.5);
+}
+
+/* Progress Area */
+.rank-progress-area {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(138, 43, 226, 0.3);
+    border-radius: 16px;
+    padding: 1.5rem;
+    position: relative;
+}
+
+/* Checkpoint Dots */
+.progress-checkpoints {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.progress-checkpoints::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 30px;
+    right: 30px;
+    height: 2px;
+    background: linear-gradient(90deg, 
+        rgba(138, 43, 226, 0.5) 0%, 
+        rgba(138, 43, 226, 0.2) 100%);
+}
+
+.checkpoint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    z-index: 2;
+}
+
+.checkpoint-dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 3px solid;
+    background: rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+}
+
+.checkpoint-current .checkpoint-dot {
+    border-color: #8a2be2;
+    background: linear-gradient(135deg, #8a2be2 0%, #4b0082 100%);
+    box-shadow: 
+        0 0 20px rgba(138, 43, 226, 0.8),
+        0 4px 12px rgba(138, 43, 226, 0.5);
+    animation: checkpointPulse 2s ease-in-out infinite;
+}
+
+.checkpoint-next .checkpoint-dot {
+    border-color: rgba(138, 43, 226, 0.4);
+    background: rgba(138, 43, 226, 0.1);
+}
+
+.checkpoint:hover .checkpoint-dot {
+    transform: scale(1.15);
+}
+
+@keyframes checkpointPulse {
+    0%, 100% { 
+        box-shadow: 
+            0 0 20px rgba(138, 43, 226, 0.8),
+            0 4px 12px rgba(138, 43, 226, 0.5);
+    }
+    50% { 
+        box-shadow: 
+            0 0 30px rgba(138, 43, 226, 1),
+            0 4px 16px rgba(138, 43, 226, 0.7);
+    }
+}
+
+.checkpoint-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.checkpoint-current .checkpoint-label {
+    color: #8a2be2;
+    text-shadow: 0 2px 6px rgba(138, 43, 226, 0.5);
+}
+
+/* XP Bar */
+.xp-bar-container {
+    position: relative;
+}
+
+.xp-bar-bg {
+    height: 44px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 22px;
+    border: 2px solid rgba(138, 43, 226, 0.4);
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+.xp-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, 
+        #8a2be2 0%, 
+        #9370db 25%,
+        #ba55d3 50%,
+        #9370db 75%,
+        #8a2be2 100%);
+    border-radius: 22px;
+    position: relative;
+    box-shadow: 
+        0 0 20px rgba(138, 43, 226, 0.6),
+        inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.xp-bar-animated {
+    animation: xpFillPulse 2s ease-in-out infinite;
+}
+
+@keyframes xpFillPulse {
+    0%, 100% { 
+        box-shadow: 
+            0 0 20px rgba(138, 43, 226, 0.6),
+            inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    }
+    50% { 
+        box-shadow: 
+            0 0 30px rgba(138, 43, 226, 0.9),
+            inset 0 1px 2px rgba(255, 255, 255, 0.4);
+    }
+}
+
+.xp-bar-shine {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to bottom, 
+        rgba(255, 255, 255, 0.3) 0%, 
+        transparent 100%);
+    border-radius: 22px 22px 0 0;
+}
+
+.xp-bar-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 
+        0 2px 6px rgba(0, 0, 0, 0.8),
+        0 0 10px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    z-index: 10;
+}
+
+.xp-current {
+    color: #ffd700;
+}
+
+.xp-separator {
+    margin: 0 0.4rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.xp-max {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .rank-gamified-card {
+        padding: 1.5rem;
+    }
+
+    .rank-header-area {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        text-align: center;
+    }
+
+    .rank-current-level-badge {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto;
+    }
+
+    .level-badge-number {
+        font-size: 2rem;
+    }
+
+    .rank-name-title {
+        font-size: 1.8rem;
+    }
+
+    .rank-next-level-preview {
+        margin: 0 auto;
+    }
+
+    .rank-stats-row {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-box {
+        justify-content: center;
+    }
+
+    .xp-bar-text {
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .rank-gamified-card {
+        padding: 1rem;
+    }
+
+    .rank-current-level-badge {
+        width: 70px;
+        height: 70px;
+    }
+
+    .level-badge-number {
+        font-size: 1.6rem;
+    }
+
+    .rank-name-title {
+        font-size: 1.4rem;
+        letter-spacing: 1px;
+    }
+
+    .stat-value {
+        font-size: 1.3rem;
+    }
+
+    .xp-bar-bg {
+        height: 36px;
+    }
+
+    .xp-bar-text {
+        font-size: 0.75rem;
+    }
+
+    .checkpoint-dot {
+        width: 24px;
+        height: 24px;
+    }
+
+    .checkpoint-label {
+        font-size: 0.8rem;
+    }
+}
