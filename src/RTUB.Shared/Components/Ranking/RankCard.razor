@@ -2,85 +2,114 @@
 
 @*
     RankCard Component
-    Displays user rank/level information with progress bar in a gaming style
+    Gamified rank/level display with season pass aesthetic
 *@
 
-<div class="card profile-section rank-section expanded">
-    <div class="card-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 d-flex align-items-center">
-                <i class="bi bi-trophy-fill me-2 rank-trophy-icon"></i>
-                Rank / Nível
-            </h5>
-            <div class="rank-level-badge">
-                <span class="rank-level-number">@RankProgress.CurrentLevel</span>
+<div class="rank-gamified-card">
+    <div class="rank-header-area">
+        <!-- Left: Large Level Badge -->
+        <div class="rank-current-level-badge">
+            <div class="level-badge-inner">
+                <div class="level-badge-label">LV</div>
+                <div class="level-badge-number">@RankProgress.CurrentLevel</div>
             </div>
         </div>
-    </div>
-    <div class="card-body">
-        <div class="rank-content">
-            <!-- Rank Name Display -->
-            <div class="rank-name-container text-center mb-3">
-                <h3 class="rank-name">@RankProgress.CurrentRankName</h3>
-                @if (RankProgress.IsMaxLevel)
-                {
-                    <div class="max-level-badge">
-                        <i class="bi bi-star-fill"></i> Nível Máximo Alcançado! <i class="bi bi-star-fill"></i>
-                    </div>
-                }
-            </div>
 
-            <!-- XP Stats -->
-            <div class="rank-stats">
-                <div class="rank-stat-item">
-                    <div class="stat-label">XP Total</div>
-                    <div class="stat-value stat-value-primary">@RankProgress.CurrentXp</div>
-                </div>
-                @if (!RankProgress.IsMaxLevel)
-                {
-                    <div class="rank-stat-divider"></div>
-                    <div class="rank-stat-item">
-                        <div class="stat-label">Para Próximo Nível</div>
-                        <div class="stat-value stat-value-highlight">@RankProgress.XpToNextLevel XP</div>
-                    </div>
-                }
-            </div>
-
-            <!-- Progress Bar -->
-            @if (!RankProgress.IsMaxLevel)
+        <!-- Center: Rank Name -->
+        <div class="rank-title-center">
+            <h2 class="rank-name-title">@RankProgress.CurrentRankName</h2>
+            @if (RankProgress.IsMaxLevel)
             {
-                <div class="rank-progress-section mt-4">
-                    <div class="progress-labels d-flex justify-content-between mb-2">
-                        <span class="progress-label-text">
-                            <i class="bi bi-circle-fill current-level-dot"></i> Nível @RankProgress.CurrentLevel
-                        </span>
-                        <span class="progress-label-text progress-label-next">
-                            Nível @(RankProgress.CurrentLevel + 1) <i class="bi bi-circle next-level-dot"></i>
-                        </span>
-                    </div>
-                    <div class="progress rank-progress-bar">
-                        <div class="progress-bar rank-progress-fill" 
-                             role="progressbar" 
-                             style="width: @RankProgress.ProgressPercentage.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"
-                             aria-valuenow="@RankProgress.ProgressPercentage" 
-                             aria-valuemin="0" 
-                             aria-valuemax="100">
-                            @if (RankProgress.ProgressPercentage > 10)
-                            {
-                                <span class="progress-percentage">@RankProgress.ProgressPercentage.ToString("F0")%</span>
-                            }
-                        </div>
-                    </div>
-                    <div class="progress-xp-range text-center mt-2">
-                        <small class="text-muted">@RankProgress.XpForCurrentLevel XP → @RankProgress.XpForNextLevel XP</small>
-                    </div>
+                <div class="max-level-badge">
+                    <i class="bi bi-star-fill"></i> Nível Máximo! <i class="bi bi-star-fill"></i>
                 </div>
             }
         </div>
+
+        <!-- Right: Next Level Preview -->
+        @if (!RankProgress.IsMaxLevel)
+        {
+            <div class="rank-next-level-preview">
+                <div class="next-level-label">Próximo</div>
+                <div class="next-level-name">Nível @(RankProgress.CurrentLevel + 1)</div>
+                <div class="next-level-rank-name">@GetNextLevelName()</div>
+            </div>
+        }
     </div>
+
+    <!-- XP Stats Row -->
+    <div class="rank-stats-row">
+        <div class="stat-box">
+            <i class="bi bi-star-fill stat-icon"></i>
+            <div class="stat-content">
+                <div class="stat-label">XP Total</div>
+                <div class="stat-value">@RankProgress.CurrentXp</div>
+            </div>
+        </div>
+        @if (!RankProgress.IsMaxLevel)
+        {
+            <div class="stat-box">
+                <i class="bi bi-arrow-up-circle-fill stat-icon"></i>
+                <div class="stat-content">
+                    <div class="stat-label">Próximo Nível</div>
+                    <div class="stat-value stat-highlight">@RankProgress.XpToNextLevel XP</div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Progress Bar Section -->
+    @if (!RankProgress.IsMaxLevel)
+    {
+        <div class="rank-progress-area">
+            <!-- Checkpoint Dots -->
+            <div class="progress-checkpoints">
+                <div class="checkpoint checkpoint-current" title="Nível @RankProgress.CurrentLevel - @RankProgress.CurrentRankName">
+                    <div class="checkpoint-dot"></div>
+                    <div class="checkpoint-label">@RankProgress.CurrentLevel</div>
+                </div>
+                <div class="checkpoint checkpoint-next" title="Nível @(RankProgress.CurrentLevel + 1) - @GetNextLevelName()">
+                    <div class="checkpoint-dot"></div>
+                    <div class="checkpoint-label">@(RankProgress.CurrentLevel + 1)</div>
+                </div>
+            </div>
+
+            <!-- XP Bar -->
+            <div class="xp-bar-container">
+                <div class="xp-bar-bg">
+                    <div class="xp-bar-fill xp-bar-animated" 
+                         style="width: @RankProgress.ProgressPercentage.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"
+                         role="progressbar" 
+                         aria-valuenow="@RankProgress.ProgressPercentage" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        <div class="xp-bar-shine"></div>
+                    </div>
+                </div>
+                <div class="xp-bar-text">
+                    <span class="xp-current">@RankProgress.CurrentXp XP</span>
+                    <span class="xp-separator">/</span>
+                    <span class="xp-max">@RankProgress.XpForNextLevel XP</span>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
     [Parameter, EditorRequired]
     public RTUB.Application.Interfaces.RankProgressInfo RankProgress { get; set; } = null!;
+
+    [Inject]
+    private Microsoft.Extensions.Options.IOptions<RTUB.Application.Configuration.RankingConfiguration>? RankingConfig { get; set; }
+
+    private string GetNextLevelName()
+    {
+        if (RankingConfig?.Value?.Levels == null) return "";
+        
+        var nextLevel = RankingConfig.Value.Levels
+            .FirstOrDefault(l => l.Level == RankProgress.CurrentLevel + 1);
+        
+        return nextLevel?.Name ?? "";
+    }
 }
