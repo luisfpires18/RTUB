@@ -1,4 +1,5 @@
 using Amazon.S3;
+using Amazon.S3.Model;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -84,4 +85,132 @@ public class CloudflareDocumentStorageServiceTests
         metadata.Extension.Should().Be(".pdf");
         metadata.LastModified.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
     }
+
+    [Fact]
+    public async Task DeleteDocumentAsync_WithValidPath_DeletesSuccessfully()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
+        
+        var deleteResponse = new DeleteObjectResponse
+        {
+            HttpStatusCode = System.Net.HttpStatusCode.NoContent
+        };
+        
+        _mockS3Client.Setup(s => s.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), default))
+            .ReturnsAsync(deleteResponse);
+
+        // Act
+        await service.DeleteDocumentAsync("docs/test/document.pdf");
+
+        // Assert
+        _mockS3Client.Verify(s => s.DeleteObjectAsync(
+            It.Is<DeleteObjectRequest>(r => 
+                r.BucketName == "test-bucket" && 
+                r.Key == "docs/test/document.pdf"), 
+            default), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteDocumentAsync_WithS3Exception_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
+        
+        _mockS3Client.Setup(s => s.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), default))
+            .ThrowsAsync(new AmazonS3Exception("Access denied"));
+
+        // Act
+        Func<Task> act = async () => await service.DeleteDocumentAsync("docs/test/document.pdf");
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Failed to delete document*");
+    }
+
+    [Fact]
+    public async Task DocumentExistsAsync_WhenFileExists_ReturnsTrue()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
+        
+        _mockS3Client.Setup(s => s.GetObjectMetadataAsync(It.IsAny<GetObjectMetadataRequest>(), default))
+            .ReturnsAsync(new GetObjectMetadataResponse());
+
+        // Act
+        var result = await service.DocumentExistsAsync("docs/test/document.pdf");
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DocumentExistsAsync_WhenFileDoesNotExist_ReturnsFalse()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
+        
+        var notFoundException = new AmazonS3Exception("Not found")
+        {
+            StatusCode = System.Net.HttpStatusCode.NotFound
+        };
+        
+        _mockS3Client.Setup(s => s.GetObjectMetadataAsync(It.IsAny<GetObjectMetadataRequest>(), default))
+            .ThrowsAsync(notFoundException);
+
+        // Act
+        var result = await service.DocumentExistsAsync("docs/test/nonexistent.pdf");
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetFileSizeAsync_WhenFileExists_ReturnsSize()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
+        
+        var metadataResponse = new GetObjectMetadataResponse
+        {
+            ContentLength = 2048
+        };
+        
+        _mockS3Client.Setup(s => s.GetObjectMetadataAsync(It.IsAny<GetObjectMetadataRequest>(), default))
+            .ReturnsAsync(metadataResponse);
+
+        // Act
+        var size = await service.GetFileSizeAsync("docs/test/document.pdf");
+
+        // Assert
+        size.Should().Be(2048);
+    }
+
+    [Fact]
+    public async Task GetFileSizeAsync_WhenFileDoesNotExist_ReturnsZero()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
+        
+        var notFoundException = new AmazonS3Exception("Not found")
+        {
+            StatusCode = System.Net.HttpStatusCode.NotFound
+        };
+        
+        _mockS3Client.Setup(s => s.GetObjectMetadataAsync(It.IsAny<GetObjectMetadataRequest>(), default))
+            .ThrowsAsync(notFoundException);
+
+        // Act
+        var size = await service.GetFileSizeAsync("docs/test/nonexistent.pdf");
+
+        // Assert
+        size.Should().Be(0);
+    }
 }
+

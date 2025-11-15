@@ -207,4 +207,133 @@ public class DocumentCardTests : TestContext
         // Assert
         cut.Markup.Should().Contain("Transferir", "all documents should have a download button");
     }
+
+    [Fact]
+    public void DocumentCard_ShowsDeleteButton_ForAdmin()
+    {
+        // Arrange
+        var document = new DocumentMetadata
+        {
+            FileName = "document.pdf",
+            FilePath = "docs/document.pdf",
+            SizeBytes = 1024,
+            LastModified = DateTime.UtcNow,
+            Extension = ".pdf"
+        };
+
+        // Act
+        var cut = RenderComponent<DocumentCard>(parameters => parameters
+            .Add(p => p.Document, document)
+            .Add(p => p.IsAdmin, true));
+
+        // Assert
+        cut.Markup.Should().Contain("bi-trash", "admin users should see delete button");
+    }
+
+    [Fact]
+    public void DocumentCard_DoesNotShowDeleteButton_ForNonAdmin()
+    {
+        // Arrange
+        var document = new DocumentMetadata
+        {
+            FileName = "document.pdf",
+            FilePath = "docs/document.pdf",
+            SizeBytes = 1024,
+            LastModified = DateTime.UtcNow,
+            Extension = ".pdf"
+        };
+
+        // Act
+        var cut = RenderComponent<DocumentCard>(parameters => parameters
+            .Add(p => p.Document, document)
+            .Add(p => p.IsAdmin, false));
+
+        // Assert
+        cut.Markup.Should().NotContain("bi-trash", "non-admin users should not see delete button");
+    }
+
+    [Fact]
+    public void DocumentCard_DeleteButton_TriggersCallback()
+    {
+        // Arrange
+        var document = new DocumentMetadata
+        {
+            FileName = "document.pdf",
+            FilePath = "docs/document.pdf",
+            SizeBytes = 1024,
+            LastModified = DateTime.UtcNow,
+            Extension = ".pdf"
+        };
+
+        DocumentMetadata? deletedDocument = null;
+
+        // Act
+        var cut = RenderComponent<DocumentCard>(parameters => parameters
+            .Add(p => p.Document, document)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.OnDelete, EventCallback.Factory.Create<DocumentMetadata>(this, doc => deletedDocument = doc)));
+
+        var deleteButton = cut.Find("button[title='Eliminar documento']");
+        deleteButton.Click();
+
+        // Assert
+        deletedDocument.Should().NotBeNull();
+        deletedDocument.Should().Be(document);
+    }
+
+    [Fact]
+    public void DocumentCard_ViewButton_TriggersCallback_ForPdf()
+    {
+        // Arrange
+        var document = new DocumentMetadata
+        {
+            FileName = "document.pdf",
+            FilePath = "docs/document.pdf",
+            SizeBytes = 1024,
+            LastModified = DateTime.UtcNow,
+            Extension = ".pdf"
+        };
+
+        DocumentMetadata? viewedDocument = null;
+
+        // Act
+        var cut = RenderComponent<DocumentCard>(parameters => parameters
+            .Add(p => p.Document, document)
+            .Add(p => p.OnView, EventCallback.Factory.Create<DocumentMetadata>(this, doc => viewedDocument = doc)));
+
+        var viewButton = cut.Find("button[title='Ver documento']");
+        viewButton.Click();
+
+        // Assert
+        viewedDocument.Should().NotBeNull();
+        viewedDocument.Should().Be(document);
+    }
+
+    [Fact]
+    public void DocumentCard_DownloadButton_TriggersCallback()
+    {
+        // Arrange
+        var document = new DocumentMetadata
+        {
+            FileName = "document.pdf",
+            FilePath = "docs/document.pdf",
+            SizeBytes = 1024,
+            LastModified = DateTime.UtcNow,
+            Extension = ".pdf"
+        };
+
+        DocumentMetadata? downloadedDocument = null;
+
+        // Act
+        var cut = RenderComponent<DocumentCard>(parameters => parameters
+            .Add(p => p.Document, document)
+            .Add(p => p.OnDownload, EventCallback.Factory.Create<DocumentMetadata>(this, doc => downloadedDocument = doc)));
+
+        var downloadButton = cut.Find("button[title='Transferir documento']");
+        downloadButton.Click();
+
+        // Assert
+        downloadedDocument.Should().NotBeNull();
+        downloadedDocument.Should().Be(document);
+    }
 }
