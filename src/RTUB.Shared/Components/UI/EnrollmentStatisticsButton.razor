@@ -147,11 +147,12 @@
         {
             var allEnrollments = await EnrollmentService.GetAllEnrollmentsAsync();
             
-            // Filter by date range
+            // Filter by date range - only past events
             var filteredEnrollments = allEnrollments
                 .Where(e => e.Event != null && 
                            e.Event.Date.Date >= statsStartDate.Date && 
                            e.Event.Date.Date <= statsEndDate.Date &&
+                           e.Event.Date < DateTime.Today &&
                            e.WillAttend)
                 .ToList();
 
