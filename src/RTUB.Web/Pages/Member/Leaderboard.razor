@@ -71,17 +71,13 @@ else
                                 @GetPositionDisplay(position)
                             </span>
                         </div>
-                        <!-- Level and Rank Badge -->
+                        <!-- Level and Rank Name Badge (Purple with star icon) -->
                         <div class="avatar-card-badges-row">
-                            <span class="badge" style="background-color: #8a2be2;" title="Nível @item.RankProgress.CurrentLevel">
-                                <i class="bi bi-star-fill"></i> Nível @item.RankProgress.CurrentLevel
+                            <span class="badge" style="background-color: #8a2be2;" title="Nível @item.RankProgress.CurrentLevel - @item.RankProgress.CurrentRankName">
+                                <i class="bi bi-star-fill"></i> Nível @item.RankProgress.CurrentLevel – @item.RankProgress.CurrentRankName
                             </span>
                         </div>
-                        <div class="avatar-card-badges-row">
-                            <span class="badge bg-info" title="@item.RankProgress.CurrentRankName">
-                                @item.RankProgress.CurrentRankName
-                            </span>
-                        </div>
+                        <!-- XP Badge (Blue) -->
                         <div class="avatar-card-badges-row">
                             <span class="badge bg-primary" title="@item.RankProgress.CurrentXp XP Total">
                                 @item.RankProgress.CurrentXp XP
