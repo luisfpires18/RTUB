@@ -181,14 +181,10 @@ else
         </div>
         
         <div class="leaderboard-body">
-            @{
-                int position = (currentPage - 1) * pageSize;
-            }
             @foreach (var item in paginatedLeaderboardUsers)
             {
-                position++;
                 <LeaderboardCard 
-                    Position="@position"
+                    Position="@item.Position"
                     AvatarUrl="@item.User.ProfilePictureSrc"
                     Nickname="@item.User.Nickname"
                     FullName="@($"{item.User.FirstName} {item.User.LastName}")"
@@ -446,6 +442,12 @@ else
             .ThenByDescending(e => e.RankProgress.CurrentXp)
             .ToList();
         
+        // Assign positions after sorting
+        for (int i = 0; i < leaderboardUsers.Count; i++)
+        {
+            leaderboardUsers[i].Position = i + 1;
+        }
+        
         // Apply initial pagination
         ApplyPagination();
     }
@@ -586,6 +588,7 @@ else
 
     private class LeaderboardEntry
     {
+        public int Position { get; set; }
         public ApplicationUser User { get; set; } = null!;
         public RankProgressInfo RankProgress { get; set; } = null!;
         public int TotalRehearsals { get; set; }
