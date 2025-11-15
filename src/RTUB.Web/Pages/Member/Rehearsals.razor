@@ -745,7 +745,7 @@ else
                         <tbody>
                             @foreach (var attendance in myAttendances.Where(a => a.Rehearsal != null && a.Rehearsal.Date < DateTime.Today).OrderByDescending(a => a.Rehearsal!.Date).Take(10))
                             {
-                                <tr>
+                                <tr class="@(attendance.Attended ? "" : "table-danger")">
                                     <td>@attendance.Rehearsal?.Date.ToString("dd MMM yyyy")</td>
                                     <td>@(attendance.Instrument?.ToString() ?? "-")</td>
                                     <td>
@@ -1615,7 +1615,7 @@ else
                     attendanceStatsUsers.Add(new UserAttendanceStats
                     {
                         UserId = stat.Key,
-                        UserName = $"{user.FirstName} \"{user.Nickname}\"",
+                        UserName = user.GetDisplayName(),
                         Count = stat.Value
                     });
                 }

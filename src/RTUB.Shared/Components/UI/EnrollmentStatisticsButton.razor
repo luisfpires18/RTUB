@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
 @inject IEnrollmentService EnrollmentService
 @inject UserManager<ApplicationUser> UserManager
 
@@ -73,11 +74,18 @@
                                             <i class="bi @statsSortHelper.GetSortIcon(nameof(UserEnrollmentStats.UserName))"></i>
                                         }
                                     </th>
-                                    <th @onclick="() => SortStatsBy(nameof(UserEnrollmentStats.Count))" class="clickable-row">
+                                    <th @onclick="() => SortStatsBy(nameof(UserEnrollmentStats.FutureCount))" class="clickable-row">
                                         Total de Inscrições
-                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserEnrollmentStats.Count)))
+                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserEnrollmentStats.FutureCount)))
                                         {
-                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserEnrollmentStats.Count))"></i>
+                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserEnrollmentStats.FutureCount))"></i>
+                                        }
+                                    </th>
+                                    <th @onclick="() => SortStatsBy(nameof(UserEnrollmentStats.PastCount))" class="clickable-row">
+                                        Participações Passadas
+                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserEnrollmentStats.PastCount)))
+                                        {
+                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserEnrollmentStats.PastCount))"></i>
                                         }
                                     </th>
                                 </tr>
@@ -87,7 +95,8 @@
                                 {
                                     <tr>
                                         <td>@stat.UserName</td>
-                                        <td>@stat.Count</td>
+                                        <td>@stat.FutureCount</td>
+                                        <td>@stat.PastCount</td>
                                     </tr>
                                 }
                             </tbody>
@@ -128,7 +137,7 @@
     private List<UserEnrollmentStats> filteredStatsUsers = new();
     private List<UserEnrollmentStats> paginatedStatsUsers = new();
     private string statsSearchTerm = string.Empty;
-    private SortableTableHelper<UserEnrollmentStats> statsSortHelper = new() { SortColumn = nameof(UserEnrollmentStats.Count), SortAscending = false };
+    private SortableTableHelper<UserEnrollmentStats> statsSortHelper = new() { SortColumn = nameof(UserEnrollmentStats.PastCount), SortAscending = false };
     private PaginationHelper<UserEnrollmentStats> statsPaginationHelper = new() { PageSize = 10 };
 
     private void OpenStatsModal()
@@ -147,19 +156,22 @@
         {
             var allEnrollments = await EnrollmentService.GetAllEnrollmentsAsync();
             
-            // Filter by date range - only past events
+            // Filter by date range
             var filteredEnrollments = allEnrollments
                 .Where(e => e.Event != null && 
                            e.Event.Date.Date >= statsStartDate.Date && 
                            e.Event.Date.Date <= statsEndDate.Date &&
-                           e.Event.Date < DateTime.Today &&
                            e.WillAttend)
                 .ToList();
 
-            // Group by user and count
+            // Group by user and count future vs past
             var stats = filteredEnrollments
                 .GroupBy(e => e.UserId)
-                .Select(g => new { UserId = g.Key, Count = g.Count() })
+                .Select(g => new { 
+                    UserId = g.Key, 
+                    FutureCount = g.Count(e => e.Event!.Date >= DateTime.Today),
+                    PastCount = g.Count(e => e.Event!.Date < DateTime.Today)
+                })
                 .ToList();
 
             enrollmentStatsUsers = new List<UserEnrollmentStats>();
@@ -172,8 +184,9 @@
                     enrollmentStatsUsers.Add(new UserEnrollmentStats
                     {
                         UserId = stat.UserId,
-                        UserName = $"{user.FirstName} \"{user.Nickname}\"",
-                        Count = stat.Count
+                        UserName = user.GetDisplayName(),
+                        FutureCount = stat.FutureCount,
+                        PastCount = stat.PastCount
                     });
                 }
             }
@@ -214,7 +227,8 @@
         var columnSelectors = new Dictionary<string, Func<UserEnrollmentStats, IComparable>>
         {
             { nameof(UserEnrollmentStats.UserName), s => s.UserName },
-            { nameof(UserEnrollmentStats.Count), s => s.Count }
+            { nameof(UserEnrollmentStats.FutureCount), s => s.FutureCount },
+            { nameof(UserEnrollmentStats.PastCount), s => s.PastCount }
         };
         filteredStatsUsers = statsSortHelper.ApplySort(filteredStatsUsers, columnSelectors);
 
@@ -254,6 +268,7 @@
     {
         public string UserId { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
-        public int Count { get; set; }
+        public int FutureCount { get; set; }
+        public int PastCount { get; set; }
     }
 }

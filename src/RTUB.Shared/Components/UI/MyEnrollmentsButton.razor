@@ -55,7 +55,7 @@
                         <tbody>
                             @foreach (var enrollment in myEnrollments.Where(e => e.Event != null && e.Event.Date < DateTime.Today).OrderByDescending(e => e.Event!.Date).Take(10))
                             {
-                                <tr>
+                                <tr class="@(enrollment.WillAttend ? "" : "table-danger")">
                                     <td>@enrollment.Event?.Date.ToString("dd MMM yyyy")</td>
                                     <td>@enrollment.Event?.Name</td>
                                     <td>@(enrollment.Instrument?.ToString() ?? "-")</td>
