@@ -306,7 +306,7 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
             await _s3Client.PutObjectAsync(request);
 
             // Create audit log
-            await CreateAuditLogAsync("Created", folderName, $"Created folder {folderPath}");
+            await CreateAuditLogAsync("Created", folderName, $"Created folder {folderPath}", entityType: "Folder");
         }
         catch (AmazonS3Exception ex)
         {
@@ -427,7 +427,7 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
             }
 
             // Create audit log
-            await CreateAuditLogAsync("Deleted", folderName, $"Deleted folder {folderPath} ({objectsToDelete.Count} files)", isCritical: true);
+            await CreateAuditLogAsync("Deleted", folderName, $"Deleted folder {folderPath} ({objectsToDelete.Count} files)", isCritical: true, entityType: "Folder");
         }
         catch (AmazonS3Exception ex)
         {
@@ -441,17 +441,17 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
         }
     }
 
-    private async Task CreateAuditLogAsync(string action, string entityDisplayName, string changes, bool isCritical = false)
+    private async Task CreateAuditLogAsync(string action, string entityDisplayName, string changes, bool isCritical = false, string entityType = "Document")
     {
         try
         {
             _context.AuditLogs.Add(new AuditLog
             {
-                EntityType = "Document",
+                EntityType = entityType,
                 EntityId = null,
                 Action = action,
                 UserId = _auditContext.UserId,
-                UserName = _auditContext.UserName ?? "Unknown",
+                UserName = _auditContext.UserName,
                 Timestamp = DateTime.UtcNow,
                 Changes = changes,
                 EntityDisplayName = entityDisplayName,
