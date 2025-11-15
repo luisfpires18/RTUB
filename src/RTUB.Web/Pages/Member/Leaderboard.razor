@@ -20,13 +20,7 @@
 @inject Microsoft.Extensions.Options.IOptions<RankingConfiguration> RankingConfig
 @attribute [Authorize]
 
-@if (!showLeaderboard)
-{
-    <div class="alert alert-warning">
-        <i class="bi bi-lock-fill"></i> A tabela de classificação não está disponível no momento.
-    </div>
-}
-else if (leaderboardUsers == null)
+@if (leaderboardUsers == null)
 {
     <!-- Loading state -->
     <div class="leaderboard-container">
@@ -342,7 +336,6 @@ else
     private List<LeaderboardEntry> paginatedLeaderboardUsers = new();
     private LeaderboardEntry? viewingItem;
     private bool showDetailsModal = false;
-    private bool showLeaderboard = false;
     
     // Classification levels collapsible state
     private bool isClassificationExpanded = false;
@@ -362,29 +355,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await CheckLeaderboardVisibility();
-        
-        if (showLeaderboard)
-        {
-            await LoadRankingStory();
-            await LoadLeaderboard();
-        }
+        await LoadRankingStory();
+        await LoadLeaderboard();
     }
 
     private async Task LoadRankingStory()
     {
         rankingStoryLabel = await LabelService.GetLabelByReferenceAsync("ranking_story");
-    }
-
-    private async Task CheckLeaderboardVisibility()
-    {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var currentUserId = UserManager.GetUserId(authState.User);
-        
-        if (!string.IsNullOrEmpty(currentUserId))
-        {
-            showLeaderboard = await RankingService.IsRankingVisibleAsync(currentUserId);
-        }
     }
 
     private async Task LoadLeaderboard()

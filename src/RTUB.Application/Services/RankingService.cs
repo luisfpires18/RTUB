@@ -99,19 +99,6 @@ public class RankingService : IRankingService
         return currentLevelDef?.XpThreshold ?? 0;
     }
 
-    public async Task<bool> IsRankingVisibleAsync(string userId)
-    {
-        // Show if ranking is enabled OR user has Owner role
-        if (_rankingConfig.Value.Enabled)
-            return true;
-
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-            return false;
-
-        return await _userManager.IsInRoleAsync(user, "Owner");
-    }
-
     public async Task UpdateUserRankingAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);

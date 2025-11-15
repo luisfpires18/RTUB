@@ -334,55 +334,6 @@ public class RankingServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task IsRankingVisibleAsync_WhenEnabled_ReturnsTrue()
-    {
-        // Arrange
-        var userId = "user-123";
-
-        // Act
-        var result = await _service.IsRankingVisibleAsync(userId);
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task IsRankingVisibleAsync_WhenDisabledButUserIsOwner_ReturnsTrue()
-    {
-        // Arrange
-        var userId = "user-123";
-        var user = new ApplicationUser { Id = userId, UserName = "owner", Nickname = "Owner" };
-        
-        _config.Enabled = false;
-        _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.IsInRoleAsync(user, "Owner")).ReturnsAsync(true);
-
-        // Act
-        var result = await _service.IsRankingVisibleAsync(userId);
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task IsRankingVisibleAsync_WhenDisabledAndNotOwner_ReturnsFalse()
-    {
-        // Arrange
-        var userId = "user-123";
-        var user = new ApplicationUser { Id = userId, UserName = "member", Nickname = "Member" };
-        
-        _config.Enabled = false;
-        _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.IsInRoleAsync(user, "Owner")).ReturnsAsync(false);
-
-        // Act
-        var result = await _service.IsRankingVisibleAsync(userId);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
     public async Task GetRankProgressAsync_WithValidUser_ReturnsCorrectProgress()
     {
         // Arrange
