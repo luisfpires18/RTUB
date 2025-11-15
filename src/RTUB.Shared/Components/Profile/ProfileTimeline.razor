@@ -3,6 +3,9 @@
 @using RTUB.Core.Enums
 @using RTUB.Application.Extensions
 
+@* Suppress obsolete warnings - this component uses ApplicationUser entity directly *@
+#pragma warning disable CS0618
+
 @*
     ProfileTimeline Component
     Displays a compact timeline showing the user's progression through categories (LEITÃO → CALOIRO → TUNO)
@@ -100,3 +103,5 @@
     [Parameter]
     public string AdditionalClasses { get; set; } = "";
 }
+
+#pragma warning restore CS0618

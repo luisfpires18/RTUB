@@ -145,7 +145,9 @@ public static class StatusHelper
         var displayCategories = new List<MemberCategory>(user.Categories);
 
         // If user is TUNO, automatically add VETERANO and/or TUNOSSAURO based on years
+        #pragma warning disable CS0618 // Type or member is obsolete - entity check is appropriate here
         if (user.IsTuno() && user.YearTuno.HasValue)
+        #pragma warning restore CS0618
         {
             if (user.QualifiesForTunossauro())
             {

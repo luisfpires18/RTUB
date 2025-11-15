@@ -4,6 +4,9 @@
 @using RTUB.Application.Extensions
 @using RTUB.Application.Helpers
 
+@* Suppress obsolete warnings - this component uses ApplicationUser entity directly *@
+#pragma warning disable CS0618
+
 @*
     UnifiedTimeline Component
     Displays a unified timeline combining membership progression (LEITÃO → CALOIRO → TUNO) 
@@ -256,3 +259,5 @@
         return item.Year.ToString();
     }
 }
+
+#pragma warning restore CS0618
