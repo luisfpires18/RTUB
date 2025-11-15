@@ -69,15 +69,22 @@ else
             <div class="ranks-grid">
                 @{
                     var allLevels = RankingConfig.Value.Levels.OrderBy(l => l.Level).ToList();
+                    // Custom visual order to create a snake pattern: 1,2,3 -> 6,5,4 -> 7,8,9 -> 10
+                    // This maps visual grid positions to level indices (0-based)
+                    var visualOrder = new[] { 0, 1, 2, 5, 4, 3, 6, 7, 8, 9 }; // indices for levels 1-10
                 }
-                @for (int i = 0; i < allLevels.Count; i++)
+                @for (int visualIndex = 0; visualIndex < allLevels.Count; visualIndex++)
                 {
+                    var i = visualOrder[visualIndex]; // actual level index (0-based)
                     var levelDef = allLevels[i];
                     var isLastLevel = levelDef.Level == 10;
-                    var rowIndex = (i / 3);
-                    var colIndex = (i % 3);
+                    var actualLevel = levelDef.Level; // 1-based level number
                     
-                    <div class="rank-grid-item @(isLastLevel ? "rank-final" : "")">
+                    // Grid positioning based on visual index
+                    var gridRow = (visualIndex / 3) + 1;
+                    var gridCol = (visualIndex % 3) + 1;
+                    
+                    <div class="rank-grid-item @(isLastLevel ? "rank-final" : "")" style="grid-row: @gridRow; grid-column: @gridCol;">
                         <div class="rank-card">
                             @if (isLastLevel)
                             {
@@ -87,29 +94,44 @@ else
                             <span class="rank-name">@levelDef.Name.ToUpper()</span>
                         </div>
                         
-                        @* Sequential connector logic: only connect to the next level in sequence *@
-                        @if (i < allLevels.Count - 1)
+                        @* Sequential connector logic: connect each level to the next (1→2→3→4→5→6→7→8→9→10) *@
+                        @if (actualLevel < 10)
                         {
-                            var nextIndex = i + 1;
-                            var nextColIndex = (nextIndex % 3);
-                            var nextRowIndex = (nextIndex / 3);
-                            var currentRowIndex = (i / 3);
+                            // Find where the next level is positioned visually
+                            var nextLevelIndex = actualLevel; // next level is actualLevel + 1, but we need 0-based index
+                            var nextVisualIndex = Array.IndexOf(visualOrder, nextLevelIndex);
+                            
+                            var currentRow = (visualIndex / 3);
+                            var currentCol = (visualIndex % 3);
+                            var nextRow = (nextVisualIndex / 3);
+                            var nextCol = (nextVisualIndex % 3);
                             
                             @* Horizontal connector within the same row *@
-                            if (nextRowIndex == currentRowIndex)
+                            if (nextRow == currentRow)
                             {
-                                <div class="rank-connector-horizontal"></div>
-                            }
-                            @* Connector to next row (3→4, 6→7, 9→10) *@
-                            else
-                            {
-                                @if (nextIndex == 9) @* 9→10: special case for centered Level 10 *@
+                                @if (nextCol > currentCol)
                                 {
-                                    <div class="rank-connector-to-final"></div>
+                                    <div class="rank-connector-horizontal-right"></div>
                                 }
                                 else
                                 {
-                                    <div class="rank-connector-to-next-row"></div>
+                                    <div class="rank-connector-horizontal-left"></div>
+                                }
+                            }
+                            @* Vertical connector to next row *@
+                            else
+                            {
+                                @if (actualLevel == 3) @* 3→4: down *@
+                                {
+                                    <div class="rank-connector-down-right"></div>
+                                }
+                                else if (actualLevel == 6) @* 6→7: down *@
+                                {
+                                    <div class="rank-connector-down-left"></div>
+                                }
+                                else if (actualLevel == 9) @* 9→10: down to center *@
+                                {
+                                    <div class="rank-connector-to-final"></div>
                                 }
                             }
                         }
