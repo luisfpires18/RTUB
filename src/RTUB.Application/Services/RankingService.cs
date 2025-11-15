@@ -153,6 +153,8 @@ public class RankingService : IRankingService
             XpForCurrentLevel = xpForCurrentLevel,
             XpForNextLevel = xpForNextLevel,
             XpToNextLevel = xpToNextLevel,
+            XpInCurrentLevel = xpInCurrentLevel,
+            XpNeededForNextLevel = xpNeededForNextLevel,
             ProgressPercentage = Math.Min(100, Math.Max(0, progressPercentage)),
             IsMaxLevel = isMaxLevel
         };
