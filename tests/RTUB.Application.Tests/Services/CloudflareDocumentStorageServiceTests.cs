@@ -369,5 +369,86 @@ public class CloudflareDocumentStorageServiceTests : IDisposable
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Failed to delete folder*");
     }
+
+    [Fact]
+    public async Task ListFoldersAsync_WithNullCommonPrefixes_ReturnsEmptyList()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
+        
+        var response = new ListObjectsV2Response
+        {
+            IsTruncated = false,
+            CommonPrefixes = null // This can be null when there are no folders
+        };
+        
+        _mockS3Client.Setup(s => s.ListObjectsV2Async(It.IsAny<ListObjectsV2Request>(), default))
+            .ReturnsAsync(response);
+
+        // Act
+        var result = await service.ListFoldersAsync("docs/");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ListFoldersAsync_WithEmptyCommonPrefixes_ReturnsEmptyList()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
+        
+        var response = new ListObjectsV2Response
+        {
+            IsTruncated = false,
+            CommonPrefixes = new List<string>()
+        };
+        
+        _mockS3Client.Setup(s => s.ListObjectsV2Async(It.IsAny<ListObjectsV2Request>(), default))
+            .ReturnsAsync(response);
+
+        // Act
+        var result = await service.ListFoldersAsync("docs/");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ListFoldersAsync_WithValidFolders_ReturnsFolderNames()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
+        
+        var response = new ListObjectsV2Response
+        {
+            IsTruncated = false,
+            CommonPrefixes = new List<string>
+            {
+                "docs/Development/Folder1/",
+                "docs/Development/Folder2/",
+                "docs/Development/Folder3/"
+            }
+        };
+        
+        _mockS3Client.Setup(s => s.ListObjectsV2Async(It.IsAny<ListObjectsV2Request>(), default))
+            .ReturnsAsync(response);
+
+        // Act
+        var result = await service.ListFoldersAsync("docs/");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(3);
+        result.Should().Contain("Folder1");
+        result.Should().Contain("Folder2");
+        result.Should().Contain("Folder3");
+        result.Should().BeInAscendingOrder();
+    }
 }
 
