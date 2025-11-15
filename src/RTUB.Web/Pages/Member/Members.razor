@@ -209,7 +209,7 @@ else
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-semibold">
-                        <i class="bi bi-star text-primary me-2"></i>Nome de Tuna / Username <span class="text-danger">*</span>
+                        <i class="bi bi-star text-primary me-2"></i>Nome de Tuna / Nickname <span class="text-danger">*</span>
                     </label>
                     <InputText class="form-control" @bind-Value="editingUser.Nickname" />
                 </div>
@@ -1134,8 +1134,7 @@ else
                 existingUser.LastName = editingUser.LastName;
                 existingUser.Nickname = editingUser.Nickname;
                 existingUser.PhoneContact = editingUser.PhoneContact;
-                // Set UserName to normalized version of Nickname (tuna name)
-                existingUser.UserName = UsernameHelper.NormalizeUsername(editingUser.Nickname);
+                // Username is set only on creation and should not be changed on edit
                 existingUser.Email = editingUser.Email;
                 existingUser.City = editingUser.City;
                 existingUser.DateOfBirth = editingUser.DateOfBirth;

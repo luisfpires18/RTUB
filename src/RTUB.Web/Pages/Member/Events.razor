@@ -383,7 +383,7 @@ else
                                 Notes="@enrollment.Notes"
                                 AltText="@enrollment.User?.GetDisplayName()"
                                 ShowEditButton="false"
-                                ShowDeleteButton="@isUserAdmin"
+                                ShowDeleteButton="@CanDeleteEnrollment()"
                                 OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
                                 DeleteTooltip="Eliminar Inscrição">
                                 <BadgeContent>
@@ -447,7 +447,7 @@ else
                                 Notes="@enrollment.Notes"
                                 AltText="@enrollment.User?.GetDisplayName()"
                                 ShowEditButton="false"
-                                ShowDeleteButton="@isUserAdmin"
+                                ShowDeleteButton="@CanDeleteEnrollment()"
                                 OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
                                 DeleteTooltip="Eliminar Inscrição">
                                 <BadgeContent>
@@ -488,7 +488,7 @@ else
                                 Notes="@enrollment.Notes"
                                 AltText="@enrollment.User?.GetDisplayName()"
                                 ShowEditButton="false"
-                                ShowDeleteButton="@isUserAdmin"
+                                ShowDeleteButton="false"
                                 OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
                                 DeleteTooltip="Eliminar Inscrição">
                                 <BadgeContent>
@@ -2031,6 +2031,15 @@ else
     /// Hidden from Caloiro Admins.
     /// </summary>
     private bool CanCancelEvent()
+    {
+        return isUserAdmin && !IsCaloiroAdmin();
+    }
+    
+    /// <summary>
+    /// Determines if the delete action should be available for enrollments.
+    /// Hidden from Caloiro Admins.
+    /// </summary>
+    private bool CanDeleteEnrollment()
     {
         return isUserAdmin && !IsCaloiroAdmin();
     }
