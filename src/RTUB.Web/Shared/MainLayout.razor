@@ -7,7 +7,6 @@
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Core.Entities
-@using RTUB.Components
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SignInManager<ApplicationUser> SignInManager
@@ -15,8 +14,6 @@
 @inject IJSRuntime JSRuntime
 @inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 @implements IDisposable
-
-<AuditContextInitializer />
 
 <nav class="navbar navbar-expand-lg navbar-dark border-bottom navbar-main">
     <div class="container-xxl rtub-wide px-xxl-4">
