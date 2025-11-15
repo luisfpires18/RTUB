@@ -1,0 +1,255 @@
+/* Leaderboard Container */
+.leaderboard-container {
+    background-color: #1a1a1a;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.leaderboard-header {
+    background-color: #2a2a2a;
+    padding: 20px 24px;
+    border-bottom: 2px solid #3a3a3a;
+}
+
+.leaderboard-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.leaderboard-body {
+    padding: 0;
+}
+
+/* Leaderboard Card (Row) */
+.leaderboard-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    border-bottom: 1px solid #2a2a2a;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+.leaderboard-card:hover {
+    background-color: rgba(138, 43, 226, 0.1);
+}
+
+.leaderboard-card:last-child {
+    border-bottom: none;
+}
+
+/* Rank Number */
+.leaderboard-rank {
+    flex-shrink: 0;
+    width: 50px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+/* Medal styling for top 3 */
+.leaderboard-card.position-first .leaderboard-rank {
+    font-size: 2rem;
+}
+
+.leaderboard-card.position-second .leaderboard-rank {
+    font-size: 2rem;
+}
+
+.leaderboard-card.position-third .leaderboard-rank {
+    font-size: 2rem;
+}
+
+/* Avatar */
+.leaderboard-avatar {
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #3a3a3a;
+}
+
+.leaderboard-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Player Info */
+.leaderboard-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.leaderboard-nickname {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.leaderboard-name {
+    font-size: 0.875rem;
+    color: #b0b0b0;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.leaderboard-instrument {
+    font-size: 0.75rem;
+    color: #888888;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Level Badge */
+.leaderboard-level {
+    flex-shrink: 0;
+}
+
+.level-pill {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #8a2be2;
+    color: #ffffff;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* XP Score */
+.leaderboard-xp {
+    flex-shrink: 0;
+    min-width: 100px;
+    text-align: right;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+/* Top 3 Position Styling */
+.leaderboard-card.position-first {
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.05), transparent);
+    border-left: 4px solid #FFD700;
+}
+
+.leaderboard-card.position-first:hover {
+    background: linear-gradient(90deg, rgba(255, 215, 0, 0.15), rgba(138, 43, 226, 0.1));
+}
+
+.leaderboard-card.position-first .leaderboard-avatar {
+    border-color: #FFD700;
+}
+
+.leaderboard-card.position-second {
+    background: linear-gradient(90deg, rgba(192, 192, 192, 0.05), transparent);
+    border-left: 4px solid #C0C0C0;
+}
+
+.leaderboard-card.position-second:hover {
+    background: linear-gradient(90deg, rgba(192, 192, 192, 0.15), rgba(138, 43, 226, 0.1));
+}
+
+.leaderboard-card.position-second .leaderboard-avatar {
+    border-color: #C0C0C0;
+}
+
+.leaderboard-card.position-third {
+    background: linear-gradient(90deg, rgba(205, 127, 50, 0.05), transparent);
+    border-left: 4px solid #CD7F32;
+}
+
+.leaderboard-card.position-third:hover {
+    background: linear-gradient(90deg, rgba(205, 127, 50, 0.15), rgba(138, 43, 226, 0.1));
+}
+
+.leaderboard-card.position-third .leaderboard-avatar {
+    border-color: #CD7F32;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .leaderboard-card {
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 12px 16px;
+    }
+
+    .leaderboard-rank {
+        width: 40px;
+        font-size: 1.25rem;
+    }
+
+    .leaderboard-card.position-first .leaderboard-rank,
+    .leaderboard-card.position-second .leaderboard-rank,
+    .leaderboard-card.position-third .leaderboard-rank {
+        font-size: 1.5rem;
+    }
+
+    .leaderboard-avatar {
+        width: 50px;
+        height: 50px;
+    }
+
+    .leaderboard-info {
+        flex: 1 1 100%;
+        order: 3;
+    }
+
+    .leaderboard-level {
+        flex: 1 1 100%;
+        order: 4;
+    }
+
+    .level-pill {
+        display: block;
+        text-align: center;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+
+    .leaderboard-xp {
+        order: 2;
+        min-width: auto;
+        font-size: 1.1rem;
+    }
+
+    .leaderboard-nickname {
+        font-size: 1rem;
+    }
+
+    .leaderboard-name {
+        font-size: 0.8rem;
+    }
+
+    .leaderboard-instrument {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .leaderboard-header {
+        padding: 16px;
+    }
+
+    .leaderboard-header h2 {
+        font-size: 1.25rem;
+    }
+
+    .leaderboard-card {
+        padding: 10px 12px;
+    }
+}

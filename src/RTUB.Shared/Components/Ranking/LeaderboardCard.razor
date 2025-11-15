@@ -1,0 +1,73 @@
+@using RTUB.Application.Data
+@using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
+
+<div class="leaderboard-card @GetPositionClass()" @onclick="OnClick">
+    <!-- Rank Number -->
+    <div class="leaderboard-rank">
+        @GetRankDisplay()
+    </div>
+
+    <!-- Avatar -->
+    <div class="leaderboard-avatar">
+        <img src="@AvatarUrl" alt="@PlayerName" />
+    </div>
+
+    <!-- Player Info -->
+    <div class="leaderboard-info">
+        <div class="leaderboard-nickname">@Nickname</div>
+        <div class="leaderboard-name">@FullName</div>
+        @if (!string.IsNullOrEmpty(Instrument))
+        {
+            <div class="leaderboard-instrument">@Instrument</div>
+        }
+    </div>
+
+    <!-- Level Badge -->
+    <div class="leaderboard-level">
+        <span class="level-pill">
+            Nível @Level – @RankName
+        </span>
+    </div>
+
+    <!-- XP Score -->
+    <div class="leaderboard-xp">
+        @Xp XP
+    </div>
+</div>
+
+@code {
+    [Parameter] public int Position { get; set; }
+    [Parameter] public string AvatarUrl { get; set; } = "/images/hood-silhouette.svg";
+    [Parameter] public string Nickname { get; set; } = "";
+    [Parameter] public string FullName { get; set; } = "";
+    [Parameter] public string Instrument { get; set; } = "";
+    [Parameter] public int Level { get; set; }
+    [Parameter] public string RankName { get; set; } = "";
+    [Parameter] public int Xp { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private string PlayerName => !string.IsNullOrEmpty(Nickname) ? Nickname : FullName;
+
+    private string GetRankDisplay()
+    {
+        return Position switch
+        {
+            1 => "🥇",
+            2 => "🥈",
+            3 => "🥉",
+            _ => $"{Position}"
+        };
+    }
+
+    private string GetPositionClass()
+    {
+        return Position switch
+        {
+            1 => "position-first",
+            2 => "position-second",
+            3 => "position-third",
+            _ => ""
+        };
+    }
+}
