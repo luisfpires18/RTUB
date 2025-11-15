@@ -120,25 +120,41 @@
     pointer-events: none;
 }
 
-/* Connector from Level 9 to Level 10 (L-shaped: left then down) */
-.rank-connector-to-final {
+/* Dedicated connector from Level 9 to Level 10 */
+/* Starts from bottom center of Level 9, goes down to Level 10 */
+.rank-connector-final {
     position: absolute;
-    right: 50%;
-    top: 50%;
-    width: calc(50% + 1rem);
-    height: 2px;
+    left: 50%;
+    top: 100%;
+    width: 2px;
+    height: 2rem;
     background: #6c757d;
     z-index: 1;
     pointer-events: none;
+    transform: translateX(-50%);
 }
 
-.rank-connector-to-final::after {
+/* Horizontal segment to reach Level 10 in column 2 */
+.rank-connector-final::after {
     content: '';
     position: absolute;
+    bottom: 0;
     left: 0;
-    top: 0;
+    width: calc(50% + 1rem);
+    height: 2px;
+    background: #6c757d;
+    transform-origin: left center;
+    transform: translateX(-100%);
+}
+
+/* Continue vertical segment down to Level 10 */
+.rank-connector-final::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: calc(-50% - 1rem);
     width: 2px;
-    height: calc(2rem + 50%);
+    height: calc(50% + 0.5rem);
     background: #6c757d;
 }
 
@@ -175,7 +191,7 @@
     .rank-connector-horizontal-left,
     .rank-connector-down-right,
     .rank-connector-down-left,
-    .rank-connector-to-final {
+    .rank-connector-final {
         display: none;
     }
 }
