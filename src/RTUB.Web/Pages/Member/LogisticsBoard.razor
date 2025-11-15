@@ -10,7 +10,7 @@
 @using BoardEntity = RTUB.Core.Entities.LogisticsBoard
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Admin,Owner")]
 @inject ILogisticsBoardService BoardService
 @inject ILogisticsListService ListService
 @inject ILogisticsCardService CardService

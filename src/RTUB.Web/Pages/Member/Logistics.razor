@@ -7,7 +7,7 @@
 @using BoardEntity = RTUB.Core.Entities.LogisticsBoard
 @using RTUB.Core.Entities
 @using RTUB.Shared
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Admin,Owner")]
 @inject ILogisticsBoardService BoardService
 @inject IEventService EventService
 @inject AuthenticationStateProvider AuthenticationStateProvider
