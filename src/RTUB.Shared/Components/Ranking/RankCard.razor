@@ -2,56 +2,82 @@
 
 @*
     RankCard Component
-    Displays user rank/level information with progress bar
+    Displays user rank/level information with progress bar in a gaming style
 *@
 
-<div class="rank-card">
-    <div class="rank-header">
-        <div class="rank-icon-container">
-            <i class="bi bi-trophy-fill rank-icon"></i>
-        </div>
-        <div class="rank-info">
-            <h6 class="rank-title mb-1">
-                <strong>Nível @RankProgress.CurrentLevel</strong> - @RankProgress.CurrentRankName
-            </h6>
-            <div class="rank-xp-text">
-                <span class="current-xp">@RankProgress.CurrentXp XP</span>
-                @if (!RankProgress.IsMaxLevel)
-                {
-                    <span class="xp-separator">•</span>
-                    <span class="next-level-text">@RankProgress.XpToNextLevel XP para próximo nível</span>
-                }
-                else
-                {
-                    <span class="xp-separator">•</span>
-                    <span class="max-level-text">Nível Máximo!</span>
-                }
+<div class="card profile-section rank-section expanded">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 d-flex align-items-center">
+                <i class="bi bi-trophy-fill me-2 rank-trophy-icon"></i>
+                Rank / Nível
+            </h5>
+            <div class="rank-level-badge">
+                <span class="rank-level-number">@RankProgress.CurrentLevel</span>
             </div>
         </div>
     </div>
-    
-    @if (!RankProgress.IsMaxLevel)
-    {
-        <div class="rank-progress-container">
-            <div class="progress rank-progress-bar">
-                <div class="progress-bar" 
-                     role="progressbar" 
-                     style="width: @RankProgress.ProgressPercentage.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"
-                     aria-valuenow="@RankProgress.ProgressPercentage" 
-                     aria-valuemin="0" 
-                     aria-valuemax="100">
-                    @if (RankProgress.ProgressPercentage > 15)
-                    {
-                        <span class="progress-text">@RankProgress.ProgressPercentage.ToString("F0")%</span>
-                    }
+    <div class="card-body">
+        <div class="rank-content">
+            <!-- Rank Name Display -->
+            <div class="rank-name-container text-center mb-3">
+                <h3 class="rank-name">@RankProgress.CurrentRankName</h3>
+                @if (RankProgress.IsMaxLevel)
+                {
+                    <div class="max-level-badge">
+                        <i class="bi bi-star-fill"></i> Nível Máximo Alcançado! <i class="bi bi-star-fill"></i>
+                    </div>
+                }
+            </div>
+
+            <!-- XP Stats -->
+            <div class="rank-stats">
+                <div class="rank-stat-item">
+                    <div class="stat-label">XP Total</div>
+                    <div class="stat-value stat-value-primary">@RankProgress.CurrentXp</div>
                 </div>
+                @if (!RankProgress.IsMaxLevel)
+                {
+                    <div class="rank-stat-divider"></div>
+                    <div class="rank-stat-item">
+                        <div class="stat-label">Para Próximo Nível</div>
+                        <div class="stat-value stat-value-highlight">@RankProgress.XpToNextLevel XP</div>
+                    </div>
+                }
             </div>
-            <div class="rank-level-markers">
-                <span class="level-marker current-level">Nível @RankProgress.CurrentLevel</span>
-                <span class="level-marker next-level">Nível @(RankProgress.CurrentLevel + 1)</span>
-            </div>
+
+            <!-- Progress Bar -->
+            @if (!RankProgress.IsMaxLevel)
+            {
+                <div class="rank-progress-section mt-4">
+                    <div class="progress-labels d-flex justify-content-between mb-2">
+                        <span class="progress-label-text">
+                            <i class="bi bi-circle-fill current-level-dot"></i> Nível @RankProgress.CurrentLevel
+                        </span>
+                        <span class="progress-label-text progress-label-next">
+                            Nível @(RankProgress.CurrentLevel + 1) <i class="bi bi-circle next-level-dot"></i>
+                        </span>
+                    </div>
+                    <div class="progress rank-progress-bar">
+                        <div class="progress-bar rank-progress-fill" 
+                             role="progressbar" 
+                             style="width: @RankProgress.ProgressPercentage.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"
+                             aria-valuenow="@RankProgress.ProgressPercentage" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            @if (RankProgress.ProgressPercentage > 10)
+                            {
+                                <span class="progress-percentage">@RankProgress.ProgressPercentage.ToString("F0")%</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="progress-xp-range text-center mt-2">
+                        <small class="text-muted">@RankProgress.XpForCurrentLevel XP → @RankProgress.XpForNextLevel XP</small>
+                    </div>
+                </div>
+            }
         </div>
-    }
+    </div>
 </div>
 
 @code {
