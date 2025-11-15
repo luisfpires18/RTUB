@@ -97,6 +97,11 @@
   font-weight: 500;
 }
 
+/* Card body padding */
+.document-card .card-body {
+  padding: 1rem;
+}
+
 /* Actions section */
 .document-actions {
   display: flex;

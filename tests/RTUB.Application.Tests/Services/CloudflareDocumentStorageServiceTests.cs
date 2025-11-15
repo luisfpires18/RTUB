@@ -1,6 +1,7 @@
 using Amazon.S3;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Services;
@@ -16,12 +17,15 @@ public class CloudflareDocumentStorageServiceTests
     private readonly Mock<ILogger<CloudflareDocumentStorageService>> _mockLogger;
     private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly Mock<IAmazonS3> _mockS3Client;
+    private readonly Mock<IHostEnvironment> _mockHostEnvironment;
 
     public CloudflareDocumentStorageServiceTests()
     {
         _mockLogger = new Mock<ILogger<CloudflareDocumentStorageService>>();
         _mockConfiguration = new Mock<IConfiguration>();
         _mockS3Client = new Mock<IAmazonS3>();
+        _mockHostEnvironment = new Mock<IHostEnvironment>();
+        _mockHostEnvironment.Setup(e => e.EnvironmentName).Returns("Development");
     }
 
     [Fact]
@@ -31,7 +35,7 @@ public class CloudflareDocumentStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns((string?)null);
 
         // Act & Assert
-        Action act = () => new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
+        Action act = () => new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*bucket name not configured*");
     }
@@ -43,7 +47,7 @@ public class CloudflareDocumentStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
 
         // Act
-        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockLogger.Object);
+        var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
 
         // Assert
         service.Should().NotBeNull();
@@ -56,7 +60,7 @@ public class CloudflareDocumentStorageServiceTests
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
 
         // Act & Assert
-        Action act = () => new CloudflareDocumentStorageService(null!, _mockConfiguration.Object, _mockLogger.Object);
+        Action act = () => new CloudflareDocumentStorageService(null!, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object);
         act.Should().Throw<ArgumentNullException>();
     }
 
