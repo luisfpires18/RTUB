@@ -3,7 +3,9 @@ using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services;
 
@@ -17,6 +19,8 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
     private readonly string _bucketName;
     private readonly string _environment;
     private readonly ILogger<CloudflareDocumentStorageService> _logger;
+    private readonly ApplicationDbContext _context;
+    private readonly AuditContext _auditContext;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
     private const int S3_MAX_DELETE_BATCH_SIZE = 1000; // S3 allows max 1000 objects per delete batch
 
@@ -24,10 +28,14 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
         IAmazonS3 s3Client,
         IConfiguration configuration,
         IHostEnvironment hostEnvironment,
-        ILogger<CloudflareDocumentStorageService> logger)
+        ILogger<CloudflareDocumentStorageService> logger,
+        ApplicationDbContext context,
+        AuditContext auditContext)
     {
         _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
         _logger = logger;
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _auditContext = auditContext ?? throw new ArgumentNullException(nameof(auditContext));
         _environment = hostEnvironment.EnvironmentName;
 
         // Get Cloudflare R2 configuration
@@ -246,6 +254,7 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
             }
 
             var documentPath = folderPath + fileName;
+            var fileSizeBytes = fileStream.Length;
 
             _logger.LogInformation("Attempting to upload document to bucket '{Bucket}' with key: {DocumentPath}", _bucketName, documentPath);
 
@@ -263,6 +272,15 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
             
             _logger.LogInformation("Successfully uploaded document: {DocumentPath}. Response status: {StatusCode}", 
                 documentPath, response.HttpStatusCode);
+
+            // Create audit log for document upload
+            await CreateAuditLogAsync(
+                action: "UploadDocument",
+                entityDisplayName: fileName,
+                changes: $"Document uploaded to: {documentPath}, Size: {fileSizeBytes} bytes, ContentType: {contentType}",
+                isCritical: false
+            );
+
             return documentPath;
         }
         catch (AmazonS3Exception ex)
@@ -304,6 +322,14 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
             
             _logger.LogInformation("Successfully created folder: {FolderPath}. Response status: {StatusCode}", 
                 folderPath, response.HttpStatusCode);
+
+            // Create audit log for folder creation
+            await CreateAuditLogAsync(
+                action: "CreateFolder",
+                entityDisplayName: folderPath.TrimEnd('/'),
+                changes: $"Folder created at path: {folderPath}",
+                isCritical: false
+            );
         }
         catch (AmazonS3Exception ex)
         {
@@ -353,6 +379,9 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
     {
         try
         {
+            // Extract file name from path for audit log
+            var fileName = Path.GetFileName(documentPath);
+
             _logger.LogInformation("Attempting to delete document from bucket '{Bucket}' with key: {DocumentPath}", _bucketName, documentPath);
 
             var request = new DeleteObjectRequest
@@ -365,6 +394,14 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
             
             _logger.LogInformation("Successfully deleted document: {DocumentPath}. Response status: {StatusCode}", 
                 documentPath, response.HttpStatusCode);
+
+            // Create audit log for document deletion
+            await CreateAuditLogAsync(
+                action: "DeleteDocument",
+                entityDisplayName: fileName,
+                changes: $"Document deleted from path: {documentPath}",
+                isCritical: true // Deletion is a critical action
+            );
         }
         catch (AmazonS3Exception ex)
         {
@@ -388,6 +425,9 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
             {
                 folderPath += "/";
             }
+
+            // Extract folder name for audit log
+            var folderName = folderPath.TrimEnd('/').Split('/').Last();
 
             _logger.LogInformation("Attempting to delete folder from bucket '{Bucket}' with prefix: {FolderPath}", _bucketName, folderPath);
 
@@ -430,6 +470,14 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
             }
 
             _logger.LogInformation("Successfully deleted folder and all contents: {FolderPath}", folderPath);
+
+            // Create audit log for folder deletion
+            await CreateAuditLogAsync(
+                action: "DeleteFolder",
+                entityDisplayName: folderName,
+                changes: $"Folder deleted from path: {folderPath}, Total objects deleted: {objectsToDelete.Count}",
+                isCritical: true // Deletion is a critical action
+            );
         }
         catch (AmazonS3Exception ex)
         {
@@ -441,6 +489,39 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
         {
             _logger.LogError(ex, "Unexpected error deleting folder: {FolderPath}", folderPath);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Creates an audit log entry for document operations
+    /// </summary>
+    private async Task CreateAuditLogAsync(string action, string entityDisplayName, string changes, bool isCritical = false)
+    {
+        try
+        {
+            var auditLog = new AuditLog
+            {
+                EntityType = "Document",
+                EntityId = null, // Documents don't have database IDs since they're in S3
+                Action = action,
+                UserId = _auditContext.UserId,
+                UserName = _auditContext.UserName,
+                Timestamp = DateTime.UtcNow,
+                Changes = changes,
+                EntityDisplayName = entityDisplayName,
+                IsCriticalAction = isCritical
+            };
+
+            _context.AuditLogs.Add(auditLog);
+            await _context.SaveChangesAsync();
+            
+            _logger.LogInformation("Audit log created for {Action} on {EntityDisplayName} by {UserName}", 
+                action, entityDisplayName, _auditContext.UserName ?? "Unknown");
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the operation if audit logging fails, but log the error
+            _logger.LogError(ex, "Failed to create audit log for {Action} on {EntityDisplayName}", action, entityDisplayName);
         }
     }
 }
