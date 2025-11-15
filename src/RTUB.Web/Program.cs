@@ -7,6 +7,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using Microsoft.Extensions.Caching.Memory;
+using RTUB.Web.Configuration;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 
 namespace RTUB;
@@ -304,6 +305,9 @@ public class Program
         services.AddAuthorization(o =>
         {
             o.AddPolicy("RequireAdministratorRole", p => p.RequireRole("Admin"));
+            
+            // Configure all claims-based authorization policies
+            o.ConfigureAuthorizationPolicies();
         });
 
         services.AddAntiforgery(o => o.HeaderName = "X-CSRF-TOKEN");
@@ -493,10 +497,11 @@ public class Program
                 auditContext.Clear();
             }
 
-            // Sign in the user using SignInAsync (password already validated above)
-            // Note: We use SignInAsync instead of PasswordSignInAsync to avoid duplicate password validation
+            // Sign in the user using SignInAsync with additional claims (password already validated above)
+            // Note: We use SignInWithClaimsAsync to add custom claims for categories, positions, etc.
             // All security checks (lockout, password validation, failed attempt tracking) are handled above
-            await signInManager.SignInAsync(user, remember);
+            var additionalClaims = UserClaimsFactory.CreateClaims(user);
+            await signInManager.SignInWithClaimsAsync(user, remember, additionalClaims);
 
             // Log successful login
             logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
