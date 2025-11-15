@@ -76,6 +76,30 @@ public class LabelServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetLabelByReferenceAsync_WithInactiveLabel_ReturnsNull()
+    {
+        var label = Label.Create("inactive-label", "Inactive", "Content");
+        label.Deactivate();
+        _context.Labels.Add(label);
+        await _context.SaveChangesAsync();
+        
+        var result = await _service.GetLabelByReferenceAsync("inactive-label");
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetLabelByReferenceAsync_WithActiveLabel_ReturnsLabel()
+    {
+        var label = Label.Create("active-label", "Active", "Content");
+        _context.Labels.Add(label);
+        await _context.SaveChangesAsync();
+        
+        var result = await _service.GetLabelByReferenceAsync("active-label");
+        result.Should().NotBeNull();
+        result!.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task GetAllLabelsAsync_ReturnsAllLabels()
     {
         _context.Labels.AddRange(

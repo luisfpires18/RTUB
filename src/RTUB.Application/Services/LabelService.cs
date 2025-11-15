@@ -28,7 +28,7 @@ public class LabelService : ILabelService
     public async Task<Label?> GetLabelByReferenceAsync(string reference)
     {
         return await _context.Labels
-            .FirstOrDefaultAsync(l => l.Reference == reference);
+            .FirstOrDefaultAsync(l => l.Reference == reference && l.IsActive);
     }
 
     public async Task<IEnumerable<Label>> GetAllLabelsAsync()
