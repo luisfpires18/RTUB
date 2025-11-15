@@ -84,6 +84,12 @@ else
                     var gridRow = (visualIndex / 3) + 1;
                     var gridCol = (visualIndex % 3) + 1;
                     
+                    // Special positioning for Level 10: place it under Level 9 (column 3)
+                    if (isLastLevel)
+                    {
+                        gridCol = 3;
+                    }
+                    
                     <div class="rank-grid-item @(isLastLevel ? "rank-final" : "")" style="grid-row: @gridRow; grid-column: @gridCol;">
                         <div class="rank-card">
                             @if (isLastLevel)
