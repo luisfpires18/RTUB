@@ -24,10 +24,10 @@
     <div class="row g-2">
         <div class="col-6">
             <select class="form-select @InputCssClass month-year-picker" 
-                    @onchange="OnMonthChanged" 
-                    disabled="@Disabled"
-                    value="@SelectedMonth">
-                <option value="" disabled hidden>Selecionar...</option>
+                    @bind="SelectedMonthString"
+                    @bind:event="onchange"
+                    disabled="@Disabled">
+                <option value="" disabled>Selecionar...</option>
                 <option value="1">Janeiro</option>
                 <option value="2">Fevereiro</option>
                 <option value="3">Março</option>
@@ -44,10 +44,10 @@
         </div>
         <div class="col-6">
             <select class="form-select @InputCssClass month-year-picker" 
-                    @onchange="OnYearChanged" 
-                    disabled="@Disabled"
-                    value="@SelectedYear">
-                <option value="" disabled hidden>Selecionar...</option>
+                    @bind="SelectedYearString"
+                    @bind:event="onchange"
+                    disabled="@Disabled">
+                <option value="" disabled>Selecionar...</option>
                 @for (int year = DateTime.Now.Year; year >= MinYear; year--)
                 {
                     <option value="@year">@year</option>
@@ -164,8 +164,73 @@
     private int? selectedYear;
     private bool isInternalUpdate = false;
 
-    private string? SelectedMonth => selectedMonth?.ToString() ?? "";
-    private string? SelectedYear => selectedYear?.ToString() ?? "";
+    private string SelectedMonthString
+    {
+        get => selectedMonth?.ToString() ?? "";
+        set
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                selectedMonth = null;
+                Value = null;
+            }
+            else if (int.TryParse(value, out int month))
+            {
+                selectedMonth = month;
+                
+                // Only create DateTime if both month and year are set
+                if (selectedYear.HasValue)
+                {
+                    Value = new DateTime(selectedYear.Value, month, 1);
+                }
+                else
+                {
+                    Value = null;
+                }
+            }
+            
+            isInternalUpdate = true;
+            ValueChanged.InvokeAsync(Value);
+            if (MonthChanged.HasDelegate)
+            {
+                MonthChanged.InvokeAsync(selectedMonth);
+            }
+        }
+    }
+
+    private string SelectedYearString
+    {
+        get => selectedYear?.ToString() ?? "";
+        set
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                selectedYear = null;
+                Value = null;
+            }
+            else if (int.TryParse(value, out int year))
+            {
+                selectedYear = year;
+                
+                // Only create DateTime if both month and year are set
+                if (selectedMonth.HasValue)
+                {
+                    Value = new DateTime(year, selectedMonth.Value, 1);
+                }
+                else
+                {
+                    Value = null;
+                }
+            }
+            
+            isInternalUpdate = true;
+            ValueChanged.InvokeAsync(Value);
+            if (YearChanged.HasDelegate)
+            {
+                YearChanged.InvokeAsync(selectedYear);
+            }
+        }
+    }
 
     protected override void OnParametersSet()
     {
@@ -181,77 +246,5 @@
             }
         }
         isInternalUpdate = false;
-    }
-
-    private async Task OnMonthChanged(ChangeEventArgs e)
-    {
-        var monthStr = e.Value?.ToString();
-        
-        if (string.IsNullOrEmpty(monthStr))
-        {
-            // Month cleared - set to null
-            selectedMonth = null;
-            Value = null;
-        }
-        else if (int.TryParse(monthStr, out int month))
-        {
-            selectedMonth = month;
-            
-            // Only create DateTime if both month and year are set
-            if (selectedYear.HasValue)
-            {
-                Value = new DateTime(selectedYear.Value, month, 1);
-            }
-            else
-            {
-                // Keep month selected but don't create DateTime yet
-                Value = null;
-            }
-        }
-        
-        isInternalUpdate = true;
-        
-        // Emit both the combined Value and individual Month change
-        await ValueChanged.InvokeAsync(Value);
-        if (MonthChanged.HasDelegate)
-        {
-            await MonthChanged.InvokeAsync(selectedMonth);
-        }
-    }
-
-    private async Task OnYearChanged(ChangeEventArgs e)
-    {
-        var yearStr = e.Value?.ToString();
-        
-        if (string.IsNullOrEmpty(yearStr))
-        {
-            // Year cleared - set to null
-            selectedYear = null;
-            Value = null;
-        }
-        else if (int.TryParse(yearStr, out int year))
-        {
-            selectedYear = year;
-            
-            // Only create DateTime if both month and year are set
-            if (selectedMonth.HasValue)
-            {
-                Value = new DateTime(year, selectedMonth.Value, 1);
-            }
-            else
-            {
-                // Keep year selected but don't create DateTime yet
-                Value = null;
-            }
-        }
-        
-        isInternalUpdate = true;
-        
-        // Emit both the combined Value and individual Year change
-        await ValueChanged.InvokeAsync(Value);
-        if (YearChanged.HasDelegate)
-        {
-            await YearChanged.InvokeAsync(selectedYear);
-        }
     }
 }
