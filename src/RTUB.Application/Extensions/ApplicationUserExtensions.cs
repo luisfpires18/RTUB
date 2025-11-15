@@ -141,17 +141,27 @@ public static class ApplicationUserExtensions
     #region Years Calculation
     
     /// <summary>
-    /// Gets the number of years as Tuno (from YearTuno to current year)
+    /// Gets the number of years as Tuno (from YearTuno+MonthTuno to current year+month)
     /// Returns null if YearTuno is not set
+    /// Uses month-aware calculation if MonthTuno is available, otherwise defaults to January
     /// </summary>
     public static int? GetYearsAsTuno(this ApplicationUser user)
     {
         if (user.YearTuno == null) return null;
-        return DateTime.Now.Year - user.YearTuno.Value;
+        
+        var now = DateTime.Now;
+        var tunoStartYear = user.YearTuno.Value;
+        var tunoStartMonth = user.MonthTuno ?? 1; // Default to January if month not set
+        
+        var tunoStart = new DateTime(tunoStartYear, tunoStartMonth, 1);
+        var monthsAsTuno = ((now.Year - tunoStart.Year) * 12) + (now.Month - tunoStart.Month);
+        
+        return monthsAsTuno / 12; // Integer division for complete years
     }
     
     /// <summary>
     /// Checks if the user has been Tuno for at least the specified number of years
+    /// Uses month-aware calculation
     /// </summary>
     public static bool HasBeenTunoForYears(this ApplicationUser user, int years)
     {
@@ -161,6 +171,7 @@ public static class ApplicationUserExtensions
     
     /// <summary>
     /// Checks if the user qualifies for Veterano status (2+ years as Tuno)
+    /// Uses month-aware calculation
     /// </summary>
     public static bool QualifiesForVeterano(this ApplicationUser user)
     {
@@ -169,6 +180,7 @@ public static class ApplicationUserExtensions
     
     /// <summary>
     /// Checks if the user qualifies for Tunossauro status (6+ years as Tuno)
+    /// Uses month-aware calculation
     /// Note: Original comment in ApplicationUser.cs says 4+ years for Tunossauro,
     /// but CurrentRole property uses 6+ years. Using 6 for consistency with CurrentRole.
     /// </summary>

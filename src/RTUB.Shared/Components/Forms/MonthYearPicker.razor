@@ -1,0 +1,324 @@
+@namespace RTUB.Shared
+
+@*
+    MonthYearPicker Component
+    User-friendly month/year selector with dropdown menus instead of native HTML5 month input
+*@
+
+<div class="form-group month-year-picker-wrapper @CssClass">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="form-label fw-semibold @LabelCssClass">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <i class="bi bi-@Icon text-primary me-2"></i>
+            }
+            @Label
+            @if (Required)
+            {
+                <span class="text-danger ms-1">*</span>
+            }
+        </label>
+    }
+    
+    <div class="row g-2">
+        <div class="col-6">
+            <select class="form-select @InputCssClass month-year-picker" 
+                    @bind="SelectedMonthString"
+                    @bind:event="onchange"
+                    disabled="@Disabled"
+                    aria-label="@GetMonthAriaLabel()">
+                <option value="" disabled>Selecionar...</option>
+                <option value="1">Janeiro</option>
+                <option value="2">Fevereiro</option>
+                <option value="3">Março</option>
+                <option value="4">Abril</option>
+                <option value="5">Maio</option>
+                <option value="6">Junho</option>
+                <option value="7">Julho</option>
+                <option value="8">Agosto</option>
+                <option value="9">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+            </select>
+        </div>
+        <div class="col-6">
+            <select class="form-select @InputCssClass month-year-picker" 
+                    @bind="SelectedYearString"
+                    @bind:event="onchange"
+                    disabled="@Disabled"
+                    aria-label="@GetYearAriaLabel()">
+                <option value="" disabled>Selecionar...</option>
+                @for (int year = DateTime.Now.Year; year >= MinYear; year--)
+                {
+                    <option value="@year">@year</option>
+                }
+            </select>
+        </div>
+    </div>
+    
+    @if (!string.IsNullOrEmpty(HelpText))
+    {
+        <small class="form-text text-muted mt-1 d-block">@HelpText</small>
+    }
+</div>
+
+<style>
+    /* Hide disabled placeholder options to prevent hover effects */
+    .month-year-picker option[disabled] {
+        display: none;
+    }
+
+    /* Mobile responsiveness - improve touch targets on small screens */
+    .month-year-picker-wrapper .form-select {
+        min-height: 44px; /* iOS recommended minimum touch target size */
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+
+    /* Larger touch targets on mobile */
+    @@media (max-width: 768px) {
+        .month-year-picker-wrapper .form-select {
+            min-height: 48px;
+            font-size: 16px;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .month-year-picker-wrapper .row {
+            margin-left: 0;
+            margin-right: 0;
+        }
+
+        .month-year-picker-wrapper .col-6 {
+            padding-left: 0.25rem;
+            padding-right: 0.25rem;
+        }
+    }
+
+    /* Extra small screens - stack dropdowns vertically if needed */
+    @@media (max-width: 360px) {
+        .month-year-picker-wrapper .col-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        .month-year-picker-wrapper .row {
+            row-gap: 0.5rem;
+        }
+    }
+
+    /* Improve focus visibility for accessibility */
+    .month-year-picker:focus {
+        outline: 2px solid #0d6efd;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    /* Dark mode support */
+    @@media (prefers-color-scheme: dark) {
+        .month-year-picker option {
+            background-color: #212529;
+            color: #fff;
+        }
+    }
+</style>
+
+@code {
+    /// <summary>
+    /// Label text for the picker
+    /// </summary>
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Bootstrap icon class name (without "bi-" prefix, e.g., "calendar", "calendar3")
+    /// </summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    /// <summary>
+    /// Current value as DateTime (only month and year are used)
+    /// </summary>
+    [Parameter]
+    public DateTime? Value { get; set; }
+
+    /// <summary>
+    /// Event callback when value changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<DateTime?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Direct year value (optional, overrides Value if provided)
+    /// </summary>
+    [Parameter]
+    public int? Year { get; set; }
+
+    /// <summary>
+    /// Event callback when year changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<int?> YearChanged { get; set; }
+
+    /// <summary>
+    /// Direct month value (optional, overrides Value if provided)
+    /// </summary>
+    [Parameter]
+    public int? Month { get; set; }
+
+    /// <summary>
+    /// Event callback when month changes
+    /// </summary>
+    [Parameter]
+    public EventCallback<int?> MonthChanged { get; set; }
+
+    /// <summary>
+    /// Whether the field is required
+    /// </summary>
+    [Parameter]
+    public bool Required { get; set; }
+
+    /// <summary>
+    /// Whether the field is disabled
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Help text displayed below the picker
+    /// </summary>
+    [Parameter]
+    public string? HelpText { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes for the form group
+    /// </summary>
+    [Parameter]
+    public string CssClass { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Additional CSS classes for the label
+    /// </summary>
+    [Parameter]
+    public string LabelCssClass { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Additional CSS classes for the inputs
+    /// </summary>
+    [Parameter]
+    public string InputCssClass { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Minimum year to show in the year dropdown (default: 1990)
+    /// </summary>
+    [Parameter]
+    public int MinYear { get; set; } = 1990;
+
+    // Track month and year independently
+    private int? selectedMonth;
+    private int? selectedYear;
+    private bool isInternalUpdate = false;
+
+    private string SelectedMonthString
+    {
+        get => selectedMonth?.ToString() ?? "";
+        set
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                selectedMonth = null;
+                Value = null;
+            }
+            else if (int.TryParse(value, out int month))
+            {
+                selectedMonth = month;
+                
+                // Only create DateTime if both month and year are set
+                if (selectedYear.HasValue)
+                {
+                    Value = new DateTime(selectedYear.Value, month, 1);
+                }
+                else
+                {
+                    Value = null;
+                }
+            }
+            
+            isInternalUpdate = true;
+            ValueChanged.InvokeAsync(Value);
+            if (MonthChanged.HasDelegate)
+            {
+                MonthChanged.InvokeAsync(selectedMonth);
+            }
+        }
+    }
+
+    private string SelectedYearString
+    {
+        get => selectedYear?.ToString() ?? "";
+        set
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                selectedYear = null;
+                Value = null;
+            }
+            else if (int.TryParse(value, out int year))
+            {
+                selectedYear = year;
+                
+                // Only create DateTime if both month and year are set
+                if (selectedMonth.HasValue)
+                {
+                    Value = new DateTime(year, selectedMonth.Value, 1);
+                }
+                else
+                {
+                    Value = null;
+                }
+            }
+            
+            isInternalUpdate = true;
+            ValueChanged.InvokeAsync(Value);
+            if (YearChanged.HasDelegate)
+            {
+                YearChanged.InvokeAsync(selectedYear);
+            }
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Only sync from external Value changes, not our own internal updates
+        if (!isInternalUpdate)
+        {
+            // Prioritize direct Year/Month parameters if provided
+            // Only update if the parameter value is different from what we have
+            if (Year != selectedYear || Month != selectedMonth)
+            {
+                selectedYear = Year;
+                selectedMonth = Month;
+                StateHasChanged(); // Force re-render to update the select elements
+            }
+        }
+        isInternalUpdate = false;
+    }
+
+    /// <summary>
+    /// Gets the aria-label for the month dropdown for accessibility
+    /// </summary>
+    private string GetMonthAriaLabel()
+    {
+        var baseLabel = !string.IsNullOrEmpty(Label) ? $"{Label} - Mês" : "Mês";
+        return Required ? $"{baseLabel} (obrigatório)" : baseLabel;
+    }
+
+    /// <summary>
+    /// Gets the aria-label for the year dropdown for accessibility
+    /// </summary>
+    private string GetYearAriaLabel()
+    {
+        var baseLabel = !string.IsNullOrEmpty(Label) ? $"{Label} - Ano" : "Ano";
+        return Required ? $"{baseLabel} (obrigatório)" : baseLabel;
+    }
+}

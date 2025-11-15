@@ -37,8 +37,11 @@ public class ApplicationUser : IdentityUser
     public DateTime? DateOfBirth { get; set; }
     public string? Degree { get; set; }
     public int? YearLeitao { get; set; }
+    public int? MonthLeitao { get; set; }
     public int? YearCaloiro { get; set; }
+    public int? MonthCaloiro { get; set; }
     public int? YearTuno { get; set; }
+    public int? MonthTuno { get; set; }
     public InstrumentType? MainInstrument { get; set; }
     public bool RequirePasswordChange { get; set; } = false;
     public DateTime? LastLoginDate { get; set; }
@@ -123,7 +126,15 @@ public class ApplicationUser : IdentityUser
         get
         {
             if (YearTuno == null) return "N/A";
-            var yearsAsTuno = DateTime.Now.Year - YearTuno.Value;
+            
+            var now = DateTime.Now;
+            var tunoStartYear = YearTuno.Value;
+            var tunoStartMonth = MonthTuno ?? 1; // Default to January if month not set
+            
+            var tunoStart = new DateTime(tunoStartYear, tunoStartMonth, 1);
+            var monthsAsTuno = ((now.Year - tunoStart.Year) * 12) + (now.Month - tunoStart.Month);
+            var yearsAsTuno = monthsAsTuno / 12.0;
+            
             if (yearsAsTuno >= 6) return "TUNOSSAURO";
             if (yearsAsTuno >= 2) return "VETERANO";
             return "TUNO";
