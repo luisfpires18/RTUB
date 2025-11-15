@@ -365,6 +365,11 @@ public static partial class SeedData
             requestsWhatToExpect.Activate();
             labels.Add(requestsWhatToExpect);
 
+            // Ranking story label
+            var rankingStory = Label.Create("ranking_story", "Como Funciona o Sistema de Ranking", "O sistema de ranking da RTUB é baseado em XP (Pontos de Experiência) que ganhas ao participar nas atividades da tuna.\n\n🎵 Ensaios: Ganha XP por cada ensaio confirmado a que compareças\n🎭 Atuações: Ganha XP por cada atuação em que participas (o XP varia consoante o tipo de evento)\n🏆 Níveis: À medida que acumulas XP, vais subindo de nível e desbloqueando novos títulos\n\nParticipa ativamente nas atividades da tuna para subires na tabela de classificação e alcançares o nível máximo!");
+            rankingStory.Activate();
+            labels.Add(rankingStory);
+
             await dbContext.Labels.AddRangeAsync(labels);
             await dbContext.SaveChangesAsync();
         }
