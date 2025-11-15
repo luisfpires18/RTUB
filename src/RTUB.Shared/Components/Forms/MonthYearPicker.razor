@@ -23,11 +23,11 @@
     
     <div class="row g-2">
         <div class="col-6">
-            <select class="form-select @InputCssClass" 
+            <select class="form-select @InputCssClass month-year-picker" 
                     @onchange="OnMonthChanged" 
                     disabled="@Disabled"
                     value="@SelectedMonth">
-                <option value="" disabled>Selecionar...</option>
+                <option value="" disabled selected hidden>Selecionar...</option>
                 <option value="1">Janeiro</option>
                 <option value="2">Fevereiro</option>
                 <option value="3">Março</option>
@@ -43,11 +43,11 @@
             </select>
         </div>
         <div class="col-6">
-            <select class="form-select @InputCssClass" 
+            <select class="form-select @InputCssClass month-year-picker" 
                     @onchange="OnYearChanged" 
                     disabled="@Disabled"
                     value="@SelectedYear">
-                <option value="" disabled>Selecionar...</option>
+                <option value="" disabled selected hidden>Selecionar...</option>
                 @for (int year = DateTime.Now.Year; year >= MinYear; year--)
                 {
                     <option value="@year">@year</option>
@@ -61,6 +61,12 @@
         <small class="form-text text-muted mt-1 d-block">@HelpText</small>
     }
 </div>
+
+<style>
+    .month-year-picker option[disabled] {
+        display: none;
+    }
+</style>
 
 @code {
     /// <summary>

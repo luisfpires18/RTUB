@@ -1316,9 +1316,8 @@ else
     // Helper methods for converting between DateTime and Year+Month
     private DateTime? GetDateFromYearMonth(int? year, int? month)
     {
-        if (!year.HasValue) return null;
-        var monthValue = month ?? 1; // Default to January if month not set
-        return new DateTime(year.Value, monthValue, 1);
+        if (!year.HasValue || !month.HasValue) return null;
+        return new DateTime(year.Value, month.Value, 1);
     }
     
     private (int? year, int? month) GetYearMonthFromDate(DateTime? date)
