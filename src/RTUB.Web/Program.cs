@@ -120,25 +120,16 @@ public class Program
                     }
 
                     var issuedUtc = context.Properties?.IssuedUtc?.UtcDateTime ?? DateTime.MinValue;
-                    var logCacheKey = $"login-log:{userName}:{issuedUtc.Ticks}";
 
-                    // Log once per session using cache
-                    if (!cache.TryGetValue(logCacheKey, out _))
-                    {
-                        cache.Set(logCacheKey, true, new MemoryCacheEntryOptions
-                        {
-                            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(12)
-                        });
-
-                        logger.LogInformation(
-                            "User {UserName} authenticated via cookie validation at {LoginTime}",
-                            userName,
-                            DateTime.UtcNow);
-                    }
+                    // Log every time user authenticates via cookie validation
+                    logger.LogInformation(
+                        "User {UserName} authenticated via cookie validation at {LoginTime}",
+                        userName,
+                        DateTime.UtcNow);
 
                     // Update LastLoginDate to reflect current activity
                     // This ensures the "Estado de login" on /owner/user-roles shows accurate online status
-                    // Use a separate cache key to update periodically (every 5 minutes) instead of on every request
+                    // Use cache to update periodically (every 5 minutes) instead of on every request to avoid excessive DB writes
                     var lastLoginUpdateCacheKey = $"lastlogin-update:{userName}:{issuedUtc.Ticks}";
                     
                     if (!cache.TryGetValue(lastLoginUpdateCacheKey, out _))
