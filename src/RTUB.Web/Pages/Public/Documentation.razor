@@ -380,13 +380,16 @@ else
             uploadSuccess = $"Ficheiro '{selectedFile.Name}' carregado com sucesso!";
             
             // Reload documents for this folder
-            var folderName = selectedFolderPath.Replace("docs/", "").TrimEnd('/');
+            // Extract folder name from path like "docs/Development/FolderName/" -> "FolderName"
+            var folderName = selectedFolderPath
+                .Replace($"docs/{HostEnvironment.EnvironmentName}/", "")
+                .TrimEnd('/');
+            
             if (folderDocuments.ContainsKey(folderName))
             {
                 folderDocuments[folderName] = await DocumentStorageService.ListDocumentsInFolderAsync(selectedFolderPath);
+                StateHasChanged();
             }
-            
-            StateHasChanged();
             
             // Auto-close after 2 seconds
             await Task.Delay(2000);
@@ -431,16 +434,23 @@ else
             var url = await DocumentStorageService.GetDocumentUrlAsync(document.FilePath);
             if (!string.IsNullOrEmpty(url))
             {
-                // Use a download helper to force download instead of opening
+                // Use fetch API to download the file properly
                 await JSRuntime.InvokeVoidAsync("eval", $@"
-                    (function() {{
-                        var link = document.createElement('a');
-                        link.href = '{url}';
-                        link.download = '{document.FileName}';
-                        link.target = '_blank';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
+                    (async function() {{
+                        try {{
+                            const response = await fetch('{url}');
+                            const blob = await response.blob();
+                            const blobUrl = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = blobUrl;
+                            link.download = '{document.FileName}';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            window.URL.revokeObjectURL(blobUrl);
+                        }} catch (error) {{
+                            console.error('Download failed:', error);
+                        }}
                     }})();
                 ");
             }
