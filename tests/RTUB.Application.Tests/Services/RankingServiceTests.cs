@@ -36,7 +36,6 @@ public class RankingServiceTests : IDisposable
         {
             Enabled = true,
             XpPerRehearsal = 10,
-            XpPerEvent = 20,
             XpPerEventType = new Dictionary<string, int>
             {
                 { "Festival", 50 },
@@ -100,9 +99,9 @@ public class RankingServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var event1 = Event.Create("Event 1", DateTime.UtcNow.AddDays(-1), "Location", EventType.Nerba);
+        var event1 = Event.Create("Event 1", DateTime.UtcNow.AddDays(-1), "Location", EventType.Atuacao);
         event1.Id = 1;
-        var event2 = Event.Create("Event 2", DateTime.UtcNow.AddDays(-2), "Location", EventType.Nerba);
+        var event2 = Event.Create("Event 2", DateTime.UtcNow.AddDays(-2), "Location", EventType.Atuacao);
         event2.Id = 2;
         
         await _context.Events.AddRangeAsync(event1, event2);
@@ -118,8 +117,8 @@ public class RankingServiceTests : IDisposable
         // Act
         var result = await _service.CalculateTotalXpAsync(userId);
 
-        // Assert - 2 events * 20 XP = 40
-        result.Should().Be(40);
+        // Assert - 2 Atuacao events * 25 XP = 50
+        result.Should().Be(50);
     }
 
     [Fact]
@@ -128,7 +127,7 @@ public class RankingServiceTests : IDisposable
         // Arrange
         var userId = "user-123";
         var rehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
-        var eventEntity = Event.Create("Event 1", DateTime.UtcNow.AddDays(-1), "Location", EventType.Nerba);
+        var eventEntity = Event.Create("Event 1", DateTime.UtcNow.AddDays(-1), "Location", EventType.Festival);
         eventEntity.Id = 1;
         
         await _context.Rehearsals.AddAsync(rehearsal);
@@ -144,8 +143,8 @@ public class RankingServiceTests : IDisposable
         // Act
         var result = await _service.CalculateTotalXpAsync(userId);
 
-        // Assert - 1 rehearsal (10 XP) + 1 event (20 XP) = 30
-        result.Should().Be(30);
+        // Assert - 1 rehearsal (10 XP) + 1 Festival event (50 XP) = 60
+        result.Should().Be(60);
     }
 
     [Fact]
@@ -176,9 +175,9 @@ public class RankingServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var event1 = Event.Create("Event 1", DateTime.UtcNow.AddDays(-1), "Location", EventType.Nerba);
+        var event1 = Event.Create("Event 1", DateTime.UtcNow.AddDays(-1), "Location", EventType.Atuacao);
         event1.Id = 1;
-        var event2 = Event.Create("Event 2", DateTime.UtcNow.AddDays(-2), "Location", EventType.Nerba);
+        var event2 = Event.Create("Event 2", DateTime.UtcNow.AddDays(-2), "Location", EventType.Atuacao);
         event2.Id = 2;
         
         await _context.Events.AddRangeAsync(event1, event2);
@@ -192,8 +191,8 @@ public class RankingServiceTests : IDisposable
         // Act
         var result = await _service.CalculateTotalXpAsync(userId);
 
-        // Assert - Only 1 confirmed enrollment * 20 XP = 20
-        result.Should().Be(20);
+        // Assert - Only 1 confirmed Atuacao enrollment * 25 XP = 25
+        result.Should().Be(25);
     }
 
     [Fact]
@@ -201,9 +200,9 @@ public class RankingServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var pastEvent = Event.Create("Past Event", DateTime.UtcNow.AddDays(-1), "Location", EventType.Nerba);
+        var pastEvent = Event.Create("Past Event", DateTime.UtcNow.AddDays(-1), "Location", EventType.Atuacao);
         pastEvent.Id = 1;
-        var futureEvent = Event.Create("Future Event", DateTime.UtcNow.AddDays(1), "Location", EventType.Nerba);
+        var futureEvent = Event.Create("Future Event", DateTime.UtcNow.AddDays(1), "Location", EventType.Atuacao);
         futureEvent.Id = 2;
         
         await _context.Events.AddRangeAsync(pastEvent, futureEvent);
@@ -217,8 +216,8 @@ public class RankingServiceTests : IDisposable
         // Act
         var result = await _service.CalculateTotalXpAsync(userId);
 
-        // Assert - Only past event counts: 1 event * 20 XP = 20
-        result.Should().Be(20);
+        // Assert - Only past Atuacao event counts: 1 event * 25 XP = 25
+        result.Should().Be(25);
     }
 
     [Fact]
@@ -502,7 +501,7 @@ public class RankingServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CalculateTotalXpAsync_WithEventTypeNotInConfig_UsesDefaultXp()
+    public async Task CalculateTotalXpAsync_WithEventTypeNotInConfig_GivesZeroXp()
     {
         // Arrange
         var userId = "user-123";
@@ -518,8 +517,8 @@ public class RankingServiceTests : IDisposable
         // Act
         var result = await _service.CalculateTotalXpAsync(userId);
 
-        // Assert - Nerba not in config, uses default 20 XP
-        result.Should().Be(20);
+        // Assert - Nerba not in config, gives 0 XP
+        result.Should().Be(0);
     }
 
     [Fact]
@@ -531,10 +530,10 @@ public class RankingServiceTests : IDisposable
         festivalEvent.Id = 1;
         var atuacaoEvent = Event.Create("Atuacao", DateTime.UtcNow.AddDays(-2), "Location", EventType.Atuacao);
         atuacaoEvent.Id = 2;
-        var nebraEvent = Event.Create("Nerba", DateTime.UtcNow.AddDays(-3), "Location", EventType.Nerba);
-        nebraEvent.Id = 3;
+        var casamentoEvent = Event.Create("Casamento", DateTime.UtcNow.AddDays(-3), "Location", EventType.Casamento);
+        casamentoEvent.Id = 3;
         
-        await _context.Events.AddRangeAsync(festivalEvent, atuacaoEvent, nebraEvent);
+        await _context.Events.AddRangeAsync(festivalEvent, atuacaoEvent, casamentoEvent);
         var enrollment1 = Enrollment.Create(userId, 1);
         enrollment1.WillAttend = true;
         var enrollment2 = Enrollment.Create(userId, 2);
@@ -547,8 +546,8 @@ public class RankingServiceTests : IDisposable
         // Act
         var result = await _service.CalculateTotalXpAsync(userId);
 
-        // Assert - Festival (50) + Atuacao (25) + Nerba (20 default) = 95
-        result.Should().Be(95);
+        // Assert - Festival (50) + Atuacao (25) + Casamento (30) = 105
+        result.Should().Be(105);
     }
 
     public void Dispose()

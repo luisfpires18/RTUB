@@ -38,27 +38,16 @@ public class RankingService : IRankingService
             .Where(ra => ra.UserId == userId && ra.Attended && ra.Rehearsal!.Date < now)
             .CountAsync() * _rankingConfig.Value.XpPerRehearsal;
 
-        // Calculate event XP with type-specific values
-        var enrollments = await _context.Enrollments
+        // Calculate event XP with type-specific values - only count events with configured XP
+        var eventTypes = await _context.Enrollments
             .Include(e => e.Event)
             .Where(e => e.UserId == userId && e.WillAttend && e.Event!.Date < now)
+            .Select(e => e.Event!.Type.ToString())
             .ToListAsync();
 
-        var eventXp = 0;
-        foreach (var enrollment in enrollments)
-        {
-            var eventType = enrollment.Event!.Type.ToString();
-            
-            // Try to get type-specific XP, fall back to default if not found
-            if (_rankingConfig.Value.XpPerEventType.TryGetValue(eventType, out var typeXp))
-            {
-                eventXp += typeXp;
-            }
-            else
-            {
-                eventXp += _rankingConfig.Value.XpPerEvent;
-            }
-        }
+        var eventXp = eventTypes
+            .Where(eventType => _rankingConfig.Value.XpPerEventType.ContainsKey(eventType))
+            .Sum(eventType => _rankingConfig.Value.XpPerEventType[eventType]);
 
         return rehearsalXp + eventXp;
     }
