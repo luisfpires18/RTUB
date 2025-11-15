@@ -122,13 +122,12 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error checking document existence. Bucket: '{BucketName}', Path: '{DocumentPath}', ErrorCode: {ErrorCode}, Message: {Message}", 
-                _bucketName, documentPath, ex.ErrorCode, ex.Message);
+            _logger.LogError(ex, "Failed to check document existence {DocumentPath}", documentPath);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error checking if document exists: {DocumentPath}", documentPath);
+            _logger.LogError(ex, "Error checking document {DocumentPath}", documentPath);
             return false;
         }
     }
@@ -171,13 +170,12 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error listing folders. Bucket: '{BucketName}', Prefix: '{Prefix}', ErrorCode: {ErrorCode}, Message: {Message}", 
-                _bucketName, prefix, ex.ErrorCode, ex.Message);
+            _logger.LogError(ex, "Failed to list folders");
             return new List<string>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error listing folders with prefix: {Prefix}", prefix);
+            _logger.LogError(ex, "Error listing folders");
             return new List<string>();
         }
     }
@@ -232,13 +230,12 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error listing documents in folder. Bucket: '{BucketName}', FolderPath: '{FolderPath}', ErrorCode: {ErrorCode}, Message: {Message}", 
-                _bucketName, folderPath, ex.ErrorCode, ex.Message);
+            _logger.LogError(ex, "Failed to list documents in {FolderPath}", folderPath);
             return new List<DocumentMetadata>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error listing documents in folder: {FolderPath}", folderPath);
+            _logger.LogError(ex, "Error listing documents in {FolderPath}", folderPath);
             return new List<DocumentMetadata>();
         }
     }
@@ -254,9 +251,6 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
             }
 
             var documentPath = folderPath + fileName;
-            var fileSizeBytes = fileStream.Length;
-
-            _logger.LogInformation("Attempting to upload document to bucket '{Bucket}' with key: {DocumentPath}", _bucketName, documentPath);
 
             var request = new PutObjectRequest
             {
@@ -268,30 +262,21 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
                 DisablePayloadSigning = true // Disable checksum calculation for non-seekable streams
             };
 
-            var response = await _s3Client.PutObjectAsync(request);
-            
-            _logger.LogInformation("Successfully uploaded document: {DocumentPath}. Response status: {StatusCode}", 
-                documentPath, response.HttpStatusCode);
+            await _s3Client.PutObjectAsync(request);
 
-            // Create audit log for document upload
-            await CreateAuditLogAsync(
-                action: "UploadDocument",
-                entityDisplayName: fileName,
-                changes: $"Document uploaded to: {documentPath}, Size: {fileSizeBytes} bytes, ContentType: {contentType}",
-                isCritical: false
-            );
+            // Create audit log
+            await CreateAuditLogAsync("Created", fileName, $"Uploaded to {documentPath}");
 
             return documentPath;
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error uploading document. Bucket: '{BucketName}', Key: '{Path}', ErrorCode: {ErrorCode}, StatusCode: {StatusCode}, Message: {Message}", 
-                _bucketName, folderPath + fileName, ex.ErrorCode, ex.StatusCode, ex.Message);
-            throw new InvalidOperationException($"Failed to upload document '{fileName}' to '{folderPath}' in bucket '{_bucketName}'. Error: {ex.ErrorCode} - {ex.Message}. Please verify your Cloudflare R2 bucket permissions.", ex);
+            _logger.LogError(ex, "Failed to upload document {FileName}", fileName);
+            throw new InvalidOperationException($"Failed to upload document '{fileName}'", ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error uploading document: {FileName} to {FolderPath}", fileName, folderPath);
+            _logger.LogError(ex, "Error uploading document {FileName}", fileName);
             throw;
         }
     }
@@ -306,7 +291,7 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
                 folderPath += "/";
             }
 
-            _logger.LogInformation("Attempting to create folder in bucket '{Bucket}' with key: {FolderPath}", _bucketName, folderPath);
+            var folderName = folderPath.TrimEnd('/').Split('/').Last();
 
             // Create an empty object with "/" suffix to represent a folder
             var request = new PutObjectRequest
@@ -318,28 +303,19 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
                 UseChunkEncoding = false // Required for Cloudflare R2 compatibility
             };
 
-            var response = await _s3Client.PutObjectAsync(request);
-            
-            _logger.LogInformation("Successfully created folder: {FolderPath}. Response status: {StatusCode}", 
-                folderPath, response.HttpStatusCode);
+            await _s3Client.PutObjectAsync(request);
 
-            // Create audit log for folder creation
-            await CreateAuditLogAsync(
-                action: "CreateFolder",
-                entityDisplayName: folderPath.TrimEnd('/'),
-                changes: $"Folder created at path: {folderPath}",
-                isCritical: false
-            );
+            // Create audit log
+            await CreateAuditLogAsync("Created", folderName, $"Created folder {folderPath}");
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error creating folder. Bucket: '{BucketName}', Key: '{FolderPath}', ErrorCode: {ErrorCode}, StatusCode: {StatusCode}, Message: {Message}", 
-                _bucketName, folderPath, ex.ErrorCode, ex.StatusCode, ex.Message);
-            throw new InvalidOperationException($"Failed to create folder '{folderPath}' in bucket '{_bucketName}'. Error: {ex.ErrorCode} - {ex.Message}. Please verify your Cloudflare R2 bucket permissions.", ex);
+            _logger.LogError(ex, "Failed to create folder {FolderPath}", folderPath);
+            throw new InvalidOperationException($"Failed to create folder '{folderPath}'", ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error creating folder: {FolderPath}", folderPath);
+            _logger.LogError(ex, "Error creating folder {FolderPath}", folderPath);
             throw;
         }
     }
@@ -364,13 +340,12 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error getting file size. Bucket: '{BucketName}', Path: '{DocumentPath}', ErrorCode: {ErrorCode}, Message: {Message}", 
-                _bucketName, documentPath, ex.ErrorCode, ex.Message);
+            _logger.LogError(ex, "Failed to get file size {DocumentPath}", documentPath);
             return 0;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error getting file size for: {DocumentPath}", documentPath);
+            _logger.LogError(ex, "Error getting file size {DocumentPath}", documentPath);
             return 0;
         }
     }
@@ -379,10 +354,7 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
     {
         try
         {
-            // Extract file name from path for audit log
             var fileName = Path.GetFileName(documentPath);
-
-            _logger.LogInformation("Attempting to delete document from bucket '{Bucket}' with key: {DocumentPath}", _bucketName, documentPath);
 
             var request = new DeleteObjectRequest
             {
@@ -390,28 +362,19 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
                 Key = documentPath
             };
 
-            var response = await _s3Client.DeleteObjectAsync(request);
-            
-            _logger.LogInformation("Successfully deleted document: {DocumentPath}. Response status: {StatusCode}", 
-                documentPath, response.HttpStatusCode);
+            await _s3Client.DeleteObjectAsync(request);
 
-            // Create audit log for document deletion
-            await CreateAuditLogAsync(
-                action: "DeleteDocument",
-                entityDisplayName: fileName,
-                changes: $"Document deleted from path: {documentPath}",
-                isCritical: true // Deletion is a critical action
-            );
+            // Create audit log
+            await CreateAuditLogAsync("Deleted", fileName, $"Deleted from {documentPath}", isCritical: true);
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error deleting document. Bucket: '{BucketName}', Key: '{DocumentPath}', ErrorCode: {ErrorCode}, StatusCode: {StatusCode}, Message: {Message}", 
-                _bucketName, documentPath, ex.ErrorCode, ex.StatusCode, ex.Message);
-            throw new InvalidOperationException($"Failed to delete document '{documentPath}' from bucket '{_bucketName}'. Error: {ex.ErrorCode} - {ex.Message}", ex);
+            _logger.LogError(ex, "Failed to delete document {DocumentPath}", documentPath);
+            throw new InvalidOperationException($"Failed to delete document '{documentPath}'", ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error deleting document: {DocumentPath}", documentPath);
+            _logger.LogError(ex, "Error deleting document {DocumentPath}", documentPath);
             throw;
         }
     }
@@ -426,10 +389,7 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
                 folderPath += "/";
             }
 
-            // Extract folder name for audit log
             var folderName = folderPath.TrimEnd('/').Split('/').Last();
-
-            _logger.LogInformation("Attempting to delete folder from bucket '{Bucket}' with prefix: {FolderPath}", _bucketName, folderPath);
 
             // List all objects in the folder
             var objectsToDelete = new List<string>();
@@ -452,8 +412,6 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
                 request.ContinuationToken = response.NextContinuationToken;
             } while (response.IsTruncated == true);
 
-            _logger.LogInformation("Found {Count} objects to delete in folder: {FolderPath}", objectsToDelete.Count, folderPath);
-
             // Delete all objects in batches (S3 allows max 1000 per batch)
             for (int i = 0; i < objectsToDelete.Count; i += S3_MAX_DELETE_BATCH_SIZE)
             {
@@ -465,63 +423,45 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
                     Objects = batch.Select(key => new KeyVersion { Key = key }).ToList()
                 };
 
-                var deleteResponse = await _s3Client.DeleteObjectsAsync(deleteRequest);
-                _logger.LogInformation("Deleted batch of {Count} objects from folder: {FolderPath}", deleteResponse.DeletedObjects.Count, folderPath);
+                await _s3Client.DeleteObjectsAsync(deleteRequest);
             }
 
-            _logger.LogInformation("Successfully deleted folder and all contents: {FolderPath}", folderPath);
-
-            // Create audit log for folder deletion
-            await CreateAuditLogAsync(
-                action: "DeleteFolder",
-                entityDisplayName: folderName,
-                changes: $"Folder deleted from path: {folderPath}, Total objects deleted: {objectsToDelete.Count}",
-                isCritical: true // Deletion is a critical action
-            );
+            // Create audit log
+            await CreateAuditLogAsync("Deleted", folderName, $"Deleted folder {folderPath} ({objectsToDelete.Count} files)", isCritical: true);
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error deleting folder. Bucket: '{BucketName}', Key: '{FolderPath}', ErrorCode: {ErrorCode}, StatusCode: {StatusCode}, Message: {Message}", 
-                _bucketName, folderPath, ex.ErrorCode, ex.StatusCode, ex.Message);
-            throw new InvalidOperationException($"Failed to delete folder '{folderPath}' from bucket '{_bucketName}'. Error: {ex.ErrorCode} - {ex.Message}", ex);
+            _logger.LogError(ex, "Failed to delete folder {FolderPath}", folderPath);
+            throw new InvalidOperationException($"Failed to delete folder '{folderPath}'", ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error deleting folder: {FolderPath}", folderPath);
+            _logger.LogError(ex, "Error deleting folder {FolderPath}", folderPath);
             throw;
         }
     }
 
-    /// <summary>
-    /// Creates an audit log entry for document operations
-    /// </summary>
     private async Task CreateAuditLogAsync(string action, string entityDisplayName, string changes, bool isCritical = false)
     {
         try
         {
-            var auditLog = new AuditLog
+            _context.AuditLogs.Add(new AuditLog
             {
                 EntityType = "Document",
-                EntityId = null, // Documents don't have database IDs since they're in S3
+                EntityId = null,
                 Action = action,
                 UserId = _auditContext.UserId,
-                UserName = _auditContext.UserName,
+                UserName = _auditContext.UserName ?? "Unknown",
                 Timestamp = DateTime.UtcNow,
                 Changes = changes,
                 EntityDisplayName = entityDisplayName,
                 IsCriticalAction = isCritical
-            };
-
-            _context.AuditLogs.Add(auditLog);
+            });
             await _context.SaveChangesAsync();
-            
-            _logger.LogInformation("Audit log created for {Action} on {EntityDisplayName} by {UserName}", 
-                action, entityDisplayName, _auditContext.UserName ?? "Unknown");
         }
         catch (Exception ex)
         {
-            // Don't fail the operation if audit logging fails, but log the error
-            _logger.LogError(ex, "Failed to create audit log for {Action} on {EntityDisplayName}", action, entityDisplayName);
+            _logger.LogError(ex, "Audit log failed");
         }
     }
 }
