@@ -173,20 +173,11 @@
         if (!isInternalUpdate)
         {
             // Prioritize direct Year/Month parameters if provided
-            if (Year.HasValue || Month.HasValue)
+            // Only update if the parameter value is different from what we have
+            if (Year != selectedYear || Month != selectedMonth)
             {
                 selectedYear = Year;
                 selectedMonth = Month;
-            }
-            else if (Value.HasValue)
-            {
-                selectedMonth = Value.Value.Month;
-                selectedYear = Value.Value.Year;
-            }
-            else
-            {
-                selectedMonth = null;
-                selectedYear = null;
             }
         }
         isInternalUpdate = false;
