@@ -199,11 +199,23 @@ else
                 <div class="modal-body">
                     @if (selectedRehearsalAttendances != null && selectedRehearsalAttendances.Any())
                     {
-                        <!-- Search Bar -->
-                        <div class="mb-3">
-                            <TableSearchBar SearchTerm="@attendanceSearchTerm"
-                                           Placeholder="Pesquisar por nome..."
-                                           OnSearchChanged="@HandleAttendanceSearchChanged" />
+                        <!-- Filter and Search Row -->
+                        <div class="row g-2 mb-3">
+                            @if (isAdmin && isSelectedRehearsalPast)
+                            {
+                                <div class="col-12 col-md-4">
+                                    <select class="form-select" @bind="attendanceApprovalFilter" @bind:after="FilterAttendances">
+                                        <option value="Todos">Todos</option>
+                                        <option value="Pendente">Pendente</option>
+                                        <option value="Aprovado">Aprovado</option>
+                                    </select>
+                                </div>
+                            }
+                            <div class="@(isAdmin && isSelectedRehearsalPast ? "col-12 col-md-8" : "col-12")">
+                                <TableSearchBar SearchTerm="@attendanceSearchTerm"
+                                               Placeholder="Pesquisar por nome..."
+                                               OnSearchChanged="@HandleAttendanceSearchChanged" />
+                            </div>
                         </div>
                         
                         var attendingMembers = paginatedAttendances.Where(a => a.WillAttend).ToList();
@@ -856,6 +868,7 @@ else
     private List<RehearsalAttendance> filteredAttendances = new();
     private List<RehearsalAttendance> paginatedAttendances = new();
     private string attendanceSearchTerm = "";
+    private string attendanceApprovalFilter = "Todos"; // "Todos", "Pendente", "Aprovado"
     private PaginationHelper<RehearsalAttendance> attendancesPagination = new() { PageSize = 8 };
 
     // Add member to rehearsal functionality
@@ -1159,6 +1172,7 @@ else
         // Initialize filtered attendances and reset pagination
         filteredAttendances = selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName).ToList();
         attendanceSearchTerm = "";
+        attendanceApprovalFilter = "Todos";
         attendancesPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
         UpdatePaginatedAttendances();
 
@@ -1195,31 +1209,49 @@ else
     private async Task HandleAttendanceSearchChanged(string searchTerm)
     {
         attendanceSearchTerm = searchTerm;
-        
-        if (selectedRehearsalAttendances != null)
-        {
-            if (string.IsNullOrWhiteSpace(searchTerm))
-            {
-                filteredAttendances = selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName).ToList();
-            }
-            else
-            {
-                var search = searchTerm.ToLower();
-                filteredAttendances = selectedRehearsalAttendances
-                    .Where(a => (a.User?.FirstName?.ToLower().Contains(search) ?? false) ||
-                               (a.User?.LastName?.ToLower().Contains(search) ?? false) ||
-                               (a.User?.Nickname?.ToLower().Contains(search) ?? false))
-                    .OrderByDescending(a => a.Attended)
-                    .ThenBy(a => a.User?.FirstName)
-                    .ToList();
-            }
-            
-            // Reset to page 1 when search changes
-            attendancesPagination.GoToPage(1);
-            UpdatePaginatedAttendances();
-        }
-        
+        FilterAttendances();
         await Task.CompletedTask;
+    }
+    
+    private void FilterAttendances()
+    {
+        if (selectedRehearsalAttendances == null)
+        {
+            filteredAttendances = new();
+            UpdatePaginatedAttendances();
+            return;
+        }
+
+        var filtered = selectedRehearsalAttendances.AsEnumerable();
+
+        // Apply approval status filter
+        if (attendanceApprovalFilter == "Pendente")
+        {
+            filtered = filtered.Where(a => a.WillAttend && !a.Attended);
+        }
+        else if (attendanceApprovalFilter == "Aprovado")
+        {
+            filtered = filtered.Where(a => a.WillAttend && a.Attended);
+        }
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(attendanceSearchTerm))
+        {
+            var search = attendanceSearchTerm.ToLower();
+            filtered = filtered.Where(a => 
+                (a.User?.FirstName?.ToLower().Contains(search) ?? false) ||
+                (a.User?.LastName?.ToLower().Contains(search) ?? false) ||
+                (a.User?.Nickname?.ToLower().Contains(search) ?? false));
+        }
+
+        filteredAttendances = filtered
+            .OrderByDescending(a => a.Attended)
+            .ThenBy(a => a.User?.FirstName)
+            .ToList();
+
+        // Reset to page 1 when filters change
+        attendancesPagination.GoToPage(1);
+        UpdatePaginatedAttendances();
     }
     
     private void UpdatePaginatedAttendances()
