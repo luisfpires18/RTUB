@@ -58,7 +58,7 @@ else
         <div class="col-lg-10 col-xl-9">
             
             @* Rank/Level Section *@
-            @if (showRanking && rankProgress != null)
+            @if (rankProgress != null)
             {
                 <RankCard RankProgress="@rankProgress" IsCollapsible="true" InitiallyCollapsed="true" />
             }
@@ -455,7 +455,6 @@ else
     private int imageRefreshTrigger = 0;
     
     // Ranking system
-    private bool showRanking = false;
     private RankProgressInfo? rankProgress;
     
     // Helper properties for month/year date pickers
@@ -590,12 +589,8 @@ else
                 var allAssignments = await RoleAssignmentService.GetAllRoleAssignmentsAsync();
                 roleAssignments = allAssignments.Where(a => a.UserId == user.Id).ToList();
                 
-                // Load ranking data
-                showRanking = await RankingService.IsRankingVisibleAsync(user.Id);
-                if (showRanking)
-                {
-                    rankProgress = await RankingService.GetRankProgressAsync(user.Id);
-                }
+                // Load ranking data - always display for all users
+                rankProgress = await RankingService.GetRankProgressAsync(user.Id);
             }
         }
     }

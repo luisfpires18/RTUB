@@ -32,12 +32,6 @@ public interface IRankingService
     int GetXpForCurrentLevel(int currentLevel);
     
     /// <summary>
-    /// Checks if ranking features should be visible for the current user
-    /// Returns true if Ranking is enabled OR user has Owner role
-    /// </summary>
-    Task<bool> IsRankingVisibleAsync(string userId);
-    
-    /// <summary>
     /// Updates user's XP and level in the database
     /// </summary>
     Task UpdateUserRankingAsync(string userId);
