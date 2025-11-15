@@ -121,11 +121,23 @@ public class Program
 
                     var issuedUtc = context.Properties?.IssuedUtc?.UtcDateTime ?? DateTime.MinValue;
 
-                    // Log every time user authenticates via cookie validation
-                    logger.LogInformation(
-                        "User {UserName} authenticated via cookie validation at {LoginTime}",
-                        userName,
-                        DateTime.UtcNow);
+                    // Log user authentication, but cache for a short time (30 seconds) to avoid duplicate logs
+                    // from multiple requests within the same page load (Blazor makes multiple requests per page)
+                    var logCacheKey = $"login-log:{userName}:{issuedUtc.Ticks}";
+                    
+                    if (!cache.TryGetValue(logCacheKey, out _))
+                    {
+                        logger.LogInformation(
+                            "User {UserName} authenticated via cookie validation at {LoginTime}",
+                            userName,
+                            DateTime.UtcNow);
+                        
+                        // Cache for 30 seconds to prevent duplicate logs from the same page load
+                        cache.Set(logCacheKey, true, new MemoryCacheEntryOptions
+                        {
+                            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+                        });
+                    }
 
                     // Update LastLoginDate to reflect current activity
                     // This ensures the "Estado de login" on /owner/user-roles shows accurate online status
