@@ -302,7 +302,8 @@
             await LabelService.UpdateLabelContentAsync(
                 editingLabel.Id,
                 editingLabel.Title,
-                editingLabel.Content
+                editingLabel.Content,
+                editingLabel.IsActive
             );
 
             // Reload the label to get updated content

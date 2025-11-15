@@ -25,7 +25,7 @@ public class Label : BaseEntity
     // Private constructor for EF Core
     public Label() { }
 
-    public static Label Create(string reference, string title, string content)
+    public static Label Create(string reference, string title, string content, bool isActive = true)
     {
         if (string.IsNullOrWhiteSpace(reference))
             throw new ArgumentException("A referência não pode estar vazia", nameof(reference));
@@ -40,11 +40,12 @@ public class Label : BaseEntity
         {
             Reference = reference,
             Title = title,
-            Content = content
+            Content = content,
+            IsActive = isActive
         };
     }
 
-    public void UpdateContent(string title, string content)
+    public void UpdateContent(string title, string content, bool isActive)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título não pode estar vazio", nameof(title));
@@ -54,6 +55,7 @@ public class Label : BaseEntity
 
         Title = title;
         Content = content;
+        IsActive = isActive;
         UpdatedAt = DateTime.UtcNow;
     }
 

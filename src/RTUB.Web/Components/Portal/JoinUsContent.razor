@@ -213,7 +213,8 @@
             await LabelService.UpdateLabelContentAsync(
                 editingLabel.Id,
                 editingLabel.Title,
-                editingLabel.Content
+                editingLabel.Content,
+                editingLabel.IsActive
             );
 
             await LoadLabels();

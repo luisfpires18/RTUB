@@ -111,17 +111,18 @@ public class LabelServiceTests : IDisposable
         _context.Labels.Add(label);
         await _context.SaveChangesAsync();
         
-        await _service.UpdateLabelContentAsync(label.Id, "Updated", "Updated Content");
+        await _service.UpdateLabelContentAsync(label.Id, "Updated", "Updated Content", false);
         
         var updated = await _context.Labels.FindAsync(label.Id);
         updated!.Title.Should().Be("Updated");
         updated.Content.Should().Be("Updated Content");
+        updated.IsActive.Should().BeFalse();
     }
 
     [Fact]
     public async Task UpdateLabelContentAsync_WithNonExistingId_ThrowsException()
     {
-        var act = async () => await _service.UpdateLabelContentAsync(999, "Title", "Content");
+        var act = async () => await _service.UpdateLabelContentAsync(999, "Title", "Content", true);
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Label with ID 999 not found");
     }

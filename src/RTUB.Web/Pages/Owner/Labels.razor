@@ -291,33 +291,21 @@ else
 
         if (isCreateMode)
         {
-            var newLabel = await LabelService.CreateLabelAsync(
+            await LabelService.CreateLabelAsync(
                 editingLabel.Reference,
                 editingLabel.Title,
-                editingLabel.Content
+                editingLabel.Content,
+                editingLabel.IsActive
             );
-
-            if (editingLabel.IsActive)
-            {
-                await LabelService.ActivateLabelAsync(newLabel.Id);
-            }
         }
         else
         {
             await LabelService.UpdateLabelContentAsync(
                 editingLabel.Id,
                 editingLabel.Title,
-                editingLabel.Content
+                editingLabel.Content,
+                editingLabel.IsActive
             );
-
-            if (editingLabel.IsActive)
-            {
-                await LabelService.ActivateLabelAsync(editingLabel.Id);
-            }
-            else
-            {
-                await LabelService.DeactivateLabelAsync(editingLabel.Id);
-            }
         }
 
         await RefreshDataAsync();

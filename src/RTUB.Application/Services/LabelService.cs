@@ -43,21 +43,21 @@ public class LabelService : ILabelService
             .ToListAsync();
     }
 
-    public async Task<Label> CreateLabelAsync(string reference, string title, string content)
+    public async Task<Label> CreateLabelAsync(string reference, string title, string content, bool isActive = true)
     {
-        var label = Label.Create(reference, title, content);
+        var label = Label.Create(reference, title, content, isActive);
         _context.Labels.Add(label);
         await _context.SaveChangesAsync();
         return label;
     }
 
-    public async Task UpdateLabelContentAsync(int id, string title, string content)
+    public async Task UpdateLabelContentAsync(int id, string title, string content, bool isActive)
     {
         var label = await _context.Labels.FindAsync(id);
         if (label == null)
             throw new InvalidOperationException($"Label with ID {id} not found");
 
-        label.UpdateContent(title, content);
+        label.UpdateContent(title, content, isActive);
         _context.Labels.Update(label);
         await _context.SaveChangesAsync();
     }
