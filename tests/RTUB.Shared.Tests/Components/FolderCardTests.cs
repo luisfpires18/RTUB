@@ -182,7 +182,7 @@ public class FolderCardTests : TestContext
     }
 
     [Fact]
-    public void FolderCard_DoesNotShowUploadButton_ForNonAdmin()
+    public void FolderCard_ShowsUploadButton_ForNonAdmin()
     {
         // Arrange
         var documents = new List<DocumentMetadata>();
@@ -195,11 +195,12 @@ public class FolderCardTests : TestContext
             .Add(p => p.IsAdmin, false));
 
         // Assert
-        cut.Markup.Should().NotContain("Carregar", "non-admin users should not see upload button");
+        cut.Markup.Should().Contain("Carregar", "all members should see upload button");
+        cut.Markup.Should().NotContain("Eliminar", "non-admin users should not see delete button");
     }
 
     [Fact]
-    public void FolderCard_ShowsUploadButton_ForAdmin()
+    public void FolderCard_ShowsUploadAndDeleteButtons_ForAdmin()
     {
         // Arrange
         this.AddTestAuthorization().SetAuthorized("TestUser").SetRoles("Admin");
@@ -214,6 +215,7 @@ public class FolderCardTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("Carregar", "admin users should see upload button");
+        cut.Markup.Should().Contain("Eliminar", "admin users should see delete button");
     }
 
     [Fact]
