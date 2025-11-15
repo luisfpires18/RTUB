@@ -72,7 +72,7 @@
                 @foreach (var post in posts)
                 {
                     var postComments = GetPostComments(post.Id);
-                    var commentCount = postComments.Count;
+                    var commentCount = GetPostCommentCount(post.Id);
                     var isExpanded = expandedPostIds.Contains(post.Id);
                     
                     <div class="post-wrapper mb-3">
@@ -208,6 +208,7 @@
     private Discussion? discussion;
     private List<Post> posts = new();
     private Dictionary<int, List<Comment>> postCommentsCache = new();
+    private Dictionary<int, int> postCommentCounts = new();
     private ApplicationUser? currentUser;
     private bool isAdmin = false;
     private bool isOwner = false;
@@ -272,6 +273,19 @@
             searchTerm
         );
         posts = loadedPosts.ToList();
+        
+        // Preload comment counts for all posts
+        await LoadCommentCountsForPosts();
+    }
+
+    private async Task LoadCommentCountsForPosts()
+    {
+        // Load comment counts for all posts on current page
+        foreach (var post in posts)
+        {
+            var count = await CommentService.GetCountByPostIdAsync(post.Id);
+            postCommentCounts[post.Id] = count;
+        }
     }
 
     private async Task TogglePost(int postId)
@@ -301,6 +315,11 @@
     {
         return postCommentsCache.ContainsKey(postId) ? postCommentsCache[postId] : new List<Comment>();
     }
+    
+    private int GetPostCommentCount(int postId)
+    {
+        return postCommentCounts.ContainsKey(postId) ? postCommentCounts[postId] : 0;
+    }
 
     private async Task CreatePost(string title, string body)
     {
@@ -325,7 +344,11 @@
         await CommentService.CreateAsync(postId, currentUser.Id, body);
         await LoadCommentsForPost(postId);
         
-        // Update the post to refresh last activity and comment count
+        // Update comment count
+        var count = await CommentService.GetCountByPostIdAsync(postId);
+        postCommentCounts[postId] = count;
+        
+        // Update the post to refresh last activity
         var postIndex = posts.FindIndex(p => p.Id == postId);
         if (postIndex >= 0)
         {
@@ -460,7 +483,11 @@
             await CommentService.SoftDeleteAsync(commentToDelete.Id);
             await LoadCommentsForPost(commentPostId);
             
-            // Update the post to refresh comment count
+            // Update comment count
+            var count = await CommentService.GetCountByPostIdAsync(commentPostId);
+            postCommentCounts[commentPostId] = count;
+            
+            // Update the post to refresh last activity
             var postIndex = posts.FindIndex(p => p.Id == commentPostId);
             if (postIndex >= 0)
             {
