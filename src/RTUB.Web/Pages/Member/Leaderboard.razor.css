@@ -82,16 +82,61 @@
     pointer-events: none;
 }
 
-.rank-connector-vertical {
+/* Connector from end of row to start of next row (e.g., 3→4, 6→7) */
+.rank-connector-to-next-row {
     position: absolute;
-    width: 2px;
-    height: calc(100% + 2rem);
-    background: #6c757d;
-    left: 50%;
+    right: 50%;
     top: 50%;
-    transform: translateX(-50%);
+    width: 2px;
+    height: calc(2rem + 50%);
+    background: #6c757d;
     z-index: 1;
     pointer-events: none;
+}
+
+.rank-connector-to-next-row::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: calc(200% + 4rem);
+    height: 2px;
+    background: #6c757d;
+    transform: translateX(-100%);
+}
+
+.rank-connector-to-next-row::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: -2px;
+    width: 2px;
+    height: 2rem;
+    background: #6c757d;
+}
+
+/* Connector from Level 9 to Level 10 (centered) */
+.rank-connector-to-final {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2px;
+    height: calc(2rem + 50%);
+    background: #6c757d;
+    z-index: 1;
+    pointer-events: none;
+    transform: translateX(-50%);
+}
+
+.rank-connector-to-final::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: calc(50% + 1rem);
+    height: 2px;
+    background: #6c757d;
+    transform: translateX(-50%);
 }
 
 /* Mobile adjustments for grid */
@@ -124,7 +169,8 @@
     
     /* Hide connectors on mobile */
     .rank-connector-horizontal,
-    .rank-connector-vertical {
+    .rank-connector-to-next-row,
+    .rank-connector-to-final {
         display: none;
     }
 }

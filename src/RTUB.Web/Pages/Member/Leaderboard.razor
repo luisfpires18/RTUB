@@ -87,16 +87,31 @@ else
                             <span class="rank-name">@levelDef.Name.ToUpper()</span>
                         </div>
                         
-                        @* Horizontal connector to the right (if not last in row and not level 10) *@
-                        @if (colIndex < 2 && i < allLevels.Count - 1 && !isLastLevel)
+                        @* Sequential connector logic: only connect to the next level in sequence *@
+                        @if (i < allLevels.Count - 1)
                         {
-                            <div class="rank-connector-horizontal"></div>
-                        }
-                        
-                        @* Vertical connector down (if not in last row) *@
-                        @if (i + 3 < allLevels.Count)
-                        {
-                            <div class="rank-connector-vertical"></div>
+                            var nextIndex = i + 1;
+                            var nextColIndex = (nextIndex % 3);
+                            var nextRowIndex = (nextIndex / 3);
+                            var currentRowIndex = (i / 3);
+                            
+                            @* Horizontal connector within the same row *@
+                            if (nextRowIndex == currentRowIndex)
+                            {
+                                <div class="rank-connector-horizontal"></div>
+                            }
+                            @* Connector to next row (3→4, 6→7, 9→10) *@
+                            else
+                            {
+                                @if (nextIndex == 9) @* 9→10: special case for centered Level 10 *@
+                                {
+                                    <div class="rank-connector-to-final"></div>
+                                }
+                                else
+                                {
+                                    <div class="rank-connector-to-next-row"></div>
+                                }
+                            }
                         }
                     </div>
                 }
