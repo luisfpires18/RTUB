@@ -84,12 +84,6 @@ else
                     var gridRow = (visualIndex / 3) + 1;
                     var gridCol = (visualIndex % 3) + 1;
                     
-                    // Special positioning for Level 10: center it in column 2 (under Level 8)
-                    if (isLastLevel)
-                    {
-                        gridCol = 2;
-                    }
-                    
                     <div class="rank-grid-item @(isLastLevel ? "rank-final" : "")" style="grid-row: @gridRow; grid-column: @gridCol;">
                         <div class="rank-card">
                             @if (isLastLevel)
@@ -135,9 +129,9 @@ else
                                 {
                                     <div class="rank-connector-down-left"></div>
                                 }
-                                else if (actualLevel == 9) @* 9→10: dedicated connector from bottom of 9 to top of 10 *@
+                                else if (actualLevel == 9) @* 9→10: simple vertical connector *@
                                 {
-                                    <div class="rank-connector-final"></div>
+                                    <div class="rank-connector-down-right"></div>
                                 }
                             }
                         }
