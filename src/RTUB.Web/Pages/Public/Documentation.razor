@@ -125,7 +125,7 @@ else
         </div>
         @if (selectedFile != null)
         {
-            <div class="alert alert-info">
+            <div class="alert alert-purple">
                 <strong>Ficheiro selecionado:</strong> @selectedFile.Name (@FormatFileSize(selectedFile.Size))
             </div>
         }
@@ -431,28 +431,11 @@ else
     {
         try
         {
-            var url = await DocumentStorageService.GetDocumentUrlAsync(document.FilePath);
+            var url = await DocumentStorageService.GetDocumentUrlAsync(document.FilePath, forceDownload: true);
             if (!string.IsNullOrEmpty(url))
             {
-                // Use fetch API to download the file properly
-                await JSRuntime.InvokeVoidAsync("eval", $@"
-                    (async function() {{
-                        try {{
-                            const response = await fetch('{url}');
-                            const blob = await response.blob();
-                            const blobUrl = window.URL.createObjectURL(blob);
-                            const link = document.createElement('a');
-                            link.href = blobUrl;
-                            link.download = '{document.FileName}';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            window.URL.revokeObjectURL(blobUrl);
-                        }} catch (error) {{
-                            console.error('Download failed:', error);
-                        }}
-                    }})();
-                ");
+                // Open the presigned URL with content-disposition=attachment header
+                await JSRuntime.InvokeVoidAsync("open", url, "_blank");
             }
         }
         catch (Exception)

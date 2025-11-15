@@ -40,8 +40,9 @@ public interface IDocumentStorageService
     /// Generates a pre-signed URL for accessing a document
     /// </summary>
     /// <param name="documentPath">The full path to the document (e.g., "docs/rtub_rgi.pdf")</param>
+    /// <param name="forceDownload">If true, sets content-disposition to attachment to force download</param>
     /// <returns>Pre-signed URL valid for a limited time, or null if file doesn't exist</returns>
-    Task<string?> GetDocumentUrlAsync(string documentPath);
+    Task<string?> GetDocumentUrlAsync(string documentPath, bool forceDownload = false);
     
     /// <summary>
     /// Checks if a document exists in storage
