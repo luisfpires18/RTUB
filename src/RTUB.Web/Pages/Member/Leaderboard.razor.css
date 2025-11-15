@@ -120,42 +120,30 @@
     pointer-events: none;
 }
 
-/* Dedicated connector from Level 9 to Level 10 */
-/* Starts from bottom center of Level 9, goes down to Level 10 */
+/* Simple connector from Level 9 to Level 10 */
+/* Since Level 9 is in column 3 and Level 10 is in column 2, we need an L-shape */
 .rank-connector-final {
     position: absolute;
     left: 50%;
     top: 100%;
     width: 2px;
-    height: 2rem;
+    height: calc(2rem + 50%);
     background: #6c757d;
     z-index: 1;
     pointer-events: none;
     transform: translateX(-50%);
 }
 
-/* Horizontal segment to reach Level 10 in column 2 */
+/* Horizontal segment to reach Level 10's column */
 .rank-connector-final::after {
     content: '';
     position: absolute;
-    bottom: 0;
-    left: 0;
-    width: calc(50% + 1rem);
+    bottom: 50%;
+    left: -1px;
+    width: calc(100% + 2rem);
     height: 2px;
     background: #6c757d;
-    transform-origin: left center;
     transform: translateX(-100%);
-}
-
-/* Continue vertical segment down to Level 10 */
-.rank-connector-final::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: calc(-50% - 1rem);
-    width: 2px;
-    height: calc(50% + 0.5rem);
-    background: #6c757d;
 }
 
 /* Mobile adjustments for grid */
