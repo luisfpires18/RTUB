@@ -1,0 +1,438 @@
+@page "/meetings"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Extensions
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Shared
+@attribute [Authorize(Roles = "Admin,Owner")]
+@inject IMeetingService MeetingService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h1 class="mb-2"><i class="bi bi-calendar3"></i> Reuniões</h1>
+<p class="lead mb-4 text-light-theme">Gerir reuniões e assembleias da organização.</p>
+
+<div class="mb-3">
+    <button class="btn btn-success mb-2" @onclick="OpenCreateModal" title="Adicionar Nova Reunião">
+        <i class="bi bi-plus-lg"></i> Criar Reunião
+    </button>
+</div>
+
+<!-- Search Box -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <TableSearchBar 
+            SearchTerm="@searchTerm"
+            OnSearchChanged="HandleSearchChanged"
+            Placeholder="Pesquisar por título ou declaração..." />
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center p-5">
+        <LoadingSpinner />
+    </div>
+}
+else if (!meetings.Any())
+{
+    <EmptyState 
+        Title="Nenhuma reunião encontrada." 
+        Icon="bi-info-circle" />
+}
+else
+{
+    <div class="meeting-grid">
+        @foreach (var meeting in meetings)
+        {
+            <MeetingCard Meeting="@meeting"
+                        IsAdmin="true"
+                        OnEdit="@(() => OpenEditModal(meeting))"
+                        OnDelete="@(() => OpenDeleteModal(meeting))"
+                        OnViewDetails="@(() => OpenViewDetailsModal(meeting))" />
+        }
+    </div>
+
+    <!-- Pagination -->
+    <TablePagination 
+        CurrentPage="@currentPage"
+        PageSize="@pageSize"
+        TotalItems="@totalCount"
+        ItemLabel="reuniões"
+        PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+        OnPageChanged="ChangePage"
+        OnPageSizeChanged="ChangePageSize" />
+}
+
+<!-- View Details Modal -->
+<Modal Show="@showViewDetailsModal" 
+       ShowChanged="@((bool show) => showViewDetailsModal = show)"
+       Size="Modal.ModalSize.Large"
+       Title="Detalhes da Reunião">
+    <ModalBody>
+        @if (viewingMeeting != null)
+        {
+            <div class="mb-3">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="badge @GetMeetingTypeBadgeClass(viewingMeeting.Type)">
+                        @GetMeetingTypeFullName(viewingMeeting.Type)
+                    </span>
+                </div>
+                <h4 class="text-white-full">@viewingMeeting.Title</h4>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-calendar3 text-primary me-2"></i>Data e Hora
+                </label>
+                <p class="text-light-theme">@viewingMeeting.Date.ToString("dd/MM/yyyy HH:mm")</p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(viewingMeeting.Location))
+            {
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização
+                    </label>
+                    <p class="text-light-theme">@viewingMeeting.Location</p>
+                </div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-file-text text-primary me-2"></i>Declaração
+                </label>
+                <p class="text-light-theme" style="white-space: pre-line;">@viewingMeeting.Statement</p>
+            </div>
+        }
+    </ModalBody>
+    <ModalFooter>
+        <button class="btn btn-secondary" @onclick="CloseViewDetailsModal">Fechar</button>
+    </ModalFooter>
+</Modal>
+
+<!-- Create/Edit Modal -->
+<Modal Show="@showEditModal" 
+       ShowChanged="@((bool show) => showEditModal = show)"
+       Size="Modal.ModalSize.Large"
+       Title="@(isCreateMode ? "Nova Reunião" : "Editar Reunião")">
+    <ModalBody>
+        @if (editingMeeting != null)
+        {
+            <EditForm Model="editingMeeting" OnValidSubmit="SaveMeeting">
+                <DataAnnotationsValidator />
+                <ErrorDisplay />
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-tag text-primary me-2"></i>Tipo de Reunião
+                    </label>
+                    <InputSelect class="form-select" @bind-Value="editingMeeting.Type">
+                        @if (currentUser?.IsVeterano() == true)
+                        {
+                            <option value="@MeetingType.AssembleiaGeralOrdinaria">Assembleia Geral Ordinária (AGO)</option>
+                            <option value="@MeetingType.AssembleiaGeralExtraordinaria">Assembleia Geral Extraordinária (AGE)</option>
+                            <option value="@MeetingType.ConselhoVeteranos">Conselho de Veteranos (CV)</option>
+                        }
+                        else
+                        {
+                            <option value="@MeetingType.AssembleiaGeralOrdinaria">Assembleia Geral Ordinária (AGO)</option>
+                            <option value="@MeetingType.AssembleiaGeralExtraordinaria">Assembleia Geral Extraordinária (AGE)</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => editingMeeting.Type)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-card-text text-primary me-2"></i>Título
+                    </label>
+                    <InputText class="form-control" @bind-Value="editingMeeting.Title" placeholder="Inserir título..." />
+                    <ValidationMessage For="@(() => editingMeeting.Title)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-calendar3 text-primary me-2"></i>Data e Hora
+                    </label>
+                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="editingMeeting.Date" />
+                    <ValidationMessage For="@(() => editingMeeting.Date)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização (Opcional)
+                    </label>
+                    <InputText class="form-control" @bind-Value="editingMeeting.Location" placeholder="Inserir localização..." />
+                    <ValidationMessage For="@(() => editingMeeting.Location)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-file-text text-primary me-2"></i>Declaração
+                    </label>
+                    <InputTextArea class="form-control" rows="10" @bind-Value="editingMeeting.Statement" placeholder="Inserir declaração..." />
+                    <ValidationMessage For="@(() => editingMeeting.Statement)" />
+                    <small class="text-light-theme">Máximo 5000 caracteres</small>
+                </div>
+            </EditForm>
+        }
+    </ModalBody>
+    <ModalFooter>
+        <button class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+        <button class="btn btn-primary" @onclick="SaveMeeting">
+            <i class="bi bi-save"></i> Guardar
+        </button>
+    </ModalFooter>
+</Modal>
+
+<!-- Delete Confirmation Modal -->
+<Modal Show="@showDeleteModal" 
+       ShowChanged="@((bool show) => showDeleteModal = show)"
+       Title="Confirmar Eliminação">
+    <ModalBody>
+        @if (deletingMeeting != null)
+        {
+            <p>Tem a certeza que quer eliminar a reunião <strong>@deletingMeeting.Title</strong>?</p>
+            <p class="text-muted">Esta ação não pode ser revertida.</p>
+        }
+    </ModalBody>
+    <ModalFooter>
+        <button class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
+        <button class="btn btn-danger" @onclick="DeleteMeeting">
+            <i class="bi bi-trash"></i> Eliminar
+        </button>
+    </ModalFooter>
+</Modal>
+
+@code {
+    private List<Meeting> meetings = new();
+    private bool isLoading = true;
+    private string searchTerm = string.Empty;
+    private int currentPage = 1;
+    private int pageSize = 12;
+    private int totalCount = 0;
+
+    private bool showEditModal = false;
+    private bool showDeleteModal = false;
+    private bool showViewDetailsModal = false;
+    private bool isCreateMode = false;
+    private Meeting? editingMeeting;
+    private Meeting? deletingMeeting;
+    private Meeting? viewingMeeting;
+    
+    private ApplicationUser? currentUser;
+    private string currentUserId = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userName = user.Identity.Name;
+            if (userName != null)
+            {
+                currentUser = await UserManager.FindByNameAsync(userName);
+                currentUserId = currentUser?.Id ?? string.Empty;
+            }
+        }
+
+        await LoadMeetingsAsync();
+    }
+
+    private async Task LoadMeetingsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            meetings = (await MeetingService.GetAllMeetingsAsync(searchTerm, currentPage, pageSize, currentUserId)).ToList();
+            totalCount = await MeetingService.GetTotalCountAsync(searchTerm, currentUserId);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleSearchChanged(string newSearchTerm)
+    {
+        searchTerm = newSearchTerm;
+        currentPage = 1; // Reset to first page on search
+        await LoadMeetingsAsync();
+    }
+
+    private async Task ChangePage(int newPage)
+    {
+        currentPage = newPage;
+        await LoadMeetingsAsync();
+    }
+
+    private async Task ChangePageSize(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1; // Reset to first page
+        await LoadMeetingsAsync();
+    }
+
+    private void OpenViewDetailsModal(Meeting meeting)
+    {
+        viewingMeeting = new Meeting
+        {
+            Id = meeting.Id,
+            Type = meeting.Type,
+            Title = meeting.Title,
+            Date = meeting.Date,
+            Location = meeting.Location,
+            Statement = meeting.Statement
+        };
+        showViewDetailsModal = true;
+    }
+
+    private void CloseViewDetailsModal()
+    {
+        showViewDetailsModal = false;
+        viewingMeeting = null;
+    }
+
+    private void OpenCreateModal()
+    {
+        isCreateMode = true;
+        editingMeeting = new Meeting
+        {
+            Type = MeetingType.AssembleiaGeralOrdinaria,
+            Title = string.Empty,
+            Date = DateTime.Now.Date.AddDays(7).AddHours(20), // Default to 1 week from now at 8 PM
+            Statement = string.Empty
+        };
+        showEditModal = true;
+    }
+
+    private void OpenEditModal(Meeting meeting)
+    {
+        isCreateMode = false;
+        editingMeeting = new Meeting
+        {
+            Id = meeting.Id,
+            Type = meeting.Type,
+            Title = meeting.Title,
+            Date = meeting.Date,
+            Location = meeting.Location,
+            Statement = meeting.Statement
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingMeeting = null;
+    }
+
+    private async Task SaveMeeting()
+    {
+        if (editingMeeting == null) return;
+
+        try
+        {
+            if (isCreateMode)
+            {
+                await MeetingService.CreateMeetingAsync(editingMeeting);
+            }
+            else
+            {
+                await MeetingService.UpdateMeetingAsync(editingMeeting);
+            }
+
+            await LoadMeetingsAsync();
+            CloseEditModal();
+        }
+        catch (Exception)
+        {
+            // Handle error (could show error message to user)
+        }
+    }
+
+    private void OpenDeleteModal(Meeting meeting)
+    {
+        deletingMeeting = meeting;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deletingMeeting = null;
+    }
+
+    private async Task DeleteMeeting()
+    {
+        if (deletingMeeting == null) return;
+
+        try
+        {
+            await MeetingService.DeleteMeetingAsync(deletingMeeting.Id);
+            await LoadMeetingsAsync();
+            CloseDeleteModal();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    private string GetMeetingTypeFullName(MeetingType type)
+    {
+        return type switch
+        {
+            MeetingType.AssembleiaGeralOrdinaria => "Assembleia Geral Ordinária",
+            MeetingType.AssembleiaGeralExtraordinaria => "Assembleia Geral Extraordinária",
+            MeetingType.ConselhoVeteranos => "Conselho de Veteranos",
+            _ => ""
+        };
+    }
+
+    private string GetMeetingTypeBadgeClass(MeetingType type)
+    {
+        return type switch
+        {
+            MeetingType.AssembleiaGeralOrdinaria => "bg-primary",
+            MeetingType.AssembleiaGeralExtraordinaria => "bg-danger",
+            MeetingType.ConselhoVeteranos => "bg-warning text-dark",
+            _ => "bg-secondary"
+        };
+    }
+}
+
+<style>
+    .meeting-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    @@media (max-width: 768px) {
+        .meeting-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (min-width: 769px) and (max-width: 1024px) {
+        .meeting-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (min-width: 1025px) {
+        .meeting-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+</style>

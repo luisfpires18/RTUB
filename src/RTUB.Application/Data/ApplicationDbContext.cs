@@ -67,6 +67,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Discussion> Discussions { get; set; }
     public DbSet<Post> Posts { get; set; }
     public DbSet<Comment> Comments { get; set; }
+    
+    // Meeting DbSet
+    public DbSet<Meeting> Meetings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -806,6 +809,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "LogisticsCard":
                     if (entry.Entity is LogisticsCard logisticsCard)
                         return logisticsCard.Title;
+                    break;
+                
+                case "Meeting":
+                    if (entry.Entity is Meeting meeting)
+                        return meeting.Title;
                     break;
             }
         }
