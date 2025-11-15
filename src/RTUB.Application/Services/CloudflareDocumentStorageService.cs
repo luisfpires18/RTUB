@@ -1,6 +1,7 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
 
@@ -14,16 +15,19 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
 {
     private readonly IAmazonS3 _s3Client;
     private readonly string _bucketName;
+    private readonly string _environment;
     private readonly ILogger<CloudflareDocumentStorageService> _logger;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
 
     public CloudflareDocumentStorageService(
         IAmazonS3 s3Client,
         IConfiguration configuration,
+        IHostEnvironment hostEnvironment,
         ILogger<CloudflareDocumentStorageService> logger)
     {
         _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
         _logger = logger;
+        _environment = hostEnvironment.EnvironmentName;
 
         // Get Cloudflare R2 configuration
         _bucketName = configuration["Cloudflare:R2:Bucket"];
@@ -110,11 +114,14 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
     {
         try
         {
+            // Add environment to prefix (e.g., "docs/" becomes "docs/Production/" or "docs/Development/")
+            var environmentPrefix = $"{prefix}{_environment}/";
+            
             var folders = new HashSet<string>();
             var request = new ListObjectsV2Request
             {
                 BucketName = _bucketName,
-                Prefix = prefix,
+                Prefix = environmentPrefix,
                 Delimiter = "/"
             };
 
@@ -126,8 +133,8 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
                 // Add common prefixes (folders)
                 foreach (var commonPrefix in response.CommonPrefixes)
                 {
-                    // Extract folder name from prefix (e.g., "docs/General/" -> "General")
-                    var folderName = commonPrefix.TrimEnd('/').Substring(prefix.Length);
+                    // Extract folder name from prefix (e.g., "docs/Production/General/" -> "General")
+                    var folderName = commonPrefix.TrimEnd('/').Substring(environmentPrefix.Length);
                     if (!string.IsNullOrEmpty(folderName))
                     {
                         folders.Add(folderName);

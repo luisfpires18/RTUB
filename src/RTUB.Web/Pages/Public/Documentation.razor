@@ -3,8 +3,10 @@
 @using RTUB.Application.Interfaces
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Hosting
 @inject IDocumentStorageService DocumentStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IHostEnvironment HostEnvironment
 @inject IJSRuntime JSRuntime
 
 <h1 class="mb-2"><i class="bi bi-file-earmark-text"></i> Documentação</h1>
@@ -45,7 +47,7 @@ else
 {
     @foreach (var folder in folders)
     {
-        var folderPath = $"docs/{folder}";
+        var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{folder}";
         var documents = folderDocuments.ContainsKey(folder) ? folderDocuments[folder] : new List<DocumentMetadata>();
         var isFirstFolder = folders.IndexOf(folder) == 0;
         
@@ -249,7 +251,7 @@ else
             folderDocuments.Clear();
             foreach (var folder in folders)
             {
-                var documents = await DocumentStorageService.ListDocumentsInFolderAsync($"docs/{folder}");
+                var documents = await DocumentStorageService.ListDocumentsInFolderAsync($"docs/{HostEnvironment.EnvironmentName}/{folder}");
                 folderDocuments[folder] = documents;
             }
         }
@@ -299,7 +301,7 @@ else
         
         try
         {
-            var folderPath = $"docs/{newFolderName}";
+            var folderPath = $"docs/{HostEnvironment.EnvironmentName}/{newFolderName}";
             await DocumentStorageService.CreateFolderAsync(folderPath);
             
             // Reload folders
@@ -429,7 +431,18 @@ else
             var url = await DocumentStorageService.GetDocumentUrlAsync(document.FilePath);
             if (!string.IsNullOrEmpty(url))
             {
-                await JSRuntime.InvokeVoidAsync("open", url, "_blank");
+                // Use a download helper to force download instead of opening
+                await JSRuntime.InvokeVoidAsync("eval", $@"
+                    (function() {{
+                        var link = document.createElement('a');
+                        link.href = '{url}';
+                        link.download = '{document.FileName}';
+                        link.target = '_blank';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }})();
+                ");
             }
         }
         catch (Exception)
