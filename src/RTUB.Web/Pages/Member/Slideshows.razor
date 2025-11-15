@@ -8,10 +8,12 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
+@using RTUB.Application.Utilities
 @using RTUB.Shared
 @attribute [Authorize(Roles = "Admin,Owner")]
 @inherits CrudTablePageBase<Slideshow>
 @inject ISlideshowService SlideshowService
+@inject IImageStorageService ImageStorageService
 @inject IWebHostEnvironment Environment
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
@@ -335,47 +337,55 @@ else
                 return;
             }
             
+            // Upload image BEFORE creating entity to include in single Create audit log
+            string? imageUrl = null;
+            using var stream = new MemoryStream(croppedSlideshowImageBytes);
+            var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingSlide.Title);
+            imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedSlideshowImageFileName!, "image/webp", "slideshows", normalizedName);
+            
             var newSlide = await SlideshowService.CreateSlideshowAsync(
                 editingSlide.Title,
                 editingSlide.Order,
                 editingSlide.Description ?? string.Empty,
-                editingSlide.IntervalMs
+                editingSlide.IntervalMs,
+                imageUrl
             );
             
-            // Upload image to R2
-            using var stream = new MemoryStream(croppedSlideshowImageBytes);
-            await SlideshowService.SetSlideshowImageAsync(newSlide.Id, stream, croppedSlideshowImageFileName!, "image/webp");
-            
-            if (editingSlide.IsActive)
+            // Deactivate if needed (slides are created as active by default)
+            if (!editingSlide.IsActive)
             {
-                await SlideshowService.ActivateSlideshowAsync(newSlide.Id);
+                await SlideshowService.DeactivateSlideshowAsync(newSlide.Id);
             }
         }
         else
         {
-            await SlideshowService.UpdateSlideshowAsync(
-                editingSlide.Id,
-                editingSlide.Title,
-                editingSlide.Description ?? string.Empty,
-                editingSlide.Order,
-                editingSlide.IntervalMs
-            );
-
-            // Upload new image to R2 if one was cropped
+            // Check if we're updating both details and image - combine into single transaction to avoid duplicate audit logs
             if (croppedSlideshowImageBytes != null && croppedSlideshowImageBytes.Length > 0 && uploadedImagePath != null)
             {
                 using var stream = new MemoryStream(croppedSlideshowImageBytes);
-                await SlideshowService.SetSlideshowImageAsync(editingSlide.Id, stream, croppedSlideshowImageFileName!, "image/webp");
+                await SlideshowService.UpdateSlideshowWithImageAsync(
+                    editingSlide.Id,
+                    editingSlide.Title,
+                    editingSlide.Description ?? string.Empty,
+                    editingSlide.Order,
+                    editingSlide.IntervalMs,
+                    editingSlide.IsActive,
+                    stream,
+                    croppedSlideshowImageFileName!,
+                    "image/webp");
                 imageRefreshTrigger++;
-            }
-
-            if (editingSlide.IsActive)
-            {
-                await SlideshowService.ActivateSlideshowAsync(editingSlide.Id);
             }
             else
             {
-                await SlideshowService.DeactivateSlideshowAsync(editingSlide.Id);
+                // Only updating slideshow details (no new image)
+                await SlideshowService.UpdateSlideshowAsync(
+                    editingSlide.Id,
+                    editingSlide.Title,
+                    editingSlide.Description ?? string.Empty,
+                    editingSlide.Order,
+                    editingSlide.IntervalMs,
+                    editingSlide.IsActive
+                );
             }
         }
 

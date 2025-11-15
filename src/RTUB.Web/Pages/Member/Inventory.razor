@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using RTUB.Application.Interfaces
+@using RTUB.Application.Utilities
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using RTUB.Core.Helpers
@@ -488,28 +489,26 @@ else
         {
             if (isInstrumentCreateMode)
             {
-                await InstrumentService.CreateAsync(editingInstrument);
-                
-                // If full image was cropped, upload it now with the correct ID
+                // If full image was cropped, upload it BEFORE creating entity
                 if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
                 {
                     using var stream = new MemoryStream(croppedInstrumentImageBytes);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/webp", "instruments", editingInstrument.Id.ToString());
+                    var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingInstrument.Name);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/webp", "instruments", normalizedName);
                     editingInstrument.ImageUrl = imageUrl;
                 }
                 
-                // If thumbnail was cropped, upload it as well
+                // If thumbnail was cropped, upload it BEFORE creating entity
                 if (croppedThumbnailImageBytes != null && croppedThumbnailImageBytes.Length > 0)
                 {
                     using var stream = new MemoryStream(croppedThumbnailImageBytes);
-                    var thumbnailUrl = await ImageStorageService.UploadImageAsync(stream, croppedThumbnailImageFileName!, "image/webp", "instruments/thumbnails", editingInstrument.Id.ToString());
+                    var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingInstrument.Name);
+                    var thumbnailUrl = await ImageStorageService.UploadImageAsync(stream, croppedThumbnailImageFileName!, "image/webp", "instruments/thumbnails", normalizedName);
                     editingInstrument.ThumbnailUrl = thumbnailUrl;
                 }
                 
-                if (croppedInstrumentImageBytes != null || croppedThumbnailImageBytes != null)
-                {
-                    await InstrumentService.UpdateAsync(editingInstrument);
-                }
+                // Create entity with imageUrl and thumbnailUrl already set (single audit log)
+                await InstrumentService.CreateAsync(editingInstrument);
             }
             else
             {
@@ -523,7 +522,8 @@ else
                     }
                     
                     using var stream = new MemoryStream(croppedInstrumentImageBytes);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/webp", "instruments", editingInstrument.Id.ToString());
+                    var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingInstrument.Name);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/webp", "instruments", normalizedName);
                     editingInstrument.ImageUrl = imageUrl;
                 }
                 
@@ -537,7 +537,8 @@ else
                     }
                     
                     using var stream = new MemoryStream(croppedThumbnailImageBytes);
-                    var thumbnailUrl = await ImageStorageService.UploadImageAsync(stream, croppedThumbnailImageFileName!, "image/webp", "instruments/thumbnails", editingInstrument.Id.ToString());
+                    var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingInstrument.Name);
+                    var thumbnailUrl = await ImageStorageService.UploadImageAsync(stream, croppedThumbnailImageFileName!, "image/webp", "instruments/thumbnails", normalizedName);
                     editingInstrument.ThumbnailUrl = thumbnailUrl;
                 }
                 

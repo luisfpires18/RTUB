@@ -12,8 +12,8 @@ public interface ILabelService
     Task<Label?> GetLabelByReferenceAsync(string reference);
     Task<IEnumerable<Label>> GetAllLabelsAsync();
     Task<IEnumerable<Label>> GetActiveLabelsAsync();
-    Task<Label> CreateLabelAsync(string reference, string title, string content);
-    Task UpdateLabelContentAsync(int id, string title, string content);
+    Task<Label> CreateLabelAsync(string reference, string title, string content, bool isActive = true);
+    Task UpdateLabelContentAsync(int id, string title, string content, bool isActive);
     Task ActivateLabelAsync(int id);
     Task DeactivateLabelAsync(int id);
     Task DeleteLabelAsync(int id);

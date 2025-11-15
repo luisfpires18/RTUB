@@ -133,7 +133,7 @@ else
                 <label class="form-label text-white-full fw-semibold">
                     <i class="bi bi-tag text-primary me-2"></i>Referência
                 </label>
-                <InputText class="form-control" @bind-Value="label!.Reference" placeholder="Inserir referência..." />
+                <InputText class="form-control" @bind-Value="label!.Reference" placeholder="Inserir referência..." disabled="@(!isCreateMode)" />
                 <small class="text-light-theme">Identificador único para esta etiqueta (minúsculas, sem espaços)</small>
             </div>
 
@@ -291,33 +291,21 @@ else
 
         if (isCreateMode)
         {
-            var newLabel = await LabelService.CreateLabelAsync(
+            await LabelService.CreateLabelAsync(
                 editingLabel.Reference,
                 editingLabel.Title,
-                editingLabel.Content
+                editingLabel.Content,
+                editingLabel.IsActive
             );
-
-            if (editingLabel.IsActive)
-            {
-                await LabelService.ActivateLabelAsync(newLabel.Id);
-            }
         }
         else
         {
             await LabelService.UpdateLabelContentAsync(
                 editingLabel.Id,
                 editingLabel.Title,
-                editingLabel.Content
+                editingLabel.Content,
+                editingLabel.IsActive
             );
-
-            if (editingLabel.IsActive)
-            {
-                await LabelService.ActivateLabelAsync(editingLabel.Id);
-            }
-            else
-            {
-                await LabelService.DeactivateLabelAsync(editingLabel.Id);
-            }
         }
 
         await RefreshDataAsync();

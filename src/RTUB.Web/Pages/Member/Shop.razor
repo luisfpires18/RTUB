@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using RTUB.Application.Interfaces
+@using RTUB.Application.Utilities
 @using RTUB.Core.Entities
 @using RTUB.Shared
 @using RTUB.Shared.Components.Cards
@@ -727,16 +728,17 @@ else
             
             if (isProductCreateMode)
             {
-                await ProductService.CreateAsync(editingProduct);
-                
-                // If image was cropped, upload it now with the correct ID
+                // If image was cropped, upload it BEFORE creating entity
                 if (croppedProductImageBytes != null && croppedProductImageBytes.Length > 0)
                 {
                     using var stream = new MemoryStream(croppedProductImageBytes);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/webp", "products", editingProduct.Id.ToString());
+                    var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingProduct.Name);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/webp", "products", normalizedName);
                     editingProduct.ImageUrl = imageUrl;
-                    await ProductService.UpdateAsync(editingProduct);
                 }
+                
+                // Create entity with imageUrl already set (single audit log)
+                await ProductService.CreateAsync(editingProduct);
             }
             else
             {
@@ -750,7 +752,8 @@ else
                     }
                     
                     using var stream = new MemoryStream(croppedProductImageBytes);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/webp", "products", editingProduct.Id.ToString());
+                    var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingProduct.Name);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedProductImageFileName!, "image/webp", "products", normalizedName);
                     editingProduct.ImageUrl = imageUrl;
                 }
                 
