@@ -1,0 +1,598 @@
+@page "/leaderboard"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Data
+@using RTUB.Application.Configuration
+@using RTUB.Core.Enums
+@using RTUB.Shared
+@using RTUB.Shared.Components.Ranking
+@inject UserManager<ApplicationUser> UserManager
+@inject IRankingService RankingService
+@inject ILabelService LabelService
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Microsoft.Extensions.Options.IOptions<RankingConfiguration> RankingConfig
+@attribute [Authorize]
+
+@if (!showLeaderboard)
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-lock-fill"></i> A tabela de classificação não está disponível no momento.
+    </div>
+}
+else if (leaderboardUsers == null)
+{
+    <!-- Loading state -->
+    <div class="leaderboard-container">
+        <div class="leaderboard-header">
+            <h2><i class="bi bi-trophy-fill"></i> Tabela de Classificação</h2>
+        </div>
+        <div class="leaderboard-body">
+            <div class="text-center p-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">A carregar...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else if (!leaderboardUsers.Any())
+{
+    <div class="leaderboard-container">
+        <div class="leaderboard-header">
+            <h2><i class="bi bi-trophy-fill"></i> Tabela de Classificação</h2>
+        </div>
+        <div class="leaderboard-body">
+            <EmptyState Title="Nenhum membro encontrado"
+                        Icon="bi-trophy"
+                        Message="Não há membros classificados no momento." />
+        </div>
+    </div>
+}
+else
+{
+    <!-- Ranks Timeline Section - Collapsible -->
+    <div class="ranks-timeline-container mb-4">
+        <div class="ranks-timeline-header" @onclick="ToggleClassificationLevels" style="cursor: pointer;">
+            <h3>
+                <i class="bi bi-trophy"></i> Níveis de Classificação
+                <i class="bi @(isClassificationExpanded ? "bi-chevron-up" : "bi-chevron-down") ms-2"></i>
+            </h3>
+        </div>
+        @if (isClassificationExpanded)
+        {
+            @* Ranking Story Section *@
+            @if (rankingStoryLabel != null && rankingStoryLabel.IsActive)
+            {
+                <div class="ranking-story-panel mb-4" style="background-color: #1a1a1b; border: 1px solid #343536; border-radius: 8px; padding: 1.5rem; position: relative;">
+                    @if (rankingStoryLabel != null)
+                    {
+                        <div style="position: absolute; top: 1rem; right: 1rem;">
+                            <LabelEditButton CurrentLabel="@rankingStoryLabel" OnEditClick="@OpenEditModal" CssClass="text-white" />
+                        </div>
+                    }
+                    <h5 class="text-white mb-3">
+                        <i class="bi bi-info-circle-fill text-primary me-2"></i>@rankingStoryLabel.Title
+                    </h5>
+                    <div class="text-white-opacity" style="white-space: pre-line; line-height: 1.6;">
+                        @rankingStoryLabel.Content
+                    </div>
+                </div>
+            }
+            
+            <div class="ranks-grid">
+                @{
+                    var allLevels = RankingConfig.Value.Levels.OrderBy(l => l.Level).ToList();
+                    // Custom visual order to create a snake pattern: 1,2,3 -> 6,5,4 -> 7,8,9 -> 10
+                    // This maps visual grid positions to level indices (0-based)
+                    var visualOrder = new[] { 0, 1, 2, 5, 4, 3, 6, 7, 8, 9 }; // indices for levels 1-10
+                }
+                @for (int visualIndex = 0; visualIndex < allLevels.Count; visualIndex++)
+                {
+                    var i = visualOrder[visualIndex]; // actual level index (0-based)
+                    var levelDef = allLevels[i];
+                    var isLastLevel = levelDef.Level == 10;
+                    var actualLevel = levelDef.Level; // 1-based level number
+                    
+                    // Grid positioning based on visual index
+                    var gridRow = (visualIndex / 3) + 1;
+                    var gridCol = (visualIndex % 3) + 1;
+                    
+                    // Special positioning for Level 10: place it under Level 9 (column 3)
+                    if (isLastLevel)
+                    {
+                        gridCol = 3;
+                    }
+                    
+                    <div class="rank-grid-item @(isLastLevel ? "rank-final" : "")" style="grid-row: @gridRow; grid-column: @gridCol;">
+                        <div class="rank-card">
+                            @if (isLastLevel)
+                            {
+                                <i class="bi bi-trophy-fill rank-trophy-icon"></i>
+                            }
+                            <span class="rank-level">LEVEL @levelDef.Level</span>
+                            <span class="rank-name">@levelDef.Name.ToUpper()</span>
+                        </div>
+                        
+                        @* Sequential connector logic: connect each level to the next (1→2→3→4→5→6→7→8→9→10) *@
+                        @if (actualLevel < 10)
+                        {
+                            // Find where the next level is positioned visually
+                            var nextLevelIndex = actualLevel; // next level is actualLevel + 1, but we need 0-based index
+                            var nextVisualIndex = Array.IndexOf(visualOrder, nextLevelIndex);
+                            
+                            var currentRow = (visualIndex / 3);
+                            var currentCol = (visualIndex % 3);
+                            var nextRow = (nextVisualIndex / 3);
+                            var nextCol = (nextVisualIndex % 3);
+                            
+                            @* Horizontal connector within the same row *@
+                            if (nextRow == currentRow)
+                            {
+                                @if (nextCol > currentCol)
+                                {
+                                    <div class="rank-connector-horizontal-right"></div>
+                                }
+                                else
+                                {
+                                    <div class="rank-connector-horizontal-left"></div>
+                                }
+                            }
+                            @* Vertical connector to next row *@
+                            else
+                            {
+                                @if (actualLevel == 3) @* 3→4: down *@
+                                {
+                                    <div class="rank-connector-down-right"></div>
+                                }
+                                else if (actualLevel == 6) @* 6→7: down *@
+                                {
+                                    <div class="rank-connector-down-left"></div>
+                                }
+                                else if (actualLevel == 9) @* 9→10: simple vertical connector *@
+                                {
+                                    <div class="rank-connector-down-right"></div>
+                                }
+                            }
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Leaderboard Panel -->
+    <div class="leaderboard-container">
+        <div class="leaderboard-header">
+            <h2><i class="bi bi-trophy-fill"></i> Tabela de Classificação</h2>
+        </div>
+        
+        <!-- Search Bar -->
+        <div class="px-3 pt-3">
+            <TableSearchBar SearchTerm="@searchTerm"
+                           Placeholder="Pesquisar membros na classificação..."
+                           OnSearchChanged="@HandleSearchChanged" />
+        </div>
+        
+        <div class="leaderboard-body">
+            @foreach (var item in paginatedLeaderboardUsers)
+            {
+                <LeaderboardCard 
+                    Position="@item.Position"
+                    AvatarUrl="@item.User.ProfilePictureSrc"
+                    Nickname="@item.User.Nickname"
+                    FullName="@($"{item.User.FirstName} {item.User.LastName}")"
+                    Instrument="@(item.User.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(item.User.MainInstrument.Value) : "")"
+                    Level="@item.RankProgress.CurrentLevel"
+                    RankName="@item.RankProgress.CurrentRankName"
+                    Xp="@item.RankProgress.CurrentXp"
+                    RehearsalsAttended="@item.TotalRehearsals"
+                    EventsAttended="@item.TotalEvents"
+                    OnClick="@(() => OpenDetailsModal(item))" />
+            }
+            
+            <!-- Pagination Component -->
+            <TablePagination CurrentPage="@currentPage"
+                             PageSize="@pageSize"
+                             TotalItems="@GetTotalItemsCount()"
+                             ItemLabel="membros"
+                             PageSizeOptions="@(new[] { 10, 20, 30, 40, 50 })"
+                             OnPageChanged="@HandlePageChanged"
+                             OnPageSizeChanged="@HandlePageSizeChanged" />
+        </div>
+    </div>
+}
+
+<!-- Details Modal -->
+@if (viewingItem != null)
+{
+    <Modal Show="@showDetailsModal" 
+           ShowChanged="@((bool show) => showDetailsModal = show)"
+           Title="Detalhes da Classificação" 
+           Size="Modal.ModalSize.Large"
+           Centered="true">
+        <BodyContent>
+            <!-- Centered Header Section -->
+            <div class="text-center mb-4">
+                <img src="@viewingItem.User.ProfilePictureSrc" alt="@viewingItem.User.GetDisplayName()"
+                     class="member-avatar-large mb-3" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--bs-primary);" />
+                
+                @if (!string.IsNullOrEmpty(viewingItem.User.Nickname))
+                {
+                    <h4 class="mb-1">@viewingItem.User.Nickname</h4>
+                    <p class="text-muted mb-2">@viewingItem.User.FirstName @viewingItem.User.LastName</p>
+                }
+                else
+                {
+                    <h4 class="mb-2">@viewingItem.User.FirstName @viewingItem.User.LastName</h4>
+                }
+                
+                <!-- Badges -->
+                <div class="d-flex justify-content-center flex-wrap gap-1 mb-2">
+                    <span class="badge" style="background-color: #8a2be2;">
+                        <i class="bi bi-star-fill"></i> Nível @viewingItem.RankProgress.CurrentLevel
+                    </span>
+                    <span class="badge bg-info">
+                        @viewingItem.RankProgress.CurrentRankName
+                    </span>
+                </div>
+            </div>
+
+            <div class="mb-3"></div>
+
+            <!-- Statistics Section -->
+            <div class="modal-info-section mb-4">
+                <div class="modal-section-header">
+                    <h6 class="modal-section-title">
+                        <i class="bi bi-graph-up me-2 text-primary"></i>
+                        Estatísticas
+                    </h6>
+                </div>
+                <div class="modal-section-body">
+                    <ProfileField Label="XP Total" Value="@viewingItem.RankProgress.CurrentXp.ToString()" />
+                    <ProfileField Label="Ensaios Frequentados" Value="@viewingItem.TotalRehearsals.ToString()" />
+                    
+                    <!-- Events by Type -->
+                    <div class="mb-2">
+                        <strong>Atuações Participadas por Tipo:</strong>
+                    </div>
+                    @if (viewingItem.EventsByType.Any())
+                    {
+                        @foreach (var eventTypeGroup in viewingItem.EventsByType.OrderByDescending(kvp => kvp.Value))
+                        {
+                            <ProfileField Label="@StatusHelper.GetEventTypeDisplay(eventTypeGroup.Key)" 
+                                          Value="@eventTypeGroup.Value.ToString()" />
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">Nenhuma atuação registrada</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Rank Card Section -->
+            <div class="modal-info-section mb-3">
+                <RankCard RankProgress="@viewingItem.RankProgress" 
+                          IsCollapsible="true" 
+                          InitiallyCollapsed="true" />
+            </div>
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseDetailsModal">Fechar</button>
+        </FooterContent>
+    </Modal>
+}
+
+<!-- Edit Label Modal -->
+<Modal Show="@showEditModal" 
+       ShowChanged="@((value) => showEditModal = value)"
+       Title="Editar História do Ranking"
+       Size="Modal.ModalSize.Large"
+       OnClose="CloseEditModal">
+    <BodyContent>
+        @if (editingLabel != null)
+        {
+            <EditForm Model="editingLabel" OnValidSubmit="SaveLabel">
+                <DataAnnotationsValidator />
+                <ErrorDisplay />
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Referência</label>
+                    <input type="text" class="form-control" value="@editingLabel.Reference" disabled />
+                    <small class="text-white-opacity">Identificador único (não editável)</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Título</label>
+                    <InputText class="form-control" @bind-Value="editingLabel.Title" placeholder="Inserir título..." />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Conteúdo</label>
+                    <InputTextArea class="form-control" rows="10" @bind-Value="editingLabel.Content" 
+                                   placeholder="Inserir conteúdo..." />
+                    <small class="text-white-opacity">Dica: Use quebras de linha para formatar o texto</small>
+                </div>
+
+                <div class="mb-3 form-check">
+                    <InputCheckbox class="form-check-input" @bind-Value="editingLabel.IsActive" id="isActiveCheck" />
+                    <label class="form-check-label text-white-full" for="isActiveCheck">
+                        Ativo (visível na página)
+                    </label>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+</Modal>
+
+@code {
+    private List<LeaderboardEntry>? leaderboardUsers;
+    private List<LeaderboardEntry> paginatedLeaderboardUsers = new();
+    private LeaderboardEntry? viewingItem;
+    private bool showDetailsModal = false;
+    private bool showLeaderboard = false;
+    
+    // Classification levels collapsible state
+    private bool isClassificationExpanded = false;
+    
+    // Pagination state
+    private int currentPage = 1;
+    private int pageSize = 10;
+
+    // Search state
+    private string searchTerm = string.Empty;
+    private List<LeaderboardEntry>? filteredLeaderboardUsers;
+
+    // Label editing
+    private Label? rankingStoryLabel;
+    private Label? editingLabel;
+    private bool showEditModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckLeaderboardVisibility();
+        
+        if (showLeaderboard)
+        {
+            await LoadRankingStory();
+            await LoadLeaderboard();
+        }
+    }
+
+    private async Task LoadRankingStory()
+    {
+        rankingStoryLabel = await LabelService.GetLabelByReferenceAsync("ranking_story");
+    }
+
+    private async Task CheckLeaderboardVisibility()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUserId = UserManager.GetUserId(authState.User);
+        
+        if (!string.IsNullOrEmpty(currentUserId))
+        {
+            showLeaderboard = await RankingService.IsRankingVisibleAsync(currentUserId);
+        }
+    }
+
+    private async Task LoadLeaderboard()
+    {
+        var users = await UserManager.Users.ToListAsync();
+        var now = DateTime.UtcNow;
+        
+        // Batch load all attendance and enrollment data in two queries to avoid N+1
+        // Only count past rehearsals where Attended == true
+        var allRehearsalAttendances = await DbContext.RehearsalAttendances
+            .Include(ra => ra.Rehearsal)
+            .Where(a => a.Attended && a.Rehearsal!.Date < now)
+            .GroupBy(a => a.UserId)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.UserId, x => x.Count);
+        
+        // Load enrollments with event types - only past events where WillAttend == true
+        var allEnrollmentsWithTypes = await DbContext.Enrollments
+            .Include(e => e.Event)
+            .Where(e => e.WillAttend && e.Event != null && e.Event!.Date < now)
+            .Select(e => new { e.UserId, EventType = e.Event!.Type })
+            .ToListAsync();
+        
+        // Group by user, then by event type
+        var userEventsByType = allEnrollmentsWithTypes
+            .GroupBy(e => e.UserId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.GroupBy(x => x.EventType)
+                     .ToDictionary(eg => eg.Key, eg => eg.Count())
+            );
+        
+        // Now build entries with cached data
+        var entries = new List<LeaderboardEntry>();
+        foreach (var user in users)
+        {
+            var rankProgress = await RankingService.GetRankProgressAsync(user.Id);
+            
+            var eventsByType = userEventsByType.GetValueOrDefault(user.Id, new Dictionary<EventType, int>());
+            var totalEvents = eventsByType.Values.Sum();
+            
+            entries.Add(new LeaderboardEntry
+            {
+                User = user,
+                RankProgress = rankProgress,
+                TotalRehearsals = allRehearsalAttendances.GetValueOrDefault(user.Id, 0),
+                TotalEvents = totalEvents,
+                EventsByType = eventsByType
+            });
+        }
+
+        // Sort by Level DESC, then by XP DESC
+        leaderboardUsers = entries
+            .OrderByDescending(e => e.RankProgress.CurrentLevel)
+            .ThenByDescending(e => e.RankProgress.CurrentXp)
+            .ToList();
+        
+        // Assign positions after sorting
+        for (int i = 0; i < leaderboardUsers.Count; i++)
+        {
+            leaderboardUsers[i].Position = i + 1;
+        }
+        
+        // Apply initial pagination
+        ApplyPagination();
+    }
+    
+    private void ToggleClassificationLevels()
+    {
+        isClassificationExpanded = !isClassificationExpanded;
+    }
+    
+    private void ApplyPagination()
+    {
+        if (leaderboardUsers == null)
+        {
+            paginatedLeaderboardUsers = new();
+            return;
+        }
+        
+        // Apply search filter if search term exists
+        var dataToPage = string.IsNullOrWhiteSpace(searchTerm) 
+            ? leaderboardUsers 
+            : filteredLeaderboardUsers ?? leaderboardUsers;
+        
+        var skip = (currentPage - 1) * pageSize;
+        paginatedLeaderboardUsers = dataToPage.Skip(skip).Take(pageSize).ToList();
+    }
+    
+    private Task HandleSearchChanged(string newSearchTerm)
+    {
+        searchTerm = newSearchTerm;
+        currentPage = 1; // Reset to first page when search changes
+        
+        if (leaderboardUsers == null)
+        {
+            filteredLeaderboardUsers = new();
+            ApplyPagination();
+            return Task.CompletedTask;
+        }
+        
+        // Filter leaderboard entries based on search term
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredLeaderboardUsers = null;
+        }
+        else
+        {
+            var searchLower = searchTerm.ToLower();
+            filteredLeaderboardUsers = leaderboardUsers
+                .Where(e => 
+                    e.User.Nickname.ToLower().Contains(searchLower) ||
+                    e.User.FirstName.ToLower().Contains(searchLower) ||
+                    e.User.LastName.ToLower().Contains(searchLower) ||
+                    e.RankProgress.CurrentRankName.ToLower().Contains(searchLower))
+                .ToList();
+        }
+        
+        ApplyPagination();
+        return Task.CompletedTask;
+    }
+    
+    private Task HandlePageChanged(int newPage)
+    {
+        currentPage = newPage;
+        ApplyPagination();
+        return Task.CompletedTask;
+    }
+    
+    private Task HandlePageSizeChanged(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1; // Reset to first page when page size changes
+        ApplyPagination();
+        return Task.CompletedTask;
+    }
+
+    private void OpenDetailsModal(LeaderboardEntry item)
+    {
+        viewingItem = item;
+        showDetailsModal = true;
+    }
+
+    private void CloseDetailsModal()
+    {
+        showDetailsModal = false;
+        viewingItem = null;
+    }
+
+    private int GetTotalItemsCount()
+    {
+        if (leaderboardUsers == null) return 0;
+        
+        return string.IsNullOrWhiteSpace(searchTerm)
+            ? leaderboardUsers.Count
+            : filteredLeaderboardUsers?.Count ?? 0;
+    }
+
+    private void OpenEditModal(Label label)
+    {
+        editingLabel = new Label
+        {
+            Id = label.Id,
+            Reference = label.Reference,
+            Title = label.Title,
+            Content = label.Content,
+            IsActive = label.IsActive
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingLabel = null;
+    }
+
+    private async Task SaveLabel()
+    {
+        if (editingLabel == null) return;
+
+        try
+        {
+            await LabelService.UpdateLabelContentAsync(
+                editingLabel.Id,
+                editingLabel.Title,
+                editingLabel.Content,
+                editingLabel.IsActive
+            );
+
+            await LoadRankingStory();
+            
+            showEditModal = false;
+            editingLabel = null;
+        }
+        catch (Exception)
+        {
+            // Handle error silently or show notification
+        }
+    }
+
+    private class LeaderboardEntry
+    {
+        public int Position { get; set; }
+        public ApplicationUser User { get; set; } = null!;
+        public RankProgressInfo RankProgress { get; set; } = null!;
+        public int TotalRehearsals { get; set; }
+        public int TotalEvents { get; set; }
+        public Dictionary<EventType, int> EventsByType { get; set; } = new();
+    }
+}

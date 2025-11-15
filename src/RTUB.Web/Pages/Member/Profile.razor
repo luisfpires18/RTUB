@@ -19,6 +19,7 @@
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject IRoleAssignmentService RoleAssignmentService
 @inject IUserProfileService UserProfileService
+@inject IRankingService RankingService
 @inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 
 <h1 class="text-center mb-4"><i class="bi bi-person-circle"></i> Meu Perfil</h1>
@@ -55,6 +56,12 @@ else
     <!-- Profile Content -->
     <div class="row justify-content-center">
         <div class="col-lg-10 col-xl-9">
+            
+            @* Rank/Level Section *@
+            @if (showRanking && rankProgress != null)
+            {
+                <RankCard RankProgress="@rankProgress" IsCollapsible="true" InitiallyCollapsed="true" />
+            }
             
             <!-- Section 1: Pessoal (Personal Information) -->
             <ProfileSection Title="Informações Pessoais"
@@ -447,6 +454,10 @@ else
     private bool ChangePasswordSucceeded;
     private int imageRefreshTrigger = 0;
     
+    // Ranking system
+    private bool showRanking = false;
+    private RankProgressInfo? rankProgress;
+    
     // Helper properties for month/year date pickers
     private DateTime? LeitaoDate
     {
@@ -578,6 +589,13 @@ else
                 // Load role assignments for this user
                 var allAssignments = await RoleAssignmentService.GetAllRoleAssignmentsAsync();
                 roleAssignments = allAssignments.Where(a => a.UserId == user.Id).ToList();
+                
+                // Load ranking data
+                showRanking = await RankingService.IsRankingVisibleAsync(user.Id);
+                if (showRanking)
+                {
+                    rankProgress = await RankingService.GetRankProgressAsync(user.Id);
+                }
             }
         }
     }

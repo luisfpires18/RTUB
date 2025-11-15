@@ -1,0 +1,165 @@
+/* Ranks Grid Layout */
+.ranks-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    padding: 20px 0;
+    position: relative;
+}
+
+.rank-grid-item {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Rank Card */
+.rank-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    background: #000000;
+    border-radius: 0.5rem;
+    border: 2px solid #8a2be2;
+    transition: all 0.2s ease;
+    position: relative;
+    min-width: 140px;
+    z-index: 2;
+}
+
+.rank-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(138, 43, 226, 0.3);
+}
+
+.rank-level {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #ffffff;
+    white-space: nowrap;
+}
+
+.rank-name {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: #ffffff;
+    white-space: nowrap;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+/* Trophy icon for Level 10 */
+.rank-trophy-icon {
+    font-size: 1.5rem;
+    color: #FFD700;
+    margin-bottom: 0.25rem;
+}
+
+/* Final level (Level 10) styling */
+.rank-final {
+    /* Grid position is set inline, no need for grid-column here */
+}
+
+.rank-final .rank-card {
+    border-color: #FFD700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+/* Connectors */
+/* Horizontal connector to the right */
+.rank-connector-horizontal-right {
+    position: absolute;
+    width: calc(100% + 2rem);
+    height: 2px;
+    background: #6c757d;
+    top: 50%;
+    left: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Horizontal connector to the left */
+.rank-connector-horizontal-left {
+    position: absolute;
+    width: calc(100% + 2rem);
+    height: 2px;
+    background: #6c757d;
+    top: 50%;
+    right: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Connector from Level 3 down to Level 4 (down-right) */
+.rank-connector-down-right {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2px;
+    height: calc(2rem + 50%);
+    background: #6c757d;
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Connector from Level 6 down to Level 7 (down-left) */
+.rank-connector-down-left {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2px;
+    height: calc(2rem + 50%);
+    background: #6c757d;
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Mobile adjustments for grid */
+@media (max-width: 992px) {
+    .ranks-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+    
+    .rank-final {
+        grid-column: span 2; /* Span both columns on smaller screens */
+    }
+}
+
+@media (max-width: 768px) {
+    .ranks-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .rank-final {
+        grid-column: 1;
+    }
+    
+    .rank-card {
+        width: 100%;
+        max-width: 280px;
+        margin: 0 auto;
+    }
+    
+    /* Hide connectors on mobile */
+    .rank-connector-horizontal-right,
+    .rank-connector-horizontal-left,
+    .rank-connector-down-right,
+    .rank-connector-down-left {
+        display: none;
+    }
+}
+
+/* Chevron animation */
+.ranks-timeline-header i.bi-chevron-up,
+.ranks-timeline-header i.bi-chevron-down {
+    transition: transform 0.3s ease;
+    font-size: 0.875rem;
+}
