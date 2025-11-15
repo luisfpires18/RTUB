@@ -74,18 +74,18 @@
                                             <i class="bi @statsSortHelper.GetSortIcon(nameof(UserEnrollmentStats.UserName))"></i>
                                         }
                                     </th>
-                                    <th @onclick="() => SortStatsBy(nameof(UserEnrollmentStats.FutureCount))" class="clickable-row">
-                                        Total de Inscrições
-                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserEnrollmentStats.FutureCount)))
-                                        {
-                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserEnrollmentStats.FutureCount))"></i>
-                                        }
-                                    </th>
                                     <th @onclick="() => SortStatsBy(nameof(UserEnrollmentStats.PastCount))" class="clickable-row">
                                         Participações Passadas
                                         @if (statsSortHelper.IsActiveSortColumn(nameof(UserEnrollmentStats.PastCount)))
                                         {
                                             <i class="bi @statsSortHelper.GetSortIcon(nameof(UserEnrollmentStats.PastCount))"></i>
+                                        }
+                                    </th>
+                                    <th @onclick="() => SortStatsBy(nameof(UserEnrollmentStats.FutureCount))" class="clickable-row">
+                                        Total de Inscrições
+                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserEnrollmentStats.FutureCount)))
+                                        {
+                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserEnrollmentStats.FutureCount))"></i>
                                         }
                                     </th>
                                 </tr>
@@ -95,8 +95,8 @@
                                 {
                                     <tr>
                                         <td>@stat.UserName</td>
-                                        <td>@stat.FutureCount</td>
                                         <td>@stat.PastCount</td>
+                                        <td>@stat.FutureCount</td>
                                     </tr>
                                 }
                             </tbody>

@@ -53,7 +53,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var enrollment in myEnrollments.Where(e => e.Event != null && e.Event.Date < DateTime.Today).OrderByDescending(e => e.Event!.Date).Take(10))
+                            @foreach (var enrollment in myEnrollments)
                             {
                                 <tr>
                                     <td>@enrollment.Event?.Date.ToString("dd MMM yyyy")</td>
@@ -121,21 +121,15 @@
 
         try
         {
-            myEnrollments = (await EnrollmentService.GetEnrollmentsByUserIdAsync(currentUserId)).ToList();
-
-            // Get last 10 past events
-            var recentEvents = await EventService.GetPastEventsAsync(100);
-            var pastEvents = recentEvents
-                .Where(e => !e.IsCancelled && e.Date < DateTime.Today)
-                .OrderByDescending(e => e.Date)
+            // Get user's enrollments for past events
+            myEnrollments = (await EnrollmentService.GetEnrollmentsByUserIdAsync(currentUserId))
+                .Where(e => e.Event != null && e.Event.Date < DateTime.Today)
+                .OrderByDescending(e => e.Event!.Date)
                 .Take(10)
                 .ToList();
 
-            totalRecentEvents = pastEvents.Count;
-
-            // Count how many of these events the user has enrollments for (regardless of WillAttend)
-            var pastEventIds = pastEvents.Select(e => e.Id).ToHashSet();
-            enrollmentCount = myEnrollments.Count(e => pastEventIds.Contains(e.EventId));
+            totalRecentEvents = myEnrollments.Count;
+            enrollmentCount = myEnrollments.Count(e => e.WillAttend);
         }
         catch (Exception ex)
         {
