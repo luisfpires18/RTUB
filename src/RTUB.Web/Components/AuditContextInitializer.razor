@@ -1,0 +1,80 @@
+@namespace RTUB.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Services
+@using RTUB.Core.Entities
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject AuditContext AuditContext
+@implements IDisposable
+
+@code {
+    private bool _isInitialized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await InitializeAuditContextAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_isInitialized)
+        {
+            await InitializeAuditContextAsync();
+        }
+    }
+
+    private async Task InitializeAuditContextAsync()
+    {
+        if (_isInitialized) return;
+        
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var claimsPrincipal = authState.User;
+
+            if (claimsPrincipal?.Identity?.IsAuthenticated == true)
+            {
+                // Get username and user ID from claims
+                var userName = claimsPrincipal.Identity.Name;
+                var userId = claimsPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                // Try to get the user from UserManager to ensure we have the correct username
+                ApplicationUser? user = null;
+                
+                if (!string.IsNullOrEmpty(userName))
+                {
+                    user = await UserManager.FindByNameAsync(userName);
+                }
+                
+                if (user == null && !string.IsNullOrEmpty(userId))
+                {
+                    user = await UserManager.FindByIdAsync(userId);
+                }
+
+                // Set the audit context with the authenticated user's information
+                if (user != null)
+                {
+                    AuditContext.SetUser(user.UserName, user.Id);
+                    _isInitialized = true;
+                }
+            }
+            else
+            {
+                // Clear audit context if user is not authenticated
+                AuditContext.Clear();
+            }
+        }
+        catch
+        {
+            // Silently fail to avoid breaking the application
+            // The audit context will default to "System" if not set
+        }
+    }
+
+    public void Dispose()
+    {
+        // Note: We intentionally do NOT clear the audit context here
+        // The context should persist for the duration of the request
+    }
+}
