@@ -232,7 +232,8 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
                 BucketName = _bucketName,
                 Key = documentPath,
                 InputStream = fileStream,
-                ContentType = contentType
+                ContentType = contentType,
+                UseChunkEncoding = false // Required for Cloudflare R2 compatibility
             };
 
             var response = await _s3Client.PutObjectAsync(request);
@@ -272,7 +273,8 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
                 BucketName = _bucketName,
                 Key = folderPath,
                 InputStream = new MemoryStream(),
-                ContentType = "application/x-directory"
+                ContentType = "application/x-directory",
+                UseChunkEncoding = false // Required for Cloudflare R2 compatibility
             };
 
             var response = await _s3Client.PutObjectAsync(request);
