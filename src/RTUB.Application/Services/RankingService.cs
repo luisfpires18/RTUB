@@ -16,7 +16,7 @@ public class RankingService : IRankingService
 {
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RankingConfiguration _config;
+    private readonly IOptions<RankingConfiguration> _rankingConfig;
 
     public RankingService(
         ApplicationDbContext context,
@@ -25,7 +25,7 @@ public class RankingService : IRankingService
     {
         _context = context;
         _userManager = userManager;
-        _config = config.Value;
+        _rankingConfig = config;
     }
 
     public async Task<int> CalculateTotalXpAsync(string userId)
@@ -36,24 +36,40 @@ public class RankingService : IRankingService
         var rehearsalXp = await _context.RehearsalAttendances
             .Include(ra => ra.Rehearsal)
             .Where(ra => ra.UserId == userId && ra.Attended && ra.Rehearsal!.Date < now)
-            .CountAsync() * _config.XpPerRehearsal;
+            .CountAsync() * _rankingConfig.Value.XpPerRehearsal;
 
-        // Count event enrollments where WillAttend == true AND event date is in the past
-        var eventXp = await _context.Enrollments
+        // Calculate event XP with type-specific values
+        var enrollments = await _context.Enrollments
             .Include(e => e.Event)
             .Where(e => e.UserId == userId && e.WillAttend && e.Event!.Date < now)
-            .CountAsync() * _config.XpPerEvent;
+            .ToListAsync();
+
+        var eventXp = 0;
+        foreach (var enrollment in enrollments)
+        {
+            var eventType = enrollment.Event!.Type.ToString();
+            
+            // Try to get type-specific XP, fall back to default if not found
+            if (_rankingConfig.Value.XpPerEventType.TryGetValue(eventType, out var typeXp))
+            {
+                eventXp += typeXp;
+            }
+            else
+            {
+                eventXp += _rankingConfig.Value.XpPerEvent;
+            }
+        }
 
         return rehearsalXp + eventXp;
     }
 
     public int GetLevelFromXp(int xp)
     {
-        if (!_config.Levels.Any())
+        if (!_rankingConfig.Value.Levels.Any())
             return 1;
 
         // Sort levels by XP threshold descending to find the highest level user qualifies for
-        var sortedLevels = _config.Levels.OrderByDescending(l => l.XpThreshold).ToList();
+        var sortedLevels = _rankingConfig.Value.Levels.OrderByDescending(l => l.XpThreshold).ToList();
         
         foreach (var levelDef in sortedLevels)
         {
@@ -64,18 +80,18 @@ public class RankingService : IRankingService
         }
 
         // Return the lowest level if somehow none match
-        return _config.Levels.OrderBy(l => l.Level).First().Level;
+        return _rankingConfig.Value.Levels.OrderBy(l => l.Level).First().Level;
     }
 
     public string GetRankName(int level)
     {
-        var levelDef = _config.Levels.FirstOrDefault(l => l.Level == level);
+        var levelDef = _rankingConfig.Value.Levels.FirstOrDefault(l => l.Level == level);
         return levelDef?.Name ?? "Desconhecido";
     }
 
     public int GetXpForNextLevel(int currentLevel)
     {
-        var nextLevel = _config.Levels
+        var nextLevel = _rankingConfig.Value.Levels
             .Where(l => l.Level > currentLevel)
             .OrderBy(l => l.Level)
             .FirstOrDefault();
@@ -85,14 +101,14 @@ public class RankingService : IRankingService
 
     public int GetXpForCurrentLevel(int currentLevel)
     {
-        var currentLevelDef = _config.Levels.FirstOrDefault(l => l.Level == currentLevel);
+        var currentLevelDef = _rankingConfig.Value.Levels.FirstOrDefault(l => l.Level == currentLevel);
         return currentLevelDef?.XpThreshold ?? 0;
     }
 
     public async Task<bool> IsRankingVisibleAsync(string userId)
     {
         // Show if ranking is enabled OR user has Owner role
-        if (_config.Enabled)
+        if (_rankingConfig.Value.Enabled)
             return true;
 
         var user = await _userManager.FindByIdAsync(userId);

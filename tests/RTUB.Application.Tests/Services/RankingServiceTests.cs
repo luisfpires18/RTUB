@@ -6,6 +6,7 @@ using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace RTUB.Application.Tests.Services;
@@ -36,6 +37,12 @@ public class RankingServiceTests : IDisposable
             Enabled = true,
             XpPerRehearsal = 10,
             XpPerEvent = 20,
+            XpPerEventType = new Dictionary<string, int>
+            {
+                { "Festival", 50 },
+                { "Atuacao", 25 },
+                { "Casamento", 30 }
+            },
             Levels = new List<LevelDefinition>
             {
                 new() { Level = 1, Name = "Lei Seca", XpThreshold = 0 },
@@ -93,8 +100,10 @@ public class RankingServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var event1 = new Event { Id = 1, Name = "Event 1", Date = DateTime.UtcNow.AddDays(-1) };
-        var event2 = new Event { Id = 2, Name = "Event 2", Date = DateTime.UtcNow.AddDays(-2) };
+        var event1 = Event.Create("Event 1", DateTime.UtcNow.AddDays(-1), "Location", EventType.Nerba);
+        event1.Id = 1;
+        var event2 = Event.Create("Event 2", DateTime.UtcNow.AddDays(-2), "Location", EventType.Nerba);
+        event2.Id = 2;
         
         await _context.Events.AddRangeAsync(event1, event2);
         var enrollment1 = Enrollment.Create(userId, 1);
@@ -119,7 +128,8 @@ public class RankingServiceTests : IDisposable
         // Arrange
         var userId = "user-123";
         var rehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
-        var eventEntity = new Event { Id = 1, Name = "Event 1", Date = DateTime.UtcNow.AddDays(-1) };
+        var eventEntity = Event.Create("Event 1", DateTime.UtcNow.AddDays(-1), "Location", EventType.Nerba);
+        eventEntity.Id = 1;
         
         await _context.Rehearsals.AddAsync(rehearsal);
         await _context.Events.AddAsync(eventEntity);
@@ -166,8 +176,10 @@ public class RankingServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var event1 = new Event { Id = 1, Name = "Event 1", Date = DateTime.UtcNow.AddDays(-1) };
-        var event2 = new Event { Id = 2, Name = "Event 2", Date = DateTime.UtcNow.AddDays(-2) };
+        var event1 = Event.Create("Event 1", DateTime.UtcNow.AddDays(-1), "Location", EventType.Nerba);
+        event1.Id = 1;
+        var event2 = Event.Create("Event 2", DateTime.UtcNow.AddDays(-2), "Location", EventType.Nerba);
+        event2.Id = 2;
         
         await _context.Events.AddRangeAsync(event1, event2);
         var enrollment1 = Enrollment.Create(userId, 1);
@@ -189,8 +201,10 @@ public class RankingServiceTests : IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var pastEvent = new Event { Id = 1, Name = "Past Event", Date = DateTime.UtcNow.AddDays(-1) };
-        var futureEvent = new Event { Id = 2, Name = "Future Event", Date = DateTime.UtcNow.AddDays(1) };
+        var pastEvent = Event.Create("Past Event", DateTime.UtcNow.AddDays(-1), "Location", EventType.Nerba);
+        pastEvent.Id = 1;
+        var futureEvent = Event.Create("Future Event", DateTime.UtcNow.AddDays(1), "Location", EventType.Nerba);
+        futureEvent.Id = 2;
         
         await _context.Events.AddRangeAsync(pastEvent, futureEvent);
         var enrollment1 = Enrollment.Create(userId, 1);
@@ -464,6 +478,77 @@ public class RankingServiceTests : IDisposable
         user.ExperiencePoints.Should().Be(10);
         user.Level.Should().Be(1);
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
+    }
+
+    [Fact]
+    public async Task CalculateTotalXpAsync_WithEventTypeSpecificXp_UseConfiguredValue()
+    {
+        // Arrange
+        var userId = "user-123";
+        var festivalEvent = Event.Create("Festival Event", DateTime.UtcNow.AddDays(-1), "Location", EventType.Festival);
+        festivalEvent.Id = 1;
+        
+        await _context.Events.AddAsync(festivalEvent);
+        var enrollment = Enrollment.Create(userId, 1);
+        enrollment.WillAttend = true;
+        await _context.Enrollments.AddAsync(enrollment);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.CalculateTotalXpAsync(userId);
+
+        // Assert - Festival gives 50 XP according to config
+        result.Should().Be(50);
+    }
+
+    [Fact]
+    public async Task CalculateTotalXpAsync_WithEventTypeNotInConfig_UsesDefaultXp()
+    {
+        // Arrange
+        var userId = "user-123";
+        var nebraEvent = Event.Create("Nerba Event", DateTime.UtcNow.AddDays(-1), "Location", EventType.Nerba);
+        nebraEvent.Id = 1;
+        
+        await _context.Events.AddAsync(nebraEvent);
+        var enrollment = Enrollment.Create(userId, 1);
+        enrollment.WillAttend = true;
+        await _context.Enrollments.AddAsync(enrollment);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.CalculateTotalXpAsync(userId);
+
+        // Assert - Nerba not in config, uses default 20 XP
+        result.Should().Be(20);
+    }
+
+    [Fact]
+    public async Task CalculateTotalXpAsync_WithMixedEventTypes_CalculatesCorrectTotal()
+    {
+        // Arrange
+        var userId = "user-123";
+        var festivalEvent = Event.Create("Festival", DateTime.UtcNow.AddDays(-1), "Location", EventType.Festival);
+        festivalEvent.Id = 1;
+        var atuacaoEvent = Event.Create("Atuacao", DateTime.UtcNow.AddDays(-2), "Location", EventType.Atuacao);
+        atuacaoEvent.Id = 2;
+        var nebraEvent = Event.Create("Nerba", DateTime.UtcNow.AddDays(-3), "Location", EventType.Nerba);
+        nebraEvent.Id = 3;
+        
+        await _context.Events.AddRangeAsync(festivalEvent, atuacaoEvent, nebraEvent);
+        var enrollment1 = Enrollment.Create(userId, 1);
+        enrollment1.WillAttend = true;
+        var enrollment2 = Enrollment.Create(userId, 2);
+        enrollment2.WillAttend = true;
+        var enrollment3 = Enrollment.Create(userId, 3);
+        enrollment3.WillAttend = true;
+        await _context.Enrollments.AddRangeAsync(enrollment1, enrollment2, enrollment3);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.CalculateTotalXpAsync(userId);
+
+        // Assert - Festival (50) + Atuacao (25) + Nerba (20 default) = 95
+        result.Should().Be(95);
     }
 
     public void Dispose()
