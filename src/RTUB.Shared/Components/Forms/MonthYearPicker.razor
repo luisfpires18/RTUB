@@ -94,6 +94,18 @@
     public EventCallback<DateTime?> ValueChanged { get; set; }
 
     /// <summary>
+    /// Direct year value (optional, overrides Value if provided)
+    /// </summary>
+    [Parameter]
+    public int? Year { get; set; }
+
+    /// <summary>
+    /// Direct month value (optional, overrides Value if provided)
+    /// </summary>
+    [Parameter]
+    public int? Month { get; set; }
+
+    /// <summary>
     /// Whether the field is required
     /// </summary>
     [Parameter]
@@ -148,7 +160,13 @@
         // Only sync from external Value changes, not our own internal updates
         if (!isInternalUpdate)
         {
-            if (Value.HasValue)
+            // Prioritize direct Year/Month parameters if provided
+            if (Year.HasValue || Month.HasValue)
+            {
+                selectedYear = Year;
+                selectedMonth = Month;
+            }
+            else if (Value.HasValue)
             {
                 selectedMonth = Value.Value.Month;
                 selectedYear = Value.Value.Year;
