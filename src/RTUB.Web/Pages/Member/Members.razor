@@ -15,8 +15,6 @@
 @inject IEmailNotificationService EmailNotificationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject RTUB.Application.Services.AuditContext AuditContext
-@inject IRankingService RankingService
-@inject Microsoft.Extensions.Options.IOptions<RTUB.Application.Configuration.RankingConfiguration> RankingConfig
 @attribute [Authorize]
 
 <h1 class="mb-2"><i class="bi bi-people"></i> Membros</h1>
@@ -514,16 +512,6 @@ else
                     </div>
                 </div>
             </div>
-
-            <!-- Rank/Level Section -->
-            @if (showRanking && viewingUserRankProgress != null)
-            {
-                <div class="modal-info-section mb-3">
-                    <RankCard RankProgress="@viewingUserRankProgress" 
-                              IsCollapsible="true" 
-                              InitiallyCollapsed="true" />
-                </div>
-            }
         </BodyContent>
         <FooterContent>
             <button type="button" class="btn btn-secondary" @onclick="CloseViewDetailsModal">Fechar</button>
@@ -543,8 +531,6 @@ else
     private Dictionary<string, List<RoleAssignment>> userRoleAssignments = new Dictionary<string, List<RoleAssignment>>();
     private List<ApplicationUser> eligibleMentors = new();
     private ApplicationUser? viewingUserMentor;
-    private bool showRanking = false;
-    private RankProgressInfo? viewingUserRankProgress;
 
     // Helper instances
     private SearchHelper<ApplicationUser> searchHelper = new();
@@ -1258,20 +1244,6 @@ else
             viewingUserMentor = null;
         }
         
-        // Load ranking information
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var currentUserId = UserManager.GetUserId(authState.User);
-        
-        if (!string.IsNullOrEmpty(currentUserId))
-        {
-            showRanking = await RankingService.IsRankingVisibleAsync(currentUserId);
-            
-            if (showRanking)
-            {
-                viewingUserRankProgress = await RankingService.GetRankProgressAsync(user.Id);
-            }
-        }
-        
         showViewDetailsModal = true;
     }
 
@@ -1280,8 +1252,6 @@ else
         showViewDetailsModal = false;
         viewingUser = null;
         viewingUserMentor = null;
-        showRanking = false;
-        viewingUserRankProgress = null;
     }
 
     private Position? GetCurrentFiscalYearPosition(string userId)
