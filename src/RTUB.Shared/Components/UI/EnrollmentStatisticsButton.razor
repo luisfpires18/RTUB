@@ -131,8 +131,8 @@
     public bool IsAdmin { get; set; }
 
     private bool showStatsModal = false;
-    private DateTime statsStartDate = DateTime.Today.AddDays(-30);
-    private DateTime statsEndDate = DateTime.Today;
+    private DateTime statsStartDate = DateTime.Today.AddMonths(-1);
+    private DateTime statsEndDate = DateTime.Today.AddMonths(1);
     private List<UserEnrollmentStats>? enrollmentStatsUsers;
     private List<UserEnrollmentStats> filteredStatsUsers = new();
     private List<UserEnrollmentStats> paginatedStatsUsers = new();

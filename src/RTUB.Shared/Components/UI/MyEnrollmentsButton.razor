@@ -55,7 +55,7 @@
                         <tbody>
                             @foreach (var enrollment in myEnrollments.Where(e => e.Event != null && e.Event.Date < DateTime.Today).OrderByDescending(e => e.Event!.Date).Take(10))
                             {
-                                <tr class="@(enrollment.WillAttend ? "" : "table-danger")">
+                                <tr>
                                     <td>@enrollment.Event?.Date.ToString("dd MMM yyyy")</td>
                                     <td>@enrollment.Event?.Name</td>
                                     <td>@(enrollment.Instrument?.ToString() ?? "-")</td>
@@ -123,25 +123,19 @@
         {
             myEnrollments = (await EnrollmentService.GetEnrollmentsByUserIdAsync(currentUserId)).ToList();
 
-            // Calculate enrollment stats for last 10 past events
-            var recentEnd = DateTime.Today;
-            var recentStart = DateTime.Today.AddDays(-180); // Look back 6 months
-
-            // Get all past events in the period
+            // Get last 10 past events
             var recentEvents = await EventService.GetPastEventsAsync(100);
             var pastEvents = recentEvents
-                .Where(e => !e.IsCancelled && e.Date < DateTime.Today && e.Date >= recentStart)
+                .Where(e => !e.IsCancelled && e.Date < DateTime.Today)
                 .OrderByDescending(e => e.Date)
                 .Take(10)
                 .ToList();
 
             totalRecentEvents = pastEvents.Count;
 
-            // Count confirmed enrollments for these specific events
+            // Count how many of these events the user has enrollments for (regardless of WillAttend)
             var pastEventIds = pastEvents.Select(e => e.Id).ToHashSet();
-            enrollmentCount = myEnrollments.Count(e =>
-                e.WillAttend &&
-                pastEventIds.Contains(e.EventId));
+            enrollmentCount = myEnrollments.Count(e => pastEventIds.Contains(e.EventId));
         }
         catch (Exception ex)
         {

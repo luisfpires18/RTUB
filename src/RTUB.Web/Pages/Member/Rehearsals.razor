@@ -561,11 +561,18 @@ else
                                             <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.UserName))"></i>
                                         }
                                     </th>
-                                    <th @onclick="() => SortStatsBy(nameof(UserAttendanceStats.Count))" class="clickable-row">
+                                    <th @onclick="() => SortStatsBy(nameof(UserAttendanceStats.FutureCount))" class="clickable-row">
                                         Total de Presenças
-                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserAttendanceStats.Count)))
+                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserAttendanceStats.FutureCount)))
                                         {
-                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.Count))"></i>
+                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.FutureCount))"></i>
+                                        }
+                                    </th>
+                                    <th @onclick="() => SortStatsBy(nameof(UserAttendanceStats.PastCount))" class="clickable-row">
+                                        Participações Passadas
+                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserAttendanceStats.PastCount)))
+                                        {
+                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.PastCount))"></i>
                                         }
                                     </th>
                                 </tr>
@@ -575,7 +582,8 @@ else
                                 {
                                     <tr>
                                         <td>@stat.UserName</td>
-                                        <td>@stat.Count</td>
+                                        <td>@stat.FutureCount</td>
+                                        <td>@stat.PastCount</td>
                                     </tr>
                                 }
                             </tbody>
@@ -745,7 +753,7 @@ else
                         <tbody>
                             @foreach (var attendance in myAttendances.Where(a => a.Rehearsal != null && a.Rehearsal.Date < DateTime.Today).OrderByDescending(a => a.Rehearsal!.Date).Take(10))
                             {
-                                <tr class="@(attendance.Attended ? "" : "table-danger")">
+                                <tr>
                                     <td>@attendance.Rehearsal?.Date.ToString("dd MMM yyyy")</td>
                                     <td>@(attendance.Instrument?.ToString() ?? "-")</td>
                                     <td>
@@ -854,13 +862,13 @@ else
     private bool rangeFeedbackIsError = false;
 
     // Stats data
-    private DateTime statsStartDate = DateTime.Today.AddDays(-30);
-    private DateTime statsEndDate = DateTime.Today;
+    private DateTime statsStartDate = DateTime.Today.AddMonths(-1);
+    private DateTime statsEndDate = DateTime.Today.AddMonths(1);
     private List<UserAttendanceStats>? attendanceStatsUsers;
     private List<UserAttendanceStats> filteredStatsUsers = new();
     private List<UserAttendanceStats> paginatedStatsUsers = new();
     private string statsSearchTerm = string.Empty;
-    private SortableTableHelper<UserAttendanceStats> statsSortHelper = new() { SortColumn = nameof(UserAttendanceStats.Count), SortAscending = false };
+    private SortableTableHelper<UserAttendanceStats> statsSortHelper = new() { SortColumn = nameof(UserAttendanceStats.PastCount), SortAscending = false };
     private PaginationHelper<UserAttendanceStats> statsPaginationHelper = new() { PageSize = 10 };
 
     protected override async Task OnInitializedAsync()
@@ -953,12 +961,8 @@ else
         {
             myAttendances = (await AttendanceService.GetAttendancesByUserIdAsync(currentUserId)).ToList();
 
-            // Calculate attendance stats for last 10 past rehearsals
-            var recentEnd = DateTime.Today;
-            var recentStart = DateTime.Today.AddDays(-90); // Look back 90 days (3 months)
-
-            // Get all past rehearsals in the period
-            var recentRehearsals = await RehearsalService.GetRehearsalsAsync(recentStart, recentEnd);
+            // Get last 10 past rehearsals
+            var recentRehearsals = await RehearsalService.GetRehearsalsAsync(DateTime.Today.AddMonths(-6), DateTime.Today);
             var pastRehearsals = recentRehearsals
                 .Where(r => !r.IsCanceled && r.Date < DateTime.Today)
                 .OrderByDescending(r => r.Date)
@@ -967,11 +971,9 @@ else
 
             totalRecentRehearsals = pastRehearsals.Count;
 
-            // Count only approved attendances for these specific rehearsals
+            // Count how many of these rehearsals the user has attendances for (regardless of Attended status)
             var pastRehearsalIds = pastRehearsals.Select(r => r.Id).ToHashSet();
-            attendanceCount = myAttendances.Count(a =>
-                a.Attended &&
-                pastRehearsalIds.Contains(a.RehearsalId));
+            attendanceCount = myAttendances.Count(a => pastRehearsalIds.Contains(a.RehearsalId));
         }
 
         FilterRehearsals();
@@ -1604,19 +1606,46 @@ else
     {
         try
         {
-            var stats = await AttendanceService.GetAttendanceStatsAsync(statsStartDate, statsEndDate);
+            // Get all rehearsals in the date range
+            var rehearsals = await RehearsalService.GetRehearsalsAsync(statsStartDate, statsEndDate);
+            var rehearsalIds = rehearsals.Select(r => r.Id).ToHashSet();
+            
+            // Get all attendances for these rehearsals
+            var allAttendances = new List<RehearsalAttendance>();
+            foreach (var rehearsalId in rehearsalIds)
+            {
+                var attendances = await AttendanceService.GetAttendancesByRehearsalIdAsync(rehearsalId);
+                allAttendances.AddRange(attendances);
+            }
+            
+            // Filter to only WillAttend entries
+            var filteredAttendances = allAttendances
+                .Where(a => a.Rehearsal != null && a.WillAttend)
+                .ToList();
+
+            // Group by user and count future vs past
+            var stats = filteredAttendances
+                .GroupBy(a => a.UserId)
+                .Select(g => new { 
+                    UserId = g.Key, 
+                    FutureCount = g.Count(a => a.Rehearsal!.Date >= DateTime.Today),
+                    PastCount = g.Count(a => a.Rehearsal!.Date < DateTime.Today)
+                })
+                .ToList();
+
             attendanceStatsUsers = new List<UserAttendanceStats>();
             
             foreach (var stat in stats)
             {
-                var user = await UserManager.FindByIdAsync(stat.Key);
+                var user = await UserManager.FindByIdAsync(stat.UserId);
                 if (user != null)
                 {
                     attendanceStatsUsers.Add(new UserAttendanceStats
                     {
-                        UserId = stat.Key,
+                        UserId = stat.UserId,
                         UserName = user.GetDisplayName(),
-                        Count = stat.Value
+                        FutureCount = stat.FutureCount,
+                        PastCount = stat.PastCount
                     });
                 }
             }
@@ -1657,7 +1686,8 @@ else
         var columnSelectors = new Dictionary<string, Func<UserAttendanceStats, IComparable>>
         {
             { nameof(UserAttendanceStats.UserName), s => s.UserName },
-            { nameof(UserAttendanceStats.Count), s => s.Count }
+            { nameof(UserAttendanceStats.FutureCount), s => s.FutureCount },
+            { nameof(UserAttendanceStats.PastCount), s => s.PastCount }
         };
         filteredStatsUsers = statsSortHelper.ApplySort(filteredStatsUsers, columnSelectors);
 
@@ -1832,7 +1862,8 @@ else
     {
         public string UserId { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
-        public int Count { get; set; }
+        public int FutureCount { get; set; }
+        public int PastCount { get; set; }
     }
 
     // Form models for validation
