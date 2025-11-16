@@ -18,31 +18,26 @@
                     <i class="bi bi-trash music-icon-delete"></i>
                 </button>
             </div>
-            
-            @* Email notification button in bottom-right corner *@
-            <div class="position-absolute bottom-0 end-0 p-2">
-                <button class="btn btn-sm btn-primary music-btn-email" 
-                        @onclick="HandleSendEmail" 
-                        title="Notificar por email">
-                    <i class="bi bi-envelope-fill"></i>
-                </button>
-            </div>
         }
         <div class="meeting-header">
-            <div class="meeting-type-badge @GetMeetingTypeCssClass()">
+            <div class="meeting-type-badge">
                 <i class="bi bi-calendar3"></i>
                 @GetMeetingTypeLabel()
             </div>
         </div>
     </div>
     <div class="card-body d-flex flex-column">
-        <h5 class="meeting-title mb-3">@Meeting.Title</h5>
+        <div class="meeting-status-pill @GetMeetingStatusClass()">
+            @GetMeetingStatus()
+        </div>
+        
+        <h5 class="meeting-title mb-2">@Meeting.Title</h5>
+        <p class="meeting-subtitle mb-3">@GetMeetingTypeFullName()</p>
         
         <div class="meeting-info">
             <div class="meeting-info-row">
                 <i class="bi bi-calendar3 meeting-icon"></i>
-                <span class="meeting-text">@Meeting.Date.ToString("dd MMM yyyy")</span>
-                <span class="meeting-day">(@GetDayOfWeek(Meeting.Date))</span>
+                <span class="meeting-text">@Meeting.Date.ToString("dd MMM yyyy") (@GetDayOfWeek(Meeting.Date))</span>
             </div>
             
             <div class="meeting-info-row">
@@ -64,12 +59,23 @@
         </div>
 
         <div class="mt-auto pt-3">
-            <button class="btn btn-sm btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2" 
-                    @onclick="HandleViewDetails" 
-                    title="Ver Detalhes">
-                <i class="bi bi-eye-fill"></i>
-                <span>Ver Detalhes</span>
-            </button>
+            <div class="meeting-footer">
+                <button class="btn btn-sm btn-outline-primary meeting-details-btn" 
+                        @onclick="HandleViewDetails" 
+                        title="Ver Detalhes">
+                    <i class="bi bi-eye-fill"></i>
+                    <span>Ver Detalhes</span>
+                </button>
+                
+                @if (IsAdmin)
+                {
+                    <button class="btn btn-sm meeting-email-btn" 
+                            @onclick="HandleSendEmail" 
+                            title="Enviar notificação da reunião">
+                        <i class="bi bi-envelope-fill"></i>
+                    </button>
+                }
+            </div>
         </div>
     </div>
 </div>
@@ -147,22 +153,38 @@
     {
         return Meeting.Type switch
         {
-            MeetingType.AssembleiaGeralOrdinaria => "AGO",
-            MeetingType.AssembleiaGeralExtraordinaria => "AGE",
-            MeetingType.ConselhoVeteranos => "CV",
+            MeetingType.AssembleiaGeralOrdinaria => "ASSEMBLEIA GERAL ORDINÁRIA",
+            MeetingType.AssembleiaGeralExtraordinaria => "ASSEMBLEIA GERAL EXTRAORDINÁRIA",
+            MeetingType.ConselhoVeteranos => "CONSELHO DE VETERANOS",
             _ => ""
         };
     }
 
     private string GetMeetingTypeCssClass()
     {
+        // All badges are now purple
+        return "meeting-type-badge";
+    }
+
+    private string GetMeetingTypeFullName()
+    {
         return Meeting.Type switch
         {
-            MeetingType.AssembleiaGeralOrdinaria => "meeting-type-ago",
-            MeetingType.AssembleiaGeralExtraordinaria => "meeting-type-age",
-            MeetingType.ConselhoVeteranos => "meeting-type-cv",
+            MeetingType.AssembleiaGeralOrdinaria => "Assembleia Geral Ordinária",
+            MeetingType.AssembleiaGeralExtraordinaria => "Assembleia Geral Extraordinária",
+            MeetingType.ConselhoVeteranos => "Conselho de Veteranos",
             _ => ""
         };
+    }
+
+    private string GetMeetingStatus()
+    {
+        return Meeting.Date.Date < DateTime.Today ? "Realizada" : "Agendada";
+    }
+
+    private string GetMeetingStatusClass()
+    {
+        return Meeting.Date.Date < DateTime.Today ? "meeting-status-past" : "meeting-status-upcoming";
     }
 
     private string GetDayOfWeek(DateTime date)
@@ -192,7 +214,7 @@
 
     .meeting-card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 20px rgba(111, 66, 193, 0.3);
     }
 
     .meeting-admin-overlay {
@@ -210,6 +232,8 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        border-bottom: 1px solid rgba(111, 66, 193, 0.5);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .meeting-type-badge {
@@ -219,34 +243,55 @@
         padding: 8px 16px;
         border-radius: 20px;
         font-weight: 600;
-        font-size: 0.9rem;
+        font-size: 0.7rem;
         color: white;
-    }
-
-    .meeting-type-ago {
-        background-color: rgba(13, 110, 253, 0.9);
-    }
-
-    .meeting-type-age {
-        background-color: rgba(220, 53, 69, 0.9);
-    }
-
-    .meeting-type-cv {
-        background-color: rgba(255, 193, 7, 0.9);
-        color: #000;
+        background-color: #6E56CF;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
     }
 
     .meeting-title {
         color: var(--text-primary);
         font-weight: 600;
         font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .meeting-subtitle {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-weight: 400;
         margin-bottom: 1rem;
+    }
+
+    .meeting-status-pill {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        z-index: 5;
+    }
+
+    .meeting-status-past {
+        background-color: rgba(128, 128, 128, 0.2);
+        color: #999;
+        border: 1px solid rgba(128, 128, 128, 0.3);
+    }
+
+    .meeting-status-upcoming {
+        background-color: rgba(0, 188, 140, 0.2);
+        color: #00bc8c;
+        border: 1px solid rgba(0, 188, 140, 0.3);
     }
 
     .meeting-info {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 14px;
         margin-bottom: 1rem;
     }
 
@@ -259,18 +304,13 @@
     }
 
     .meeting-icon {
-        color: var(--music-purple);
+        color: var(--bs-primary);
         font-size: 1rem;
         flex-shrink: 0;
     }
 
     .meeting-text {
         flex: 1;
-    }
-
-    .meeting-day {
-        font-size: 0.85rem;
-        color: var(--text-muted);
     }
 
     .meeting-today-badge {
@@ -282,10 +322,51 @@
         font-weight: 600;
     }
 
+    .meeting-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .meeting-details-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+    }
+
+    .meeting-email-btn {
+        background-color: var(--bs-primary);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: background-color 0.2s, transform 0.2s;
+    }
+
+    .meeting-email-btn:hover {
+        background-color: #8b6fd1;
+        transform: scale(1.1);
+    }
+
+    .meeting-email-btn i {
+        font-size: 0.9rem;
+    }
+
     /* Responsive adjustments */
     @@media (max-width: 576px) {
         .meeting-title {
             font-size: 1rem;
+        }
+
+        .meeting-subtitle {
+            font-size: 0.8rem;
         }
 
         .meeting-info-row {
@@ -294,6 +375,25 @@
 
         .meeting-header {
             padding: 15px;
+        }
+
+        .meeting-type-badge {
+            font-size: 0.65rem;
+            padding: 6px 12px;
+        }
+
+        .meeting-footer {
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .meeting-details-btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .meeting-email-btn {
+            align-self: center;
         }
     }
 </style>
