@@ -23,10 +23,10 @@
                 {
                     <div class="d-flex gap-2">
                         <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
-                            <i class="bi bi-pencil"></i>
+                            <i class="bi bi-pencil music-icon-edit"></i>
                         </button>
                         <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
-                            <i class="bi bi-trash"></i>
+                            <i class="bi bi-trash music-icon-delete"></i>
                         </button>
                     </div>
                 }
@@ -37,7 +37,6 @@
             <div class="d-flex align-items-center gap-2 mb-2">
                 <span class="badge @GetMeetingTypeBadgeClass()">@GetMeetingTypeFullName()</span>
             </div>
-            <p class="meeting-subtitle text-muted mb-3">@GetMeetingTypeFullName()</p>
         
         <div class="meeting-info">
             <div class="meeting-info-row">
@@ -73,10 +72,11 @@
                 </button>
                 @if (IsAdmin)
                 {
-                    <button class="btn btn-sm btn-primary music-btn-email" 
+                    <button class="btn btn-sm btn-primary d-flex align-items-center gap-2" 
                             @onclick="HandleSendEmail" 
                             title="Enviar notificação da reunião">
                         <i class="bi bi-envelope-fill"></i>
+                        <span>Notificar</span>
                     </button>
                 }
             </div>
@@ -269,12 +269,6 @@
         font-size: 1.1rem;
     }
 
-    .meeting-subtitle {
-        font-size: 0.9rem;
-        color: var(--text-muted);
-        margin-bottom: 1rem;
-    }
-
     .meeting-info {
         display: flex;
         flex-direction: column;
@@ -309,58 +303,6 @@
         font-weight: 600;
     }
 
-    .music-btn-email {
-        background-color: var(--bs-primary);
-        color: white;
-        border: none;
-        width: 32px;
-        height: 32px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        transition: background-color 0.2s, transform 0.2s;
-    }
-
-    .music-btn-email:hover {
-        background-color: #8b6fd1;
-        transform: scale(1.05);
-    }
-
-    .music-btn-email i {
-        font-size: 0.9rem;
-    }
-
-    .music-btn-edit, .music-btn-delete {
-        background-color: transparent;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: var(--text-primary);
-        width: 32px;
-        height: 32px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        border-radius: 4px;
-        transition: all 0.2s;
-    }
-
-    .music-btn-edit:hover {
-        background-color: rgba(110, 86, 207, 0.2);
-        border-color: var(--bs-primary);
-        color: var(--bs-primary);
-    }
-
-    .music-btn-delete:hover {
-        background-color: rgba(220, 53, 69, 0.2);
-        border-color: #dc3545;
-        color: #dc3545;
-    }
-
-    .music-btn-edit i, .music-btn-delete i {
-        font-size: 0.9rem;
-    }
-
     /* Responsive adjustments */
     @@media (max-width: 576px) {
         .meeting-card .d-flex.justify-content-center.gap-2 {
@@ -373,10 +315,6 @@
 
         .meeting-title {
             font-size: 1rem;
-        }
-
-        .meeting-subtitle {
-            font-size: 0.8rem;
         }
 
         .meeting-info-row {

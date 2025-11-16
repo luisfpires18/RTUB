@@ -127,28 +127,6 @@ public class MeetingCardTests : TestContext
         cut.Markup.Should().NotContain("AGO", "header should not show abbreviation");
     }
 
-    [Fact]
-    public void MeetingCard_DisplaysFullMeetingTypeAsSubtitle()
-    {
-        // Arrange
-        var meeting = new Meeting
-        {
-            Title = "CONVOCATÓRIA",
-            Date = DateTime.Now.AddDays(7),
-            Location = "Sede",
-            Type = MeetingType.AssembleiaGeralOrdinaria,
-            Statement = "Test statement"
-        };
-
-        // Act
-        var cut = RenderComponent<MeetingCard>(parameters => parameters
-            .Add(p => p.Meeting, meeting)
-            .Add(p => p.IsAdmin, false));
-
-        // Assert
-        cut.Markup.Should().Contain("Assembleia Geral Ordinária", "subtitle should show full meeting type in title case");
-    }
-
     [Theory]
     [InlineData(MeetingType.AssembleiaGeralOrdinaria, "Assembleia Geral Ordinária")]
     [InlineData(MeetingType.AssembleiaGeralExtraordinaria, "Assembleia Geral Extraordinária")]
@@ -266,6 +244,8 @@ public class MeetingCardTests : TestContext
         // Assert
         cut.Markup.Should().Contain("bi-pencil", "edit button should appear");
         cut.Markup.Should().Contain("bi-trash", "delete button should appear");
+        cut.Markup.Should().Contain("music-icon-edit", "edit icon should have music-icon-edit class");
+        cut.Markup.Should().Contain("music-icon-delete", "delete icon should have music-icon-delete class");
         var editButtons = cut.FindAll("button").Where(b => b.ClassList.Contains("music-btn-edit"));
         editButtons.Should().NotBeEmpty("edit button should appear");
         var deleteButtons = cut.FindAll("button").Where(b => b.ClassList.Contains("music-btn-delete"));
@@ -317,7 +297,8 @@ public class MeetingCardTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("bi-envelope-fill", "email button should have envelope icon");
-        var emailButtons = cut.FindAll("button").Where(b => b.ClassList.Contains("music-btn-email"));
+        cut.Markup.Should().Contain("Notificar", "email button should show 'Notificar' text");
+        var emailButtons = cut.FindAll("button").Where(b => b.TextContent.Contains("Notificar"));
         emailButtons.Should().NotBeEmpty("email button element should exist for admin");
     }
 
@@ -340,8 +321,8 @@ public class MeetingCardTests : TestContext
             .Add(p => p.IsAdmin, false));
 
         // Assert
-        cut.Markup.Should().NotContain("bi-envelope-fill", "email button icon should not appear for non-admin");
-        var emailButtons = cut.FindAll("button").Where(b => b.ClassList.Contains("music-btn-email"));
+        cut.Markup.Should().NotContain("Notificar", "email button should not appear for non-admin");
+        var emailButtons = cut.FindAll("button").Where(b => b.TextContent.Contains("Notificar"));
         emailButtons.Should().BeEmpty("no email button elements should exist for non-admin");
     }
 
@@ -536,7 +517,7 @@ public class MeetingCardTests : TestContext
             .Add(p => p.OnSendEmail, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
-        var emailButton = cut.FindAll("button").First(b => b.ClassList.Contains("music-btn-email"));
+        var emailButton = cut.FindAll("button").First(b => b.TextContent.Contains("Notificar"));
         emailButton.Click();
 
         // Assert

@@ -381,7 +381,10 @@ else
             var userName = user.Identity.Name;
             if (userName != null)
             {
-                currentUser = await UserManager.FindByNameAsync(userName);
+                // Load user with Categories properly materialized
+                currentUser = await UserManager.Users
+                    .Where(u => u.UserName == userName)
+                    .FirstOrDefaultAsync();
                 currentUserId = currentUser?.Id ?? string.Empty;
             }
         }
