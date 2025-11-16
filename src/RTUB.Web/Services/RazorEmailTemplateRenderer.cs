@@ -152,4 +152,21 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
 
         return await _templateService.RenderTemplateAsync("EventReminderNotification", model);
     }
+    
+    public async Task<string> RenderAnnouncementEmailAsync(
+        string title,
+        string content,
+        string nickname = "",
+        string fullName = "")
+    {
+        var model = new AnnouncementEmailModel
+        {
+            Title = title,
+            Content = content,
+            RecipientNickname = nickname,
+            RecipientFullName = fullName
+        };
+
+        return await _templateService.RenderTemplateAsync("AnnouncementEmail", model);
+    }
 }
