@@ -163,11 +163,12 @@ public class Program
 
                         var now = DateTime.UtcNow;
 
-                        // Atomic, concurrency-safe "set once if null"
+                        // Update LastLoginDate to track user activity (both normal login and cookie validation)
+                        // This is throttled by the cache above to prevent excessive DB writes
                         await db.Database.ExecuteSqlInterpolatedAsync($@"
                             UPDATE AspNetUsers
                             SET LastLoginDate = {now}
-                            WHERE Id = {userId} AND LastLoginDate IS NULL;");
+                            WHERE Id = {userId};");
                     }
                     catch (Exception ex)
                     {
