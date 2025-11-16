@@ -70,6 +70,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     
     // Meeting DbSet
     public DbSet<Meeting> Meetings { get; set; }
+    
+    // Leaderboard Comments DbSets
+    public DbSet<LeaderboardComment> LeaderboardComments { get; set; }
+    public DbSet<LeaderboardCommentLike> LeaderboardCommentLikes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -209,6 +209,7 @@ public class Program
         services.AddScoped<ILogisticsListService, LogisticsListService>();
         services.AddScoped<ILogisticsCardService, LogisticsCardService>();
         services.AddScoped<IMeetingService, MeetingService>();
+        services.AddScoped<ILeaderboardCommentService, LeaderboardCommentService>();
         
         // --------- Cloudflare R2 S3 Client (Singleton) ---------
         // Register a single shared AmazonS3Client with exact config that works with Cloudflare R2

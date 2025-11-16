@@ -163,3 +163,64 @@
     transition: transform 0.3s ease;
     font-size: 0.875rem;
 }
+
+/* Comments Section Styles */
+.add-comment-form {
+    background-color: #1a1a1b;
+    border: 1px solid #343536;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.add-comment-form textarea {
+    background-color: #1a1a1b;
+    border: 1px solid #343536;
+    color: var(--bs-white);
+    resize: vertical;
+}
+
+.add-comment-form textarea:focus {
+    background-color: #1a1a1b;
+    border-color: var(--bs-primary);
+    color: var(--bs-white);
+}
+
+.add-comment-form textarea::placeholder {
+    color: #818384;
+}
+
+.comments-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Custom scrollbar for comments list */
+.comments-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.comments-list::-webkit-scrollbar-track {
+    background: #1a1a1b;
+    border-radius: 4px;
+}
+
+.comments-list::-webkit-scrollbar-thumb {
+    background: #343536;
+    border-radius: 4px;
+}
+
+.comments-list::-webkit-scrollbar-thumb:hover {
+    background: #4a4a4b;
+}
+
+/* Mobile responsiveness for comments */
+@media (max-width: 768px) {
+    .add-comment-form {
+        padding: 0.75rem;
+    }
+    
+    .comments-list {
+        max-height: 300px;
+    }
+}
+

@@ -15,6 +15,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IRankingService RankingService
 @inject ILabelService LabelService
+@inject ILeaderboardCommentService LeaderboardCommentService
 @inject ApplicationDbContext DbContext
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject Microsoft.Extensions.Options.IOptions<RankingConfiguration> RankingConfig
@@ -277,6 +278,67 @@ else
                           IsCollapsible="true" 
                           InitiallyCollapsed="true" />
             </div>
+            
+            <!-- Comments Section -->
+            <div class="modal-info-section">
+                <div class="modal-section-header">
+                    <h6 class="modal-section-title">
+                        <i class="bi bi-chat-left-text me-2 text-primary"></i>
+                        Comentários
+                    </h6>
+                </div>
+                <div class="modal-section-body">
+                    @if (currentUserId != null)
+                    {
+                        <!-- Add Comment Form -->
+                        <div class="add-comment-form mb-3">
+                            <textarea class="form-control mb-2" 
+                                      rows="3" 
+                                      placeholder="Escrever um comentário..."
+                                      maxlength="1000"
+                                      @bind="newCommentText"></textarea>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">@(newCommentText?.Length ?? 0) / 1000</small>
+                                <button class="btn btn-primary btn-sm" 
+                                        @onclick="AddComment"
+                                        disabled="@(string.IsNullOrWhiteSpace(newCommentText) || isAddingComment)">
+                                    @if (isAddingComment)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+                                    Publicar
+                                </button>
+                            </div>
+                        </div>
+                    }
+                    
+                    <!-- Comments List -->
+                    @if (comments == null)
+                    {
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">A carregar comentários...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (!comments.Any())
+                    {
+                        <p class="text-muted text-center py-3">Ainda não há comentários</p>
+                    }
+                    else
+                    {
+                        <div class="comments-list">
+                            @foreach (var comment in comments)
+                            {
+                                <LeaderboardCommentItem 
+                                    Comment="@comment"
+                                    OnLikeToggle="@HandleLikeToggle"
+                                    OnDelete="@HandleDeleteComment" />
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
         </BodyContent>
         <FooterContent>
             <button type="button" class="btn btn-secondary" @onclick="CloseDetailsModal">Fechar</button>
@@ -352,9 +414,24 @@ else
     private Label? rankingStoryLabel;
     private Label? editingLabel;
     private bool showEditModal = false;
+    
+    // Comments state
+    private List<LeaderboardCommentDto>? comments;
+    private string? currentUserId;
+    private string newCommentText = string.Empty;
+    private bool isAddingComment = false;
 
     protected override async Task OnInitializedAsync()
     {
+        // Get current user ID
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var currentUser = await UserManager.GetUserAsync(user);
+            currentUserId = currentUser?.Id;
+        }
+        
         await LoadRankingStory();
         await LoadLeaderboard();
     }
@@ -499,16 +576,102 @@ else
         return Task.CompletedTask;
     }
 
-    private void OpenDetailsModal(LeaderboardEntry item)
+    private async void OpenDetailsModal(LeaderboardEntry item)
     {
         viewingItem = item;
         showDetailsModal = true;
+        
+        // Load comments for this user
+        await LoadComments();
     }
 
     private void CloseDetailsModal()
     {
         showDetailsModal = false;
         viewingItem = null;
+        comments = null;
+        newCommentText = string.Empty;
+    }
+    
+    private async Task LoadComments()
+    {
+        if (viewingItem == null) return;
+        
+        comments = await LeaderboardCommentService.GetCommentsForUserAsync(
+            viewingItem.User.Id, 
+            currentUserId);
+        StateHasChanged();
+    }
+    
+    private async Task AddComment()
+    {
+        if (string.IsNullOrWhiteSpace(newCommentText) || 
+            viewingItem == null || 
+            currentUserId == null || 
+            isAddingComment)
+        {
+            return;
+        }
+        
+        isAddingComment = true;
+        try
+        {
+            await LeaderboardCommentService.AddCommentAsync(
+                viewingItem.User.Id, 
+                currentUserId, 
+                newCommentText.Trim());
+            
+            newCommentText = string.Empty;
+            await LoadComments();
+        }
+        catch (Exception ex)
+        {
+            // Log error or show notification
+            Console.WriteLine($"Error adding comment: {ex.Message}");
+        }
+        finally
+        {
+            isAddingComment = false;
+        }
+    }
+    
+    private async Task HandleLikeToggle(int commentId)
+    {
+        if (currentUserId == null) return;
+        
+        try
+        {
+            await LeaderboardCommentService.ToggleLikeAsync(commentId, currentUserId);
+            await LoadComments();
+        }
+        catch (Exception ex)
+        {
+            // Log error or show notification
+            Console.WriteLine($"Error toggling like: {ex.Message}");
+        }
+    }
+    
+    private async Task HandleDeleteComment(int commentId)
+    {
+        if (currentUserId == null) return;
+        
+        try
+        {
+            // Check if user is admin
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var currentUser = await UserManager.GetUserAsync(user);
+            var roles = await UserManager.GetRolesAsync(currentUser!);
+            var isAdmin = roles.Contains("Admin") || roles.Contains("Owner");
+            
+            await LeaderboardCommentService.DeleteCommentAsync(commentId, currentUserId, isAdmin);
+            await LoadComments();
+        }
+        catch (Exception ex)
+        {
+            // Log error or show notification
+            Console.WriteLine($"Error deleting comment: {ex.Message}");
+        }
     }
 
     private int GetTotalItemsCount()

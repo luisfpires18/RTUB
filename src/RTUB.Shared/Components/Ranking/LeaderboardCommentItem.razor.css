@@ -1,0 +1,186 @@
+.leaderboard-comment-item {
+    background-color: #1a1a1b;
+    border: 1px solid #343536;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    gap: 0.75rem;
+}
+
+.comment-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.comment-meta {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.comment-author {
+    color: var(--bs-white);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.comment-date {
+    color: #818384;
+    font-size: 0.8rem;
+}
+
+.comment-delete-btn {
+    color: #818384;
+    padding: 0.25rem 0.5rem;
+    margin-left: auto;
+    text-decoration: none;
+}
+
+.comment-delete-btn:hover {
+    color: #ff4444;
+}
+
+.comment-body {
+    color: var(--bs-white);
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.comment-footer {
+    display: flex;
+    align-items: center;
+}
+
+.comment-like-btn {
+    color: #818384;
+    padding: 0.25rem 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    text-decoration: none;
+}
+
+.comment-like-btn:hover {
+    color: #ff4458;
+}
+
+.comment-like-btn.liked {
+    color: #ff4458;
+}
+
+.comment-like-btn i {
+    font-size: 1rem;
+}
+
+.like-count {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--bs-white);
+}
+
+.like-count.clickable {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+}
+
+.like-count.clickable:hover {
+    text-decoration-style: solid;
+}
+
+.likes-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.like-item {
+    padding: 0.75rem;
+    border-bottom: 1px solid #343536;
+    display: flex;
+    align-items: center;
+    color: var(--bs-white);
+}
+
+.like-item:last-child {
+    border-bottom: none;
+}
+
+.like-item i {
+    font-size: 1.25rem;
+    color: #818384;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .leaderboard-comment-item {
+        padding: 0.75rem;
+    }
+    
+    .comment-header {
+        gap: 0.5rem;
+    }
+    
+    .comment-avatar {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .comment-author {
+        font-size: 0.85rem;
+    }
+    
+    .comment-date {
+        font-size: 0.75rem;
+    }
+    
+    .comment-body {
+        font-size: 0.9rem;
+    }
+    
+    .comment-delete-btn {
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .comment-like-btn {
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .like-count {
+        font-size: 0.8rem;
+    }
+    
+    .likes-list {
+        max-height: 300px;
+    }
+    
+    .like-item {
+        padding: 0.6rem;
+    }
+    
+    .like-item i {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .comment-header {
+        flex-wrap: wrap;
+    }
+    
+    .comment-delete-btn {
+        margin-left: 0;
+        order: 3;
+        width: 100%;
+        text-align: right;
+    }
+}
