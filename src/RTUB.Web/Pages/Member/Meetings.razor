@@ -791,7 +791,9 @@ else
             var dateStr = selectedMeetingForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
             var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
             var senderCity = $"Bragança, {currentDate}";
-            var senderNickname = currentUser?.Nickname ?? "Admin";
+            var senderNickname = currentUser != null 
+                ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
+                : "Admin";
             
             emailBody = await EmailTemplateRenderer.RenderMeetingNotificationAsync(
                 meetingType: GetMeetingTypeFullName(selectedMeetingForEmail.Type),
@@ -871,7 +873,9 @@ else
             var dateStr = selectedMeetingForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
             var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
             var senderCity = $"Bragança, {currentDate}";
-            var senderNickname = currentUser?.Nickname ?? "Admin";
+            var senderNickname = currentUser != null 
+                ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
+                : "Admin";
             
             emailPreviewHtml = await EmailTemplateRenderer.RenderMeetingNotificationAsync(
                 meetingType: GetMeetingTypeFullName(selectedMeetingForEmail.Type),
@@ -1006,7 +1010,9 @@ else
                 var dateStr = selectedMeetingForCancellation.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
                 var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
                 var senderCity = $"Bragança, {currentDate}";
-                var senderNickname = currentUser?.Nickname ?? "Admin";
+                var senderNickname = currentUser != null 
+                    ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
+                    : "Admin";
                 
                 var emailBody = await EmailTemplateRenderer.RenderMeetingCancellationAsync(
                     meetingType: GetMeetingTypeFullName(selectedMeetingForCancellation.Type),
