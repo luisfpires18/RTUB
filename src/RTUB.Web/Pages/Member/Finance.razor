@@ -8,6 +8,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
+@using RTUB.Core.Enums
 @using RTUB.Shared
 @using ReportEntity = RTUB.Core.Entities.Report
 @attribute [Authorize]
@@ -70,8 +71,7 @@
                 <div>
                     <ReportCard 
                         Report="@report"
-                        IsAdmin="@isAdmin"
-                        IsOwner="@isOwner"
+                        CanPublish="@canPublishReports"
                         OnCardClick="@(() => ViewReport(report.Id))"
                         OnDownload="@(() => DownloadReport(report))"
                         OnPublish="@(() => OpenPublishModal(report))"
@@ -189,6 +189,7 @@
     private bool isAdmin = false;
     private bool isOwner = false;
     private bool isLeitao = false;
+    private bool canPublishReports = false;
     private string currentUserId = "";
 
     protected override async Task OnInitializedAsync()
@@ -215,6 +216,23 @@
             {
                 currentUserId = appUser.Id;
                 isLeitao = appUser.IsLeitao();
+                
+                // Determine if user can publish reports
+                canPublishReports = isOwner || 
+                                   appUser.Positions.Contains(Position.PrimeiroTesoureiro) || 
+                                   appUser.Positions.Contains(Position.SegundoTesoureiro);
+                
+                // Check access permission for Gestão pages (Finance is in Gestão)
+                if (!isOwner && !isAdmin)
+                {
+                    // Block Leitão members (already blocked via isLeitao check below)
+                    // Block Caloiro members who are not Admin
+                    if (appUser.IsCaloiro())
+                    {
+                        NavigationManager.NavigateTo("/");
+                        return;
+                    }
+                }
             }
         }
         

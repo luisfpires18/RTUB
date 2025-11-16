@@ -28,8 +28,7 @@ public class ReportCardTests : TestContext
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, false)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanPublish, false));
 
         // Assert
         cut.Markup.Should().Contain("Financial Report 2023-2024", "card should display report title");
@@ -44,8 +43,7 @@ public class ReportCardTests : TestContext
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, false)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanPublish, false));
 
         // Assert
         cut.Markup.Should().Contain("2023-2024", "card should display fiscal year");
@@ -62,8 +60,7 @@ public class ReportCardTests : TestContext
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, false)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanPublish, false));
 
         // Assert
         cut.Markup.Should().Contain("Publicado", "card should display published badge");
@@ -79,8 +76,7 @@ public class ReportCardTests : TestContext
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, false)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanPublish, false));
 
         // Assert
         cut.Markup.Should().Contain("Rascunho", "card should display draft badge");
@@ -98,8 +94,7 @@ public class ReportCardTests : TestContext
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, false)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanPublish, false));
 
         // Assert
         cut.Markup.Should().Contain("Ano atual", "card should display current year badge");
@@ -118,8 +113,7 @@ public class ReportCardTests : TestContext
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, false)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanPublish, false));
 
         // Assert
         cut.Markup.Should().NotContain("Atual Ano", "card should not display current year badge for past reports");
@@ -138,8 +132,7 @@ public class ReportCardTests : TestContext
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, false)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanPublish, false));
 
         // Assert
         cut.Markup.Should().Contain("Receitas", "card should display income label");
@@ -163,8 +156,7 @@ public class ReportCardTests : TestContext
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, false)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanPublish, false));
 
         // Assert
         cut.Markup.Should().Contain("bi-caret-up-fill", "card should show up arrow for positive balance");
@@ -183,15 +175,14 @@ public class ReportCardTests : TestContext
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, false)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanPublish, false));
 
         // Assert
         cut.Markup.Should().Contain("bi-caret-down-fill", "card should show down arrow for negative balance");
     }
 
     [Fact]
-    public void ReportCard_ShowsDownloadButton_WhenUserIsAdmin()
+    public void ReportCard_ShowsDownloadButton_ForAllMembers()
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
@@ -199,15 +190,14 @@ public class ReportCardTests : TestContext
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, true)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanPublish, false));
 
         // Assert
-        cut.Markup.Should().Contain("bi-download", "card should show download button for admins");
+        cut.Markup.Should().Contain("bi-download", "card should show download button for all members");
     }
 
     [Fact]
-    public void ReportCard_HidesDownloadButton_WhenUserIsNotAdmin()
+    public void ReportCard_ShowsPublishAndDeleteButtons_WhenUserCanPublishAndReportIsNotPublished()
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
@@ -215,28 +205,11 @@ public class ReportCardTests : TestContext
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, false)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanPublish, true));
 
         // Assert
-        cut.Markup.Should().NotContain("bi-download", "card should hide download button for non-admins");
-    }
-
-    [Fact]
-    public void ReportCard_ShowsPublishAndDeleteButtons_WhenUserIsOwnerAndReportIsNotPublished()
-    {
-        // Arrange
-        var report = Report.Create("Test Report", 2023);
-
-        // Act
-        var cut = RenderComponent<ReportCard>(parameters => parameters
-            .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, false)
-            .Add(p => p.IsOwner, true));
-
-        // Assert
-        cut.Markup.Should().Contain("bi-check-circle", "card should show publish button for owners");
-        cut.Markup.Should().Contain("bi-trash", "card should show delete button for owners");
+        cut.Markup.Should().Contain("bi-check-circle", "card should show publish button for users with publish permission");
+        cut.Markup.Should().Contain("bi-trash", "card should show delete button for users with publish permission");
     }
 
     [Fact]
@@ -249,12 +222,27 @@ public class ReportCardTests : TestContext
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, false)
-            .Add(p => p.IsOwner, true));
+            .Add(p => p.CanPublish, true));
 
         // Assert
         cut.Markup.Should().NotContain("bi-check-circle", "card should hide publish button for published reports");
         cut.Markup.Should().NotContain("bi-trash", "card should hide delete button for published reports");
+    }
+
+    [Fact]
+    public void ReportCard_HidesPublishAndDeleteButtons_WhenUserCannotPublish()
+    {
+        // Arrange
+        var report = Report.Create("Test Report", 2023);
+
+        // Act
+        var cut = RenderComponent<ReportCard>(parameters => parameters
+            .Add(p => p.Report, report)
+            .Add(p => p.CanPublish, false));
+
+        // Assert
+        cut.Markup.Should().NotContain("bi-check-circle", "card should hide publish button for users without publish permission");
+        cut.Markup.Should().NotContain("bi-trash", "card should hide delete button for users without publish permission");
     }
 
     [Fact]
@@ -270,8 +258,7 @@ public class ReportCardTests : TestContext
         // Act
         var cut = RenderComponent<ReportCard>(parameters => parameters
             .Add(p => p.Report, report)
-            .Add(p => p.IsAdmin, false)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanPublish, false));
 
         // Assert
         cut.Markup.Should().Contain("aria-label=\"Receitas: €5,000.00\"", 

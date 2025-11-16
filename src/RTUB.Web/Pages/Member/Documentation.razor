@@ -2,13 +2,17 @@
 @rendermode InteractiveServer
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Services
+@using RTUB.Application.Extensions
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
 @using Microsoft.Extensions.Hosting
 @attribute [Authorize]
 @inject IDocumentStorageService DocumentStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
 @inject IHostEnvironment HostEnvironment
 @inject IJSRuntime JSRuntime
 @inject AuditContext AuditContext
@@ -310,9 +314,29 @@ else
     {
         try
         {
-            // Check if user is admin
+            // Check if user is admin or owner
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             isAdmin = authState.User.IsInRole("Admin");
+            var isOwner = authState.User.IsInRole("Owner");
+            
+            // Check access permission for Gestão pages
+            var currentUser = await UserManager.GetUserAsync(authState.User);
+            if (currentUser != null && !isOwner && !isAdmin)
+            {
+                // Block Leitão members
+                if (currentUser.IsLeitao())
+                {
+                    NavigationManager.NavigateTo("/");
+                    return;
+                }
+                
+                // Block Caloiro members who are not Admin
+                if (currentUser.IsCaloiro())
+                {
+                    NavigationManager.NavigateTo("/");
+                    return;
+                }
+            }
             
             await LoadDocumentation();
         }

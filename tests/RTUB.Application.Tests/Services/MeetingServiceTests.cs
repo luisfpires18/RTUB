@@ -19,6 +19,7 @@ public class MeetingServiceTests : IDisposable
     private readonly ApplicationUser _veteranoUser;
     private readonly ApplicationUser _tunossauroUser;
     private readonly ApplicationUser _nonVeteranoUser;
+    private readonly ApplicationUser _leitaoUser;
 
     public MeetingServiceTests()
     {
@@ -82,9 +83,24 @@ public class MeetingServiceTests : IDisposable
             MonthTuno = 1
         };
 
+        _leitaoUser = new ApplicationUser
+        {
+            Id = "leitao-user-id",
+            UserName = "leitao@test.com",
+            NormalizedUserName = "LEITAO@TEST.COM",
+            Email = "leitao@test.com",
+            NormalizedEmail = "LEITAO@TEST.COM",
+            FirstName = "Leitao",
+            LastName = "User",
+            Nickname = "LeitaoTest",
+            PhoneContact = "555666777",
+            CategoriesJson = "[5]"  // Leitao enum value (Leitao = 5)
+        };
+
         _context.Users.Add(_veteranoUser);
         _context.Users.Add(_tunossauroUser);
         _context.Users.Add(_nonVeteranoUser);
+        _context.Users.Add(_leitaoUser);
         _context.SaveChanges();
         
         // Re-enable auditing
@@ -523,6 +539,109 @@ public class MeetingServiceTests : IDisposable
 
         // Assert
         count.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetAllMeetingsAsync_LeitaoUser_FiltersOutAssembleiaGeralMeetings()
+    {
+        // Arrange
+        _context.Meetings.Add(new Meeting
+        {
+            Type = MeetingType.AssembleiaGeralOrdinaria,
+            Title = "AGO Meeting",
+            Date = DateTime.Now.AddDays(7),
+            Statement = "AGO Statement"
+        });
+
+        _context.Meetings.Add(new Meeting
+        {
+            Type = MeetingType.AssembleiaGeralExtraordinaria,
+            Title = "AGE Meeting",
+            Date = DateTime.Now.AddDays(8),
+            Statement = "AGE Statement"
+        });
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _meetingService.GetAllMeetingsAsync(null, 1, 10, _leitaoUser.Id);
+
+        // Assert
+        var meetings = result.ToList();
+        meetings.Should().HaveCount(0); // Leitão can't see AG meetings
+        meetings.Should().NotContain(m => m.Type == MeetingType.AssembleiaGeralOrdinaria);
+        meetings.Should().NotContain(m => m.Type == MeetingType.AssembleiaGeralExtraordinaria);
+    }
+
+    [Fact]
+    public async Task GetMeetingByIdAsync_AGOMeeting_LeitaoUser_ReturnsNull()
+    {
+        // Arrange
+        var agoMeeting = new Meeting
+        {
+            Type = MeetingType.AssembleiaGeralOrdinaria,
+            Title = "AGO Meeting",
+            Date = DateTime.Now.AddDays(7),
+            Statement = "AGO Statement"
+        };
+        _context.Meetings.Add(agoMeeting);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _meetingService.GetMeetingByIdAsync(agoMeeting.Id, _leitaoUser.Id);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetMeetingByIdAsync_AGEMeeting_LeitaoUser_ReturnsNull()
+    {
+        // Arrange
+        var ageMeeting = new Meeting
+        {
+            Type = MeetingType.AssembleiaGeralExtraordinaria,
+            Title = "AGE Meeting",
+            Date = DateTime.Now.AddDays(7),
+            Statement = "AGE Statement"
+        };
+        _context.Meetings.Add(ageMeeting);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _meetingService.GetMeetingByIdAsync(ageMeeting.Id, _leitaoUser.Id);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetTotalCountAsync_LeitaoUser_ExcludesAssembleiaGeralMeetings()
+    {
+        // Arrange
+        _context.Meetings.Add(new Meeting
+        {
+            Type = MeetingType.AssembleiaGeralOrdinaria,
+            Title = "AGO 1",
+            Date = DateTime.Now.AddDays(7),
+            Statement = "Statement 1"
+        });
+
+        _context.Meetings.Add(new Meeting
+        {
+            Type = MeetingType.AssembleiaGeralExtraordinaria,
+            Title = "AGE 1",
+            Date = DateTime.Now.AddDays(8),
+            Statement = "Statement 2"
+        });
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var count = await _meetingService.GetTotalCountAsync(null, _leitaoUser.Id);
+
+        // Assert
+        count.Should().Be(0); // Leitão can't see AG meetings
     }
 
     public void Dispose()

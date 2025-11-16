@@ -27,31 +27,57 @@
         <div class="collapse navbar-collapse" id="topNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
+                <!-- 1. Música (Public / Member) -->
                 <li class="nav-item"><NavLink class="nav-link" href="/music"><i class="bi bi-music-note-beamed"></i> Música</NavLink></li>
-                <li class="nav-item"><NavLink class="nav-link" href="/events"><i class="bi bi-calendar-event"></i> Atuações</NavLink></li>
 
-                <AuthorizeView>
-                    <Authorized>
-                        <li class="nav-item"><NavLink class="nav-link" href="/rehearsals"><i class="bi bi-music-note-list"></i> Ensaios</NavLink></li>
-                        <li class="nav-item"><NavLink class="nav-link" href="/inventory"><i class="bi bi-music-note"></i> Instrumentos</NavLink></li>
-                    </Authorized>
-                </AuthorizeView>
-
+                <!-- 2. Pedidos (Public only) -->
                 <AuthorizeView>
                     <NotAuthorized>
-                <li class="nav-item"><NavLink class="nav-link" href="/request"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                        <li class="nav-item"><NavLink class="nav-link" href="/request"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
                     </NotAuthorized>
                 </AuthorizeView>
 
-                <li class="nav-item"><NavLink class="nav-link" href="/roles"><i class="bi bi-bank"></i> Órgãos Sociais</NavLink></li>
+                <!-- 3. Atuações (Public / Member) -->
+                <li class="nav-item"><NavLink class="nav-link" href="/events"><i class="bi bi-calendar-event"></i> Atuações</NavLink></li>
 
                 <AuthorizeView Context="mainAuthContext">
                     <Authorized>
-                        <li class="nav-item"><NavLink class="nav-link" href="/hierarchy"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
-                        <li class="nav-item"><NavLink class="nav-link" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
-                        <li class="nav-item"><NavLink class="nav-link" href="/leaderboard"><i class="bi bi-trophy-fill"></i> Classificação</NavLink></li>
-                        <li class="nav-item"><NavLink class="nav-link" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
+                        <!-- 4. Ensaios (Member) -->
+                        <li class="nav-item"><NavLink class="nav-link" href="/rehearsals"><i class="bi bi-music-note-list"></i> Ensaios</NavLink></li>
                         
+                        <!-- 5. Membros (Member) -->
+                        <li class="nav-item"><NavLink class="nav-link" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
+                        
+                        <!-- 6. Hierarquia (Member) -->
+                        <li class="nav-item"><NavLink class="nav-link" href="/hierarchy"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
+                        
+                        <!-- 7. Órgãos Sociais (Member) - shown here for members -->
+                    </Authorized>
+                </AuthorizeView>
+
+                <!-- 7. Órgãos Sociais (Public / Member) -->
+                <li class="nav-item"><NavLink class="nav-link" href="/roles"><i class="bi bi-bank"></i> Órgãos Sociais</NavLink></li>
+
+                <AuthorizeView Context="mainAuthContext2">
+                    <Authorized>
+                        <!-- 8. Classificação (Member) -->
+                        <li class="nav-item"><NavLink class="nav-link" href="/leaderboard"><i class="bi bi-trophy-fill"></i> Classificação</NavLink></li>
+                        
+                        <!-- 9. Reuniões (Member) -->
+                        <li class="nav-item"><NavLink class="nav-link" href="/meetings"><i class="bi bi-calendar3"></i> Reuniões</NavLink></li>
+                        
+                        <!-- 10. Inventário (Member Dropdown) -->
+                        <li class="nav-item dropdown">
+                            <button class="nav-link dropdown-toggle" type="button" id="inventoryDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                                <i class="bi bi-box-seam"></i> Inventário
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="inventoryDropdown">
+                                <li><NavLink class="dropdown-item" href="/inventory"><i class="bi bi-music-note"></i> Instrumentos</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
+                            </ul>
+                        </li>
+                        
+                        <!-- 11. Gestão (Member Dropdown) -->
                         @if (ShouldShowGestaoDropdown())
                         {
                             <li class="nav-item dropdown">
@@ -59,14 +85,14 @@
                                     <i class="bi bi-gear-fill"></i> Gestão
                                 </button>
                                 <ul class="dropdown-menu" aria-labelledby="managementDropdown">
+                                    <li><NavLink class="dropdown-item" href="/documentation"><i class="bi bi-file-earmark-text"></i> Documentação</NavLink></li>
+                                    <li><NavLink class="dropdown-item" href="/logistics"><i class="bi bi-kanban"></i> Logística</NavLink></li>
                                     @if (currentUser != null && !currentUser.IsLeitao())
                                     {
                                         <li><NavLink class="dropdown-item" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
                                     }
+                                    <li><hr class="dropdown-divider" /></li>
                                     <li><NavLink class="dropdown-item" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
-                                    <li><NavLink class="dropdown-item" href="/logistics"><i class="bi bi-kanban"></i> Logística</NavLink></li>
-                                    <li><NavLink class="dropdown-item" href="/documentation"><i class="bi bi-file-earmark-text"></i> Documentação</NavLink></li>
-                                    <li><NavLink class="dropdown-item" href="/meetings"><i class="bi bi-calendar3"></i> Reuniões</NavLink></li>
                                     @if (ShouldShowImagesMenuItem())
                                     {
                                         <li><NavLink class="dropdown-item" href="/images"><i class="bi bi-images"></i> Imagens</NavLink></li>
@@ -368,8 +394,13 @@
     
     /// <summary>
     /// Determines if the "Gestão" dropdown should be shown to the current user.
-    /// Hidden from Leitão and Caloiro users who are NOT Admin/Owner.
-    /// Shown to: Admin (any category), Owner (any category), Tuno and other categories.
+    /// Visibility rules:
+    /// - LEITÃO + MEMBER: HIDE
+    /// - CALOIRO + MEMBER: HIDE
+    /// - CALOIRO + ADMIN: SHOW
+    /// - TUNO + MEMBER: SHOW
+    /// - TUNO + ADMIN: SHOW
+    /// - Owner: SHOW (always)
     /// </summary>
     private bool ShouldShowGestaoDropdown()
     {
@@ -379,13 +410,26 @@
         var isAdmin = authState.User.IsInRole("Admin");
         var isOwner = authState.User.IsInRole("Owner");
         
-        // Show to Admin or Owner regardless of category
-        if (isAdmin || isOwner) return true;
+        // Owner always sees it
+        if (isOwner) return true;
         
-        // Hide from Leitão and Caloiro who are not Admin/Owner
-        if (currentUser.IsLeitao() || currentUser.IsCaloiro()) return false;
+        // Leitão never sees it (even if admin, though that shouldn't happen)
+        if (currentUser.IsLeitao()) return false;
         
-        // Show to everyone else (Tuno, Veterano, Tunossauro, etc.)
+        // Caloiro sees it only if Admin
+        if (currentUser.IsCaloiro())
+        {
+            return isAdmin;
+        }
+        
+        // Tuno and higher categories always see it
+        if (currentUser.IsTuno() || currentUser.IsVeterano() || currentUser.IsTunossauro())
+        {
+            return true;
+        }
+        
+        // For any other categories (e.g., TunoHonorario, Fundador), show if Admin or Member
+        // Default to showing for authenticated members who aren't Leitão or Caloiro
         return true;
     }
     

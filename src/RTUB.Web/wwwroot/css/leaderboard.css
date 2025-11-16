@@ -337,6 +337,11 @@
     .leaderboard-instrument {
         font-size: 0.7rem;
     }
+    
+    .leaderboard-stats {
+        white-space: normal;
+        word-break: break-word;
+    }
 }
 
 @media (max-width: 480px) {
@@ -350,5 +355,14 @@
 
     .leaderboard-card {
         padding: 10px 12px;
+    }
+    
+    .leaderboard-container {
+        border-radius: 8px;
+    }
+    
+    .ranks-timeline-container {
+        padding: 16px;
+        border-radius: 8px;
     }
 }

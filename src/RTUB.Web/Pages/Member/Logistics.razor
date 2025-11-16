@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
+@using RTUB.Application.Extensions
 @using BoardEntity = RTUB.Core.Entities.LogisticsBoard
 @using RTUB.Core.Entities
 @using RTUB.Shared
@@ -240,6 +241,26 @@
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         isAdmin = user.IsInRole("Admin");
+        var isOwner = user.IsInRole("Owner");
+        
+        // Check access permission for Gestão pages
+        var currentUser = await UserManager.GetUserAsync(user);
+        if (currentUser != null && !isOwner && !isAdmin)
+        {
+            // Block Leitão members
+            if (currentUser.IsLeitao())
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+            
+            // Block Caloiro members who are not Admin
+            if (currentUser.IsCaloiro())
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+        }
     }
 
     private async Task LoadData()

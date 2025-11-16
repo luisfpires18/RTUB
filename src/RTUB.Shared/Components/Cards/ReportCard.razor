@@ -68,18 +68,17 @@
 
         <!-- Actions Row - Right aligned, compact -->
         <div class="d-flex gap-2 justify-content-end mt-auto" @onclick:stopPropagation="true">
-            @if (IsAdmin)
-            {
-                <button class="btn btn-sm btn-purple" 
-                        @onclick="HandleDownload" 
-                        @onclick:stopPropagation="true"
-                        title="Download PDF"
-                        aria-label="Download PDF do relatório @Report.Title">
-                    <i class="bi bi-download"></i>
-                </button>
-            }
+            <!-- Download button - available to ALL members who can see this page -->
+            <button class="btn btn-sm btn-purple" 
+                    @onclick="HandleDownload" 
+                    @onclick:stopPropagation="true"
+                    title="Download PDF"
+                    aria-label="Download PDF do relatório @Report.Title">
+                <i class="bi bi-download"></i>
+            </button>
             
-            @if (IsOwner && !Report.IsPublished)
+            <!-- Publish and Delete buttons - only for users with permission -->
+            @if (CanPublish && !Report.IsPublished)
             {
                 <button class="btn btn-sm btn-success" 
                         @onclick="HandlePublish" 
@@ -105,10 +104,7 @@
     public Report Report { get; set; } = null!;
 
     [Parameter]
-    public bool IsAdmin { get; set; }
-
-    [Parameter]
-    public bool IsOwner { get; set; }
+    public bool CanPublish { get; set; }
 
     [Parameter]
     public EventCallback<Report> OnCardClick { get; set; }

@@ -263,7 +263,6 @@ else
     {
         SortHelper.SortColumn = nameof(Request.CreatedAt);
         SortHelper.SortAscending = false;
-        await LoadItemsAsync();
         
         // Check if user is admin and load current user
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -278,8 +277,28 @@ else
             if (!string.IsNullOrEmpty(userName))
             {
                 currentUser = await UserManager.FindByNameAsync(userName);
+                
+                // Check access permission for Gestão pages
+                if (currentUser != null && !isOwner && !isAdmin)
+                {
+                    // Block Leitão members
+                    if (currentUser.IsLeitao())
+                    {
+                        Navigation.NavigateTo("/");
+                        return;
+                    }
+                    
+                    // Block Caloiro members who are not Admin
+                    if (currentUser.IsCaloiro())
+                    {
+                        Navigation.NavigateTo("/");
+                        return;
+                    }
+                }
             }
         }
+        
+        await LoadItemsAsync();
         
         ApplyFiltersAndPagination();
     }

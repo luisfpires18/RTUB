@@ -72,6 +72,18 @@ public class MeetingService : IMeetingService
                 return null;
         }
         
+        // Check if user is Leitão trying to access Assembleia Geral meetings
+        if (meeting.Type == MeetingType.AssembleiaGeralOrdinaria || 
+            meeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
+        {
+            var user = await _context.Users
+                .Where(u => u.Id == userId)
+                .FirstOrDefaultAsync();
+            
+            if (user != null && user.IsLeitao())
+                return null;
+        }
+        
         return meeting;
     }
 
@@ -150,6 +162,14 @@ public class MeetingService : IMeetingService
             if (role != "VETERANO" && role != "TUNOSSAURO")
             {
                 query = query.Where(m => m.Type != MeetingType.ConselhoVeteranos);
+            }
+            
+            // Filter out Assembleia Geral meetings if user is Leitão (not an associated member)
+            if (user.IsLeitao())
+            {
+                query = query.Where(m => 
+                    m.Type != MeetingType.AssembleiaGeralOrdinaria && 
+                    m.Type != MeetingType.AssembleiaGeralExtraordinaria);
             }
         }
         
