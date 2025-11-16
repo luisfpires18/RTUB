@@ -10,7 +10,7 @@
 @using RTUB.Core.Entities
 @using RTUB.Core.Enums
 @using RTUB.Shared
-@attribute [Authorize(Roles = "Admin,Owner")]
+@attribute [Authorize]
 @inject IMeetingService MeetingService
 @inject IEmailNotificationService EmailNotificationService
 @inject IEmailTemplateRenderer EmailTemplateRenderer
