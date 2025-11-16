@@ -62,214 +62,294 @@ public static partial class SeedData
         // ===== 2. MEMBERS =====
         // GUITARRA
         var nabo = await Member(userManager).Nickname("Nabo").Name("Rafael", "Magalhães")
-            .Role("Member").Instrument(InstrumentType.Guitarra).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2018)
+            .CreateAsync();
 
         var nharro = await Member(userManager).Nickname("Nharro").Name("Alexandre", "Caldeira")
             .Role("Admin").Instrument(InstrumentType.Guitarra)
             .Position(Position.SegundoSecretarioMesaAssembleia)
-            .Category(MemberCategory.Caloiro)
+            .Category(MemberCategory.Caloiro).YearCaloiro(2020)
             .CreateAsync();
 
         var atchim = await Member(userManager).Nickname("Atchim").Name("Bruno", "Costa")
-            .Role("Member").Instrument(InstrumentType.Guitarra).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2017)
+            .CreateAsync();
 
         var arbusto = await Member(userManager).Nickname("Arbusto").Name("Diogo", "Couto")
             .Role("Admin").Instrument(InstrumentType.Guitarra)
             .Position(Position.ViceMagister)
-            .Category(MemberCategory.Tuno)
+            .Category(MemberCategory.Tuno).YearTuno(2016)
             .CreateAsync();
 
         var matchero = await Member(userManager).Nickname("Matchero").Name("Ricardo", "Lameirão")
-            .Role("Member").Instrument(InstrumentType.Guitarra).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2019)
+            .CreateAsync();
 
         // example “speaker”
         var speaker = await Member(userManager).Nickname("Erbalife").Name("Carlos", "Silva")
-            .Role("Member").Instrument(InstrumentType.Guitarra).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2015)
+            .CreateAsync();
 
         var badjoncas = await Member(userManager).Nickname("Badjoncas").Name("Rafael", "Gomes")
-            .Role("Member").Instrument(InstrumentType.Guitarra).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2021)
+            .CreateAsync();
 
         var snoopy = await Member(userManager).Nickname("Snoopy").Name("Diogo", "Morais")
-            .Role("Member").Instrument(InstrumentType.Guitarra).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2019)
+            .CreateAsync();
 
         var calimero = await Member(userManager).Nickname("Calimero").Name("Tiago", "Maia")
-            .Role("Member").Instrument(InstrumentType.Guitarra).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2022)
+            .CreateAsync();
 
         var vinhas = await Member(userManager).Nickname("Vinhas").Name("José", "Rebelo")
-            .Role("Member").Instrument(InstrumentType.Guitarra).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2018)
+            .CreateAsync();
 
         var malelo = await Member(userManager).Nickname("Malelo").Name("Bruno", "Neves")
-            .Role("Member").Instrument(InstrumentType.Guitarra).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2020)
+            .CreateAsync();
 
         var prepucio = await Member(userManager).Nickname("Prepúcio").Name("João", "Nunes")
             .Role("Admin").Instrument(InstrumentType.Guitarra)
             .Position(Position.PrimeiroTesoureiro)
-            .Category(MemberCategory.Tuno)
+            .Category(MemberCategory.Tuno).YearTuno(2017)
             .CreateAsync();
 
         var nininho = await Member(userManager).Nickname("Nininho").Name("Luís", "Prôta")
             .Role("Admin").Instrument(InstrumentType.Guitarra)
             .Position(Position.Secretario)
-            .Category(MemberCategory.Caloiro)
+            .Category(MemberCategory.Caloiro).YearCaloiro(2023)
             .CreateAsync();
 
         // BANDOLIM
         var pilao = await Member(userManager).Nickname("Pilão").Name("Samuel", "Silva")
-            .Role("Member").Instrument(InstrumentType.Bandolim).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Category(MemberCategory.Tuno).YearTuno(2016)
+            .CreateAsync();
 
         var tainada = await Member(userManager).Nickname("Tainada").Name("Daniel", "Afonso")
             .Role("Admin").Instrument(InstrumentType.Bandolim)
             .Position(Position.PresidenteConselhoFiscal)
-            .Category(MemberCategory.Tuno)
+            .Category(MemberCategory.Tuno).YearTuno(2015)
             .CreateAsync();
 
         var cigano = await Member(userManager).Nickname("Cigano").Name("Ruben", "Freire")
-            .Role("Member").Instrument(InstrumentType.Bandolim).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Category(MemberCategory.Tuno).YearTuno(2018)
+            .CreateAsync();
 
         var infra = await Member(userManager).Nickname("Infra").Name("Alvaro", "Rosas")
-            .Role("Member").Instrument(InstrumentType.Bandolim).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Category(MemberCategory.Tuno).YearTuno(2020)
+            .CreateAsync();
 
         var drift = await Member(userManager).Nickname("Drift").Name("João", "Cunha")
-            .Role("Member").Instrument(InstrumentType.Bandolim).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Category(MemberCategory.Tuno).YearTuno(2019)
+            .CreateAsync();
 
         var sacarabos = await Member(userManager).Nickname("Saca Rabos").Name("Zé Tó", "")
-            .Role("Member").Instrument(InstrumentType.Bandolim).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Category(MemberCategory.Tuno).YearTuno(2021)
+            .CreateAsync();
 
         var tampas = await Member(userManager).Nickname("Tampas").Name("Helder", "Martins")
-            .Role("Member").Instrument(InstrumentType.Bandolim).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Category(MemberCategory.Tuno).YearTuno(2017)
+            .CreateAsync();
 
         var indigesto = await Member(userManager).Nickname("Indigesto").Name("André", "Batista")
-            .Role("Member").Instrument(InstrumentType.Bandolim).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Category(MemberCategory.Tuno).YearTuno(2016)
+            .CreateAsync();
 
         var autoscopio = await Member(userManager).Nickname("Autoscópio").Name("Sergio", "Silva")
-            .Role("Member").Instrument(InstrumentType.Bandolim).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Category(MemberCategory.Tuno).YearTuno(2018)
+            .CreateAsync();
 
         var matacaes = await Member(userManager).Nickname("Mata-cães").Name("Henrique", "Spiessens")
-            .Role("Member").Instrument(InstrumentType.Bandolim).Category(MemberCategory.Caloiro).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Category(MemberCategory.Caloiro).YearCaloiro(2024)
+            .CreateAsync();
 
         // CAVAQUINHO
         var borat = await Member(userManager).Nickname("Borat").Name("Rui", "Almeida")
-            .Role("Member").Instrument(InstrumentType.Cavaquinho).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Cavaquinho)
+            .Category(MemberCategory.Tuno).YearTuno(2015)
+            .CreateAsync();
 
         var castanholas = await Member(userManager).Nickname("Castanholas").Name("Renato", "Alves")
-            .Role("Member").Instrument(InstrumentType.Cavaquinho).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Cavaquinho)
+            .Category(MemberCategory.Tuno).YearTuno(2017)
+            .CreateAsync();
 
         var pardal = await Member(userManager).Nickname("Pardal").Name("Andre", "Fernandes")
-            .Role("Member").Instrument(InstrumentType.Cavaquinho).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Cavaquinho)
+            .Category(MemberCategory.Tuno).YearTuno(2019)
+            .CreateAsync();
 
         // ACORDEÃO
         var ambrosio = await Member(userManager).Nickname("Ambrósio").Name("Pedro", "Pereira")
             .Role("Admin").Instrument(InstrumentType.Acordeao)
             .Position(Position.PresidenteMesaAssembleia)
-            .Category(MemberCategory.Tuno)
+            .Category(MemberCategory.Tuno).YearTuno(2016)
             .CreateAsync();
 
         var tumtum = await Member(userManager).Nickname("TumTum").Name("Francisco", "Lima")
-            .Role("Member").Instrument(InstrumentType.Acordeao).Category(MemberCategory.Caloiro).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Acordeao)
+            .Category(MemberCategory.Caloiro).YearCaloiro(2023)
+            .CreateAsync();
 
         // FAGOTE
         var kimkana = await Member(userManager).Nickname("KimKana").Name("Joni", "Figueiredo")
-            .Role("Member").Instrument(InstrumentType.Fagote).Category(MemberCategory.Caloiro).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Fagote)
+            .Category(MemberCategory.Caloiro).YearCaloiro(2024)
+            .CreateAsync();
 
         // FLAUTA
         var txaio = await Member(userManager).Nickname("Txaio").Name("Bruno", "Rafael")
-            .Role("Member").Instrument(InstrumentType.Flauta).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Flauta)
+            .Category(MemberCategory.Tuno).YearTuno(2018)
+            .CreateAsync();
 
         var slimmy = await Member(userManager).Nickname("Slimmy").Name("Nuno", "Oliveira")
-            .Role("Member").Instrument(InstrumentType.Flauta).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Flauta)
+            .Category(MemberCategory.Tuno).YearTuno(2019)
+            .CreateAsync();
 
         // BAIXO
         var zecadiabo = await Member(userManager).Nickname("Zeca Diabo").Name("Marcos", "António")
-            .Role("Member").Instrument(InstrumentType.Baixo).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Baixo)
+            .Category(MemberCategory.Tuno).YearTuno(2015)
+            .CreateAsync();
 
         var mija = await Member(userManager).Nickname("Mija").Name("Vitor", "Teixeira")
-            .Role("Member").Instrument(InstrumentType.Baixo).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Baixo)
+            .Category(MemberCategory.Tuno).YearTuno(2017)
+            .CreateAsync();
 
         var rolhas = await Member(userManager).Nickname("Rolhas").Name("Afonso", "Martins")
             .Role("Admin").Instrument(InstrumentType.Baixo)
             .Position(Position.SegundoTesoureiro)
-            .Category(MemberCategory.Caloiro)
+            .Category(MemberCategory.Caloiro).YearCaloiro(2023)
             .CreateAsync();
 
         // PERCUSSÃO
         var passaromal = await Member(userManager).Nickname("Pássaro Maluco").Name("Joel", "Gaspar")
             .Role("Admin").Instrument(InstrumentType.Percussao)
             .Position(Position.PresidenteConselhoVeteranos)
-            .Category(MemberCategory.Tuno)
+            .Category(MemberCategory.Tuno).YearTuno(2016)
             .CreateAsync();
 
         var bronha = await Member(userManager).Nickname("Bronha").Name("Eduardo", "Cuevas")
-            .Role("Member").Instrument(InstrumentType.Percussao).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Percussao)
+            .Category(MemberCategory.Tuno).YearTuno(2018)
+            .CreateAsync();
 
         var meiagrama = await Member(userManager).Nickname("Meia Grama").Name("João", "Pinheiro")
-            .Role("Member").Instrument(InstrumentType.Percussao).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Percussao)
+            .Category(MemberCategory.Tuno).YearTuno(2020)
+            .CreateAsync();
 
         var coma = await Member(userManager).Nickname("Coma").Name("Vitor", "Silva")
-            .Role("Member").Instrument(InstrumentType.Percussao).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Percussao)
+            .Category(MemberCategory.Tuno).YearTuno(2019)
+            .CreateAsync();
 
         // PANDEIRETA
         var frango = await Member(userManager).Nickname("Frango").Name("Samuel", "Carneiro")
-            .Role("Member").Instrument(InstrumentType.Pandeireta).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Category(MemberCategory.Tuno).YearTuno(2017)
+            .CreateAsync();
 
         var croquetes = await Member(userManager).Nickname("Croquetes").Name("Pedro", "Morais")
-            .Role("Member").Instrument(InstrumentType.Pandeireta).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Category(MemberCategory.Tuno).YearTuno(2018)
+            .CreateAsync();
 
         var conchita = await Member(userManager).Nickname("Conchita").Name("Manuel", "Esteves")
-            .Role("Member").Instrument(InstrumentType.Pandeireta).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Category(MemberCategory.Tuno).YearTuno(2019)
+            .CreateAsync();
 
         var elchapo = await Member(userManager).Nickname("El Chapo").Name("Luis", "Pinto")
-            .Role("Member").Instrument(InstrumentType.Pandeireta).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Category(MemberCategory.Tuno).YearTuno(2020)
+            .CreateAsync();
 
         // ESTANDARTE
         var bombeiro = await Member(userManager).Nickname("Bombeiro").Name("Alexandre", "Figueiredo")
             .Role("Admin").Instrument(InstrumentType.Estandarte)
             .Position(Position.PrimeiroRelatorConselhoFiscal)
-            .Category(MemberCategory.Caloiro)
+            .Category(MemberCategory.Caloiro).YearCaloiro(2021)
             .CreateAsync();
 
         var rufus = await Member(userManager).Nickname("Rufus").Name("Helder", "Vieira")
-            .Role("Member").Instrument(InstrumentType.Estandarte).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Category(MemberCategory.Tuno).YearTuno(2017)
+            .CreateAsync();
 
         var batesacas = await Member(userManager).Nickname("Bate Sacas").Name("Bernardo", "Carvalho")
-            .Role("Member").Instrument(InstrumentType.Estandarte).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Category(MemberCategory.Tuno).YearTuno(2018)
+            .CreateAsync();
 
         var calhau = await Member(userManager).Nickname("Calhau").Name("Leonardo", "Cardoso")
             .Role("Admin").Instrument(InstrumentType.Estandarte)
             .Position(Position.Magister)
-            .Category(MemberCategory.Tuno)
+            .Category(MemberCategory.Tuno).YearTuno(2022)
             .CreateAsync();
 
         var casilhas = await Member(userManager).Nickname("Casilhas").Name("Gonçalo", "Borges")
             .Role("Admin").Instrument(InstrumentType.Estandarte)
             .Position(Position.SegundoRelatorConselhoFiscal)
-            .Category(MemberCategory.Tuno)
+            .Category(MemberCategory.Tuno).YearTuno(2020)
             .CreateAsync();
 
         var mealheiro = await Member(userManager).Nickname("Mealheiro").Name("Rui", "Guimarães")
             .Role("Admin").Instrument(InstrumentType.Estandarte)
             .Position(Position.PrimeiroSecretarioMesaAssembleia)
-            .Category(MemberCategory.Tuno)
+            .Category(MemberCategory.Tuno).YearTuno(2019)
             .CreateAsync();
 
         var smeagol = await Member(userManager).Nickname("Smeagol").Name("Claudio", "Moreira")
-            .Role("Member").Instrument(InstrumentType.Estandarte).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Category(MemberCategory.Tuno).YearTuno(2016)
+            .CreateAsync();
 
         var delay = await Member(userManager).Nickname("Delay").Name("José", "Gonçalves")
-            .Role("Member").Instrument(InstrumentType.Estandarte).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Category(MemberCategory.Tuno).YearTuno(2018)
+            .CreateAsync();
 
         var buceta = await Member(userManager).Nickname("Buceta").Name("David", "Ferreira")
-            .Role("Member").Instrument(InstrumentType.Estandarte).Category(MemberCategory.Tuno).CreateAsync();
+            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Category(MemberCategory.Tuno).YearTuno(2021)
+            .CreateAsync();
 
         // LEITÕES
         var merdas1 = await Member(userManager).Nickname("Merdas 1").Name("Porquinho", "Leitao1")
-            .Role("Member").Category(MemberCategory.Leitao).CreateAsync();
+            .Role("Member").Category(MemberCategory.Leitao).YearLeitao(2025)
+            .CreateAsync();
 
         var merdas2 = await Member(userManager).Nickname("Merdas 2").Name("Porquinho", "Leitao2")
-            .Role("Member").Category(MemberCategory.Leitao).CreateAsync();
+            .Role("Member").Category(MemberCategory.Leitao).YearLeitao(2025)
+            .CreateAsync();
 
         var merdas3 = await Member(userManager).Nickname("Merdas 3").Name("Porquinho", "Leitao3")
-            .Role("Member").Category(MemberCategory.Leitao).CreateAsync();
-
+            .Role("Member").Category(MemberCategory.Leitao).YearLeitao(2025)
+            .CreateAsync();
 
         // ===== 3. FISCAL YEAR =====
         if (!await dbContext.FiscalYears.AnyAsync())

@@ -85,4 +85,34 @@ public interface IEmailTemplateRenderer
         string content,
         string nickname = "",
         string fullName = "");
+    
+    /// <summary>
+    /// Renders the meeting notification email
+    /// </summary>
+    Task<string> RenderMeetingNotificationAsync(
+        string meetingType,
+        string meetingTitle,
+        string dateFormatted,
+        string location,
+        string statement,
+        string senderNickname,
+        string senderCity,
+        string? senderPosition = null,
+        string nickname = "",
+        string fullName = "");
+    
+    /// <summary>
+    /// Renders the meeting cancellation notification email
+    /// </summary>
+    Task<string> RenderMeetingCancellationAsync(
+        string meetingType,
+        string meetingTitle,
+        string dateFormatted,
+        string location,
+        string cancellationReason,
+        string senderNickname,
+        string senderCity,
+        string? senderPosition = null,
+        string nickname = "",
+        string fullName = "");
 }

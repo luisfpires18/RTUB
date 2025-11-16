@@ -169,4 +169,62 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
 
         return await _templateService.RenderTemplateAsync("AnnouncementEmail", model);
     }
+    
+    public async Task<string> RenderMeetingNotificationAsync(
+        string meetingType,
+        string meetingTitle,
+        string dateFormatted,
+        string location,
+        string statement,
+        string senderNickname,
+        string senderCity,
+        string? senderPosition = null,
+        string nickname = "",
+        string fullName = "")
+    {
+        var model = new MeetingNotificationModel
+        {
+            MeetingType = meetingType,
+            MeetingTitle = meetingTitle,
+            DateFormatted = dateFormatted,
+            Location = location,
+            Statement = statement,
+            SenderNickname = senderNickname,
+            SenderCity = senderCity,
+            SenderPosition = senderPosition,
+            Nickname = nickname,
+            FullName = fullName
+        };
+
+        return await _templateService.RenderTemplateAsync("MeetingNotification", model);
+    }
+    
+    public async Task<string> RenderMeetingCancellationAsync(
+        string meetingType,
+        string meetingTitle,
+        string dateFormatted,
+        string location,
+        string cancellationReason,
+        string senderNickname,
+        string senderCity,
+        string? senderPosition = null,
+        string nickname = "",
+        string fullName = "")
+    {
+        var model = new MeetingCancellationModel
+        {
+            MeetingType = meetingType,
+            MeetingTitle = meetingTitle,
+            DateFormatted = dateFormatted,
+            Location = location,
+            CancellationReason = cancellationReason,
+            SenderNickname = senderNickname,
+            SenderCity = senderCity,
+            SenderPosition = senderPosition,
+            Nickname = nickname,
+            FullName = fullName
+        };
+
+        return await _templateService.RenderTemplateAsync("MeetingCancellation", model);
+    }
 }
