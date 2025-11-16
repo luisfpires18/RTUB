@@ -390,24 +390,8 @@ else
             var userName = user.Identity.Name;
             if (userName != null)
             {
-                // Load user with full object graph
-                // EF Core should materialize all properties including CategoriesJson
-                currentUser = await UserManager.Users
-                    .Where(u => u.UserName == userName)
-                    .Select(u => new ApplicationUser
-                    {
-                        Id = u.Id,
-                        UserName = u.UserName,
-                        Email = u.Email,
-                        Nickname = u.Nickname,
-                        FirstName = u.FirstName,
-                        LastName = u.LastName,
-                        CategoriesJson = u.CategoriesJson,  // Explicitly select to ensure it's loaded
-                        Positions = u.Positions,
-                        YearTuno = u.YearTuno,
-                        MonthTuno = u.MonthTuno
-                    })
-                    .FirstOrDefaultAsync();
+                // Load user directly - Categories property will deserialize from CategoriesJson
+                currentUser = await UserManager.FindByNameAsync(userName);
                 currentUserId = currentUser?.Id ?? string.Empty;
             }
         }
