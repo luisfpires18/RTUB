@@ -275,7 +275,7 @@
                     </div>
                     
                     <!-- Enrollment management for past events -->
-                    @if (UserEnrollment != null)
+                    @if (UserEnrollment != null && UserEnrollment.WillAttend)
                     {
                         <div class="event-buttons-container mt-2">
                             <!-- Remove enrollment button for user's own enrollment -->
