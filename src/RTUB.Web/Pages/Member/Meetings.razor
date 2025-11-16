@@ -376,7 +376,9 @@ else
             if (currentUser == null)
                 return false;
                 
-            return currentUser.IsVeterano() || currentUser.IsTunossauro();
+            // Use CurrentRole property which is computed from YearTuno/MonthTuno
+            var role = currentUser.CurrentRole;
+            return role == "VETERANO" || role == "TUNOSSAURO";
         }
     }
 
