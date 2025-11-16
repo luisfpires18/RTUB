@@ -15,7 +15,7 @@
         </div>
         @if (Comment.CanDelete && OnDelete.HasDelegate)
         {
-            <button class="btn btn-link btn-sm comment-delete-btn" 
+            <button class="btn btn-sm admin-btn-delete comment-delete-btn" 
                     @onclick="HandleDelete"
                     title="Eliminar comentário">
                 <i class="bi bi-trash"></i>
@@ -26,7 +26,7 @@
         @Comment.Text
     </div>
     <div class="comment-footer">
-        <button class="btn btn-link btn-sm comment-like-btn @(Comment.IsLikedByCurrentUser ? "liked" : "")" 
+        <button class="btn btn-sm btn-purple comment-like-btn @(Comment.IsLikedByCurrentUser ? "liked" : "")" 
                 @onclick="HandleLikeToggle"
                 disabled="@IsProcessing"
                 title="@GetLikeTooltip()">

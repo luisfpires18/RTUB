@@ -38,14 +38,7 @@
 }
 
 .comment-delete-btn {
-    color: #818384;
-    padding: 0.25rem 0.5rem;
     margin-left: auto;
-    text-decoration: none;
-}
-
-.comment-delete-btn:hover {
-    color: #ff4444;
 }
 
 .comment-body {
@@ -62,20 +55,9 @@
 }
 
 .comment-like-btn {
-    color: #818384;
-    padding: 0.25rem 0.5rem;
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    text-decoration: none;
-}
-
-.comment-like-btn:hover {
-    color: #ff4458;
-}
-
-.comment-like-btn.liked {
-    color: #ff4458;
 }
 
 .comment-like-btn i {
@@ -147,13 +129,7 @@
         font-size: 0.9rem;
     }
     
-    .comment-delete-btn {
-        padding: 0.2rem 0.4rem;
-    }
-    
-    .comment-like-btn {
-        padding: 0.2rem 0.4rem;
-    }
+
     
     .like-count {
         font-size: 0.8rem;
