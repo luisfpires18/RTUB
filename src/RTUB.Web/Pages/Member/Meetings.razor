@@ -137,7 +137,7 @@ else
                         <i class="bi bi-tag text-primary me-2"></i>Tipo de Reunião
                     </label>
                     <InputSelect class="form-select" @bind-Value="editingMeeting.Type">
-                        @if (currentUser?.IsVeterano() == true || currentUser?.IsTunossauro() == true)
+                        @if (CanCreateCVMeetings)
                         {
                             <option value="@MeetingType.AssembleiaGeralOrdinaria">Assembleia Geral Ordinária (AGO)</option>
                             <option value="@MeetingType.AssembleiaGeralExtraordinaria">Assembleia Geral Extraordinária (AGE)</option>
@@ -272,7 +272,7 @@ else
                     
                     @if (showEmailPreview)
                     {
-                        <div class="mt-2 p-3 border rounded" style="background-color: #f8f9fa; max-height: 400px; overflow-y: auto;">
+                        <div class="mt-2 p-3 border rounded" style="max-height: 400px; overflow-y: auto; background-color: transparent;">
                             <h6 class="text-muted mb-2">Pré-visualização do Email:</h6>
                             <div>
                                 @((MarkupString)emailPreviewHtml)
@@ -367,6 +367,9 @@ else
     // Email preview variables
     private bool showEmailPreview = false;
     private string emailPreviewHtml = string.Empty;
+    
+    // Computed property for CV meeting creation permission
+    private bool CanCreateCVMeetings => currentUser != null && (currentUser.IsVeterano() || currentUser.IsTunossauro());
 
     protected override async Task OnInitializedAsync()
     {
@@ -547,6 +550,16 @@ else
             _ => "bg-secondary"
         };
     }
+    
+    private string? GetSenderPosition()
+    {
+        if (currentUser == null || currentUser.Positions == null || !currentUser.Positions.Any())
+            return null;
+            
+        // Get the first (primary) position
+        var position = currentUser.Positions.First();
+        return RTUB.Core.Helpers.PositionHelper.GetDisplayName(position);
+    }
 
     // Email notification methods
     private async Task OpenEmailNotificationModal(Meeting meeting)
@@ -656,6 +669,7 @@ else
                 statement: emailPlainTextBody, // Use the plain text from the editor
                 senderNickname: senderNickname,
                 senderCity: senderCity,
+                senderPosition: GetSenderPosition(),
                 nickname: "",
                 fullName: "");
             
@@ -735,6 +749,7 @@ else
                 statement: emailPlainTextBody, // Use the plain text being edited
                 senderNickname: senderNickname,
                 senderCity: senderCity,
+                senderPosition: GetSenderPosition(),
                 nickname: "Exemplo",
                 fullName: "Nome Completo");
         }

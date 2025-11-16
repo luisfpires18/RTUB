@@ -88,6 +88,7 @@ public interface IEmailTemplateRenderer
         string statement,
         string senderNickname,
         string senderCity,
+        string? senderPosition = null,
         string nickname = "",
         string fullName = "");
 }

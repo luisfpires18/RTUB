@@ -161,6 +161,7 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
         string statement,
         string senderNickname,
         string senderCity,
+        string? senderPosition = null,
         string nickname = "",
         string fullName = "")
     {
@@ -173,6 +174,7 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
             Statement = statement,
             SenderNickname = senderNickname,
             SenderCity = senderCity,
+            SenderPosition = senderPosition,
             Nickname = nickname,
             FullName = fullName
         };

@@ -64,6 +64,10 @@
 <div style="margin: 32px 0 16px 0; padding-top: 24px; border-top: 1px solid #E0E0E0;">
     <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #666666;">
         <strong>@Html.Raw(Model.SenderCity)</strong><br />
+        @if (!string.IsNullOrEmpty(Model.SenderPosition))
+        {
+            @Html.Raw(Model.SenderPosition)<br />
+        }
         @Html.Raw(Model.SenderNickname)
     </p>
 </div>
