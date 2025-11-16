@@ -105,7 +105,7 @@ public class MeetingCardTests : TestContext
     }
 
     [Fact]
-    public void MeetingCard_DisplaysFullMeetingTypeInBadge()
+    public void MeetingCard_DisplaysFullMeetingTypeInHeader()
     {
         // Arrange
         var meeting = new Meeting
@@ -123,8 +123,8 @@ public class MeetingCardTests : TestContext
             .Add(p => p.IsAdmin, false));
 
         // Assert
-        cut.Markup.Should().Contain("ASSEMBLEIA GERAL ORDINÁRIA", "badge should show full meeting type in uppercase");
-        cut.Markup.Should().NotContain("AGO", "badge should not show abbreviation");
+        cut.Markup.Should().Contain("Assembleia Geral Ordinária", "header should show full meeting type");
+        cut.Markup.Should().NotContain("AGO", "header should not show abbreviation");
     }
 
     [Fact]
@@ -150,10 +150,10 @@ public class MeetingCardTests : TestContext
     }
 
     [Theory]
-    [InlineData(MeetingType.AssembleiaGeralOrdinaria, "ASSEMBLEIA GERAL ORDINÁRIA", "Assembleia Geral Ordinária")]
-    [InlineData(MeetingType.AssembleiaGeralExtraordinaria, "ASSEMBLEIA GERAL EXTRAORDINÁRIA", "Assembleia Geral Extraordinária")]
-    [InlineData(MeetingType.ConselhoVeteranos, "CONSELHO DE VETERANOS", "Conselho de Veteranos")]
-    public void MeetingCard_DisplaysCorrectTypeText_ForAllMeetingTypes(MeetingType type, string expectedBadge, string expectedSubtitle)
+    [InlineData(MeetingType.AssembleiaGeralOrdinaria, "Assembleia Geral Ordinária")]
+    [InlineData(MeetingType.AssembleiaGeralExtraordinaria, "Assembleia Geral Extraordinária")]
+    [InlineData(MeetingType.ConselhoVeteranos, "Conselho de Veteranos")]
+    public void MeetingCard_DisplaysCorrectTypeText_ForAllMeetingTypes(MeetingType type, string expectedText)
     {
         // Arrange
         var meeting = new Meeting
@@ -171,8 +171,7 @@ public class MeetingCardTests : TestContext
             .Add(p => p.IsAdmin, false));
 
         // Assert
-        cut.Markup.Should().Contain(expectedBadge, $"badge should show {expectedBadge} for type {type}");
-        cut.Markup.Should().Contain(expectedSubtitle, $"subtitle should show {expectedSubtitle} for type {type}");
+        cut.Markup.Should().Contain(expectedText, $"should show {expectedText} for type {type}");
     }
 
     [Fact]
@@ -242,7 +241,7 @@ public class MeetingCardTests : TestContext
         // Assert
         cut.Markup.Should().Contain("Ver Detalhes", "should show 'Ver Detalhes' button");
         cut.Markup.Should().Contain("bi-eye-fill", "details button should have eye icon");
-        var detailsButtons = cut.FindAll("button").Where(b => b.ClassList.Contains("meeting-details-btn"));
+        var detailsButtons = cut.FindAll("button").Where(b => b.TextContent.Contains("Ver Detalhes"));
         detailsButtons.Should().NotBeEmpty("details button element should exist");
     }
 
@@ -265,10 +264,12 @@ public class MeetingCardTests : TestContext
             .Add(p => p.IsAdmin, true));
 
         // Assert
-        var adminOverlay = cut.FindAll("div").Where(d => d.ClassList.Contains("meeting-admin-overlay"));
-        adminOverlay.Should().NotBeEmpty("admin overlay should appear");
         cut.Markup.Should().Contain("bi-pencil", "edit button should appear");
         cut.Markup.Should().Contain("bi-trash", "delete button should appear");
+        var editButtons = cut.FindAll("button").Where(b => b.ClassList.Contains("music-btn-edit"));
+        editButtons.Should().NotBeEmpty("edit button should appear");
+        var deleteButtons = cut.FindAll("button").Where(b => b.ClassList.Contains("music-btn-delete"));
+        deleteButtons.Should().NotBeEmpty("delete button should appear");
     }
 
     [Fact]
@@ -289,9 +290,11 @@ public class MeetingCardTests : TestContext
             .Add(p => p.Meeting, meeting)
             .Add(p => p.IsAdmin, false));
 
-        // Assert - Check that admin overlay div doesn't actually appear (not just CSS definition)
-        var adminOverlay = cut.FindAll("div").Where(d => d.ClassList.Contains("meeting-admin-overlay"));
-        adminOverlay.Should().BeEmpty("admin overlay should not appear for non-admin");
+        // Assert - Check that admin buttons don't appear for non-admin
+        var editButtons = cut.FindAll("button").Where(b => b.ClassList.Contains("music-btn-edit"));
+        editButtons.Should().BeEmpty("edit button should not appear for non-admin");
+        var deleteButtons = cut.FindAll("button").Where(b => b.ClassList.Contains("music-btn-delete"));
+        deleteButtons.Should().BeEmpty("delete button should not appear for non-admin");
     }
 
     [Fact]
@@ -314,7 +317,7 @@ public class MeetingCardTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("bi-envelope-fill", "email button should have envelope icon");
-        var emailButtons = cut.FindAll("button").Where(b => b.ClassList.Contains("meeting-email-btn"));
+        var emailButtons = cut.FindAll("button").Where(b => b.ClassList.Contains("music-btn-email"));
         emailButtons.Should().NotBeEmpty("email button element should exist for admin");
     }
 
@@ -338,7 +341,7 @@ public class MeetingCardTests : TestContext
 
         // Assert
         cut.Markup.Should().NotContain("bi-envelope-fill", "email button icon should not appear for non-admin");
-        var emailButtons = cut.FindAll("button").Where(b => b.ClassList.Contains("meeting-email-btn"));
+        var emailButtons = cut.FindAll("button").Where(b => b.ClassList.Contains("music-btn-email"));
         emailButtons.Should().BeEmpty("no email button elements should exist for non-admin");
     }
 
@@ -388,7 +391,7 @@ public class MeetingCardTests : TestContext
     }
 
     [Fact]
-    public void MeetingCard_HasPurpleBadge()
+    public void MeetingCard_HasStatusBadge()
     {
         // Arrange
         var meeting = new Meeting
@@ -406,7 +409,7 @@ public class MeetingCardTests : TestContext
             .Add(p => p.IsAdmin, false));
 
         // Assert
-        cut.Markup.Should().Contain("meeting-type-badge", "should have meeting-type-badge class");
+        cut.Markup.Should().Contain("meeting-status-badge", "should have meeting-status-badge class");
     }
 
     [Fact]
@@ -533,7 +536,7 @@ public class MeetingCardTests : TestContext
             .Add(p => p.OnSendEmail, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
-        var emailButton = cut.FindAll("button").First(b => b.ClassList.Contains("meeting-email-btn"));
+        var emailButton = cut.FindAll("button").First(b => b.ClassList.Contains("music-btn-email"));
         emailButton.Click();
 
         // Assert
@@ -541,7 +544,7 @@ public class MeetingCardTests : TestContext
     }
 
     [Fact]
-    public void MeetingCard_HasFooterWithFlexLayout()
+    public void MeetingCard_HasFooterWithCenteredButtons()
     {
         // Arrange
         var meeting = new Meeting
@@ -559,8 +562,8 @@ public class MeetingCardTests : TestContext
             .Add(p => p.IsAdmin, true));
 
         // Assert
-        var footerDivs = cut.FindAll("div").Where(d => d.ClassList.Contains("meeting-footer"));
-        footerDivs.Should().NotBeEmpty("should have meeting-footer container for buttons");
+        var footerDivs = cut.FindAll("div").Where(d => d.ClassList.Contains("justify-content-center"));
+        footerDivs.Should().NotBeEmpty("should have centered container for buttons");
     }
 
     [Theory]
