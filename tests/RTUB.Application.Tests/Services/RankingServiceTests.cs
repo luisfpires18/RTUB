@@ -29,7 +29,7 @@ public class RankingServiceTests : IDisposable
         // Mock UserManager
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            userStoreMock.Object, null, null, null, null, null, null, null, null);
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
         
         // Setup test configuration
         _config = new RankingConfiguration

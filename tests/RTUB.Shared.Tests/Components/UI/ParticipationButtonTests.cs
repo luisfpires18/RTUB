@@ -28,7 +28,7 @@ public class EnrollmentStatisticsButtonTests : TestContext
         // Setup UserManager mock
         var store = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            store.Object, null, null, null, null, null, null, null, null);
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         Services.AddSingleton(_mockEnrollmentService.Object);
         Services.AddSingleton(_mockEventService.Object);
@@ -111,7 +111,7 @@ public class MyEnrollmentsButtonTests : TestContext
         // Setup UserManager mock
         var store = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            store.Object, null, null, null, null, null, null, null, null);
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         Services.AddSingleton(_mockEnrollmentService.Object);
         Services.AddSingleton(_mockEventService.Object);

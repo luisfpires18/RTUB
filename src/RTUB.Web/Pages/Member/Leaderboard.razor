@@ -473,9 +473,9 @@ else
             var searchLower = searchTerm.ToLower();
             filteredLeaderboardUsers = leaderboardUsers
                 .Where(e => 
-                    e.User.Nickname.ToLower().Contains(searchLower) ||
-                    e.User.FirstName.ToLower().Contains(searchLower) ||
-                    e.User.LastName.ToLower().Contains(searchLower) ||
+                    (e.User.Nickname?.ToLower().Contains(searchLower) ?? false) ||
+                    (e.User.FirstName?.ToLower().Contains(searchLower) ?? false) ||
+                    (e.User.LastName?.ToLower().Contains(searchLower) ?? false) ||
                     e.RankProgress.CurrentRankName.ToLower().Contains(searchLower))
                 .ToList();
         }
