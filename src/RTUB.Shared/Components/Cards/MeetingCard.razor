@@ -1,0 +1,324 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@*
+    MeetingCard Component
+    Card for displaying meeting information with admin controls
+*@
+
+<div class="position-relative">
+    @* Status badge positioned absolutely outside header *@
+    <div class="meeting-status-badge @GetMeetingStatusClass()">
+        @GetMeetingStatus()
+    </div>
+    
+    <div class="card meeting-card h-100">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-calendar3"></i>
+                    <span>@GetMeetingTypeFullName()</span>
+                </div>
+                @if (IsAdmin)
+                {
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
+                            <i class="bi bi-pencil music-icon-edit"></i>
+                        </button>
+                        <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
+                            <i class="bi bi-trash music-icon-delete"></i>
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="card-body d-flex flex-column">
+            <h5 class="meeting-title mb-1">@Meeting.Title</h5>
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge @GetMeetingTypeBadgeClass()">@GetMeetingTypeFullName()</span>
+            </div>
+        
+        <div class="meeting-info">
+            <div class="meeting-info-row">
+                <i class="bi bi-calendar3 meeting-icon"></i>
+                <span class="meeting-text">@Meeting.Date.ToString("dd MMM yyyy") (@GetDayOfWeek(Meeting.Date))</span>
+            </div>
+            
+            <div class="meeting-info-row">
+                <i class="bi bi-clock meeting-icon"></i>
+                <span class="meeting-text">@Meeting.Date.ToString("HH:mm")</span>
+                @if (Meeting.Date.Date == DateTime.Today)
+                {
+                    <span class="meeting-today-badge">Hoje</span>
+                }
+            </div>
+            
+            @if (!string.IsNullOrEmpty(Meeting.Location))
+            {
+                <div class="meeting-info-row">
+                    <i class="bi bi-geo-alt meeting-icon"></i>
+                    <span class="meeting-text">@Meeting.Location</span>
+                </div>
+            }
+        </div>
+
+        <div class="mt-auto pt-3">
+            <div class="d-flex justify-content-center align-items-center gap-2">
+                <button class="btn btn-sm btn-primary d-flex align-items-center gap-2" 
+                        @onclick="HandleViewDetails" 
+                        title="Ver Detalhes">
+                    <i class="bi bi-eye-fill"></i>
+                    <span>Ver Detalhes</span>
+                </button>
+                @if (IsAdmin)
+                {
+                    <button class="btn btn-sm btn-primary d-flex align-items-center gap-2" 
+                            @onclick="HandleSendEmail" 
+                            title="Enviar notificação da reunião">
+                        <i class="bi bi-envelope-fill"></i>
+                        <span>Notificar</span>
+                    </button>
+                }
+            </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The meeting to display
+    /// </summary>
+    [Parameter]
+    public Meeting Meeting { get; set; } = null!;
+
+    /// <summary>
+    /// Whether the current user has admin privileges
+    /// </summary>
+    [Parameter]
+    public bool IsAdmin { get; set; }
+
+    /// <summary>
+    /// Callback when the edit button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnEdit { get; set; }
+
+    /// <summary>
+    /// Callback when the delete button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    /// <summary>
+    /// Callback when the view details button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewDetails { get; set; }
+
+    /// <summary>
+    /// Callback when the send email button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSendEmail { get; set; }
+
+    private async Task HandleEdit()
+    {
+        if (OnEdit.HasDelegate)
+        {
+            await OnEdit.InvokeAsync();
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync();
+        }
+    }
+
+    private async Task HandleViewDetails()
+    {
+        if (OnViewDetails.HasDelegate)
+        {
+            await OnViewDetails.InvokeAsync();
+        }
+    }
+
+    private async Task HandleSendEmail()
+    {
+        if (OnSendEmail.HasDelegate)
+        {
+            await OnSendEmail.InvokeAsync();
+        }
+    }
+
+    private string GetMeetingTypeLabel()
+    {
+        return Meeting.Type switch
+        {
+            MeetingType.AssembleiaGeralOrdinaria => "ASSEMBLEIA GERAL ORDINÁRIA",
+            MeetingType.AssembleiaGeralExtraordinaria => "ASSEMBLEIA GERAL EXTRAORDINÁRIA",
+            MeetingType.ConselhoVeteranos => "CONSELHO DE VETERANOS",
+            _ => ""
+        };
+    }
+
+    private string GetMeetingTypeCssClass()
+    {
+        // All badges are now purple
+        return "meeting-type-badge";
+    }
+
+    private string GetMeetingTypeFullName()
+    {
+        return Meeting.Type switch
+        {
+            MeetingType.AssembleiaGeralOrdinaria => "Assembleia Geral Ordinária",
+            MeetingType.AssembleiaGeralExtraordinaria => "Assembleia Geral Extraordinária",
+            MeetingType.ConselhoVeteranos => "Conselho de Veteranos",
+            _ => ""
+        };
+    }
+
+    private string GetMeetingStatus()
+    {
+        return Meeting.Date.Date < DateTime.Today ? "Realizada" : "Agendada";
+    }
+
+    private string GetMeetingStatusClass()
+    {
+        return Meeting.Date.Date < DateTime.Today ? "meeting-status-past" : "meeting-status-upcoming";
+    }
+
+    private string GetDayOfWeek(DateTime date)
+    {
+        return date.DayOfWeek switch
+        {
+            DayOfWeek.Monday => "Segunda",
+            DayOfWeek.Tuesday => "Terça",
+            DayOfWeek.Wednesday => "Quarta",
+            DayOfWeek.Thursday => "Quinta",
+            DayOfWeek.Friday => "Sexta",
+            DayOfWeek.Saturday => "Sábado",
+            DayOfWeek.Sunday => "Domingo",
+            _ => ""
+        };
+    }
+
+    private string GetMeetingTypeBadgeClass()
+    {
+        return Meeting.Type switch
+        {
+            MeetingType.AssembleiaGeralOrdinaria => "bg-primary",
+            MeetingType.AssembleiaGeralExtraordinaria => "bg-danger",
+            MeetingType.ConselhoVeteranos => "bg-warning text-dark",
+            _ => "bg-secondary"
+        };
+    }
+}
+
+<style>
+    .meeting-card {
+        background: var(--card-bg-color);
+        border: 1px solid var(--card-border-color);
+        border-radius: 8px;
+        overflow: visible; /* Allow status badge to overflow */
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .meeting-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(110, 86, 207, 0.3);
+    }
+
+    .meeting-card .card-header {
+        background: rgba(var(--bs-primary-rgb), 0.1);
+        border-bottom: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+        padding: 0.75rem 1rem;
+    }
+
+    .meeting-status-badge {
+        position: absolute;
+        top: 60px;
+        right: 8px;
+        z-index: 10;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .meeting-status-upcoming {
+        background-color: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid rgba(40, 167, 69, 0.4);
+    }
+
+    .meeting-status-past {
+        background-color: rgba(108, 117, 125, 0.2);
+        color: #6c757d;
+        border: 1px solid rgba(108, 117, 125, 0.4);
+    }
+
+    .meeting-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .meeting-info {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-bottom: 1rem;
+    }
+
+    .meeting-info-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .meeting-icon {
+        color: var(--bs-primary);
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .meeting-text {
+        flex: 1;
+    }
+
+    .meeting-today-badge {
+        background-color: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 576px) {
+        .meeting-card .d-flex.justify-content-center.gap-2 {
+            flex-direction: column;
+        }
+
+        .meeting-card .d-flex.justify-content-center.gap-2 .btn {
+            width: 100%;
+        }
+
+        .meeting-title {
+            font-size: 1rem;
+        }
+
+        .meeting-info-row {
+            font-size: 0.85rem;
+        }
+    }
+</style>

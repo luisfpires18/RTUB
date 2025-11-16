@@ -1,0 +1,796 @@
+@page "/meetings"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Extensions
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Shared
+@attribute [Authorize(Roles = "Admin,Owner")]
+@inject IMeetingService MeetingService
+@inject IEmailNotificationService EmailNotificationService
+@inject IEmailTemplateRenderer EmailTemplateRenderer
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h1 class="mb-2"><i class="bi bi-calendar3"></i> Reuniões</h1>
+<p class="lead mb-4 text-light-theme">Gerir reuniões e assembleias da organização.</p>
+
+<div class="mb-3">
+    <button class="btn btn-success mb-2" @onclick="OpenCreateModal" title="Adicionar Nova Reunião">
+        <i class="bi bi-plus-lg"></i> Criar Reunião
+    </button>
+</div>
+
+<!-- Search Box -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <TableSearchBar 
+            SearchTerm="@searchTerm"
+            OnSearchChanged="HandleSearchChanged"
+            Placeholder="Pesquisar por título ou declaração..." />
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center p-5">
+        <LoadingSpinner />
+    </div>
+}
+else if (!meetings.Any())
+{
+    <EmptyState 
+        Title="Nenhuma reunião encontrada." 
+        Icon="bi-info-circle" />
+}
+else
+{
+    <div class="meeting-grid">
+        @foreach (var meeting in meetings)
+        {
+            <MeetingCard Meeting="@meeting"
+                        IsAdmin="true"
+                        OnEdit="@(() => OpenEditModal(meeting))"
+                        OnDelete="@(() => OpenDeleteModal(meeting))"
+                        OnViewDetails="@(() => OpenViewDetailsModal(meeting))"
+                        OnSendEmail="@(() => OpenEmailNotificationModal(meeting))" />
+        }
+    </div>
+
+    <!-- Pagination -->
+    <TablePagination 
+        CurrentPage="@currentPage"
+        PageSize="@pageSize"
+        TotalItems="@totalCount"
+        ItemLabel="reuniões"
+        PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+        OnPageChanged="ChangePage"
+        OnPageSizeChanged="ChangePageSize" />
+}
+
+<!-- View Details Modal -->
+<Modal Show="@showViewDetailsModal" 
+       ShowChanged="@((bool show) => showViewDetailsModal = show)"
+       Size="Modal.ModalSize.Large"
+       Title="Detalhes da Reunião">
+    <BodyContent>
+        @if (viewingMeeting != null)
+        {
+            <div class="mb-3">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="badge @GetMeetingTypeBadgeClass(viewingMeeting.Type)">
+                        @GetMeetingTypeFullName(viewingMeeting.Type)
+                    </span>
+                </div>
+                <h4 class="text-white-full">@viewingMeeting.Title</h4>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-calendar3 text-primary me-2"></i>Data e Hora
+                </label>
+                <p class="text-light-theme">@viewingMeeting.Date.ToString("dd/MM/yyyy HH:mm")</p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(viewingMeeting.Location))
+            {
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização
+                    </label>
+                    <p class="text-light-theme">@viewingMeeting.Location</p>
+                </div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-file-text text-primary me-2"></i>Declaração
+                </label>
+                <p class="text-light-theme" style="white-space: pre-line;">@viewingMeeting.Statement</p>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button class="btn btn-secondary" @onclick="CloseViewDetailsModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
+<!-- Create/Edit Modal -->
+<Modal Show="@showEditModal" 
+       ShowChanged="@((bool show) => showEditModal = show)"
+       Size="Modal.ModalSize.Large"
+       Title="@(isCreateMode ? "Nova Reunião" : "Editar Reunião")">
+    <BodyContent>
+        @if (editingMeeting != null)
+        {
+            <EditForm Model="editingMeeting" OnValidSubmit="SaveMeeting">
+                <DataAnnotationsValidator />
+                <ErrorDisplay />
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-tag text-primary me-2"></i>Tipo de Reunião
+                    </label>
+                    <InputSelect class="form-select" @bind-Value="editingMeeting.Type">
+                        @if (CanCreateCVMeetings)
+                        {
+                            <option value="@MeetingType.AssembleiaGeralOrdinaria">Assembleia Geral Ordinária (AGO)</option>
+                            <option value="@MeetingType.AssembleiaGeralExtraordinaria">Assembleia Geral Extraordinária (AGE)</option>
+                            <option value="@MeetingType.ConselhoVeteranos">Conselho de Veteranos (CV)</option>
+                        }
+                        else
+                        {
+                            <option value="@MeetingType.AssembleiaGeralOrdinaria">Assembleia Geral Ordinária (AGO)</option>
+                            <option value="@MeetingType.AssembleiaGeralExtraordinaria">Assembleia Geral Extraordinária (AGE)</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => editingMeeting.Type)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-card-text text-primary me-2"></i>Título
+                    </label>
+                    <InputText class="form-control" @bind-Value="editingMeeting.Title" placeholder="Inserir título..." />
+                    <ValidationMessage For="@(() => editingMeeting.Title)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-calendar3 text-primary me-2"></i>Data e Hora
+                    </label>
+                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="editingMeeting.Date" />
+                    <ValidationMessage For="@(() => editingMeeting.Date)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização (Opcional)
+                    </label>
+                    <InputText class="form-control" @bind-Value="editingMeeting.Location" placeholder="Inserir localização..." />
+                    <ValidationMessage For="@(() => editingMeeting.Location)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-file-text text-primary me-2"></i>Declaração
+                    </label>
+                    <InputTextArea class="form-control" rows="10" @bind-Value="editingMeeting.Statement" placeholder="Inserir declaração..." />
+                    <ValidationMessage For="@(() => editingMeeting.Statement)" />
+                    <small class="text-light-theme">Máximo 5000 caracteres</small>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button class="btn btn-secondary" @onclick="CloseEditModal">Cancelar</button>
+        <button class="btn btn-primary" @onclick="SaveMeeting">
+            <i class="bi bi-save"></i> Guardar
+        </button>
+    </FooterContent>
+</Modal>
+
+<!-- Delete Confirmation Modal -->
+<Modal Show="@showDeleteModal" 
+       ShowChanged="@((bool show) => showDeleteModal = show)"
+       Title="Confirmar Eliminação">
+    <BodyContent>
+        @if (deletingMeeting != null)
+        {
+            <p>Tem a certeza que quer eliminar a reunião <strong>@deletingMeeting.Title</strong>?</p>
+            <p class="text-muted">Esta ação não pode ser revertida.</p>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button class="btn btn-secondary" @onclick="CloseDeleteModal">Cancelar</button>
+        <button class="btn btn-danger" @onclick="DeleteMeeting">
+            <i class="bi bi-trash"></i> Eliminar
+        </button>
+    </FooterContent>
+</Modal>
+
+<!-- Email Notification Modal -->
+<Modal Show="@showEmailNotificationModal"
+       ShowChanged="@((bool show) => showEmailNotificationModal = show)"
+       Title="Enviar notificação da reunião"
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true">
+    <BodyContent>
+        @if (selectedMeetingForEmail != null)
+        {
+            <div class="mb-3">
+                <h6 class="text-white-full">Detalhes da Reunião:</h6>
+                <div class="event-summary p-3 rounded bg-dark">
+                    <div><strong>Tipo:</strong> @GetMeetingTypeFullName(selectedMeetingForEmail.Type)</div>
+                    <div><strong>Título:</strong> @selectedMeetingForEmail.Title</div>
+                    <div><strong>Data:</strong> @selectedMeetingForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"))</div>
+                    @if (!string.IsNullOrEmpty(selectedMeetingForEmail.Location))
+                    {
+                        <div><strong>Local:</strong> @selectedMeetingForEmail.Location</div>
+                    }
+                </div>
+            </div>
+
+            @if (emailLoadingSubscribers)
+            {
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">A carregar...</span>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(emailErrorMessage))
+            {
+                <Alert Title="@emailErrorMessage" 
+                       Type="Alert.AlertType.Error" 
+                       Dismissible="true"
+                       OnDismiss="@(() => emailErrorMessage = null)" />
+            }
+            else
+            {
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Assunto <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" @bind="emailSubject" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full">Corpo do Email <span class="text-danger">*</span></label>
+                    <textarea class="form-control" rows="12" @bind="emailPlainTextBody"></textarea>
+                    <small class="text-muted">Escreva a mensagem da reunião em texto simples. Será formatada automaticamente no email.</small>
+                </div>
+                
+                <div class="mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ToggleEmailPreview">
+                        <i class="bi bi-eye"></i> @(showEmailPreview ? "Ocultar" : "Ver") Pré-visualização
+                    </button>
+                    
+                    @if (showEmailPreview)
+                    {
+                        <div class="mt-2 p-3 border rounded" style="max-height: 400px; overflow-y: auto; background-color: transparent;">
+                            <h6 class="text-muted mb-2">Pré-visualização do Email:</h6>
+                            <div>
+                                @((MarkupString)emailPreviewHtml)
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @if (selectedMeetingForEmail.Type == MeetingType.ConselhoVeteranos && emailTunoUsers != null)
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-white-full">Adicionar um Tuno (opcional)</label>
+                        <select class="form-select" @bind="selectedTunoId">
+                            <option value="">-- Selecionar Tuno --</option>
+                            @foreach (var tuno in emailTunoUsers)
+                            {
+                                <option value="@tuno.Id">@(tuno.Nickname ?? $"{tuno.FirstName} {tuno.LastName}")</option>
+                            }
+                        </select>
+                        <small class="text-muted">Opcionalmente adicione um Tuno à lista de destinatários para reuniões CV.</small>
+                    </div>
+                }
+                
+                <div class="mb-3">
+                    <span class="badge bg-purple text-white p-2">
+                        @($"{subscribedUsersCount} membros irão receber esta mensagem.")
+                    </span>
+                </div>
+
+                @if (subscribedUsers != null && subscribedUsers.Any())
+                {
+                    <div class="mb-3">
+                        <h6 class="text-white-full mb-2">Destinatários:</h6>
+                        <div class="subscriber-list" style="max-height: 200px; overflow-y: auto;">
+                            @foreach (var user in subscribedUsers.OrderBy(u => u.Nickname ?? u.FirstName))
+                            {
+                                <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                                    @(user.Nickname ?? $"{user.FirstName} {user.LastName}")
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <Alert Title="Nenhum destinatário encontrado." 
+                           Type="Alert.AlertType.Warning" />
+                }
+            }
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEmailNotificationModal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendMeetingNotification" disabled="@(subscribedUsers == null || !subscribedUsers.Any() || string.IsNullOrWhiteSpace(emailSubject) || string.IsNullOrWhiteSpace(emailPlainTextBody))">
+            Enviar Notificação
+        </button>
+    </FooterContent>
+</Modal>
+
+@code {
+    private List<Meeting> meetings = new();
+    private bool isLoading = true;
+    private string searchTerm = string.Empty;
+    private int currentPage = 1;
+    private int pageSize = 12;
+    private int totalCount = 0;
+
+    private bool showEditModal = false;
+    private bool showDeleteModal = false;
+    private bool showViewDetailsModal = false;
+    private bool showEmailNotificationModal = false;
+    private bool isCreateMode = false;
+    private Meeting? editingMeeting;
+    private Meeting? deletingMeeting;
+    private Meeting? viewingMeeting;
+    private Meeting? selectedMeetingForEmail;
+    
+    private ApplicationUser? currentUser;
+    private string currentUserId = string.Empty;
+
+    // Email notification modal variables
+    private List<ApplicationUser>? subscribedUsers;
+    private List<ApplicationUser>? emailTunoUsers;
+    private int subscribedUsersCount = 0;
+    private bool emailLoadingSubscribers = false;
+    private string? emailErrorMessage;
+    private string emailSubject = string.Empty;
+    private string emailBody = string.Empty;
+    private string emailPlainTextBody = string.Empty;
+    private string selectedTunoId = string.Empty;
+    
+    // Email preview variables
+    private bool showEmailPreview = false;
+    private string emailPreviewHtml = string.Empty;
+    
+    // Computed property for CV meeting creation permission
+    private bool CanCreateCVMeetings
+    {
+        get
+        {
+            if (currentUser == null)
+                return false;
+                
+            // Use CurrentRole property which is computed from YearTuno/MonthTuno
+            var role = currentUser.CurrentRole;
+            return role == "VETERANO" || role == "TUNOSSAURO";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userName = user.Identity.Name;
+            if (userName != null)
+            {
+                // Load user directly - Categories property will deserialize from CategoriesJson
+                currentUser = await UserManager.FindByNameAsync(userName);
+                currentUserId = currentUser?.Id ?? string.Empty;
+            }
+        }
+
+        await LoadMeetingsAsync();
+    }
+
+    private async Task LoadMeetingsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            meetings = (await MeetingService.GetAllMeetingsAsync(searchTerm, currentPage, pageSize, currentUserId)).ToList();
+            totalCount = await MeetingService.GetTotalCountAsync(searchTerm, currentUserId);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleSearchChanged(string newSearchTerm)
+    {
+        searchTerm = newSearchTerm;
+        currentPage = 1; // Reset to first page on search
+        await LoadMeetingsAsync();
+    }
+
+    private async Task ChangePage(int newPage)
+    {
+        currentPage = newPage;
+        await LoadMeetingsAsync();
+    }
+
+    private async Task ChangePageSize(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1; // Reset to first page
+        await LoadMeetingsAsync();
+    }
+
+    private void OpenViewDetailsModal(Meeting meeting)
+    {
+        viewingMeeting = new Meeting
+        {
+            Id = meeting.Id,
+            Type = meeting.Type,
+            Title = meeting.Title,
+            Date = meeting.Date,
+            Location = meeting.Location,
+            Statement = meeting.Statement
+        };
+        showViewDetailsModal = true;
+    }
+
+    private void CloseViewDetailsModal()
+    {
+        showViewDetailsModal = false;
+        viewingMeeting = null;
+    }
+
+    private void OpenCreateModal()
+    {
+        isCreateMode = true;
+        editingMeeting = new Meeting
+        {
+            Type = MeetingType.AssembleiaGeralOrdinaria,
+            Title = string.Empty,
+            Date = DateTime.Now.Date.AddDays(7).AddHours(20), // Default to 1 week from now at 8 PM
+            Statement = string.Empty
+        };
+        showEditModal = true;
+    }
+
+    private void OpenEditModal(Meeting meeting)
+    {
+        isCreateMode = false;
+        editingMeeting = new Meeting
+        {
+            Id = meeting.Id,
+            Type = meeting.Type,
+            Title = meeting.Title,
+            Date = meeting.Date,
+            Location = meeting.Location,
+            Statement = meeting.Statement
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingMeeting = null;
+    }
+
+    private async Task SaveMeeting()
+    {
+        if (editingMeeting == null) return;
+
+        try
+        {
+            if (isCreateMode)
+            {
+                await MeetingService.CreateMeetingAsync(editingMeeting);
+            }
+            else
+            {
+                await MeetingService.UpdateMeetingAsync(editingMeeting);
+            }
+
+            await LoadMeetingsAsync();
+            CloseEditModal();
+        }
+        catch (Exception)
+        {
+            // Handle error (could show error message to user)
+        }
+    }
+
+    private void OpenDeleteModal(Meeting meeting)
+    {
+        deletingMeeting = meeting;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deletingMeeting = null;
+    }
+
+    private async Task DeleteMeeting()
+    {
+        if (deletingMeeting == null) return;
+
+        try
+        {
+            await MeetingService.DeleteMeetingAsync(deletingMeeting.Id);
+            await LoadMeetingsAsync();
+            CloseDeleteModal();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+    }
+
+    private string GetMeetingTypeFullName(MeetingType type)
+    {
+        return type switch
+        {
+            MeetingType.AssembleiaGeralOrdinaria => "Assembleia Geral Ordinária",
+            MeetingType.AssembleiaGeralExtraordinaria => "Assembleia Geral Extraordinária",
+            MeetingType.ConselhoVeteranos => "Conselho de Veteranos",
+            _ => ""
+        };
+    }
+
+    private string GetMeetingTypeBadgeClass(MeetingType type)
+    {
+        return type switch
+        {
+            MeetingType.AssembleiaGeralOrdinaria => "bg-primary",
+            MeetingType.AssembleiaGeralExtraordinaria => "bg-danger",
+            MeetingType.ConselhoVeteranos => "bg-warning text-dark",
+            _ => "bg-secondary"
+        };
+    }
+    
+    private string? GetSenderPosition()
+    {
+        if (currentUser == null || currentUser.Positions == null || !currentUser.Positions.Any())
+            return null;
+            
+        // Get the first (primary) position
+        var position = currentUser.Positions.First();
+        return RTUB.Core.Helpers.PositionHelper.GetDisplayName(position);
+    }
+
+    // Email notification methods
+    private async Task OpenEmailNotificationModal(Meeting meeting)
+    {
+        selectedMeetingForEmail = meeting;
+        emailLoadingSubscribers = true;
+        emailErrorMessage = null;
+        selectedTunoId = string.Empty;
+        showEmailNotificationModal = true;
+        StateHasChanged();
+
+        try
+        {
+            var allUsers = await UserManager.Users.ToListAsync();
+            
+            // Build recipient list based on meeting type
+            if (meeting.Type == MeetingType.ConselhoVeteranos)
+            {
+                // CV meetings: Veterano + Tunossauro + Magister
+                subscribedUsers = allUsers
+                    .Where(u => u.Subscribed && u.EmailConfirmed && 
+                           (u.IsVeterano() || u.IsTunossauro() || u.Positions.Contains(Position.Magister)))
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+
+                // Get list of Tuno users for selection
+                emailTunoUsers = allUsers
+                    .Where(u => u.EmailConfirmed && u.IsTuno() && !u.IsVeterano() && !u.IsTunossauro())
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+            }
+            else
+            {
+                // AGO/AGE meetings: All members EXCEPT Leitão
+                subscribedUsers = allUsers
+                    .Where(u => u.Subscribed && u.EmailConfirmed && !u.IsLeitao())
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+                
+                emailTunoUsers = null;
+            }
+            
+            subscribedUsersCount = subscribedUsers.Count;
+
+            // Pre-fill email subject and plain text body
+            emailSubject = $"[RTUB] Reunião: {GetMeetingTypeFullName(meeting.Type)} - {meeting.Title}";
+            
+            // Set plain text body to the meeting statement (HTML will be generated when sending)
+            emailPlainTextBody = meeting.Statement ?? string.Empty;
+            emailBody = string.Empty; // Will be generated when sending
+        }
+        catch (Exception ex)
+        {
+            emailErrorMessage = $"Erro ao carregar destinatários: {ex.Message}";
+        }
+        finally
+        {
+            emailLoadingSubscribers = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseEmailNotificationModal()
+    {
+        showEmailNotificationModal = false;
+        selectedMeetingForEmail = null;
+        subscribedUsers = null;
+        emailTunoUsers = null;
+        subscribedUsersCount = 0;
+        emailErrorMessage = null;
+        emailSubject = string.Empty;
+        emailBody = string.Empty;
+        emailPlainTextBody = string.Empty;
+        selectedTunoId = string.Empty;
+        showEmailPreview = false;
+        emailPreviewHtml = string.Empty;
+    }
+
+    private async Task SendMeetingNotification()
+    {
+        if (selectedMeetingForEmail == null || subscribedUsers == null || !subscribedUsers.Any())
+        {
+            CloseEmailNotificationModal();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(emailSubject) || string.IsNullOrWhiteSpace(emailPlainTextBody))
+        {
+            emailErrorMessage = "Assunto e corpo do email são obrigatórios.";
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            // Generate HTML email body from plain text before sending
+            var dateStr = selectedMeetingForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
+            var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
+            var senderCity = $"Bragança, {currentDate}";
+            var senderNickname = currentUser?.Nickname ?? "Admin";
+            
+            emailBody = await EmailTemplateRenderer.RenderMeetingNotificationAsync(
+                meetingType: GetMeetingTypeFullName(selectedMeetingForEmail.Type),
+                meetingTitle: selectedMeetingForEmail.Title,
+                dateFormatted: dateStr,
+                location: selectedMeetingForEmail.Location ?? string.Empty,
+                statement: emailPlainTextBody, // Use the plain text from the editor
+                senderNickname: senderNickname,
+                senderCity: senderCity,
+                senderPosition: GetSenderPosition(),
+                nickname: "",
+                fullName: "");
+            
+            // If CV meeting and a Tuno is selected, add them to recipients
+            var finalRecipients = subscribedUsers.ToList();
+            if (selectedMeetingForEmail.Type == MeetingType.ConselhoVeteranos && 
+                !string.IsNullOrEmpty(selectedTunoId) && 
+                emailTunoUsers != null)
+            {
+                var selectedTuno = emailTunoUsers.FirstOrDefault(t => t.Id == selectedTunoId);
+                if (selectedTuno != null && !finalRecipients.Any(r => r.Id == selectedTuno.Id))
+                {
+                    finalRecipients.Add(selectedTuno);
+                }
+            }
+
+            // Get recipient emails
+            var recipientEmails = finalRecipients
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .Select(u => u.Email!)
+                .ToList();
+
+            // Build recipient data dictionary
+            var recipientData = finalRecipients
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .ToDictionary(
+                    u => u.Email!,
+                    u => (
+                        nickname: u.Nickname ?? "",
+                        fullName: $"{u.FirstName ?? ""} {u.LastName ?? ""}".Trim()
+                    )
+                );
+
+            // Send the meeting notification
+            var result = await EmailNotificationService.SendMeetingNotificationAsync(
+                selectedMeetingForEmail.Id,
+                emailSubject,
+                emailBody,
+                recipientEmails,
+                recipientData);
+
+            if (result.success)
+            {
+                // Close modal on success
+                CloseEmailNotificationModal();
+                await LoadMeetingsAsync();
+            }
+            else
+            {
+                emailErrorMessage = result.errorMessage ?? "Erro ao enviar notificação.";
+            }
+        }
+        catch (Exception ex)
+        {
+            emailErrorMessage = $"Erro ao enviar notificação: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+    
+    private async Task ToggleEmailPreview()
+    {
+        showEmailPreview = !showEmailPreview;
+        
+        if (showEmailPreview && selectedMeetingForEmail != null)
+        {
+            // Generate preview
+            var dateStr = selectedMeetingForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
+            var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
+            var senderCity = $"Bragança, {currentDate}";
+            var senderNickname = currentUser?.Nickname ?? "Admin";
+            
+            emailPreviewHtml = await EmailTemplateRenderer.RenderMeetingNotificationAsync(
+                meetingType: GetMeetingTypeFullName(selectedMeetingForEmail.Type),
+                meetingTitle: selectedMeetingForEmail.Title,
+                dateFormatted: dateStr,
+                location: selectedMeetingForEmail.Location ?? string.Empty,
+                statement: emailPlainTextBody, // Use the plain text being edited
+                senderNickname: senderNickname,
+                senderCity: senderCity,
+                senderPosition: GetSenderPosition(),
+                nickname: "Exemplo",
+                fullName: "Nome Completo");
+        }
+    }
+}
+
+<style>
+    .meeting-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    @@media (max-width: 768px) {
+        .meeting-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (min-width: 769px) and (max-width: 1024px) {
+        .meeting-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (min-width: 1025px) {
+        .meeting-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+</style>
