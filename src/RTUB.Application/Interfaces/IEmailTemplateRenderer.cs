@@ -76,4 +76,13 @@ public interface IEmailTemplateRenderer
         string nickname = "",
         string fullName = "",
         string eventDescription = "");
+    
+    /// <summary>
+    /// Renders the announcement email
+    /// </summary>
+    Task<string> RenderAnnouncementEmailAsync(
+        string title,
+        string content,
+        string nickname = "",
+        string fullName = "");
 }

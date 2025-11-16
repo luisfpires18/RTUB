@@ -1,0 +1,321 @@
+@page "/owner/email"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Shared
+@attribute [Authorize(Roles = "Owner")]
+@inject UserManager<ApplicationUser> UserManager
+@inject IEmailNotificationService EmailNotificationService
+
+<PageTitle>Enviar Email de Anúncio</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="page-title"><i class="bi bi-envelope"></i> Enviar Email de Anúncio</h1>
+            <p class="lead mb-4 text-light-theme">Enviar anúncios por email para todos os utilizadores subscritos</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <Alert Type="@(isError ? Alert.AlertType.Error : Alert.AlertType.Success)" 
+               Message="@message" 
+               Dismissible="true"
+               OnDismiss="@(() => message = string.Empty)" />
+    }
+
+    @if (isLoadingSubscribers)
+    {
+        <LoadingSpinner Message="A carregar destinatários..." />
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pencil-square"></i> Compor Mensagem</h5>
+            </div>
+            <div class="card-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="emailTitle" class="form-label">
+                            Título <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" 
+                               class="form-control @(titleError ? "is-invalid" : "")" 
+                               id="emailTitle" 
+                               @bind="title" 
+                               placeholder="Ex: Nova Atuação Agendada"
+                               maxlength="200"
+                               required />
+                        @if (titleError)
+                        {
+                            <div class="invalid-feedback">O título é obrigatório</div>
+                        }
+                        <small class="form-text text-muted">
+                            Será usado como assunto do email: [RTUB] {título}
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="emailContent" class="form-label">
+                            Conteúdo <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control @(contentError ? "is-invalid" : "")" 
+                                  id="emailContent" 
+                                  @bind="content" 
+                                  rows="8"
+                                  placeholder="Escreva a mensagem do anúncio aqui..."
+                                  maxlength="5000"
+                                  required></textarea>
+                        @if (contentError)
+                        {
+                            <div class="invalid-feedback">O conteúdo é obrigatório</div>
+                        }
+                        <small class="form-text text-muted">
+                            Esta mensagem será enviada para @subscribedUsersCount utilizadores subscritos
+                        </small>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Informação:</strong> Este email será enviado para todos os utilizadores com notificações ativas.
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="button" 
+                                class="btn btn-outline-primary" 
+                                @onclick="ShowPreview"
+                                disabled="@(isSending || string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))">
+                            <i class="bi bi-eye"></i> Pré-visualizar
+                        </button>
+                        <button type="button" 
+                                class="btn btn-primary" 
+                                @onclick="SendEmails"
+                                disabled="@(isSending || string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))">
+                            @if (isSending)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                <span>A enviar...</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-send"></i>
+                                <span> Enviar</span>
+                            }
+                        </button>
+                        <button type="button" 
+                                class="btn btn-secondary" 
+                                @onclick="ClearForm"
+                                disabled="@isSending">
+                            <i class="bi bi-x-circle"></i> Limpar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        @if (subscribedUsers != null && subscribedUsers.Any())
+        {
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-people"></i> Destinatários (@subscribedUsersCount)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="subscriber-list" style="max-height: 300px; overflow-y: auto;">
+                        @foreach (var user in subscribedUsers.Take(20))
+                        {
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="@user.ProfilePictureSrc" 
+                                     alt="@user.Nickname"
+                                     class="member-avatar-small me-2" />
+                                <div>
+                                    <strong>@user.Nickname</strong>
+                                    <br />
+                                    <small class="text-muted">@user.Email</small>
+                                </div>
+                            </div>
+                        }
+                        @if (subscribedUsers.Count > 20)
+                        {
+                            <p class="text-muted mb-0 mt-2">
+                                <small>E mais @(subscribedUsers.Count - 20) utilizadores...</small>
+                            </p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- Preview Modal -->
+<Modal Show="@showPreviewModal" 
+       ShowChanged="@((show) => showPreviewModal = show)"
+       Title="Pré-visualização do Email"
+       Size="Modal.ModalSize.Large">
+    <BodyContent>
+        <div class="email-preview" style="background-color: #F7F7FB; padding: 20px; border-radius: 8px;">
+            <div style="background-color: white; max-width: 600px; margin: 0 auto; padding: 32px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h2 style="margin: 0 0 16px 0; font-size: 28px; font-weight: 600; color: #0B0B0F;">
+                    @title
+                </h2>
+                
+                <p style="margin: 0 0 16px 0; font-size: 16px; color: #333333;">
+                    Olá, [Nome do Utilizador]!
+                </p>
+                
+                <div style="margin: 24px 0; padding: 20px; background-color: #F7F7FB; border-left: 4px solid #6E56CF; border-radius: 8px;">
+                    <p style="margin: 0; font-size: 16px; color: #333333; white-space: pre-wrap;">@content</p>
+                </div>
+                
+                <p style="margin: 16px 0 0 0; font-size: 16px; color: #333333;">
+                    Esta mensagem foi enviada pela equipa da RTUB.
+                </p>
+            </div>
+        </div>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="() => showPreviewModal = false">Fechar</button>
+    </FooterContent>
+</Modal>
+
+@code {
+    private string title = "";
+    private string content = "";
+    private string message = "";
+    private bool isError = false;
+    private bool isSending = false;
+    private bool isLoadingSubscribers = true;
+    private bool showPreviewModal = false;
+    private bool titleError = false;
+    private bool contentError = false;
+
+    private List<ApplicationUser> subscribedUsers = new();
+    private int subscribedUsersCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSubscribedUsers();
+    }
+
+    private async Task LoadSubscribedUsers()
+    {
+        isLoadingSubscribers = true;
+        try
+        {
+            // Load all subscribed users with confirmed emails
+            subscribedUsers = await Task.Run(() => 
+                UserManager.Users
+                    .Where(u => u.Subscribed && u.EmailConfirmed && !string.IsNullOrEmpty(u.Email))
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList());
+            
+            subscribedUsersCount = subscribedUsers.Count;
+        }
+        catch (Exception ex)
+        {
+            message = $"Erro ao carregar utilizadores subscritos: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoadingSubscribers = false;
+        }
+    }
+
+    private void ShowPreview()
+    {
+        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))
+        {
+            return;
+        }
+        showPreviewModal = true;
+    }
+
+    private async Task SendEmails()
+    {
+        // Reset validation errors
+        titleError = false;
+        contentError = false;
+
+        // Validate inputs
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            titleError = true;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            contentError = true;
+            return;
+        }
+
+        if (!subscribedUsers.Any())
+        {
+            message = "Não há utilizadores subscritos para enviar o email.";
+            isError = true;
+            return;
+        }
+
+        isSending = true;
+        message = "";
+        StateHasChanged();
+
+        try
+        {
+            // Prepare recipient emails and data
+            var recipientEmails = subscribedUsers
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .Select(u => u.Email!)
+                .ToList();
+
+            var recipientData = subscribedUsers
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .ToDictionary(
+                    u => u.Email!,
+                    u => (u.Nickname ?? u.FirstName ?? "", $"{u.FirstName} {u.LastName}")
+                );
+
+            // Send emails
+            var (success, count, errorMessage) = await EmailNotificationService.SendAnnouncementEmailAsync(
+                title,
+                content,
+                recipientEmails,
+                recipientData);
+
+            if (success)
+            {
+                message = $"Email de anúncio enviado com sucesso para {count} utilizadores!";
+                isError = false;
+                ClearForm();
+            }
+            else
+            {
+                message = errorMessage ?? "Erro ao enviar emails.";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Erro inesperado: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isSending = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearForm()
+    {
+        title = "";
+        content = "";
+        titleError = false;
+        contentError = false;
+    }
+}

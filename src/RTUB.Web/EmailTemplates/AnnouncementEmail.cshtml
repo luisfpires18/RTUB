@@ -1,0 +1,28 @@
+@model RTUB.Web.EmailTemplates.Models.AnnouncementEmailModel
+@{
+    Layout = "~/EmailTemplates/_EmailLayout.cshtml";
+    ViewData["Preheader"] = Model.Title;
+    ViewData["PreferencesLink"] = Model.PreferencesLink;
+}
+
+@{
+    var displayName = !string.IsNullOrEmpty(Model.RecipientFullName) 
+        ? $"{Model.RecipientNickname} ({Model.RecipientFullName})" 
+        : Model.RecipientNickname;
+}
+
+<h1 style="margin: 0 0 16px 0; padding: 0; font-size: 28px; line-height: 1.3; font-weight: 600; color: #0B0B0F;">
+    @Model.Title
+</h1>
+
+<p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+    <text>Olá, @Html.Raw(displayName)!</text>
+</p>
+
+<div style="margin: 24px 0; padding: 20px; background-color: #F7F7FB; border-left: 4px solid #6E56CF; border-radius: 8px;">
+    <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #333333; white-space: pre-wrap;">@Model.Content</p>
+</div>
+
+<p style="margin: 16px 0 0 0; font-size: 16px; line-height: 1.5; color: #333333;">
+    Esta mensagem foi enviada pela equipa da RTUB.
+</p>
