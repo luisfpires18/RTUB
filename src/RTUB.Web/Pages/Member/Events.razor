@@ -518,6 +518,79 @@ else
                         }
                     </div>
                 }
+                
+                <!-- Add Member Section (Admin Only for Past Events) -->
+                @if (isUserAdmin && !IsCaloiroAdmin() && selectedEvent.Date.Date < DateTime.Today)
+                {
+                    <div class="mt-3">
+                        <!-- Success Alert (auto-dismiss) -->
+                        @if (!string.IsNullOrEmpty(addMemberToEnrollmentFeedbackMessage) && !addMemberToEnrollmentFeedbackIsError)
+                        {
+                            <Alert Type="Alert.AlertType.Purple" 
+                                   Title="@addMemberToEnrollmentFeedbackMessage" 
+                                   Dismissible="true"
+                                   OnDismiss="ClearAddMemberToEnrollmentFeedback"
+                                   AdditionalClasses="mb-2" />
+                        }
+                        
+                        <!-- Error Alert (manual dismiss) -->
+                        @if (!string.IsNullOrEmpty(addMemberToEnrollmentFeedbackMessage) && addMemberToEnrollmentFeedbackIsError)
+                        {
+                            <Alert Type="Alert.AlertType.Error" 
+                                   Title="@addMemberToEnrollmentFeedbackMessage" 
+                                   Dismissible="true"
+                                   OnDismiss="ClearAddMemberToEnrollmentFeedback"
+                                   AdditionalClasses="mb-2" />
+                        }
+                        
+                        <!-- Collapsible Search Bar -->
+                        @if (showAddMemberToEnrollmentDropdown)
+                        {
+                            <div class="mb-2" @onkeydown="HandleAddMemberToEnrollmentKeyDown">
+                                <TableSearchBar SearchTerm="@addMemberToEnrollmentSearchTerm"
+                                               Placeholder="Pesquisar membro por nome..."
+                                               OnSearchChanged="@HandleAddMemberToEnrollmentSearchChanged" />
+                                
+                                @if (filteredAvailableMembersForEnrollment.Any())
+                                {
+                                    <div class="member-list member-list-scrollable mt-2">
+                                        @foreach (var member in filteredAvailableMembersForEnrollment)
+                                        {
+                                            <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                                 @onclick="() => AddMemberToEvent(member)"
+                                                 tabindex="0"
+                                                 @onkeydown="@(async (e) => await HandleMemberItemKeyDownForEnrollment(e, member))">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                         class="member-avatar-small me-2" />
+                                                    <div>
+                                                        @if (!string.IsNullOrEmpty(member.Nickname))
+                                                        {
+                                                            <strong>@member.FirstName "@member.Nickname" @member.LastName</strong>
+                                                        }
+                                                        else
+                                                        {
+                                                            <strong>@member.FirstName @member.LastName</strong>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-muted mt-2">Nenhum membro encontrado.</p>
+                                }
+                            </div>
+                        }
+                        
+                        <button class="btn btn-sm btn-outline-primary" @onclick="ToggleAddMemberToEnrollmentDropdown">
+                            <i class="bi bi-@(showAddMemberToEnrollmentDropdown ? "x" : "plus")-circle"></i> 
+                            @(showAddMemberToEnrollmentDropdown ? "Cancelar" : "Adicionar Membro")
+                        </button>
+                    </div>
+                }
             }
         </BodyContent>
         <FooterContent>
@@ -942,6 +1015,14 @@ else
     private int cancelEventTotalCount = 0;
     private bool cancelEventLoadingSubscribers = false;
     private string? cancelEventErrorMessage;
+    
+    // Add member to enrollment variables (for past events)
+    private bool showAddMemberToEnrollmentDropdown = false;
+    private string addMemberToEnrollmentSearchTerm = "";
+    private string addMemberToEnrollmentFeedbackMessage = "";
+    private bool addMemberToEnrollmentFeedbackIsError = false;
+    private List<ApplicationUser> allMembersForEnrollment = new();
+    private List<ApplicationUser> filteredAvailableMembersForEnrollment = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -1391,6 +1472,17 @@ else
         enrollmentSearchTerm = string.Empty;
         enrollmentSortHelper = new() { SortColumn = "EnrolledAt", SortAscending = false };
         FilterEnrollments();
+        
+        // Load all members for adding if admin (not Caloiro) AND it's a past event
+        if (isUserAdmin && !IsCaloiroAdmin() && eventItem.Date.Date < DateTime.Today)
+        {
+            allMembersForEnrollment = UserManager.Users.ToList();
+            filteredAvailableMembersForEnrollment = new List<ApplicationUser>();
+            showAddMemberToEnrollmentDropdown = false;
+            addMemberToEnrollmentSearchTerm = "";
+            addMemberToEnrollmentFeedbackMessage = "";
+        }
+        
         showEnrollmentListModal = true;
     }
 
@@ -1401,6 +1493,14 @@ else
         eventEnrollments = null;
         filteredPerformingMembers.Clear();
         filteredLeitoes.Clear();
+        
+        // Clean up add member state
+        allMembersForEnrollment.Clear();
+        filteredAvailableMembersForEnrollment.Clear();
+        showAddMemberToEnrollmentDropdown = false;
+        addMemberToEnrollmentSearchTerm = "";
+        addMemberToEnrollmentFeedbackMessage = "";
+        addMemberToEnrollmentFeedbackIsError = false;
     }
     
     private void FilterEnrollments()
@@ -2042,6 +2142,107 @@ else
     private bool CanDeleteEnrollment()
     {
         return isUserAdmin && !IsCaloiroAdmin();
+    }
+    
+    // Add Member to Enrollment Methods (for past events)
+    
+    private void ToggleAddMemberToEnrollmentDropdown()
+    {
+        showAddMemberToEnrollmentDropdown = !showAddMemberToEnrollmentDropdown;
+        if (showAddMemberToEnrollmentDropdown)
+        {
+            addMemberToEnrollmentSearchTerm = "";
+            FilterAvailableMembersForEnrollment();
+        }
+        else
+        {
+            addMemberToEnrollmentFeedbackMessage = "";
+        }
+    }
+
+    private async Task HandleAddMemberToEnrollmentSearchChanged(string searchTerm)
+    {
+        addMemberToEnrollmentSearchTerm = searchTerm;
+        FilterAvailableMembersForEnrollment();
+        await Task.CompletedTask;
+    }
+
+    private void FilterAvailableMembersForEnrollment()
+    {
+        if (eventEnrollments == null)
+        {
+            filteredAvailableMembersForEnrollment = new List<ApplicationUser>();
+            return;
+        }
+
+        // Get list of user IDs already enrolled
+        var enrolledUserIds = eventEnrollments.Select(e => e.UserId).ToHashSet();
+
+        // Filter members who are not already enrolled
+        var available = allMembersForEnrollment.Where(u => !enrolledUserIds.Contains(u.Id));
+
+        if (string.IsNullOrWhiteSpace(addMemberToEnrollmentSearchTerm))
+        {
+            filteredAvailableMembersForEnrollment = available.OrderBy(u => u.FirstName).ToList();
+        }
+        else
+        {
+            var search = addMemberToEnrollmentSearchTerm.ToLower();
+            filteredAvailableMembersForEnrollment = available
+                .Where(u => (u.FirstName?.ToLower().Contains(search) ?? false) ||
+                           (u.LastName?.ToLower().Contains(search) ?? false) ||
+                           (u.Nickname?.ToLower().Contains(search) ?? false))
+                .OrderBy(u => u.FirstName)
+                .ToList();
+        }
+    }
+
+    private async Task AddMemberToEvent(ApplicationUser user)
+    {
+        if (selectedEvent == null) return;
+
+        try
+        {
+            // Add the enrollment, marking it as approved for past events (willAttend = true)
+            await EnrollmentService.CreateEnrollmentAsync(user.Id, selectedEvent.Id, null, null, true);
+            
+            addMemberToEnrollmentFeedbackMessage = $"Inscrição de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";
+            addMemberToEnrollmentFeedbackIsError = false;
+            
+            // Refresh enrollment list
+            await OpenEnrollmentListModal(selectedEvent);
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            addMemberToEnrollmentFeedbackMessage = $"Erro ao adicionar membro: {ex.Message}";
+            addMemberToEnrollmentFeedbackIsError = true;
+            Console.WriteLine($"Error adding member to event: {ex.Message}");
+        }
+    }
+
+    private void ClearAddMemberToEnrollmentFeedback()
+    {
+        addMemberToEnrollmentFeedbackMessage = "";
+        addMemberToEnrollmentFeedbackIsError = false;
+    }
+    
+    private void HandleAddMemberToEnrollmentKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            showAddMemberToEnrollmentDropdown = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task HandleMemberItemKeyDownForEnrollment(KeyboardEventArgs e, ApplicationUser member)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            await AddMemberToEvent(member);
+        }
     }
 
     private void NavigateToDiscussion(Event eventItem)
