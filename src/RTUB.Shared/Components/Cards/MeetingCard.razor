@@ -275,9 +275,9 @@
     {
         return Meeting.Type switch
         {
+            MeetingType.ConselhoVeteranos => "bg-dark text-white",
             MeetingType.AssembleiaGeralOrdinaria => "bg-primary",
-            MeetingType.AssembleiaGeralExtraordinaria => "bg-danger",
-            MeetingType.ConselhoVeteranos => "bg-warning text-dark",
+            MeetingType.AssembleiaGeralExtraordinaria => "bg-info",
             _ => "bg-secondary"
         };
     }

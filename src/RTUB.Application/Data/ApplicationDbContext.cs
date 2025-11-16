@@ -70,6 +70,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     
     // Meeting DbSet
     public DbSet<Meeting> Meetings { get; set; }
+    public DbSet<MeetingRequest> MeetingRequests { get; set; }
     
     // Leaderboard Comments DbSets
     public DbSet<LeaderboardComment> LeaderboardComments { get; set; }
@@ -818,6 +819,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "Meeting":
                     if (entry.Entity is Meeting meeting)
                         return meeting.Title;
+                    break;
+                
+                case "MeetingRequest":
+                    if (entry.Entity is MeetingRequest meetingRequest)
+                        return meetingRequest.Title;
                     break;
             }
         }

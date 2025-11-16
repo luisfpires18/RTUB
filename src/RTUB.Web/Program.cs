@@ -210,6 +210,7 @@ public class Program
         services.AddScoped<ILogisticsListService, LogisticsListService>();
         services.AddScoped<ILogisticsCardService, LogisticsCardService>();
         services.AddScoped<IMeetingService, MeetingService>();
+        services.AddScoped<IMeetingRequestService, MeetingRequestService>();
         services.AddScoped<ILeaderboardCommentService, LeaderboardCommentService>();
         
         // --------- Cloudflare R2 S3 Client (Singleton) ---------

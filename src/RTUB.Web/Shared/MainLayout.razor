@@ -63,8 +63,11 @@
                         <!-- 8. Classificação (Member) -->
                         <li class="nav-item"><NavLink class="nav-link" href="/leaderboard"><i class="bi bi-trophy-fill"></i> Classificação</NavLink></li>
                         
-                        <!-- 9. Reuniões (Member) -->
-                        <li class="nav-item"><NavLink class="nav-link" href="/meetings"><i class="bi bi-calendar3"></i> Reuniões</NavLink></li>
+                        <!-- 9. Reuniões (Member) - Hidden for Leitão -->
+                        @if (currentUser != null && !currentUser.IsLeitao())
+                        {
+                            <li class="nav-item"><NavLink class="nav-link" href="/meetings"><i class="bi bi-calendar3"></i> Reuniões</NavLink></li>
+                        }
                         
                         <!-- 10. Inventário (Member Dropdown) -->
                         <li class="nav-item dropdown">
