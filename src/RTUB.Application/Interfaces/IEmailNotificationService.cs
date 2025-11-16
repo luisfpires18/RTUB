@@ -131,4 +131,18 @@ public interface IEmailNotificationService
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null,
         string eventDescription = "");
+    
+    /// <summary>
+    /// Sends announcement emails to all subscribed members
+    /// </summary>
+    /// <param name="title">The announcement title (used as email subject)</param>
+    /// <param name="content">The announcement content</param>
+    /// <param name="recipientEmails">List of recipient email addresses</param>
+    /// <param name="recipientData">Dictionary mapping emails to (nickname, fullName) tuples for personalization</param>
+    /// <returns>Tuple with success flag, count of emails sent, and optional error message</returns>
+    Task<(bool success, int count, string? errorMessage)> SendAnnouncementEmailAsync(
+        string title,
+        string content,
+        List<string> recipientEmails,
+        Dictionary<string, (string nickname, string fullName)> recipientData);
 }

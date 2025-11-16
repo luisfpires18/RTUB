@@ -772,4 +772,114 @@ public class EmailNotificationService : IEmailNotificationService
             return (false, 0, $"Erro ao enviar email: {ex.Message}");
         }
     }
+    
+    /// <inheritdoc/>
+    public async Task<(bool success, int count, string? errorMessage)> SendAnnouncementEmailAsync(
+        string title,
+        string content,
+        List<string> recipientEmails,
+        Dictionary<string, (string nickname, string fullName)> recipientData)
+    {
+        // Rate limit: Prevent duplicate emails for the same announcement within 5 minutes
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmm");
+        var rateLimitKey = $"email-announcement-{timestamp}";
+        if (ShouldRateLimitEmail(rateLimitKey))
+        {
+            return (false, 0, "Email de anúncio já enviado recentemente.");
+        }
+
+        try
+        {
+            // Get email settings from configuration
+            var smtpServer = _configuration["EmailSettings:SmtpServer"];
+            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
+            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
+            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
+            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
+            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
+            var enableSsl = enableSslStr != "false"; // Default to true
+
+            // Validate required email settings
+            if (string.IsNullOrEmpty(senderEmail))
+            {
+                _logger.LogError("SenderEmail is not configured in EmailSettings");
+                return (false, 0, "Configuração de email não está completa.");
+            }
+
+            // Check if SMTP is configured
+            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
+            {
+                _logger.LogWarning("SMTP not configured, skipping announcement email");
+                return (false, 0, "Servidor de email não configurado.");
+            }
+
+            // Validate recipients
+            if (recipientEmails == null || !recipientEmails.Any())
+            {
+                _logger.LogWarning("No recipient emails provided for announcement");
+                return (false, 0, "Nenhum destinatário encontrado.");
+            }
+
+            var subject = $"[RTUB] {title}";
+
+            int successCount = 0;
+            using var smtpClient = new SmtpClient(smtpServer, smtpPort)
+            {
+                Credentials = new NetworkCredential(smtpUsername, smtpPassword),
+                EnableSsl = enableSsl,
+                Timeout = 30000 // 30 second timeout
+            };
+
+            foreach (var email in recipientEmails)
+            {
+                if (string.IsNullOrWhiteSpace(email))
+                    continue;
+
+                try
+                {
+                    // Get nickname and full name for this recipient
+                    var (nickname, fullName) = recipientData.TryGetValue(email, out var data) 
+                        ? data 
+                        : ("", "");
+
+                    // Render personalized email
+                    var body = await _templateRenderer.RenderAnnouncementEmailAsync(
+                        title,
+                        content,
+                        nickname,
+                        fullName);
+
+                    var mailMessage = new MailMessage
+                    {
+                        From = new MailAddress(senderEmail, senderName),
+                        Subject = subject,
+                        Body = body,
+                        IsBodyHtml = true,
+                        BodyEncoding = Encoding.UTF8,
+                        SubjectEncoding = Encoding.UTF8
+                    };
+                    mailMessage.To.Add(email);
+
+                    await smtpClient.SendMailAsync(mailMessage);
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send announcement email to {Email}", email);
+                }
+            }
+
+            _logger.LogInformation("Announcement emails sent to {SuccessCount}/{TotalCount} members", 
+                successCount, recipientEmails.Count);
+
+            return (successCount > 0, successCount, successCount < recipientEmails.Count ? "Alguns emails falharam" : null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending announcement email");
+            return (false, 0, $"Erro ao enviar email: {ex.Message}");
+        }
+    }
 }
