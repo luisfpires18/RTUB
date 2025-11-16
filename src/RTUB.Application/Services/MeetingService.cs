@@ -44,6 +44,7 @@ public class MeetingService : IMeetingService
         
         // Apply pagination
         return await query
+            .Include(m => m.Organizer)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -51,7 +52,9 @@ public class MeetingService : IMeetingService
 
     public async Task<Meeting?> GetMeetingByIdAsync(int id, string userId)
     {
-        var meeting = await _context.Meetings.FindAsync(id);
+        var meeting = await _context.Meetings
+            .Include(m => m.Organizer)
+            .FirstOrDefaultAsync(m => m.Id == id);
         
         if (meeting == null)
             return null;
@@ -105,6 +108,9 @@ public class MeetingService : IMeetingService
         existingMeeting.Date = meeting.Date;
         existingMeeting.Location = meeting.Location;
         existingMeeting.Statement = meeting.Statement;
+        existingMeeting.OrganizerUserId = meeting.OrganizerUserId;
+        existingMeeting.IsCancelled = meeting.IsCancelled;
+        existingMeeting.CancellationReason = meeting.CancellationReason;
         
         _context.Meetings.Update(existingMeeting);
         await _context.SaveChangesAsync();

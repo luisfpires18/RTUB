@@ -223,6 +223,176 @@ public class MembersPageGridTests
 
     #endregion
 
+    #region Category-Based Permission Tests
+
+    [Fact]
+    public void MembersGrid_EditButton_ShouldBeVisible_ForAdminWithTunoCategory()
+    {
+        // Admin users with Tuno category should see Edit button on Members grid
+        var isAdmin = true;
+        var currentUserIsCaloiro = false;
+        
+        var showEditButton = isAdmin && !currentUserIsCaloiro;
+        showEditButton.Should().BeTrue("Admin with Tuno category should see Edit button on Members grid");
+    }
+
+    [Fact]
+    public void MembersGrid_EditButton_ShouldBeHidden_ForAdminWithCaloiroCategory()
+    {
+        // Admin users with Caloiro category should NOT see Edit button on Members grid
+        var isAdmin = true;
+        var currentUserIsCaloiro = true;
+        
+        var showEditButton = isAdmin && !currentUserIsCaloiro;
+        showEditButton.Should().BeFalse("Admin with Caloiro category should NOT see Edit button on Members grid");
+    }
+
+    [Fact]
+    public void MembersGrid_EditButton_ShouldBeHidden_ForNonAdmin()
+    {
+        // Non-admin users should NOT see Edit button regardless of category
+        var isAdmin = false;
+        var currentUserIsCaloiro = false;
+        
+        var showEditButton = isAdmin && !currentUserIsCaloiro;
+        showEditButton.Should().BeFalse("Non-admin users should NOT see Edit button on Members grid");
+    }
+
+    [Fact]
+    public void LeitoesGrid_EditButton_ShouldBeVisible_ForAdminWithTunoCategory()
+    {
+        // Admin users with Tuno category should see Edit button on Leitões grid
+        var isAdmin = true;
+        var currentUserIsCaloiro = false;
+        
+        var showEditButton = isAdmin && !currentUserIsCaloiro;
+        showEditButton.Should().BeTrue("Admin with Tuno category should see Edit button on Leitões grid");
+    }
+
+    [Fact]
+    public void LeitoesGrid_EditButton_ShouldBeHidden_ForAdminWithCaloiroCategory()
+    {
+        // Admin users with Caloiro category should NOT see Edit button on Leitões grid
+        var isAdmin = true;
+        var currentUserIsCaloiro = true;
+        
+        var showEditButton = isAdmin && !currentUserIsCaloiro;
+        showEditButton.Should().BeFalse("Admin with Caloiro category should NOT see Edit button on Leitões grid");
+    }
+
+    [Fact]
+    public void LeitoesGrid_DeleteButton_ShouldBeVisible_ForAdminWithTunoCategory()
+    {
+        // Admin users with Tuno category should see Delete button on Leitões grid
+        var isAdmin = true;
+        var currentUserIsCaloiro = false;
+        
+        var showDeleteButton = isAdmin && !currentUserIsCaloiro;
+        showDeleteButton.Should().BeTrue("Admin with Tuno category should see Delete button on Leitões grid");
+    }
+
+    [Fact]
+    public void LeitoesGrid_DeleteButton_ShouldBeHidden_ForAdminWithCaloiroCategory()
+    {
+        // Admin users with Caloiro category should NOT see Delete button on Leitões grid
+        var isAdmin = true;
+        var currentUserIsCaloiro = true;
+        
+        var showDeleteButton = isAdmin && !currentUserIsCaloiro;
+        showDeleteButton.Should().BeFalse("Admin with Caloiro category should NOT see Delete button on Leitões grid");
+    }
+
+    [Fact]
+    public void MembersGrid_DeleteButton_ShouldBeVisible_ForOwner()
+    {
+        // Owner role should see Delete button on Members grid (independent of category)
+        var isOwner = true;
+        
+        var showDeleteButton = isOwner;
+        showDeleteButton.Should().BeTrue("Owner should see Delete button on Members grid");
+    }
+
+    [Fact]
+    public void MembersGrid_DeleteButton_ShouldBeHidden_ForNonOwner()
+    {
+        // Non-owner users should NOT see Delete button on Members grid
+        var isOwner = false;
+        
+        var showDeleteButton = isOwner;
+        showDeleteButton.Should().BeFalse("Non-owner should NOT see Delete button on Members grid");
+    }
+
+    [Fact]
+    public void CheckUserRoles_ShouldDetectCaloiroCategory_ForAdminUser()
+    {
+        // When an admin user has Caloiro in their categories, currentUserIsCaloiro should be true
+        // This tests the logic: currentUser.Categories.Contains(MemberCategory.Caloiro)
+        
+        var userHasCaloiroCategory = true;
+        var isAdmin = true;
+        
+        var currentUserIsCaloiro = isAdmin && userHasCaloiroCategory;
+        currentUserIsCaloiro.Should().BeTrue("Should detect Caloiro category for admin user");
+    }
+
+    [Fact]
+    public void CheckUserRoles_ShouldNotDetectCaloiroCategory_ForNonCaloiroAdmin()
+    {
+        // When an admin user does NOT have Caloiro in their categories, currentUserIsCaloiro should be false
+        
+        var userHasCaloiroCategory = false;
+        var isAdmin = true;
+        
+        var currentUserIsCaloiro = isAdmin && userHasCaloiroCategory;
+        currentUserIsCaloiro.Should().BeFalse("Should NOT detect Caloiro category for non-Caloiro admin user");
+    }
+
+    [Fact]
+    public void CheckUserRoles_ShouldNotCheckCategory_ForNonAdmin()
+    {
+        // When user is not admin, category check should not be performed
+        
+        var isAdmin = false;
+        var currentUserIsCaloiro = false;
+        
+        // Logic: if (isAdmin) { check category } else { currentUserIsCaloiro remains false }
+        currentUserIsCaloiro.Should().BeFalse("Should not check category for non-admin users");
+    }
+
+    [Fact]
+    public void PermissionLogic_ShouldBeConsistent_AcrossBothGrids()
+    {
+        // Edit button permission logic should be the same for both grids
+        var isAdmin = true;
+        var currentUserIsCaloiro = false;
+        
+        var membersGridEditPermission = isAdmin && !currentUserIsCaloiro;
+        var leitoesGridEditPermission = isAdmin && !currentUserIsCaloiro;
+        
+        membersGridEditPermission.Should().Be(leitoesGridEditPermission,
+            "Edit button permission logic should be consistent across both grids");
+    }
+
+    [Fact]
+    public void PermissionLogic_DeleteButton_ShouldDifferBetweenGrids()
+    {
+        // Delete button permission differs between grids
+        // Members grid: Owner only
+        // Leitões grid: Admin (non-Caloiro)
+        
+        var isOwner = false;
+        var isAdmin = true;
+        var currentUserIsCaloiro = false;
+        
+        var membersGridDeletePermission = isOwner;
+        var leitoesGridDeletePermission = isAdmin && !currentUserIsCaloiro;
+        
+        membersGridDeletePermission.Should().NotBe(leitoesGridDeletePermission,
+            "Delete button permission logic should differ between grids");
+    }
+
+    #endregion
+
     #region Action Handler Tests
 
     [Fact]

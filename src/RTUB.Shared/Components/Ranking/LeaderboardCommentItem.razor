@@ -1,0 +1,168 @@
+@namespace RTUB.Shared
+@using RTUB.Application.Interfaces
+
+@*
+    LeaderboardCommentItem Component
+    Displays a single comment with author info, like button, and delete option
+*@
+
+<div class="leaderboard-comment-item">
+    <div class="comment-header">
+        <img src="@Comment.AuthorAvatarUrl" alt="@Comment.AuthorName" class="comment-avatar" />
+        <div class="comment-meta">
+            <span class="comment-author">@Comment.AuthorName</span>
+            <span class="comment-date">@FormatDate(Comment.CreatedAt)</span>
+        </div>
+        @if (Comment.CanDelete && OnDelete.HasDelegate)
+        {
+            <button class="btn btn-sm admin-btn-delete comment-delete-btn" 
+                    @onclick="HandleDelete"
+                    title="Eliminar comentário">
+                <i class="bi bi-trash"></i>
+            </button>
+        }
+    </div>
+    <div class="comment-body">
+        @Comment.Text
+    </div>
+    <div class="comment-footer">
+        <button class="btn btn-sm btn-purple comment-like-btn @(Comment.IsLikedByCurrentUser ? "liked" : "")" 
+                @onclick="HandleLikeToggle"
+                disabled="@IsProcessing"
+                title="@GetLikeTooltip()">
+            <i class="bi @(Comment.IsLikedByCurrentUser ? "bi-heart-fill" : "bi-heart")"></i>
+            @if (Comment.LikesCount > 0)
+            {
+                <span class="like-count clickable" @onclick="ShowLikesModal" @onclick:stopPropagation="true">@Comment.LikesCount</span>
+            }
+            else
+            {
+                <span class="like-count">@Comment.LikesCount</span>
+            }
+        </button>
+    </div>
+</div>
+
+<!-- Likes Modal -->
+<Modal Show="@showLikesModal" 
+       ShowChanged="@((bool show) => showLikesModal = show)"
+       Title="Gostos" 
+       Size="Modal.ModalSize.Small"
+       Centered="true">
+    <BodyContent>
+        @if (Comment.LikedByNames.Any())
+        {
+            <div class="likes-list">
+                @foreach (var name in Comment.LikedByNames)
+                {
+                    <div class="like-item">
+                        <i class="bi bi-person-circle me-2"></i>
+                        <span>@name</span>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-muted text-center">Ninguém gostou ainda</p>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="@(() => showLikesModal = false)">Fechar</button>
+    </FooterContent>
+</Modal>
+
+@code {
+    [Parameter, EditorRequired]
+    public LeaderboardCommentDto Comment { get; set; } = null!;
+    
+    [Parameter]
+    public EventCallback<int> OnLikeToggle { get; set; }
+    
+    [Parameter]
+    public EventCallback<int> OnDelete { get; set; }
+    
+    private bool IsProcessing { get; set; }
+    private bool showLikesModal { get; set; }
+    
+    private async Task HandleLikeToggle()
+    {
+        if (IsProcessing) return;
+        
+        IsProcessing = true;
+        try
+        {
+            await OnLikeToggle.InvokeAsync(Comment.Id);
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+    
+    private async Task HandleDelete()
+    {
+        if (IsProcessing) return;
+        
+        IsProcessing = true;
+        try
+        {
+            await OnDelete.InvokeAsync(Comment.Id);
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+    
+    private void ShowLikesModal()
+    {
+        if (Comment.LikesCount > 0)
+        {
+            showLikesModal = true;
+        }
+    }
+    
+    private string FormatDate(DateTime date)
+    {
+        var now = DateTime.UtcNow;
+        var diff = now - date;
+        
+        if (diff.TotalMinutes < 1)
+            return "agora";
+        if (diff.TotalMinutes < 60)
+            return $"{(int)diff.TotalMinutes}m";
+        if (diff.TotalHours < 24)
+            return $"{(int)diff.TotalHours}h";
+        if (diff.TotalDays < 7)
+            return $"{(int)diff.TotalDays}d";
+        
+        return date.ToString("dd/MM/yyyy");
+    }
+    
+    private string GetLikeTooltip()
+    {
+        if (Comment.LikesCount == 0)
+        {
+            return "Gostar";
+        }
+        
+        if (Comment.LikedByNames.Count == 1)
+        {
+            return $"{Comment.LikedByNames[0]} gosta disto.";
+        }
+        
+        if (Comment.LikedByNames.Count == 2)
+        {
+            return $"{Comment.LikedByNames[0]} e {Comment.LikedByNames[1]} gostam disto.";
+        }
+        
+        if (Comment.LikedByNames.Count == 3)
+        {
+            return $"{Comment.LikedByNames[0]}, {Comment.LikedByNames[1]} e {Comment.LikedByNames[2]} gostam disto.";
+        }
+        
+        // More than 3 likes - show hint to click for full list
+        return $"{Comment.LikedByNames[0]}, {Comment.LikedByNames[1]} e {Comment.LikedByNames.Count - 2} outros gostam disto. Clique para ver todos.";
+    }
+}

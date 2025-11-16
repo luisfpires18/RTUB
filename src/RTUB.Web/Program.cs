@@ -163,11 +163,12 @@ public class Program
 
                         var now = DateTime.UtcNow;
 
-                        // Atomic, concurrency-safe "set once if null"
+                        // Update LastLoginDate to track user activity (both normal login and cookie validation)
+                        // This is throttled by the cache above to prevent excessive DB writes
                         await db.Database.ExecuteSqlInterpolatedAsync($@"
                             UPDATE AspNetUsers
                             SET LastLoginDate = {now}
-                            WHERE Id = {userId} AND LastLoginDate IS NULL;");
+                            WHERE Id = {userId};");
                     }
                     catch (Exception ex)
                     {
@@ -209,6 +210,8 @@ public class Program
         services.AddScoped<ILogisticsListService, LogisticsListService>();
         services.AddScoped<ILogisticsCardService, LogisticsCardService>();
         services.AddScoped<IMeetingService, MeetingService>();
+        services.AddScoped<IMeetingRequestService, MeetingRequestService>();
+        services.AddScoped<ILeaderboardCommentService, LeaderboardCommentService>();
         
         // --------- Cloudflare R2 S3 Client (Singleton) ---------
         // Register a single shared AmazonS3Client with exact config that works with Cloudflare R2

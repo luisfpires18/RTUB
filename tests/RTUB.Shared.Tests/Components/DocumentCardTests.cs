@@ -184,7 +184,8 @@ public class DocumentCardTests : TestContext
             .Add(p => p.Document, document));
 
         // Assert
-        cut.Markup.Should().Contain("Ver", "PDF files should have a view button");
+        cut.Markup.Should().Contain("bi-eye-fill", "PDF files should have a view button with eye icon");
+        cut.Markup.Should().Contain("Ver documento", "PDF view button should have tooltip");
     }
 
     [Fact]
@@ -205,7 +206,8 @@ public class DocumentCardTests : TestContext
             .Add(p => p.Document, document));
 
         // Assert
-        cut.Markup.Should().Contain("Transferir", "all documents should have a download button");
+        cut.Markup.Should().Contain("bi-download", "all documents should have a download button with download icon");
+        cut.Markup.Should().Contain("Download documento", "download button should have tooltip");
     }
 
     [Fact]
@@ -329,7 +331,7 @@ public class DocumentCardTests : TestContext
             .Add(p => p.Document, document)
             .Add(p => p.OnDownload, EventCallback.Factory.Create<DocumentMetadata>(this, doc => downloadedDocument = doc)));
 
-        var downloadButton = cut.Find("button[title='Transferir documento']");
+        var downloadButton = cut.Find("button[title='Download documento']");
         downloadButton.Click();
 
         // Assert

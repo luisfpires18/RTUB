@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251116180931_AddLeaderboardComments")]
+    partial class AddLeaderboardComments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
@@ -1040,9 +1043,6 @@ namespace RTUB.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("OrganizerUserId")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Statement")
                         .IsRequired()
                         .HasMaxLength(5000)
@@ -1064,61 +1064,7 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrganizerUserId");
-
                     b.ToTable("Meetings");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.MeetingRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AuthorUserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Location")
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("ProposedDateTime")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("RequestedMeetingType")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AuthorUserId");
-
-                    b.ToTable("MeetingRequests");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>
@@ -2000,27 +1946,6 @@ namespace RTUB.Migrations
                         .IsRequired();
 
                     b.Navigation("Board");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.Meeting", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Organizer")
-                        .WithMany()
-                        .HasForeignKey("OrganizerUserId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("Organizer");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.MeetingRequest", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Author");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Post", b =>

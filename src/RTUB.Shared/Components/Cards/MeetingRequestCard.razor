@@ -1,0 +1,196 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using RTUB.Application.Extensions
+@*
+    MeetingRequestCard Component
+    Card for displaying meeting request information (CV or AG)
+*@
+
+<div class="card request-card h-100">
+    <div class="position-relative">
+        @if (IsAuthor)
+        {
+            <div class="request-admin-overlay">
+                <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
+                    <i class="bi bi-trash music-icon-delete"></i>
+                </button>
+            </div>
+        }
+        <div class="request-icon-header">
+            <div class="request-icon-circle">
+                @if (MeetingRequest.RequestedMeetingType == MeetingType.ConselhoVeteranos)
+                {
+                    <i class="bi bi-megaphone-fill"></i>
+                }
+                else
+                {
+                    <i class="bi bi-people-fill"></i>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="card-body d-flex flex-column">
+        <div class="request-info">
+            <!-- Meeting Type Badge -->
+            <div class="mb-2">
+                <span class="badge @GetMeetingTypeBadgeClass()">
+                    @GetMeetingTypeDisplayName()
+                </span>
+            </div>
+            
+            <!-- Author Nickname -->
+            <div class="request-info-row">
+                <i class="bi bi-person request-icon"></i>
+                <span class="request-text fw-bold">@(MeetingRequest.Author?.Nickname ?? "Desconhecido")</span>
+            </div>
+            
+            <!-- Proposed Date -->
+            <div class="request-info-row">
+                <i class="bi bi-calendar3 request-icon"></i>
+                <span class="request-text">@MeetingRequest.ProposedDateTime.ToPortugueseShortDate()</span>
+            </div>
+            
+            <!-- Location -->
+            @if (!string.IsNullOrEmpty(MeetingRequest.Location))
+            {
+                <div class="request-info-row">
+                    <i class="bi bi-geo-alt request-icon"></i>
+                    <span class="request-text">@MeetingRequest.Location</span>
+                </div>
+            }
+
+            <!-- Status Badge -->
+            <div class="mt-2">
+                <StatusBadge Status="@MeetingRequest.Status" />
+            </div>
+        </div>
+
+        <div class="request-actions mt-auto">
+            <div class="d-flex gap-2 align-items-center justify-content-center flex-wrap">
+                <!-- View Details button -->
+                <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" 
+                        @onclick="HandleViewDetails" 
+                        title="Ver Detalhes">
+                    <i class="bi bi-eye-fill"></i>
+                    <span>Ver Detalhes</span>
+                </button>
+
+                @if (CanApproveReject && MeetingRequest.Status == RequestStatus.Pending)
+                {
+                    <!-- Accept button -->
+                    <button class="btn btn-sm btn-success d-flex align-items-center" 
+                            @onclick="HandleAccept" 
+                            title="Aceitar">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </button>
+
+                    <!-- Reject button -->
+                    <button class="btn btn-sm btn-danger d-flex align-items-center" 
+                            @onclick="HandleReject" 
+                            title="Rejeitar">
+                        <i class="bi bi-x-circle-fill"></i>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// The meeting request to display
+    /// </summary>
+    [Parameter]
+    public MeetingRequest MeetingRequest { get; set; } = null!;
+
+    /// <summary>
+    /// Whether the current user is the author (has delete permissions)
+    /// </summary>
+    [Parameter]
+    public bool IsAuthor { get; set; }
+
+    /// <summary>
+    /// Whether the current user can approve/reject requests
+    /// </summary>
+    [Parameter]
+    public bool CanApproveReject { get; set; }
+
+    /// <summary>
+    /// Callback when the view details button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewDetails { get; set; }
+
+    /// <summary>
+    /// Callback when the delete button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    /// <summary>
+    /// Callback when the accept button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnAccept { get; set; }
+
+    /// <summary>
+    /// Callback when the reject button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnReject { get; set; }
+
+    private async Task HandleViewDetails()
+    {
+        if (OnViewDetails.HasDelegate)
+        {
+            await OnViewDetails.InvokeAsync();
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync();
+        }
+    }
+
+    private async Task HandleAccept()
+    {
+        if (OnAccept.HasDelegate)
+        {
+            await OnAccept.InvokeAsync();
+        }
+    }
+
+    private async Task HandleReject()
+    {
+        if (OnReject.HasDelegate)
+        {
+            await OnReject.InvokeAsync();
+        }
+    }
+    
+    private string GetMeetingTypeBadgeClass()
+    {
+        return MeetingRequest.RequestedMeetingType switch
+        {
+            MeetingType.ConselhoVeteranos => "bg-dark text-white",
+            MeetingType.AssembleiaGeralOrdinaria => "bg-primary",
+            MeetingType.AssembleiaGeralExtraordinaria => "bg-info",
+            _ => "bg-secondary"
+        };
+    }
+    
+    private string GetMeetingTypeDisplayName()
+    {
+        return MeetingRequest.RequestedMeetingType switch
+        {
+            MeetingType.ConselhoVeteranos => "Conselho de Veteranos",
+            MeetingType.AssembleiaGeralOrdinaria => "Assembleia Geral Ordinária",
+            MeetingType.AssembleiaGeralExtraordinaria => "Assembleia Geral Extraordinária",
+            _ => "Desconhecido"
+        };
+    }
+}

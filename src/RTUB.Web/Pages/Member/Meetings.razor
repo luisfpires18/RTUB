@@ -12,11 +12,22 @@
 @using RTUB.Shared
 @attribute [Authorize]
 @inject IMeetingService MeetingService
+@inject IMeetingRequestService MeetingRequestService
 @inject IEmailNotificationService EmailNotificationService
 @inject IEmailTemplateRenderer EmailTemplateRenderer
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
+@if (currentUser != null && currentUser.IsLeitao())
+{
+    <div class="text-center p-5">
+        <i class="bi bi-lock-fill" style="font-size: 3rem; color: var(--bs-primary);"></i>
+        <h2 class="mt-3">Acesso Restrito</h2>
+        <p class="text-light-theme">Esta página não está disponível para utilizadores Leitão.</p>
+    </div>
+}
+else
+{
 <h1 class="mb-2"><i class="bi bi-calendar3"></i> Reuniões</h1>
 <p class="lead mb-4 text-light-theme">Gerir reuniões e assembleias da organização.</p>
 
@@ -25,6 +36,18 @@
     {
         <button class="btn btn-success mb-2" @onclick="OpenCreateModal" title="Adicionar Nova Reunião">
             <i class="bi bi-plus-lg"></i> Criar Reunião
+        </button>
+    }
+    @if (CanProposeCVMeeting())
+    {
+        <button class="btn btn-primary mb-2 ms-2" @onclick="OpenProposalModal" title="Propor Reunião de CV">
+            <i class="bi bi-megaphone"></i> Propor Reunião de CV
+        </button>
+    }
+    @if (CanProposeAGMeeting())
+    {
+        <button class="btn btn-primary mb-2 ms-2" @onclick="OpenAGProposalModal" title="Propor Assembleia Geral">
+            <i class="bi bi-people"></i> Propor Assembleia Geral
         </button>
     }
 </div>
@@ -57,6 +80,7 @@ else
         @foreach (var meeting in meetings)
         {
             <MeetingCard Meeting="@meeting"
+                        Organizer="@meeting.Organizer"
                         IsAdmin="@CanManageMeeting(meeting)"
                         OnEdit="@(() => OpenEditModal(meeting))"
                         OnDelete="@(() => OpenDeleteModal(meeting))"
@@ -77,6 +101,78 @@ else
         OnPageChanged="ChangePage"
         OnPageSizeChanged="ChangePageSize" />
 }
+
+<!-- Meeting Requests Section (CV and AG) -->
+@if (CanViewCVRequests())
+{
+    <div class="mt-5">
+        <h2 class="mb-3"><i class="bi bi-inbox"></i> Pedidos de Reuniões</h2>
+        
+        <!-- Filter Controls -->
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <FilterDropdown 
+                    Items="@requestStatusFilterOptions"
+                    SelectedValue="@selectedRequestStatusFilter"
+                    SelectedValueChanged="@(async (value) => { selectedRequestStatusFilter = value; requestCurrentPage = 1; await LoadMeetingRequestsAsync(); })"
+                    AllItemsLabel="Todos os Estados"
+                    IconClass="bi-funnel" />
+            </div>
+        </div>
+        
+        @if (isLoadingRequests)
+        {
+            <div class="text-center p-5">
+                <LoadingSpinner />
+            </div>
+        }
+        else if (!meetingRequests.Any())
+        {
+            <EmptyState 
+                Title="Nenhum pedido de reunião encontrado." 
+                Icon="bi-info-circle" />
+        }
+        else
+        {
+            <div class="request-grid">
+                @foreach (var request in meetingRequests)
+                {
+                    <AuthorizeView Roles="Owner">
+                        <Authorized Context="ownerContext">
+                            <MeetingRequestCard MeetingRequest="@request"
+                                               IsAuthor="true"
+                                               CanApproveReject="@CanApproveRejectRequests(request)"
+                                               OnViewDetails="@(() => OpenRequestDetailsModal(request))"
+                                               OnDelete="@(() => OpenDeleteRequestModal(request))"
+                                               OnAccept="@(() => AcceptMeetingRequest(request))"
+                                               OnReject="@(() => RejectMeetingRequest(request))" />
+                        </Authorized>
+                        <NotAuthorized>
+                            <MeetingRequestCard MeetingRequest="@request"
+                                               IsAuthor="@(request.AuthorUserId == currentUserId)"
+                                               CanApproveReject="@CanApproveRejectRequests(request)"
+                                               OnViewDetails="@(() => OpenRequestDetailsModal(request))"
+                                               OnDelete="@(() => OpenDeleteRequestModal(request))"
+                                               OnAccept="@(() => AcceptMeetingRequest(request))"
+                                               OnReject="@(() => RejectMeetingRequest(request))" />
+                        </NotAuthorized>
+                    </AuthorizeView>
+                }
+            </div>
+            
+            <!-- Pagination -->
+            <TablePagination 
+                CurrentPage="@requestCurrentPage"
+                PageSize="@requestPageSize"
+                TotalItems="@requestTotalCount"
+                ItemLabel="pedidos"
+                PageSizeOptions="@(new[] { 4, 8, 12, 16, 20 })"
+                OnPageChanged="ChangeRequestPage"
+                OnPageSizeChanged="ChangeRequestPageSize" />
+        }
+    </div>
+}
+
 
 <!-- View Details Modal -->
 <Modal Show="@showViewDetailsModal" 
@@ -399,6 +495,139 @@ else
     </FooterContent>
 </Modal>
 
+<!-- CV Meeting Proposal Modal -->
+<Modal Show="@showProposalModal" 
+       ShowChanged="@((bool show) => showProposalModal = show)"
+       Size="Modal.ModalSize.Large"
+       Title="@(proposalRequest?.RequestedMeetingType == MeetingType.ConselhoVeteranos ? "Propor Reunião de CV" : "Propor Assembleia Geral")">
+    <BodyContent>
+        @if (proposalRequest != null)
+        {
+            <EditForm Model="proposalRequest" OnValidSubmit="SaveMeetingProposal">
+                <DataAnnotationsValidator />
+                <ErrorDisplay />
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-card-text text-primary me-2"></i>Título
+                    </label>
+                    <InputText class="form-control" @bind-Value="proposalRequest.Title" placeholder="Inserir título..." />
+                    <ValidationMessage For="@(() => proposalRequest.Title)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-calendar3 text-primary me-2"></i>Data e Hora Proposta
+                    </label>
+                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="proposalRequest.ProposedDateTime" />
+                    <ValidationMessage For="@(() => proposalRequest.ProposedDateTime)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização (Opcional)
+                    </label>
+                    <InputText class="form-control" @bind-Value="proposalRequest.Location" placeholder="Ex: Discord, Centro Académico..." />
+                    <ValidationMessage For="@(() => proposalRequest.Location)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-file-text text-primary me-2"></i>Descrição/Motivo
+                    </label>
+                    <InputTextArea class="form-control" rows="10" @bind-Value="proposalRequest.Description" placeholder="Descrever o motivo e assuntos a discutir..." />
+                    <ValidationMessage For="@(() => proposalRequest.Description)" />
+                    <small class="text-light-theme">Máximo 2000 caracteres</small>
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button class="btn btn-secondary" @onclick="CloseProposalModal">Cancelar</button>
+        <button class="btn btn-primary" @onclick="SaveMeetingProposal">
+            <i class="bi bi-send"></i> Enviar Proposta
+        </button>
+    </FooterContent>
+</Modal>
+
+<!-- Request View Details Modal -->
+<Modal Show="@showRequestDetailsModal" 
+       ShowChanged="@((bool show) => showRequestDetailsModal = show)"
+       Size="Modal.ModalSize.Large"
+       Title="Detalhes do Pedido de Reunião">
+    <BodyContent>
+        @if (viewingRequest != null)
+        {
+            <div class="mb-3">
+                <h4 class="text-white-full">@viewingRequest.Title</h4>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-person text-primary me-2"></i>Autor
+                </label>
+                <p class="text-light-theme">@(viewingRequest.Author?.Nickname ?? "Desconhecido")</p>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-calendar3 text-primary me-2"></i>Data e Hora Proposta
+                </label>
+                <p class="text-light-theme">@viewingRequest.ProposedDateTime.ToString("dd/MM/yyyy HH:mm")</p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(viewingRequest.Location))
+            {
+                <div class="mb-3">
+                    <label class="form-label text-white-full fw-semibold">
+                        <i class="bi bi-geo-alt text-primary me-2"></i>Localização
+                    </label>
+                    <p class="text-light-theme">@viewingRequest.Location</p>
+                </div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-file-text text-primary me-2"></i>Descrição/Motivo
+                </label>
+                <p class="text-light-theme" style="white-space: pre-line;">@viewingRequest.Description</p>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-white-full fw-semibold">
+                    <i class="bi bi-info-circle text-primary me-2"></i>Estado
+                </label>
+                <div>
+                    <StatusBadge Status="@viewingRequest.Status" />
+                </div>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button class="btn btn-secondary" @onclick="CloseRequestDetailsModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
+<!-- Delete Request Confirmation Modal -->
+<Modal Show="@showDeleteRequestModal" 
+       ShowChanged="@((bool show) => showDeleteRequestModal = show)"
+       Title="Confirmar Eliminação">
+    <BodyContent>
+        @if (deletingRequest != null)
+        {
+            <p>Tem a certeza que quer eliminar o pedido <strong>@deletingRequest.Title</strong>?</p>
+            <p class="text-muted">Esta ação não pode ser revertida.</p>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button class="btn btn-secondary" @onclick="CloseDeleteRequestModal">Cancelar</button>
+        <button class="btn btn-danger" @onclick="DeleteMeetingRequest">
+            <i class="bi bi-trash"></i> Eliminar
+        </button>
+    </FooterContent>
+</Modal>
+}
+
 @code {
     private List<Meeting> meetings = new();
     private bool isLoading = true;
@@ -448,6 +677,21 @@ else
     private bool cancelMeetingLoadingSubscribers = false;
     private string? cancelMeetingErrorMessage;
     
+    // Meeting request variables
+    private List<MeetingRequest> meetingRequests = new();
+    private bool isLoadingRequests = true;
+    private int requestCurrentPage = 1;
+    private int requestPageSize = 4;
+    private int requestTotalCount = 0;
+    private string selectedRequestStatusFilter = string.Empty;
+    private List<string> requestStatusFilterOptions = new() { "Pendente", "Aceite", "Rejeitado" };
+    private bool showProposalModal = false;
+    private bool showRequestDetailsModal = false;
+    private bool showDeleteRequestModal = false;
+    private MeetingRequest? proposalRequest;
+    private MeetingRequest? viewingRequest;
+    private MeetingRequest? deletingRequest;
+    
     // Computed property for CV meeting creation permission
     private bool CanCreateCVMeetings
     {
@@ -479,6 +723,7 @@ else
         }
 
         await LoadMeetingsAsync();
+        await LoadMeetingRequestsAsync();
     }
 
     private async Task LoadMeetingsAsync()
@@ -563,7 +808,8 @@ else
             Type = defaultType,
             Title = string.Empty,
             Date = DateTime.Now.Date.AddDays(1).AddHours(20), // Default to tomorrow at 8 PM
-            Statement = string.Empty
+            Statement = string.Empty,
+            OrganizerUserId = currentUserId // Set current user as organizer
         };
         showEditModal = true;
     }
@@ -578,7 +824,8 @@ else
             Title = meeting.Title,
             Date = meeting.Date,
             Location = meeting.Location,
-            Statement = meeting.Statement
+            Statement = meeting.Statement,
+            OrganizerUserId = meeting.OrganizerUserId
         };
         showEditModal = true;
     }
@@ -788,7 +1035,9 @@ else
             var dateStr = selectedMeetingForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
             var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
             var senderCity = $"Bragança, {currentDate}";
-            var senderNickname = currentUser?.Nickname ?? "Admin";
+            var senderNickname = currentUser != null 
+                ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
+                : "Admin";
             
             emailBody = await EmailTemplateRenderer.RenderMeetingNotificationAsync(
                 meetingType: GetMeetingTypeFullName(selectedMeetingForEmail.Type),
@@ -868,7 +1117,9 @@ else
             var dateStr = selectedMeetingForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
             var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
             var senderCity = $"Bragança, {currentDate}";
-            var senderNickname = currentUser?.Nickname ?? "Admin";
+            var senderNickname = currentUser != null 
+                ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
+                : "Admin";
             
             emailPreviewHtml = await EmailTemplateRenderer.RenderMeetingNotificationAsync(
                 meetingType: GetMeetingTypeFullName(selectedMeetingForEmail.Type),
@@ -1003,7 +1254,9 @@ else
                 var dateStr = selectedMeetingForCancellation.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"));
                 var currentDate = DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
                 var senderCity = $"Bragança, {currentDate}";
-                var senderNickname = currentUser?.Nickname ?? "Admin";
+                var senderNickname = currentUser != null 
+                    ? $"{currentUser.FirstName} \"{currentUser.Nickname}\" {currentUser.LastName}"
+                    : "Admin";
                 
                 var emailBody = await EmailTemplateRenderer.RenderMeetingCancellationAsync(
                     meetingType: GetMeetingTypeFullName(selectedMeetingForCancellation.Type),
@@ -1148,6 +1401,249 @@ else
         }
         
         return false;
+    }
+    
+    // ========== Meeting Request Methods ==========
+    
+    private async Task LoadMeetingRequestsAsync()
+    {
+        if (!CanViewCVRequests())
+        {
+            isLoadingRequests = false;
+            return;
+        }
+        
+        isLoadingRequests = true;
+        try
+        {
+            RequestStatus? statusFilter = null;
+            if (!string.IsNullOrEmpty(selectedRequestStatusFilter))
+            {
+                // Map display name to enum
+                statusFilter = selectedRequestStatusFilter switch
+                {
+                    "Pendente" => RequestStatus.Pending,
+                    "Aceite" => RequestStatus.Confirmed,
+                    "Rejeitado" => RequestStatus.Rejected,
+                    _ => null
+                };
+            }
+            
+            meetingRequests = (await MeetingRequestService.GetPagedAsync(requestCurrentPage, requestPageSize, statusFilter)).ToList();
+            requestTotalCount = await MeetingRequestService.GetTotalCountAsync(statusFilter);
+        }
+        finally
+        {
+            isLoadingRequests = false;
+        }
+    }
+    
+    private async Task ChangeRequestPage(int newPage)
+    {
+        requestCurrentPage = newPage;
+        await LoadMeetingRequestsAsync();
+    }
+
+    private async Task ChangeRequestPageSize(int newPageSize)
+    {
+        requestPageSize = newPageSize;
+        requestCurrentPage = 1; // Reset to first page
+        await LoadMeetingRequestsAsync();
+    }
+    
+    private bool CanProposeCVMeeting()
+    {
+        if (currentUser == null) return false;
+        
+        // Presidente de Conselho de Veteranos doesn't need to see this button (they can create directly)
+        if (IsPresidenteConselhoVeteranos()) return false;
+        
+        var role = currentUser.CurrentRole;
+        return role == "VETERANO" || role == "TUNOSSAURO" || currentUser.Positions.Contains(Position.Magister);
+    }
+    
+    private bool CanProposeAGMeeting()
+    {
+        if (currentUser == null) return false;
+        
+        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
+        if (authState.User.IsInRole("Owner")) return true;
+        
+        return currentUser.Positions.Contains(Position.Magister) ||
+               currentUser.Positions.Contains(Position.PresidenteConselhoVeteranos) ||
+               currentUser.Positions.Contains(Position.PresidenteConselhoFiscal);
+    }
+    
+    private bool CanViewCVRequests()
+    {
+        if (currentUser == null) return false;
+        
+        var role = currentUser.CurrentRole;
+        return role == "VETERANO" || role == "TUNOSSAURO" || currentUser.Positions.Contains(Position.Magister);
+    }
+    
+    private bool IsPresidenteConselhoVeteranos()
+    {
+        return currentUser?.Positions.Contains(Position.PresidenteConselhoVeteranos) ?? false;
+    }
+    
+    private bool IsPresidenteMesaAssembleia()
+    {
+        return currentUser?.Positions.Contains(Position.PresidenteMesaAssembleia) ?? false;
+    }
+    
+    private bool CanApproveRejectRequests(MeetingRequest request)
+    {
+        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
+        if (authState.User.IsInRole("Owner")) return true;
+        
+        // For CV requests: Presidente do Conselho de Veteranos
+        if (request.RequestedMeetingType == MeetingType.ConselhoVeteranos)
+        {
+            return IsPresidenteConselhoVeteranos();
+        }
+        
+        // For AG requests: Presidente da Mesa da Assembleia
+        if (request.RequestedMeetingType == MeetingType.AssembleiaGeralOrdinaria || 
+            request.RequestedMeetingType == MeetingType.AssembleiaGeralExtraordinaria)
+        {
+            return IsPresidenteMesaAssembleia();
+        }
+        
+        return false;
+    }
+    
+    private void OpenProposalModal()
+    {
+        proposalRequest = new MeetingRequest
+        {
+            RequestedMeetingType = MeetingType.ConselhoVeteranos,
+            ProposedDateTime = DateTime.Now.AddDays(7), // Default to a week from now
+            AuthorUserId = currentUserId
+        };
+        showProposalModal = true;
+    }
+    
+    private void OpenAGProposalModal()
+    {
+        proposalRequest = new MeetingRequest
+        {
+            RequestedMeetingType = MeetingType.AssembleiaGeralExtraordinaria,
+            ProposedDateTime = DateTime.Now.AddDays(7), // Default to a week from now
+            AuthorUserId = currentUserId
+        };
+        showProposalModal = true;
+    }
+    
+    private void CloseProposalModal()
+    {
+        showProposalModal = false;
+        proposalRequest = null;
+    }
+    
+    private async Task SaveMeetingProposal()
+    {
+        if (proposalRequest == null) return;
+        
+        try
+        {
+            proposalRequest.AuthorUserId = currentUserId;
+            proposalRequest.Status = RequestStatus.Pending;
+            await MeetingRequestService.CreateAsync(proposalRequest);
+            
+            CloseProposalModal();
+            await LoadMeetingRequestsAsync();
+        }
+        catch (Exception)
+        {
+            // Error handling could be improved with user feedback
+        }
+    }
+    
+    private void OpenRequestDetailsModal(MeetingRequest request)
+    {
+        viewingRequest = request;
+        showRequestDetailsModal = true;
+    }
+    
+    private void CloseRequestDetailsModal()
+    {
+        showRequestDetailsModal = false;
+        viewingRequest = null;
+    }
+    
+    private void OpenDeleteRequestModal(MeetingRequest request)
+    {
+        deletingRequest = request;
+        showDeleteRequestModal = true;
+    }
+    
+    private void CloseDeleteRequestModal()
+    {
+        showDeleteRequestModal = false;
+        deletingRequest = null;
+    }
+    
+    private async Task DeleteMeetingRequest()
+    {
+        if (deletingRequest == null) return;
+        
+        try
+        {
+            await MeetingRequestService.DeleteAsync(deletingRequest.Id);
+            CloseDeleteRequestModal();
+            await LoadMeetingRequestsAsync();
+        }
+        catch (Exception)
+        {
+            // Error handling could be improved with user feedback
+        }
+    }
+    
+    private async Task AcceptMeetingRequest(MeetingRequest request)
+    {
+        if (!CanApproveRejectRequests(request)) return;
+        
+        try
+        {
+            // Update request status to Accepted
+            await MeetingRequestService.UpdateStatusAsync(request.Id, RequestStatus.Confirmed);
+            
+            // Open create meeting modal with pre-filled data from the request
+            isCreateMode = true;
+            editingMeeting = new Meeting
+            {
+                Type = request.RequestedMeetingType, // Use the type from the request
+                Title = request.Title,
+                Date = request.ProposedDateTime,
+                Location = request.Location,
+                Statement = request.Description,
+                OrganizerUserId = currentUserId
+            };
+            showEditModal = true;
+            
+            // Reload requests to show updated status
+            await LoadMeetingRequestsAsync();
+        }
+        catch (Exception)
+        {
+            // Error handling could be improved with user feedback
+        }
+    }
+    
+    private async Task RejectMeetingRequest(MeetingRequest request)
+    {
+        if (!CanApproveRejectRequests(request)) return;
+        
+        try
+        {
+            await MeetingRequestService.UpdateStatusAsync(request.Id, RequestStatus.Rejected);
+            await LoadMeetingRequestsAsync();
+        }
+        catch (Exception)
+        {
+            // Error handling could be improved with user feedback
+        }
     }
 }
 
