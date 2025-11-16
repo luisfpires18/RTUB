@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251116192548_AddOrganizerToMeeting")]
+    partial class AddOrganizerToMeeting
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
@@ -781,91 +784,6 @@ namespace RTUB.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Labels");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.LeaderboardComment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AuthorId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TargetUserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AuthorId")
-                        .HasDatabaseName("IX_LeaderboardComment_AuthorId");
-
-                    b.HasIndex("TargetUserId", "DeletedAt", "CreatedAt")
-                        .HasDatabaseName("IX_LeaderboardComment_TargetUserId_DeletedAt_CreatedAt");
-
-                    b.ToTable("LeaderboardComments");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.LeaderboardCommentLike", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CommentId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_LeaderboardCommentLike_UserId");
-
-                    b.HasIndex("CommentId", "UserId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_LeaderboardCommentLike_CommentId_UserId_Unique");
-
-                    b.ToTable("LeaderboardCommentLikes");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsBoard", b =>
@@ -1869,44 +1787,6 @@ namespace RTUB.Migrations
                     b.Navigation("Song");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.LeaderboardComment", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "TargetUser")
-                        .WithMany()
-                        .HasForeignKey("TargetUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Author");
-
-                    b.Navigation("TargetUser");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.LeaderboardCommentLike", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.LeaderboardComment", "Comment")
-                        .WithMany("Likes")
-                        .HasForeignKey("CommentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Comment");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsBoard", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.Event", "Event")
@@ -2092,11 +1972,6 @@ namespace RTUB.Migrations
                     b.Navigation("RepertoireSongs");
 
                     b.Navigation("Trophies");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.LeaderboardComment", b =>
-                {
-                    b.Navigation("Likes");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.LogisticsBoard", b =>

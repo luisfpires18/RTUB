@@ -610,4 +610,165 @@ public class MeetingCardTests : TestContext
         cut.Markup.Should().Contain("badge", "should have Bootstrap badge class");
         cut.Markup.Should().Contain(expectedBadgeClass, $"should have {expectedBadgeClass} for meeting type {type}");
     }
+
+    [Fact]
+    public void MeetingCard_DisplaysOrganizer_WhenOrganizerProvided()
+    {
+        // Arrange
+        var organizer = new ApplicationUser
+        {
+            Id = "test-user-1",
+            Nickname = "Ambrósio",
+            PositionsJson = System.Text.Json.JsonSerializer.Serialize(new[] { Position.PresidenteMesaAssembleia })
+        };
+
+        var meeting = new Meeting
+        {
+            Title = "Test Meeting",
+            Date = DateTime.Now.AddDays(7),
+            Location = "Sede",
+            Type = MeetingType.AssembleiaGeralOrdinaria,
+            Statement = "Test statement",
+            OrganizerUserId = organizer.Id
+        };
+
+        // Act
+        var cut = RenderComponent<MeetingCard>(parameters => parameters
+            .Add(p => p.Meeting, meeting)
+            .Add(p => p.Organizer, organizer)
+            .Add(p => p.IsAdmin, false));
+
+        // Assert
+        cut.Markup.Should().Contain("bi-person-badge", "should display organizer icon");
+        cut.Markup.Should().Contain("Organizador:", "should display organizer label");
+        cut.Markup.Should().Contain("Ambrósio", "should display organizer nickname");
+        cut.Markup.Should().Contain("Presidente da Mesa de Assembleia", "should display organizer position");
+    }
+
+    [Fact]
+    public void MeetingCard_DoesNotDisplayOrganizer_WhenOrganizerIsNull()
+    {
+        // Arrange
+        var meeting = new Meeting
+        {
+            Title = "Test Meeting",
+            Date = DateTime.Now.AddDays(7),
+            Location = "Sede",
+            Type = MeetingType.AssembleiaGeralOrdinaria,
+            Statement = "Test statement"
+        };
+
+        // Act
+        var cut = RenderComponent<MeetingCard>(parameters => parameters
+            .Add(p => p.Meeting, meeting)
+            .Add(p => p.Organizer, null)
+            .Add(p => p.IsAdmin, false));
+
+        // Assert
+        cut.Markup.Should().NotContain("bi-person-badge", "should not display organizer icon when organizer is null");
+        cut.Markup.Should().NotContain("Organizador:", "should not display organizer label when organizer is null");
+    }
+
+    [Fact]
+    public void MeetingCard_DoesNotDisplayOrganizer_WhenOrganizerHasNoPositions()
+    {
+        // Arrange
+        var organizer = new ApplicationUser
+        {
+            Id = "test-user-1",
+            Nickname = "Ambrósio",
+            PositionsJson = null
+        };
+
+        var meeting = new Meeting
+        {
+            Title = "Test Meeting",
+            Date = DateTime.Now.AddDays(7),
+            Location = "Sede",
+            Type = MeetingType.AssembleiaGeralOrdinaria,
+            Statement = "Test statement",
+            OrganizerUserId = organizer.Id
+        };
+
+        // Act
+        var cut = RenderComponent<MeetingCard>(parameters => parameters
+            .Add(p => p.Meeting, meeting)
+            .Add(p => p.Organizer, organizer)
+            .Add(p => p.IsAdmin, false));
+
+        // Assert
+        cut.Markup.Should().NotContain("bi-person-badge", "should not display organizer icon when organizer has no positions");
+        cut.Markup.Should().NotContain("Organizador:", "should not display organizer label when organizer has no positions");
+    }
+
+    [Theory]
+    [InlineData(Position.Magister, "Magister")]
+    [InlineData(Position.PresidenteMesaAssembleia, "Presidente da Mesa de Assembleia")]
+    [InlineData(Position.PresidenteConselhoVeteranos, "Presidente do Conselho de Veteranos")]
+    [InlineData(Position.Secretario, "Secretário")]
+    public void MeetingCard_DisplaysCorrectPositionForOrganizer(Position position, string expectedPositionText)
+    {
+        // Arrange
+        var organizer = new ApplicationUser
+        {
+            Id = "test-user-1",
+            Nickname = "TestUser",
+            PositionsJson = System.Text.Json.JsonSerializer.Serialize(new[] { position })
+        };
+
+        var meeting = new Meeting
+        {
+            Title = "Test Meeting",
+            Date = DateTime.Now.AddDays(7),
+            Location = "Sede",
+            Type = MeetingType.AssembleiaGeralOrdinaria,
+            Statement = "Test statement",
+            OrganizerUserId = organizer.Id
+        };
+
+        // Act
+        var cut = RenderComponent<MeetingCard>(parameters => parameters
+            .Add(p => p.Meeting, meeting)
+            .Add(p => p.Organizer, organizer)
+            .Add(p => p.IsAdmin, false));
+
+        // Assert
+        cut.Markup.Should().Contain(expectedPositionText, $"should display {expectedPositionText} for position {position}");
+    }
+
+    [Fact]
+    public void MeetingCard_DisplaysFirstPosition_WhenOrganizerHasMultiplePositions()
+    {
+        // Arrange
+        var organizer = new ApplicationUser
+        {
+            Id = "test-user-1",
+            Nickname = "TestUser",
+            PositionsJson = System.Text.Json.JsonSerializer.Serialize(new[] 
+            { 
+                Position.PresidenteMesaAssembleia,
+                Position.Secretario
+            })
+        };
+
+        var meeting = new Meeting
+        {
+            Title = "Test Meeting",
+            Date = DateTime.Now.AddDays(7),
+            Location = "Sede",
+            Type = MeetingType.AssembleiaGeralOrdinaria,
+            Statement = "Test statement",
+            OrganizerUserId = organizer.Id
+        };
+
+        // Act
+        var cut = RenderComponent<MeetingCard>(parameters => parameters
+            .Add(p => p.Meeting, meeting)
+            .Add(p => p.Organizer, organizer)
+            .Add(p => p.IsAdmin, false));
+
+        // Assert
+        cut.Markup.Should().Contain("Presidente da Mesa de Assembleia", "should display the first position");
+        cut.Markup.Should().NotContain("Secretário", "should not display secondary positions");
+    }
 }

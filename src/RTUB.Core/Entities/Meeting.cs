@@ -25,6 +25,10 @@ public class Meeting : BaseEntity
     [MaxLength(5000, ErrorMessage = "A declaração não pode exceder 5000 caracteres")]
     public string Statement { get; set; } = string.Empty;
     
+    // Organizer tracking
+    public string? OrganizerUserId { get; set; }
+    public ApplicationUser? Organizer { get; set; }
+    
     // Cancellation tracking
     public bool IsCancelled { get; set; }
     

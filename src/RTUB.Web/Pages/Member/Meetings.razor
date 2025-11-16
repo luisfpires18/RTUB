@@ -57,6 +57,7 @@ else
         @foreach (var meeting in meetings)
         {
             <MeetingCard Meeting="@meeting"
+                        Organizer="@meeting.Organizer"
                         IsAdmin="@CanManageMeeting(meeting)"
                         OnEdit="@(() => OpenEditModal(meeting))"
                         OnDelete="@(() => OpenDeleteModal(meeting))"
@@ -563,7 +564,8 @@ else
             Type = defaultType,
             Title = string.Empty,
             Date = DateTime.Now.Date.AddDays(1).AddHours(20), // Default to tomorrow at 8 PM
-            Statement = string.Empty
+            Statement = string.Empty,
+            OrganizerUserId = currentUserId // Set current user as organizer
         };
         showEditModal = true;
     }
@@ -578,7 +580,8 @@ else
             Title = meeting.Title,
             Date = meeting.Date,
             Location = meeting.Location,
-            Statement = meeting.Statement
+            Statement = meeting.Statement,
+            OrganizerUserId = meeting.OrganizerUserId
         };
         showEditModal = true;
     }
