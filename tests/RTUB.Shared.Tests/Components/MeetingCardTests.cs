@@ -603,4 +603,30 @@ public class MeetingCardTests : TestContext
         if (daysUntilTarget == 0) daysUntilTarget = 7; // If today is the target, get next week
         return today.AddDays(daysUntilTarget);
     }
+
+    [Theory]
+    [InlineData(MeetingType.AssembleiaGeralOrdinaria, "bg-primary")]
+    [InlineData(MeetingType.AssembleiaGeralExtraordinaria, "bg-danger")]
+    [InlineData(MeetingType.ConselhoVeteranos, "bg-warning text-dark")]
+    public void MeetingCard_DisplaysColoredBadgeForMeetingType(MeetingType type, string expectedBadgeClass)
+    {
+        // Arrange
+        var meeting = new Meeting
+        {
+            Title = "CONVOCATÓRIA",
+            Date = DateTime.Now.AddDays(7),
+            Location = "Sede",
+            Type = type,
+            Statement = "Test statement"
+        };
+
+        // Act
+        var cut = RenderComponent<MeetingCard>(parameters => parameters
+            .Add(p => p.Meeting, meeting)
+            .Add(p => p.IsAdmin, false));
+
+        // Assert
+        cut.Markup.Should().Contain("badge", "should have Bootstrap badge class");
+        cut.Markup.Should().Contain(expectedBadgeClass, $"should have {expectedBadgeClass} for meeting type {type}");
+    }
 }

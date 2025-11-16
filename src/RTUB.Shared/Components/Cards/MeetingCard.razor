@@ -34,6 +34,9 @@
         </div>
         <div class="card-body d-flex flex-column">
             <h5 class="meeting-title mb-1">@Meeting.Title</h5>
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge @GetMeetingTypeBadgeClass()">@GetMeetingTypeFullName()</span>
+            </div>
             <p class="meeting-subtitle text-muted mb-3">@GetMeetingTypeFullName()</p>
         
         <div class="meeting-info">
@@ -203,6 +206,17 @@
             _ => ""
         };
     }
+
+    private string GetMeetingTypeBadgeClass()
+    {
+        return Meeting.Type switch
+        {
+            MeetingType.AssembleiaGeralOrdinaria => "bg-primary",
+            MeetingType.AssembleiaGeralExtraordinaria => "bg-danger",
+            MeetingType.ConselhoVeteranos => "bg-warning text-dark",
+            _ => "bg-secondary"
+        };
+    }
 }
 
 <style>
@@ -227,8 +241,8 @@
 
     .meeting-status-badge {
         position: absolute;
-        top: 8px;
-        left: 8px;
+        top: 60px;
+        right: 8px;
         z-index: 10;
         padding: 4px 10px;
         border-radius: 12px;
@@ -314,6 +328,36 @@
     }
 
     .music-btn-email i {
+        font-size: 0.9rem;
+    }
+
+    .music-btn-edit, .music-btn-delete {
+        background-color: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: var(--text-primary);
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .music-btn-edit:hover {
+        background-color: rgba(110, 86, 207, 0.2);
+        border-color: var(--bs-primary);
+        color: var(--bs-primary);
+    }
+
+    .music-btn-delete:hover {
+        background-color: rgba(220, 53, 69, 0.2);
+        border-color: #dc3545;
+        color: #dc3545;
+    }
+
+    .music-btn-edit i, .music-btn-delete i {
         font-size: 0.9rem;
     }
 
