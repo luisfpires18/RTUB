@@ -39,7 +39,7 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
         _environment = hostEnvironment.EnvironmentName;
 
         // Get Cloudflare R2 configuration
-        _bucketName = configuration["Cloudflare:R2:Bucket"];
+        _bucketName = configuration["Cloudflare:R2:Bucket"]!;
 
         if (string.IsNullOrEmpty(_bucketName))
         {

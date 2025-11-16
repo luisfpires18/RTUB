@@ -354,7 +354,11 @@
         var postIndex = posts.FindIndex(p => p.Id == postId);
         if (postIndex >= 0)
         {
-            posts[postIndex] = await PostService.GetByIdAsync(postId);
+            var updatedPost = await PostService.GetByIdAsync(postId);
+            if (updatedPost != null)
+            {
+                posts[postIndex] = updatedPost;
+            }
         }
         
         StateHasChanged();
@@ -493,7 +497,11 @@
             var postIndex = posts.FindIndex(p => p.Id == commentPostId);
             if (postIndex >= 0)
             {
-                posts[postIndex] = await PostService.GetByIdAsync(commentPostId);
+                var updatedPost = await PostService.GetByIdAsync(commentPostId);
+                if (updatedPost != null)
+                {
+                    posts[postIndex] = updatedPost;
+                }
             }
             
             commentToDelete = null;

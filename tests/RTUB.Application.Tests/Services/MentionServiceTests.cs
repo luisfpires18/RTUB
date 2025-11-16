@@ -28,7 +28,7 @@ public class MentionServiceTests : IDisposable
         // Mock UserManager
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            mockUserStore.Object, null, null, null, null, null, null, null, null);
+            mockUserStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _mentionService = new MentionService(_mockUserManager.Object);
     }

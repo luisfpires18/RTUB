@@ -38,7 +38,6 @@ public class EnrollmentServiceTests : IDisposable
         var userId = "user123";
         var eventEntity = await _eventService.CreateEventAsync(
             "Test Event", DateTime.Now.AddDays(7), "Location", Core.Enums.EventType.Festival, "Description");
-        var attended = true;
 
         // Act
         var result = await _enrollmentService.CreateEnrollmentAsync(userId, eventEntity.Id);
