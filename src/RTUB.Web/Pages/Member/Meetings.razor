@@ -369,7 +369,16 @@ else
     private string emailPreviewHtml = string.Empty;
     
     // Computed property for CV meeting creation permission
-    private bool CanCreateCVMeetings => currentUser != null && (currentUser.IsVeterano() || currentUser.IsTunossauro());
+    private bool CanCreateCVMeetings
+    {
+        get
+        {
+            if (currentUser == null)
+                return false;
+                
+            return currentUser.IsVeterano() || currentUser.IsTunossauro();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -381,9 +390,23 @@ else
             var userName = user.Identity.Name;
             if (userName != null)
             {
-                // Load user with Categories properly materialized
+                // Load user with full object graph
+                // EF Core should materialize all properties including CategoriesJson
                 currentUser = await UserManager.Users
                     .Where(u => u.UserName == userName)
+                    .Select(u => new ApplicationUser
+                    {
+                        Id = u.Id,
+                        UserName = u.UserName,
+                        Email = u.Email,
+                        Nickname = u.Nickname,
+                        FirstName = u.FirstName,
+                        LastName = u.LastName,
+                        CategoriesJson = u.CategoriesJson,  // Explicitly select to ensure it's loaded
+                        Positions = u.Positions,
+                        YearTuno = u.YearTuno,
+                        MonthTuno = u.MonthTuno
+                    })
                     .FirstOrDefaultAsync();
                 currentUserId = currentUser?.Id ?? string.Empty;
             }
