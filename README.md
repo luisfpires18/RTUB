@@ -1,6 +1,6 @@
 # RTUB - Real Tuna Universitária de Bragança
 
-A modern **Blazor Web Application** for managing and promoting the Real Tuna Universitária de Bragança, a traditional Portuguese university music group.
+A modern **Blazor Web Application** for managing and promoting the Real Tuna Universitária de Bragança, a traditional Portuguese university music group ("tuna" in Portuguese).
 
 ## 📋 Table of Contents
 
@@ -13,12 +13,15 @@ A modern **Blazor Web Application** for managing and promoting the Real Tuna Uni
 - [Development](#development)
 - [Testing](#testing)
 - [Deployment](#deployment)
+- [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
 
 ## 🎵 About
 
-RTUB (Real Tuna Universitária de Bragança) is a comprehensive web platform built with **Blazor** that serves as the digital hub for the university's traditional tuna music group. This interactive application provides tools for managing members, events, performances, repertoire, rehearsals, inventory, and financial operations while engaging with the community through a modern, responsive interface.
+RTUB (Real Tuna Universitária de Bragança) is a comprehensive web platform built with **Blazor Interactive Server** that serves as the digital hub for the university's traditional tuna music group. A "tuna" is a traditional Portuguese university music ensemble with deep cultural roots.
+
+This interactive application provides tools for managing members, events, performances, repertoire, rehearsals, inventory, and financial operations while engaging with the community through a modern, responsive interface.
 
 ## 🏗️ Architecture
 
@@ -153,10 +156,12 @@ RTUB/
 
 ### User Roles
 
-- **Owner**: Full system access, audit logging and user roles tracking
-- **Administrator**: Full entity management, configuration
-- **Member**: Access to member features, event participation, rehearsals
+- **Owner**: Full system access, audit logging, and user role management
+- **Administrator**: Full entity management, configuration, and operational control
+- **Member**: Access to member features, event participation, rehearsals, and discussions
 - **Visitor**: Public access to general information, events, and media gallery
+
+For detailed information about roles, categories (Tuno, Caloiro, Veterano, etc.), and positions (Magister, Secretário, etc.), see [Authentication & Business Rules](docs/auth-and-rules.md).
 
 ## 📁 Project Structure
 
@@ -414,11 +419,24 @@ Contributions are welcome! Please follow these steps:
 
 ### Contribution Guidelines
 
-- Follow the existing code style
+For detailed guidelines on coding style, adding components, creating pages, testing, and documentation, please see the [Contributing Guide](docs/contributing.md).
+
+**Quick Guidelines:**
+- Follow the existing code style (see [Contributing Guide](docs/contributing.md))
 - Write meaningful commit messages
 - Add tests for new features
-- Update documentation as needed
+- Update documentation in `/docs` as needed
 - Ensure all tests pass before submitting PR
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the `/docs` folder:
+
+- **[Documentation Index](docs/index.md)** - Overview and quick links
+- **[Components Guide](docs/components.md)** - All reusable components in RTUB.Shared
+- **[Pages Reference](docs/pages.md)** - All Razor pages with routes and permissions
+- **[Authentication & Business Rules](docs/auth-and-rules.md)** - Roles, categories, positions, and business logic
+- **[Contributing Guide](docs/contributing.md)** - Guidelines for developers and agents
 
 ## 📝 License
 
