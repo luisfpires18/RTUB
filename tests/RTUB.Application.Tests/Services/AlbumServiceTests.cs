@@ -125,7 +125,7 @@ public class AlbumServiceTests : IDisposable
         var newDescription = "Updated description";
 
         // Act
-        await _albumService.UpdateAlbumAsync(album.Id, newTitle, newYear, newDescription);
+        await _albumService.UpdateAlbumAsync(album.Id, newTitle, newYear, newDescription, false);
         var updated = await _albumService.GetAlbumByIdAsync(album.Id);
 
         // Assert
@@ -138,7 +138,7 @@ public class AlbumServiceTests : IDisposable
     public async Task UpdateAlbumAsync_WithInvalidId_ThrowsException()
     {
         // Act & Assert
-        var act = async () => await _albumService.UpdateAlbumAsync(999, "Title", 2020, "Description");
+        var act = async () => await _albumService.UpdateAlbumAsync(999, "Title", 2020, "Description", false);
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*not found*");
     }
@@ -182,7 +182,7 @@ public class AlbumServiceTests : IDisposable
 
         // Act
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        await _albumService.UpdateAlbumWithCoverAsync(album.Id, newTitle, newYear, newDescription, imageStream, "test.webp", "image/webp");
+        await _albumService.UpdateAlbumWithCoverAsync(album.Id, newTitle, newYear, newDescription, false, imageStream, "test.webp", "image/webp");
         var updated = await _albumService.GetAlbumByIdAsync(album.Id);
 
         // Assert
@@ -216,7 +216,7 @@ public class AlbumServiceTests : IDisposable
 
         // Act
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-        await _albumService.UpdateAlbumWithCoverAsync(album.Id, "New Title", 2021, "New desc", imageStream, "test.webp", "image/webp");
+        await _albumService.UpdateAlbumWithCoverAsync(album.Id, "New Title", 2021, "New desc", false, imageStream, "test.webp", "image/webp");
 
         // Assert
         _mockImageStorageService.Verify(
@@ -232,9 +232,97 @@ public class AlbumServiceTests : IDisposable
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
 
         // Act & Assert
-        var act = async () => await _albumService.UpdateAlbumWithCoverAsync(999, "Title", 2020, "Description", imageStream, "test.webp", "image/webp");
+        var act = async () => await _albumService.UpdateAlbumWithCoverAsync(999, "Title", 2020, "Description", false, imageStream, "test.webp", "image/webp");
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*not found*");
+    }
+
+    [Fact]
+    public async Task CreateAlbumAsync_WithIsPrivateTrue_CreatesPrivateAlbum()
+    {
+        // Arrange
+        var title = "Private Album";
+        var year = 2020;
+        var description = "Private description";
+        var isPrivate = true;
+
+        // Act
+        var result = await _albumService.CreateAlbumAsync(title, year, description, null, isPrivate);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Title.Should().Be(title);
+        result.IsPrivate.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateAlbumAsync_WithoutIsPrivate_CreatesPublicAlbum()
+    {
+        // Arrange
+        var title = "Public Album";
+        var year = 2020;
+
+        // Act
+        var result = await _albumService.CreateAlbumAsync(title, year);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsPrivate.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetPublicAlbumsAsync_ReturnsOnlyPublicAlbums()
+    {
+        // Arrange
+        await _albumService.CreateAlbumAsync("Public Album 1", 2020, null, null, false);
+        await _albumService.CreateAlbumAsync("Private Album", 2021, null, null, true);
+        await _albumService.CreateAlbumAsync("Public Album 2", 2022, null, null, false);
+
+        // Act
+        var result = await _albumService.GetPublicAlbumsAsync();
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().OnlyContain(a => !a.IsPrivate);
+        result.Should().Contain(a => a.Title == "Public Album 1");
+        result.Should().Contain(a => a.Title == "Public Album 2");
+        result.Should().NotContain(a => a.Title == "Private Album");
+    }
+
+    [Fact]
+    public async Task UpdateAlbumAsync_UpdatesIsPrivate()
+    {
+        // Arrange
+        var album = await _albumService.CreateAlbumAsync("Test Album", 2020, null, null, false);
+        album.IsPrivate.Should().BeFalse();
+
+        // Act
+        await _albumService.UpdateAlbumAsync(album.Id, "Updated Album", 2021, "Updated", true);
+        var updated = await _albumService.GetAlbumByIdAsync(album.Id);
+
+        // Assert
+        updated!.IsPrivate.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task UpdateAlbumWithCoverAsync_UpdatesIsPrivate()
+    {
+        // Arrange
+        var album = await _albumService.CreateAlbumAsync("Test Album", 2020, null, null, false);
+        var imageUrl = "https://example.com/new-image.webp";
+        
+        _mockImageStorageService
+            .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(imageUrl);
+
+        // Act
+        using var imageStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+        await _albumService.UpdateAlbumWithCoverAsync(album.Id, "Updated Album", 2021, "Updated", true, imageStream, "test.webp", "image/webp");
+        var updated = await _albumService.GetAlbumByIdAsync(album.Id);
+
+        // Assert
+        updated!.IsPrivate.Should().BeTrue();
+        updated.ImageUrl.Should().Be(imageUrl);
     }
 
     public void Dispose()

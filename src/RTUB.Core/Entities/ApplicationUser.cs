@@ -23,8 +23,8 @@ public class ApplicationUser : IdentityUser
     [MaxLength(80, ErrorMessage = "O último nome não pode exceder 80 caracteres")]
     public string? LastName { get; set; }
     
-    [Required(ErrorMessage = "O nome de tuna / username é obrigatório")]
-    [MaxLength(80, ErrorMessage = "O nome de tuna / username não pode exceder 80 caracteres")]
+    [Required(ErrorMessage = "O nome de tuna é obrigatório")]
+    [MaxLength(80, ErrorMessage = "O nome de tuna não pode exceder 80 caracteres")]
     public string? Nickname { get; set; }
 
     [Required(ErrorMessage = "O contacto telefónico é obrigatório")]

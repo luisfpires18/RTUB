@@ -262,4 +262,35 @@ public class MyEnrollmentsButtonTests : TestContext
         // Assert - Button should render with correct styling to display badges
         cut.Markup.Should().Contain("btn-outline-secondary");
     }
+
+    [Fact]
+    public void MyEnrollmentsButton_LoadsLast10EventsByDefault()
+    {
+        // Arrange
+        var pastEvents = Enumerable.Range(1, 15).Select(i => new Event
+        {
+            Id = i,
+            Name = $"Event {i}",
+            Date = DateTime.Today.AddDays(-i),
+            IsCancelled = false
+        }).ToList();
+
+        _mockEventService.Setup(x => x.GetPastEventsAsync(10))
+            .ReturnsAsync(pastEvents.Take(10).ToList());
+        _mockEnrollmentService.Setup(x => x.GetEnrollmentsByUserIdAsync(It.IsAny<string>()))
+            .ReturnsAsync(new List<Enrollment>());
+
+        var cut = RenderComponent<MyEnrollmentsButton>();
+
+        // Act
+        var button = cut.Find("button");
+        button.Click();
+
+        // Assert - Should request 10 events by default
+        cut.WaitForAssertion(() =>
+        {
+            _mockEventService.Verify(x => x.GetPastEventsAsync(10), Times.AtLeastOnce,
+                "Should load last 10 events by default");
+        }, TimeSpan.FromSeconds(2));
+    }
 }

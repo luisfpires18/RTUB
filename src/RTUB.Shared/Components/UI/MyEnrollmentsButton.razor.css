@@ -1,0 +1,10 @@
+/* Show All Toggle Styles */
+.form-check-input:checked {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.form-check-label {
+    cursor: pointer;
+    user-select: none;
+}

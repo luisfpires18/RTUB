@@ -77,7 +77,7 @@ public class ApplicationDbContextTests : IDisposable
         var originalCreatedAt = album.CreatedAt;
 
         // Act
-        album.UpdateDetails("Updated Album", 2025, "Updated description");
+        album.UpdateDetails("Updated Album", 2025, "Updated description", false);
         _context.Albums.Update(album);
         await _context.SaveChangesAsync();
 
@@ -119,7 +119,7 @@ public class ApplicationDbContextTests : IDisposable
         SetupMockUser(newUsername);
 
         // Act
-        album.UpdateDetails("Updated Album", 2025, null);
+        album.UpdateDetails("Updated Album", 2025, null, false);
         _context.Albums.Update(album);
         await _context.SaveChangesAsync();
 
@@ -200,7 +200,7 @@ public class ApplicationDbContextTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        album.UpdateDetails("Updated Album", 2025, "Updated description");
+        album.UpdateDetails("Updated Album", 2025, "Updated description", false);
         _context.Albums.Update(album);
         await _context.SaveChangesAsync();
 

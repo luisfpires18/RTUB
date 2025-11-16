@@ -67,7 +67,15 @@ else
                         </AuthorizeView>
                     </div>
                     <div class="card-body d-flex flex-column music-card-clickable" @onclick="() => NavigateToAlbum(album.Id)">
-                        <h5 class="card-title music-text-light">@album.Title</h5>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h5 class="card-title music-text-light mb-0">@album.Title</h5>
+                            @if (album.IsPrivate)
+                            {
+                                <span class="badge bg-warning text-dark" title="Álbum privado">
+                                    <i class="bi bi-lock-fill"></i>
+                                </span>
+                            }
+                        </div>
                         @if (album.Year.HasValue)
                         {
                             <p class="card-text music-text-secondary">@album.Year.Value</p>
@@ -131,6 +139,15 @@ else
                 <InputTextArea class="form-control" rows="3" @bind-Value="album!.Description" placeholder="Inserir descrição..." />
             </div>
 
+            <div class="mb-3">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" id="albumIsPrivate" @bind-Value="album!.IsPrivate" />
+                    <label class="form-check-label" for="albumIsPrivate">
+                        <i class="bi bi-lock text-primary me-2"></i>Privado (apenas membros autenticados)
+                    </label>
+                </div>
+            </div>
+
             <ImageUploadManager @ref="imageUploadManager"
                                Label="Imagem de Capa"
                                CurrentImageUrl="@(uploadedImagePath == null && !string.IsNullOrEmpty(album!.CoverImageSrc) ? GetAlbumImageUrl(album.CoverImageSrc) : null)"
@@ -184,7 +201,22 @@ else
 
     private async Task LoadAlbums()
     {
-        albums = (await AlbumService.GetAllAlbumsAsync()).OrderBy(a => a.Year).ToList();
+        // Check if user is authenticated
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        bool isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+
+        if (isAuthenticated)
+        {
+            // Show all albums for authenticated users
+            albums = (await AlbumService.GetAllAlbumsAsync()).OrderBy(a => a.Year).ToList();
+        }
+        else
+        {
+            // Show only public albums for unauthenticated users
+            albums = (await AlbumService.GetPublicAlbumsAsync()).OrderBy(a => a.Year).ToList();
+        }
+        
         allSongs = (await SongService.GetAllSongsAsync()).ToList();
     }
 
@@ -218,7 +250,8 @@ else
             Title = album.Title,
             Description = album.Description,
             Year = album.Year,
-            ImageUrl = album.ImageUrl
+            ImageUrl = album.ImageUrl,
+            IsPrivate = album.IsPrivate
         };
         uploadedImagePath = null;
         showEditModal = true;
@@ -305,7 +338,8 @@ else
                 editingAlbum.Title,
                 editingAlbum.Year,
                 editingAlbum.Description ?? string.Empty,
-                imageUrl
+                imageUrl,
+                editingAlbum.IsPrivate
             );
         }
         else
@@ -319,6 +353,7 @@ else
                     editingAlbum.Title,
                     editingAlbum.Year,
                     editingAlbum.Description ?? string.Empty,
+                    editingAlbum.IsPrivate,
                     stream,
                     croppedImageFileName!,
                     "image/webp");
@@ -331,7 +366,8 @@ else
                     editingAlbum.Id,
                     editingAlbum.Title,
                     editingAlbum.Year,
-                    editingAlbum.Description ?? string.Empty
+                    editingAlbum.Description ?? string.Empty,
+                    editingAlbum.IsPrivate
                 );
             }
         }

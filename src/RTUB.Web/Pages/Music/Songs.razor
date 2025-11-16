@@ -441,12 +441,28 @@ else
     protected override async Task OnInitializedAsync()
     {
         album = await AlbumService.GetAlbumByIdAsync(AlbumId);
+        
+        // Check if album is private and user is not authenticated
+        if (album != null && album.IsPrivate)
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            bool isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+            
+            if (!isAuthenticated)
+            {
+                // Redirect to login page for private albums
+                NavigationManager.NavigateTo($"/Identity/Account/Login?returnUrl={Uri.EscapeDataString($"/music/songs/{AlbumId}")}");
+                return;
+            }
+        }
+        
         await LoadSongs();
         
         // Check if user is Owner
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        isOwner = user.IsInRole("Owner");
+        var authStateForOwner = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userForOwner = authStateForOwner.User;
+        isOwner = userForOwner.IsInRole("Owner");
     }
 
     private async Task LoadSongs()

@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
+@using RTUB.Application.Helpers
 @inject IEnrollmentService EnrollmentService
 @inject IEventService EventService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -34,13 +35,22 @@
             }
             else
             {
-                <div class="mb-3">
-                    <strong>Taxa de Participação (últimas 10 atuações):</strong>
-                    <span class="badge bg-primary">@enrollmentCount / @totalRecentEvents atuações</span>
-                    @if (totalRecentEvents > 0)
-                    {
-                        <span class="ms-2">(@(Math.Round((double)enrollmentCount / totalRecentEvents * 100, 1))%)</span>
-                    }
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <strong>Taxa de Participação @(showAllEvents ? "(todas as atuações)" : "(últimas 10 atuações)"):</strong>
+                        <span class="badge bg-primary">@enrollmentCount / @totalRecentEvents atuações</span>
+                        @if (totalRecentEvents > 0)
+                        {
+                            <span class="ms-2">(@(Math.Round((double)enrollmentCount / totalRecentEvents * 100, 1))%)</span>
+                        }
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="showAllEventsToggle" 
+                               @bind="showAllEvents" @bind:after="OnToggleChanged" />
+                        <label class="form-check-label" for="showAllEventsToggle">
+                            Mostrar todos
+                        </label>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-striped">
@@ -53,7 +63,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var item in eventEnrollments)
+                            @foreach (var item in paginatedEventEnrollments)
                             {
                                 <tr>
                                     <td>@item.Event.Date.ToString("dd MMM yyyy")</td>
@@ -74,6 +84,18 @@
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- Pagination -->
+                @if (eventEnrollments.Count > 0)
+                {
+                    <TablePagination CurrentPage="@eventsPaginationHelper.CurrentPage"
+                                    PageSize="@eventsPaginationHelper.PageSize"
+                                    TotalItems="@eventEnrollments.Count"
+                                    ItemLabel="inscrições"
+                                    PageSizeOptions="@(new[] { 10, 15, 20, 25, 30 })"
+                                    OnPageChanged="@HandleEventsPageChange"
+                                    OnPageSizeChanged="@HandleEventsPageSizeChange" />
+                }
             }
         </BodyContent>
         <FooterContent>
@@ -84,10 +106,13 @@
 
 @code {
     private bool showMyEnrollmentsModal = false;
+    private bool showAllEvents = false;
     private List<EventEnrollmentDisplay> eventEnrollments = new();
+    private List<EventEnrollmentDisplay> paginatedEventEnrollments = new();
     private int enrollmentCount = 0;
     private int totalRecentEvents = 0;
     private string? currentUserId;
+    private PaginationHelper<EventEnrollmentDisplay> eventsPaginationHelper = new() { PageSize = 10 };
 
     private class EventEnrollmentDisplay
     {
@@ -129,12 +154,15 @@
 
         try
         {
-            // Get last 10 past events (globally)
-            var recentEvents = await EventService.GetPastEventsAsync(10);
+            // Get past events based on toggle state
+            var recentEvents = showAllEvents 
+                ? await EventService.GetPastEventsAsync(int.MaxValue)
+                : await EventService.GetPastEventsAsync(10);
+                
             var pastEvents = recentEvents
                 .Where(e => !e.IsCancelled && e.Date < DateTime.Today)
                 .OrderByDescending(e => e.Date)
-                .Take(10)
+                .Take(showAllEvents ? int.MaxValue : 10)
                 .ToList();
 
             // Get user's enrollments
@@ -150,11 +178,41 @@
 
             totalRecentEvents = eventEnrollments.Count;
             enrollmentCount = eventEnrollments.Count(e => e.WillAttend);
+            
+            // Apply pagination
+            UpdatePaginatedEvents();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading enrollments: {ex.Message}");
             eventEnrollments = new List<EventEnrollmentDisplay>();
+            paginatedEventEnrollments = new List<EventEnrollmentDisplay>();
         }
+    }
+
+    private async Task OnToggleChanged()
+    {
+        eventsPaginationHelper.Reset(); // Reset to page 1 when toggling
+        await LoadMyEnrollments();
+    }
+    
+    private void UpdatePaginatedEvents()
+    {
+        paginatedEventEnrollments = eventsPaginationHelper.GetPageData(eventEnrollments);
+    }
+    
+    private async Task HandleEventsPageChange(int newPage)
+    {
+        eventsPaginationHelper.GoToPage(newPage);
+        UpdatePaginatedEvents();
+        await Task.CompletedTask;
+    }
+    
+    private async Task HandleEventsPageSizeChange(int newPageSize)
+    {
+        eventsPaginationHelper.PageSize = newPageSize;
+        eventsPaginationHelper.Reset();
+        UpdatePaginatedEvents();
+        await Task.CompletedTask;
     }
 }

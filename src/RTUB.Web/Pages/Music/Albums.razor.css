@@ -1,0 +1,30 @@
+/* Page-scoped styles for Albums.razor */
+
+/* Private album badge styling */
+.badge.bg-warning {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.badge.bg-warning i {
+    font-size: 0.7rem;
+}
+
+/* IsPrivate checkbox styling in form */
+.form-check-label {
+    cursor: pointer;
+    user-select: none;
+}
+
+.form-check-input:checked {
+    background-color: #ffc107;
+    border-color: #ffc107;
+}
+
+/* Ensure badge doesn't wrap on small screens */
+@media (max-width: 576px) {
+    .badge.bg-warning {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.4rem;
+    }
+}

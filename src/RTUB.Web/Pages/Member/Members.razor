@@ -209,7 +209,7 @@ else
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-semibold">
-                        <i class="bi bi-star text-primary me-2"></i>Nome de Tuna / Nickname <span class="text-danger">*</span>
+                        <i class="bi bi-star text-primary me-2"></i>Nome de Tuna<span class="text-danger">*</span>
                     </label>
                     <InputText class="form-control" @bind-Value="editingUser.Nickname" />
                 </div>
@@ -996,7 +996,7 @@ else
                 // but we keep them for safety
                 if (string.IsNullOrEmpty(editingUser.Nickname))
                 {
-                    memberValidationStore.Add(() => editingUser.Nickname!, "O nome de tuna / username é obrigatório.");
+                    memberValidationStore.Add(() => editingUser.Nickname!, "O nome de tuna é obrigatório.");
                     editContext.NotifyValidationStateChanged();
                     return;
                 }
@@ -1107,7 +1107,7 @@ else
             // Edit mode - add null checks
             if (string.IsNullOrEmpty(editingUser.Nickname))
             {
-                memberValidationStore.Add(() => editingUser.Nickname!, "O nome de tuna / username é obrigatório.");
+                memberValidationStore.Add(() => editingUser.Nickname!, "O nome de tuna é obrigatório.");
                 editContext.NotifyValidationStateChanged();
                 return;
             }

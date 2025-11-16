@@ -745,13 +745,22 @@ else
             }
             else
             {
-                <div class="mb-3">
-                    <strong>Taxa de Presença (últimos 10 ensaios):</strong>
-                    <span class="badge bg-primary">@attendanceCount / @totalRecentRehearsals ensaios</span>
-                    @if (totalRecentRehearsals > 0)
-                    {
-                        <span class="ms-2">(@(Math.Round((double)attendanceCount / totalRecentRehearsals * 100, 1))%)</span>
-                    }
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <strong>Taxa de Presença @(showAllRehearsals ? "(todos os ensaios)" : "(últimos 10 ensaios)"):</strong>
+                        <span class="badge bg-primary">@attendanceCount / @totalRecentRehearsals ensaios</span>
+                        @if (totalRecentRehearsals > 0)
+                        {
+                            <span class="ms-2">(@(Math.Round((double)attendanceCount / totalRecentRehearsals * 100, 1))%)</span>
+                        }
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="showAllRehearsalsToggle" 
+                               @bind="showAllRehearsals" @bind:after="OnRehearsalToggleChanged" />
+                        <label class="form-check-label" for="showAllRehearsalsToggle">
+                            Mostrar todos
+                        </label>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-striped">
@@ -763,7 +772,7 @@ else
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var item in rehearsalAttendances)
+                            @foreach (var item in paginatedRehearsalAttendances)
                             {
                                 <tr>
                                     <td>@item.Rehearsal.Date.ToString("dd MMM yyyy")</td>
@@ -792,6 +801,18 @@ else
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- Pagination -->
+                @if (rehearsalAttendances.Count > 0)
+                {
+                    <TablePagination CurrentPage="@rehearsalsPaginationHelper.CurrentPage"
+                                    PageSize="@rehearsalsPaginationHelper.PageSize"
+                                    TotalItems="@rehearsalAttendances.Count"
+                                    ItemLabel="presenças"
+                                    PageSizeOptions="@(new[] { 10, 15, 20, 25, 30 })"
+                                    OnPageChanged="@HandleRehearsalsAttendancePageChange"
+                                    OnPageSizeChanged="@HandleRehearsalsAttendancePageSizeChange" />
+                }
             }
         </BodyContent>
         <FooterContent>
@@ -813,8 +834,11 @@ else
     private List<Rehearsal> paginatedUpcomingRehearsals = new();
     private PaginationHelper<Rehearsal> upcomingRehearsalsPagination = new() { PageSize = 12 };
     private List<RehearsalAttendanceDisplay> rehearsalAttendances = new();
+    private List<RehearsalAttendanceDisplay> paginatedRehearsalAttendances = new();
     private int attendanceCount = 0;
     private int totalRecentRehearsals = 0;
+    private bool showAllRehearsals = false;
+    private PaginationHelper<RehearsalAttendanceDisplay> rehearsalsPaginationHelper = new() { PageSize = 10 };
 
     private class RehearsalAttendanceDisplay
     {
@@ -990,27 +1014,7 @@ else
         // Load user's recent attendances
         if (currentUserId != null)
         {
-            // Get last 10 past rehearsals (globally)
-            var recentRehearsals = await RehearsalService.GetRehearsalsAsync(DateTime.Today.AddMonths(-6), DateTime.Today);
-            var pastRehearsals = recentRehearsals
-                .Where(r => !r.IsCanceled && r.Date < DateTime.Today)
-                .OrderByDescending(r => r.Date)
-                .Take(10)
-                .ToList();
-
-            // Get user's attendances
-            var userAttendances = (await AttendanceService.GetAttendancesByUserIdAsync(currentUserId))
-                .ToDictionary(a => a.RehearsalId, a => a);
-
-            // Create display list combining rehearsals with attendance status
-            rehearsalAttendances = pastRehearsals.Select(r => new RehearsalAttendanceDisplay
-            {
-                Rehearsal = r,
-                Attendance = userAttendances.ContainsKey(r.Id) ? userAttendances[r.Id] : null
-            }).ToList();
-
-            totalRecentRehearsals = rehearsalAttendances.Count;
-            attendanceCount = rehearsalAttendances.Count(a => a.Attended);
+            await LoadUserAttendances();
         }
 
         FilterRehearsals();
@@ -1894,14 +1898,82 @@ else
     }
 
     // My Attendances Modal methods
-    private void OpenMyAttendancesModal()
+    private async Task OpenMyAttendancesModal()
     {
+        await LoadUserAttendances();
         showMyAttendancesModal = true;
     }
 
     private void CloseMyAttendancesModal()
     {
         showMyAttendancesModal = false;
+    }
+
+    private async Task LoadUserAttendances()
+    {
+        if (currentUserId == null) return;
+
+        try
+        {
+            // Get past rehearsals based on toggle state
+            var startDate = showAllRehearsals ? DateTime.Today.AddYears(-10) : DateTime.Today.AddMonths(-6);
+            var recentRehearsals = await RehearsalService.GetRehearsalsAsync(startDate, DateTime.Today);
+            
+            var pastRehearsals = recentRehearsals
+                .Where(r => !r.IsCanceled && r.Date < DateTime.Today)
+                .OrderByDescending(r => r.Date)
+                .Take(showAllRehearsals ? int.MaxValue : 10)
+                .ToList();
+
+            // Get user's attendances
+            var userAttendances = (await AttendanceService.GetAttendancesByUserIdAsync(currentUserId))
+                .ToDictionary(a => a.RehearsalId, a => a);
+
+            // Create display list combining rehearsals with attendance status
+            rehearsalAttendances = pastRehearsals.Select(r => new RehearsalAttendanceDisplay
+            {
+                Rehearsal = r,
+                Attendance = userAttendances.ContainsKey(r.Id) ? userAttendances[r.Id] : null
+            }).ToList();
+
+            totalRecentRehearsals = rehearsalAttendances.Count;
+            attendanceCount = rehearsalAttendances.Count(a => a.Attended);
+            
+            // Apply pagination
+            UpdatePaginatedRehearsalAttendances();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user attendances: {ex.Message}");
+            rehearsalAttendances = new List<RehearsalAttendanceDisplay>();
+            paginatedRehearsalAttendances = new List<RehearsalAttendanceDisplay>();
+        }
+    }
+
+    private async Task OnRehearsalToggleChanged()
+    {
+        rehearsalsPaginationHelper.Reset(); // Reset to page 1 when toggling
+        await LoadUserAttendances();
+    }
+    
+    private void UpdatePaginatedRehearsalAttendances()
+    {
+        paginatedRehearsalAttendances = rehearsalsPaginationHelper.GetPageData(rehearsalAttendances);
+    }
+    
+    private async Task HandleRehearsalsAttendancePageChange(int newPage)
+    {
+        rehearsalsPaginationHelper.GoToPage(newPage);
+        UpdatePaginatedRehearsalAttendances();
+        await Task.CompletedTask;
+    }
+    
+    private async Task HandleRehearsalsAttendancePageSizeChange(int newPageSize)
+    {
+        rehearsalsPaginationHelper.PageSize = newPageSize;
+        rehearsalsPaginationHelper.Reset();
+        UpdatePaginatedRehearsalAttendances();
+        await Task.CompletedTask;
     }
 
     // Rehearsal Details Modal methods

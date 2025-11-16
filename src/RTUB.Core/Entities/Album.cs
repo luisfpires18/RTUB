@@ -17,6 +17,9 @@ public class Album : BaseEntity
     [Range(1900, 2100, ErrorMessage = "O ano deve estar entre 1900 e 2100")]
     public int? Year { get; set; }
     
+    // Privacy setting
+    public bool IsPrivate { get; set; } = false;
+    
     // Image handling
     public string? ImageUrl { get; set; }
     
@@ -26,7 +29,7 @@ public class Album : BaseEntity
     // Private constructor for EF Core
     public Album() { }
 
-    public static Album Create(string title, int? year, string? description = null)
+    public static Album Create(string title, int? year, string? description = null, bool isPrivate = false)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título do álbum não pode estar vazio", nameof(title));
@@ -38,11 +41,12 @@ public class Album : BaseEntity
         {
             Title = title,
             Year = year,
-            Description = description
+            Description = description,
+            IsPrivate = isPrivate
         };
     }
 
-    public void UpdateDetails(string title, int? year, string? description)
+    public void UpdateDetails(string title, int? year, string? description, bool isPrivate)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título do álbum não pode estar vazio", nameof(title));
@@ -53,6 +57,7 @@ public class Album : BaseEntity
         Title = title;
         Year = year;
         Description = description;
+        IsPrivate = isPrivate;
     }
 
     public void SetCoverImage(string? url)

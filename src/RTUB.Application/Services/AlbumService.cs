@@ -31,6 +31,13 @@ public class AlbumService : IAlbumService
         return await _context.Albums.ToListAsync();
     }
 
+    public async Task<IEnumerable<Album>> GetPublicAlbumsAsync()
+    {
+        return await _context.Albums
+            .Where(a => !a.IsPrivate)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<Album>> GetAlbumsWithSongsAsync()
     {
         return await _context.Albums
@@ -45,9 +52,9 @@ public class AlbumService : IAlbumService
             .FirstOrDefaultAsync(a => a.Id == id);
     }
 
-    public async Task<Album> CreateAlbumAsync(string title, int? year, string? description = null, string? imageUrl = null)
+    public async Task<Album> CreateAlbumAsync(string title, int? year, string? description = null, string? imageUrl = null, bool isPrivate = false)
     {
-        var album = Album.Create(title, year, description);
+        var album = Album.Create(title, year, description, isPrivate);
         if (!string.IsNullOrEmpty(imageUrl))
         {
             album.SetCoverImage(imageUrl);
@@ -57,13 +64,13 @@ public class AlbumService : IAlbumService
         return album;
     }
 
-    public async Task UpdateAlbumAsync(int id, string title, int? year, string? description)
+    public async Task UpdateAlbumAsync(int id, string title, int? year, string? description, bool isPrivate)
     {
         var album = await _context.Albums.FindAsync(id);
         if (album == null)
             throw new InvalidOperationException($"Album with ID {id} not found");
 
-        album.UpdateDetails(title, year, description);
+        album.UpdateDetails(title, year, description, isPrivate);
         _context.Albums.Update(album);
         await _context.SaveChangesAsync();
     }
@@ -84,14 +91,14 @@ public class AlbumService : IAlbumService
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateAlbumWithCoverAsync(int id, string title, int? year, string? description, Stream imageStream, string fileName, string contentType)
+    public async Task UpdateAlbumWithCoverAsync(int id, string title, int? year, string? description, bool isPrivate, Stream imageStream, string fileName, string contentType)
     {
         var album = await _context.Albums.FindAsync(id);
         if (album == null)
             throw new InvalidOperationException($"Album with ID {id} not found");
 
         // Update album details
-        album.UpdateDetails(title, year, description);
+        album.UpdateDetails(title, year, description, isPrivate);
 
         // Delete old image if it exists
         if (!string.IsNullOrEmpty(album.ImageUrl))
