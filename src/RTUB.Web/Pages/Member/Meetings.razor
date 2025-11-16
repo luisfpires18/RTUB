@@ -303,55 +303,17 @@ else
                     </div>
                 }
                 
-                <div class="mb-3">
-                    <span class="badge bg-purple text-white p-2">
-                        @($"{subscribedUsersCount} membros irão receber esta mensagem.")
-                    </span>
-                </div>
-
-                @if (subscribedUsers != null && subscribedUsers.Any())
-                {
-                    <div class="mb-3">
-                        <h6 class="text-white-full mb-2">Destinatários:</h6>
-                        <div class="subscriber-list" style="max-height: 200px; overflow-y: auto;">
-                            @foreach (var user in subscribedUsers.OrderBy(u => u.Nickname ?? u.FirstName))
-                            {
-                                <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
-                                    @(user.Nickname ?? $"{user.FirstName} {user.LastName}")
-                                    @if (selectedMeetingForEmail.Type == MeetingType.ConselhoVeteranos)
-                                    {
-                                        <text> - @GetYearsAsTunoDisplay(user)</text>
-                                    }
-                                </div>
-                            }
-                        </div>
-                    </div>
-                    
-                    @* Who will not receive section *@
-                    @if (nonSubscribedUsers != null && nonSubscribedUsers.Any())
-                    {
-                        <div class="mb-3">
-                            <h6 class="text-white-full mb-2">Quem não irá receber:</h6>
-                            <div class="subscriber-list" style="max-height: 200px; overflow-y: auto;">
-                                @foreach (var user in nonSubscribedUsers.OrderBy(u => u.Nickname ?? u.FirstName))
-                                {
-                                    <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
-                                        @(user.Nickname ?? $"{user.FirstName} {user.LastName}")
-                                        @if (selectedMeetingForEmail.Type == MeetingType.ConselhoVeteranos)
-                                        {
-                                            <text> - @GetYearsAsTunoDisplay(user)</text>
-                                        }
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <Alert Message="Nenhum destinatário encontrado." 
-                           Type="Alert.AlertType.Warning" />
-                }
+                <EmailRecipientsPreview 
+                    SubscribedUsers="@(subscribedUsers ?? new List<ApplicationUser>())"
+                    NonSubscribedUsers="@(nonSubscribedUsers ?? new List<ApplicationUser>())"
+                    SubscribedUsersTitle="Destinatários:"
+                    NonSubscribedUsersTitle="Quem não irá receber:"
+                    ShowNonSubscribedUsers="true"
+                    MaxHeight="200px"
+                    InfoBadgeText="@($"{subscribedUsersCount} membros irão receber esta mensagem.")"
+                    AdditionalUserInfoFunc="@(selectedMeetingForEmail?.Type == MeetingType.ConselhoVeteranos ? new Func<ApplicationUser, string>(GetYearsAsTunoDisplay) : null)"
+                    ShowEmptySubscribedMessage="true"
+                    EmptySubscribedMessage="Nenhum destinatário encontrado." />
             }
         }
     </BodyContent>
@@ -410,11 +372,15 @@ else
             
             @if (notifySubscribersOnMeetingCancel)
             {
-                <div class="mb-3">
-                    <span class="badge bg-purple text-white p-2">
-                        @($"{cancelMeetingSubscribedCount} membros irão receber esta mensagem.")
-                    </span>
-                </div>
+                <EmailRecipientsPreview 
+                    SubscribedUsers="@(cancelMeetingSubscribedUsers ?? new List<ApplicationUser>())"
+                    NonSubscribedUsers="@(cancelMeetingNonSubscribedUsers ?? new List<ApplicationUser>())"
+                    SubscribedUsersTitle="Membros que irão receber:"
+                    NonSubscribedUsersTitle="Quem não irá receber:"
+                    ShowNonSubscribedUsers="true"
+                    MaxHeight="200px"
+                    InfoBadgeText="@($"{cancelMeetingSubscribedCount} / {cancelMeetingTotalCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")"
+                    AdditionalUserInfoFunc="@(selectedMeetingForCancellation?.Type == MeetingType.ConselhoVeteranos ? new Func<ApplicationUser, string>(GetYearsAsTunoDisplay) : null)" />
             }
 
             <div class="mb-3">
@@ -476,7 +442,9 @@ else
     private bool notifySubscribersOnMeetingCancel = false;
     private string cancelMeetingReason = string.Empty;
     private List<ApplicationUser>? cancelMeetingSubscribedUsers;
+    private List<ApplicationUser>? cancelMeetingNonSubscribedUsers;
     private int cancelMeetingSubscribedCount = 0;
+    private int cancelMeetingTotalCount = 0;
     private bool cancelMeetingLoadingSubscribers = false;
     private string? cancelMeetingErrorMessage;
     
@@ -940,6 +908,17 @@ else
                            (u.CurrentRole == "VETERANO" || u.CurrentRole == "TUNOSSAURO" || u.Positions.Contains(Position.Magister)))
                     .OrderBy(u => u.Nickname ?? u.FirstName)
                     .ToList();
+                
+                // Non-subscribers for CV: Only TUNO category members who aren't veteran/tunossauro and don't have Magister position
+                cancelMeetingNonSubscribedUsers = allUsers
+                    .Where(u => u.EmailConfirmed && 
+                           u.IsTuno() && 
+                           u.CurrentRole == "TUNO" && 
+                           !u.Positions.Contains(Position.Magister))
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+                
+                cancelMeetingTotalCount = cancelMeetingSubscribedUsers.Count + cancelMeetingNonSubscribedUsers.Count;
             }
             else
             {
@@ -948,6 +927,14 @@ else
                     .Where(u => u.Subscribed && u.EmailConfirmed && !u.IsLeitao())
                     .OrderBy(u => u.Nickname ?? u.FirstName)
                     .ToList();
+                
+                // Non-subscribers for Assembleia: not subscribed
+                cancelMeetingNonSubscribedUsers = allUsers
+                    .Where(u => u.EmailConfirmed && !u.Subscribed && !u.IsLeitao())
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList();
+                
+                cancelMeetingTotalCount = cancelMeetingSubscribedUsers.Count + cancelMeetingNonSubscribedUsers.Count;
             }
             
             cancelMeetingSubscribedCount = cancelMeetingSubscribedUsers.Count;
@@ -970,7 +957,9 @@ else
         notifySubscribersOnMeetingCancel = false;
         cancelMeetingReason = string.Empty;
         cancelMeetingSubscribedUsers = null;
+        cancelMeetingNonSubscribedUsers = null;
         cancelMeetingSubscribedCount = 0;
+        cancelMeetingTotalCount = 0;
         cancelMeetingErrorMessage = null;
     }
 

@@ -117,34 +117,26 @@
             </div>
         </div>
 
-        @if (subscribedUsers != null && subscribedUsers.Any())
+
+        @if (subscribedUsers.Any() || nonSubscribedUsers.Any())
         {
             <div class="card mt-4">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-people"></i> Destinatários (@subscribedUsersCount)</h5>
+                    <h5 class="mb-0"><i class="bi bi-people"></i> Lista de Destinatários</h5>
                 </div>
                 <div class="card-body">
-                    <div class="subscriber-list" style="max-height: 300px; overflow-y: auto;">
-                        @foreach (var user in subscribedUsers.Take(20))
-                        {
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="@user.ProfilePictureSrc" 
-                                     alt="@user.Nickname"
-                                     class="member-avatar-small me-2" />
-                                <div>
-                                    <strong>@user.Nickname</strong>
-                                    <br />
-                                    <small class="text-muted">@user.Email</small>
-                                </div>
-                            </div>
-                        }
-                        @if (subscribedUsers.Count > 20)
-                        {
-                            <p class="text-muted mb-0 mt-2">
-                                <small>E mais @(subscribedUsers.Count - 20) utilizadores...</small>
-                            </p>
-                        }
-                    </div>
+                    <EmailRecipientsPreview 
+                        SubscribedUsers="@subscribedUsers"
+                        NonSubscribedUsers="@nonSubscribedUsers"
+                        SubscribedUsersTitle="@($"Destinatários ({subscribedUsersCount})")"
+                        NonSubscribedUsersTitle="@($"Quem não irá receber ({nonSubscribedUsersCount})")"
+                        ShowNonSubscribedUsers="true"
+                        ShowProfilePicture="true"
+                        ShowEmail="false"
+                        MaxHeight="400px"
+                        UsePagination="true"
+                        PageSize="25"
+                        PageSizeOptions="@(new[] { 10, 25, 50, 100 })" />
                 </div>
             </div>
         }
@@ -194,7 +186,9 @@
     private bool contentError = false;
 
     private List<ApplicationUser> subscribedUsers = new();
+    private List<ApplicationUser> nonSubscribedUsers = new();
     private int subscribedUsersCount = 0;
+    private int nonSubscribedUsersCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -213,7 +207,15 @@
                     .OrderBy(u => u.Nickname ?? u.FirstName)
                     .ToList());
             
+            // Load all non-subscribed users with confirmed emails
+            nonSubscribedUsers = await Task.Run(() => 
+                UserManager.Users
+                    .Where(u => !u.Subscribed && u.EmailConfirmed && !string.IsNullOrEmpty(u.Email))
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList());
+            
             subscribedUsersCount = subscribedUsers.Count;
+            nonSubscribedUsersCount = nonSubscribedUsers.Count;
         }
         catch (Exception ex)
         {

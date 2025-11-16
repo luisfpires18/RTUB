@@ -1,0 +1,42 @@
+/* EmailRecipientsPreview Component Styles */
+
+.email-recipients-preview {
+    /* Container styles */
+}
+
+.subscriber-list {
+    /* Use Bootstrap scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+}
+
+.subscriber-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.subscriber-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.subscriber-list::-webkit-scrollbar-thumb {
+    background-color: rgba(155, 155, 155, 0.5);
+    border-radius: 10px;
+}
+
+.subscriber-list::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(155, 155, 155, 0.7);
+}
+
+.subscriber-item {
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+.subscriber-item:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.member-avatar-small {
+    flex-shrink: 0;
+}

@@ -1,0 +1,269 @@
+@namespace RTUB.Shared
+@using RTUB.Core.Entities
+@*
+    Reusable Email Recipients Preview Component
+    Displays lists of users who will and will not receive emails
+    Supports pagination and consistent styling across the application
+*@
+
+<div class="email-recipients-preview">
+    @if (!string.IsNullOrEmpty(InfoBadgeText))
+    {
+        <div class="mb-3">
+            <span class="badge bg-purple text-white p-2">
+                @InfoBadgeText
+            </span>
+        </div>
+    }
+
+    @* Subscribed Users Section *@
+    @if (SubscribedUsers != null && SubscribedUsers.Any())
+    {
+        <div class="mb-3">
+            <h6 class="text-white-full mb-2">@SubscribedUsersTitle</h6>
+            <div class="subscriber-list" style="max-height: @MaxHeight; overflow-y: auto;">
+                @{
+                    var subscribedToShow = UsePagination ? GetPagedItems(SubscribedUsers) : SubscribedUsers;
+                }
+                @foreach (var user in subscribedToShow)
+                {
+                    <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                        @if (ShowProfilePicture)
+                        {
+                            <img src="@user.ProfilePictureSrc" 
+                                 alt="@(user.Nickname ?? user.FirstName)"
+                                 class="member-avatar-small me-2" 
+                                 style="width: 32px; height: 32px; border-radius: 50%;" />
+                        }
+                        <span>@GetUserDisplayName(user)</span>
+                        @if (AdditionalUserInfoFunc != null)
+                        {
+                            <text> - @AdditionalUserInfoFunc(user)</text>
+                        }
+                        @if (ShowEmail && !string.IsNullOrEmpty(user.Email))
+                        {
+                            <br />
+                            <small class="text-muted">@user.Email</small>
+                        }
+                    </div>
+                }
+            </div>
+            
+            @if (UsePagination && SubscribedUsers.Count > PageSize)
+            {
+                <div class="mt-2">
+                    <TablePagination CurrentPage="@subscribedCurrentPage"
+                                   PageSize="@PageSize"
+                                   TotalItems="@SubscribedUsers.Count"
+                                   ItemLabel="@SubscribedUsersItemLabel"
+                                   OnPageChanged="@OnSubscribedPageChanged"
+                                   OnPageSizeChanged="@OnSubscribedPageSizeChanged"
+                                   PageSizeOptions="@PageSizeOptions" />
+                </div>
+            }
+        </div>
+    }
+    else if (ShowEmptySubscribedMessage)
+    {
+        <Alert Message="@EmptySubscribedMessage" 
+               Type="Alert.AlertType.Warning" />
+    }
+
+    @* Non-Subscribed Users Section *@
+    @if (ShowNonSubscribedUsers && NonSubscribedUsers != null && NonSubscribedUsers.Any())
+    {
+        <div class="mb-3">
+            <h6 class="text-white-full mb-2">@NonSubscribedUsersTitle</h6>
+            <div class="subscriber-list" style="max-height: @MaxHeight; overflow-y: auto;">
+                @{
+                    var nonSubscribedToShow = UsePagination ? GetPagedItems(NonSubscribedUsers, isNonSubscribed: true) : NonSubscribedUsers;
+                }
+                @foreach (var user in nonSubscribedToShow)
+                {
+                    <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                        @if (ShowProfilePicture)
+                        {
+                            <img src="@user.ProfilePictureSrc" 
+                                 alt="@(user.Nickname ?? user.FirstName)"
+                                 class="member-avatar-small me-2" 
+                                 style="width: 32px; height: 32px; border-radius: 50%;" />
+                        }
+                        <span>@GetUserDisplayName(user)</span>
+                        @if (AdditionalUserInfoFunc != null)
+                        {
+                            <text> - @AdditionalUserInfoFunc(user)</text>
+                        }
+                        @if (ShowEmail && !string.IsNullOrEmpty(user.Email))
+                        {
+                            <br />
+                            <small class="text-muted">@user.Email</small>
+                        }
+                    </div>
+                }
+            </div>
+            
+            @if (UsePagination && NonSubscribedUsers.Count > PageSize)
+            {
+                <div class="mt-2">
+                    <TablePagination CurrentPage="@nonSubscribedCurrentPage"
+                                   PageSize="@PageSize"
+                                   TotalItems="@NonSubscribedUsers.Count"
+                                   ItemLabel="@NonSubscribedUsersItemLabel"
+                                   OnPageChanged="@OnNonSubscribedPageChanged"
+                                   OnPageSizeChanged="@OnNonSubscribedPageSizeChanged"
+                                   PageSizeOptions="@PageSizeOptions" />
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// List of users who will receive the email
+    /// </summary>
+    [Parameter]
+    public List<ApplicationUser> SubscribedUsers { get; set; } = new();
+
+    /// <summary>
+    /// List of users who will NOT receive the email
+    /// </summary>
+    [Parameter]
+    public List<ApplicationUser> NonSubscribedUsers { get; set; } = new();
+
+    /// <summary>
+    /// Title for subscribed users section
+    /// </summary>
+    [Parameter]
+    public string SubscribedUsersTitle { get; set; } = "Membros que irão receber:";
+
+    /// <summary>
+    /// Title for non-subscribed users section
+    /// </summary>
+    [Parameter]
+    public string NonSubscribedUsersTitle { get; set; } = "Quem não irá receber:";
+
+    /// <summary>
+    /// Item label for subscribed users pagination
+    /// </summary>
+    [Parameter]
+    public string SubscribedUsersItemLabel { get; set; } = "membros";
+
+    /// <summary>
+    /// Item label for non-subscribed users pagination
+    /// </summary>
+    [Parameter]
+    public string NonSubscribedUsersItemLabel { get; set; } = "membros";
+
+    /// <summary>
+    /// Whether to show the non-subscribed users section
+    /// </summary>
+    [Parameter]
+    public bool ShowNonSubscribedUsers { get; set; } = false;
+
+    /// <summary>
+    /// Whether to show profile pictures
+    /// </summary>
+    [Parameter]
+    public bool ShowProfilePicture { get; set; } = false;
+
+    /// <summary>
+    /// Whether to show user email addresses
+    /// </summary>
+    [Parameter]
+    public bool ShowEmail { get; set; } = false;
+
+    /// <summary>
+    /// Maximum height for the scrollable user lists
+    /// </summary>
+    [Parameter]
+    public string MaxHeight { get; set; } = "200px";
+
+    /// <summary>
+    /// Whether to enable pagination for user lists
+    /// </summary>
+    [Parameter]
+    public bool UsePagination { get; set; } = false;
+
+    /// <summary>
+    /// Number of items per page when pagination is enabled
+    /// </summary>
+    [Parameter]
+    public int PageSize { get; set; } = 25;
+
+    /// <summary>
+    /// Page size options for pagination dropdown
+    /// </summary>
+    [Parameter]
+    public int[] PageSizeOptions { get; set; } = new[] { 10, 25, 50, 100 };
+
+    /// <summary>
+    /// Optional info badge text to display at the top
+    /// </summary>
+    [Parameter]
+    public string? InfoBadgeText { get; set; }
+
+    /// <summary>
+    /// Optional function to provide additional user information
+    /// </summary>
+    [Parameter]
+    public Func<ApplicationUser, string>? AdditionalUserInfoFunc { get; set; }
+
+    /// <summary>
+    /// Whether to show empty message when no subscribed users
+    /// </summary>
+    [Parameter]
+    public bool ShowEmptySubscribedMessage { get; set; } = false;
+
+    /// <summary>
+    /// Message to display when no subscribed users
+    /// </summary>
+    [Parameter]
+    public string EmptySubscribedMessage { get; set; } = "Nenhum membro subscrito às notificações por email.";
+
+    // Pagination state
+    private int subscribedCurrentPage = 1;
+    private int nonSubscribedCurrentPage = 1;
+
+    private string GetUserDisplayName(ApplicationUser user)
+    {
+        return user.Nickname ?? $"{user.FirstName} {user.LastName}";
+    }
+
+    private List<ApplicationUser> GetPagedItems(List<ApplicationUser> items, bool isNonSubscribed = false)
+    {
+        var currentPage = isNonSubscribed ? nonSubscribedCurrentPage : subscribedCurrentPage;
+        var skip = (currentPage - 1) * PageSize;
+        return items.Skip(skip).Take(PageSize).ToList();
+    }
+
+    private Task OnSubscribedPageChanged(int newPage)
+    {
+        subscribedCurrentPage = newPage;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OnSubscribedPageSizeChanged(int newPageSize)
+    {
+        PageSize = newPageSize;
+        subscribedCurrentPage = 1; // Reset to first page
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OnNonSubscribedPageChanged(int newPage)
+    {
+        nonSubscribedCurrentPage = newPage;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OnNonSubscribedPageSizeChanged(int newPageSize)
+    {
+        PageSize = newPageSize;
+        nonSubscribedCurrentPage = 1; // Reset to first page
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+}

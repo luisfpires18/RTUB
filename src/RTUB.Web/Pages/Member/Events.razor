@@ -818,31 +818,16 @@ else
                     </small>
                 </div>
                 
-                <div class="mb-3">
-                    <span class="badge bg-purple text-white p-2">
-                        @($"{subscribedUsersCount} / {totalUsersCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")
-                    </span>
-                </div>
-
-                @if (subscribedUsers != null && subscribedUsers.Any())
-                {
-                    <div class="mb-3">
-                        <h6 class="text-white-full mb-2">Membros que irão receber:</h6>
-                        <div class="subscriber-list" style="max-height: 300px; overflow-y: auto;">
-                            @foreach (var user in subscribedUsers)
-                            {
-                                <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
-                                    @(user.Nickname ?? $"{user.FirstName} {user.LastName}")
-                                </div>
-                            }
-                        </div>
-                    </div>
-                }
-                else
-                {
-                    <Alert Title="Nenhum membro subscrito às notificações por email." 
-                           Type="Alert.AlertType.Warning" />
-                }
+                <EmailRecipientsPreview 
+                    SubscribedUsers="@(subscribedUsers ?? new List<ApplicationUser>())"
+                    NonSubscribedUsers="@(nonSubscribedUsers ?? new List<ApplicationUser>())"
+                    SubscribedUsersTitle="Membros que irão receber:"
+                    NonSubscribedUsersTitle="Quem não irá receber:"
+                    ShowNonSubscribedUsers="true"
+                    MaxHeight="300px"
+                    InfoBadgeText="@($"{subscribedUsersCount} / {totalUsersCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")"
+                    ShowEmptySubscribedMessage="true"
+                    EmptySubscribedMessage="Nenhum membro subscrito às notificações por email." />
             }
         }
     </BodyContent>
@@ -897,11 +882,14 @@ else
             
             @if (notifySubscribersOnCancel)
             {
-                <div class="mb-3">
-                    <span class="badge bg-purple text-white p-2">
-                        @($"{cancelEventSubscribedCount} / {cancelEventTotalCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")
-                    </span>
-                </div>
+                <EmailRecipientsPreview 
+                    SubscribedUsers="@(cancelEventSubscribedUsers ?? new List<ApplicationUser>())"
+                    NonSubscribedUsers="@(cancelEventNonSubscribedUsers ?? new List<ApplicationUser>())"
+                    SubscribedUsersTitle="Membros que irão receber:"
+                    NonSubscribedUsersTitle="Quem não irá receber:"
+                    ShowNonSubscribedUsers="true"
+                    MaxHeight="200px"
+                    InfoBadgeText="@($"{cancelEventSubscribedCount} / {cancelEventTotalCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")" />
             }
 
             <div class="mb-3">
@@ -994,6 +982,7 @@ else
     
     // Email notification modal variables
     private List<ApplicationUser>? subscribedUsers;
+    private List<ApplicationUser>? nonSubscribedUsers;
     private int subscribedUsersCount = 0;
     private int totalUsersCount = 0;
     private bool emailLoadingSubscribers = false;
@@ -1004,6 +993,7 @@ else
     private bool notifySubscribersOnCancel = false;
     private string cancelEventReason = string.Empty;
     private List<ApplicationUser>? cancelEventSubscribedUsers;
+    private List<ApplicationUser>? cancelEventNonSubscribedUsers;
     private int cancelEventSubscribedCount = 0;
     private int cancelEventTotalCount = 0;
     private bool cancelEventLoadingSubscribers = false;
@@ -1816,6 +1806,11 @@ else
                 .OrderBy(u => u.Nickname ?? u.FirstName)
                 .ToList();
             
+            nonSubscribedUsers = allUsers
+                .Where(u => !u.Subscribed && u.EmailConfirmed)
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .ToList();
+            
             subscribedUsersCount = subscribedUsers.Count;
             totalUsersCount = allUsers.Count(u => u.EmailConfirmed);
         }
@@ -1835,6 +1830,7 @@ else
         showEmailNotificationModal = false;
         selectedEventForEmail = null;
         subscribedUsers = null;
+        nonSubscribedUsers = null;
         subscribedUsersCount = 0;
         totalUsersCount = 0;
         emailErrorMessage = null;
@@ -1996,6 +1992,11 @@ else
                 .OrderBy(u => u.Nickname ?? u.FirstName)
                 .ToList();
             
+            cancelEventNonSubscribedUsers = allUsers
+                .Where(u => !u.Subscribed && u.EmailConfirmed)
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .ToList();
+            
             cancelEventSubscribedCount = cancelEventSubscribedUsers.Count;
             cancelEventTotalCount = allUsers.Count(u => u.EmailConfirmed);
         }
@@ -2017,6 +2018,7 @@ else
         notifySubscribersOnCancel = false;
         cancelEventReason = string.Empty;
         cancelEventSubscribedUsers = null;
+        cancelEventNonSubscribedUsers = null;
         cancelEventSubscribedCount = 0;
         cancelEventTotalCount = 0;
         cancelEventErrorMessage = null;
