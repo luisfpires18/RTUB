@@ -79,20 +79,20 @@
                         </small>
                     </div>
 
-                    <div class="alert alert-info">
+                    <div class="alert alert-purple">
                         <i class="bi bi-info-circle"></i>
                         <strong>Informação:</strong> Este email será enviado para todos os utilizadores com notificações ativas.
                     </div>
 
                     <div class="d-flex gap-2">
                         <button type="button" 
-                                class="btn btn-outline-primary" 
+                                class="btn btn-purple" 
                                 @onclick="ShowPreview"
                                 disabled="@(isSending || string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))">
                             <i class="bi bi-eye"></i> Pré-visualizar
                         </button>
                         <button type="button" 
-                                class="btn btn-primary" 
+                                class="btn btn-purple" 
                                 @onclick="SendEmails"
                                 disabled="@(isSending || string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))">
                             @if (isSending)
@@ -107,7 +107,7 @@
                             }
                         </button>
                         <button type="button" 
-                                class="btn btn-secondary" 
+                                class="btn btn-light" 
                                 @onclick="ClearForm"
                                 disabled="@isSending">
                             <i class="bi bi-x-circle"></i> Limpar
