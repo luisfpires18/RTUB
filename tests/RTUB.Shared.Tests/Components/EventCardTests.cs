@@ -422,4 +422,43 @@ public class EventCardTests : TestContext
         cutMorning.Markup.Should().Contain("09:30h", "morning event should display 09:30h");
         cutEvening.Markup.Should().Contain("19:00h", "evening event should display 19:00h");
     }
+
+    [Fact]
+    public void EventCard_ShowsRemoveButton_OnPastEvent_WhenUserWillAttend()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Past Event", DateTime.Now.AddDays(-7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = true;
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, true)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        cut.Markup.Should().Contain("bi-x-circle-fill", "should show remove button when user will attend");
+        cut.Markup.Should().Contain("Remover Inscrição", "button should have correct title");
+    }
+
+    [Fact]
+    public void EventCard_HidesRemoveButton_OnPastEvent_WhenUserWillNotAttend()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Past Event", DateTime.Now.AddDays(-7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = false;
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, true)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        cut.Markup.Should().NotContain("Remover Inscrição", "should not show remove button when user will not attend");
+    }
 }
