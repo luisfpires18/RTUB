@@ -166,6 +166,21 @@
     flex-grow: 1;
 }
 
+.avatar-card-login-status {
+    font-size: 0.75rem;
+    color: #ffffff;
+    font-weight: bold;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.avatar-card-login-status i {
+    font-size: 0.5rem;
+}
+
 .avatar-card-tuna-name {
     font-size: 1.1rem;
     font-weight: 600;
@@ -332,6 +347,14 @@
 
     .avatar-card-full-name {
         font-size: 0.85rem;
+    }
+
+    .avatar-card-login-status {
+        font-size: 0.7rem;
+    }
+
+    .avatar-card-login-status i {
+        font-size: 0.45rem;
     }
 
     .avatar-card-instrument {

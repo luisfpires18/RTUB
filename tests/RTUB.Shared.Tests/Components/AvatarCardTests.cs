@@ -429,5 +429,101 @@ public class AvatarCardTests : TestContext
     }
 
     #endregion
+
+    #region Login Status Tests
+
+    [Fact]
+    public void AvatarCard_DisplaysOnlineStatus_WhenUserLoggedInWithinLastHour()
+    {
+        // Arrange
+        var recentLoginDate = DateTime.UtcNow.AddMinutes(-30);
+
+        // Act
+        var cut = RenderComponent<AvatarCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
+            .Add(p => p.LastLoginDate, recentLoginDate));
+
+        // Assert
+        cut.Markup.Should().Contain("avatar-card-login-status", "should display login status section");
+        cut.Markup.Should().Contain("Online", "should show Online text");
+        cut.Markup.Should().Contain("text-success", "should have green color for online status");
+    }
+
+    [Fact]
+    public void AvatarCard_DisplaysOfflineStatus_WhenUserLoggedInMoreThanOneHourAgo()
+    {
+        // Arrange
+        var oldLoginDate = DateTime.UtcNow.AddHours(-2);
+
+        // Act
+        var cut = RenderComponent<AvatarCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
+            .Add(p => p.LastLoginDate, oldLoginDate));
+
+        // Assert
+        cut.Markup.Should().Contain("avatar-card-login-status", "should display login status section");
+        cut.Markup.Should().Contain("Offline", "should show Offline text");
+        cut.Markup.Should().Contain("text-danger", "should have red color for offline status");
+    }
+
+    [Fact]
+    public void AvatarCard_DisplaysOfflineStatus_WhenLastLoginDateIsNull()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<AvatarCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
+            .Add(p => p.LastLoginDate, null));
+
+        // Assert
+        cut.Markup.Should().Contain("avatar-card-login-status", "should display login status section");
+        cut.Markup.Should().Contain("Offline", "should show Offline text when LastLoginDate is null");
+        cut.Markup.Should().Contain("text-danger", "should have red color for offline status");
+    }
+
+    [Fact]
+    public void AvatarCard_UsesOneHourThreshold_ForOnlineStatus()
+    {
+        // Arrange - exactly 59 minutes ago (should be online)
+        var justUnderOneHour = DateTime.UtcNow.AddMinutes(-59);
+
+        // Act
+        var cut = RenderComponent<AvatarCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
+            .Add(p => p.LastLoginDate, justUnderOneHour));
+
+        // Assert
+        cut.Markup.Should().Contain("Online", "user logged in 59 minutes ago should be online");
+    }
+
+    [Fact]
+    public void AvatarCard_LoginStatusDisplaysAboveNickname()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<AvatarCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
+            .Add(p => p.TunaName, "Tuninho")
+            .Add(p => p.LastLoginDate, DateTime.UtcNow));
+
+        // Assert
+        var markup = cut.Markup;
+        var loginStatusIndex = markup.IndexOf("avatar-card-login-status");
+        var tunaNameIndex = markup.IndexOf("avatar-card-tuna-name");
+        
+        loginStatusIndex.Should().BeLessThan(tunaNameIndex, "login status should appear before tuna name in markup");
+    }
+
+    [Fact]
+    public void AvatarCard_LoginStatusHasCircleIcon()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<AvatarCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
+            .Add(p => p.LastLoginDate, DateTime.UtcNow));
+
+        // Assert
+        cut.Markup.Should().Contain("bi-circle-fill", "should display circle icon for status indicator");
+    }
+
+    #endregion
 }
 

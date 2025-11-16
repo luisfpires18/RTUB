@@ -46,6 +46,20 @@
 
     <!-- Member Info -->
     <div class="avatar-card-content">
+        <!-- Login Status (above nickname) -->
+        <div class="avatar-card-login-status">
+            @if (IsUserOnline())
+            {
+                <i class="bi bi-circle-fill text-success"></i>
+                <span>Online</span>
+            }
+            else
+            {
+                <i class="bi bi-circle-fill text-danger"></i>
+                <span>Offline</span>
+            }
+        </div>
+        
         <!-- Nome de Tuna (primary) -->
         @if (!string.IsNullOrEmpty(TunaName))
         {
@@ -84,6 +98,8 @@
 </div>
 
 @code {
+    private const int ONLINE_THRESHOLD_HOURS = 1;
+
     [Parameter]
     public string AvatarUrl { get; set; } = "";
 
@@ -98,6 +114,9 @@
 
     [Parameter]
     public string AltText { get; set; } = "";
+
+    [Parameter]
+    public DateTime? LastLoginDate { get; set; }
 
     [Parameter]
     public RenderFragment? BadgeContent { get; set; }
@@ -146,5 +165,18 @@
         {
             await OnView.InvokeAsync();
         }
+    }
+
+    /// <summary>
+    /// Determines if the user is online based on LastLoginDate.
+    /// Reuses the same logic from LoginStatusBadge component.
+    /// </summary>
+    private bool IsUserOnline()
+    {
+        if (LastLoginDate == null)
+            return false;
+        
+        var timeAgo = DateTime.UtcNow - LastLoginDate.Value;
+        return timeAgo.TotalHours < ONLINE_THRESHOLD_HOURS;
     }
 }
