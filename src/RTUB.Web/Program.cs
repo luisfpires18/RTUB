@@ -3,10 +3,11 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
-using Microsoft.Extensions.Caching.Memory;
+using System.Security.Claims;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 
 namespace RTUB;
@@ -144,9 +145,36 @@ public class Program
                         });
                     }
 
-                    // Note: LastLoginDate is updated at login time in /auth/login endpoint.
-                    // We don't update it here to avoid concurrent update conflicts that cause
-                    // optimistic concurrency failures when multiple requests fire immediately after login.
+                    try
+                    {
+                        var db = context.HttpContext?.RequestServices?.GetService<ApplicationDbContext>();
+                        if (db is null)
+                        {
+                            logger.LogWarning("ApplicationDbContext not available in OnValidatePrincipal");
+                            return;
+                        }
+
+                        // Get user id directly from claims (faster, no extra query)
+                        var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                        if (string.IsNullOrWhiteSpace(userId))
+                        {
+                            return;
+                        }
+
+                        var now = DateTime.UtcNow;
+
+                        // Atomic, concurrency-safe "set once if null"
+                        await db.Database.ExecuteSqlInterpolatedAsync($@"
+                            UPDATE AspNetUsers
+                            SET LastLoginDate = {now}
+                            WHERE Id = {userId} AND LastLoginDate IS NULL;");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex,
+                            "Error while initializing LastLoginDate for {UserName}", userName);
+                    }
+
                 }
             };
         });
