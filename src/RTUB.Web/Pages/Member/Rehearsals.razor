@@ -229,7 +229,7 @@ else
                                 <EnrollmentCard 
                                     AvatarUrl="@attendance.User?.ProfilePictureSrc"
                                     TunaName="@attendance.User?.Nickname"
-                                    FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}")"
+                                    FullName="@attendance.User?.GetDisplayName()"
                                     InstrumentText="@instrumentDisplay"
                                     Notes="@attendance.Notes"
                                     AltText="@attendance.User?.GetDisplayName()"
@@ -291,7 +291,7 @@ else
                                     <EnrollmentCard 
                                         AvatarUrl="@attendance.User?.ProfilePictureSrc"
                                         TunaName="@attendance.User?.Nickname"
-                                        FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}")"
+                                        FullName="@attendance.User?.GetDisplayName()"
                                         InstrumentText=""
                                         Notes="@attendance.Notes"
                                         AltText="@attendance.User?.GetDisplayName()"
@@ -308,84 +308,77 @@ else
                                 }
                             </div>
                         }
-
-                        <!-- Add Member Section (Admin Only for Past Rehearsals) -->
-                        @if (isAdmin && isSelectedRehearsalPast)
-                        {
-                            <div class="mt-3">
-                                <!-- Success Alert (auto-dismiss) -->
-                                @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && !addMemberFeedbackIsError)
-                                {
-                                    <Alert Type="Alert.AlertType.Purple" 
-                                           Title="@addMemberFeedbackMessage" 
-                                           Dismissible="true"
-                                           OnDismiss="ClearAddMemberFeedback"
-                                           AdditionalClasses="mb-2" />
-                                }
-                                
-                                <!-- Error Alert (manual dismiss) -->
-                                @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && addMemberFeedbackIsError)
-                                {
-                                    <Alert Type="Alert.AlertType.Error" 
-                                           Title="@addMemberFeedbackMessage" 
-                                           Dismissible="true"
-                                           OnDismiss="ClearAddMemberFeedback"
-                                           AdditionalClasses="mb-2" />
-                                }
-                                
-                                <!-- Collapsible Search Bar -->
-                                @if (showAddMemberDropdown)
-                                {
-                                    <div class="mb-2" @onkeydown="HandleAddMemberKeyDown">
-                                        <TableSearchBar SearchTerm="@addMemberSearchTerm"
-                                                       Placeholder="Pesquisar membro por nome..."
-                                                       OnSearchChanged="@HandleAddMemberSearchChanged" />
-                                        
-                                        @if (filteredAvailableMembers.Any())
-                                        {
-                                            <div class="member-list member-list-scrollable mt-2">
-                                                @foreach (var member in filteredAvailableMembers)
-                                                {
-                                                    <div class="member-item p-2 mb-2 border rounded clickable-row"
-                                                         @onclick="() => AddMemberToRehearsal(member)"
-                                                         tabindex="0"
-                                                         @onkeydown="@(async (e) => await HandleMemberItemKeyDown(e, member))">
-                                                        <div class="d-flex align-items-center">
-                                                            <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
-                                                                 class="member-avatar-small me-2" />
-                                                            <div>
-                                                                @if (!string.IsNullOrEmpty(member.Nickname))
-                                                                {
-                                                                    <strong>@member.FirstName "@member.Nickname" @member.LastName</strong>
-                                                                }
-                                                                else
-                                                                {
-                                                                    <strong>@member.FirstName @member.LastName</strong>
-                                                                }
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                }
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <p class="text-muted mt-2">Nenhum membro encontrado.</p>
-                                        }
-                                    </div>
-                                }
-                                
-                                <button class="btn btn-sm btn-outline-primary" @onclick="ToggleAddMemberDropdown">
-                                    <i class="bi bi-@(showAddMemberDropdown ? "x" : "plus")-circle"></i> 
-                                    @(showAddMemberDropdown ? "Cancelar" : "Adicionar Membro")
-                                </button>
-                            </div>
-                        }
                     }
                     else
                     {
                         <EmptyState Title="Nenhuma presença registada ainda"
                                    Icon="bi-calendar-check" />
+                    }
+                    
+                    <!-- Add Member Section (Admin Only for Past Rehearsals) -->
+                    @if (isAdmin && isSelectedRehearsalPast)
+                    {
+                        <div class="mt-3">
+                            <!-- Success Alert (auto-dismiss) -->
+                            @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && !addMemberFeedbackIsError)
+                            {
+                                <Alert Type="Alert.AlertType.Purple" 
+                                       Title="@addMemberFeedbackMessage" 
+                                       Dismissible="true"
+                                       OnDismiss="ClearAddMemberFeedback"
+                                       AdditionalClasses="mb-2" />
+                            }
+                            
+                            <!-- Error Alert (manual dismiss) -->
+                            @if (!string.IsNullOrEmpty(addMemberFeedbackMessage) && addMemberFeedbackIsError)
+                            {
+                                <Alert Type="Alert.AlertType.Error" 
+                                       Title="@addMemberFeedbackMessage" 
+                                       Dismissible="true"
+                                       OnDismiss="ClearAddMemberFeedback"
+                                       AdditionalClasses="mb-2" />
+                            }
+                            
+                            <!-- Collapsible Search Bar -->
+                            @if (showAddMemberDropdown)
+                            {
+                                <div class="mb-2" @onkeydown="HandleAddMemberKeyDown">
+                                    <TableSearchBar SearchTerm="@addMemberSearchTerm"
+                                                   Placeholder="Pesquisar membro por nome..."
+                                                   OnSearchChanged="@HandleAddMemberSearchChanged" />
+                                    
+                                    @if (filteredAvailableMembers.Any())
+                                    {
+                                        <div class="member-list member-list-scrollable mt-2">
+                                            @foreach (var member in filteredAvailableMembers)
+                                            {
+                                                <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                                     @onclick="() => AddMemberToRehearsal(member)"
+                                                     tabindex="0"
+                                                     @onkeydown="@(async (e) => await HandleMemberItemKeyDown(e, member))">
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                             class="member-avatar-small me-2" />
+                                                        <div>
+                                                            <strong>@member.GetDisplayName()</strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted mt-2">Nenhum membro encontrado.</p>
+                                    }
+                                </div>
+                            }
+                            
+                            <button class="btn btn-sm btn-outline-primary" @onclick="ToggleAddMemberDropdown">
+                                <i class="bi bi-@(showAddMemberDropdown ? "x" : "plus")-circle"></i> 
+                                @(showAddMemberDropdown ? "Cancelar" : "Adicionar Membro")
+                            </button>
+                        </div>
                     }
                 </div>
                 <div class="modal-footer">
@@ -445,7 +438,7 @@ else
 <ConfirmDialog Show="@showDeleteAttendanceModal"
                ShowChanged="@((bool show) => showDeleteAttendanceModal = show)"
                Title="Confirmar Eliminação de Presença"
-               Message="@($"Tem a certeza que deseja eliminar a presença de {deletingAttendance?.User?.FirstName ?? ""} \"{deletingAttendance?.User?.Nickname ?? deletingAttendance?.UserId}\" neste ensaio?")"
+               Message="@($"Tem a certeza que deseja eliminar a presença de {deletingAttendance?.User?.GetDisplayName() ?? deletingAttendance?.UserId} neste ensaio?")"
                WarningMessage="Esta ação não pode ser revertida."
                ConfirmText="Eliminar"
                CancelText="Cancelar"
