@@ -52,7 +52,7 @@ else if (!events.Any())
 else
 {
     <div class="row">
-        @foreach (var eventItem in events)
+        @foreach (var eventItem in paginatedFutureEvents)
         {
             <div class="col-md-4 mb-4">
                 <AuthorizeView>
@@ -93,6 +93,17 @@ else
             </div>
         }
     </div>
+
+    @if (events != null && events.Count > futureEventsPaginationHelper.PageSize)
+    {
+        <TablePagination CurrentPage="@futureEventsPaginationHelper.CurrentPage"
+                        PageSize="@futureEventsPaginationHelper.PageSize"
+                        TotalItems="@(events?.Count ?? 0)"
+                        ItemLabel="eventos"
+                        PageSizeOptions="@(new[] { 3, 6, 9, 12, 15 })"
+                        OnPageChanged="@HandleFutureEventsPageChange"
+                        OnPageSizeChanged="@HandleFutureEventsPageSizeChange" />
+    }
 }
 
 <!-- Previous Events Section -->
@@ -958,6 +969,10 @@ else
     private byte[]? croppedImageBytes;
     private string? croppedImageFileName = "event-image.webp";
 
+    // Future events pagination
+    private PaginationHelper<Event> futureEventsPaginationHelper = new() { PageSize = 6 };
+    private List<Event> paginatedFutureEvents => futureEventsPaginationHelper.GetPageData(events ?? new List<Event>());
+
     // Previous events (admin only)
     private List<Event>? allPreviousEvents;
     private List<Event>? filteredPreviousEvents;
@@ -1117,6 +1132,19 @@ else
     private void ChangePreviousEventsPage(int newPage)
     {
         paginationHelper.GoToPage(newPage);
+    }
+
+    private async Task HandleFutureEventsPageChange(int newPage)
+    {
+        futureEventsPaginationHelper.GoToPage(newPage);
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleFutureEventsPageSizeChange(int newPageSize)
+    {
+        futureEventsPaginationHelper.PageSize = newPageSize;
+        futureEventsPaginationHelper.Reset();
+        await Task.CompletedTask;
     }
 
     private async Task LoadCurrentUser()

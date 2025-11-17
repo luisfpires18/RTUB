@@ -129,8 +129,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                         entry.Entity.UpdatedBy = username;
                     }
                     
-                    // Create audit log for modified entity
-                    auditEntries.Add(CreateAuditLog(entry, "Modified", username, userId));
+                    // Check if this is a soft delete (DeletedAt field changed from null to a value)
+                    var deletedAtProperty = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "DeletedAt");
+                    var isSoftDelete = deletedAtProperty != null 
+                        && deletedAtProperty.IsModified 
+                        && deletedAtProperty.OriginalValue == null 
+                        && deletedAtProperty.CurrentValue != null;
+                    
+                    // Create audit log - use "Deleted" action for soft deletes, "Modified" otherwise
+                    var action = isSoftDelete ? "Deleted" : "Modified";
+                    auditEntries.Add(CreateAuditLog(entry, action, username, userId));
                     break;
 
                 case EntityState.Deleted:
@@ -272,6 +280,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         { 
             "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "Id" 
         };
+        
+        // For soft deletes (action = "Deleted" but state = Modified), also exclude DeletedAt field
+        if (action == "Deleted" && entry.State == EntityState.Modified)
+        {
+            excludedFields.Add("DeletedAt");
+        }
 
         if (action == "Modified")
         {
@@ -314,12 +328,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
         else if (action == "Deleted")
         {
-            // For deletions, log all non-excluded fields for context
+            // For deletions (both hard and soft), log all non-excluded fields for context
             foreach (var property in entry.Properties)
             {
                 if (!excludedFields.Contains(property.Metadata.Name))
                 {
-                    var value = property.OriginalValue;
+                    // For soft deletes, use CurrentValue; for hard deletes, use OriginalValue
+                    var value = entry.State == EntityState.Modified ? property.CurrentValue : property.OriginalValue;
                     // Skip null and binary data
                     if (value != null && !(value is byte[]))
                     {
@@ -357,6 +372,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             }
         }
 
+        // Replace UserId with Nickname for specific entity types
+        ResolveUserIdsToNicknames(entry, changes, entityType, action);
+
         var isCritical = IsCriticalAction(entityType, action);
         var displayName = GetEntityDisplayName(entry);
 
@@ -372,6 +390,106 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             IsCriticalAction = isCritical,
             EntityDisplayName = displayName
         };
+    }
+
+    /// <summary>
+    /// Replaces UserId fields with user nicknames for better readability in audit logs.
+    /// Applies to LeaderboardComment, Post, and Comment entities.
+    /// </summary>
+    private void ResolveUserIdsToNicknames(
+        Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry,
+        Dictionary<string, object?> changes,
+        string entityType,
+        string action)
+    {
+        // List of entity types and their UserId fields that should be resolved to nicknames
+        var entityUserIdFields = new Dictionary<string, List<string>>
+        {
+            ["LeaderboardComment"] = new List<string> { "AuthorId", "TargetUserId" },
+            ["LeaderboardCommentLike"] = new List<string> { "UserId" },
+            ["Post"] = new List<string> { "AuthorId" },
+            ["Comment"] = new List<string> { "AuthorId" }
+        };
+
+        if (!entityUserIdFields.ContainsKey(entityType))
+            return;
+
+        var fieldsToResolve = entityUserIdFields[entityType];
+
+        foreach (var fieldName in fieldsToResolve)
+        {
+            if (!changes.ContainsKey(fieldName))
+                continue;
+
+            var changeValue = changes[fieldName];
+            
+            if (action == "Modified")
+            {
+                // For modified entities, changeValue is an object with Old and New properties
+                if (changeValue is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Object)
+                {
+                    var oldUserId = jsonElement.GetProperty("Old").GetString();
+                    var newUserId = jsonElement.GetProperty("New").GetString();
+                    
+                    var oldNickname = ResolveUserIdToNickname(oldUserId);
+                    var newNickname = ResolveUserIdToNickname(newUserId);
+                    
+                    changes[fieldName] = new
+                    {
+                        Old = oldNickname ?? oldUserId,
+                        New = newNickname ?? newUserId
+                    };
+                }
+                else
+                {
+                    // Handle as anonymous type (most common case)
+                    try
+                    {
+                        var oldProp = changeValue?.GetType().GetProperty("Old");
+                        var newProp = changeValue?.GetType().GetProperty("New");
+                        
+                        if (oldProp != null && newProp != null)
+                        {
+                            var oldUserId = oldProp.GetValue(changeValue)?.ToString();
+                            var newUserId = newProp.GetValue(changeValue)?.ToString();
+                            
+                            var oldNickname = ResolveUserIdToNickname(oldUserId);
+                            var newNickname = ResolveUserIdToNickname(newUserId);
+                            
+                            changes[fieldName] = new
+                            {
+                                Old = oldNickname ?? oldUserId,
+                                New = newNickname ?? newUserId
+                            };
+                        }
+                    }
+                    catch
+                    {
+                        // If we can't parse it, leave as is
+                    }
+                }
+            }
+            else
+            {
+                // For created/deleted entities, changeValue is a string (the UserId)
+                var userId = changeValue?.ToString();
+                var nickname = ResolveUserIdToNickname(userId);
+                changes[fieldName] = nickname ?? userId;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resolves a UserId to a user's nickname from the local cache.
+    /// Returns null if user is not found in cache.
+    /// </summary>
+    private string? ResolveUserIdToNickname(string? userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+            return null;
+
+        var user = Users.Local.FirstOrDefault(u => u.Id == userId);
+        return user?.Nickname ?? user?.UserName;
     }
 
     private string GetBinaryDataDescription(string fieldName, int byteCount)
@@ -713,12 +831,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     if (entry.Entity is RehearsalAttendance attendance)
                     {
                         // Only check Local cache to avoid DB queries
-                        var user = Users.Local.FirstOrDefault(u => u.Id == attendance.UserId);
+                        var userName = ResolveUserIdToNickname(attendance.UserId);
                         var rehearsal = Rehearsals.Local.FirstOrDefault(r => r.Id == attendance.RehearsalId);
-                        if (user != null && rehearsal != null)
-                            return $"{user.UserName} - {rehearsal.Date:yyyy-MM-dd}";
-                        if (user != null)
-                            return user.UserName;
+                        if (userName != null && rehearsal != null)
+                            return $"{userName} - {rehearsal.Date:yyyy-MM-dd}";
+                        if (userName != null)
+                            return userName;
                         if (rehearsal != null)
                             return rehearsal.Date.ToString("yyyy-MM-dd");
                         return null; // Neither found in cache
@@ -729,8 +847,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     if (entry.Entity is RoleAssignment roleAssignment)
                     {
                         // Only check Local cache to avoid DB queries
-                        var user2 = Users.Local.FirstOrDefault(u => u.Id == roleAssignment.UserId);
-                        return $"{user2?.UserName ?? roleAssignment.UserId} - {roleAssignment.Position}";
+                        var userName = ResolveUserIdToNickname(roleAssignment.UserId) ?? roleAssignment.UserId;
+                        return $"{userName} - {roleAssignment.Position}";
                     }
                     break;
                 
@@ -824,6 +942,75 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "MeetingRequest":
                     if (entry.Entity is MeetingRequest meetingRequest)
                         return meetingRequest.Title;
+                    break;
+                
+                case "LeaderboardComment":
+                    if (entry.Entity is LeaderboardComment leaderboardComment)
+                    {
+                        // Show target user and author for context
+                        var targetName = ResolveUserIdToNickname(leaderboardComment.TargetUserId) ?? leaderboardComment.TargetUserId;
+                        var authorName = ResolveUserIdToNickname(leaderboardComment.AuthorId) ?? leaderboardComment.AuthorId;
+                        return $"{authorName} → {targetName}";
+                    }
+                    break;
+                
+                case "LeaderboardCommentLike":
+                    if (entry.Entity is LeaderboardCommentLike commentLike)
+                    {
+                        // Show user nickname, target user, and comment text preview
+                        var userName = ResolveUserIdToNickname(commentLike.UserId) ?? commentLike.UserId;
+                        var likedComment = LeaderboardComments.Local.FirstOrDefault(c => c.Id == commentLike.CommentId);
+                        if (likedComment != null)
+                        {
+                            var targetName = ResolveUserIdToNickname(likedComment.TargetUserId) ?? likedComment.TargetUserId;
+                            var commentPreview = likedComment.Text.Length > 30 
+                                ? likedComment.Text[..30] + "..." 
+                                : likedComment.Text;
+                            return $"{userName} liked {targetName}'s comment: {commentPreview}";
+                        }
+                        return $"{userName} liked comment";
+                    }
+                    break;
+                
+                case "Post":
+                    if (entry.Entity is Post post)
+                    {
+                        // Show event name and post title
+                        var postDiscussion = Discussions.Local.FirstOrDefault(d => d.Id == post.DiscussionId);
+                        if (postDiscussion != null)
+                        {
+                            var postEvent = Events.Local.FirstOrDefault(e => e.Id == postDiscussion.EventId);
+                            if (postEvent != null)
+                                return $"{postEvent.Name} - {post.Title}";
+                        }
+                        return post.Title;
+                    }
+                    break;
+                
+                case "Comment":
+                    if (entry.Entity is Comment comment)
+                    {
+                        // Show event name, author and truncated body for context
+                        var authorName = ResolveUserIdToNickname(comment.AuthorId) ?? comment.AuthorId;
+                        var bodyPreview = comment.Body.Length > 50 
+                            ? comment.Body[..50] + "..." 
+                            : comment.Body;
+                        
+                        // Try to get event name through Post -> Discussion -> Event
+                        var commentPost = Posts.Local.FirstOrDefault(p => p.Id == comment.PostId);
+                        if (commentPost != null)
+                        {
+                            var commentDiscussion = Discussions.Local.FirstOrDefault(d => d.Id == commentPost.DiscussionId);
+                            if (commentDiscussion != null)
+                            {
+                                var commentEvent = Events.Local.FirstOrDefault(e => e.Id == commentDiscussion.EventId);
+                                if (commentEvent != null)
+                                    return $"{commentEvent.Name} - {authorName}: {bodyPreview}";
+                            }
+                        }
+                        
+                        return $"{authorName}: {bodyPreview}";
+                    }
                     break;
             }
         }
