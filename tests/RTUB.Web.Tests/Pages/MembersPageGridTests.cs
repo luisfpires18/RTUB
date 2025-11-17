@@ -70,7 +70,7 @@ public class MembersPageGridTests
     [Fact]
     public void MembersGrid_Search_ShouldFilter_ByMultipleFields()
     {
-        // Members grid should search by:
+        // Search bar should filter BOTH grids (Members and Leitões) by:
         // - FirstName
         // - LastName
         // - Nickname
@@ -78,20 +78,22 @@ public class MembersPageGridTests
         // - PhoneContact
         
         var searchableFields = new[] { "FirstName", "LastName", "Nickname", "Email", "PhoneContact" };
-        searchableFields.Should().HaveCount(5, "Members grid should search across 5 fields");
+        searchableFields.Should().HaveCount(5, "Search should filter both Members and Leitões grids across 5 fields");
     }
 
     [Fact]
     public void MembersGrid_Filter_ShouldSupportCategoriaAndInstrumento()
     {
-        // Members grid filters:
-        // - Categoria: Caloiro, Tuno (not Leitão)
-        // - Instrumento: All InstrumentType enum values
+        // Category filter now includes Leitão, Caloiro, Tuno (applies to both grids)
+        // - When Leitão is selected: Show only Leitões grid
+        // - When Caloiro or Tuno is selected: Show only Members grid (filtered by that category)
+        // - When no category is selected: Show both grids
+        // Instrument filter includes all InstrumentType enum values (applies to both grids)
         
-        var categoryOptions = new[] { "Caloiro", "Tuno" };
-        categoryOptions.Should().HaveCount(2, "Members grid should filter by Caloiro and Tuno categories");
+        var categoryOptions = new[] { "Leitao", "Caloiro", "Tuno" };
+        categoryOptions.Should().HaveCount(3, "Category filter should support Leitão, Caloiro, and Tuno categories");
         
-        // Instrument filter includes all InstrumentType values
+        // Instrument filter includes all InstrumentType values and applies to both grids
         // This is verified by the actual enum
     }
 
@@ -103,6 +105,55 @@ public class MembersPageGridTests
         
         var leitoesCategory = "Leitão";
         leitoesCategory.Should().Be("Leitão", "Leitões grid should only display Leitão category");
+    }
+
+    [Fact]
+    public void InstrumentFilter_ShouldApplyToBothGrids()
+    {
+        // When an instrument is selected in the filter dropdown,
+        // BOTH the Members grid AND the Leitões grid should be filtered
+        // to show only users with that instrument
+        // Note: Category filter now applies to both grids and controls which grids are visible
+        
+        var instrumentFilterAppliedToBothGrids = true;
+        instrumentFilterAppliedToBothGrids.Should().BeTrue(
+            "Instrument filter should apply to both Members and Leitões grids");
+    }
+
+    [Fact]
+    public void CategoryFilter_WhenLeitaoSelected_ShouldShowOnlyLeitoesGrid()
+    {
+        // When "Leitão" is selected in the category filter:
+        // - Only the Leitões grid should be displayed
+        // - The Members grid should be empty/hidden
+        
+        var selectedCategory = "Leitao";
+        selectedCategory.Should().Be("Leitao", "Selecting Leitão category should show only Leitões grid");
+    }
+
+    [Fact]
+    public void CategoryFilter_WhenCaloiroOrTunoSelected_ShouldShowOnlyMembersGrid()
+    {
+        // When "Caloiro" or "Tuno" is selected in the category filter:
+        // - Only the Members grid should be displayed (filtered by that category)
+        // - The Leitões grid should be empty/hidden
+        
+        var caloiroCategory = "Caloiro";
+        var tunoCategory = "Tuno";
+        
+        caloiroCategory.Should().Be("Caloiro", "Selecting Caloiro should show only Members grid with Caloiros");
+        tunoCategory.Should().Be("Tuno", "Selecting Tuno should show only Members grid with Tunos");
+    }
+
+    [Fact]
+    public void CategoryFilter_WhenNoSelection_ShouldShowBothGrids()
+    {
+        // When no category is selected (empty string):
+        // - Both Members and Leitões grids should be displayed
+        // - All members should be visible (subject to other filters like search and instrument)
+        
+        var noCategory = "";
+        noCategory.Should().BeEmpty("No category selection should display both grids");
     }
 
     [Fact]

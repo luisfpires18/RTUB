@@ -40,6 +40,7 @@
     <div style="flex: 1;">
         <select class="form-select" @bind="selectedCategoryFilter" @bind:after="ApplyFilters">
             <option value="">Categoria</option>
+            <option value="Leitao">Leitão</option>
             <option value="Caloiro">Caloiro</option>
             <option value="Tuno">Tuno</option>
         </select>
@@ -682,27 +683,27 @@ else
             u => u.PhoneContact ?? ""
         });
 
-        // Separate Leitões from regular members
-        filteredLeitoes = allFilteredUsers.Where(u => u.IsLeitao()).ToList();
-        filteredRegularMembers = allFilteredUsers.Where(u => !u.IsLeitao()).ToList();
+        // Apply instrument filter to all users before separating (applies to both grids)
+        if (!string.IsNullOrEmpty(selectedInstrumentFilter))
+        {
+            var instrumentEnum = Enum.Parse<InstrumentType>(selectedInstrumentFilter);
+            allFilteredUsers = allFilteredUsers
+                .Where(u => u.MainInstrument.HasValue && u.MainInstrument.Value == instrumentEnum)
+                .ToList();
+        }
         
-        // Apply category filter (only for regular members, not Leitões)
+        // Apply category filter to all users before separating (affects which grids are shown)
         if (!string.IsNullOrEmpty(selectedCategoryFilter))
         {
             var categoryEnum = Enum.Parse<MemberCategory>(selectedCategoryFilter);
-            filteredRegularMembers = filteredRegularMembers
+            allFilteredUsers = allFilteredUsers
                 .Where(u => u.Categories.Contains(categoryEnum))
                 .ToList();
         }
         
-        // Apply instrument filter (only for regular members, not Leitões)
-        if (!string.IsNullOrEmpty(selectedInstrumentFilter))
-        {
-            var instrumentEnum = Enum.Parse<InstrumentType>(selectedInstrumentFilter);
-            filteredRegularMembers = filteredRegularMembers
-                .Where(u => u.MainInstrument.HasValue && u.MainInstrument.Value == instrumentEnum)
-                .ToList();
-        }
+        // Separate Leitões from regular members
+        filteredLeitoes = allFilteredUsers.Where(u => u.IsLeitao()).ToList();
+        filteredRegularMembers = allFilteredUsers.Where(u => !u.IsLeitao()).ToList();
         
         filteredUsers = filteredRegularMembers.Concat(filteredLeitoes).ToList(); // Keep for backwards compatibility
 
