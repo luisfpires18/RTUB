@@ -93,7 +93,7 @@ else
                            OnView="@(async () => await OpenViewDetailsModal(user))"
                            OnEdit="@(() => OpenEditModal(user))"
                            OnDelete="@(() => OpenDeleteModal(user))"
-                           ShowEditButton="@isAdmin"
+                           ShowEditButton="@(isAdmin && !currentUserIsCaloiro)"
                            ShowDeleteButton="@isOwner"
                            ViewTooltip="Ver Detalhes"
                            EditTooltip="Editar"
@@ -158,8 +158,8 @@ else
                            OnView="@(async () => await OpenViewDetailsModal(user))"
                            OnEdit="@(() => OpenEditModal(user))"
                            OnDelete="@(() => OpenDeleteModal(user))"
-                           ShowEditButton="@isAdmin"
-                           ShowDeleteButton="@isAdmin"
+                           ShowEditButton="@(isAdmin && !currentUserIsCaloiro)"
+                           ShowDeleteButton="@(isAdmin && !currentUserIsCaloiro)"
                            ViewTooltip="Ver Detalhes"
                            EditTooltip="Editar"
                            DeleteTooltip="Eliminar"
@@ -601,6 +601,7 @@ else
     // Authorization flags
     private bool isAdmin = false;
     private bool isOwner = false;
+    private bool currentUserIsCaloiro = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -614,6 +615,20 @@ else
         var user = authState.User;
         isAdmin = user.IsInRole("Admin");
         isOwner = user.IsInRole("Owner");
+        
+        // Check if the current admin user has Caloiro category
+        if (isAdmin)
+        {
+            var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var currentUser = await UserManager.FindByIdAsync(userId);
+                if (currentUser != null)
+                {
+                    currentUserIsCaloiro = currentUser.Categories.Contains(MemberCategory.Caloiro);
+                }
+            }
+        }
     }
 
     private async Task LoadMembers()
