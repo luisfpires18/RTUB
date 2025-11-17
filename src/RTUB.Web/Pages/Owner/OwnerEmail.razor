@@ -5,7 +5,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Shared
-@attribute [Authorize(Roles = "Owner")]
+@attribute [Authorize(Roles = "Admin,Owner")]
 @inject UserManager<ApplicationUser> UserManager
 @inject IEmailNotificationService EmailNotificationService
 
