@@ -1,6 +1,7 @@
 using RTUB.Core.Enums;
 using RTUB.Core.Entities;
 using RTUB.Application.Extensions;
+using RTUB.Core.Helpers;
 
 namespace RTUB.Application.Helpers;
 
@@ -58,23 +59,21 @@ public static class StatusHelper
 
     /// <summary>
     /// Gets a localized display name for an instrument type.
+    /// Delegates to InstrumentTypeHelper in Core layer.
     /// </summary>
     public static string GetInstrumentDisplay(InstrumentType instrument)
     {
-        return instrument switch
-        {
-            InstrumentType.Guitarra => "Guitarra",
-            InstrumentType.Bandolim => "Bandolim",
-            InstrumentType.Cavaquinho => "Cavaquinho",
-            InstrumentType.Acordeao => "Acordeão",
-            InstrumentType.Fagote => "Fagote",
-            InstrumentType.Flauta => "Flauta",
-            InstrumentType.Baixo => "Baixo",
-            InstrumentType.Percussao => "Percussão",
-            InstrumentType.Pandeireta => "Pandeireta",
-            InstrumentType.Estandarte => "Estandarte",
-            _ => instrument.ToString()
-        };
+        return InstrumentTypeHelper.GetDisplayName(instrument);
+    }
+
+    /// <summary>
+    /// Gets the InstrumentType enum value from a localized display name.
+    /// Returns null if the display name is not recognized.
+    /// Delegates to InstrumentTypeHelper in Core layer.
+    /// </summary>
+    public static InstrumentType? GetInstrumentTypeFromDisplay(string displayName)
+    {
+        return InstrumentTypeHelper.ParseDisplayName(displayName);
     }
 
     /// <summary>

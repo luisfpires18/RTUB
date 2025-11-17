@@ -12,6 +12,7 @@ public enum InstrumentType
     Fagote,
     Flauta,
     Baixo,
+    Contrabaixo,
     Percussao,
     Pandeireta,
     Estandarte

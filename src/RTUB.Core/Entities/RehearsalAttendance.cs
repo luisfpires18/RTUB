@@ -21,6 +21,9 @@ public class RehearsalAttendance : BaseEntity
     
     public InstrumentType? Instrument { get; set; }
     
+    [MaxLength(200)]
+    public string? OtherInstruments { get; set; }
+    
     [MaxLength(500)]
     public string? Notes { get; set; }
     

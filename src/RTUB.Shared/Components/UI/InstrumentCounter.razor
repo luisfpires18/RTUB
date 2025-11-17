@@ -11,19 +11,26 @@
 {
     <div class="@GetContainerClass()">
         <div class="instrument-counter-section">
-            <div class="instrument-counter-header">
+            <div class="instrument-counter-header @GetHeaderClass()" @onclick="ToggleCollapse" style="@GetHeaderStyle()">
                 <i class="bi bi-music-note-beamed"></i>
                 <span>@Title</span>
-            </div>
-            <div class="instrument-counter-grid">
-                @foreach (var kvp in InstrumentCounts.Where(x => x.Value > 0).OrderByDescending(x => x.Value))
+                @if (Collapsible)
                 {
-                    <div class="instrument-counter-box">
-                        <div class="instrument-counter-number">@kvp.Value</div>
-                        <div class="instrument-counter-label">@StatusHelper.GetInstrumentDisplay(kvp.Key)</div>
-                    </div>
+                    <i class="bi @GetCollapseIcon() ms-auto"></i>
                 }
             </div>
+            @if (!IsCollapsed)
+            {
+                <div class="instrument-counter-grid">
+                    @foreach (var kvp in InstrumentCounts.Where(x => x.Value > 0).OrderByDescending(x => x.Value))
+                    {
+                        <div class="instrument-counter-box">
+                            <div class="instrument-counter-number">@kvp.Value</div>
+                            <div class="instrument-counter-label">@StatusHelper.GetInstrumentDisplay(kvp.Key)</div>
+                        </div>
+                    }
+                </div>
+            }
         </div>
     </div>
 }
@@ -59,6 +66,33 @@
     [Parameter]
     public string MarginBottom { get; set; } = "mb-4";
 
+    /// <summary>
+    /// Whether this counter should be collapsible
+    /// </summary>
+    [Parameter]
+    public bool Collapsible { get; set; } = false;
+
+    /// <summary>
+    /// Whether the counter starts collapsed
+    /// </summary>
+    [Parameter]
+    public bool DefaultCollapsed { get; set; } = false;
+
+    private bool IsCollapsed { get; set; }
+
+    protected override void OnInitialized()
+    {
+        IsCollapsed = DefaultCollapsed;
+    }
+
+    private void ToggleCollapse()
+    {
+        if (Collapsible)
+        {
+            IsCollapsed = !IsCollapsed;
+        }
+    }
+
     private string GetContainerClass()
     {
         var classes = new List<string> { MarginTop, MarginBottom };
@@ -67,5 +101,20 @@
             classes.Add(AdditionalClass);
         }
         return string.Join(" ", classes.Where(c => !string.IsNullOrWhiteSpace(c)));
+    }
+
+    private string GetHeaderClass()
+    {
+        return Collapsible ? "cursor-pointer" : "";
+    }
+
+    private string GetHeaderStyle()
+    {
+        return Collapsible ? "cursor: pointer;" : "";
+    }
+
+    private string GetCollapseIcon()
+    {
+        return IsCollapsed ? "bi-chevron-down" : "bi-chevron-up";
     }
 }

@@ -17,6 +17,7 @@ public class Enrollment : BaseEntity
 
     public bool WillAttend { get; set; } = true;
     public InstrumentType? Instrument { get; set; }
+    public string? OtherInstruments { get; set; }
     public string? Notes { get; set; }
     public DateTime EnrolledAt { get; set; } = DateTime.UtcNow;
     

@@ -234,7 +234,7 @@ public class InstrumentCounterTests : TestContext
     }
 
     [Fact]
-    public void InstrumentCounter_HandlesEmptyDictionary()
+    public void InstrumentCounter_DoesNotRender_WithEmptyDictionary()
     {
         // Arrange
         var instrumentCounts = new Dictionary<InstrumentType, int>();

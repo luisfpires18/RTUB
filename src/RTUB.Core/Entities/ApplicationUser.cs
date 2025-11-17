@@ -42,7 +42,6 @@ public class ApplicationUser : IdentityUser
     public int? MonthCaloiro { get; set; }
     public int? YearTuno { get; set; }
     public int? MonthTuno { get; set; }
-    public InstrumentType? MainInstrument { get; set; }
     public bool RequirePasswordChange { get; set; } = false;
     public DateTime? LastLoginDate { get; set; }
 

@@ -107,4 +107,187 @@ public class EventTests
         event1.IsCancelled.Should().BeFalse();
         event1.CancellationReason.Should().BeNull();
     }
+
+    [Fact]
+    public void GetPrimaryInstrumentCounts_WithEnrollments_ReturnsCorrectCounts()
+    {
+        // Arrange
+        var event1 = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", EventType.Atuacao);
+        var user1 = "user-1";
+        var user2 = "user-2";
+        var user3 = "user-3";
+
+        // Add enrollments (using eventId = 0 since we're testing the method directly)
+        var enrollment1 = new Enrollment { UserId = user1, EventId = 0, Instrument = InstrumentType.Guitarra, WillAttend = true };
+        var enrollment2 = new Enrollment { UserId = user2, EventId = 0, Instrument = InstrumentType.Guitarra, WillAttend = true };
+        var enrollment3 = new Enrollment { UserId = user3, EventId = 0, Instrument = InstrumentType.Bandolim, WillAttend = true };
+        
+        event1.Enrollments.Add(enrollment1);
+        event1.Enrollments.Add(enrollment2);
+        event1.Enrollments.Add(enrollment3);
+
+        // Setup member instruments - user1 and user2 have Guitarra as primary, user3 has Cavaquinho
+        var memberInstruments = new Dictionary<string, List<MemberInstrument>>
+        {
+            [user1] = new List<MemberInstrument> { MemberInstrument.Create(user1, InstrumentType.Guitarra, isPrimary: true) },
+            [user2] = new List<MemberInstrument> { MemberInstrument.Create(user2, InstrumentType.Guitarra, isPrimary: true) },
+            [user3] = new List<MemberInstrument> { MemberInstrument.Create(user3, InstrumentType.Cavaquinho, isPrimary: true) }
+        };
+
+        // Act
+        var result = event1.GetPrimaryInstrumentCounts(memberInstruments);
+
+        // Assert - should count all selected instruments regardless of primary status
+        result.Should().ContainKey(InstrumentType.Guitarra);
+        result[InstrumentType.Guitarra].Should().Be(2);
+        result.Should().ContainKey(InstrumentType.Bandolim); // user3 is playing Bandolim (non-primary)
+        result[InstrumentType.Bandolim].Should().Be(1);
+    }
+
+    [Fact]
+    public void GetOtherInstrumentCounts_OnlyCountsFromOtherInstrumentsField()
+    {
+        // Arrange
+        var event1 = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", EventType.Atuacao);
+        var user1 = "user-1";
+        var user2 = "user-2";
+        var user3 = "user-3";
+
+        // Add enrollments - selected instruments should NOT be counted in "other"
+        var enrollment1 = new Enrollment { UserId = user1, EventId = 0, Instrument = InstrumentType.Guitarra, WillAttend = true, OtherInstruments = "Bandolim, Cavaquinho" };
+        var enrollment2 = new Enrollment { UserId = user2, EventId = 0, Instrument = InstrumentType.Bandolim, WillAttend = true, OtherInstruments = "Guitarra" };
+        var enrollment3 = new Enrollment { UserId = user3, EventId = 0, Instrument = InstrumentType.Cavaquinho, WillAttend = true, OtherInstruments = null };
+        
+        event1.Enrollments.Add(enrollment1);
+        event1.Enrollments.Add(enrollment2);
+        event1.Enrollments.Add(enrollment3);
+
+        // Setup member instruments
+        var memberInstruments = new Dictionary<string, List<MemberInstrument>>
+        {
+            [user1] = new List<MemberInstrument> { MemberInstrument.Create(user1, InstrumentType.Guitarra, isPrimary: true) },
+            [user2] = new List<MemberInstrument> 
+            { 
+                MemberInstrument.Create(user2, InstrumentType.Guitarra, isPrimary: true),
+                MemberInstrument.Create(user2, InstrumentType.Bandolim, isPrimary: false)
+            }
+        };
+
+        // Act
+        var result = event1.GetOtherInstrumentCounts(memberInstruments);
+
+        // Assert - only instruments from OtherInstruments field are counted
+        result.Should().ContainKey(InstrumentType.Bandolim);
+        result[InstrumentType.Bandolim].Should().Be(1); // from user1's OtherInstruments
+        result.Should().ContainKey(InstrumentType.Cavaquinho);
+        result[InstrumentType.Cavaquinho].Should().Be(1); // from user1's OtherInstruments
+        result.Should().ContainKey(InstrumentType.Guitarra);
+        result[InstrumentType.Guitarra].Should().Be(1); // from user2's OtherInstruments
+        // Selected instruments should NOT be counted in "other"
+    }
+
+    [Fact]
+    public void GetPrimaryInstrumentCounts_WithNotAttendingMembers_ExcludesThem()
+    {
+        // Arrange
+        var event1 = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", EventType.Atuacao);
+        var user1 = "user-1";
+
+        // Add enrollment with WillAttend = false
+        var enrollment1 = new Enrollment { UserId = user1, EventId = 0, Instrument = InstrumentType.Guitarra, WillAttend = false };
+        event1.Enrollments.Add(enrollment1);
+
+        var memberInstruments = new Dictionary<string, List<MemberInstrument>>
+        {
+            [user1] = new List<MemberInstrument> { MemberInstrument.Create(user1, InstrumentType.Guitarra, isPrimary: true) }
+        };
+
+        // Act
+        var result = event1.GetPrimaryInstrumentCounts(memberInstruments);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GetOtherInstrumentCounts_WithOtherInstrumentsField_ParsesAndCountsCorrectly()
+    {
+        // Arrange
+        var event1 = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", EventType.Atuacao);
+        var user1 = "user-1";
+        var user2 = "user-2";
+
+        // user1 is playing Bandolim (primary), has "Guitarra, Cavaquinho" in OtherInstruments
+        var enrollment1 = new Enrollment 
+        { 
+            UserId = user1, 
+            EventId = 0, 
+            Instrument = InstrumentType.Bandolim, 
+            OtherInstruments = "Guitarra, Cavaquinho",
+            WillAttend = true 
+        };
+        
+        // user2 is playing Guitarra (not primary), has "Acordeão" in OtherInstruments
+        var enrollment2 = new Enrollment 
+        { 
+            UserId = user2, 
+            EventId = 0, 
+            Instrument = InstrumentType.Guitarra, 
+            OtherInstruments = "Acordeão",
+            WillAttend = true 
+        };
+        
+        event1.Enrollments.Add(enrollment1);
+        event1.Enrollments.Add(enrollment2);
+
+        // Setup member instruments - user1 has Bandolim as primary, user2 has Cavaquinho as primary
+        var memberInstruments = new Dictionary<string, List<MemberInstrument>>
+        {
+            [user1] = new List<MemberInstrument> { MemberInstrument.Create(user1, InstrumentType.Bandolim, isPrimary: true) },
+            [user2] = new List<MemberInstrument> { MemberInstrument.Create(user2, InstrumentType.Cavaquinho, isPrimary: true) }
+        };
+
+        // Act
+        var result = event1.GetOtherInstrumentCounts(memberInstruments);
+
+        // Assert
+        // ONLY counts from OtherInstruments field (selected instruments counted in GetPrimaryInstrumentCounts)
+        result.Should().ContainKey(InstrumentType.Guitarra);
+        result[InstrumentType.Guitarra].Should().Be(1); // from user1's OtherInstruments field
+        result.Should().ContainKey(InstrumentType.Cavaquinho);
+        result[InstrumentType.Cavaquinho].Should().Be(1); // from user1's OtherInstruments field
+        result.Should().ContainKey(InstrumentType.Acordeao);
+        result[InstrumentType.Acordeao].Should().Be(1); // from user2's OtherInstruments field
+        // Selected instruments should NOT be counted in "other"
+    }
+
+    [Fact]
+    public void GetOtherInstrumentCounts_WithEmptyOtherInstruments_ReturnsEmpty()
+    {
+        // Arrange
+        var event1 = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", EventType.Atuacao);
+        var user1 = "user-1";
+
+        var enrollment1 = new Enrollment 
+        { 
+            UserId = user1, 
+            EventId = 0, 
+            Instrument = InstrumentType.Guitarra, 
+            OtherInstruments = "",
+            WillAttend = true 
+        };
+        
+        event1.Enrollments.Add(enrollment1);
+
+        var memberInstruments = new Dictionary<string, List<MemberInstrument>>
+        {
+            [user1] = new List<MemberInstrument> { MemberInstrument.Create(user1, InstrumentType.Bandolim, isPrimary: true) }
+        };
+
+        // Act
+        var result = event1.GetOtherInstrumentCounts(memberInstruments);
+
+        // Assert - empty OtherInstruments should result in empty counts
+        result.Should().BeEmpty("selected instrument is not counted in 'other', only OtherInstruments field is parsed");
+    }
 }

@@ -47,12 +47,13 @@ public class EnrollmentService : IEnrollmentService
             .ToListAsync();
     }
 
-    public async Task<Enrollment> CreateEnrollmentAsync(string userId, int eventId, InstrumentType? instrument = null, string? notes = null, bool willAttend = true)
+    public async Task<Enrollment> CreateEnrollmentAsync(string userId, int eventId, InstrumentType? instrument = null, string? notes = null, bool willAttend = true, string? otherInstruments = null)
     {
         var enrollment = Enrollment.Create(userId, eventId);
         enrollment.Instrument = instrument;
         enrollment.Notes = notes;
         enrollment.WillAttend = willAttend;
+        enrollment.OtherInstruments = otherInstruments;
         _context.Enrollments.Add(enrollment);
         await _context.SaveChangesAsync();
         return enrollment;

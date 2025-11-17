@@ -12,6 +12,7 @@
 @using System.Web
 @inject IEventService EventService
 @inject IEnrollmentService EnrollmentService
+@inject IMemberInstrumentService MemberInstrumentService
 @inject ITrophyService TrophyService
 @inject IEmailNotificationService EmailNotificationService
 @inject IImageStorageService ImageStorageService
@@ -331,6 +332,7 @@ else
                        IsLeitao="@(currentUser != null && currentUser.Categories.Contains(MemberCategory.Leitao))"
                        Instrument="@enrollmentForm.Instrument"
                        InstrumentChanged="@((InstrumentType? value) => enrollmentForm.Instrument = value)"
+                       AvailableInstruments="@availableInstruments"
                        Notes="@enrollmentForm.Notes"
                        NotesChanged="@((string value) => enrollmentForm.Notes = value)"
                        NotesRows="4"
@@ -384,8 +386,9 @@ else
                             <EnrollmentCard 
                                 AvatarUrl="@enrollment.User?.ProfilePictureSrc"
                                 TunaName="@enrollment.User?.Nickname"
-                                FullName="@enrollment.User?.GetDisplayName()"
+                                FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}".Trim())"
                                 InstrumentText="@(enrollment.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(enrollment.Instrument.Value) : "")"
+                                OtherInstruments="@enrollment.OtherInstruments"
                                 Notes="@enrollment.Notes"
                                 AltText="@enrollment.User?.GetDisplayName()"
                                 ShowEditButton="false"
@@ -430,13 +433,8 @@ else
                     }
 
                     @* Instrument Counts - Horizontal Counter Section *@
-                    var instrumentCounts = new Dictionary<InstrumentType, int>();
-                    foreach (var inst in Enum.GetValues<InstrumentType>())
-                    {
-                        instrumentCounts[inst] = performingMembers.Count(e => e.Instrument == inst);
-                    }
-
-                    <InstrumentCounter InstrumentCounts="@instrumentCounts" />
+                    <InstrumentCounter InstrumentCounts="@primaryInstrumentCounts" Title="Instrumentos" />
+                    <InstrumentCounter InstrumentCounts="@otherInstrumentCounts" Title="Outros Instrumentos" Collapsible="true" DefaultCollapsed="true" />
                 }
 
                 @if (leitaoMembers.Any())
@@ -448,8 +446,9 @@ else
                             <EnrollmentCard 
                                 AvatarUrl="@enrollment.User?.ProfilePictureSrc"
                                 TunaName="@enrollment.User?.Nickname"
-                                FullName="@enrollment.User?.GetDisplayName()"
+                                FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}".Trim())"
                                 InstrumentText=""
+                                OtherInstruments=""
                                 Notes="@enrollment.Notes"
                                 AltText="@enrollment.User?.GetDisplayName()"
                                 ShowEditButton="false"
@@ -489,8 +488,9 @@ else
                             <EnrollmentCard 
                                 AvatarUrl="@enrollment.User?.ProfilePictureSrc"
                                 TunaName="@enrollment.User?.Nickname"
-                                FullName="@enrollment.User?.GetDisplayName()"
+                                FullName="@($"{enrollment.User?.FirstName} {enrollment.User?.LastName}".Trim())"
                                 InstrumentText=""
+                                OtherInstruments=""
                                 Notes="@enrollment.Notes"
                                 AltText="@enrollment.User?.GetDisplayName()"
                                 ShowEditButton="false"
@@ -924,6 +924,8 @@ else
     private List<Enrollment>? enrollments;
     private List<Enrollment>? eventEnrollments;
     private ApplicationUser? currentUser;
+    private List<MemberInstrument>? currentUserInstruments;
+    private List<InstrumentType>? availableInstruments;
     private bool showEditModal = false;
     private bool showDeleteModal = false;
     private bool showEnrollModal = false;
@@ -988,6 +990,10 @@ else
     private SortableTableHelper<Enrollment> enrollmentSortHelper = new() { SortColumn = "EnrolledAt", SortAscending = false };
     private List<Enrollment> filteredPerformingMembers = new();
     private List<Enrollment> filteredLeitoes = new();
+    
+    // Instrument count tracking
+    private Dictionary<InstrumentType, int> primaryInstrumentCounts = new();
+    private Dictionary<InstrumentType, int> otherInstrumentCounts = new();
     
     // Pagination for enrollment modals
     private PaginationHelper<Enrollment> performingMembersPagination = new() { PageSize = 8 };
@@ -1157,6 +1163,13 @@ else
             currentUser = await UserManager.FindByNameAsync(userName);
             isUserAdmin = authState.User.IsInRole("Admin") || authState.User.IsInRole("Owner");
             isUserOwner = authState.User.IsInRole("Owner");
+            
+            // Load member's instruments
+            if (currentUser != null)
+            {
+                currentUserInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(currentUser.Id)).ToList();
+                availableInstruments = currentUserInstruments.Select(mi => mi.InstrumentType).ToList();
+            }
         }
     }
 
@@ -1377,11 +1390,20 @@ else
         isEditingEnrollment = false;
         selectedEvent = eventItem;
         wantToPlay = true; // Default to showing instrument field
+        
+        // Set default instrument to primary instrument if available
+        InstrumentType? defaultInstrument = null;
+        if (currentUserInstruments != null && currentUserInstruments.Any())
+        {
+            var primaryInstrument = currentUserInstruments.FirstOrDefault(mi => mi.IsPrimary);
+            defaultInstrument = primaryInstrument?.InstrumentType ?? currentUserInstruments.First().InstrumentType;
+        }
+        
         enrollmentForm = new Enrollment
         {
             UserId = currentUser.Id,
             EventId = eventItem.Id,
-            Instrument = null,
+            Instrument = defaultInstrument,
             Notes = string.Empty
         };
         showEnrollModal = true;
@@ -1417,6 +1439,32 @@ else
     {
         if (enrollmentForm == null || currentUser == null) return;
 
+        InstrumentType? instrumentToSave = null;
+        string? otherInstrumentsText = null;
+
+        // Only process instrument info if wanting to play
+        if (wantToPlay)
+        {
+            instrumentToSave = enrollmentForm.Instrument;
+            
+            // Get all member instruments and calculate other instruments
+            var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsAsync(currentUser.Id);
+            
+            if (enrollmentForm.Instrument.HasValue)
+            {
+                // Get all instruments except the selected one
+                var otherInstruments = memberInstruments
+                    .Where(mi => mi.InstrumentType != enrollmentForm.Instrument.Value)
+                    .Select(mi => StatusHelper.GetInstrumentDisplay(mi.InstrumentType))
+                    .ToList();
+                
+                if (otherInstruments.Any())
+                {
+                    otherInstrumentsText = string.Join(", ", otherInstruments);
+                }
+            }
+        }
+
         if (isEditingEnrollment)
         {
             var existingEnrollment = await EnrollmentService.GetEnrollmentByIdAsync(enrollmentForm.Id);
@@ -1427,9 +1475,10 @@ else
                 await EnrollmentService.CreateEnrollmentAsync(
                     enrollmentForm.UserId,
                     enrollmentForm.EventId,
-                    enrollmentForm.Instrument,
+                    instrumentToSave,
                     enrollmentForm.Notes,
-                    enrollmentForm.WillAttend
+                    enrollmentForm.WillAttend,
+                    otherInstrumentsText
                 );
             }
         }
@@ -1438,9 +1487,10 @@ else
             await EnrollmentService.CreateEnrollmentAsync(
                 enrollmentForm.UserId,
                 enrollmentForm.EventId,
-                enrollmentForm.Instrument,
+                instrumentToSave,
                 enrollmentForm.Notes,
-                enrollmentForm.WillAttend
+                enrollmentForm.WillAttend,
+                otherInstrumentsText
             );
         }
 
@@ -1483,6 +1533,9 @@ else
         enrollmentSearchTerm = string.Empty;
         enrollmentSortHelper = new() { SortColumn = "EnrolledAt", SortAscending = false };
         FilterEnrollments();
+        
+        // Calculate primary and other instrument counts
+        await CalculateInstrumentCountsAsync();
         
         // Load all members for adding if admin (not Caloiro) AND it's a past event
         if (isUserAdmin && !IsCaloiroAdmin() && eventItem.Date.Date < DateTime.Today)
@@ -1610,6 +1663,32 @@ else
         };
         
         filteredPerformingMembers = enrollmentSortHelper.ApplySort(filteredPerformingMembers, columnSelectors);
+    }
+
+    private async Task CalculateInstrumentCountsAsync()
+    {
+        primaryInstrumentCounts = new Dictionary<InstrumentType, int>();
+        otherInstrumentCounts = new Dictionary<InstrumentType, int>();
+        
+        if (selectedEvent == null || eventEnrollments == null)
+            return;
+        
+        // Get all user IDs from enrollments
+        var userIds = eventEnrollments
+            .Where(e => e.WillAttend && !string.IsNullOrEmpty(e.UserId))
+            .Select(e => e.UserId)
+            .Distinct()
+            .ToList();
+        
+        if (!userIds.Any())
+            return;
+        
+        // Fetch all member instruments in one query
+        var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsByUserIdsAsync(userIds);
+        
+        // Calculate counts using the Event entity methods
+        primaryInstrumentCounts = selectedEvent.GetPrimaryInstrumentCounts(memberInstruments);
+        otherInstrumentCounts = selectedEvent.GetOtherInstrumentCounts(memberInstruments);
     }
 
     private string GetEventTypeDisplay(EventType type)

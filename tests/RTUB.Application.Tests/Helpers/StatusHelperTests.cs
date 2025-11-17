@@ -187,4 +187,60 @@ public class StatusHelperTests
         result.Should().NotContain(MemberCategory.Veterano);
         result.Should().NotContain(MemberCategory.Tunossauro);
     }
+
+    [Theory]
+    [InlineData("Guitarra", InstrumentType.Guitarra)]
+    [InlineData("Bandolim", InstrumentType.Bandolim)]
+    [InlineData("Cavaquinho", InstrumentType.Cavaquinho)]
+    [InlineData("Acordeão", InstrumentType.Acordeao)]
+    [InlineData("Percussão", InstrumentType.Percussao)]
+    [InlineData("Fagote", InstrumentType.Fagote)]
+    [InlineData("Flauta", InstrumentType.Flauta)]
+    [InlineData("Baixo", InstrumentType.Baixo)]
+    [InlineData("Pandeireta", InstrumentType.Pandeireta)]
+    [InlineData("Estandarte", InstrumentType.Estandarte)]
+    public void GetInstrumentTypeFromDisplay_WithValidName_ReturnsCorrectEnum(string displayName, InstrumentType expected)
+    {
+        // Act
+        var result = StatusHelper.GetInstrumentTypeFromDisplay(displayName);
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("guitarra")] // lowercase
+    [InlineData("GUITARRA")] // uppercase
+    [InlineData("GuItArRa")] // mixed case
+    public void GetInstrumentTypeFromDisplay_IsCaseInsensitive(string displayName)
+    {
+        // Act
+        var result = StatusHelper.GetInstrumentTypeFromDisplay(displayName);
+
+        // Assert
+        result.Should().Be(InstrumentType.Guitarra);
+    }
+
+    [Theory]
+    [InlineData("InvalidInstrument")]
+    [InlineData("Piano")]
+    [InlineData("")]
+    public void GetInstrumentTypeFromDisplay_WithInvalidName_ReturnsNull(string displayName)
+    {
+        // Act
+        var result = StatusHelper.GetInstrumentTypeFromDisplay(displayName);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void GetInstrumentTypeFromDisplay_WithNull_ReturnsNull()
+    {
+        // Act
+        var result = StatusHelper.GetInstrumentTypeFromDisplay(null!);
+
+        // Assert
+        result.Should().BeNull();
+    }
 }

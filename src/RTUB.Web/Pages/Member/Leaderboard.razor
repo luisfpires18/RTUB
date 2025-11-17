@@ -183,7 +183,7 @@ else
                     AvatarUrl="@item.User.ProfilePictureSrc"
                     Nickname="@item.User.Nickname"
                     FullName="@($"{item.User.FirstName} {item.User.LastName}")"
-                    Instrument="@(item.User.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(item.User.MainInstrument.Value) : "")"
+                    Instrument=""
                     Level="@item.RankProgress.CurrentLevel"
                     RankName="@item.RankProgress.CurrentRankName"
                     Xp="@item.RankProgress.CurrentXp"

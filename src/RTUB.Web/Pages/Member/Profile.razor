@@ -20,6 +20,7 @@
 @inject IRoleAssignmentService RoleAssignmentService
 @inject IUserProfileService UserProfileService
 @inject IRankingService RankingService
+@inject IMemberInstrumentService MemberInstrumentService
 @inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 
 <h1 class="text-center mb-4"><i class="bi bi-person-circle"></i> Meu Perfil</h1>
@@ -160,11 +161,20 @@ else
                           OnSave="@SaveTunaSection"
                           OnCancel="@CancelEdit">
                 <ChildContent>
+                    @* Display all instruments with primary indicator *@
+                    @if (userInstrumentsForDisplay != null && userInstrumentsForDisplay.Any())
+                    {
+                        <ProfileField Label="Instrumentos"
+                                    Value="@string.Join(", ", userInstrumentsForDisplay
+                                        .OrderByDescending(i => i.IsPrimary)
+                                        .Select(i => StatusHelper.GetInstrumentDisplay(i.InstrumentType) + (i.IsPrimary ? " (Principal)" : "")))" />
+                    }
+                    else
+                    {
+                        <ProfileField Label="Instrumentos" Value="@null" />
+                    }
                     
-                    <ProfileField Label="Instrumento Principal" 
-                                Value="@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : null)" />
-                    
-                    @if ((!user.IsLeitao() || user.IsCaloiro() || user.IsTuno()) && !user.IsFundador())
+                    @if (user != null && (!user.IsLeitao() || user.IsCaloiro() || user.IsTuno()) && !user.IsFundador())
                     {
                         <ProfileField Label="Padrinho" 
                                     Value="@GetMentorDisplayName()" />
@@ -191,17 +201,65 @@ else
                             <DataAnnotationsValidator />
                             <ErrorDisplay />
 
+                            @* Multiple Instruments Management *@
                             <div class="mb-3">
                                 <label class="form-label text-white-full fw-semibold">
-                                    <i class="bi bi-music-note-beamed text-primary me-2"></i>Instrumento Principal
+                                    <i class="bi bi-music-note-list text-primary me-2"></i>Instrumentos
                                 </label>
-                                <select class="form-select" @bind="editUser.MainInstrument">
-                                    <option value="">Sem instrumento</option>
-                                    @foreach (var instrument in Enum.GetValues<InstrumentType>())
-                                    {
-                                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
-                                    }
-                                </select>
+                                
+                                @* Add Instrument Section *@
+                                <div class="input-group mb-2">
+                                    <select class="form-select" @bind-value="selectedInstrumentToAdd" @bind-value:event="onchange">
+                                        <option value="">Selecionar instrumento...</option>
+                                        @foreach (var instrument in Enum.GetValues<InstrumentType>().Where(i => !memberInstruments.Any(mi => mi.InstrumentType == i)))
+                                        {
+                                            <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                        }
+                                    </select>
+                                    <button type="button" 
+                                            class="btn btn-primary btn-primary-purple" 
+                                            @onclick="AddInstrumentToMember"
+                                            disabled="@(string.IsNullOrEmpty(selectedInstrumentToAdd))">
+                                        <i class="bi bi-plus-lg"></i> Adicionar
+                                    </button>
+                                </div>
+                                
+                                @* Display Instruments List *@
+                                @if (memberInstruments.Any())
+                                {
+                                    <div class="list-group">
+                                        @foreach (var memberInstrument in memberInstruments)
+                                        {
+                                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <input type="radio" 
+                                                           name="primaryInstrument" 
+                                                           class="form-check-input" 
+                                                           checked="@memberInstrument.IsPrimary"
+                                                           @onchange="@(() => MarkInstrumentAsPrimary(memberInstrument))"
+                                                           title="Marcar como principal" />
+                                                    <span>
+                                                        @StatusHelper.GetInstrumentDisplay(memberInstrument.InstrumentType)
+                                                        @if (memberInstrument.IsPrimary)
+                                                        {
+                                                            <span class="badge bg-primary ms-2">Principal</span>
+                                                        }
+                                                    </span>
+                                                </div>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-outline-danger" 
+                                                        @onclick="@(() => RemoveInstrumentFromMember(memberInstrument))"
+                                                        title="Remover instrumento">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <EmptyState Title="Nenhum instrumento adicionado ainda" Icon="bi-music-note-list" />
+                                }
                             </div>
 
                             @if (user != null && (!user.IsLeitao() || user.IsCaloiro() || user.IsTuno()) && !user.IsFundador())
@@ -443,6 +501,7 @@ else
     private ApplicationUser? mentor;
     private List<ApplicationUser> eligibleMentors = new();
     private List<RoleAssignment> roleAssignments = new();
+    private List<MemberInstrument> userInstrumentsForDisplay = new();
     private bool showUploadModal = false;
     private bool showCropperModal = false;
     private bool showPasswordModal = false;
@@ -508,6 +567,10 @@ else
         { "tuna", true },
         { "notifications", true }
     };
+    
+    // Member instruments
+    private List<MemberInstrument> memberInstruments = new();
+    private string selectedInstrumentToAdd = "";
     
     // Mentor search variables
     private string mentorSearchTerm = "";
@@ -588,6 +651,9 @@ else
                 // Load role assignments for this user
                 var allAssignments = await RoleAssignmentService.GetAllRoleAssignmentsAsync();
                 roleAssignments = allAssignments.Where(a => a.UserId == user.Id).ToList();
+                
+                // Load member instruments for display
+                userInstrumentsForDisplay = (await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id)).ToList();
                 
                 // Load ranking data - always display for all users
                 rankProgress = await RankingService.GetRankProgressAsync(user.Id);
@@ -701,7 +767,7 @@ else
         StateHasChanged();
     }
 
-    private void OpenEditSectionModal(string section)
+    private async void OpenEditSectionModal(string section)
     {
         if (user == null) return;
 
@@ -723,18 +789,29 @@ else
             MonthCaloiro = user.MonthCaloiro,
             YearTuno = user.YearTuno,
             MonthTuno = user.MonthTuno,
-            MainInstrument = user.MainInstrument,
             MentorId = user.MentorId
         };
         
-        // Initialize mentor search term if user has a mentor (for tuna section)
-        if (section == "tuna" && !string.IsNullOrEmpty(user.MentorId))
+        // Initialize mentor search term and instruments if tuna section
+        if (section == "tuna")
         {
-            var existingMentor = eligibleMentors.FirstOrDefault(m => m.Id == user.MentorId);
-            if (existingMentor != null)
+            // Load member instruments
+            memberInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id)).ToList();
+            selectedInstrumentToAdd = "";
+            
+            if (!string.IsNullOrEmpty(user.MentorId))
             {
-                selectedMentorCache = existingMentor;
-                mentorSearchTerm = $"{existingMentor.FirstName} {existingMentor.LastName}";
+                var existingMentor = eligibleMentors.FirstOrDefault(m => m.Id == user.MentorId);
+                if (existingMentor != null)
+                {
+                    selectedMentorCache = existingMentor;
+                    mentorSearchTerm = $"{existingMentor.FirstName} {existingMentor.LastName}";
+                }
+            }
+            else
+            {
+                selectedMentorCache = null;
+                mentorSearchTerm = "";
             }
         }
         else
@@ -744,6 +821,7 @@ else
         }
         
         filteredMentors.Clear();
+        StateHasChanged();
     }
 
     private void CancelEdit()
@@ -753,6 +831,96 @@ else
         mentorSearchTerm = "";
         filteredMentors.Clear();
         selectedMentorCache = null;
+        memberInstruments.Clear();
+        selectedInstrumentToAdd = "";
+    }
+
+    private async Task AddInstrumentToMember()
+    {
+        if (string.IsNullOrEmpty(selectedInstrumentToAdd) || user == null)
+            return;
+
+        var instrumentType = Enum.Parse<InstrumentType>(selectedInstrumentToAdd);
+        
+        // Check if instrument already exists
+        if (memberInstruments.Any(mi => mi.InstrumentType == instrumentType))
+        {
+            return;
+        }
+
+        try
+        {
+            await SetAuditContextToCurrentUser();
+            var newInstrument = await MemberInstrumentService.AddInstrumentAsync(
+                user.Id!, 
+                instrumentType, 
+                !memberInstruments.Any() // First instrument becomes primary
+            );
+            memberInstruments.Add(newInstrument);
+        }
+        catch (InvalidOperationException)
+        {
+            // Instrument already exists
+            return;
+        }
+
+        selectedInstrumentToAdd = "";
+        StateHasChanged();
+    }
+
+    private async Task RemoveInstrumentFromMember(MemberInstrument instrument)
+    {
+        if (user == null) return;
+        
+        try
+        {
+            await SetAuditContextToCurrentUser();
+            
+            // Handle primary instrument reassignment BEFORE removal
+            if (instrument.IsPrimary && memberInstruments.Count > 1)
+            {
+                // Find the next instrument to make primary (first one that isn't being deleted)
+                var newPrimary = memberInstruments.FirstOrDefault(mi => mi.Id != instrument.Id);
+                if (newPrimary != null)
+                {
+                    await MemberInstrumentService.SetPrimaryInstrumentAsync(newPrimary.Id, user.Id!);
+                    newPrimary.MarkAsPrimary();
+                }
+            }
+            
+            // Remove from database
+            await MemberInstrumentService.RemoveInstrumentAsync(instrument.Id);
+            
+            // Remove from local list only after successful database removal
+            memberInstruments.Remove(instrument);
+            
+            // Reload instruments to ensure consistency
+            memberInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id!)).ToList();
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error removing instrument: {ex.Message}");
+            // Optionally show error to user
+        }
+    }
+
+    private async Task MarkInstrumentAsPrimary(MemberInstrument instrument)
+    {
+        if (user == null) return;
+        
+        await SetAuditContextToCurrentUser();
+        await MemberInstrumentService.SetPrimaryInstrumentAsync(instrument.Id, user.Id!);
+        
+        // Update local list
+        foreach (var mi in memberInstruments)
+        {
+            mi.UnmarkAsPrimary();
+        }
+        instrument.MarkAsPrimary();
+        
+        StateHasChanged();
     }
 
     private async Task SavePersonalSection()
@@ -786,7 +954,6 @@ else
         }
 
         user.Degree = editUser.Degree;
-        user.MainInstrument = editUser.MainInstrument;
         user.MentorId = editUser.MentorId;
         user.YearLeitao = editUser.YearLeitao;
         user.MonthLeitao = editUser.MonthLeitao;
@@ -807,6 +974,9 @@ else
         {
             mentor = null;
         }
+        
+        // Reload instruments for display
+        userInstrumentsForDisplay = (await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id)).ToList();
         
         CancelEdit();
         StateHasChanged();

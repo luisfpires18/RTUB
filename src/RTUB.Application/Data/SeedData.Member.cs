@@ -42,7 +42,6 @@ public static partial class SeedData
                 YearCaloiro = 2017,
                 YearTuno = 2019,
                 Degree = "Engenharia Informática",
-                MainInstrument = InstrumentType.Guitarra,
                 City = "Bragança",
                 Subscribed = true,
             };

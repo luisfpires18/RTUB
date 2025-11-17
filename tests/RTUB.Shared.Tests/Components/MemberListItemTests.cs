@@ -67,26 +67,10 @@ public class MemberListItemTests : TestContext
     }
 
     [Fact]
-    public void MemberListItem_DisplaysMainInstrument_WhenProvided()
+    public void MemberListItem_DisplaysDash_ForInstrumentColumn()
     {
-        // Arrange
+        // Arrange - MainInstrument field was removed, instrument column shows dash
         var user = CreateTestUser();
-        user.MainInstrument = InstrumentType.Guitarra;
-
-        // Act
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
-            .Add(p => p.User, user));
-
-        // Assert
-        cut.Markup.Should().Contain("Guitarra", "should display main instrument");
-    }
-
-    [Fact]
-    public void MemberListItem_DisplaysDash_WhenNoMainInstrument()
-    {
-        // Arrange
-        var user = CreateTestUser();
-        user.MainInstrument = null;
 
         // Act
         var cut = RenderComponent<MemberListItem>(parameters => parameters
@@ -94,7 +78,7 @@ public class MemberListItemTests : TestContext
 
         // Assert
         var tds = cut.FindAll("td");
-        tds[3].InnerHtml.Should().Contain("-", "should display dash when no instrument");
+        tds[3].InnerHtml.Should().Contain("-", "should display dash in instrument column");
     }
 
     [Fact]
@@ -279,23 +263,5 @@ public class MemberListItemTests : TestContext
 
         // Assert
         callbackInvoked.Should().BeTrue("OnDelete callback should be invoked");
-    }
-
-    [Theory]
-    [InlineData(InstrumentType.Guitarra, "Guitarra")]
-    [InlineData(InstrumentType.Bandolim, "Bandolim")]
-    [InlineData(InstrumentType.Acordeao, "Acordeão")]
-    public void MemberListItem_DisplaysCorrectInstrumentName(InstrumentType instrument, string expectedName)
-    {
-        // Arrange
-        var user = CreateTestUser();
-        user.MainInstrument = instrument;
-
-        // Act
-        var cut = RenderComponent<MemberListItem>(parameters => parameters
-            .Add(p => p.User, user));
-
-        // Assert
-        cut.Markup.Should().Contain(expectedName, $"should display {expectedName} for {instrument}");
     }
 }

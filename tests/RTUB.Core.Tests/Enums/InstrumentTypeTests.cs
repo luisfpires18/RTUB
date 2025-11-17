@@ -21,6 +21,7 @@ public class InstrumentTypeTests
             InstrumentType.Fagote,
             InstrumentType.Flauta,
             InstrumentType.Baixo,
+            InstrumentType.Contrabaixo,
             InstrumentType.Percussao,
             InstrumentType.Pandeireta,
             InstrumentType.Estandarte,
@@ -55,6 +56,6 @@ public class InstrumentTypeTests
         var count = Enum.GetValues<InstrumentType>().Length;
 
         // Assert
-        count.Should().Be(10);
+        count.Should().Be(11);
     }
 }

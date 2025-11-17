@@ -253,7 +253,6 @@ public class ProfilePageTests : IntegrationTestBase
         var expectedOperations = new[]
         {
             "Update Degree",
-            "Update MainInstrument",
             "Update MentorId"
         };
 

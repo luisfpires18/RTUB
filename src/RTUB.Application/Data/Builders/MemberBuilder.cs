@@ -123,7 +123,6 @@ public sealed class MemberBuilder
                 Nickname = nickname,
                 PhoneContact = phone,
                 Degree = degree,
-                MainInstrument = instrument,
                 YearTuno = yearTuno,
                 YearCaloiro = yearCaloiro,
                 YearLeitao = yearLeitao,
@@ -158,7 +157,6 @@ public sealed class MemberBuilder
             user.YearTuno = yearTuno;
             user.YearCaloiro = yearCaloiro;
             user.YearLeitao = yearLeitao;
-            user.MainInstrument = instrument;
 
             await userManager.UpdateAsync(user);
 

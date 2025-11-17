@@ -33,7 +33,7 @@ public class EnrollmentCardTests : TestContext
     }
 
     [Fact]
-    public void EnrollmentCard_DisplaysDashForEmptyNotes()
+    public void EnrollmentCard_HidesNotesSection_WhenNotesEmpty()
     {
         // Arrange & Act
         var cut = RenderComponent<EnrollmentCard>(parameters => parameters
@@ -41,7 +41,32 @@ public class EnrollmentCardTests : TestContext
             .Add(p => p.Notes, ""));
 
         // Assert
-        cut.Markup.Should().Contain("—", "should display dash for empty notes");
+        cut.Markup.Should().NotContain("Notas:", "should hide notes section when empty");
+    }
+
+    [Fact]
+    public void EnrollmentCard_HidesNotesSection_WhenNotesWhitespace()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
+            .Add(p => p.Notes, "   "));
+
+        // Assert
+        cut.Markup.Should().NotContain("Notas:", "should hide notes section when only whitespace");
+    }
+
+    [Fact]
+    public void EnrollmentCard_DisplaysNotesSection_WhenNotesHasContent()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
+            .Add(p => p.Notes, "Some notes here"));
+
+        // Assert
+        cut.Markup.Should().Contain("Notas:", "should display notes label");
+        cut.Markup.Should().Contain("Some notes here", "should display notes content");
     }
 
     [Fact]

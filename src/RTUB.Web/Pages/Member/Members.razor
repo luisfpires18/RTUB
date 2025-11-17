@@ -12,6 +12,7 @@
 @inject RoleManager<IdentityRole> RoleManager
 @inject IRoleAssignmentService RoleAssignmentService
 @inject IEnrollmentService EnrollmentService
+@inject IMemberInstrumentService MemberInstrumentService
 @inject IEmailNotificationService EmailNotificationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject RTUB.Application.Services.AuditContext AuditContext
@@ -88,7 +89,7 @@ else
                 <AvatarCard AvatarUrl="@user.ProfilePictureSrc"
                            TunaName="@user.Nickname"
                            FullName="@($"{user.FirstName} {user.LastName}")"
-                           InstrumentText="@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : "")"
+                           InstrumentText="@(userPrimaryInstruments.ContainsKey(user.Id) ? userPrimaryInstruments[user.Id] : "")"
                            AltText="@user.GetDisplayName()"
                            LastLoginDate="@user.LastLoginDate"
                            OnView="@(async () => await OpenViewDetailsModal(user))"
@@ -153,7 +154,7 @@ else
                 <AvatarCard AvatarUrl="@user.ProfilePictureSrc"
                            TunaName="@user.Nickname"
                            FullName="@($"{user.FirstName} {user.LastName}")"
-                           InstrumentText="@(user.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(user.MainInstrument.Value) : "")"
+                           InstrumentText="@(userPrimaryInstruments.ContainsKey(user.Id) ? userPrimaryInstruments[user.Id] : "")"
                            AltText="@user.GetDisplayName()"
                            LastLoginDate="@user.LastLoginDate"
                            OnView="@(async () => await OpenViewDetailsModal(user))"
@@ -308,18 +309,68 @@ else
                     </div>
                 }
             </div>
+            
+            @* Multiple Instruments Management *@
             <div class="mb-3">
                 <label class="form-label fw-semibold">
-                    <i class="bi bi-music-note-beamed text-primary me-2"></i>Instrumento Principal
+                    <i class="bi bi-music-note-list text-primary me-2"></i>Instrumentos
                 </label>
-                <InputSelect class="form-select" @bind-Value="editingUser.MainInstrument">
-                    <option value="">Sem instrumento</option>
-                    @foreach (var instrument in Enum.GetValues<InstrumentType>())
-                    {
-                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
-                    }
-                </InputSelect>
+                
+                @* Add Instrument Section *@
+                <div class="input-group mb-2">
+                    <select class="form-select" @bind-value="selectedInstrumentToAdd" @bind-value:event="onchange">
+                        <option value="">Selecionar instrumento...</option>
+                        @foreach (var instrument in Enum.GetValues<InstrumentType>().Where(i => !memberInstruments.Any(mi => mi.InstrumentType == i)))
+                        {
+                            <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                        }
+                    </select>
+                    <button type="button" 
+                            class="btn btn-primary btn-primary-purple" 
+                            @onclick="AddInstrumentToMember"
+                            disabled="@(string.IsNullOrEmpty(selectedInstrumentToAdd))">
+                        <i class="bi bi-plus-lg"></i> Adicionar
+                    </button>
+                </div>
+                
+                @* Display Instruments List *@
+                @if (memberInstruments.Any())
+                {
+                    <div class="list-group">
+                        @foreach (var memberInstrument in memberInstruments)
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="radio" 
+                                           name="primaryInstrument" 
+                                           class="form-check-input" 
+                                           checked="@memberInstrument.IsPrimary"
+                                           @onchange="@(() => MarkInstrumentAsPrimary(memberInstrument))"
+                                           title="Marcar como principal" />
+                                    <span>
+                                        @StatusHelper.GetInstrumentDisplay(memberInstrument.InstrumentType)
+                                        @if (memberInstrument.IsPrimary)
+                                        {
+                                            <span class="badge bg-primary ms-2">Principal</span>
+                                        }
+                                    </span>
+                                </div>
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-danger" 
+                                        @onclick="@(() => RemoveInstrumentFromMember(memberInstrument))"
+                                        title="Remover instrumento">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (!isCreateMode)
+                {
+                    <EmptyState Title="Nenhum instrumento adicionado ainda" Icon="bi-music-note-list" />
+                }
             </div>
+            
             @* Only show Padrinho field for Caloiro or Tuno (not for Leitão or Fundador) *@
             @if ((editingUser.SelectedCategory == "Caloiro" || editingUser.SelectedCategory == "Tuno") && !isFundador)
             {
@@ -487,8 +538,27 @@ else
                     </h6>
                 </div>
                 <div class="modal-section-body">
-                    <ProfileField Label="Instrumento Principal" 
-                                Value="@(viewingUser.MainInstrument.HasValue ? StatusHelper.GetInstrumentDisplay(viewingUser.MainInstrument.Value) : null)" />
+                    @* Display all instruments with primary indicator *@
+                    @if (viewingUserInstruments != null && viewingUserInstruments.Any())
+                    {
+                        <div class="profile-field">
+                            <div class="row">
+                                <div class="col-12 col-md-4 profile-field-label">
+                                    <strong class="text-white-full">Instrumentos:</strong>
+                                </div>
+                                <div class="col-12 col-md-8 profile-field-value">
+                                    @string.Join(", ", viewingUserInstruments
+                                        .OrderByDescending(i => i.IsPrimary)
+                                        .Select(i => StatusHelper.GetInstrumentDisplay(i.InstrumentType) + (i.IsPrimary ? " (Principal)" : "")))
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <ProfileField Label="Instrumentos" Value="@null" />
+                    }
+                    
                     @if (!viewingUser.IsFundador())
                     {
                         <ProfileField Label="Padrinho" 
@@ -534,6 +604,13 @@ else
     private Dictionary<string, List<RoleAssignment>> userRoleAssignments = new Dictionary<string, List<RoleAssignment>>();
     private List<ApplicationUser> eligibleMentors = new();
     private ApplicationUser? viewingUserMentor;
+    private List<MemberInstrument>? viewingUserInstruments;
+    
+    // Member instruments
+    private List<MemberInstrument> memberInstruments = new();
+    private string selectedInstrumentToAdd = "";
+    private Dictionary<string, string> userPrimaryInstruments = new();
+    private Dictionary<string, MemberInstrument?> userPrimaryInstrumentObjects = new();
 
     // Helper instances
     private SearchHelper<ApplicationUser> searchHelper = new();
@@ -657,6 +734,17 @@ else
                 .ToList();
         }
 
+        // Load primary instruments for all users
+        userPrimaryInstruments.Clear();
+        userPrimaryInstrumentObjects.Clear();
+        foreach (var user in users)
+        {
+            var instruments = await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id);
+            var primary = instruments.FirstOrDefault(i => i.IsPrimary);
+            userPrimaryInstruments[user.Id] = primary != null ? StatusHelper.GetInstrumentDisplay(primary.InstrumentType) : "";
+            userPrimaryInstrumentObjects[user.Id] = primary;
+        }
+
         // Load eligible mentors (Only Tuno, Veterano, Tunossauro - excluding Leitões and Caloiros)
         // Also exclude the user being edited if in edit mode
         eligibleMentors = users
@@ -688,7 +776,9 @@ else
         {
             var instrumentEnum = Enum.Parse<InstrumentType>(selectedInstrumentFilter);
             allFilteredUsers = allFilteredUsers
-                .Where(u => u.MainInstrument.HasValue && u.MainInstrument.Value == instrumentEnum)
+                .Where(u => userPrimaryInstrumentObjects.ContainsKey(u.Id) && 
+                           userPrimaryInstrumentObjects[u.Id] != null && 
+                           userPrimaryInstrumentObjects[u.Id]!.InstrumentType == instrumentEnum)
                 .ToList();
         }
         
@@ -772,7 +862,7 @@ else
             [nameof(ApplicationUser.Nickname)] = u => u.Nickname ?? "",
             [nameof(ApplicationUser.Email)] = u => u.Email ?? "",
             ["Category"] = u => u.Categories.FirstOrDefault().ToString(),
-            ["Instrument"] = u => u.MainInstrument?.ToString() ?? "ZZZ"
+            ["Instrument"] = u => ""
         };
 
         // Sort regular members and Leitões using SortableTableHelper
@@ -875,10 +965,12 @@ else
         mentorSearchTerm = "";
         filteredMentors.Clear();
         selectedMentorCache = null;
+        memberInstruments.Clear();
+        selectedInstrumentToAdd = "";
         showEditModal = true;
     }
 
-    private void OpenEditModal(ApplicationUser user)
+    private async void OpenEditModal(ApplicationUser user)
     {
         isCreateMode = false;
         editingUser = new ApplicationUser
@@ -899,7 +991,6 @@ else
             MonthCaloiro = user.MonthCaloiro,
             YearTuno = user.YearTuno,
             MonthTuno = user.MonthTuno,
-            MainInstrument = user.MainInstrument,
             EmailConfirmed = user.EmailConfirmed,
             MentorId = user.MentorId,
         };
@@ -936,7 +1027,13 @@ else
         }
         
         filteredMentors.Clear();
+        
+        // Load member instruments
+        memberInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id)).ToList();
+        selectedInstrumentToAdd = "";
+        
         showEditModal = true;
+        StateHasChanged();
     }
 
     private void CloseEditModal()
@@ -946,7 +1043,114 @@ else
         mentorSearchTerm = "";
         filteredMentors.Clear();
         selectedMentorCache = null;
+        memberInstruments.Clear();
+        selectedInstrumentToAdd = "";
         isSaving = false;
+    }
+    
+    private async Task AddInstrumentToMember()
+    {
+        if (string.IsNullOrEmpty(selectedInstrumentToAdd))
+            return;
+
+        var instrumentType = Enum.Parse<InstrumentType>(selectedInstrumentToAdd);
+        
+        // Check if instrument already exists
+        if (memberInstruments.Any(mi => mi.InstrumentType == instrumentType))
+        {
+            // Could show an error message
+            return;
+        }
+
+        if (isCreateMode)
+        {
+            // In create mode, just add to the local list
+            var newInstrument = MemberInstrument.Create("temp", instrumentType, !memberInstruments.Any());
+            memberInstruments.Add(newInstrument);
+        }
+        else
+        {
+            // In edit mode, save to database
+            try
+            {
+                await SetAuditContextToCurrentUser();
+                var newInstrument = await MemberInstrumentService.AddInstrumentAsync(
+                    editingUser.Id!, 
+                    instrumentType, 
+                    !memberInstruments.Any() // First instrument becomes primary
+                );
+                memberInstruments.Add(newInstrument);
+            }
+            catch (InvalidOperationException)
+            {
+                // Instrument already exists
+                return;
+            }
+        }
+
+        selectedInstrumentToAdd = "";
+        StateHasChanged();
+    }
+
+    private async Task RemoveInstrumentFromMember(MemberInstrument instrument)
+    {
+        if (isCreateMode)
+        {
+            // In create mode, just remove from local list
+            memberInstruments.Remove(instrument);
+            
+            // If removed instrument was primary and there are more instruments, make first one primary
+            if (instrument.IsPrimary && memberInstruments.Any())
+            {
+                var newPrimary = memberInstruments.First();
+                newPrimary.MarkAsPrimary();
+            }
+        }
+        else
+        {
+            // In edit mode, delete from database
+            await SetAuditContextToCurrentUser();
+            await MemberInstrumentService.RemoveInstrumentAsync(instrument.Id);
+            memberInstruments.Remove(instrument);
+            
+            // If removed instrument was primary and there are more instruments, make first one primary
+            if (instrument.IsPrimary && memberInstruments.Any())
+            {
+                var newPrimary = memberInstruments.First();
+                await MemberInstrumentService.SetPrimaryInstrumentAsync(newPrimary.Id, editingUser.Id!);
+                newPrimary.MarkAsPrimary();
+            }
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task MarkInstrumentAsPrimary(MemberInstrument instrument)
+    {
+        if (isCreateMode)
+        {
+            // In create mode, update local list
+            foreach (var mi in memberInstruments)
+            {
+                mi.UnmarkAsPrimary();
+            }
+            instrument.MarkAsPrimary();
+        }
+        else
+        {
+            // In edit mode, update database
+            await SetAuditContextToCurrentUser();
+            await MemberInstrumentService.SetPrimaryInstrumentAsync(instrument.Id, editingUser.Id!);
+            
+            // Update local list
+            foreach (var mi in memberInstruments)
+            {
+                mi.UnmarkAsPrimary();
+            }
+            instrument.MarkAsPrimary();
+        }
+        
+        StateHasChanged();
     }
 
     private ValidationMessageStore? memberValidationStore;
@@ -1107,8 +1311,19 @@ else
                 
                 createdUser.Categories = categories;
                 createdUser.RequirePasswordChange = true;
+                
                 await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(createdUser);
+                
+                // Save member instruments
+                foreach (var memberInstrument in memberInstruments)
+                {
+                    await MemberInstrumentService.AddInstrumentAsync(
+                        createdUser.Id,
+                        memberInstrument.InstrumentType,
+                        memberInstrument.IsPrimary
+                    );
+                }
 
                 // Send welcome email with credentials
                 await EmailNotificationService.SendWelcomeEmailAsync(
@@ -1163,7 +1378,6 @@ else
                 existingUser.MonthCaloiro = editingUser.MonthCaloiro;
                 existingUser.YearTuno = editingUser.YearTuno;
                 existingUser.MonthTuno = editingUser.MonthTuno;
-                existingUser.MainInstrument = editingUser.MainInstrument;
                 existingUser.MentorId = editingUser.MentorId;
                 
                 // Special handling for Fundador: set YearTuno to 1991, clear YearLeitao and YearCaloiro
@@ -1261,6 +1475,9 @@ else
             viewingUserMentor = null;
         }
         
+        // Load member instruments
+        viewingUserInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id)).ToList();
+        
         showViewDetailsModal = true;
     }
 
@@ -1269,6 +1486,7 @@ else
         showViewDetailsModal = false;
         viewingUser = null;
         viewingUserMentor = null;
+        viewingUserInstruments = null;
     }
 
     private Position? GetCurrentFiscalYearPosition(string userId)

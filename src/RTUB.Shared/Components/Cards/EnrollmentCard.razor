@@ -87,6 +87,15 @@
             </div>
         }
 
+        <!-- Outros Instrumentos -->
+        @if (!string.IsNullOrEmpty(OtherInstruments))
+        {
+            <div class="enrollment-card-row">
+                <span class="enrollment-card-label">Outros Instrumentos:</span>
+                <span class="enrollment-card-value">@OtherInstruments</span>
+            </div>
+        }
+
         <!-- Status (for rehearsal attendance) -->
         @if (!string.IsNullOrEmpty(StatusText))
         {
@@ -97,16 +106,22 @@
         }
 
         <!-- Notas -->
-        <div class="enrollment-card-row enrollment-card-notes">
-            <span class="enrollment-card-label">Notas:</span>
-            <span class="enrollment-card-value">@(string.IsNullOrWhiteSpace(Notes) ? "—" : Notes)</span>
-        </div>
+        @if (!string.IsNullOrWhiteSpace(Notes))
+        {
+            <div class="enrollment-card-row enrollment-card-notes">
+                <span class="enrollment-card-label">Notas:</span>
+                <span class="enrollment-card-value">@Notes</span>
+            </div>
+        }
     </div>
 </div>
 
 @code {
     [Parameter]
     public string AvatarUrl { get; set; } = "";
+
+    [Parameter]
+    public string OtherInstruments { get; set; } = "";
 
     [Parameter]
     public string TunaName { get; set; } = "";

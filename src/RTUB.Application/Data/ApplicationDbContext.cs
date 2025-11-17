@@ -75,6 +75,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Leaderboard Comments DbSets
     public DbSet<LeaderboardComment> LeaderboardComments { get; set; }
     public DbSet<LeaderboardCommentLike> LeaderboardCommentLikes { get; set; }
+    
+    // Member Instruments DbSet
+    public DbSet<MemberInstrument> MemberInstruments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

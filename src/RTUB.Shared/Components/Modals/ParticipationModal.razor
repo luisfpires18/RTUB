@@ -63,11 +63,28 @@
                             </label>
                             <InputSelect class="form-select form-select-dark" @bind-Value="Instrument" @bind-Value:after="@OnInstrumentChangedInternal">
                                 <option value="">Selecionar...</option>
-                                @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                                @if (AvailableInstruments != null && AvailableInstruments.Any())
                                 {
-                                    <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                    @foreach (var instrument in AvailableInstruments)
+                                    {
+                                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                    }
+                                }
+                                else
+                                {
+                                    @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                                    {
+                                        <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                    }
                                 }
                             </InputSelect>
+                            @if (AvailableInstruments != null && !AvailableInstruments.Any())
+                            {
+                                <small class="text-warning d-block mt-1">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    Não tens instrumentos configurados. Contacta um administrador para adicionar.
+                                </small>
+                            }
                         </div>
                     }
                 }
@@ -79,9 +96,19 @@
                         </label>
                         <InputSelect class="form-select form-select-dark" @bind-Value="Instrument">
                             <option value="">Selecionar...</option>
-                            @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                            @if (AvailableInstruments != null && AvailableInstruments.Any())
                             {
-                                <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                @foreach (var instrument in AvailableInstruments)
+                                {
+                                    <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                }
+                            }
+                            else
+                            {
+                                @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                                {
+                                    <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
+                                }
                             }
                         </InputSelect>
                     </div>
@@ -223,6 +250,12 @@
     /// </summary>
     [Parameter]
     public EventCallback<bool> WantToPlayChanged { get; set; }
+    
+    /// <summary>
+    /// List of available instruments for the member (optional, defaults to all instruments)
+    /// </summary>
+    [Parameter]
+    public List<InstrumentType>? AvailableInstruments { get; set; }
 
     private async Task OnWantToPlayChanged(bool value)
     {
@@ -261,7 +294,10 @@
     private async Task HandleSubmit()
     {
         // Validate instrument is selected when required
-        if (WantToPlay && (!ShowWillAttend || WillAttend) && !IsLeitao && !Instrument.HasValue)
+        // Only require instrument if user wants to play, will attend, is not Leitão, 
+        // AND has available instruments to choose from
+        if (WantToPlay && (!ShowWillAttend || WillAttend) && !IsLeitao && !Instrument.HasValue 
+            && AvailableInstruments != null && AvailableInstruments.Any())
         {
             instrumentValidationError = "Por favor, selecione um instrumento.";
             validationErrors = new List<string> { instrumentValidationError };

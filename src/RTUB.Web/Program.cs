@@ -205,6 +205,7 @@ public class Program
         services.AddScoped<ITransactionService, TransactionService>();
         services.AddScoped<IActivityService, ActivityService>();
         services.AddScoped<IEnrollmentService, EnrollmentService>();
+        services.AddScoped<IMemberInstrumentService, MemberInstrumentService>();
         services.AddScoped<IUserProfileService, UserProfileService>();
         services.AddScoped<ILogisticsBoardService, LogisticsBoardService>();
         services.AddScoped<ILogisticsListService, LogisticsListService>();

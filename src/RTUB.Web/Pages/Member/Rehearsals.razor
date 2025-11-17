@@ -15,6 +15,7 @@
 @inject IRehearsalService RehearsalService
 @inject IRehearsalAttendanceService AttendanceService
 @inject IFiscalYearService FiscalYearService
+@inject IMemberInstrumentService MemberInstrumentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -175,13 +176,14 @@ else
                        IsLeitao="@(currentUser != null && currentUser.Categories.Contains(MemberCategory.Leitao))"
                        Instrument="@attendanceForm.Instrument"
                        InstrumentChanged="@((InstrumentType? value) => attendanceForm.Instrument = value)"
+                       AvailableInstruments="@currentUserInstruments"
                        Notes="@attendanceForm.Notes"
                        NotesChanged="@((string value) => attendanceForm.Notes = value)"
                        NotesRows="3"
                        NotesPlaceholder="Adicione alguma nota..."
                        SubmitButtonText="Confirmar"
                        WantToPlay="@wantToPlayRehearsal"
-                       WantToPlayChanged="@((bool value) => wantToPlayRehearsal = value)"
+                       WantToPlayChanged="@OnWantToPlayRehearsalChanged"
                        OnSubmit="@ConfirmMarkAttendance"
                        OnCancel="@CloseAttendanceModal" />
 }
@@ -225,12 +227,13 @@ else
                         <div class="enrollment-card-grid">
                             @foreach (var attendance in attendingMembers)
                             {
-                                var instrumentDisplay = attendance.Instrument?.ToString() ?? "—";
+                                var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
                                 <EnrollmentCard 
                                     AvatarUrl="@attendance.User?.ProfilePictureSrc"
                                     TunaName="@attendance.User?.Nickname"
-                                    FullName="@attendance.User?.GetDisplayName()"
+                                    FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
                                     InstrumentText="@instrumentDisplay"
+                                    OtherInstruments="@attendance.OtherInstruments"
                                     Notes="@attendance.Notes"
                                     AltText="@attendance.User?.GetDisplayName()"
                                     ShowEditButton="false"
@@ -274,13 +277,8 @@ else
                         }
 
                         @* Instrument Counts - Horizontal Counter Section *@
-                        var instrumentCounts = new Dictionary<InstrumentType, int>();
-                        foreach (var inst in Enum.GetValues<InstrumentType>())
-                        {
-                            instrumentCounts[inst] = selectedRehearsalAttendances.Where(a => a.WillAttend).Count(a => a.Instrument == inst);
-                        }
-
-                        <InstrumentCounter InstrumentCounts="@instrumentCounts" />
+                        <InstrumentCounter InstrumentCounts="@primaryInstrumentCounts" Title="Instrumentos" />
+                        <InstrumentCounter InstrumentCounts="@otherInstrumentCounts" Title="Outros Instrumentos" Collapsible="true" DefaultCollapsed="true" />
                         
                         @if (notAttendingMembers.Any())
                         {
@@ -291,7 +289,7 @@ else
                                     <EnrollmentCard 
                                         AvatarUrl="@attendance.User?.ProfilePictureSrc"
                                         TunaName="@attendance.User?.Nickname"
-                                        FullName="@attendance.User?.GetDisplayName()"
+                                        FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
                                         InstrumentText=""
                                         Notes="@attendance.Notes"
                                         AltText="@attendance.User?.GetDisplayName()"
@@ -821,6 +819,7 @@ else
     private bool isOwner = false;
     private string? currentUserId;
     private ApplicationUser? currentUser;
+    private List<InstrumentType> currentUserInstruments = new();
 
     private List<Rehearsal> upcomingRehearsals = new();
     private List<Rehearsal> filteredUpcomingRehearsals = new();
@@ -887,6 +886,10 @@ else
     private string attendanceSearchTerm = "";
     private string attendanceApprovalFilter = "Todos"; // "Todos", "Pendente", "Aprovado"
     private PaginationHelper<RehearsalAttendance> attendancesPagination = new() { PageSize = 8 };
+    
+    // Instrument count tracking
+    private Dictionary<InstrumentType, int> primaryInstrumentCounts = new();
+    private Dictionary<InstrumentType, int> otherInstrumentCounts = new();
 
     // Add member to rehearsal functionality
     private bool showAddMemberDropdown = false;
@@ -1076,16 +1079,30 @@ else
         return rehearsalAttendances?.FirstOrDefault(a => a.Rehearsal.Id == rehearsalId)?.Attendance;
     }
 
-    private void MarkAttendance(Rehearsal rehearsal)
+    private async Task MarkAttendance(Rehearsal rehearsal)
     {
         selectedRehearsal = rehearsal;
+        
+        // Load current user's instruments
+        InstrumentType? defaultInstrument = null;
+        if (currentUserId != null)
+        {
+            var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsAsync(currentUserId);
+            currentUserInstruments = memberInstruments.Select(mi => mi.InstrumentType).ToList();
+            
+            // Default to primary instrument
+            var primaryInstrument = memberInstruments.FirstOrDefault(mi => mi.IsPrimary);
+            defaultInstrument = primaryInstrument?.InstrumentType;
+        }
+        
         attendanceForm = new AttendanceFormModel
         {
             WillAttend = true,
-            Instrument = null,
+            Instrument = defaultInstrument,
             Notes = null
         };
-        wantToPlayRehearsal = true;
+        wantToPlayRehearsal = true; // Default to showing instrument field
+        
         showAttendanceModal = true;
         StateHasChanged();
     }
@@ -1096,7 +1113,40 @@ else
         {
             try
             {
-                await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, currentUserId, attendanceForm.WillAttend, attendanceForm.Instrument, attendanceForm.Notes);
+                string? otherInstrumentsText = null;
+                InstrumentType? instrumentToSave = null;
+                
+                // Only save instrument info if wanting to play
+                if (wantToPlayRehearsal)
+                {
+                    instrumentToSave = attendanceForm.Instrument;
+                    
+                    if (instrumentToSave.HasValue)
+                    {
+                        // Get all member instruments and calculate other instruments
+                        var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsAsync(currentUserId);
+                        
+                        // Get all instruments except the selected one
+                        var otherInstruments = memberInstruments
+                            .Where(mi => mi.InstrumentType != instrumentToSave.Value)
+                            .Select(mi => StatusHelper.GetInstrumentDisplay(mi.InstrumentType))
+                            .ToList();
+                        
+                        if (otherInstruments.Any())
+                        {
+                            otherInstrumentsText = string.Join(", ", otherInstruments);
+                        }
+                    }
+                }
+
+                await AttendanceService.MarkAttendanceAsync(
+                    selectedRehearsal.Id, 
+                    currentUserId, 
+                    attendanceForm.WillAttend, 
+                    instrumentToSave, 
+                    attendanceForm.Notes, 
+                    otherInstrumentsText
+                );
 
                 await LoadData();
                 CloseAttendanceModal();
@@ -1104,7 +1154,6 @@ else
             }
             catch (Exception ex)
             {
-                // Log error or show message to user
                 Console.WriteLine($"Error marking attendance: {ex.Message}");
             }
         }
@@ -1172,6 +1221,9 @@ else
         attendanceApprovalFilter = "Todos";
         attendancesPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
         UpdatePaginatedAttendances();
+        
+        // Calculate primary and other instrument counts
+        await CalculateRehearsalInstrumentCountsAsync();
 
         // Load all members for adding if admin AND it's a past rehearsal
         if (isAdmin && isSelectedRehearsalPast)
@@ -1297,6 +1349,32 @@ else
         }
     }
 
+    private async Task CalculateRehearsalInstrumentCountsAsync()
+    {
+        primaryInstrumentCounts = new Dictionary<InstrumentType, int>();
+        otherInstrumentCounts = new Dictionary<InstrumentType, int>();
+        
+        if (selectedRehearsal == null || selectedRehearsalAttendances == null)
+            return;
+        
+        // Get all user IDs from attendances
+        var userIds = selectedRehearsalAttendances
+            .Where(a => a.WillAttend && !string.IsNullOrEmpty(a.UserId))
+            .Select(a => a.UserId)
+            .Distinct()
+            .ToList();
+        
+        if (!userIds.Any())
+            return;
+        
+        // Fetch all member instruments in one query
+        var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsByUserIdsAsync(userIds);
+        
+        // Calculate counts using the Rehearsal entity methods
+        primaryInstrumentCounts = selectedRehearsal.GetPrimaryInstrumentCounts(memberInstruments);
+        otherInstrumentCounts = selectedRehearsal.GetOtherInstrumentCounts(memberInstruments);
+    }
+
     private void ToggleAddMemberDropdown()
     {
         showAddMemberDropdown = !showAddMemberDropdown;
@@ -1409,11 +1487,19 @@ else
         }
     }
 
-    private void EditAttendance(Rehearsal rehearsal)
+    private async Task EditAttendance(Rehearsal rehearsal)
     {
         // Similar to mark attendance, but pre-fill with existing data
         var existingAttendance = GetUserAttendance(rehearsal.Id);
         selectedRehearsal = rehearsal;
+        
+        // Load current user's instruments
+        if (currentUserId != null)
+        {
+            var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsAsync(currentUserId);
+            currentUserInstruments = memberInstruments.Select(mi => mi.InstrumentType).ToList();
+        }
+        
         attendanceForm = new AttendanceFormModel
         {
             WillAttend = existingAttendance?.WillAttend ?? true,
@@ -1421,8 +1507,18 @@ else
             Notes = existingAttendance?.Notes
         };
         wantToPlayRehearsal = existingAttendance?.Instrument.HasValue ?? false;
+        
         showAttendanceModal = true;
         StateHasChanged();
+    }
+
+    private void OnWantToPlayRehearsalChanged(bool value)
+    {
+        wantToPlayRehearsal = value;
+        if (!wantToPlayRehearsal && attendanceForm != null)
+        {
+            attendanceForm.Instrument = null;
+        }
     }
 
     private void RemoveAttendance(Rehearsal rehearsal)
@@ -1908,7 +2004,11 @@ else
 
         try
         {
-            // Get past rehearsals based on toggle state
+            // Get user's attendances for ALL rehearsals (both past and upcoming)
+            var userAttendances = (await AttendanceService.GetAttendancesByUserIdAsync(currentUserId))
+                .ToDictionary(a => a.RehearsalId, a => a);
+
+            // Get past rehearsals based on toggle state for the "Minhas Presenças" modal
             var startDate = showAllRehearsals ? DateTime.Today.AddYears(-10) : DateTime.Today.AddMonths(-6);
             var recentRehearsals = await RehearsalService.GetRehearsalsAsync(startDate, DateTime.Today);
             
@@ -1918,19 +2018,23 @@ else
                 .Take(showAllRehearsals ? int.MaxValue : 10)
                 .ToList();
 
-            // Get user's attendances
-            var userAttendances = (await AttendanceService.GetAttendancesByUserIdAsync(currentUserId))
-                .ToDictionary(a => a.RehearsalId, a => a);
+            // Get upcoming rehearsals to include in the attendance tracking
+            var upcomingRehearsalsWithAttendance = upcomingRehearsals
+                .Where(r => userAttendances.ContainsKey(r.Id))
+                .ToList();
+
+            // Combine past rehearsals (for modal display) with upcoming rehearsals (for button state)
+            var allRehearsalsForTracking = pastRehearsals.Concat(upcomingRehearsalsWithAttendance).ToList();
 
             // Create display list combining rehearsals with attendance status
-            rehearsalAttendances = pastRehearsals.Select(r => new RehearsalAttendanceDisplay
+            rehearsalAttendances = allRehearsalsForTracking.Select(r => new RehearsalAttendanceDisplay
             {
                 Rehearsal = r,
                 Attendance = userAttendances.ContainsKey(r.Id) ? userAttendances[r.Id] : null
             }).ToList();
 
-            totalRecentRehearsals = rehearsalAttendances.Count;
-            attendanceCount = rehearsalAttendances.Count(a => a.Attended);
+            totalRecentRehearsals = pastRehearsals.Count;
+            attendanceCount = pastRehearsals.Count(r => userAttendances.ContainsKey(r.Id) && userAttendances[r.Id].Attended);
             
             // Apply pagination
             UpdatePaginatedRehearsalAttendances();
@@ -1951,7 +2055,11 @@ else
     
     private void UpdatePaginatedRehearsalAttendances()
     {
-        paginatedRehearsalAttendances = rehearsalsPaginationHelper.GetPageData(rehearsalAttendances);
+        // Only paginate past rehearsals for the "Minhas Presenças" modal
+        var pastAttendances = rehearsalAttendances
+            .Where(a => a.Rehearsal.Date < DateTime.Today)
+            .ToList();
+        paginatedRehearsalAttendances = rehearsalsPaginationHelper.GetPageData(pastAttendances);
     }
     
     private async Task HandleRehearsalsAttendancePageChange(int newPage)

@@ -34,17 +34,7 @@ public static partial class SeedData
         if (members.Count == 0)
             return;
 
-        var membersWithInstrument = members.Where(m => m.MainInstrument.HasValue).ToList();
-        var membersWithoutInstrument = members.Where(m => !m.MainInstrument.HasValue).ToList();
-
-        var rotationByInstrument = membersWithInstrument
-            .GroupBy(m => m.MainInstrument!.Value)
-            .ToDictionary(
-                group => group.Key,
-                group => new Queue<ApplicationUser>(group.OrderBy(m => m.Id))
-            );
-
-        var instrumentFallback = new Queue<ApplicationUser>(membersWithInstrument.OrderBy(m => m.Id));
+        // Create a general fallback queue for all members
         var generalFallback = new Queue<ApplicationUser>(members.OrderBy(m => m.Id));
 
         ApplicationUser CycleQueue(Queue<ApplicationUser> queue)
@@ -59,21 +49,6 @@ public static partial class SeedData
             return user;
         }
 
-        ApplicationUser GetForInstrument(InstrumentType instrument)
-        {
-            if (rotationByInstrument.TryGetValue(instrument, out var queue) && queue.Count > 0)
-            {
-                return CycleQueue(queue);
-            }
-
-            if (instrumentFallback.Count > 0)
-            {
-                return CycleQueue(instrumentFallback);
-            }
-
-            return CycleQueue(generalFallback);
-        }
-
         var enrollments = new List<Enrollment>();
         var assigned = new HashSet<string>();
 
@@ -84,7 +59,8 @@ public static partial class SeedData
                 return;
 
             var enrollment = Enrollment.Create(user.Id, evt.Id);
-            enrollment.Instrument = user.MainInstrument;
+            // Note: Instrument will be set from MemberInstruments table by the application
+            enrollment.Instrument = null;
 
             if (random.NextDouble() < 0.1)
             {
@@ -143,11 +119,12 @@ public static partial class SeedData
                 }
             };
 
+            // Assign members based on requirements (simplified - no longer using instrument-based assignment)
             foreach (var requirement in coreRequirements)
             {
                 for (var i = 0; i < requirement.Value; i++)
                 {
-                    var user = GetForInstrument(requirement.Key);
+                    var user = CycleQueue(generalFallback);
                     AddEnrollment(user, evt, random);
                 }
             }
@@ -159,23 +136,13 @@ public static partial class SeedData
                 _ => 0.4
             };
 
+            // Add extra members randomly
             foreach (var member in members)
             {
                 if (assigned.Contains($"{member.Id}:{evt.Id}"))
                     continue;
 
                 if (random.NextDouble() <= extraRate)
-                {
-                    AddEnrollment(member, evt, random);
-                }
-            }
-
-            foreach (var member in membersWithoutInstrument)
-            {
-                if (assigned.Contains($"{member.Id}:{evt.Id}"))
-                    continue;
-
-                if (random.NextDouble() <= 0.35)
                 {
                     AddEnrollment(member, evt, random);
                 }

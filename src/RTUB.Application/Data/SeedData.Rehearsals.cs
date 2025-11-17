@@ -105,7 +105,7 @@ public static partial class SeedData
                 var attendance = RehearsalAttendance.Create(
                     rehearsal.Id,
                     member.Id,
-                    member.MainInstrument
+                    null // Instrument will be set from MemberInstruments table by the application
                 );
 
                 var willAttend = random.NextDouble() > 0.08;
