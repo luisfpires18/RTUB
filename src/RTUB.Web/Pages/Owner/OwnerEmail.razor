@@ -125,6 +125,13 @@
                     <h5 class="mb-0"><i class="bi bi-people"></i> Lista de Destinatários</h5>
                 </div>
                 <div class="card-body">
+                    @if (!string.IsNullOrEmpty(recipientsMessage))
+                    {
+                        <Alert Type="@(isRecipientsError || isRecipientsRemoval ? Alert.AlertType.Error : Alert.AlertType.Success)" 
+                               Message="@recipientsMessage" 
+                               Dismissible="true"
+                               OnDismiss="@(() => recipientsMessage = string.Empty)" />
+                    }
                     <EmailRecipientsPreview 
                         SubscribedUsers="@subscribedUsers"
                         NonSubscribedUsers="@nonSubscribedUsers"
@@ -136,7 +143,13 @@
                         MaxHeight="400px"
                         UsePagination="true"
                         PageSize="25"
-                        PageSizeOptions="@(new[] { 10, 25, 50, 100 })" />
+                        PageSizeOptions="@(new[] { 10, 25, 50, 100 })"
+                        OnRemoveUser="@RemoveUser"
+                        OnAddUser="@AddUser"
+                        OnRemoveMultipleUsers="@RemoveMultipleUsers"
+                        OnAddMultipleUsers="@AddMultipleUsers"
+                        IsProcessingBulkRemove="@isProcessingBulkRemove"
+                        IsProcessingBulkAdd="@isProcessingBulkAdd" />
                 </div>
             </div>
         }
@@ -177,13 +190,18 @@
 @code {
     private string title = "";
     private string content = "";
-    private string message = "";
+    private string message = ""; // For email form messages
+    private string recipientsMessage = ""; // For recipients list messages
     private bool isError = false;
+    private bool isRecipientsError = false;
+    private bool isRecipientsRemoval = false; // Track if message is for removal (show as red)
     private bool isSending = false;
     private bool isLoadingSubscribers = true;
     private bool showPreviewModal = false;
     private bool titleError = false;
     private bool contentError = false;
+    private bool isProcessingBulkRemove = false;
+    private bool isProcessingBulkAdd = false;
 
     private List<ApplicationUser> subscribedUsers = new();
     private List<ApplicationUser> nonSubscribedUsers = new();
@@ -319,5 +337,254 @@
         content = "";
         titleError = false;
         contentError = false;
+    }
+
+    private async Task RemoveUser(ApplicationUser user)
+    {
+        try
+        {
+            // Toggle the Subscribed property to false
+            user.Subscribed = false;
+            var result = await UserManager.UpdateAsync(user);
+
+            if (result.Succeeded)
+            {
+                // Move user from subscribed to non-subscribed list
+                subscribedUsers.Remove(user);
+                nonSubscribedUsers.Add(user);
+                
+                // Sort non-subscribed list
+                nonSubscribedUsers = nonSubscribedUsers.OrderBy(u => u.Nickname ?? u.FirstName).ToList();
+
+                // Update counts
+                subscribedUsersCount = subscribedUsers.Count;
+                nonSubscribedUsersCount = nonSubscribedUsers.Count;
+
+                recipientsMessage = $"{GetUserDisplayName(user)} removido das notificações.";
+                isRecipientsError = false;
+                isRecipientsRemoval = true; // Show as red
+            }
+            else
+            {
+                recipientsMessage = $"Erro ao remover utilizador: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                isRecipientsError = true;
+                isRecipientsRemoval = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            recipientsMessage = $"Erro inesperado ao remover utilizador: {ex.Message}";
+            isRecipientsError = true;
+            isRecipientsRemoval = false;
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task AddUser(ApplicationUser user)
+    {
+        try
+        {
+            // Toggle the Subscribed property to true
+            user.Subscribed = true;
+            var result = await UserManager.UpdateAsync(user);
+
+            if (result.Succeeded)
+            {
+                // Move user from non-subscribed to subscribed list
+                nonSubscribedUsers.Remove(user);
+                subscribedUsers.Add(user);
+                
+                // Sort subscribed list
+                subscribedUsers = subscribedUsers.OrderBy(u => u.Nickname ?? u.FirstName).ToList();
+
+                // Update counts
+                subscribedUsersCount = subscribedUsers.Count;
+                nonSubscribedUsersCount = nonSubscribedUsers.Count;
+
+                recipientsMessage = $"{GetUserDisplayName(user)} adicionado às notificações.";
+                isRecipientsError = false;
+                isRecipientsRemoval = false; // Show as green
+            }
+            else
+            {
+                recipientsMessage = $"Erro ao adicionar utilizador: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                isRecipientsError = true;
+                isRecipientsRemoval = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            recipientsMessage = $"Erro inesperado ao adicionar utilizador: {ex.Message}";
+            isRecipientsError = true;
+            isRecipientsRemoval = false;
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task RemoveMultipleUsers(List<ApplicationUser> users)
+    {
+        if (users == null || !users.Any())
+        {
+            return;
+        }
+
+        isProcessingBulkRemove = true;
+        StateHasChanged();
+        await Task.Yield(); // Allow UI to update
+
+        try
+        {
+            var successCount = 0;
+            var errorMessages = new List<string>();
+
+            foreach (var user in users)
+            {
+                // Toggle the Subscribed property to false
+                user.Subscribed = false;
+                var result = await UserManager.UpdateAsync(user);
+
+                if (result.Succeeded)
+                {
+                    // Move user from subscribed to non-subscribed list
+                    subscribedUsers.Remove(user);
+                    nonSubscribedUsers.Add(user);
+                    successCount++;
+                }
+                else
+                {
+                    errorMessages.Add($"{GetUserDisplayName(user)}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                }
+            }
+
+            // Sort non-subscribed list
+            nonSubscribedUsers = nonSubscribedUsers.OrderBy(u => u.Nickname ?? u.FirstName).ToList();
+
+            // Update counts
+            subscribedUsersCount = subscribedUsers.Count;
+            nonSubscribedUsersCount = nonSubscribedUsers.Count;
+
+            if (successCount > 0)
+            {
+                recipientsMessage = $"{successCount} utilizador(es) removido(s) das notificações.";
+                isRecipientsError = false;
+                isRecipientsRemoval = true; // Show as red
+            }
+
+            if (errorMessages.Any())
+            {
+                var errorMsg = $"Erros ao remover utilizadores: {string.Join("; ", errorMessages)}";
+                if (successCount > 0)
+                {
+                    recipientsMessage += $" {errorMsg}";
+                    isRecipientsError = true;
+                    isRecipientsRemoval = false;
+                }
+                else
+                {
+                    recipientsMessage = errorMsg;
+                    isRecipientsError = true;
+                    isRecipientsRemoval = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            recipientsMessage = $"Erro inesperado ao remover utilizadores: {ex.Message}";
+            isRecipientsError = true;
+            isRecipientsRemoval = false;
+        }
+        finally
+        {
+            isProcessingBulkRemove = false;
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task AddMultipleUsers(List<ApplicationUser> users)
+    {
+        if (users == null || !users.Any())
+        {
+            return;
+        }
+
+        isProcessingBulkAdd = true;
+        StateHasChanged();
+        await Task.Yield(); // Allow UI to update
+
+        try
+        {
+            var successCount = 0;
+            var errorMessages = new List<string>();
+
+            foreach (var user in users)
+            {
+                // Toggle the Subscribed property to true
+                user.Subscribed = true;
+                var result = await UserManager.UpdateAsync(user);
+
+                if (result.Succeeded)
+                {
+                    // Move user from non-subscribed to subscribed list
+                    nonSubscribedUsers.Remove(user);
+                    subscribedUsers.Add(user);
+                    successCount++;
+                }
+                else
+                {
+                    errorMessages.Add($"{GetUserDisplayName(user)}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                }
+            }
+
+            // Sort subscribed list
+            subscribedUsers = subscribedUsers.OrderBy(u => u.Nickname ?? u.FirstName).ToList();
+
+            // Update counts
+            subscribedUsersCount = subscribedUsers.Count;
+            nonSubscribedUsersCount = nonSubscribedUsers.Count;
+
+            if (successCount > 0)
+            {
+                recipientsMessage = $"{successCount} utilizador(es) adicionado(s) às notificações.";
+                isRecipientsError = false;
+                isRecipientsRemoval = false; // Show as green
+            }
+
+            if (errorMessages.Any())
+            {
+                var errorMsg = $"Erros ao adicionar utilizadores: {string.Join("; ", errorMessages)}";
+                if (successCount > 0)
+                {
+                    recipientsMessage += $" {errorMsg}";
+                    isRecipientsError = true;
+                    isRecipientsRemoval = false;
+                }
+                else
+                {
+                    recipientsMessage = errorMsg;
+                    isRecipientsError = true;
+                    isRecipientsRemoval = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            recipientsMessage = $"Erro inesperado ao adicionar utilizadores: {ex.Message}";
+            isRecipientsError = true;
+            isRecipientsRemoval = false;
+        }
+        finally
+        {
+            isProcessingBulkAdd = false;
+        }
+        
+        StateHasChanged();
+    }
+
+    private string GetUserDisplayName(ApplicationUser user)
+    {
+        return user.Nickname ?? $"{user.FirstName} {user.LastName}";
     }
 }

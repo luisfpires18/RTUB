@@ -16,18 +16,70 @@
         </div>
     }
 
+    @* Search Bar *@
+    <div class="mb-3">
+        <TableSearchBar SearchTerm="@searchQuery"
+                        Placeholder="Pesquisar utilizadores..."
+                        OnSearchChanged="@HandleSearchChanged"
+                        DebounceDelay="300" />
+    </div>
+
     @* Subscribed Users Section *@
     @if (SubscribedUsers != null && SubscribedUsers.Any())
     {
         <div class="mb-3">
-            <h6 class="text-white-full mb-2">@SubscribedUsersTitle</h6>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="text-white-full mb-0">@SubscribedUsersTitle</h6>
+                @if (OnRemoveUser.HasDelegate && OnRemoveMultipleUsers.HasDelegate)
+                {
+                    <div class="d-flex gap-2 align-items-center">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="selectAllSubscribed"
+                                   @onchange="ToggleSelectAllSubscribed"
+                                   checked="@isAllSubscribedSelected" />
+                            <label class="form-check-label text-white-full" for="selectAllSubscribed">
+                                Selecionar todos
+                            </label>
+                        </div>
+                        @if (selectedSubscribedUsers.Any())
+                        {
+                            <button type="button" 
+                                    class="btn btn-sm btn-danger" 
+                                    @onclick="RemoveSelectedUsers"
+                                    disabled="@IsProcessingBulkRemove"
+                                    title="Remover selecionados">
+                                @if (IsProcessingBulkRemove)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                    <span>A remover...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-trash"></i>
+                                    <span> Remover (@selectedSubscribedUsers.Count)</span>
+                                }
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
             <div class="subscriber-list" style="max-height: @MaxHeight; overflow-y: auto;">
                 @{
-                    var subscribedToShow = UsePagination ? GetPagedItems(SubscribedUsers) : SubscribedUsers;
+                    var filteredSubscribed = GetFilteredUsers(SubscribedUsers);
+                    var subscribedToShow = UsePagination ? GetPagedItems(filteredSubscribed) : filteredSubscribed;
                 }
                 @foreach (var user in subscribedToShow)
                 {
                     <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                        @if (OnRemoveUser.HasDelegate && OnRemoveMultipleUsers.HasDelegate)
+                        {
+                            <input class="form-check-input me-2" 
+                                   type="checkbox" 
+                                   @onchange="(e) => ToggleUserSelection(user, (bool)(e.Value ?? false))"
+                                   checked="@IsUserSelected(user)" />
+                        }
                         @if (ShowProfilePicture)
                         {
                             <img src="@user.ProfilePictureSrc" 
@@ -35,7 +87,7 @@
                                  class="member-avatar-small me-2" 
                                  style="width: 32px; height: 32px; border-radius: 50%;" />
                         }
-                        <span>@GetUserDisplayName(user)</span>
+                        <span class="flex-grow-1">@GetUserDisplayName(user)</span>
                         @if (AdditionalUserInfoFunc != null)
                         {
                             <text> - @AdditionalUserInfoFunc(user)</text>
@@ -45,16 +97,25 @@
                             <br />
                             <small class="text-muted">@user.Email</small>
                         }
+                        @if (OnRemoveUser.HasDelegate && !OnRemoveMultipleUsers.HasDelegate)
+                        {
+                            <button type="button" 
+                                    class="btn btn-sm admin-btn-delete ms-2" 
+                                    @onclick="() => OnRemoveUser.InvokeAsync(user)"
+                                    title="Remover das notificações">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        }
                     </div>
                 }
             </div>
             
-            @if (UsePagination && SubscribedUsers.Count > PageSize)
+            @if (UsePagination && filteredSubscribed.Count > PageSize)
             {
                 <div class="mt-2">
                     <TablePagination CurrentPage="@subscribedCurrentPage"
                                    PageSize="@PageSize"
-                                   TotalItems="@SubscribedUsers.Count"
+                                   TotalItems="@filteredSubscribed.Count"
                                    ItemLabel="@SubscribedUsersItemLabel"
                                    OnPageChanged="@OnSubscribedPageChanged"
                                    OnPageSizeChanged="@OnSubscribedPageSizeChanged"
@@ -73,14 +134,58 @@
     @if (ShowNonSubscribedUsers && NonSubscribedUsers != null && NonSubscribedUsers.Any())
     {
         <div class="mb-3">
-            <h6 class="text-white-full mb-2">@NonSubscribedUsersTitle</h6>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="text-white-full mb-0">@NonSubscribedUsersTitle</h6>
+                @if (OnAddUser.HasDelegate && OnAddMultipleUsers.HasDelegate)
+                {
+                    <div class="d-flex gap-2 align-items-center">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="selectAllNonSubscribed"
+                                   @onchange="ToggleSelectAllNonSubscribed"
+                                   checked="@isAllNonSubscribedSelected" />
+                            <label class="form-check-label text-white-full" for="selectAllNonSubscribed">
+                                Selecionar todos
+                            </label>
+                        </div>
+                        @if (selectedNonSubscribedUsers.Any())
+                        {
+                            <button type="button" 
+                                    class="btn btn-sm btn-success" 
+                                    @onclick="AddSelectedUsers"
+                                    disabled="@IsProcessingBulkAdd"
+                                    title="Adicionar selecionados">
+                                @if (IsProcessingBulkAdd)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                    <span>A adicionar...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-plus-circle"></i>
+                                    <span> Adicionar (@selectedNonSubscribedUsers.Count)</span>
+                                }
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
             <div class="subscriber-list" style="max-height: @MaxHeight; overflow-y: auto;">
                 @{
-                    var nonSubscribedToShow = UsePagination ? GetPagedItems(NonSubscribedUsers, isNonSubscribed: true) : NonSubscribedUsers;
+                    var filteredNonSubscribed = GetFilteredUsers(NonSubscribedUsers);
+                    var nonSubscribedToShow = UsePagination ? GetPagedItems(filteredNonSubscribed, isNonSubscribed: true) : filteredNonSubscribed;
                 }
                 @foreach (var user in nonSubscribedToShow)
                 {
                     <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                        @if (OnAddUser.HasDelegate && OnAddMultipleUsers.HasDelegate)
+                        {
+                            <input class="form-check-input me-2" 
+                                   type="checkbox" 
+                                   @onchange="(e) => ToggleNonSubscribedUserSelection(user, (bool)(e.Value ?? false))"
+                                   checked="@IsNonSubscribedUserSelected(user)" />
+                        }
                         @if (ShowProfilePicture)
                         {
                             <img src="@user.ProfilePictureSrc" 
@@ -88,7 +193,7 @@
                                  class="member-avatar-small me-2" 
                                  style="width: 32px; height: 32px; border-radius: 50%;" />
                         }
-                        <span>@GetUserDisplayName(user)</span>
+                        <span class="flex-grow-1">@GetUserDisplayName(user)</span>
                         @if (AdditionalUserInfoFunc != null)
                         {
                             <text> - @AdditionalUserInfoFunc(user)</text>
@@ -98,16 +203,25 @@
                             <br />
                             <small class="text-muted">@user.Email</small>
                         }
+                        @if (OnAddUser.HasDelegate && !OnAddMultipleUsers.HasDelegate)
+                        {
+                            <button type="button" 
+                                    class="btn btn-sm btn-success ms-2" 
+                                    @onclick="() => OnAddUser.InvokeAsync(user)"
+                                    title="Adicionar às notificações">
+                                <i class="bi bi-plus-circle"></i>
+                            </button>
+                        }
                     </div>
                 }
             </div>
             
-            @if (UsePagination && NonSubscribedUsers.Count > PageSize)
+            @if (UsePagination && filteredNonSubscribed.Count > PageSize)
             {
                 <div class="mt-2">
                     <TablePagination CurrentPage="@nonSubscribedCurrentPage"
                                    PageSize="@PageSize"
-                                   TotalItems="@NonSubscribedUsers.Count"
+                                   TotalItems="@filteredNonSubscribed.Count"
                                    ItemLabel="@NonSubscribedUsersItemLabel"
                                    OnPageChanged="@OnNonSubscribedPageChanged"
                                    OnPageSizeChanged="@OnNonSubscribedPageSizeChanged"
@@ -221,13 +335,78 @@
     [Parameter]
     public string EmptySubscribedMessage { get; set; } = "Nenhum membro subscrito às notificações por email.";
 
+    /// <summary>
+    /// Optional callback for removing a user from subscribed list
+    /// </summary>
+    [Parameter]
+    public EventCallback<ApplicationUser> OnRemoveUser { get; set; }
+
+    /// <summary>
+    /// Optional callback for adding a user to subscribed list
+    /// </summary>
+    [Parameter]
+    public EventCallback<ApplicationUser> OnAddUser { get; set; }
+
+    /// <summary>
+    /// Optional callback for removing multiple users from subscribed list
+    /// </summary>
+    [Parameter]
+    public EventCallback<List<ApplicationUser>> OnRemoveMultipleUsers { get; set; }
+
+    /// <summary>
+    /// Optional callback for adding multiple users to subscribed list
+    /// </summary>
+    [Parameter]
+    public EventCallback<List<ApplicationUser>> OnAddMultipleUsers { get; set; }
+
+    /// <summary>
+    /// Whether a bulk remove operation is currently processing
+    /// </summary>
+    [Parameter]
+    public bool IsProcessingBulkRemove { get; set; }
+
+    /// <summary>
+    /// Whether a bulk add operation is currently processing
+    /// </summary>
+    [Parameter]
+    public bool IsProcessingBulkAdd { get; set; }
+
     // Pagination state
     private int subscribedCurrentPage = 1;
     private int nonSubscribedCurrentPage = 1;
 
+    // Selection state for subscribed users
+    private HashSet<string> selectedSubscribedUserIds = new();
+    private List<ApplicationUser> selectedSubscribedUsers = new();
+    private bool isAllSubscribedSelected = false;
+
+    // Selection state for non-subscribed users
+    private HashSet<string> selectedNonSubscribedUserIds = new();
+    private List<ApplicationUser> selectedNonSubscribedUsers = new();
+    private bool isAllNonSubscribedSelected = false;
+
+    // Search state
+    private string searchQuery = string.Empty;
+
     private string GetUserDisplayName(ApplicationUser user)
     {
         return user.Nickname ?? $"{user.FirstName} {user.LastName}";
+    }
+
+    private List<ApplicationUser> GetFilteredUsers(List<ApplicationUser> users)
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery))
+        {
+            return users;
+        }
+
+        var query = searchQuery.ToLower();
+        return users.Where(u =>
+            (!string.IsNullOrEmpty(u.Nickname) && u.Nickname.ToLower().Contains(query)) ||
+            (!string.IsNullOrEmpty(u.FirstName) && u.FirstName.ToLower().Contains(query)) ||
+            (!string.IsNullOrEmpty(u.LastName) && u.LastName.ToLower().Contains(query)) ||
+            (!string.IsNullOrEmpty(u.Email) && u.Email.ToLower().Contains(query))
+        ).ToList();
     }
 
     private List<ApplicationUser> GetPagedItems(List<ApplicationUser> items, bool isNonSubscribed = false)
@@ -235,6 +414,15 @@
         var currentPage = isNonSubscribed ? nonSubscribedCurrentPage : subscribedCurrentPage;
         var skip = (currentPage - 1) * PageSize;
         return items.Skip(skip).Take(PageSize).ToList();
+    }
+
+    private Task HandleSearchChanged(string newSearchQuery)
+    {
+        searchQuery = newSearchQuery;
+        subscribedCurrentPage = 1;
+        nonSubscribedCurrentPage = 1;
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private Task OnSubscribedPageChanged(int newPage)
@@ -265,5 +453,125 @@
         nonSubscribedCurrentPage = 1; // Reset to first page
         StateHasChanged();
         return Task.CompletedTask;
+    }
+
+    private void ToggleUserSelection(ApplicationUser user, bool isSelected)
+    {
+        if (isSelected)
+        {
+            selectedSubscribedUserIds.Add(user.Id);
+            if (!selectedSubscribedUsers.Contains(user))
+            {
+                selectedSubscribedUsers.Add(user);
+            }
+        }
+        else
+        {
+            selectedSubscribedUserIds.Remove(user.Id);
+            selectedSubscribedUsers.Remove(user);
+        }
+
+        // Update "select all" state
+        isAllSubscribedSelected = SubscribedUsers.Count > 0 && 
+                                   selectedSubscribedUserIds.Count == SubscribedUsers.Count;
+    }
+
+    private void ToggleSelectAllSubscribed(ChangeEventArgs e)
+    {
+        var isChecked = (bool)(e.Value ?? false);
+        var filteredUsers = GetFilteredUsers(SubscribedUsers);
+        
+        if (isChecked)
+        {
+            // Select all filtered users
+            selectedSubscribedUserIds = filteredUsers.Select(u => u.Id).ToHashSet();
+            selectedSubscribedUsers = new List<ApplicationUser>(filteredUsers);
+        }
+        else
+        {
+            // Deselect all users
+            selectedSubscribedUserIds.Clear();
+            selectedSubscribedUsers.Clear();
+        }
+
+        isAllSubscribedSelected = isChecked;
+    }
+
+    private bool IsUserSelected(ApplicationUser user)
+    {
+        return selectedSubscribedUserIds.Contains(user.Id);
+    }
+
+    private async Task RemoveSelectedUsers()
+    {
+        if (selectedSubscribedUsers.Any() && OnRemoveMultipleUsers.HasDelegate)
+        {
+            await OnRemoveMultipleUsers.InvokeAsync(selectedSubscribedUsers.ToList());
+            
+            // Clear selection after removal
+            selectedSubscribedUserIds.Clear();
+            selectedSubscribedUsers.Clear();
+            isAllSubscribedSelected = false;
+        }
+    }
+
+    private void ToggleNonSubscribedUserSelection(ApplicationUser user, bool isSelected)
+    {
+        if (isSelected)
+        {
+            selectedNonSubscribedUserIds.Add(user.Id);
+            if (!selectedNonSubscribedUsers.Contains(user))
+            {
+                selectedNonSubscribedUsers.Add(user);
+            }
+        }
+        else
+        {
+            selectedNonSubscribedUserIds.Remove(user.Id);
+            selectedNonSubscribedUsers.Remove(user);
+        }
+
+        // Update "select all" state
+        isAllNonSubscribedSelected = NonSubscribedUsers.Count > 0 && 
+                                      selectedNonSubscribedUserIds.Count == NonSubscribedUsers.Count;
+    }
+
+    private void ToggleSelectAllNonSubscribed(ChangeEventArgs e)
+    {
+        var isChecked = (bool)(e.Value ?? false);
+        var filteredUsers = GetFilteredUsers(NonSubscribedUsers);
+        
+        if (isChecked)
+        {
+            // Select all filtered users
+            selectedNonSubscribedUserIds = filteredUsers.Select(u => u.Id).ToHashSet();
+            selectedNonSubscribedUsers = new List<ApplicationUser>(filteredUsers);
+        }
+        else
+        {
+            // Deselect all users
+            selectedNonSubscribedUserIds.Clear();
+            selectedNonSubscribedUsers.Clear();
+        }
+
+        isAllNonSubscribedSelected = isChecked;
+    }
+
+    private bool IsNonSubscribedUserSelected(ApplicationUser user)
+    {
+        return selectedNonSubscribedUserIds.Contains(user.Id);
+    }
+
+    private async Task AddSelectedUsers()
+    {
+        if (selectedNonSubscribedUsers.Any() && OnAddMultipleUsers.HasDelegate)
+        {
+            await OnAddMultipleUsers.InvokeAsync(selectedNonSubscribedUsers.ToList());
+            
+            // Clear selection after addition
+            selectedNonSubscribedUserIds.Clear();
+            selectedNonSubscribedUsers.Clear();
+            isAllNonSubscribedSelected = false;
+        }
     }
 }
