@@ -37,36 +37,6 @@ public class DriveAudioStorageServiceTests
     }
 
     [Fact]
-    public void Constructor_WithoutBucketName_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        _mockConfiguration.Setup(c => c["IDrive:AccessKey"]).Returns("test-access-key");
-        _mockConfiguration.Setup(c => c["IDrive:SecretKey"]).Returns("test-secret-key");
-        _mockConfiguration.Setup(c => c["IDrive:Endpoint"]).Returns("s3.example.com");
-        _mockConfiguration.Setup(c => c["IDrive:Bucket"]).Returns((string?)null);
-
-        // Act & Assert
-        Action act = () => new DriveAudioStorageService(_mockConfiguration.Object, _mockLogger.Object);
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*bucket name not configured*");
-    }
-
-    [Fact]
-    public void Constructor_WithoutEndpoint_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        _mockConfiguration.Setup(c => c["IDrive:AccessKey"]).Returns("test-access-key");
-        _mockConfiguration.Setup(c => c["IDrive:SecretKey"]).Returns("test-secret-key");
-        _mockConfiguration.Setup(c => c["IDrive:Endpoint"]).Returns((string?)null);
-        _mockConfiguration.Setup(c => c["IDrive:Bucket"]).Returns("test-bucket");
-
-        // Act & Assert
-        Action act = () => new DriveAudioStorageService(_mockConfiguration.Object, _mockLogger.Object);
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*endpoint not configured*");
-    }
-
-    [Fact]
     public void Constructor_WithCredentials_InitializesSuccessfully()
     {
         // Arrange

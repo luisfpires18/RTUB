@@ -1,6 +1,7 @@
 using RTUB.Application.Interfaces;
 using RTUB.Application.Data;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -86,8 +87,7 @@ public class MeetingRequestService : IMeetingRequestService
             throw new InvalidOperationException($"Meeting request with ID {id} not found");
         
         request.Status = status;
-        _context.MeetingRequests.Update(request);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(int id)

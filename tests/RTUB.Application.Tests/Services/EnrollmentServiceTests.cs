@@ -5,6 +5,7 @@ using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -154,7 +155,7 @@ public class EnrollmentServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _enrollmentService.DeleteEnrollmentAsync(999);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 

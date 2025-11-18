@@ -1,6 +1,7 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Utilities;
@@ -31,13 +32,16 @@ public class EventService : IEventService
 
     public async Task<IEnumerable<Event>> GetAllEventsAsync()
     {
-        return await _context.Events.ToListAsync();
+        return await _context.Events
+            .AsNoTracking()
+            .ToListAsync();
     }
 
     public async Task<IEnumerable<Event>> GetUpcomingEventsAsync(int count = 10)
     {
         var today = DateTime.Today;
         return await _context.Events
+            .AsNoTracking()
             .Where(e => (e.EndDate.HasValue ? e.EndDate.Value.Date : e.Date.Date) >= today)
             .OrderBy(e => e.Date)
             .Take(count)
@@ -48,6 +52,7 @@ public class EventService : IEventService
     {
         var today = DateTime.Today;
         return await _context.Events
+            .AsNoTracking()
             .Where(e => (e.EndDate.HasValue ? e.EndDate.Value.Date : e.Date.Date) < today)
             .OrderByDescending(e => e.Date)
             .Take(count)
@@ -57,6 +62,7 @@ public class EventService : IEventService
     public async Task<IEnumerable<Event>> GetEventsByTypeAsync(EventType type)
     {
         return await _context.Events
+            .AsNoTracking()
             .Where(e => e.Type == type)
             .ToListAsync();
     }
@@ -84,7 +90,7 @@ public class EventService : IEventService
     {
         var eventEntity = await _context.Events.FindAsync(id);
         if (eventEntity == null)
-            throw new InvalidOperationException($"Event with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Event), id);
 
         eventEntity.UpdateDetails(name, date, location, description);
         
@@ -97,7 +103,6 @@ public class EventService : IEventService
             eventEntity.EndDate = null;
         }
         
-        _context.Events.Update(eventEntity);
         await _context.SaveChangesAsync();
     }
 
@@ -105,7 +110,7 @@ public class EventService : IEventService
     {
         var eventEntity = await _context.Events.FindAsync(id);
         if (eventEntity == null)
-            throw new InvalidOperationException($"Event with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Event), id);
 
         // Update event details
         eventEntity.UpdateDetails(name, date, location, description);
@@ -130,7 +135,6 @@ public class EventService : IEventService
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", normalizedName);
         eventEntity.SetImage(imageUrl);
         
-        _context.Events.Update(eventEntity);
         await _context.SaveChangesAsync();
     }
 
@@ -138,7 +142,7 @@ public class EventService : IEventService
     {
         var eventEntity = await _context.Events.FindAsync(id);
         if (eventEntity == null)
-            throw new InvalidOperationException($"Event with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Event), id);
 
         // Delete old image if it exists
         if (!string.IsNullOrEmpty(eventEntity.ImageUrl))
@@ -151,7 +155,6 @@ public class EventService : IEventService
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", normalizedName);
         eventEntity.SetImage(imageUrl);
         
-        _context.Events.Update(eventEntity);
         await _context.SaveChangesAsync();
     }
 
@@ -159,7 +162,7 @@ public class EventService : IEventService
     {
         var eventEntity = await _context.Events.FindAsync(id);
         if (eventEntity == null)
-            throw new InvalidOperationException($"Event with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Event), id);
 
         // Delete associated image from R2 storage if it exists
         if (!string.IsNullOrEmpty(eventEntity.ImageUrl))
@@ -175,10 +178,9 @@ public class EventService : IEventService
     {
         var eventEntity = await _context.Events.FindAsync(id);
         if (eventEntity == null)
-            throw new InvalidOperationException($"Event with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Event), id);
 
         eventEntity.Cancel(reason);
-        _context.Events.Update(eventEntity);
         await _context.SaveChangesAsync();
     }
 
@@ -186,10 +188,9 @@ public class EventService : IEventService
     {
         var eventEntity = await _context.Events.FindAsync(id);
         if (eventEntity == null)
-            throw new InvalidOperationException($"Event with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Event), id);
 
         eventEntity.Uncancel();
-        _context.Events.Update(eventEntity);
         await _context.SaveChangesAsync();
     }
 }

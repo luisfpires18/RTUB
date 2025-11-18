@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -231,7 +232,7 @@ public class TransactionServiceTests : IDisposable
         var act = async () => await _service.UpdateTransactionAsync(
             999, DateTime.Now, "Test", "Cat", 100m, "Income");
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 
@@ -260,7 +261,7 @@ public class TransactionServiceTests : IDisposable
         // Act & Assert
         var act = async () => await _service.DeleteTransactionAsync(999);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 

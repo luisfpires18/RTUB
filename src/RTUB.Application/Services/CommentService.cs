@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
 
@@ -65,7 +66,7 @@ public class CommentService : ICommentService
     {
         var comment = await _context.Comments.FindAsync(id);
         if (comment == null)
-            throw new InvalidOperationException($"Comment with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Comment), id);
 
         comment.Edit(body);
         if (!string.IsNullOrWhiteSpace(mentionsJson))
@@ -73,7 +74,6 @@ public class CommentService : ICommentService
             comment.SetMentions(mentionsJson);
         }
 
-        _context.Comments.Update(comment);
         await _context.SaveChangesAsync();
     }
 
@@ -81,10 +81,9 @@ public class CommentService : ICommentService
     {
         var comment = await _context.Comments.FindAsync(id);
         if (comment == null)
-            throw new InvalidOperationException($"Comment with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Comment), id);
 
         comment.SoftDelete();
-        _context.Comments.Update(comment);
         await _context.SaveChangesAsync();
     }
 }

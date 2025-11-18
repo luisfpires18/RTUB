@@ -1,177 +1,71 @@
 using Amazon.S3;
 using Amazon.S3.Model;
-using Amazon.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Services.Storage;
 
 namespace RTUB.Application.Services;
 
 /// <summary>
 /// Implementation of document storage service using iDrive e2 (S3-compatible)
 /// </summary>
-public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
+public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocumentStorageService>, IDocumentStorageService
 {
-    private readonly IAmazonS3 _s3Client;
-    private readonly string _bucketName;
-    private readonly ILogger<DriveDocumentStorageService> _logger;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
 
     public DriveDocumentStorageService(IConfiguration configuration, ILogger<DriveDocumentStorageService> logger)
+        : base(configuration, logger)
     {
-        _logger = logger;
-
-        // Get credentials from environment variables or configuration
-        var accessKey = Environment.GetEnvironmentVariable("IDRIVE_ACCESS_KEY")
-                        ?? configuration["IDrive:AccessKey"];
-        var secretKey = Environment.GetEnvironmentVariable("IDRIVE_SECRET_KEY")
-                        ?? configuration["IDrive:SecretKey"];
-        var endpoint = Environment.GetEnvironmentVariable("IDRIVE_ENDPOINT")
-                       ?? configuration["IDrive:Endpoint"]
-                       ?? "s3.eu-west-4.idrivee2.com";
-        _bucketName = Environment.GetEnvironmentVariable("IDRIVE_BUCKET")
-                      ?? configuration["IDrive:Bucket"]
-                      ?? "rtub";
-
-        if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
-        {
-            var errorMsg = "iDrive e2 credentials not configured. Set IDRIVE_ACCESS_KEY and IDRIVE_SECRET_KEY environment variables.";
-            _logger.LogError(errorMsg);
-            throw new InvalidOperationException(errorMsg);
-        }
-
-        var credentials = new BasicAWSCredentials(accessKey, secretKey);
-        var config = new AmazonS3Config
-        {
-            ServiceURL = $"https://{endpoint}",
-            ForcePathStyle = true // Required for S3-compatible services
-        };
-
-        _s3Client = new AmazonS3Client(credentials, config);
     }
 
     public async Task<string?> GetDocumentUrlAsync(string documentPath, bool forceDownload = false)
     {
-        try
+        ResponseHeaderOverrides? headerOverrides;
+        
+        if (forceDownload)
         {
-            // Check if file exists first
-            var exists = await DocumentExistsAsync(documentPath);
-            if (!exists)
+            var fileName = Path.GetFileName(documentPath);
+            headerOverrides = new ResponseHeaderOverrides
             {
-                _logger.LogWarning("Cannot generate URL - document not found: {DocumentPath}", documentPath);
-                return null;
-            }
-
-            // Generate pre-signed URL
-            var request = new GetPreSignedUrlRequest
-            {
-                BucketName = _bucketName,
-                Key = documentPath,
-                Expires = DateTime.UtcNow.AddMinutes(_urlExpirationMinutes)
+                ContentDisposition = $"attachment; filename=\"{fileName}\""
             };
-
-            // If forceDownload is true, set content-disposition to attachment
-            // Otherwise, set content-type for PDF viewing
-            if (forceDownload)
-            {
-                var fileName = Path.GetFileName(documentPath);
-                request.ResponseHeaderOverrides = new ResponseHeaderOverrides
-                {
-                    ContentDisposition = $"attachment; filename=\"{fileName}\""
-                };
-            }
-            else
-            {
-                request.ResponseHeaderOverrides = new ResponseHeaderOverrides
-                {
-                    ContentType = "application/pdf"
-                };
-            }
-
-            var url = _s3Client.GetPreSignedURL(request);
-            return url;
         }
-        catch (AmazonS3Exception ex)
+        else
         {
-            _logger.LogError(ex, "S3 error generating document URL for path: {DocumentPath}. ErrorCode: {ErrorCode}, Message: {Message}", 
-                documentPath, ex.ErrorCode, ex.Message);
-            return null;
+            headerOverrides = new ResponseHeaderOverrides
+            {
+                ContentType = "application/pdf"
+            };
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error generating document URL for path: {DocumentPath}", documentPath);
-            return null;
-        }
+
+        return await GeneratePreSignedUrlAsync(documentPath, _urlExpirationMinutes, headerOverrides);
     }
 
     public async Task<bool> DocumentExistsAsync(string documentPath)
     {
-        try
-        {
-            var request = new GetObjectMetadataRequest
-            {
-                BucketName = _bucketName,
-                Key = documentPath
-            };
-
-            await _s3Client.GetObjectMetadataAsync(request);
-            return true;
-        }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return false;
-        }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "S3 error checking document existence. Bucket: '{BucketName}', Path: '{DocumentPath}', ErrorCode: {ErrorCode}, Message: {Message}", 
-                _bucketName, documentPath, ex.ErrorCode, ex.Message);
-            return false;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error checking if document exists: {DocumentPath}", documentPath);
-            return false;
-        }
+        return await ObjectExistsAsync(documentPath);
     }
 
     public async Task<List<string>> ListFoldersAsync(string prefix = "docs/")
     {
         try
         {
-            var folders = new HashSet<string>();
-            var request = new ListObjectsV2Request
+            var commonPrefixes = await ListCommonPrefixesAsync(prefix);
+            
+            // Extract folder names from prefixes
+            var folders = new List<string>();
+            foreach (var commonPrefix in commonPrefixes)
             {
-                BucketName = _bucketName,
-                Prefix = prefix,
-                Delimiter = "/"
-            };
-
-            ListObjectsV2Response response;
-            do
-            {
-                response = await _s3Client.ListObjectsV2Async(request);
-                
-                // Add common prefixes (folders)
-                foreach (var commonPrefix in response.CommonPrefixes)
+                // Extract folder name from prefix (e.g., "docs/General/" -> "General")
+                var folderName = commonPrefix.TrimEnd('/').Substring(prefix.Length);
+                if (!string.IsNullOrEmpty(folderName))
                 {
-                    // Extract folder name from prefix (e.g., "docs/General/" -> "General")
-                    var folderName = commonPrefix.TrimEnd('/').Substring(prefix.Length);
-                    if (!string.IsNullOrEmpty(folderName))
-                    {
-                        folders.Add(folderName);
-                    }
+                    folders.Add(folderName);
                 }
+            }
 
-                request.ContinuationToken = response.NextContinuationToken;
-            } while (response.IsTruncated == true);
-
-            return folders.OrderBy(f => f).ToList();
-        }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "S3 error listing folders. Bucket: '{BucketName}', Prefix: '{Prefix}', ErrorCode: {ErrorCode}, Message: {Message}", 
-                _bucketName, prefix, ex.ErrorCode, ex.Message);
-            return new List<string>();
+            return folders;
         }
         catch (Exception ex)
         {
@@ -243,113 +137,61 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
 
     public async Task<string> UploadDocumentAsync(string folderPath, string fileName, Stream fileStream, string contentType)
     {
+        // Ensure folder path ends with /
+        if (!folderPath.EndsWith("/"))
+        {
+            folderPath += "/";
+        }
+
+        var documentPath = folderPath + fileName;
+
+        _logger.LogInformation("Attempting to upload document to bucket '{Bucket}' with key: {DocumentPath}", _bucketName, documentPath);
+
         try
         {
-            // Ensure folder path ends with /
-            if (!folderPath.EndsWith("/"))
-            {
-                folderPath += "/";
-            }
-
-            var documentPath = folderPath + fileName;
-
-            _logger.LogInformation("Attempting to upload document to bucket '{Bucket}' with key: {DocumentPath}", _bucketName, documentPath);
-
-            var request = new PutObjectRequest
-            {
-                BucketName = _bucketName,
-                Key = documentPath,
-                InputStream = fileStream,
-                ContentType = contentType
-            };
-
-            var response = await _s3Client.PutObjectAsync(request);
+            await PutObjectAsync(documentPath, fileStream, contentType);
             
-            _logger.LogInformation("Successfully uploaded document: {DocumentPath}. Response status: {StatusCode}", 
-                documentPath, response.HttpStatusCode);
+            _logger.LogInformation("Successfully uploaded document: {DocumentPath}", documentPath);
             return documentPath;
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error uploading document. Bucket: '{BucketName}', Key: '{Path}', ErrorCode: {ErrorCode}, StatusCode: {StatusCode}, Message: {Message}", 
-                _bucketName, folderPath + fileName, ex.ErrorCode, ex.StatusCode, ex.Message);
-            throw new InvalidOperationException($"Failed to upload document '{fileName}' to '{folderPath}' in bucket '{_bucketName}'. Error: {ex.ErrorCode} - {ex.Message}. Please verify that your IDrive credentials have write permissions to this bucket.", ex);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error uploading document: {FileName} to {FolderPath}", fileName, folderPath);
-            throw;
+            // Add IDrive-specific context to S3 exceptions
+            _logger.LogError(ex, "S3 error uploading document: {FileName} to {FolderPath}. Bucket: {Bucket}, ErrorCode: {ErrorCode}", 
+                fileName, folderPath, _bucketName, ex.ErrorCode);
+            throw new InvalidOperationException($"Failed to upload document '{fileName}' to '{folderPath}' in bucket '{_bucketName}'. Please verify that your IDrive credentials have write permissions to this bucket. Error: {ex.ErrorCode}", ex);
         }
     }
 
     public async Task CreateFolderAsync(string folderPath)
     {
+        // Ensure folder path ends with /
+        if (!folderPath.EndsWith("/"))
+        {
+            folderPath += "/";
+        }
+
+        _logger.LogInformation("Attempting to create folder in bucket '{Bucket}' with key: {FolderPath}", _bucketName, folderPath);
+
         try
         {
-            // Ensure folder path ends with /
-            if (!folderPath.EndsWith("/"))
-            {
-                folderPath += "/";
-            }
-
-            _logger.LogInformation("Attempting to create folder in bucket '{Bucket}' with key: {FolderPath}", _bucketName, folderPath);
-
             // Create an empty object with "/" suffix to represent a folder
-            var request = new PutObjectRequest
-            {
-                BucketName = _bucketName,
-                Key = folderPath,
-                InputStream = new MemoryStream(),
-                ContentType = "application/x-directory"
-            };
-
-            var response = await _s3Client.PutObjectAsync(request);
+            await PutObjectAsync(folderPath, new MemoryStream(), "application/x-directory");
             
-            _logger.LogInformation("Successfully created folder: {FolderPath}. Response status: {StatusCode}", 
-                folderPath, response.HttpStatusCode);
+            _logger.LogInformation("Successfully created folder: {FolderPath}", folderPath);
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error creating folder. Bucket: '{BucketName}', Key: '{FolderPath}', ErrorCode: {ErrorCode}, StatusCode: {StatusCode}, Message: {Message}", 
-                _bucketName, folderPath, ex.ErrorCode, ex.StatusCode, ex.Message);
-            throw new InvalidOperationException($"Failed to create folder '{folderPath}' in bucket '{_bucketName}'. Error: {ex.ErrorCode} - {ex.Message}. Please verify that your IDrive credentials have write permissions to this bucket.", ex);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error creating folder: {FolderPath}", folderPath);
-            throw;
+            // Add IDrive-specific context to S3 exceptions
+            _logger.LogError(ex, "S3 error creating folder: {FolderPath}. Bucket: {Bucket}, ErrorCode: {ErrorCode}", 
+                folderPath, _bucketName, ex.ErrorCode);
+            throw new InvalidOperationException($"Failed to create folder '{folderPath}' in bucket '{_bucketName}'. Please verify that your IDrive credentials have write permissions to this bucket. Error: {ex.ErrorCode}", ex);
         }
     }
 
     public async Task<long> GetFileSizeAsync(string documentPath)
     {
-        try
-        {
-            var request = new GetObjectMetadataRequest
-            {
-                BucketName = _bucketName,
-                Key = documentPath
-            };
-
-            var response = await _s3Client.GetObjectMetadataAsync(request);
-            return response.ContentLength;
-        }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            _logger.LogWarning("Document not found when getting file size: {DocumentPath}", documentPath);
-            return 0;
-        }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "S3 error getting file size. Bucket: '{BucketName}', Path: '{DocumentPath}', ErrorCode: {ErrorCode}, Message: {Message}", 
-                _bucketName, documentPath, ex.ErrorCode, ex.Message);
-            return 0;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error getting file size for: {DocumentPath}", documentPath);
-            return 0;
-        }
+        return await GetObjectSizeAsync(documentPath);
     }
 
     public Task DeleteDocumentAsync(string documentPath)
@@ -360,10 +202,5 @@ public class DriveDocumentStorageService : IDocumentStorageService, IDisposable
     public Task DeleteFolderAsync(string folderPath)
     {
         throw new NotImplementedException("Delete operations are not supported for DriveDocumentStorageService. Use CloudflareDocumentStorageService instead.");
-    }
-
-    public void Dispose()
-    {
-        _s3Client?.Dispose();
     }
 }

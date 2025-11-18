@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 
@@ -48,7 +49,7 @@ public class UserProfileService : IUserProfileService
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
-            throw new InvalidOperationException($"User with ID {userId} not found");
+            throw new EntityNotFoundException(nameof(ApplicationUser), userId);
 
         // Delete old image if it exists
         if (!string.IsNullOrEmpty(user.ImageUrl))
@@ -72,7 +73,7 @@ public class UserProfileService : IUserProfileService
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
-            throw new InvalidOperationException($"User with ID {userId} not found");
+            throw new EntityNotFoundException(nameof(ApplicationUser), userId);
 
         user.FirstName = firstName;
         user.LastName = lastName;
@@ -100,7 +101,7 @@ public class UserProfileService : IUserProfileService
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
-            throw new InvalidOperationException($"User with ID {userId} not found");
+            throw new EntityNotFoundException(nameof(ApplicationUser), userId);
 
         var roles = await _userManager.GetRolesAsync(user);
         return roles.ToList();
@@ -113,7 +114,7 @@ public class UserProfileService : IUserProfileService
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
-            throw new InvalidOperationException($"User with ID {userId} not found");
+            throw new EntityNotFoundException(nameof(ApplicationUser), userId);
 
         if (string.IsNullOrWhiteSpace(roleName))
             throw new ArgumentException("Role name cannot be empty", nameof(roleName));
@@ -133,7 +134,7 @@ public class UserProfileService : IUserProfileService
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
-            throw new InvalidOperationException($"User with ID {userId} not found");
+            throw new EntityNotFoundException(nameof(ApplicationUser), userId);
 
         if (string.IsNullOrWhiteSpace(roleName))
             throw new ArgumentException("Role name cannot be empty", nameof(roleName));

@@ -1,5 +1,6 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Utilities;
@@ -28,12 +29,15 @@ public class AlbumService : IAlbumService
 
     public async Task<IEnumerable<Album>> GetAllAlbumsAsync()
     {
-        return await _context.Albums.ToListAsync();
+        return await _context.Albums
+            .AsNoTracking()
+            .ToListAsync();
     }
 
     public async Task<IEnumerable<Album>> GetPublicAlbumsAsync()
     {
         return await _context.Albums
+            .AsNoTracking()
             .Where(a => !a.IsPrivate)
             .ToListAsync();
     }
@@ -41,6 +45,7 @@ public class AlbumService : IAlbumService
     public async Task<IEnumerable<Album>> GetAlbumsWithSongsAsync()
     {
         return await _context.Albums
+            .AsNoTracking()
             .Include(a => a.Songs)
             .ToListAsync();
     }
@@ -48,6 +53,7 @@ public class AlbumService : IAlbumService
     public async Task<Album?> GetAlbumWithSongsAsync(int id)
     {
         return await _context.Albums
+            .AsNoTracking()
             .Include(a => a.Songs)
             .FirstOrDefaultAsync(a => a.Id == id);
     }
@@ -68,10 +74,9 @@ public class AlbumService : IAlbumService
     {
         var album = await _context.Albums.FindAsync(id);
         if (album == null)
-            throw new InvalidOperationException($"Album with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Album), id);
 
         album.UpdateDetails(title, year, description, isPrivate);
-        _context.Albums.Update(album);
         await _context.SaveChangesAsync();
     }
 
@@ -79,7 +84,7 @@ public class AlbumService : IAlbumService
     {
         var album = await _context.Albums.FindAsync(id);
         if (album == null)
-            throw new InvalidOperationException($"Album with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Album), id);
 
         // Delete associated image from R2 storage if it exists
         if (!string.IsNullOrEmpty(album.ImageUrl))
@@ -95,7 +100,7 @@ public class AlbumService : IAlbumService
     {
         var album = await _context.Albums.FindAsync(id);
         if (album == null)
-            throw new InvalidOperationException($"Album with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Album), id);
 
         // Update album details
         album.UpdateDetails(title, year, description, isPrivate);
@@ -111,7 +116,6 @@ public class AlbumService : IAlbumService
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", normalizedName);
         album.SetCoverImage(imageUrl);
         
-        _context.Albums.Update(album);
         await _context.SaveChangesAsync();
     }
 
@@ -119,7 +123,7 @@ public class AlbumService : IAlbumService
     {
         var album = await _context.Albums.FindAsync(id);
         if (album == null)
-            throw new InvalidOperationException($"Album with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Album), id);
 
         // Delete old image if it exists
         if (!string.IsNullOrEmpty(album.ImageUrl))
@@ -132,7 +136,6 @@ public class AlbumService : IAlbumService
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", normalizedName);
         album.SetCoverImage(imageUrl);
         
-        _context.Albums.Update(album);
         await _context.SaveChangesAsync();
     }
 }

@@ -19,6 +19,22 @@ public class EmailNotificationService : IEmailNotificationService
     private readonly IMemoryCache _cache;
     private readonly IEmailTemplateRenderer _templateRenderer;
 
+    // Configuration key constants
+    private const string EmailSettingsPrefix = "EmailSettings:";
+    private const string RecipientEmailKey = EmailSettingsPrefix + "RecipientEmail";
+    private const string SmtpServerKey = EmailSettingsPrefix + "SmtpServer";
+    private const string SmtpPortKey = EmailSettingsPrefix + "SmtpPort";
+    private const string SmtpUsernameKey = EmailSettingsPrefix + "SmtpUsername";
+    private const string SmtpPasswordKey = EmailSettingsPrefix + "SmtpPassword";
+    private const string SenderEmailKey = EmailSettingsPrefix + "SenderEmail";
+    private const string SenderNameKey = EmailSettingsPrefix + "SenderName";
+    private const string EnableSslKey = EmailSettingsPrefix + "EnableSsl";
+    private const string DefaultSenderName = "RTUB 1991";
+    private const string PlaceholderPassword = "YOUR_APP_PASSWORD_HERE";
+    private const int DefaultSmtpPort = 587;
+    private const int DefaultSmtpTimeout = 10000;
+    private const int BatchEmailTimeout = 30000;
+
     public EmailNotificationService(
         ILogger<EmailNotificationService> logger,
         IConfiguration configuration,
@@ -29,6 +45,71 @@ public class EmailNotificationService : IEmailNotificationService
         _configuration = configuration;
         _cache = cache;
         _templateRenderer = templateRenderer;
+    }
+
+    /// <summary>
+    /// Gets email configuration from appsettings
+    /// </summary>
+    private EmailConfiguration GetEmailConfiguration()
+    {
+        var config = new EmailConfiguration
+        {
+            RecipientEmail = _configuration[RecipientEmailKey],
+            SmtpServer = _configuration[SmtpServerKey],
+            SmtpPort = int.TryParse(_configuration[SmtpPortKey], out var port) ? port : DefaultSmtpPort,
+            SmtpUsername = _configuration[SmtpUsernameKey],
+            SmtpPassword = _configuration[SmtpPasswordKey],
+            SenderEmail = _configuration[SenderEmailKey],
+            SenderName = _configuration[SenderNameKey] ?? DefaultSenderName,
+            EnableSsl = _configuration[EnableSslKey] != "false" // Default to true
+        };
+
+        return config;
+    }
+
+    /// <summary>
+    /// Creates and configures an SMTP client
+    /// </summary>
+    private SmtpClient CreateSmtpClient(EmailConfiguration config, int timeout = DefaultSmtpTimeout)
+    {
+        if (string.IsNullOrEmpty(config.SmtpUsername) || string.IsNullOrEmpty(config.SmtpPassword))
+        {
+            throw new InvalidOperationException(
+                "SMTP credentials are not configured. Check EmailSettings:SmtpUsername and EmailSettings:SmtpPassword settings.");
+        }
+
+        return new SmtpClient(config.SmtpServer, config.SmtpPort)
+        {
+            Credentials = new NetworkCredential(config.SmtpUsername, config.SmtpPassword),
+            EnableSsl = config.EnableSsl,
+            Timeout = timeout
+        };
+    }
+
+    /// <summary>
+    /// Validates that SMTP is properly configured
+    /// </summary>
+    private bool IsSmtpConfigured(EmailConfiguration config)
+    {
+        return !string.IsNullOrEmpty(config.SmtpServer) 
+            && !string.IsNullOrEmpty(config.SmtpUsername)
+            && !string.IsNullOrEmpty(config.SmtpPassword) 
+            && config.SmtpPassword != PlaceholderPassword;
+    }
+
+    /// <summary>
+    /// Email configuration model
+    /// </summary>
+    private class EmailConfiguration
+    {
+        public string? RecipientEmail { get; set; }
+        public string? SmtpServer { get; set; }
+        public int SmtpPort { get; set; }
+        public string? SmtpUsername { get; set; }
+        public string? SmtpPassword { get; set; }
+        public string? SenderEmail { get; set; }
+        public string SenderName { get; set; } = DefaultSenderName;
+        public bool EnableSsl { get; set; }
     }
 
     /// <summary>
@@ -75,28 +156,24 @@ public class EmailNotificationService : IEmailNotificationService
 
         try
         {
-            // Get email settings from configuration
-            var recipientEmail = _configuration["EmailSettings:RecipientEmail"];
-            var smtpServer = _configuration["EmailSettings:SmtpServer"];
-            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
-            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
-            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
-            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
-            var senderEmail = _configuration["EmailSettings:SenderEmail"];
-            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
-            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
-            var enableSsl = enableSslStr != "false"; // Default to true
+            var config = GetEmailConfiguration();
 
             // Validate required email settings
-            if (string.IsNullOrEmpty(recipientEmail))
+            if (string.IsNullOrEmpty(config.RecipientEmail))
             {
                 _logger.LogError("RecipientEmail is not configured in EmailSettings");
                 return;
             }
 
-            if (string.IsNullOrEmpty(senderEmail))
+            if (string.IsNullOrEmpty(config.SenderEmail))
             {
                 _logger.LogError("SenderEmail is not configured in EmailSettings");
+                return;
+            }
+
+            // Check if SMTP is configured
+            if (!IsSmtpConfigured(config))
+            {
                 return;
             }
 
@@ -116,23 +193,12 @@ public class EmailNotificationService : IEmailNotificationService
                 message,
                 createdAt);
 
-            // Check if SMTP is configured
-            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
-            {
-                return;
-            }
-
             // Send email via SMTP
-            using var smtpClient = new SmtpClient(smtpServer, smtpPort)
-            {
-                Credentials = new NetworkCredential(smtpUsername, smtpPassword),
-                EnableSsl = enableSsl,
-                Timeout = 10000 // 10 second timeout to prevent hanging
-            };
+            using var smtpClient = CreateSmtpClient(config);
 
             var mailMessage = new MailMessage
             {
-                From = new MailAddress(senderEmail, senderName),
+                From = new MailAddress(config.SenderEmail, config.SenderName),
                 Subject = subject,
                 Body = body,
                 IsBodyHtml = true,
@@ -140,7 +206,7 @@ public class EmailNotificationService : IEmailNotificationService
                 SubjectEncoding = Encoding.UTF8
             };
 
-            mailMessage.To.Add(recipientEmail);
+            mailMessage.To.Add(config.RecipientEmail);
 
             await smtpClient.SendMailAsync(mailMessage);
         }
@@ -164,16 +230,7 @@ public class EmailNotificationService : IEmailNotificationService
 
         try
         {
-            // Get email settings from configuration
-            var smtpServer = _configuration["EmailSettings:SmtpServer"];
-            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
-            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
-            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
-            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
-            var senderEmail = _configuration["EmailSettings:SenderEmail"];
-            var senderName = _configuration["EmailSettings:SenderName"];
-            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
-            var enableSsl = enableSslStr != "false"; // Default to true
+            var config = GetEmailConfiguration();
 
             // Validate required email settings
             if (string.IsNullOrEmpty(email))
@@ -182,9 +239,15 @@ public class EmailNotificationService : IEmailNotificationService
                 return;
             }
 
-            if (string.IsNullOrEmpty(senderEmail))
+            if (string.IsNullOrEmpty(config.SenderEmail))
             {
                 _logger.LogError("SenderEmail is not configured in EmailSettings");
+                return;
+            }
+
+            // Check if SMTP is configured
+            if (!IsSmtpConfigured(config))
+            {
                 return;
             }
 
@@ -196,23 +259,12 @@ public class EmailNotificationService : IEmailNotificationService
                 nickname,
                 password);
 
-            // Check if SMTP is configured
-            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
-            {
-                return;
-            }
-
             // Send email via SMTP
-            using var smtpClient = new SmtpClient(smtpServer, smtpPort)
-            {
-                Credentials = new NetworkCredential(smtpUsername, smtpPassword),
-                EnableSsl = enableSsl,
-                Timeout = 10000 // 10 second timeout to prevent hanging
-            };
+            using var smtpClient = CreateSmtpClient(config);
 
             var mailMessage = new MailMessage
             {
-                From = new MailAddress(senderEmail, senderName ?? "RTUB"),
+                From = new MailAddress(config.SenderEmail, config.SenderName),
                 Subject = subject,
                 Body = body,
                 IsBodyHtml = true,
@@ -250,36 +302,27 @@ public class EmailNotificationService : IEmailNotificationService
 
         try
         {
-            // Get email settings from configuration
-            var smtpServer = _configuration["EmailSettings:SmtpServer"];
-            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
-            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
-            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
-            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
-            var senderEmail = _configuration["EmailSettings:SenderEmail"];
-            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
-            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
-            var enableSsl = enableSslStr != "false"; // Default to true
+            var config = GetEmailConfiguration();
+
+            // Validate recipients first to fail fast before checking SMTP configuration
+            if (recipientEmails is null || !recipientEmails.Any())
+            {
+                _logger.LogWarning("No recipient emails provided for event notification");
+                return (false, 0, "Nenhum destinatário encontrado.");
+            }
 
             // Validate required email settings
-            if (string.IsNullOrEmpty(senderEmail))
+            if (string.IsNullOrEmpty(config.SenderEmail))
             {
                 _logger.LogError("SenderEmail is not configured in EmailSettings");
                 return (false, 0, "Configuração de email não está completa.");
             }
 
             // Check if SMTP is configured
-            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
+            if (!IsSmtpConfigured(config))
             {
                 _logger.LogWarning("SMTP not configured, skipping event notification email");
                 return (false, 0, "Servidor de email não configurado.");
-            }
-
-            // Validate recipients
-            if (recipientEmails == null || !recipientEmails.Any())
-            {
-                _logger.LogWarning("No recipient emails provided for event notification");
-                return (false, 0, "Nenhum destinatário encontrado.");
             }
 
             var subject = $"Nova atuação: {eventTitle} — {eventDate:dd MMM yyyy}";
@@ -289,15 +332,10 @@ public class EmailNotificationService : IEmailNotificationService
                 new System.Globalization.CultureInfo("pt-PT"));
 
             // If recipient data is provided, send personalized emails to each recipient
-            if (recipientData != null && recipientData.Any())
+            if (recipientData is not null && recipientData.Any())
             {
                 int successCount = 0;
-                using var smtpClient = new SmtpClient(smtpServer, smtpPort)
-                {
-                    Credentials = new NetworkCredential(smtpUsername, smtpPassword),
-                    EnableSsl = enableSsl,
-                    Timeout = 30000 // 30 second timeout
-                };
+                using var smtpClient = CreateSmtpClient(config, BatchEmailTimeout);
 
                 foreach (var email in recipientEmails)
                 {
@@ -322,7 +360,7 @@ public class EmailNotificationService : IEmailNotificationService
 
                         var mailMessage = new MailMessage
                         {
-                            From = new MailAddress(senderEmail, senderName),
+                            From = new MailAddress(config.SenderEmail, config.SenderName),
                             Subject = subject,
                             Body = body,
                             IsBodyHtml = true,
@@ -355,16 +393,11 @@ public class EmailNotificationService : IEmailNotificationService
                     eventLink);
 
                 // Send email via SMTP
-                using var smtpClient = new SmtpClient(smtpServer, smtpPort)
-                {
-                    Credentials = new NetworkCredential(smtpUsername, smtpPassword),
-                    EnableSsl = enableSsl,
-                    Timeout = 30000 // 30 second timeout for batch emails
-                };
+                using var smtpClient = CreateSmtpClient(config, BatchEmailTimeout);
 
                 var mailMessage = new MailMessage
                 {
-                    From = new MailAddress(senderEmail, senderName),
+                    From = new MailAddress(config.SenderEmail, config.SenderName),
                     Subject = subject,
                     Body = body,
                     IsBodyHtml = true,
@@ -382,7 +415,7 @@ public class EmailNotificationService : IEmailNotificationService
                 }
 
                 // Add sender as the To address (required by some SMTP servers)
-                mailMessage.To.Add(senderEmail);
+                mailMessage.To.Add(config.SenderEmail);
 
                 await smtpClient.SendMailAsync(mailMessage);
                 
@@ -398,10 +431,6 @@ public class EmailNotificationService : IEmailNotificationService
             return (false, 0, $"Erro ao enviar email: {ex.Message}");
         }
     }
-
-    // Helper methods for email body generation (to be implemented when actual email sending is added)
-    // private string BuildStatusChangeEmailBody(string name, int requestId, RequestStatus oldStatus, RequestStatus newStatus) { ... }
-    // private string BuildNewRequestEmailBody(string name, string email, string eventType, int requestId) { ... }
 
     /// <inheritdoc/>
     public async Task<(bool success, int count, string? errorMessage)> SendBirthdayNotificationAsync(
@@ -420,47 +449,33 @@ public class EmailNotificationService : IEmailNotificationService
 
         try
         {
-            // Get email settings from configuration
-            var smtpServer = _configuration["EmailSettings:SmtpServer"];
-            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
-            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
-            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
-            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
-            var senderEmail = _configuration["EmailSettings:SenderEmail"];
-            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
-            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
-            var enableSsl = enableSslStr != "false"; // Default to true
+            var config = GetEmailConfiguration();
+
+            // Validate recipients first
+            if (recipientEmails is null || !recipientEmails.Any())
+            {
+                _logger.LogWarning("No recipient emails provided for birthday notification");
+                return (false, 0, "Nenhum destinatário encontrado.");
+            }
 
             // Validate required email settings
-            if (string.IsNullOrEmpty(senderEmail))
+            if (string.IsNullOrEmpty(config.SenderEmail))
             {
                 _logger.LogError("SenderEmail is not configured in EmailSettings");
                 return (false, 0, "Configuração de email não está completa.");
             }
 
             // Check if SMTP is configured
-            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
+            if (!IsSmtpConfigured(config))
             {
                 _logger.LogWarning("SMTP not configured, skipping birthday notification email");
                 return (false, 0, "Servidor de email não configurado.");
             }
 
-            // Validate recipients
-            if (recipientEmails == null || !recipientEmails.Any())
-            {
-                _logger.LogWarning("No recipient emails provided for birthday notification");
-                return (false, 0, "Nenhum destinatário encontrado.");
-            }
-
             var subject = $"🎉 {birthdayPersonNickname} está de aniversário!";
 
             int successCount = 0;
-            using var smtpClient = new SmtpClient(smtpServer, smtpPort)
-            {
-                Credentials = new NetworkCredential(smtpUsername, smtpPassword),
-                EnableSsl = enableSsl,
-                Timeout = 30000 // 30 second timeout
-            };
+            using var smtpClient = CreateSmtpClient(config, BatchEmailTimeout);
 
             foreach (var email in recipientEmails)
             {
@@ -483,7 +498,7 @@ public class EmailNotificationService : IEmailNotificationService
 
                     var mailMessage = new MailMessage
                     {
-                        From = new MailAddress(senderEmail, senderName),
+                        From = new MailAddress(config.SenderEmail, config.SenderName),
                         Subject = subject,
                         Body = body,
                         IsBodyHtml = true,
@@ -533,36 +548,27 @@ public class EmailNotificationService : IEmailNotificationService
 
         try
         {
-            // Get email settings from configuration
-            var smtpServer = _configuration["EmailSettings:SmtpServer"];
-            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
-            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
-            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
-            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
-            var senderEmail = _configuration["EmailSettings:SenderEmail"];
-            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
-            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
-            var enableSsl = enableSslStr != "false"; // Default to true
+            var config = GetEmailConfiguration();
+
+            // Validate recipients first
+            if (recipientEmails is null || !recipientEmails.Any())
+            {
+                _logger.LogWarning("No recipient emails provided for event cancellation notification");
+                return (false, 0, "Nenhum destinatário encontrado.");
+            }
 
             // Validate required email settings
-            if (string.IsNullOrEmpty(senderEmail))
+            if (string.IsNullOrEmpty(config.SenderEmail))
             {
                 _logger.LogError("SenderEmail is not configured in EmailSettings");
                 return (false, 0, "Configuração de email não está completa.");
             }
 
             // Check if SMTP is configured
-            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
+            if (!IsSmtpConfigured(config))
             {
                 _logger.LogWarning("SMTP not configured, skipping event cancellation notification email");
                 return (false, 0, "Servidor de email não configurado.");
-            }
-
-            // Validate recipients
-            if (recipientEmails == null || !recipientEmails.Any())
-            {
-                _logger.LogWarning("No recipient emails provided for event cancellation notification");
-                return (false, 0, "Nenhum destinatário encontrado.");
             }
 
             var subject = $"⚠️ Atuação cancelada: {eventTitle}";
@@ -572,15 +578,10 @@ public class EmailNotificationService : IEmailNotificationService
                 new System.Globalization.CultureInfo("pt-PT"));
 
             // If recipient data is provided, send personalized emails to each recipient
-            if (recipientData != null && recipientData.Any())
+            if (recipientData is not null && recipientData.Any())
             {
                 int successCount = 0;
-                using var smtpClient = new SmtpClient(smtpServer, smtpPort)
-                {
-                    Credentials = new NetworkCredential(smtpUsername, smtpPassword),
-                    EnableSsl = enableSsl,
-                    Timeout = 30000 // 30 second timeout
-                };
+                using var smtpClient = CreateSmtpClient(config, BatchEmailTimeout);
 
                 foreach (var email in recipientEmails)
                 {
@@ -606,7 +607,7 @@ public class EmailNotificationService : IEmailNotificationService
 
                         var mailMessage = new MailMessage
                         {
-                            From = new MailAddress(senderEmail, senderName),
+                            From = new MailAddress(config.SenderEmail, config.SenderName),
                             Subject = subject,
                             Body = body,
                             IsBodyHtml = true,
@@ -661,36 +662,27 @@ public class EmailNotificationService : IEmailNotificationService
 
         try
         {
-            // Get email settings from configuration
-            var smtpServer = _configuration["EmailSettings:SmtpServer"];
-            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
-            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
-            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
-            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
-            var senderEmail = _configuration["EmailSettings:SenderEmail"];
-            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
-            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
-            var enableSsl = enableSslStr != "false"; // Default to true
+            var config = GetEmailConfiguration();
+
+            // Validate recipients first
+            if (recipientEmails is null || !recipientEmails.Any())
+            {
+                _logger.LogWarning("No recipient emails provided for event reminder notification");
+                return (false, 0, "Nenhum destinatário encontrado.");
+            }
 
             // Validate required email settings
-            if (string.IsNullOrEmpty(senderEmail))
+            if (string.IsNullOrEmpty(config.SenderEmail))
             {
                 _logger.LogError("SenderEmail is not configured in EmailSettings");
                 return (false, 0, "Configuração de email não está completa.");
             }
 
             // Check if SMTP is configured
-            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
+            if (!IsSmtpConfigured(config))
             {
                 _logger.LogWarning("SMTP not configured, skipping event reminder notification email");
                 return (false, 0, "Servidor de email não configurado.");
-            }
-
-            // Validate recipients
-            if (recipientEmails == null || !recipientEmails.Any())
-            {
-                _logger.LogWarning("No recipient emails provided for event reminder notification");
-                return (false, 0, "Nenhum destinatário encontrado.");
             }
 
             // Calculate days until event
@@ -703,15 +695,10 @@ public class EmailNotificationService : IEmailNotificationService
                 new System.Globalization.CultureInfo("pt-PT"));
 
             // If recipient data is provided, send personalized emails to each recipient
-            if (recipientData != null && recipientData.Any())
+            if (recipientData is not null && recipientData.Any())
             {
                 int successCount = 0;
-                using var smtpClient = new SmtpClient(smtpServer, smtpPort)
-                {
-                    Credentials = new NetworkCredential(smtpUsername, smtpPassword),
-                    EnableSsl = enableSsl,
-                    Timeout = 30000 // 30 second timeout
-                };
+                using var smtpClient = CreateSmtpClient(config, BatchEmailTimeout);
 
                 foreach (var email in recipientEmails)
                 {
@@ -738,7 +725,7 @@ public class EmailNotificationService : IEmailNotificationService
 
                         var mailMessage = new MailMessage
                         {
-                            From = new MailAddress(senderEmail, senderName),
+                            From = new MailAddress(config.SenderEmail, config.SenderName),
                             Subject = subject,
                             Body = body,
                             IsBodyHtml = true,
@@ -790,47 +777,33 @@ public class EmailNotificationService : IEmailNotificationService
 
         try
         {
-            // Get email settings from configuration
-            var smtpServer = _configuration["EmailSettings:SmtpServer"];
-            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
-            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
-            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
-            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
-            var senderEmail = _configuration["EmailSettings:SenderEmail"];
-            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
-            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
-            var enableSsl = enableSslStr != "false"; // Default to true
+            var config = GetEmailConfiguration();
+
+            // Validate recipients first
+            if (recipientEmails is null || !recipientEmails.Any())
+            {
+                _logger.LogWarning("No recipient emails provided for announcement");
+                return (false, 0, "Nenhum destinatário encontrado.");
+            }
 
             // Validate required email settings
-            if (string.IsNullOrEmpty(senderEmail))
+            if (string.IsNullOrEmpty(config.SenderEmail))
             {
                 _logger.LogError("SenderEmail is not configured in EmailSettings");
                 return (false, 0, "Configuração de email não está completa.");
             }
 
             // Check if SMTP is configured
-            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
+            if (!IsSmtpConfigured(config))
             {
                 _logger.LogWarning("SMTP not configured, skipping announcement email");
                 return (false, 0, "Servidor de email não configurado.");
             }
 
-            // Validate recipients
-            if (recipientEmails == null || !recipientEmails.Any())
-            {
-                _logger.LogWarning("No recipient emails provided for announcement");
-                return (false, 0, "Nenhum destinatário encontrado.");
-            }
-
             var subject = $"[RTUB] {title}";
 
             int successCount = 0;
-            using var smtpClient = new SmtpClient(smtpServer, smtpPort)
-            {
-                Credentials = new NetworkCredential(smtpUsername, smtpPassword),
-                EnableSsl = enableSsl,
-                Timeout = 30000 // 30 second timeout
-            };
+            using var smtpClient = CreateSmtpClient(config, BatchEmailTimeout);
 
             foreach (var email in recipientEmails)
             {
@@ -853,7 +826,7 @@ public class EmailNotificationService : IEmailNotificationService
 
                     var mailMessage = new MailMessage
                     {
-                        From = new MailAddress(senderEmail, senderName),
+                        From = new MailAddress(config.SenderEmail, config.SenderName),
                         Subject = subject,
                         Body = body,
                         IsBodyHtml = true,
@@ -901,26 +874,17 @@ public class EmailNotificationService : IEmailNotificationService
 
         try
         {
-            // Get email configuration
-            var smtpServer = _configuration["EmailSettings:SmtpServer"];
-            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
-            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
-            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
-            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
-            var senderEmail = _configuration["EmailSettings:SenderEmail"];
-            var senderName = _configuration["EmailSettings:SenderName"] ?? "RTUB 1991";
-            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
-            var enableSsl = enableSslStr != "false"; // Default to true
+            var config = GetEmailConfiguration();
 
             // Validate email settings
-            if (string.IsNullOrEmpty(senderEmail) || string.IsNullOrEmpty(smtpServer) || 
-                string.IsNullOrEmpty(smtpUsername) || string.IsNullOrEmpty(smtpPassword))
+            if (string.IsNullOrEmpty(config.SenderEmail) || string.IsNullOrEmpty(config.SmtpServer) || 
+                string.IsNullOrEmpty(config.SmtpUsername) || string.IsNullOrEmpty(config.SmtpPassword))
             {
                 _logger.LogError("Email settings are not properly configured");
                 return (false, 0, "Configurações de email não definidas.");
             }
 
-            if (recipientEmails == null || !recipientEmails.Any())
+            if (recipientEmails is null || !recipientEmails.Any())
             {
                 _logger.LogWarning("No recipients for meeting notification {MeetingId}", meetingId);
                 return (false, 0, "Nenhum destinatário especificado.");
@@ -930,35 +894,31 @@ public class EmailNotificationService : IEmailNotificationService
             int successCount = 0;
             int failureCount = 0;
 
-            using (var smtpClient = new SmtpClient(smtpServer, smtpPort))
+            using var smtpClient = CreateSmtpClient(config);
+
+            foreach (var recipientEmail in recipientEmails)
             {
-                smtpClient.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
-                smtpClient.EnableSsl = enableSsl;
-
-                foreach (var recipientEmail in recipientEmails)
+                try
                 {
-                    try
+                    var mailMessage = new MailMessage
                     {
-                        var mailMessage = new MailMessage
-                        {
-                            From = new MailAddress(senderEmail, senderName),
-                            Subject = subject,
-                            Body = body,
-                            IsBodyHtml = true
-                        };
-                        mailMessage.To.Add(recipientEmail);
+                        From = new MailAddress(config.SenderEmail, config.SenderName),
+                        Subject = subject,
+                        Body = body,
+                        IsBodyHtml = true
+                    };
+                    mailMessage.To.Add(recipientEmail);
 
-                        await smtpClient.SendMailAsync(mailMessage);
-                        successCount++;
-                        _logger.LogInformation("Meeting notification email sent to {Email} for meeting {MeetingId}", 
-                            recipientEmail, meetingId);
-                    }
-                    catch (Exception ex)
-                    {
-                        failureCount++;
-                        _logger.LogError(ex, "Failed to send meeting notification email to {Email} for meeting {MeetingId}", 
-                            recipientEmail, meetingId);
-                    }
+                    await smtpClient.SendMailAsync(mailMessage);
+                    successCount++;
+                    _logger.LogInformation("Meeting notification email sent to {Email} for meeting {MeetingId}", 
+                        recipientEmail, meetingId);
+                }
+                catch (Exception ex)
+                {
+                    failureCount++;
+                    _logger.LogError(ex, "Failed to send meeting notification email to {Email} for meeting {MeetingId}", 
+                        recipientEmail, meetingId);
                 }
             }
 

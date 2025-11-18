@@ -6,6 +6,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Enums;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -153,7 +154,7 @@ public class RequestServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _requestService.SetRequestDateRangeAsync(999, DateTime.Now.AddDays(1));
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 
@@ -194,7 +195,7 @@ public class RequestServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _requestService.UpdateRequestStatusAsync(999, RequestStatus.Confirmed);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 
@@ -218,7 +219,7 @@ public class RequestServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _requestService.DeleteRequestAsync(999);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 

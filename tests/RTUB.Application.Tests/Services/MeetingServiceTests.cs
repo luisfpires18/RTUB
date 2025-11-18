@@ -5,6 +5,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -471,7 +472,7 @@ public class MeetingServiceTests : IDisposable
     public async Task DeleteMeetingAsync_NonExistingMeeting_ThrowsException()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
             _meetingService.DeleteMeetingAsync(999));
     }
 

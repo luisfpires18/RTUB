@@ -5,6 +5,7 @@ using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -139,7 +140,7 @@ public class AlbumServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _albumService.UpdateAlbumAsync(999, "Title", 2020, "Description", false);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 
@@ -162,7 +163,7 @@ public class AlbumServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _albumService.DeleteAlbumAsync(999);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 
@@ -233,7 +234,7 @@ public class AlbumServiceTests : IDisposable
 
         // Act & Assert
         var act = async () => await _albumService.UpdateAlbumWithCoverAsync(999, "Title", 2020, "Description", false, imageStream, "test.webp", "image/webp");
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 

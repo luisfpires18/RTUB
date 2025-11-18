@@ -52,10 +52,9 @@ public class MentionService : IMentionService
         if (string.IsNullOrWhiteSpace(query))
             return Enumerable.Empty<(string, string, string)>();
 
-        var lowerQuery = query.ToLower();
         var users = await _userManager.Users
-            .Where(u => u.UserName!.ToLower().Contains(lowerQuery) ||
-                       (u.Nickname != null && u.Nickname.ToLower().Contains(lowerQuery)))
+            .Where(u => u.UserName!.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                       (u.Nickname != null && u.Nickname.Contains(query, StringComparison.OrdinalIgnoreCase)))
             .Take(maxResults)
             .ToListAsync();
 

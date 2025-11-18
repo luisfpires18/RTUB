@@ -1,5 +1,6 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
@@ -63,7 +64,7 @@ public class EnrollmentService : IEnrollmentService
     {
         var enrollment = await _context.Enrollments.FindAsync(id);
         if (enrollment == null)
-            throw new InvalidOperationException($"Enrollment with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Enrollment), id);
 
         _context.Enrollments.Remove(enrollment);
         await _context.SaveChangesAsync();

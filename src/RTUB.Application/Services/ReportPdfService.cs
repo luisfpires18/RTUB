@@ -7,6 +7,7 @@ using Transaction = RTUB.Core.Entities.Transaction;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.Data;
+using RTUB.Core.Constants;
 
 namespace RTUB.Application.Services;
 
@@ -95,10 +96,10 @@ public class ReportPdfService
                     {
                         // Financial Summary - calculate from actual transactions
                         var totalIncome = allTransactions.SelectMany(x => x.transactions)
-                            .Where(t => t.Type == "Income")
+                            .Where(t => t.Type == TransactionTypes.Income)
                             .Sum(t => t.Amount);
                         var totalExpenses = allTransactions.SelectMany(x => x.transactions)
-                            .Where(t => t.Type == "Expense")
+                            .Where(t => t.Type == TransactionTypes.Expense)
                             .Sum(t => t.Amount);
                         var balance = totalIncome - totalExpenses;
 
@@ -158,8 +159,8 @@ public class ReportPdfService
                                     }
 
                                     // Calculate activity totals from transactions
-                                    var activityIncome = transactions.Where(t => t.Type == "Income").Sum(t => t.Amount);
-                                    var activityExpenses = transactions.Where(t => t.Type == "Expense").Sum(t => t.Amount);
+                                    var activityIncome = transactions.Where(t => t.Type == TransactionTypes.Income).Sum(t => t.Amount);
+                                    var activityExpenses = transactions.Where(t => t.Type == TransactionTypes.Expense).Sum(t => t.Amount);
                                     var activityBalance = activityIncome - activityExpenses;
 
                                     headerColumn.Item().PaddingTop(10).Row(row =>
@@ -212,7 +213,7 @@ public class ReportPdfService
                                         // Rows
                                         foreach (var transaction in transactions)
                                         {
-                                            var isIncome = transaction.Type == "Income";
+                                            var isIncome = transaction.Type == TransactionTypes.Income;
                                             var typeColor = isIncome ? "#28a745" : "#dc3545";
                                             var typeLabel = isIncome ? "Receita" : "Despesa";
                                             var sign = isIncome ? "+" : "-";

@@ -5,6 +5,7 @@ using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -141,7 +142,7 @@ public class SongServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _songService.UpdateSongAsync(999, "Title", 1, "Author", "Composer", "Adaptation", 180);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 
@@ -197,7 +198,7 @@ public class SongServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _songService.DeleteSongAsync(999);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 
@@ -206,7 +207,7 @@ public class SongServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _songService.AddYouTubeUrlAsync(999, "https://youtube.com/watch?v=test");
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 

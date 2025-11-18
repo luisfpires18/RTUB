@@ -170,15 +170,15 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
             
             // User1 plays Guitarra (primary)
             await enrollmentService.CreateEnrollmentAsync(user1.Id, eventEntity.Id, 
-                InstrumentType.Guitarra, "Bandolim", true);
+                InstrumentType.Guitarra, notes: null, willAttend: true, otherInstruments: "Bandolim");
             
             // User2 plays Guitarra (non-primary)
             await enrollmentService.CreateEnrollmentAsync(user2.Id, eventEntity.Id, 
-                InstrumentType.Guitarra, "Cavaquinho", true);
+                InstrumentType.Guitarra, notes: null, willAttend: true, otherInstruments: "Cavaquinho");
             
             // User3 plays Bandolim (primary)
             await enrollmentService.CreateEnrollmentAsync(user3.Id, eventEntity.Id, 
-                InstrumentType.Bandolim, "Flauta", true);
+                InstrumentType.Bandolim, notes: null, willAttend: true, otherInstruments: "Flauta");
         }
 
         // Assert

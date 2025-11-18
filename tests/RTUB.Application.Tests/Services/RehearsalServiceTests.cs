@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -161,7 +162,7 @@ public class RehearsalServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _rehearsalService.UpdateRehearsalAsync(999, "Location", null, null);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 
@@ -186,7 +187,7 @@ public class RehearsalServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _rehearsalService.CancelRehearsalAsync(999);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 
@@ -211,7 +212,7 @@ public class RehearsalServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _rehearsalService.DeleteRehearsalAsync(999);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 

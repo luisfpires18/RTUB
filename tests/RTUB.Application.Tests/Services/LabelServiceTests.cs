@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -147,7 +148,7 @@ public class LabelServiceTests : IDisposable
     public async Task UpdateLabelContentAsync_WithNonExistingId_ThrowsException()
     {
         var act = async () => await _service.UpdateLabelContentAsync(999, "Title", "Content", true);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("Label with ID 999 not found");
     }
 
@@ -169,7 +170,7 @@ public class LabelServiceTests : IDisposable
     public async Task ActivateLabelAsync_WithNonExistingId_ThrowsException()
     {
         var act = async () => await _service.ActivateLabelAsync(999);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("Label with ID 999 not found");
     }
 
@@ -190,7 +191,7 @@ public class LabelServiceTests : IDisposable
     public async Task DeactivateLabelAsync_WithNonExistingId_ThrowsException()
     {
         var act = async () => await _service.DeactivateLabelAsync(999);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("Label with ID 999 not found");
     }
 
@@ -210,7 +211,7 @@ public class LabelServiceTests : IDisposable
     public async Task DeleteLabelAsync_WithNonExistingId_ThrowsException()
     {
         var act = async () => await _service.DeleteLabelAsync(999);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("Label with ID 999 not found");
     }
 

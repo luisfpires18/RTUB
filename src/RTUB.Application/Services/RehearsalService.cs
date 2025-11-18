@@ -1,5 +1,6 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 
@@ -65,10 +66,9 @@ public class RehearsalService : IRehearsalService
     {
         var rehearsal = await _context.Rehearsals.FindAsync(id);
         if (rehearsal == null)
-            throw new InvalidOperationException($"Rehearsal with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Rehearsal), id);
 
         rehearsal.UpdateDetails(location, theme, notes);
-        _context.Rehearsals.Update(rehearsal);
         await _context.SaveChangesAsync();
     }
 
@@ -76,10 +76,9 @@ public class RehearsalService : IRehearsalService
     {
         var rehearsal = await _context.Rehearsals.FindAsync(id);
         if (rehearsal == null)
-            throw new InvalidOperationException($"Rehearsal with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Rehearsal), id);
 
         rehearsal.Cancel();
-        _context.Rehearsals.Update(rehearsal);
         await _context.SaveChangesAsync();
     }
 
@@ -87,7 +86,7 @@ public class RehearsalService : IRehearsalService
     {
         var rehearsal = await _context.Rehearsals.FindAsync(id);
         if (rehearsal == null)
-            throw new InvalidOperationException($"Rehearsal with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Rehearsal), id);
 
         _context.Rehearsals.Remove(rehearsal);
         await _context.SaveChangesAsync();

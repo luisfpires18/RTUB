@@ -6,6 +6,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -148,7 +149,7 @@ public class SlideshowServiceTests : IDisposable
         var act = async () => await _service.UpdateSlideshowAsync(999, "Test", "Test", 1, 5000, true);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("Slideshow with ID 999 not found");
     }
 
@@ -217,7 +218,7 @@ public class SlideshowServiceTests : IDisposable
 
         // Act & Assert
         var act = async () => await _service.UpdateSlideshowWithImageAsync(999, "Title", "Desc", 1, 5000, true, imageStream, "test.webp", "image/webp");
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 
@@ -243,7 +244,7 @@ public class SlideshowServiceTests : IDisposable
         var act = async () => await _service.ActivateSlideshowAsync(999);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("Slideshow with ID 999 not found");
     }
 
@@ -268,7 +269,7 @@ public class SlideshowServiceTests : IDisposable
         var act = async () => await _service.DeactivateSlideshowAsync(999);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("Slideshow with ID 999 not found");
     }
 
@@ -293,7 +294,7 @@ public class SlideshowServiceTests : IDisposable
         var act = async () => await _service.DeleteSlideshowAsync(999);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("Slideshow with ID 999 not found");
     }
 

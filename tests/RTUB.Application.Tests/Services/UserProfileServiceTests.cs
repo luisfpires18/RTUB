@@ -7,6 +7,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using Microsoft.EntityFrameworkCore;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -164,8 +165,8 @@ public class UserProfileServiceTests : IDisposable
         var act = async () => await _service.UpdateUserInfoAsync("invalid-id", "John", "Doe", null, null, null);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("User with ID invalid-id not found");
+        await act.Should().ThrowAsync<EntityNotFoundException>()
+            .WithMessage("ApplicationUser with ID invalid-id not found");
     }
 
     [Fact]
@@ -244,8 +245,8 @@ public class UserProfileServiceTests : IDisposable
         var act = async () => await _service.GetUserRolesAsync("invalid-id");
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("User with ID invalid-id not found");
+        await act.Should().ThrowAsync<EntityNotFoundException>()
+            .WithMessage("ApplicationUser with ID invalid-id not found");
     }
 
     public void Dispose()

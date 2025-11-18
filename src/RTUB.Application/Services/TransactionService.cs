@@ -1,5 +1,6 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 
@@ -56,18 +57,17 @@ public class TransactionService : ITransactionService
     {
         var transaction = await _context.Transactions.FindAsync(id);
         if (transaction == null)
-            throw new InvalidOperationException($"Transaction with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Transaction), id);
 
         transaction.UpdateDetails(date, description, category, amount, type);
-        _context.Transactions.Update(transaction);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task DeleteTransactionAsync(int id)
     {
         var transaction = await _context.Transactions.FindAsync(id);
         if (transaction == null)
-            throw new InvalidOperationException($"Transaction with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Transaction), id);
 
         _context.Transactions.Remove(transaction);
         await _context.SaveChangesAsync();

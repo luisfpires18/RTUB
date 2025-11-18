@@ -1,5 +1,6 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
@@ -57,23 +58,21 @@ public class RequestService : IRequestService
     {
         var request = await _context.Requests.FindAsync(id);
         if (request == null)
-            throw new InvalidOperationException($"Request with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Request), id);
 
         request.SetDateRange(endDate);
-        _context.Requests.Update(request);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task UpdateRequestStatusAsync(int id, RequestStatus status)
     {
         var request = await _context.Requests.FindAsync(id);
         if (request == null)
-            throw new InvalidOperationException($"Request with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Request), id);
 
         var oldStatus = request.Status;
         request.UpdateStatus(status);
-        _context.Requests.Update(request);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
 
         // Send notification when status changes
         if (oldStatus != status)
@@ -87,7 +86,7 @@ public class RequestService : IRequestService
     {
         var request = await _context.Requests.FindAsync(id);
         if (request == null)
-            throw new InvalidOperationException($"Request with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Request), id);
 
         _context.Requests.Remove(request);
         await _context.SaveChangesAsync();

@@ -1,5 +1,6 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Utilities;
@@ -57,7 +58,7 @@ public class SlideshowService : ISlideshowService
     {
         var slideshow = await _context.Slideshows.FindAsync(id);
         if (slideshow == null)
-            throw new InvalidOperationException($"Slideshow with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Slideshow), id);
 
         slideshow.UpdateDetails(title, description, order, intervalMs);
         
@@ -71,15 +72,14 @@ public class SlideshowService : ISlideshowService
             slideshow.Deactivate();
         }
         
-        _context.Slideshows.Update(slideshow);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task UpdateSlideshowWithImageAsync(int id, string title, string description, int order, int intervalMs, bool isActive, Stream imageStream, string fileName, string contentType)
     {
         var slideshow = await _context.Slideshows.FindAsync(id);
         if (slideshow == null)
-            throw new InvalidOperationException($"Slideshow with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Slideshow), id);
 
         // Update slideshow details
         slideshow.UpdateDetails(title, description, order, intervalMs);
@@ -105,15 +105,14 @@ public class SlideshowService : ISlideshowService
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", normalizedName);
         slideshow.SetImage(imageUrl);
         
-        _context.Slideshows.Update(slideshow);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task SetSlideshowImageAsync(int id, Stream imageStream, string fileName, string contentType)
     {
         var slideshow = await _context.Slideshows.FindAsync(id);
         if (slideshow == null)
-            throw new InvalidOperationException($"Slideshow with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Slideshow), id);
 
         // Delete old image if it exists
         if (!string.IsNullOrEmpty(slideshow.ImageUrl))
@@ -126,37 +125,34 @@ public class SlideshowService : ISlideshowService
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", normalizedName);
         slideshow.SetImage(imageUrl);
         
-        _context.Slideshows.Update(slideshow);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task ActivateSlideshowAsync(int id)
     {
         var slideshow = await _context.Slideshows.FindAsync(id);
         if (slideshow == null)
-            throw new InvalidOperationException($"Slideshow with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Slideshow), id);
 
         slideshow.Activate();
-        _context.Slideshows.Update(slideshow);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task DeactivateSlideshowAsync(int id)
     {
         var slideshow = await _context.Slideshows.FindAsync(id);
         if (slideshow == null)
-            throw new InvalidOperationException($"Slideshow with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Slideshow), id);
 
         slideshow.Deactivate();
-        _context.Slideshows.Update(slideshow);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task DeleteSlideshowAsync(int id)
     {
         var slideshow = await _context.Slideshows.FindAsync(id);
         if (slideshow == null)
-            throw new InvalidOperationException($"Slideshow with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Slideshow), id);
 
         // Delete associated image from R2 storage if it exists
         if (!string.IsNullOrEmpty(slideshow.ImageUrl))

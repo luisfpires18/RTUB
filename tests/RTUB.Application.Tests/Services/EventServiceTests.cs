@@ -7,6 +7,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -189,7 +190,7 @@ public class EventServiceTests : IDisposable
 
         // Act & Assert
         var act = async () => await _eventService.CancelEventAsync(nonExistentEventId, cancellationReason);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage($"Event with ID {nonExistentEventId} not found");
     }
     
@@ -221,7 +222,7 @@ public class EventServiceTests : IDisposable
 
         // Act & Assert
         var act = async () => await _eventService.UncancelEventAsync(nonExistentEventId);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage($"Event with ID {nonExistentEventId} not found");
     }
 
@@ -296,7 +297,7 @@ public class EventServiceTests : IDisposable
 
         // Act & Assert
         var act = async () => await _eventService.UpdateEventWithImageAsync(999, "Name", DateTime.Now, "Location", "Description", null, imageStream, "test.webp", "image/webp");
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 

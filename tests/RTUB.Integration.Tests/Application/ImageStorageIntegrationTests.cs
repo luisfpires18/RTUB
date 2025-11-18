@@ -8,6 +8,7 @@ using RTUB.Application.Services;
 using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
 using Xunit;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Integration.Tests;
 
@@ -276,7 +277,7 @@ public class ImageStorageIntegrationTests : IDisposable
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3 });
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<EntityNotFoundException>(
             () => _albumService.SetAlbumCoverAsync(999, imageStream, "cover.jpg", "image/jpeg"));
     }
 
@@ -287,7 +288,7 @@ public class ImageStorageIntegrationTests : IDisposable
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3 });
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<EntityNotFoundException>(
             () => _eventService.SetEventImageAsync(999, imageStream, "event.jpg", "image/jpeg"));
     }
 
@@ -298,7 +299,7 @@ public class ImageStorageIntegrationTests : IDisposable
         using var imageStream = new MemoryStream(new byte[] { 1, 2, 3 });
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<EntityNotFoundException>(
             () => _slideshowService.SetSlideshowImageAsync(999, imageStream, "slide.jpg", "image/jpeg"));
     }
 

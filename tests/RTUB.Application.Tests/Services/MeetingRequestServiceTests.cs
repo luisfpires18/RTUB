@@ -24,6 +24,23 @@ public class MeetingRequestServiceTests
         return new ApplicationDbContext(options, httpContextAccessor, auditContext);
     }
 
+    private async Task<ApplicationUser> AddUserToContext(ApplicationDbContext context, string userId, string username = "testuser")
+    {
+        var user = new ApplicationUser 
+        { 
+            Id = userId, 
+            UserName = username, 
+            Email = $"{username}@test.com",
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = username,
+            PhoneContact = "123456789"
+        };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        return user;
+    }
+
     [Fact]
     public async Task CreateAsync_ShouldAddMeetingRequestToDatabase()
     {
@@ -57,6 +74,10 @@ public class MeetingRequestServiceTests
         var context = GetInMemoryContext();
         context.DisableAuditing(); // Disable auditing for tests
         var service = new MeetingRequestService(context);
+        
+        // Add users first
+        await AddUserToContext(context, "user1", "user1");
+        await AddUserToContext(context, "user2", "user2");
         
         var request1 = new MeetingRequest
         {
@@ -93,6 +114,9 @@ public class MeetingRequestServiceTests
         context.DisableAuditing();
         var service = new MeetingRequestService(context);
         
+        // Add user first
+        await AddUserToContext(context, "user123", "user123");
+        
         var request = new MeetingRequest
         {
             Title = "Test Meeting",
@@ -120,6 +144,9 @@ public class MeetingRequestServiceTests
         var context = GetInMemoryContext();
         context.DisableAuditing();
         var service = new MeetingRequestService(context);
+        
+        // Add user first
+        await AddUserToContext(context, "user123", "user123");
         
         var request = new MeetingRequest
         {
@@ -210,6 +237,10 @@ public class MeetingRequestServiceTests
         context.DisableAuditing();
         var service = new MeetingRequestService(context);
         
+        // Add users first
+        await AddUserToContext(context, "user1", "user1");
+        await AddUserToContext(context, "user2", "user2");
+        
         var request1 = new MeetingRequest
         {
             Title = "First",
@@ -249,6 +280,10 @@ public class MeetingRequestServiceTests
         context.DisableAuditing();
         var service = new MeetingRequestService(context);
         
+        // Add users first
+        await AddUserToContext(context, "user1", "user1");
+        await AddUserToContext(context, "user2", "user2");
+        
         var pending = new MeetingRequest
         {
             Title = "Pending",
@@ -286,6 +321,9 @@ public class MeetingRequestServiceTests
         context.DisableAuditing();
         var service = new MeetingRequestService(context);
         
+        // Add user first
+        await AddUserToContext(context, "user1", "user1");
+        
         // Add 5 requests
         for (int i = 1; i <= 5; i++)
         {
@@ -318,6 +356,9 @@ public class MeetingRequestServiceTests
         var context = GetInMemoryContext();
         context.DisableAuditing();
         var service = new MeetingRequestService(context);
+        
+        // Add user first
+        await AddUserToContext(context, "user1", "user1");
         
         // Add 3 pending and 2 confirmed requests
         for (int i = 1; i <= 3; i++)

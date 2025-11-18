@@ -1,5 +1,6 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
@@ -56,18 +57,17 @@ public class RoleAssignmentService : IRoleAssignmentService
     {
         var roleAssignment = await _context.RoleAssignments.FindAsync(id);
         if (roleAssignment == null)
-            throw new InvalidOperationException($"RoleAssignment with ID {id} not found");
+            throw new EntityNotFoundException(nameof(RoleAssignment), id);
 
         roleAssignment.UpdateDetails(position, startYear, endYear, notes);
-        _context.RoleAssignments.Update(roleAssignment);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task DeleteRoleAssignmentAsync(int id)
     {
         var roleAssignment = await _context.RoleAssignments.FindAsync(id);
         if (roleAssignment == null)
-            throw new InvalidOperationException($"RoleAssignment with ID {id} not found");
+            throw new EntityNotFoundException(nameof(RoleAssignment), id);
 
         _context.RoleAssignments.Remove(roleAssignment);
         await _context.SaveChangesAsync();

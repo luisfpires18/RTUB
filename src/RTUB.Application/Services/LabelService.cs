@@ -1,5 +1,6 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 
@@ -55,40 +56,37 @@ public class LabelService : ILabelService
     {
         var label = await _context.Labels.FindAsync(id);
         if (label == null)
-            throw new InvalidOperationException($"Label with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Label), id);
 
         label.UpdateContent(title, content, isActive);
-        _context.Labels.Update(label);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task ActivateLabelAsync(int id)
     {
         var label = await _context.Labels.FindAsync(id);
         if (label == null)
-            throw new InvalidOperationException($"Label with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Label), id);
 
         label.Activate();
-        _context.Labels.Update(label);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task DeactivateLabelAsync(int id)
     {
         var label = await _context.Labels.FindAsync(id);
         if (label == null)
-            throw new InvalidOperationException($"Label with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Label), id);
 
         label.Deactivate();
-        _context.Labels.Update(label);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task DeleteLabelAsync(int id)
     {
         var label = await _context.Labels.FindAsync(id);
         if (label == null)
-            throw new InvalidOperationException($"Label with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Label), id);
 
         _context.Labels.Remove(label);
         await _context.SaveChangesAsync();

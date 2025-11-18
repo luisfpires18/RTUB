@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
 
@@ -22,25 +23,47 @@ public class SongService : ISongService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Gets the base query for songs with common includes for YouTubeUrls
+    /// </summary>
+    private IQueryable<Song> GetBaseSongQuery(bool includeAlbum = false)
+    {
+        IQueryable<Song> query = _context.Songs.AsNoTracking();
+        
+        if (includeAlbum)
+        {
+            query = query.Include(s => s.Album);
+        }
+        
+        query = query.Include(s => s.YouTubeUrls);
+        
+        return query;
+    }
+
+    /// <summary>
+    /// Gets the base query for songs with tracking enabled (for updates)
+    /// </summary>
+    private IQueryable<Song> GetBaseSongQueryWithTracking()
+    {
+        return _context.Songs
+            .Include(s => s.YouTubeUrls);
+    }
+
     public async Task<Song?> GetSongByIdAsync(int id)
     {
-        return await _context.Songs
-            .Include(s => s.YouTubeUrls)
+        return await GetBaseSongQuery()
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 
     public async Task<IEnumerable<Song>> GetAllSongsAsync()
     {
-        return await _context.Songs
-            .Include(s => s.Album)
-            .Include(s => s.YouTubeUrls)
+        return await GetBaseSongQuery(includeAlbum: true)
             .ToListAsync();
     }
 
     public async Task<IEnumerable<Song>> GetSongsByAlbumIdAsync(int albumId)
     {
-        return await _context.Songs
-            .Include(s => s.YouTubeUrls)
+        return await GetBaseSongQuery()
             .Where(s => s.AlbumId == albumId)
             .OrderBy(s => s.TrackNumber)
             .ToListAsync();
@@ -56,12 +79,11 @@ public class SongService : ISongService
 
     public async Task UpdateSongAsync(int id, string title, int? trackNumber, string? lyricAuthor, string? musicAuthor, string? adaptation, int? duration)
     {
-        var song = await _context.Songs
-            .Include(s => s.YouTubeUrls)
+        var song = await GetBaseSongQueryWithTracking()
             .FirstOrDefaultAsync(s => s.Id == id);
             
         if (song == null)
-            throw new InvalidOperationException($"Song with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Song), id);
 
         song.UpdateDetails(title, trackNumber, lyricAuthor, musicAuthor, adaptation, duration);
         // EF Core change tracker automatically detects modifications to loaded entities
@@ -70,12 +92,11 @@ public class SongService : ISongService
 
     public async Task SetSongLyricsAsync(int id, string? lyrics)
     {
-        var song = await _context.Songs
-            .Include(s => s.YouTubeUrls)
+        var song = await GetBaseSongQueryWithTracking()
             .FirstOrDefaultAsync(s => s.Id == id);
             
         if (song == null)
-            throw new InvalidOperationException($"Song with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Song), id);
 
         song.SetLyrics(lyrics);
         // EF Core change tracker automatically detects modifications to loaded entities
@@ -84,12 +105,11 @@ public class SongService : ISongService
 
     public async Task SetSongSpotifyUrlAsync(int id, string? url)
     {
-        var song = await _context.Songs
-            .Include(s => s.YouTubeUrls)
+        var song = await GetBaseSongQueryWithTracking()
             .FirstOrDefaultAsync(s => s.Id == id);
             
         if (song == null)
-            throw new InvalidOperationException($"Song with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Song), id);
 
         song.SetSpotifyUrl(url);
         // EF Core change tracker automatically detects modifications to loaded entities
@@ -98,12 +118,11 @@ public class SongService : ISongService
 
     public async Task SetSongHasMusicAsync(int id, bool hasMusic)
     {
-        var song = await _context.Songs
-            .Include(s => s.YouTubeUrls)
+        var song = await GetBaseSongQueryWithTracking()
             .FirstOrDefaultAsync(s => s.Id == id);
             
         if (song == null)
-            throw new InvalidOperationException($"Song with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Song), id);
 
         song.SetHasMusic(hasMusic);
         // EF Core change tracker automatically detects modifications to loaded entities
@@ -112,12 +131,11 @@ public class SongService : ISongService
 
     public async Task DeleteSongAsync(int id)
     {
-        var song = await _context.Songs
-            .Include(s => s.YouTubeUrls)
+        var song = await GetBaseSongQueryWithTracking()
             .FirstOrDefaultAsync(s => s.Id == id);
             
         if (song == null)
-            throw new InvalidOperationException($"Song with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Song), id);
 
         _context.Songs.Remove(song);
         await _context.SaveChangesAsync();
@@ -125,12 +143,11 @@ public class SongService : ISongService
 
     public async Task AddYouTubeUrlAsync(int songId, string url)
     {
-        var song = await _context.Songs
-            .Include(s => s.YouTubeUrls)
+        var song = await GetBaseSongQueryWithTracking()
             .FirstOrDefaultAsync(s => s.Id == songId);
             
         if (song == null)
-            throw new InvalidOperationException($"Song with ID {songId} not found");
+            throw new EntityNotFoundException(nameof(Song), songId);
 
         if (string.IsNullOrWhiteSpace(url))
             throw new ArgumentException("YouTube URL cannot be empty", nameof(url));
@@ -156,12 +173,11 @@ public class SongService : ISongService
 
     public async Task RemoveYouTubeUrlAsync(int songId, string url)
     {
-        var song = await _context.Songs
-            .Include(s => s.YouTubeUrls)
+        var song = await GetBaseSongQueryWithTracking()
             .FirstOrDefaultAsync(s => s.Id == songId);
             
         if (song == null)
-            throw new InvalidOperationException($"Song with ID {songId} not found");
+            throw new EntityNotFoundException(nameof(Song), songId);
 
         if (string.IsNullOrWhiteSpace(url))
             throw new ArgumentException("YouTube URL cannot be empty", nameof(url));

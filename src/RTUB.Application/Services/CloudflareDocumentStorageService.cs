@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Services.Storage;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Services;
@@ -13,12 +14,8 @@ namespace RTUB.Application.Services;
 /// Implementation of document storage service using Cloudflare R2 (S3-compatible)
 /// Uses a shared AmazonS3Client injected via DI
 /// </summary>
-public class CloudflareDocumentStorageService : IDocumentStorageService
+public class CloudflareDocumentStorageService : BaseCloudflareStorageService<CloudflareDocumentStorageService>, IDocumentStorageService
 {
-    private readonly IAmazonS3 _s3Client;
-    private readonly string _bucketName;
-    private readonly string _environment;
-    private readonly ILogger<CloudflareDocumentStorageService> _logger;
     private readonly ApplicationDbContext _context;
     private readonly AuditContext _auditContext;
     private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
@@ -31,105 +28,38 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
         ILogger<CloudflareDocumentStorageService> logger,
         ApplicationDbContext context,
         AuditContext auditContext)
+        : base(s3Client, configuration, hostEnvironment, logger)
     {
-        _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
-        _logger = logger;
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditContext = auditContext ?? throw new ArgumentNullException(nameof(auditContext));
-        _environment = hostEnvironment.EnvironmentName;
-
-        // Get Cloudflare R2 configuration
-        _bucketName = configuration["Cloudflare:R2:Bucket"]!;
-
-        if (string.IsNullOrEmpty(_bucketName))
-        {
-            var errorMsg = "Cloudflare R2 bucket name not configured. Set Cloudflare:R2:Bucket.";
-            _logger.LogError(errorMsg);
-            throw new InvalidOperationException(errorMsg);
-        }
     }
 
     public async Task<string?> GetDocumentUrlAsync(string documentPath, bool forceDownload = false)
     {
-        try
+        ResponseHeaderOverrides? headerOverrides;
+        
+        if (forceDownload)
         {
-            // Check if file exists first
-            var exists = await DocumentExistsAsync(documentPath);
-            if (!exists)
+            var fileName = Path.GetFileName(documentPath);
+            headerOverrides = new ResponseHeaderOverrides
             {
-                _logger.LogWarning("Cannot generate URL - document not found: {DocumentPath}", documentPath);
-                return null;
-            }
-
-            // Generate pre-signed URL
-            var request = new GetPreSignedUrlRequest
-            {
-                BucketName = _bucketName,
-                Key = documentPath,
-                Expires = DateTime.UtcNow.AddMinutes(_urlExpirationMinutes)
+                ContentDisposition = $"attachment; filename=\"{fileName}\""
             };
-
-            // If forceDownload is true, set content-disposition to attachment
-            // Otherwise, set content-type for PDF viewing
-            if (forceDownload)
-            {
-                var fileName = Path.GetFileName(documentPath);
-                request.ResponseHeaderOverrides = new ResponseHeaderOverrides
-                {
-                    ContentDisposition = $"attachment; filename=\"{fileName}\""
-                };
-            }
-            else
-            {
-                request.ResponseHeaderOverrides = new ResponseHeaderOverrides
-                {
-                    ContentType = "application/pdf"
-                };
-            }
-
-            var url = _s3Client.GetPreSignedURL(request);
-            return url;
         }
-        catch (AmazonS3Exception ex)
+        else
         {
-            _logger.LogError(ex, "S3 error generating document URL for path: {DocumentPath}. ErrorCode: {ErrorCode}, Message: {Message}", 
-                documentPath, ex.ErrorCode, ex.Message);
-            return null;
+            headerOverrides = new ResponseHeaderOverrides
+            {
+                ContentType = "application/pdf"
+            };
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error generating document URL for path: {DocumentPath}", documentPath);
-            return null;
-        }
+
+        return await GeneratePreSignedUrlAsync(documentPath, _urlExpirationMinutes, headerOverrides);
     }
 
     public async Task<bool> DocumentExistsAsync(string documentPath)
     {
-        try
-        {
-            var request = new GetObjectMetadataRequest
-            {
-                BucketName = _bucketName,
-                Key = documentPath
-            };
-
-            await _s3Client.GetObjectMetadataAsync(request);
-            return true;
-        }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return false;
-        }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "Failed to check document existence {DocumentPath}", documentPath);
-            return false;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error checking document {DocumentPath}", documentPath);
-            return false;
-        }
+        return await ObjectExistsAsync(documentPath);
     }
 
     public async Task<List<string>> ListFoldersAsync(string prefix = "docs/")
@@ -139,42 +69,21 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
             // Add environment to prefix (e.g., "docs/" becomes "docs/Production/" or "docs/Development/")
             var environmentPrefix = $"{prefix}{_environment}/";
             
-            var folders = new HashSet<string>();
-            var request = new ListObjectsV2Request
+            var commonPrefixes = await ListCommonPrefixesAsync(environmentPrefix);
+            
+            // Extract folder names from prefixes
+            var folders = new List<string>();
+            foreach (var commonPrefix in commonPrefixes)
             {
-                BucketName = _bucketName,
-                Prefix = environmentPrefix,
-                Delimiter = "/"
-            };
-
-            ListObjectsV2Response response;
-            do
-            {
-                response = await _s3Client.ListObjectsV2Async(request);
-                
-                // Add common prefixes (folders)
-                if (response.CommonPrefixes != null)
+                // Extract folder name from prefix (e.g., "docs/Production/General/" -> "General")
+                var folderName = commonPrefix.TrimEnd('/').Substring(environmentPrefix.Length);
+                if (!string.IsNullOrEmpty(folderName))
                 {
-                    foreach (var commonPrefix in response.CommonPrefixes)
-                    {
-                        // Extract folder name from prefix (e.g., "docs/Production/General/" -> "General")
-                        var folderName = commonPrefix.TrimEnd('/').Substring(environmentPrefix.Length);
-                        if (!string.IsNullOrEmpty(folderName))
-                        {
-                            folders.Add(folderName);
-                        }
-                    }
+                    folders.Add(folderName);
                 }
+            }
 
-                request.ContinuationToken = response.NextContinuationToken;
-            } while (response.IsTruncated == true);
-
-            return folders.OrderBy(f => f).ToList();
-        }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "Failed to list folders");
-            return new List<string>();
+            return folders;
         }
         catch (Exception ex)
         {
@@ -255,32 +164,21 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
 
             var documentPath = folderPath + fileName;
 
-            var request = new PutObjectRequest
+            await PutObjectAsync(documentPath, fileStream, contentType, request =>
             {
-                BucketName = _bucketName,
-                Key = documentPath,
-                InputStream = fileStream,
-                ContentType = contentType,
-                UseChunkEncoding = false, // Required for Cloudflare R2 compatibility
-                DisablePayloadSigning = true // Disable checksum calculation for non-seekable streams
-            };
-
-            await _s3Client.PutObjectAsync(request);
+                request.UseChunkEncoding = false; // Required for Cloudflare R2 compatibility
+                request.DisablePayloadSigning = true; // Disable checksum calculation for non-seekable streams
+            });
 
             // Create audit log
             await CreateAuditLogAsync("Created", fileName, $"Uploaded to {documentPath}");
 
             return documentPath;
         }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "Failed to upload document {FileName}", fileName);
-            throw new InvalidOperationException($"Failed to upload document '{fileName}'", ex);
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error uploading document {FileName}", fileName);
-            throw;
+            throw new InvalidOperationException($"Failed to upload document '{fileName}'", ex);
         }
     }
 
@@ -297,60 +195,24 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
             var folderName = folderPath.TrimEnd('/').Split('/').Last();
 
             // Create an empty object with "/" suffix to represent a folder
-            var request = new PutObjectRequest
+            await PutObjectAsync(folderPath, new MemoryStream(), "application/x-directory", request =>
             {
-                BucketName = _bucketName,
-                Key = folderPath,
-                InputStream = new MemoryStream(),
-                ContentType = "application/x-directory",
-                UseChunkEncoding = false // Required for Cloudflare R2 compatibility
-            };
-
-            await _s3Client.PutObjectAsync(request);
+                request.UseChunkEncoding = false; // Required for Cloudflare R2 compatibility
+            });
 
             // Create audit log
             await CreateAuditLogAsync("Created", folderName, $"Created folder {folderPath}", entityType: "Folder");
         }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "Failed to create folder {FolderPath}", folderPath);
-            throw new InvalidOperationException($"Failed to create folder '{folderPath}'", ex);
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating folder {FolderPath}", folderPath);
-            throw;
+            throw new InvalidOperationException($"Failed to create folder '{folderPath}'", ex);
         }
     }
 
     public async Task<long> GetFileSizeAsync(string documentPath)
     {
-        try
-        {
-            var request = new GetObjectMetadataRequest
-            {
-                BucketName = _bucketName,
-                Key = documentPath
-            };
-
-            var response = await _s3Client.GetObjectMetadataAsync(request);
-            return response.ContentLength;
-        }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            _logger.LogWarning("Document not found when getting file size: {DocumentPath}", documentPath);
-            return 0;
-        }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get file size {DocumentPath}", documentPath);
-            return 0;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting file size {DocumentPath}", documentPath);
-            return 0;
-        }
+        return await GetObjectSizeAsync(documentPath);
     }
 
     public async Task DeleteDocumentAsync(string documentPath)
@@ -359,26 +221,15 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
         {
             var fileName = Path.GetFileName(documentPath);
 
-            var request = new DeleteObjectRequest
-            {
-                BucketName = _bucketName,
-                Key = documentPath
-            };
-
-            await _s3Client.DeleteObjectAsync(request);
+            await DeleteObjectAsync(documentPath);
 
             // Create audit log
             await CreateAuditLogAsync("Deleted", fileName, $"Deleted from {documentPath}", isCritical: true);
         }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "Failed to delete document {DocumentPath}", documentPath);
-            throw new InvalidOperationException($"Failed to delete document '{documentPath}'", ex);
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting document {DocumentPath}", documentPath);
-            throw;
+            throw new InvalidOperationException($"Failed to delete document '{documentPath}'", ex);
         }
     }
 
@@ -395,52 +246,19 @@ public class CloudflareDocumentStorageService : IDocumentStorageService
             var folderName = folderPath.TrimEnd('/').Split('/').Last();
 
             // List all objects in the folder
-            var objectsToDelete = new List<string>();
-            var request = new ListObjectsV2Request
-            {
-                BucketName = _bucketName,
-                Prefix = folderPath
-            };
+            var objects = await ListObjectsAsync(folderPath);
+            var objectKeys = objects.Select(obj => obj.Key).ToList();
 
-            ListObjectsV2Response response;
-            do
-            {
-                response = await _s3Client.ListObjectsV2Async(request);
-                
-                foreach (var obj in response.S3Objects)
-                {
-                    objectsToDelete.Add(obj.Key);
-                }
-
-                request.ContinuationToken = response.NextContinuationToken;
-            } while (response.IsTruncated == true);
-
-            // Delete all objects in batches (S3 allows max 1000 per batch)
-            for (int i = 0; i < objectsToDelete.Count; i += S3_MAX_DELETE_BATCH_SIZE)
-            {
-                var batch = objectsToDelete.Skip(i).Take(S3_MAX_DELETE_BATCH_SIZE).ToList();
-                
-                var deleteRequest = new DeleteObjectsRequest
-                {
-                    BucketName = _bucketName,
-                    Objects = batch.Select(key => new KeyVersion { Key = key }).ToList()
-                };
-
-                await _s3Client.DeleteObjectsAsync(deleteRequest);
-            }
+            // Delete all objects in batches
+            await DeleteObjectsBatchAsync(objectKeys, S3_MAX_DELETE_BATCH_SIZE);
 
             // Create audit log
-            await CreateAuditLogAsync("Deleted", folderName, $"Deleted folder {folderPath} ({objectsToDelete.Count} files)", isCritical: true, entityType: "Folder");
-        }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "Failed to delete folder {FolderPath}", folderPath);
-            throw new InvalidOperationException($"Failed to delete folder '{folderPath}'", ex);
+            await CreateAuditLogAsync("Deleted", folderName, $"Deleted folder {folderPath} ({objectKeys.Count} files)", isCritical: true, entityType: "Folder");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting folder {FolderPath}", folderPath);
-            throw;
+            throw new InvalidOperationException($"Failed to delete folder '{folderPath}'", ex);
         }
     }
 

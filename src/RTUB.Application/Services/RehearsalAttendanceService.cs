@@ -1,5 +1,6 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
@@ -60,8 +61,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             // Update other instruments
             existing.OtherInstruments = otherInstruments;
             
-            _context.RehearsalAttendances.Update(existing);
-            await _context.SaveChangesAsync();
+                        await _context.SaveChangesAsync();
             return existing;
         }
 
@@ -82,21 +82,20 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     {
         var attendance = await _context.RehearsalAttendances.FindAsync(id);
         if (attendance == null)
-            throw new InvalidOperationException($"Attendance with ID {id} not found");
+            throw new EntityNotFoundException(nameof(RehearsalAttendance), id);
 
         attendance.MarkAttendance(attended);
         if (instrument.HasValue)
             attendance.UpdateInstrument(instrument);
         
-        _context.RehearsalAttendances.Update(attendance);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task DeleteAttendanceAsync(int id)
     {
         var attendance = await _context.RehearsalAttendances.FindAsync(id);
         if (attendance == null)
-            throw new InvalidOperationException($"Attendance with ID {id} not found");
+            throw new EntityNotFoundException(nameof(RehearsalAttendance), id);
 
         _context.RehearsalAttendances.Remove(attendance);
         await _context.SaveChangesAsync();

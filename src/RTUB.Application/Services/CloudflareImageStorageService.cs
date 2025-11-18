@@ -1,10 +1,10 @@
 using Amazon.S3;
 using Amazon.S3.Model;
-using Amazon.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Services.Storage;
 
 namespace RTUB.Application.Services;
 
@@ -12,33 +12,19 @@ namespace RTUB.Application.Services;
 /// Implementation of image storage service using Cloudflare R2 (S3-compatible)
 /// Uses a shared AmazonS3Client injected via DI
 /// </summary>
-public class CloudflareImageStorageService : IImageStorageService
+public class CloudflareImageStorageService : BaseCloudflareStorageService<CloudflareImageStorageService>, IImageStorageService
 {
-    private readonly IAmazonS3 _s3Client;
-    private readonly string _bucketName;
     private readonly string _publicBaseUrl;
-    private readonly string _environment;
-    private readonly ILogger<CloudflareImageStorageService> _logger;
 
     public CloudflareImageStorageService(
         IAmazonS3 s3Client,
         IConfiguration configuration,
         IHostEnvironment hostEnvironment,
         ILogger<CloudflareImageStorageService> logger)
+        : base(s3Client, configuration, hostEnvironment, logger)
     {
-        _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
-        _logger = logger;
-
-        // Get Cloudflare R2 configuration
-        var bucketName = configuration["Cloudflare:R2:Bucket"];
-        var publicUrl = configuration["Cloudflare:R2:PublicUrl"];
-
-        if (string.IsNullOrEmpty(bucketName))
-        {
-            var errorMsg = "Cloudflare R2 bucket name not configured. Set Cloudflare:R2:Bucket.";
-            _logger.LogError(errorMsg);
-            throw new InvalidOperationException(errorMsg);
-        }
+        // Get Cloudflare R2 public URL
+        var publicUrl = GetCloudflareConfig(configuration, "PublicUrl");
 
         if (string.IsNullOrEmpty(publicUrl))
         {
@@ -47,9 +33,7 @@ public class CloudflareImageStorageService : IImageStorageService
             throw new InvalidOperationException(errorMsg);
         }
 
-        _bucketName = bucketName;
         _publicBaseUrl = publicUrl.TrimEnd('/');
-        _environment = hostEnvironment.EnvironmentName;
     }
 
     public async Task<string> UploadImageAsync(Stream fileStream, string fileName, string contentType, string entityType, string entityId)
@@ -110,106 +94,40 @@ public class CloudflareImageStorageService : IImageStorageService
 
     public async Task DeleteImageAsync(string imageUrl)
     {
+        if (string.IsNullOrEmpty(imageUrl))
+        {
+            _logger.LogWarning("Attempted to delete image with empty URL");
+            return;
+        }
+
+        // Extract object key from the public URL
+        var objectKey = ExtractObjectKeyFromUrl(imageUrl);
+        if (string.IsNullOrEmpty(objectKey))
+        {
+            _logger.LogWarning("Could not extract object key from URL: {ImageUrl}", imageUrl);
+            return;
+        }
+
         try
         {
-            if (string.IsNullOrEmpty(imageUrl))
-            {
-                _logger.LogWarning("Attempted to delete image with empty URL");
-                return;
-            }
-
-            // Extract object key from the public URL
-            var objectKey = ExtractObjectKeyFromUrl(imageUrl);
-            if (string.IsNullOrEmpty(objectKey))
-            {
-                _logger.LogWarning("Could not extract object key from URL: {ImageUrl}", imageUrl);
-                return;
-            }
-
-            var deleteRequest = new DeleteObjectRequest
-            {
-                BucketName = _bucketName,
-                Key = objectKey
-            };
-
-            var response = await _s3Client.DeleteObjectAsync(deleteRequest);
+            await DeleteObjectAsync(objectKey);
         }
-        catch (AmazonS3Exception ex)
+        catch
         {
-            _logger.LogError(ex, "S3 error deleting image {ImageUrl}. ErrorCode: {ErrorCode}, Message: {Message}",
-                imageUrl, ex.ErrorCode, ex.Message);
             // Don't throw - deletion failure shouldn't block operations
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error deleting image {ImageUrl}", imageUrl);
-            // Don't throw - deletion failure shouldn't block operations
+            // Error already logged in base class
         }
     }
 
     public async Task<bool> ImageExistsAsync(string imageUrl)
     {
-        try
-        {
-            if (string.IsNullOrEmpty(imageUrl))
-                return false;
-
-            var objectKey = ExtractObjectKeyFromUrl(imageUrl);
-            if (string.IsNullOrEmpty(objectKey))
-                return false;
-
-            var request = new GetObjectMetadataRequest
-            {
-                BucketName = _bucketName,
-                Key = objectKey
-            };
-
-            await _s3Client.GetObjectMetadataAsync(request);
-            return true;
-        }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
+        if (string.IsNullOrEmpty(imageUrl))
             return false;
-        }
-        catch (AmazonS3Exception ex)
-        {
-            _logger.LogError(ex, "S3 error checking image existence {ImageUrl}. ErrorCode: {ErrorCode}, Message: {Message}",
-                imageUrl, ex.ErrorCode, ex.Message);
+
+        var objectKey = ExtractObjectKeyFromUrl(imageUrl);
+        if (string.IsNullOrEmpty(objectKey))
             return false;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error checking if image exists: {ImageUrl}", imageUrl);
-            return false;
-        }
-    }
 
-
-
-    /// <summary>
-    /// Extract object key from public URL
-    /// </summary>
-    private string? ExtractObjectKeyFromUrl(string imageUrl)
-    {
-        try
-        {
-            // URL format: https://pub-xxx.r2.dev/{objectKey}
-            // We need to extract the objectKey part (everything after the domain)
-            var uri = new Uri(imageUrl);
-            var pathSegments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-            // All segments form the object key (no bucket name in path)
-            if (pathSegments.Length > 0)
-            {
-                return string.Join("/", pathSegments);
-            }
-
-            return null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error extracting object key from URL: {ImageUrl}", imageUrl);
-            return null;
-        }
+        return await ObjectExistsAsync(objectKey);
     }
 }

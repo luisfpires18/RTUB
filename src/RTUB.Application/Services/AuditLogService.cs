@@ -17,19 +17,19 @@ public class AuditLogService : IAuditLogService
         _context = context;
     }
 
-    public async Task<IEnumerable<AuditLog>> GetAllAsync(
+    /// <summary>
+    /// Applies filters to an audit log query
+    /// </summary>
+    private IQueryable<AuditLog> ApplyFilters(
+        IQueryable<AuditLog> query,
         string? userName = null,
         string? excludeUserName = null,
         string? entityType = null,
         string? action = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
-        bool? criticalOnly = null,
-        int page = 1,
-        int pageSize = 100)
+        bool? criticalOnly = null)
     {
-        var query = _context.AuditLogs.AsQueryable();
-
         if (!string.IsNullOrWhiteSpace(userName))
         {
             query = query.Where(a => a.UserName != null && a.UserName.Contains(userName));
@@ -64,6 +64,30 @@ public class AuditLogService : IAuditLogService
         {
             query = query.Where(a => a.IsCriticalAction);
         }
+
+        return query;
+    }
+
+    public async Task<IEnumerable<AuditLog>> GetAllAsync(
+        string? userName = null,
+        string? excludeUserName = null,
+        string? entityType = null,
+        string? action = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        bool? criticalOnly = null,
+        int page = 1,
+        int pageSize = 100)
+    {
+        var query = ApplyFilters(
+            _context.AuditLogs.AsQueryable(),
+            userName,
+            excludeUserName,
+            entityType,
+            action,
+            fromDate,
+            toDate,
+            criticalOnly);
 
         return await query
             .OrderByDescending(a => a.Timestamp)
@@ -81,42 +105,15 @@ public class AuditLogService : IAuditLogService
         DateTime? toDate = null,
         bool? criticalOnly = null)
     {
-        var query = _context.AuditLogs.AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(userName))
-        {
-            query = query.Where(a => a.UserName != null && a.UserName.Contains(userName));
-        }
-
-        if (!string.IsNullOrWhiteSpace(excludeUserName))
-        {
-            query = query.Where(a => a.UserName == null || a.UserName != excludeUserName);
-        }
-
-        if (!string.IsNullOrWhiteSpace(entityType))
-        {
-            query = query.Where(a => a.EntityType == entityType);
-        }
-
-        if (!string.IsNullOrWhiteSpace(action))
-        {
-            query = query.Where(a => a.Action == action);
-        }
-
-        if (fromDate.HasValue)
-        {
-            query = query.Where(a => a.Timestamp >= fromDate.Value);
-        }
-
-        if (toDate.HasValue)
-        {
-            query = query.Where(a => a.Timestamp <= toDate.Value);
-        }
-
-        if (criticalOnly.HasValue && criticalOnly.Value)
-        {
-            query = query.Where(a => a.IsCriticalAction);
-        }
+        var query = ApplyFilters(
+            _context.AuditLogs.AsQueryable(),
+            userName,
+            excludeUserName,
+            entityType,
+            action,
+            fromDate,
+            toDate,
+            criticalOnly);
 
         return await query.CountAsync();
     }
@@ -175,7 +172,7 @@ public class AuditLogService : IAuditLogService
     public async Task DeleteAsync(int id)
     {
         var auditLog = await _context.AuditLogs.FindAsync(id);
-        if (auditLog != null)
+        if (auditLog is not null)
         {
             _context.AuditLogs.Remove(auditLog);
             await _context.SaveChangesAsync();
@@ -214,42 +211,15 @@ public class AuditLogService : IAuditLogService
         DateTime? toDate = null,
         bool? criticalOnly = null)
     {
-        var query = _context.AuditLogs.AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(userName))
-        {
-            query = query.Where(a => a.UserName != null && a.UserName.Contains(userName));
-        }
-
-        if (!string.IsNullOrWhiteSpace(excludeUserName))
-        {
-            query = query.Where(a => a.UserName == null || a.UserName != excludeUserName);
-        }
-
-        if (!string.IsNullOrWhiteSpace(entityType))
-        {
-            query = query.Where(a => a.EntityType == entityType);
-        }
-
-        if (!string.IsNullOrWhiteSpace(action))
-        {
-            query = query.Where(a => a.Action == action);
-        }
-
-        if (fromDate.HasValue)
-        {
-            query = query.Where(a => a.Timestamp >= fromDate.Value);
-        }
-
-        if (toDate.HasValue)
-        {
-            query = query.Where(a => a.Timestamp <= toDate.Value);
-        }
-
-        if (criticalOnly.HasValue && criticalOnly.Value)
-        {
-            query = query.Where(a => a.IsCriticalAction);
-        }
+        var query = ApplyFilters(
+            _context.AuditLogs.AsQueryable(),
+            userName,
+            excludeUserName,
+            entityType,
+            action,
+            fromDate,
+            toDate,
+            criticalOnly);
 
         return await query
             .OrderByDescending(a => a.Timestamp)

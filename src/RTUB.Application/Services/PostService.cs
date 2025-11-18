@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
 
@@ -20,6 +21,7 @@ public class PostService : IPostService
     public async Task<Post?> GetByIdAsync(int id)
     {
         return await _context.Posts
+            .AsNoTracking()
             .Include(p => p.Author)
             .Include(p => p.Comments)
             .FirstOrDefaultAsync(p => p.Id == id);
@@ -28,6 +30,7 @@ public class PostService : IPostService
     public async Task<IEnumerable<Post>> GetByDiscussionIdAsync(int discussionId, int page = 1, int pageSize = 20, string? searchTerm = null)
     {
         var query = _context.Posts
+            .AsNoTracking()
             .Include(p => p.Author)
             .Include(p => p.Comments)
             .Where(p => p.DiscussionId == discussionId && !p.IsDeleted);
@@ -35,12 +38,11 @@ public class PostService : IPostService
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            var lowerSearch = searchTerm.ToLower();
             query = query.Where(p =>
-                p.Title.ToLower().Contains(lowerSearch) ||
-                p.Body.ToLower().Contains(lowerSearch) ||
-                p.Author.UserName!.ToLower().Contains(lowerSearch) ||
-                (p.Author.Nickname != null && p.Author.Nickname.ToLower().Contains(lowerSearch))
+                p.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                p.Body.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                p.Author.UserName!.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                (p.Author.Nickname != null && p.Author.Nickname.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
             );
         }
 
@@ -57,17 +59,17 @@ public class PostService : IPostService
     public async Task<int> GetCountByDiscussionIdAsync(int discussionId, string? searchTerm = null)
     {
         var query = _context.Posts
+            .AsNoTracking()
             .Where(p => p.DiscussionId == discussionId && !p.IsDeleted);
 
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            var lowerSearch = searchTerm.ToLower();
             query = query.Where(p =>
-                p.Title.ToLower().Contains(lowerSearch) ||
-                p.Body.ToLower().Contains(lowerSearch) ||
-                p.Author.UserName!.ToLower().Contains(lowerSearch) ||
-                (p.Author.Nickname != null && p.Author.Nickname.ToLower().Contains(lowerSearch))
+                p.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                p.Body.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                p.Author.UserName!.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                (p.Author.Nickname != null && p.Author.Nickname.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
             );
         }
 
@@ -91,7 +93,7 @@ public class PostService : IPostService
     {
         var post = await _context.Posts.FindAsync(id);
         if (post == null)
-            throw new InvalidOperationException($"Post with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Post), id);
 
         post.Edit(title, body);
         if (!string.IsNullOrWhiteSpace(mentionsJson))
@@ -99,7 +101,6 @@ public class PostService : IPostService
             post.SetMentions(mentionsJson);
         }
 
-        _context.Posts.Update(post);
         await _context.SaveChangesAsync();
     }
 
@@ -107,10 +108,9 @@ public class PostService : IPostService
     {
         var post = await _context.Posts.FindAsync(id);
         if (post == null)
-            throw new InvalidOperationException($"Post with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Post), id);
 
         post.Pin();
-        _context.Posts.Update(post);
         await _context.SaveChangesAsync();
     }
 
@@ -118,10 +118,9 @@ public class PostService : IPostService
     {
         var post = await _context.Posts.FindAsync(id);
         if (post == null)
-            throw new InvalidOperationException($"Post with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Post), id);
 
         post.Unpin();
-        _context.Posts.Update(post);
         await _context.SaveChangesAsync();
     }
 
@@ -129,10 +128,9 @@ public class PostService : IPostService
     {
         var post = await _context.Posts.FindAsync(id);
         if (post == null)
-            throw new InvalidOperationException($"Post with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Post), id);
 
         post.Lock();
-        _context.Posts.Update(post);
         await _context.SaveChangesAsync();
     }
 
@@ -140,10 +138,9 @@ public class PostService : IPostService
     {
         var post = await _context.Posts.FindAsync(id);
         if (post == null)
-            throw new InvalidOperationException($"Post with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Post), id);
 
         post.Unlock();
-        _context.Posts.Update(post);
         await _context.SaveChangesAsync();
     }
 
@@ -151,10 +148,9 @@ public class PostService : IPostService
     {
         var post = await _context.Posts.FindAsync(id);
         if (post == null)
-            throw new InvalidOperationException($"Post with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Post), id);
 
         post.SoftDelete();
-        _context.Posts.Update(post);
         await _context.SaveChangesAsync();
     }
 
@@ -162,10 +158,9 @@ public class PostService : IPostService
     {
         var post = await _context.Posts.FindAsync(id);
         if (post == null)
-            throw new InvalidOperationException($"Post with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Post), id);
 
         post.UpdateLastActivity();
-        _context.Posts.Update(post);
         await _context.SaveChangesAsync();
     }
 }

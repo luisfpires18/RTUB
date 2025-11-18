@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
 
@@ -20,6 +21,7 @@ public class TrophyService : ITrophyService
     public async Task<Trophy?> GetByIdAsync(int id)
     {
         return await _context.Trophies
+            .AsNoTracking()
             .Include(t => t.Event)
             .FirstOrDefaultAsync(t => t.Id == id);
     }
@@ -27,6 +29,7 @@ public class TrophyService : ITrophyService
     public async Task<IEnumerable<Trophy>> GetAllAsync()
     {
         return await _context.Trophies
+            .AsNoTracking()
             .Include(t => t.Event)
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
@@ -35,6 +38,7 @@ public class TrophyService : ITrophyService
     public async Task<IEnumerable<Trophy>> GetByEventIdAsync(int eventId)
     {
         return await _context.Trophies
+            .AsNoTracking()
             .Where(t => t.EventId == eventId)
             .OrderBy(t => t.Name)
             .ToListAsync();
@@ -49,7 +53,11 @@ public class TrophyService : ITrophyService
 
     public async Task UpdateAsync(Trophy trophy)
     {
-        _context.Trophies.Update(trophy);
+        var existingTrophy = await _context.Trophies.FindAsync(trophy.Id);
+        if (existingTrophy == null)
+            throw new EntityNotFoundException(nameof(Trophy), trophy.Id);
+
+        existingTrophy.Update(trophy.Name);
         await _context.SaveChangesAsync();
     }
 

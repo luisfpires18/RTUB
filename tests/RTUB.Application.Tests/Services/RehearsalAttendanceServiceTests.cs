@@ -6,6 +6,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -180,7 +181,7 @@ public class RehearsalAttendanceServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _attendanceService.UpdateAttendanceAsync(999, true, null);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 
@@ -209,7 +210,7 @@ public class RehearsalAttendanceServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _attendanceService.DeleteAttendanceAsync(999);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 

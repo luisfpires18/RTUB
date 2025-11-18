@@ -3,8 +3,10 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
+using RTUB.Core.Constants;
 
 
 namespace RTUB.Application.Services;
@@ -62,33 +64,30 @@ public class ReportService : IReportService
     {
         var report = await _context.Reports.FindAsync(id);
         if (report == null)
-            throw new InvalidOperationException($"Report with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Report), id);
 
         report.UpdateSummary(summary);
-        _context.Reports.Update(report);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task PublishReportAsync(int id)
     {
         var report = await _context.Reports.FindAsync(id);
         if (report == null)
-            throw new InvalidOperationException($"Report with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Report), id);
 
         report.Publish();
-        _context.Reports.Update(report);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task UnpublishReportAsync(int id)
     {
         var report = await _context.Reports.FindAsync(id);
         if (report == null)
-            throw new InvalidOperationException($"Report with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Report), id);
 
         report.Unpublish();
-        _context.Reports.Update(report);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
     }
 
     public async Task<byte[]> GenerateReportPdfAsync(int reportId)
@@ -99,7 +98,7 @@ public class ReportService : IReportService
             .FirstOrDefaultAsync(r => r.Id == reportId);
             
         if (report == null)
-            throw new InvalidOperationException($"Report with ID {reportId} not found");
+            throw new EntityNotFoundException(nameof(Report), reportId);
 
         var activities = report.Activities.OrderBy(a => a.Name).ToList();
         var allTransactions = new List<(Activity activity, List<Transaction> transactions)>();
@@ -114,8 +113,7 @@ public class ReportService : IReportService
         var pdfData = GeneratePdf(report, activities, allTransactions);
         
         report.SetPdfData(pdfData);
-        _context.Reports.Update(report);
-        await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
 
         return pdfData;
     }
@@ -128,7 +126,7 @@ public class ReportService : IReportService
             .FirstOrDefaultAsync(r => r.Id == reportId);
             
         if (report == null)
-            throw new InvalidOperationException($"Report with ID {reportId} not found");
+            throw new EntityNotFoundException(nameof(Report), reportId);
 
         // Delete all transactions for each activity
         foreach (var activity in report.Activities)
@@ -185,8 +183,8 @@ public class ReportService : IReportService
                 page.Content().PaddingVertical(1, Unit.Centimetre).Column(column =>
                 {
                     // Financial Summary - calculate from transactions
-                    var totalIncome = allTransactions.SelectMany(x => x.transactions).Where(t => t.Type == "Income").Sum(t => t.Amount);
-                    var totalExpenses = allTransactions.SelectMany(x => x.transactions).Where(t => t.Type == "Expense").Sum(t => t.Amount);
+                    var totalIncome = allTransactions.SelectMany(x => x.transactions).Where(t => t.Type == TransactionTypes.Income).Sum(t => t.Amount);
+                    var totalExpenses = allTransactions.SelectMany(x => x.transactions).Where(t => t.Type == TransactionTypes.Expense).Sum(t => t.Amount);
                     var balance = totalIncome - totalExpenses;
 
                     column.Item().Background("#f8f9fa").Padding(15).Column(summaryColumn =>

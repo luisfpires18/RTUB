@@ -2,6 +2,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Data;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Exceptions;
 using RTUB.Application.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,7 +23,9 @@ public class MeetingService : IMeetingService
 
     public async Task<IEnumerable<Meeting>> GetAllMeetingsAsync(string? searchTerm, int pageNumber, int pageSize, string userId)
     {
-        var query = _context.Meetings.AsQueryable();
+        var query = _context.Meetings
+            .AsNoTracking()
+            .AsQueryable();
         
         // Apply visibility filtering for Veterano meetings
         query = await ApplyVeteranoFilterAsync(query, userId);
@@ -30,10 +33,9 @@ public class MeetingService : IMeetingService
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            var lowerSearchTerm = searchTerm.ToLower();
             query = query.Where(m => 
-                m.Title.ToLower().Contains(lowerSearchTerm) || 
-                m.Statement.ToLower().Contains(lowerSearchTerm));
+                m.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
+                m.Statement.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
         }
         
         // Order by date - upcoming first, then past
@@ -53,6 +55,7 @@ public class MeetingService : IMeetingService
     public async Task<Meeting?> GetMeetingByIdAsync(int id, string userId)
     {
         var meeting = await _context.Meetings
+            .AsNoTracking()
             .Include(m => m.Organizer)
             .FirstOrDefaultAsync(m => m.Id == id);
         
@@ -104,7 +107,7 @@ public class MeetingService : IMeetingService
     {
         var existingMeeting = await _context.Meetings.FindAsync(meeting.Id);
         if (existingMeeting == null)
-            throw new InvalidOperationException($"Meeting with ID {meeting.Id} not found");
+            throw new EntityNotFoundException(nameof(Meeting), meeting.Id);
         
         existingMeeting.Type = meeting.Type;
         existingMeeting.Title = meeting.Title;
@@ -115,7 +118,6 @@ public class MeetingService : IMeetingService
         existingMeeting.IsCancelled = meeting.IsCancelled;
         existingMeeting.CancellationReason = meeting.CancellationReason;
         
-        _context.Meetings.Update(existingMeeting);
         await _context.SaveChangesAsync();
     }
 
@@ -123,7 +125,7 @@ public class MeetingService : IMeetingService
     {
         var meeting = await _context.Meetings.FindAsync(id);
         if (meeting == null)
-            throw new InvalidOperationException($"Meeting with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Meeting), id);
         
         _context.Meetings.Remove(meeting);
         await _context.SaveChangesAsync();
@@ -131,7 +133,9 @@ public class MeetingService : IMeetingService
 
     public async Task<int> GetTotalCountAsync(string? searchTerm, string userId)
     {
-        var query = _context.Meetings.AsQueryable();
+        var query = _context.Meetings
+            .AsNoTracking()
+            .AsQueryable();
         
         // Apply visibility filtering for Veterano meetings
         query = await ApplyVeteranoFilterAsync(query, userId);
@@ -139,10 +143,9 @@ public class MeetingService : IMeetingService
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            var lowerSearchTerm = searchTerm.ToLower();
             query = query.Where(m => 
-                m.Title.ToLower().Contains(lowerSearchTerm) || 
-                m.Statement.ToLower().Contains(lowerSearchTerm));
+                m.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
+                m.Statement.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
         }
         
         return await query.CountAsync();

@@ -83,7 +83,7 @@ public class OwnerPagesTests : IntegrationTestBase
     public async Task LabelsPage_WithoutAuth_RedirectsToLogin()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/owner/labels");
+        var response = await _client.GetAsync("/labels");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
@@ -94,7 +94,7 @@ public class OwnerPagesTests : IntegrationTestBase
     public async Task LabelsPage_RedirectsWithReturnUrl()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/owner/labels");
+        var response = await _client.GetAsync("/labels");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
@@ -110,7 +110,7 @@ public class OwnerPagesTests : IntegrationTestBase
     [Theory]
     [InlineData("/owner/user-roles")]
     [InlineData("/owner/tracing")]
-    [InlineData("/owner/labels")]
+    [InlineData("/labels")]
     public async Task OwnerPages_RequireAuthentication(string url)
     {
         // Arrange & Act
@@ -127,7 +127,7 @@ public class OwnerPagesTests : IntegrationTestBase
     public async Task OwnerPages_AllRequireAuthenticationInSequence()
     {
         // Arrange
-        var ownerUrls = new[] { "/owner/user-roles", "/owner/tracing", "/owner/labels" };
+        var ownerUrls = new[] { "/owner/user-roles", "/owner/tracing", "/labels" };
 
         // Act & Assert
         foreach (var url in ownerUrls)
@@ -144,7 +144,7 @@ public class OwnerPagesTests : IntegrationTestBase
         // Arrange & Act - Navigate between owner pages
         var userRolesResponse = await _client.GetAsync("/owner/user-roles");
         var tracingResponse = await _client.GetAsync("/owner/tracing");
-        var labelsResponse = await _client.GetAsync("/owner/labels");
+        var labelsResponse = await _client.GetAsync("/labels");
 
         // Assert - All should redirect (requires owner role)
         userRolesResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);

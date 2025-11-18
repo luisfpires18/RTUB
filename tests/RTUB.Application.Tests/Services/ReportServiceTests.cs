@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -147,7 +148,7 @@ public class ReportServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _reportService.UpdateReportAsync(999, "Summary");
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 
@@ -171,7 +172,7 @@ public class ReportServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _reportService.PublishReportAsync(999);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 
@@ -196,7 +197,7 @@ public class ReportServiceTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _reportService.UnpublishReportAsync(999);
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
 

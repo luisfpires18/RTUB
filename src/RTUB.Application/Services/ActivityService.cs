@@ -1,5 +1,6 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 
@@ -58,10 +59,9 @@ public class ActivityService : IActivityService
     {
         var activity = await _context.Activities.FindAsync(id);
         if (activity == null)
-            throw new InvalidOperationException($"Activity with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Activity), id);
 
         activity.UpdateDetails(name, description);
-        _context.Activities.Update(activity);
         await _context.SaveChangesAsync();
     }
 
@@ -72,7 +72,7 @@ public class ActivityService : IActivityService
             .FirstOrDefaultAsync(a => a.Id == id);
             
         if (activity == null)
-            throw new InvalidOperationException($"Activity with ID {id} not found");
+            throw new EntityNotFoundException(nameof(Activity), id);
 
         _context.Activities.Remove(activity);
         await _context.SaveChangesAsync();

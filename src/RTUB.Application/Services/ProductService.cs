@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
 
@@ -27,6 +28,7 @@ public class ProductService : IProductService
     public async Task<IEnumerable<Product>> GetAllAsync()
     {
         return await _context.Products
+            .AsNoTracking()
             .OrderBy(p => p.Type)
             .ThenBy(p => p.Name)
             .ToListAsync();
@@ -35,6 +37,7 @@ public class ProductService : IProductService
     public async Task<IEnumerable<Product>> GetAvailableAsync()
     {
         return await _context.Products
+            .AsNoTracking()
             .Where(p => p.IsAvailable)
             .OrderBy(p => p.Type)
             .ThenBy(p => p.Name)
@@ -44,6 +47,7 @@ public class ProductService : IProductService
     public async Task<IEnumerable<Product>> GetPublicAsync()
     {
         return await _context.Products
+            .AsNoTracking()
             .Where(p => p.IsAvailable && p.IsPublic)
             .OrderBy(p => p.Type)
             .ThenBy(p => p.Name)
@@ -53,6 +57,7 @@ public class ProductService : IProductService
     public async Task<IEnumerable<Product>> GetByTypeAsync(string type)
     {
         return await _context.Products
+            .AsNoTracking()
             .Where(p => p.Type == type)
             .OrderBy(p => p.Name)
             .ToListAsync();
@@ -67,7 +72,14 @@ public class ProductService : IProductService
 
     public async Task UpdateAsync(Product product)
     {
-        _context.Products.Update(product);
+        var existingProduct = await _context.Products.FindAsync(product.Id);
+        if (existingProduct == null)
+            throw new EntityNotFoundException(nameof(Product), product.Id);
+
+        existingProduct.Update(product.Name, product.Type, product.Price, product.Stock, product.Description);
+        existingProduct.SetAvailability(product.IsAvailable);
+        existingProduct.SetPublicVisibility(product.IsPublic);
+        
         await _context.SaveChangesAsync();
         
         // Invalidate the cached product image so the new image is served immediately
@@ -92,6 +104,7 @@ public class ProductService : IProductService
     public async Task<Dictionary<string, int>> GetTypeStatsAsync()
     {
         return await _context.Products
+            .AsNoTracking()
             .GroupBy(p => p.Type)
             .Select(g => new { Type = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Type, x => x.Count);
@@ -100,6 +113,7 @@ public class ProductService : IProductService
     public async Task<decimal> GetTotalInventoryValueAsync()
     {
         return await _context.Products
+            .AsNoTracking()
             .SumAsync(p => p.Price * p.Stock);
     }
 }

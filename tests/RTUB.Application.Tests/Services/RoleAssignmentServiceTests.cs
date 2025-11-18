@@ -6,6 +6,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -170,7 +171,7 @@ public class RoleAssignmentServiceTests : IDisposable
         var act = async () => await _service.UpdateRoleAssignmentAsync(999, Position.Magister, 2023, 2024, null);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("RoleAssignment with ID 999 not found");
     }
 
@@ -195,7 +196,7 @@ public class RoleAssignmentServiceTests : IDisposable
         var act = async () => await _service.DeleteRoleAssignmentAsync(999);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("RoleAssignment with ID 999 not found");
     }
 
