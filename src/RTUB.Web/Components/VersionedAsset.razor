@@ -1,0 +1,70 @@
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
+@inject IFileVersionProvider FileVersionProvider
+
+@*
+    VersionedAsset Component
+    
+    Generates versioned URLs for static assets (CSS/JS) to prevent cache issues after deployments.
+    Uses ASP.NET Core's IFileVersionProvider to append content-based hashes to file URLs.
+    
+    Example usage:
+        <VersionedAsset Path="/css/site.css" Type="VersionedAsset.AssetType.Css" />
+        <VersionedAsset Path="/js/app.js" Type="VersionedAsset.AssetType.Js" />
+*@
+
+@((MarkupString)GenerateTag())
+
+@code {
+    [Parameter, EditorRequired]
+    public string Path { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public AssetType Type { get; set; }
+
+    [Parameter]
+    public string? Rel { get; set; }
+
+    [Parameter]
+    public string? Integrity { get; set; }
+
+    [Parameter]
+    public string? CrossOrigin { get; set; }
+
+    private string GenerateTag()
+    {
+        // AddFileVersionToPath takes a request path base and the file path
+        // For most cases, pass empty PathString for the base
+        var versionedPath = FileVersionProvider.AddFileVersionToPath(PathString.Empty, Path);
+        
+        return Type switch
+        {
+            AssetType.Css => GenerateLinkTag(versionedPath),
+            AssetType.Js => GenerateScriptTag(versionedPath),
+            _ => throw new ArgumentException($"Unsupported asset type: {Type}")
+        };
+    }
+
+    private string GenerateLinkTag(string versionedPath)
+    {
+        var relAttr = !string.IsNullOrEmpty(Rel) ? Rel : "stylesheet";
+        var integrityAttr = !string.IsNullOrEmpty(Integrity) ? $" integrity=\"{Integrity}\"" : "";
+        var crossOriginAttr = !string.IsNullOrEmpty(CrossOrigin) ? $" crossorigin=\"{CrossOrigin}\"" : "";
+        
+        return $"<link href=\"{versionedPath}\" rel=\"{relAttr}\"{integrityAttr}{crossOriginAttr} />";
+    }
+
+    private string GenerateScriptTag(string versionedPath)
+    {
+        var integrityAttr = !string.IsNullOrEmpty(Integrity) ? $" integrity=\"{Integrity}\"" : "";
+        var crossOriginAttr = !string.IsNullOrEmpty(CrossOrigin) ? $" crossorigin=\"{CrossOrigin}\"" : "";
+        
+        return $"<script src=\"{versionedPath}\"{integrityAttr}{crossOriginAttr}></script>";
+    }
+
+    public enum AssetType
+    {
+        Css,
+        Js
+    }
+}
