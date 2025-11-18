@@ -1015,6 +1015,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                         return $"{authorName}: {bodyPreview}";
                     }
                     break;
+                
+                case "MemberInstrument":
+                    if (entry.Entity is MemberInstrument memberInstrument)
+                    {
+                        // Show user nickname and instrument display name
+                        var userName = ResolveUserIdToNickname(memberInstrument.MemberId) ?? memberInstrument.MemberId;
+                        var instrumentName = RTUB.Core.Helpers.InstrumentTypeHelper.GetDisplayName(memberInstrument.InstrumentType);
+                        return $"{userName} - {instrumentName}";
+                    }
+                    break;
             }
         }
         catch (InvalidOperationException)

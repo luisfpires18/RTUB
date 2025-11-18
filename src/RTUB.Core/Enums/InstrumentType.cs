@@ -15,5 +15,6 @@ public enum InstrumentType
     Contrabaixo,
     Percussao,
     Pandeireta,
-    Estandarte
+    Estandarte,
+    Violino
 }

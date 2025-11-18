@@ -25,6 +25,7 @@ public class InstrumentTypeTests
             InstrumentType.Percussao,
             InstrumentType.Pandeireta,
             InstrumentType.Estandarte,
+            InstrumentType.Violino,
         };
 
         // Act
@@ -50,12 +51,12 @@ public class InstrumentTypeTests
     }
 
     [Fact]
-    public void InstrumentType_Count_IsEleven()
+    public void InstrumentType_Count_IsTwelve()
     {
         // Act
         var count = Enum.GetValues<InstrumentType>().Length;
 
         // Assert
-        count.Should().Be(11);
+        count.Should().Be(12);
     }
 }

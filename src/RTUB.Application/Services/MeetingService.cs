@@ -71,7 +71,10 @@ public class MeetingService : IMeetingService
                 
             // Use CurrentRole property instead of Categories to avoid JSON deserialization issues
             var role = user.CurrentRole;
-            if (role != "VETERANO" && role != "TUNOSSAURO")
+            var hasMagisterPosition = user.Positions != null && user.Positions.Contains(Position.Magister);
+            
+            // Allow CV meetings for Veterans, Tunossauros, and Magister position holders
+            if (role != "VETERANO" && role != "TUNOSSAURO" && !hasMagisterPosition)
                 return null;
         }
         
@@ -156,8 +159,8 @@ public class MeetingService : IMeetingService
             .Where(u => u.Id == userId)
             .FirstOrDefaultAsync();
         
-        // If user is not found or not Veterano/Tunossauro, filter out CV meetings
-        // Use CurrentRole property instead of Categories to avoid JSON deserialization issues
+        // If user is not found, filter out CV meetings
+        // If user is Veterano/Tunossauro OR has Magister position, they can see CV meetings
         if (user == null)
         {
             query = query.Where(m => m.Type != MeetingType.ConselhoVeteranos);
@@ -165,7 +168,10 @@ public class MeetingService : IMeetingService
         else
         {
             var role = user.CurrentRole;
-            if (role != "VETERANO" && role != "TUNOSSAURO")
+            var hasMagisterPosition = user.Positions != null && user.Positions.Contains(Position.Magister);
+            
+            // Allow CV meetings for Veterans, Tunossauros, and Magister position holders
+            if (role != "VETERANO" && role != "TUNOSSAURO" && !hasMagisterPosition)
             {
                 query = query.Where(m => m.Type != MeetingType.ConselhoVeteranos);
             }

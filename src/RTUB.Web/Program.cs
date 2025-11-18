@@ -452,6 +452,13 @@ public class Program
             var returnUrl = form["ReturnUrl"].ToString();
 
             var user = await userManager.FindByNameAsync(username);
+            
+            // If not found by username, try to find by email (for users who might enter their email)
+            if (user is null && username.Contains("@"))
+            {
+                user = await userManager.FindByEmailAsync(username);
+            }
+            
             if (user is null || !await userManager.IsEmailConfirmedAsync(user))
             {
                 return Results.Redirect("/login?error=Invalid");

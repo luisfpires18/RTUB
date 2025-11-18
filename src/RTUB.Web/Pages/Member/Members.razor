@@ -215,7 +215,11 @@ else
                     <label class="form-label fw-semibold">
                         <i class="bi bi-star text-primary me-2"></i>Nome de Tuna<span class="text-danger">*</span>
                     </label>
-                    <InputText class="form-control" @bind-Value="editingUser.Nickname" />
+                    <InputText class="form-control" @bind-Value="editingUser.Nickname" @bind-Value:after="OnNicknameChanged" disabled="@semAlcunha" />
+                    @if (semAlcunha)
+                    {
+                        <small class="form-text text-muted">Campo desativado - reflete automaticamente o email</small>
+                    }
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-semibold">
@@ -229,7 +233,7 @@ else
                     <label class="form-label fw-semibold">
                         <i class="bi bi-envelope text-primary me-2"></i>Email <span class="text-danger">*</span>
                     </label>
-                    <InputText type="email" class="form-control" @bind-Value="editingUser.Email" />
+                    <InputText type="email" class="form-control" @bind-Value="editingUser.Email" @bind-Value:after="OnEmailChanged" />
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-semibold">
@@ -263,6 +267,21 @@ else
                     <option value="Tuno">Tuno</option>
                 </InputSelect>
             </div>
+            @* Sem alcunha checkbox - only show for Leitão category *@
+            @if (editingUser.SelectedCategory == "Leitão")
+            {
+                <div class="mb-3">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input" id="semAlcunhaCheckbox" @bind-Value="semAlcunha" @bind-Value:after="OnSemAlcunhaChanged" />
+                        <label class="form-check-label" for="semAlcunhaCheckbox">
+                            Sem alcunha (recém-entrada)
+                        </label>
+                        <small class="form-text text-muted d-block">
+                            Marque esta opção para leitões sem alcunha definida. O email será usado como username.
+                        </small>
+                    </div>
+                </div>
+            }
             @* Fundador checkbox - only show for Tuno category *@
             @if (editingUser.SelectedCategory == "Tuno")
             {
@@ -635,6 +654,7 @@ else
     private ApplicationUser? viewingUser;
     private EditForm? memberEditForm;
     private bool isFundador = false; // Track if user is a founder
+    private bool semAlcunha = false; // Track if leitão has no nickname yet
     
     // Helper properties for month/year date pickers
     private DateTime? LeitaoDate
@@ -962,6 +982,7 @@ else
         isCreateMode = true;
         editingUser = new ApplicationUser();
         isFundador = false;
+        semAlcunha = false;
         mentorSearchTerm = "";
         filteredMentors.Clear();
         selectedMentorCache = null;
@@ -1214,13 +1235,15 @@ else
 
             if (isCreateMode)
             {
-                // These null checks should not be needed since DataAnnotations validation passed,
-                // but we keep them for safety
-                if (string.IsNullOrEmpty(editingUser.Nickname))
+                // For leitões with "Sem alcunha", skip nickname validation
+                if (!semAlcunha)
                 {
-                    memberValidationStore.Add(() => editingUser.Nickname!, "O nome de tuna é obrigatório.");
-                    editContext.NotifyValidationStateChanged();
-                    return;
+                    if (string.IsNullOrEmpty(editingUser.Nickname))
+                    {
+                        memberValidationStore.Add(() => editingUser.Nickname!, "O nome de tuna é obrigatório.");
+                        editContext.NotifyValidationStateChanged();
+                        return;
+                    }
                 }
 
                 if (string.IsNullOrEmpty(editingUser.Email))
@@ -1230,9 +1253,20 @@ else
                     return;
                 }
 
-                // Set UserName to normalized version of Nickname (tuna name)
-                // Keep Nickname as display name, but use normalized version for username
-                editingUser.UserName = UsernameHelper.NormalizeUsername(editingUser.Nickname!);
+                // Set UserName based on whether "Sem alcunha" is checked
+                if (semAlcunha && editingUser.SelectedCategory == "Leitão")
+                {
+                    // For leitões without nickname, use email prefix (before @) as username
+                    var emailPrefix = editingUser.Email!.Split('@')[0];
+                    editingUser.UserName = UsernameHelper.NormalizeUsername(emailPrefix);
+                }
+                else
+                {
+                    // Set UserName to normalized version of Nickname (tuna name)
+                    // Keep Nickname as display name, but use normalized version for username
+                    editingUser.UserName = UsernameHelper.NormalizeUsername(editingUser.Nickname!);
+                }
+                
                 editingUser.EmailConfirmed = true;
 
                 // Check if username already exists
@@ -1518,6 +1552,12 @@ else
             isFundador = false;
         }
         
+        // Clear Sem alcunha flag when changing category away from Leitão
+        if (editingUser?.SelectedCategory != "Leitão")
+        {
+            semAlcunha = false;
+        }
+        
         // Clear category validation error when a category is selected
         if (memberEditForm?.EditContext != null && memberValidationStore != null && !string.IsNullOrEmpty(editingUser?.SelectedCategory))
         {
@@ -1547,6 +1587,43 @@ else
             editingUser.MonthTuno = null;
         }
         StateHasChanged();
+    }
+    
+    private void OnSemAlcunhaChanged()
+    {
+        // When "Sem alcunha" is checked, sync nickname with email
+        if (semAlcunha)
+        {
+            SyncNicknameWithEmail();
+        }
+        StateHasChanged();
+    }
+    
+    private void OnNicknameChanged()
+    {
+        // Handler for nickname changes - field is disabled when semAlcunha is checked
+        // so this will only trigger when user edits and semAlcunha is false
+        StateHasChanged();
+    }
+    
+    private void OnEmailChanged()
+    {
+        // When email changes and semAlcunha is checked, sync nickname with new email
+        if (semAlcunha)
+        {
+            SyncNicknameWithEmail();
+        }
+        StateHasChanged();
+    }
+    
+    private void SyncNicknameWithEmail()
+    {
+        // Sync nickname with email prefix (username part before @) when semAlcunha is checked
+        if (semAlcunha && !string.IsNullOrEmpty(editingUser.Email))
+        {
+            var emailPrefix = editingUser.Email.Split('@')[0];
+            editingUser.Nickname = emailPrefix;
+        }
     }
 
     private async Task SetAuditContextToCurrentUser()

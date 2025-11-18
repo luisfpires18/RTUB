@@ -26,6 +26,7 @@ public static class InstrumentTypeHelper
             InstrumentType.Percussao => "Percussão",
             InstrumentType.Pandeireta => "Pandeireta",
             InstrumentType.Estandarte => "Estandarte",
+            InstrumentType.Violino => "Violino",
             _ => instrument.ToString()
         };
     }
