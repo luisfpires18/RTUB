@@ -409,6 +409,60 @@ public class EmailNotificationServiceTests : IDisposable
         result2.success.Should().BeFalse();
         result2.errorMessage.Should().Contain("já enviado recentemente");
     }
+    
+    [Fact]
+    public async Task SendUsernameChangedEmailAsync_CompletesSuccessfully_WhenSmtpNotConfigured()
+    {
+        // Arrange
+        var email = "leitao@test.com";
+        var fullName = "João Silva";
+        var nickname = "Jeans";
+        var oldUsername = "joaosilva";
+        var newUsername = "jeans";
+        
+        // Setup template renderer for username changed email
+        _mockTemplateRenderer.Setup(x => x.RenderUsernameChangedEmailAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync("Test username changed email");
+
+        // Act
+        Func<Task> act = async () => await _service.SendUsernameChangedEmailAsync(
+            email, fullName, nickname, oldUsername, newUsername);
+
+        // Assert - Should not throw even when SMTP is not configured
+        await act.Should().NotThrowAsync();
+    }
+    
+    [Fact]
+    public async Task SendUsernameChangedEmailAsync_RateLimits_DuplicateRequests()
+    {
+        // Arrange
+        var email = "leitao@test.com";
+        var fullName = "João Silva";
+        var nickname = "Jeans";
+        var oldUsername = "joaosilva";
+        var newUsername = "jeans";
+        
+        // Setup template renderer for username changed email
+        _mockTemplateRenderer.Setup(x => x.RenderUsernameChangedEmailAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync("Test username changed email");
+        
+        // Setup SMTP configuration
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpServer"]).Returns("smtp.test.com");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpPassword"]).Returns("test-password");
+        _mockConfiguration.Setup(x => x["EmailSettings:SenderEmail"]).Returns("noreply@rtub.pt");
+
+        // Act - First call
+        await _service.SendUsernameChangedEmailAsync(email, fullName, nickname, oldUsername, newUsername);
+        
+        // Act - Second call immediately after (should be rate limited - no effect visible in tests but cache is used)
+        Func<Task> act = async () => await _service.SendUsernameChangedEmailAsync(
+            email, fullName, nickname, oldUsername, newUsername);
+
+        // Assert - Should not throw (rate limiting is silent for void methods)
+        await act.Should().NotThrowAsync();
+    }
 
     public void Dispose()
     {

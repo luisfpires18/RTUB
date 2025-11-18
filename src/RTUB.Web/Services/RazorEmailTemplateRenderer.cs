@@ -227,4 +227,21 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
 
         return await _templateService.RenderTemplateAsync("MeetingCancellation", model);
     }
+    
+    public async Task<string> RenderUsernameChangedEmailAsync(
+        string fullName,
+        string nickname,
+        string oldUsername,
+        string newUsername)
+    {
+        var model = new UsernameChangedEmailModel
+        {
+            FullName = fullName,
+            Nickname = nickname,
+            OldUsername = oldUsername,
+            NewUsername = newUsername
+        };
+
+        return await _templateService.RenderTemplateAsync("UsernameChangedEmail", model);
+    }
 }

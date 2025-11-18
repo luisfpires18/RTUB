@@ -115,4 +115,13 @@ public interface IEmailTemplateRenderer
         string? senderPosition = null,
         string nickname = "",
         string fullName = "");
+    
+    /// <summary>
+    /// Renders the username changed notification email
+    /// </summary>
+    Task<string> RenderUsernameChangedEmailAsync(
+        string fullName,
+        string nickname,
+        string oldUsername,
+        string newUsername);
 }

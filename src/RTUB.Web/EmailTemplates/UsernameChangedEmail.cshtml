@@ -1,0 +1,60 @@
+@model RTUB.Web.EmailTemplates.Models.UsernameChangedEmailModel
+@{
+    Layout = "~/EmailTemplates/_EmailLayout.cshtml";
+    ViewData["Preheader"] = "A tua alcunha foi definida";
+}
+
+<h1 style="margin: 0 0 16px 0; padding: 0; font-size: 28px; line-height: 1.3; font-weight: 600; color: #0B0B0F;">
+    Olá @Html.Raw(Model.Nickname)! (@Html.Raw(Model.FullName))! 👋
+</h1>
+
+<p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+    A tua alcunha foi definida e o teu nome de utilizador foi atualizado no sistema RTUB.
+</p>
+
+<!-- Info Box -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F7F7FB; padding: 16px 24px; border-radius: 8px; margin: 24px 0;">
+    <tr>
+        <td>
+            <p style="margin: 0 0 12px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+                <strong style="color: #0B0B0F;">As tuas novas credenciais:</strong>
+            </p>
+            <p style="margin: 8px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+                <span style="font-weight: 600; color: #0B0B0F; display: inline-block; min-width: 140px;">Nome de Tuna:</span>
+                <span style="color: #6E56CF; font-weight: 600;">@Html.Raw(Model.Nickname)</span>
+            </p>
+            <p style="margin: 8px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+                <span style="font-weight: 600; color: #0B0B0F; display: inline-block; min-width: 140px;">Utilizador anterior:</span>
+                <span style="color: #999999; text-decoration: line-through;">@Html.Raw(Model.OldUsername)</span>
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 16px; line-height: 1.5; color: #333333;">
+                <span style="font-weight: 600; color: #0B0B0F; display: inline-block; min-width: 140px;">Novo Utilizador:</span>
+                <span style="color: #333333; font-weight: 600;">@Html.Raw(Model.NewUsername)</span>
+            </p>
+        </td>
+    </tr>
+</table>
+
+<!-- Notice -->
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #E8F5E9; border-left: 4px solid #4CAF50; padding: 12px 16px; margin: 24px 0;">
+    <tr>
+        <td>
+            <p style="font-size: 14px; color: #2E7D32; margin: 0; line-height: 1.5;">
+                <strong>ℹ️ Nota:</strong> A partir de agora, usa o novo nome de utilizador (<strong>@Html.Raw(Model.NewUsername)</strong>) para fazer login no sistema.
+            </p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
+    A tua palavra-passe permanece a mesma. Se ainda não alteraste a palavra-passe temporária, recomendamos que o faças o mais rápido possível no teu perfil.
+</p>
+
+<!-- Primary CTA Button -->
+@await Html.PartialAsync("~/EmailTemplates/Partials/_Button.cshtml", new RTUB.Web.EmailTemplates.Models.ButtonModel
+{
+    Href = Model.LoginUrl,
+    Label = "Fazer Login",
+    BgColor = "#6E56CF",
+    TextColor = "#FFFFFF"
+})

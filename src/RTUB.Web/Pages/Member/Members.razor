@@ -8,6 +8,7 @@
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
 @using RTUB.Shared
+@using System.ComponentModel.DataAnnotations
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
 @inject IRoleAssignmentService RoleAssignmentService
@@ -16,6 +17,7 @@
 @inject IEmailNotificationService EmailNotificationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject RTUB.Application.Services.AuditContext AuditContext
+@inject ILogger<Members> _logger
 @attribute [Authorize]
 
 <h1 class="mb-2"><i class="bi bi-people"></i> Membros</h1>
@@ -160,11 +162,14 @@ else
                            OnView="@(async () => await OpenViewDetailsModal(user))"
                            OnEdit="@(() => OpenEditModal(user))"
                            OnDelete="@(() => OpenDeleteModal(user))"
+                           OnSetNickname="@(() => OpenSetNicknameModal(user))"
                            ShowEditButton="@(isAdmin && !currentUserIsCaloiro)"
                            ShowDeleteButton="@(isAdmin && !currentUserIsCaloiro)"
+                           ShowSetNicknameButton="@isAdmin"
                            ViewTooltip="Ver Detalhes"
                            EditTooltip="Editar"
                            DeleteTooltip="Eliminar"
+                           SetNicknameTooltip="Definir Alcunha"
                            LazyLoad="true">
                     <BadgeContent>
                         <div class="avatar-card-badges-row">
@@ -267,8 +272,8 @@ else
                     <option value="Tuno">Tuno</option>
                 </InputSelect>
             </div>
-            @* Sem alcunha checkbox - only show for Leitão category *@
-            @if (editingUser.SelectedCategory == "Leitão")
+            @* Sem alcunha checkbox - only show for Leitão category in create mode *@
+            @if (editingUser.SelectedCategory == "Leitão" && isCreateMode)
             {
                 <div class="mb-3">
                     <div class="form-check">
@@ -611,6 +616,59 @@ else
     </Modal>
 }
 
+<!-- Set Nickname Modal -->
+<Modal Show="@showSetNicknameModal" 
+       ShowChanged="@((bool show) => showSetNicknameModal = show)"
+       Title="Definir Alcunha" 
+       Size="Modal.ModalSize.Default"
+       Centered="true">
+    <BodyContent>
+        @if (nicknameSettingUser != null)
+        {
+            <div class="mb-3">
+                <p class="text-muted">
+                    <strong>Membro:</strong> @nicknameSettingUser.FirstName @nicknameSettingUser.LastName
+                </p>
+                <p class="text-muted">
+                    <strong>Email:</strong> @nicknameSettingUser.Email
+                </p>
+            </div>
+            
+            <EditForm Model="@nicknameForm" OnValidSubmit="SaveNickname" @ref="nicknameEditForm">
+                <DataAnnotationsValidator />
+                <ErrorDisplay />
+                
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-star text-primary me-2"></i>Nome de Tuna <span class="text-danger">*</span>
+                    </label>
+                    <InputText class="form-control" @bind-Value="nicknameForm.Nickname" placeholder="Introduza a alcunha..." />
+                    <small class="form-text text-muted">
+                        O username será gerado automaticamente a partir da alcunha.
+                    </small>
+                </div>
+                
+                @if (!string.IsNullOrEmpty(nicknameForm.Nickname))
+                {
+                    <div class="alert alert-purple">
+                        Novo username: <strong>@UsernameHelper.NormalizeUsername(nicknameForm.Nickname)</strong>
+                    </div>
+                }
+            </EditForm>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseSetNicknameModal" disabled="@isSavingNickname">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="HandleSaveNicknameClick" disabled="@isSavingNickname">
+            @if (isSavingNickname)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Guardar
+        </button>
+    </FooterContent>
+</Modal>
+
 @code {
     private List<ApplicationUser>? users;
     private List<ApplicationUser> filteredUsers = new();
@@ -647,14 +705,27 @@ else
     private bool showEditModal = false;
     private bool showDeleteModal = false;
     private bool showViewDetailsModal = false;
+    private bool showSetNicknameModal = false;
     private bool isCreateMode = false;
     private bool isSaving = false;
+    private bool isSavingNickname = false;
     private ApplicationUser editingUser = new();
     private ApplicationUser? deletingUser;
     private ApplicationUser? viewingUser;
+    private ApplicationUser? nicknameSettingUser;
     private EditForm? memberEditForm;
+    private EditForm? nicknameEditForm;
+    private NicknameFormModel nicknameForm = new();
     private bool isFundador = false; // Track if user is a founder
     private bool semAlcunha = false; // Track if leitão has no nickname yet
+    
+    // Nickname form model
+    public class NicknameFormModel
+    {
+        [Required(ErrorMessage = "O nome de tuna é obrigatório")]
+        [MaxLength(80, ErrorMessage = "O nome de tuna não pode exceder 80 caracteres")]
+        public string? Nickname { get; set; }
+    }
     
     // Helper properties for month/year date pickers
     private DateTime? LeitaoDate
@@ -1650,6 +1721,124 @@ else
         else
         {
             return (null, null);
+        }
+    }
+    
+    // Set Nickname Modal Methods
+    private void OpenSetNicknameModal(ApplicationUser user)
+    {
+        nicknameSettingUser = user;
+        nicknameForm = new NicknameFormModel
+        {
+            Nickname = user.Nickname
+        };
+        showSetNicknameModal = true;
+    }
+
+    private void CloseSetNicknameModal()
+    {
+        showSetNicknameModal = false;
+        nicknameSettingUser = null;
+        nicknameForm = new NicknameFormModel();
+        isSavingNickname = false;
+    }
+
+    private async Task HandleSaveNicknameClick()
+    {
+        if (nicknameEditForm?.EditContext == null) return;
+
+        var editContext = nicknameEditForm.EditContext;
+        
+        // Validate the form
+        var isValid = editContext.Validate();
+        
+        if (!isValid)
+        {
+            return;
+        }
+        
+        await SaveNickname();
+    }
+
+    private async Task SaveNickname()
+    {
+        if (isSavingNickname || nicknameSettingUser == null || string.IsNullOrEmpty(nicknameForm.Nickname))
+        {
+            return;
+        }
+
+        isSavingNickname = true;
+
+        try
+        {
+            var user = await UserManager.FindByIdAsync(nicknameSettingUser.Id);
+            if (user != null)
+            {
+                var oldUsername = user.UserName ?? "";
+                var newUsername = UsernameHelper.NormalizeUsername(nicknameForm.Nickname);
+                
+                // Check if new username already exists
+                var existingUser = await UserManager.FindByNameAsync(newUsername);
+                if (existingUser != null && existingUser.Id != user.Id)
+                {
+                    // Show error message - username already exists
+                    if (nicknameEditForm?.EditContext != null)
+                    {
+                        var validationStore = new ValidationMessageStore(nicknameEditForm.EditContext);
+                        validationStore.Add(() => nicknameForm.Nickname!, $"Já existe um utilizador com o username '{newUsername}'.");
+                        nicknameEditForm.EditContext.NotifyValidationStateChanged();
+                    }
+                    return;
+                }
+                
+                // Update nickname and username
+                user.Nickname = nicknameForm.Nickname;
+                user.UserName = newUsername;
+                
+                await SetAuditContextToCurrentUser();
+                var result = await UserManager.UpdateAsync(user);
+                
+                if (result.Succeeded)
+                {
+                    // Send email notification
+                    await EmailNotificationService.SendUsernameChangedEmailAsync(
+                        user.Email ?? "",
+                        $"{user.FirstName} {user.LastName}",
+                        user.Nickname,
+                        oldUsername,
+                        newUsername);
+                    
+                    // Reload members to reflect changes
+                    await LoadMembers();
+                    CloseSetNicknameModal();
+                }
+                else
+                {
+                    if (nicknameEditForm?.EditContext != null)
+                    {
+                        var validationStore = new ValidationMessageStore(nicknameEditForm.EditContext);
+                        foreach (var error in result.Errors)
+                        {
+                            validationStore.Add(() => nicknameForm.Nickname!, error.Description);
+                        }
+                        nicknameEditForm.EditContext.NotifyValidationStateChanged();
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving nickname for user {UserId}", nicknameSettingUser.Id);
+            if (nicknameEditForm?.EditContext != null)
+            {
+                var validationStore = new ValidationMessageStore(nicknameEditForm.EditContext);
+                validationStore.Add(() => nicknameForm.Nickname!, "Ocorreu um erro ao guardar a alcunha. Por favor, tente novamente.");
+                nicknameEditForm.EditContext.NotifyValidationStateChanged();
+            }
+        }
+        finally
+        {
+            isSavingNickname = false;
         }
     }
 }

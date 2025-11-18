@@ -973,4 +973,84 @@ public class EmailNotificationService : IEmailNotificationService
             return (false, 0, $"Erro ao enviar email: {ex.Message}");
         }
     }
+    
+    /// <inheritdoc/>
+    public async Task SendUsernameChangedEmailAsync(string email, string fullName, string nickname, string oldUsername, string newUsername)
+    {
+        // Rate limit: Prevent duplicate username change emails for the same user
+        var normalizedEmail = email?.ToLower() ?? "unknown";
+        var rateLimitKey = $"email-username-changed-{normalizedEmail}";
+        if (ShouldRateLimitEmail(rateLimitKey))
+        {
+            return;
+        }
+
+        try
+        {
+            // Get email settings from configuration
+            var smtpServer = _configuration["EmailSettings:SmtpServer"];
+            var smtpPortStr = _configuration["EmailSettings:SmtpPort"];
+            var smtpPort = int.TryParse(smtpPortStr, out var port) ? port : 587;
+            var smtpUsername = _configuration["EmailSettings:SmtpUsername"];
+            var smtpPassword = _configuration["EmailSettings:SmtpPassword"];
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var senderName = _configuration["EmailSettings:SenderName"];
+            var enableSslStr = _configuration["EmailSettings:EnableSsl"];
+            var enableSsl = enableSslStr != "false"; // Default to true
+
+            // Validate required email settings
+            if (string.IsNullOrEmpty(email))
+            {
+                _logger.LogError("Recipient email is null or empty");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(senderEmail))
+            {
+                _logger.LogError("SenderEmail is not configured in EmailSettings");
+                return;
+            }
+
+            var subject = "Alcunha Definida - Novo Nome de Utilizador";
+
+            var body = await _templateRenderer.RenderUsernameChangedEmailAsync(
+                fullName,
+                nickname,
+                oldUsername,
+                newUsername);
+
+            // Check if SMTP is configured
+            if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
+            {
+                return;
+            }
+
+            // Send email via SMTP
+            using var smtpClient = new SmtpClient(smtpServer, smtpPort)
+            {
+                Credentials = new NetworkCredential(smtpUsername, smtpPassword),
+                EnableSsl = enableSsl,
+                Timeout = 10000 // 10 second timeout to prevent hanging
+            };
+
+            var mailMessage = new MailMessage
+            {
+                From = new MailAddress(senderEmail, senderName ?? "RTUB"),
+                Subject = subject,
+                Body = body,
+                IsBodyHtml = true,
+                BodyEncoding = Encoding.UTF8,
+                SubjectEncoding = Encoding.UTF8
+            };
+            mailMessage.To.Add(email);
+
+            await smtpClient.SendMailAsync(mailMessage);
+            _logger.LogInformation("Username changed email successfully sent to: {Email}", email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending username changed email to {Email}", email);
+            // Don't fail the operation if email fails
+        }
+    }
 }

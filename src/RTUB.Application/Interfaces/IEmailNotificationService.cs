@@ -161,4 +161,14 @@ public interface IEmailNotificationService
         string body,
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null);
+    
+    /// <summary>
+    /// Sends a notification email when a user's username has been changed
+    /// </summary>
+    /// <param name="email">The email address of the member</param>
+    /// <param name="fullName">The full name of the member</param>
+    /// <param name="nickname">The new nickname (Nome de tuna)</param>
+    /// <param name="oldUsername">The previous username</param>
+    /// <param name="newUsername">The new username</param>
+    Task SendUsernameChangedEmailAsync(string email, string fullName, string nickname, string oldUsername, string newUsername);
 }

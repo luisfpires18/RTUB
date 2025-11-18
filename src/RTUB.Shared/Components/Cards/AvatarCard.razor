@@ -9,6 +9,18 @@
 *@
 
 <div class="avatar-card" tabindex="0" @onkeydown="@HandleKeyDown">
+    <!-- Definir Alcunha button in top-left (for Leitões, Admin only) -->
+    @if (ShowSetNicknameButton)
+    {
+        <button class="avatar-card-set-nickname-btn" 
+                @onclick="@OnSetNickname" 
+                @onclick:stopPropagation="true"
+                title="@SetNicknameTooltip"
+                aria-label="@SetNicknameTooltip">
+            <i class="bi bi-tag"></i>
+        </button>
+    }
+    
     <!-- Edit & Delete buttons in top-right -->
     @if (ShowEditButton)
     {
@@ -129,12 +141,18 @@
 
     [Parameter]
     public EventCallback OnDelete { get; set; }
+    
+    [Parameter]
+    public EventCallback OnSetNickname { get; set; }
 
     [Parameter]
     public bool ShowEditButton { get; set; } = false;
 
     [Parameter]
     public bool ShowDeleteButton { get; set; } = false;
+    
+    [Parameter]
+    public bool ShowSetNicknameButton { get; set; } = false;
 
     [Parameter]
     public bool LazyLoad { get; set; } = true;
@@ -150,6 +168,9 @@
 
     [Parameter]
     public string DeleteTooltip { get; set; } = "Eliminar";
+    
+    [Parameter]
+    public string SetNicknameTooltip { get; set; } = "Definir Alcunha";
 
     private bool imageLoaded = false;
 
