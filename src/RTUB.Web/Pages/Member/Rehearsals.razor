@@ -220,65 +220,148 @@ else
                             </div>
                         </div>
                         
-                        var attendingMembers = paginatedAttendances.Where(a => a.WillAttend).ToList();
                         var notAttendingMembers = selectedRehearsalAttendances.Where(a => a.User != null && !a.WillAttend).ToList();
                         
-                        <h6 class="mb-3">Vão participar (@attendingMembers.Count)</h6>
-                        <div class="enrollment-card-grid">
-                            @foreach (var attendance in attendingMembers)
-                            {
-                                var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
-                                <EnrollmentCard 
-                                    AvatarUrl="@attendance.User?.ProfilePictureSrc"
-                                    TunaName="@attendance.User?.Nickname"
-                                    FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
-                                    InstrumentText="@instrumentDisplay"
-                                    OtherInstruments="@attendance.OtherInstruments"
-                                    Notes="@attendance.Notes"
-                                    AltText="@attendance.User?.GetDisplayName()"
-                                    ShowEditButton="false"
-                                    ShowDeleteButton="@(isOwner && isSelectedRehearsalPast && attendance.Attended)"
-                                    ShowApproveButton="@(isAdmin && isSelectedRehearsalPast && !attendance.Attended)"
-                                    ShowCancelButton="@(isAdmin && isSelectedRehearsalPast && !attendance.Attended)"
-                                    OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
-                                    OnApprove="@(() => ApproveAttendance(attendance))"
-                                    OnCancel="@(() => OpenDeleteAttendanceModal(attendance))"
-                                    DeleteTooltip="Eliminar"
-                                    ApproveTooltip="Aprovar"
-                                    CancelTooltip="Cancelar">
-                                    <BadgeContent>
-                                        <div class="enrollment-card-badges-row">
-                                            @if (attendance.Attended)
-                                            {
-                                                <span class="badge bg-success">Aprovado</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-warning">Pendente</span>
-                                            }
-                                        </div>
-                                    </BadgeContent>
-                                </EnrollmentCard>
-                            }
-                        </div>
-                        
-                        <!-- Pagination for attending members -->
-                        @if (filteredAttendances.Where(a => a.WillAttend).Count() > 0)
+                        @if (filteredMainParticipants.Any())
                         {
-                            <div class="mt-3">
-                                <TablePagination 
-                                    TotalItems="@filteredAttendances.Where(a => a.WillAttend).Count()"
-                                    CurrentPage="@attendancesPagination.CurrentPage"
-                                    PageSize="@attendancesPagination.PageSize"
-                                    PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
-                                    OnPageChanged="@HandleAttendancesPageChange"
-                                    OnPageSizeChanged="@HandleAttendancesPageSizeChange" />
+                            <h6 class="mb-3 heading-purple">Membros (@filteredMainParticipants.Count)</h6>
+                            
+                            <div class="enrollment-card-grid mb-4">
+                                @foreach (var attendance in paginatedMainParticipants)
+                                {
+                                    var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
+                                    <EnrollmentCard 
+                                        AvatarUrl="@attendance.User?.ProfilePictureSrc"
+                                        TunaName="@attendance.User?.Nickname"
+                                        FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
+                                        InstrumentText="@instrumentDisplay"
+                                        OtherInstruments="@attendance.OtherInstruments"
+                                        Notes="@attendance.Notes"
+                                        AltText="@attendance.User?.GetDisplayName()"
+                                        ShowEditButton="false"
+                                        ShowDeleteButton="@(isOwner && isSelectedRehearsalPast && attendance.Attended)"
+                                        ShowApproveButton="@(isAdmin && isSelectedRehearsalPast && !attendance.Attended)"
+                                        ShowCancelButton="@(isAdmin && isSelectedRehearsalPast && !attendance.Attended)"
+                                        OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
+                                        OnApprove="@(() => ApproveAttendance(attendance))"
+                                        OnCancel="@(() => OpenDeleteAttendanceModal(attendance))"
+                                        DeleteTooltip="Eliminar"
+                                        ApproveTooltip="Aprovar"
+                                        CancelTooltip="Cancelar">
+                                        <BadgeContent>
+                                            @if (attendance.User != null)
+                                            {
+                                                <div class="enrollment-card-badges-row">
+                                                    @* Status badge first *@
+                                                    @if (attendance.Attended)
+                                                    {
+                                                        <span class="badge bg-success">Aprovado</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-warning">Pendente</span>
+                                                    }
+                                                </div>
+                                                <div class="enrollment-card-badges-row">
+                                                    @* Category badge below status *@
+                                                    @if (attendance.User.Positions.Contains(Position.Magister))
+                                                    {
+                                                        <PositionBadge Position="Position.Magister" />
+                                                    }
+                                                    else if (attendance.User.Categories.Contains(MemberCategory.Tuno))
+                                                    {
+                                                        <CategoryBadge Category="MemberCategory.Tuno" />
+                                                    }
+                                                    else if (attendance.User.Categories.Contains(MemberCategory.Caloiro))
+                                                    {
+                                                        <CategoryBadge Category="MemberCategory.Caloiro" />
+                                                    }
+                                                </div>
+                                            }
+                                        </BadgeContent>
+                                    </EnrollmentCard>
+                                }
                             </div>
+                            
+                            <!-- Pagination for Main Participants -->
+                            @if (filteredMainParticipants.Count > 0)
+                            {
+                                <div class="mb-3">
+                                    <TablePagination 
+                                        TotalItems="@filteredMainParticipants.Count"
+                                        CurrentPage="@mainParticipantsPagination.CurrentPage"
+                                        PageSize="@mainParticipantsPagination.PageSize"
+                                        PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
+                                        OnPageChanged="@HandleMainParticipantsPageChange"
+                                        OnPageSizeChanged="@HandleMainParticipantsPageSizeChange" />
+                                </div>
+                            }
+
+                            @* Instrument Counts - Horizontal Counter Section *@
+                            <InstrumentCounter InstrumentCounts="@primaryInstrumentCounts" Title="Instrumentos" />
+                            <InstrumentCounter InstrumentCounts="@otherInstrumentCounts" Title="Outros Instrumentos" Collapsible="true" DefaultCollapsed="true" />
                         }
 
-                        @* Instrument Counts - Horizontal Counter Section *@
-                        <InstrumentCounter InstrumentCounts="@primaryInstrumentCounts" Title="Instrumentos" />
-                        <InstrumentCounter InstrumentCounts="@otherInstrumentCounts" Title="Outros Instrumentos" Collapsible="true" DefaultCollapsed="true" />
+                        @if (filteredLeitoes.Any())
+                        {
+                            <h6 class="mb-3 heading-warning">Leitões (@filteredLeitoes.Count)</h6>
+                            <div class="enrollment-card-grid">
+                                @foreach (var attendance in paginatedLeitoes)
+                                {
+                                    var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
+                                    <EnrollmentCard 
+                                        AvatarUrl="@attendance.User?.ProfilePictureSrc"
+                                        TunaName="@attendance.User?.Nickname"
+                                        FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
+                                        InstrumentText="@instrumentDisplay"
+                                        OtherInstruments="@attendance.OtherInstruments"
+                                        Notes="@attendance.Notes"
+                                        AltText="@attendance.User?.GetDisplayName()"
+                                        ShowEditButton="false"
+                                        ShowDeleteButton="@(isOwner && isSelectedRehearsalPast && attendance.Attended)"
+                                        ShowApproveButton="@(isAdmin && isSelectedRehearsalPast && !attendance.Attended)"
+                                        ShowCancelButton="@(isAdmin && isSelectedRehearsalPast && !attendance.Attended)"
+                                        OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
+                                        OnApprove="@(() => ApproveAttendance(attendance))"
+                                        OnCancel="@(() => OpenDeleteAttendanceModal(attendance))"
+                                        DeleteTooltip="Eliminar"
+                                        ApproveTooltip="Aprovar"
+                                        CancelTooltip="Cancelar">
+                                        <BadgeContent>
+                                            <div class="enrollment-card-badges-row">
+                                                @* Status badge first *@
+                                                @if (attendance.Attended)
+                                                {
+                                                    <span class="badge bg-success">Aprovado</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">Pendente</span>
+                                                }
+                                            </div>
+                                            <div class="enrollment-card-badges-row">
+                                                @* Category badge below status *@
+                                                <CategoryBadge Category="MemberCategory.Leitao" />
+                                            </div>
+                                        </BadgeContent>
+                                    </EnrollmentCard>
+                                }
+                            </div>
+                            
+                            <!-- Pagination for Leitões -->
+                            @if (filteredLeitoes.Count > 0)
+                            {
+                                <div class="mt-3">
+                                    <TablePagination 
+                                        TotalItems="@filteredLeitoes.Count"
+                                        CurrentPage="@leitoesPagination.CurrentPage"
+                                        PageSize="@leitoesPagination.PageSize"
+                                        PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
+                                        OnPageChanged="@HandleLeitoesPageChange"
+                                        OnPageSizeChanged="@HandleLeitoesPageSizeChange" />
+                                </div>
+                            }
+                        }
                         
                         @if (notAttendingMembers.Any())
                         {
@@ -298,9 +381,28 @@ else
                                         OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
                                         DeleteTooltip="Eliminar">
                                         <BadgeContent>
-                                            <div class="enrollment-card-badges-row">
-                                                <!-- Category badges could be added here if needed -->
-                                            </div>
+                                            @if (attendance.User != null)
+                                            {
+                                                <div class="enrollment-card-badges-row">
+                                                    @* Category badge for not attending members *@
+                                                    @if (attendance.User.Positions.Contains(Position.Magister))
+                                                    {
+                                                        <PositionBadge Position="Position.Magister" />
+                                                    }
+                                                    else if (attendance.User.Categories.Contains(MemberCategory.Tuno))
+                                                    {
+                                                        <CategoryBadge Category="MemberCategory.Tuno" />
+                                                    }
+                                                    else if (attendance.User.Categories.Contains(MemberCategory.Caloiro))
+                                                    {
+                                                        <CategoryBadge Category="MemberCategory.Caloiro" />
+                                                    }
+                                                    else if (attendance.User.Categories.Contains(MemberCategory.Leitao))
+                                                    {
+                                                        <CategoryBadge Category="MemberCategory.Leitao" />
+                                                    }
+                                                </div>
+                                            }
                                         </BadgeContent>
                                     </EnrollmentCard>
                                 }
@@ -887,6 +989,14 @@ else
     private string attendanceApprovalFilter = "Todos"; // "Todos", "Pendente", "Aprovado"
     private PaginationHelper<RehearsalAttendance> attendancesPagination = new() { PageSize = 8 };
     
+    // Separate pagination for main participants and leitões
+    private List<RehearsalAttendance> filteredMainParticipants = new();
+    private List<RehearsalAttendance> filteredLeitoes = new();
+    private PaginationHelper<RehearsalAttendance> mainParticipantsPagination = new() { PageSize = 8 };
+    private PaginationHelper<RehearsalAttendance> leitoesPagination = new() { PageSize = 8 };
+    private List<RehearsalAttendance> paginatedMainParticipants => mainParticipantsPagination.GetPageData(filteredMainParticipants);
+    private List<RehearsalAttendance> paginatedLeitoes => leitoesPagination.GetPageData(filteredLeitoes);
+    
     // Instrument count tracking
     private Dictionary<InstrumentType, int> primaryInstrumentCounts = new();
     private Dictionary<InstrumentType, int> otherInstrumentCounts = new();
@@ -1093,6 +1203,13 @@ else
             // Default to primary instrument
             var primaryInstrument = memberInstruments.FirstOrDefault(mi => mi.IsPrimary);
             defaultInstrument = primaryInstrument?.InstrumentType;
+            
+            // Only enable "Quero tocar" if instruments are available
+            wantToPlayRehearsal = currentUserInstruments.Any();
+        }
+        else
+        {
+            wantToPlayRehearsal = false; // Disable if no instruments configured
         }
         
         attendanceForm = new AttendanceFormModel
@@ -1101,7 +1218,6 @@ else
             Instrument = defaultInstrument,
             Notes = null
         };
-        wantToPlayRehearsal = true; // Default to showing instrument field
         
         showAttendanceModal = true;
         StateHasChanged();
@@ -1216,11 +1332,12 @@ else
         }
 
         // Initialize filtered attendances and reset pagination
-        filteredAttendances = selectedRehearsalAttendances.OrderByDescending(a => a.Attended).ThenBy(a => a.User?.FirstName).ToList();
         attendanceSearchTerm = "";
         attendanceApprovalFilter = "Todos";
         attendancesPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
-        UpdatePaginatedAttendances();
+        mainParticipantsPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
+        leitoesPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
+        FilterAttendances();
         
         // Calculate primary and other instrument counts
         await CalculateRehearsalInstrumentCountsAsync();
@@ -1246,9 +1363,13 @@ else
         isSelectedRehearsalPast = false;
         selectedRehearsalAttendances = null;
         filteredAttendances = new();
+        filteredMainParticipants = new();
+        filteredLeitoes = new();
         paginatedAttendances = new();
         attendanceSearchTerm = "";
         attendancesPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
+        mainParticipantsPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
+        leitoesPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
         showAddMemberDropdown = false;
         addMemberSearchTerm = "";
         addMemberFeedbackMessage = "";
@@ -1267,6 +1388,8 @@ else
         if (selectedRehearsalAttendances == null)
         {
             filteredAttendances = new();
+            filteredMainParticipants = new();
+            filteredLeitoes = new();
             UpdatePaginatedAttendances();
             return;
         }
@@ -1298,8 +1421,26 @@ else
             .ThenBy(a => a.User?.FirstName)
             .ToList();
 
+        // Split into main participants and leitões
+        var mainParticipants = filtered
+            .Where(a => a.User != null && a.WillAttend && !a.User.Categories.Contains(MemberCategory.Leitao))
+            .OrderByDescending(a => a.Attended)
+            .ThenBy(a => a.User?.FirstName)
+            .ToList();
+        
+        var leitoes = filtered
+            .Where(a => a.User != null && a.WillAttend && a.User.Categories.Contains(MemberCategory.Leitao))
+            .OrderByDescending(a => a.Attended)
+            .ThenBy(a => a.User?.FirstName)
+            .ToList();
+        
+        filteredMainParticipants = mainParticipants;
+        filteredLeitoes = leitoes;
+
         // Reset to page 1 when filters change
         attendancesPagination.GoToPage(1);
+        mainParticipantsPagination.CurrentPage = 1;
+        leitoesPagination.CurrentPage = 1;
         UpdatePaginatedAttendances();
     }
     
@@ -1320,6 +1461,32 @@ else
         attendancesPagination.PageSize = pageSize;
         attendancesPagination.GoToPage(1); // Reset to first page
         UpdatePaginatedAttendances();
+        StateHasChanged();
+    }
+    
+    private void HandleMainParticipantsPageChange(int page)
+    {
+        mainParticipantsPagination.CurrentPage = page;
+        StateHasChanged();
+    }
+
+    private void HandleMainParticipantsPageSizeChange(int pageSize)
+    {
+        mainParticipantsPagination.PageSize = pageSize;
+        mainParticipantsPagination.CurrentPage = 1;
+        StateHasChanged();
+    }
+    
+    private void HandleLeitoesPageChange(int page)
+    {
+        leitoesPagination.CurrentPage = page;
+        StateHasChanged();
+    }
+
+    private void HandleLeitoesPageSizeChange(int pageSize)
+    {
+        leitoesPagination.PageSize = pageSize;
+        leitoesPagination.CurrentPage = 1;
         StateHasChanged();
     }
 
@@ -1506,7 +1673,16 @@ else
             Instrument = existingAttendance?.Instrument,
             Notes = existingAttendance?.Notes
         };
-        wantToPlayRehearsal = existingAttendance?.Instrument.HasValue ?? false;
+        
+        // Only allow "Quero tocar" if instruments are available
+        if (currentUserInstruments.Any())
+        {
+            wantToPlayRehearsal = existingAttendance?.Instrument.HasValue ?? false;
+        }
+        else
+        {
+            wantToPlayRehearsal = false; // Disable if no instruments configured
+        }
         
         showAttendanceModal = true;
         StateHasChanged();

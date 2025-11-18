@@ -213,4 +213,68 @@ public class ParticipationModalTests : TestContext
         cut.Markup.Should().Contain("Quero tocar", "rehearsal mode should show instrument toggle");
         cut.Markup.Should().Contain("Confirmar", "rehearsal mode should show confirm button");
     }
+
+    [Fact]
+    public void ParticipationModal_DisablesWantToPlayToggle_WhenNoInstrumentsConfigured()
+    {
+        // Arrange & Act - Simulating user with no instruments
+        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.IsLeitao, false)
+            .Add(p => p.AvailableInstruments, new List<InstrumentType>()) // Empty list = no instruments
+            .Add(p => p.WantToPlay, false)
+            .Add(p => p.Title, "Test Modal"));
+
+        // Assert
+        cut.Markup.Should().Contain("Quero tocar", "modal should show toggle label");
+        cut.Markup.Should().Contain("disabled", "toggle should be disabled when no instruments configured");
+    }
+
+    [Fact]
+    public void ParticipationModal_ShowsWarningMessage_WhenNoInstrumentsConfigured()
+    {
+        // Arrange & Act - Simulating user with no instruments
+        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.IsLeitao, false)
+            .Add(p => p.AvailableInstruments, new List<InstrumentType>()) // Empty list = no instruments
+            .Add(p => p.WantToPlay, false)
+            .Add(p => p.Title, "Test Modal"));
+
+        // Assert
+        cut.Markup.Should().Contain("Não tens instrumentos configurados", "modal should show no instruments message");
+        cut.Markup.Should().Contain("Podes registar a tua presença sem instrumento", "modal should inform user can register without instrument");
+    }
+
+    [Fact]
+    public void ParticipationModal_EnablesWantToPlayToggle_WhenInstrumentsAvailable()
+    {
+        // Arrange & Act - Simulating user with instruments
+        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.IsLeitao, false)
+            .Add(p => p.AvailableInstruments, new List<InstrumentType> { InstrumentType.Guitarra })
+            .Add(p => p.WantToPlay, false)
+            .Add(p => p.Title, "Test Modal"));
+
+        // Assert
+        cut.Markup.Should().Contain("Quero tocar", "modal should show toggle label");
+        var toggleInput = cut.Find("input#wantToPlayToggle");
+        toggleInput.HasAttribute("disabled").Should().BeFalse("toggle should be enabled when instruments are configured");
+    }
+
+    [Fact]
+    public void ParticipationModal_HidesWarningMessage_WhenInstrumentsAvailable()
+    {
+        // Arrange & Act - Simulating user with instruments
+        var cut = RenderComponent<ParticipationModal>(parameters => parameters
+            .Add(p => p.Show, true)
+            .Add(p => p.IsLeitao, false)
+            .Add(p => p.AvailableInstruments, new List<InstrumentType> { InstrumentType.Guitarra })
+            .Add(p => p.WantToPlay, false)
+            .Add(p => p.Title, "Test Modal"));
+
+        // Assert
+        cut.Markup.Should().NotContain("Não tens instrumentos configurados", "modal should not show warning when instruments are configured");
+    }
 }

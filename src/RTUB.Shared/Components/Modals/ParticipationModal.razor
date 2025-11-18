@@ -49,11 +49,20 @@
                     <div class="mb-3 form-check form-switch">
                         <input class="form-check-input clickable-row" type="checkbox" id="wantToPlayToggle"
                                checked="@WantToPlay"
+                               disabled="@(!HasInstruments)"
                                @onchange="@((ChangeEventArgs e) => OnWantToPlayChanged((bool)e.Value!))">
                         <label class="form-check-label form-check-label-white-clickable" for="wantToPlayToggle">
                             Quero tocar
                         </label>
                     </div>
+
+                    @if (!HasInstruments)
+                    {
+                        <small class="text-warning d-block mb-3">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            Não tens instrumentos configurados. Podes registar a tua presença sem instrumento.
+                        </small>
+                    }
 
                     @if (WantToPlay)
                     {
@@ -78,13 +87,6 @@
                                     }
                                 }
                             </InputSelect>
-                            @if (AvailableInstruments != null && !AvailableInstruments.Any())
-                            {
-                                <small class="text-warning d-block mt-1">
-                                    <i class="bi bi-exclamation-triangle me-1"></i>
-                                    Não tens instrumentos configurados. Contacta um administrador para adicionar.
-                                </small>
-                            }
                         </div>
                     }
                 }
@@ -256,6 +258,11 @@
     /// </summary>
     [Parameter]
     public List<InstrumentType>? AvailableInstruments { get; set; }
+
+    /// <summary>
+    /// Whether the user has instruments configured
+    /// </summary>
+    private bool HasInstruments => AvailableInstruments == null || AvailableInstruments.Any();
 
     private async Task OnWantToPlayChanged(bool value)
     {
