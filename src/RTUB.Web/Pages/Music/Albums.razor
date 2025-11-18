@@ -16,7 +16,7 @@
 <h1 class="mb-2"><i class="bi bi-disc"></i> Música</h1>
 <p class="lead mb-4 text-light-theme">Discografia da RTUB</p>
 
-<AuthorizeView Roles="Owner">
+<AuthorizeView Roles="Owner,Mod">
     <Authorized>
         <div class="mb-3">
             <button class="btn btn-success" @onclick="OpenCreateModal" title="Criar Novo Álbum">
@@ -53,7 +53,7 @@ else
                                 <i class="bi bi-disc music-icon-large"></i>
                             </div>
                         }
-                        <AuthorizeView Roles="Owner">
+                        <AuthorizeView Roles="Owner,Mod">
                             <Authorized>
                                 <div class="admin-overlay">
                                     <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(album)" title="Editar">
@@ -315,10 +315,10 @@ else
     {
         if (editingAlbum == null) return;
 
-        // Check if user has Owner role
+        // Check if user has Owner or Mod role
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        if (!user.IsInRole("Owner"))
+        if (!user.IsInRole("Owner") && !user.IsInRole("Mod"))
         {
             return; // Unauthorized
         }
@@ -393,10 +393,10 @@ else
     {
         if (deletingAlbum == null) return;
 
-        // Check if user has Owner role
+        // Check if user has Owner or Mod role
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        if (!user.IsInRole("Owner"))
+        if (!user.IsInRole("Owner") && !user.IsInRole("Mod"))
         {
             return; // Unauthorized
         }

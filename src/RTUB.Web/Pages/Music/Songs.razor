@@ -45,7 +45,7 @@ else
         </div>
     </div>
 
-    <AuthorizeView Roles="Owner">
+    <AuthorizeView Roles="Owner,Mod">
         <Authorized>
             <div class="mb-3">
                 <button class="btn btn-success" @onclick="OpenCreateSongModal" title="Criar Nova Música">
@@ -78,7 +78,7 @@ else
             @foreach (var song in songs.OrderBy(s => s.TrackNumber))
             {
                 <SongCard Song="@song" 
-                         IsOwner="@isOwner"
+                         IsOwner="@canManageSongs"
                          OnPlay="@(() => PlaySong(song))"
                          OnViewLyric="@(() => OpenViewLyricsModal(song))"
                          OnViewLinks="@(() => OpenLinksModal(song))"
@@ -424,7 +424,7 @@ else
     private Song? viewingSong;
     private Song? deletingSong;
     private List<string> editingYouTubeUrls = new();
-    private bool isOwner = false;
+    private bool canManageSongs = false;
     
     // Audio player state
     private string? currentAudioUrl;
@@ -459,10 +459,10 @@ else
         
         await LoadSongs();
         
-        // Check if user is Owner
+        // Check if user is Owner or Mod
         var authStateForOwner = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var userForOwner = authStateForOwner.User;
-        isOwner = userForOwner.IsInRole("Owner");
+        canManageSongs = userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
     }
 
     private async Task LoadSongs()
@@ -623,10 +623,10 @@ else
     {
         if (editingSong == null) return;
 
-        // Check if user has Owner role
+        // Check if user has Owner or Mod role
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        if (!user.IsInRole("Owner"))
+        if (!user.IsInRole("Owner") && !user.IsInRole("Mod"))
         {
             return; // Unauthorized
         }
@@ -712,10 +712,10 @@ else
     {
         if (editingSong == null || string.IsNullOrWhiteSpace(editingSong.Title)) return;
 
-        // Check if user has Owner role
+        // Check if user has Owner or Mod role
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        if (!user.IsInRole("Owner"))
+        if (!user.IsInRole("Owner") && !user.IsInRole("Mod"))
         {
             return; // Unauthorized
         }
@@ -765,10 +765,10 @@ else
     {
         if (deletingSong == null) return;
 
-        // Check if user has Owner role
+        // Check if user has Owner or Mod role
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        if (!user.IsInRole("Owner"))
+        if (!user.IsInRole("Owner") && !user.IsInRole("Mod"))
         {
             return; // Unauthorized
         }

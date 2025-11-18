@@ -6,7 +6,7 @@
 *@
 
 <div class="card document-card h-100">
-    @* Admin Delete Button (top-right corner) *@
+    @* Admin and Mod Delete Button (top-right corner) *@
     @if (IsAdmin)
     {
         <div class="document-admin-overlay">
@@ -60,7 +60,7 @@
     public DocumentMetadata Document { get; set; } = null!;
     
     /// <summary>
-    /// Whether the current user is an admin
+    /// Whether the current user is an admin or mod
     /// </summary>
     [Parameter]
     public bool IsAdmin { get; set; }

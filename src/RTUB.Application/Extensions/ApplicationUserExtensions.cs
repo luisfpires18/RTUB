@@ -69,6 +69,20 @@ public static class ApplicationUserExtensions
     
     #endregion
     
+    #region Position Checkers
+    
+    /// <summary>
+    /// Checks if the user is part of the Treasury Team (PrimeiroTesoureiro or SegundoTesoureiro)
+    /// Used for financial report management permissions
+    /// </summary>
+    public static bool IsTreasuryTeam(this ApplicationUser user)
+    {
+        return user.Positions.Contains(Position.PrimeiroTesoureiro) || 
+               user.Positions.Contains(Position.SegundoTesoureiro);
+    }
+    
+    #endregion
+    
     #region Combined Checks
     
     /// <summary>

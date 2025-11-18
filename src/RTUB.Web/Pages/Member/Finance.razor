@@ -528,7 +528,7 @@
     /// <summary>
     /// Determines if the current user can create finance reports.
     /// Admin and Owner: always can create
-    /// Mod: can create only if they have PrimeiroTesoureiro or SegundoTesoureiro position
+    /// Mod: can create only if they are part of the Treasury Team (PrimeiroTesoureiro or SegundoTesoureiro position)
     /// </summary>
     private bool CanCreateReports()
     {
@@ -536,11 +536,10 @@
         if (isAdmin || isOwner)
             return true;
         
-        // Mod can create only if they have treasurer position
+        // Mod can create only if they are part of the Treasury Team
         if (isMod && currentAppUser != null)
         {
-            return currentAppUser.Positions.Contains(Position.PrimeiroTesoureiro) || 
-                   currentAppUser.Positions.Contains(Position.SegundoTesoureiro);
+            return currentAppUser.IsTreasuryTeam();
         }
         
         return false;

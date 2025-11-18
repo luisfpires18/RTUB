@@ -7,6 +7,7 @@
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
+@using RTUB.Core.Enums
 @using RTUB.Shared
 @using ReportEntity = RTUB.Core.Entities.Report
 @attribute [Authorize]
@@ -87,7 +88,7 @@ else
 
   <h3>Atividades</h3>
 
-    @if (!report.IsPublished && isAdmin)
+    @if (!report.IsPublished && CanCreateReports())
     {
         <div class="mb-3">
             <button class="btn btn-success" @onclick="OpenCreateActivityModal" title="Nova Atividade">
@@ -144,7 +145,7 @@ else
     <h5 class="text-danger">€@activity.TotalExpenses.ToString("N2")</h5>
      </div>
         <div class="col-md-4">
-   @if (!report.IsPublished && isAdmin)
+   @if (!report.IsPublished && CanCreateReports())
                  {
          <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditActivityModal(activity)">
       <i class="bi bi-pencil"></i> Editar
@@ -157,7 +158,7 @@ else
         </div>
 
    <h6>Transações</h6>
-   @if (!report.IsPublished && isAdmin)
+   @if (!report.IsPublished && CanCreateReports())
           {
           <button class="btn btn-sm btn-success mb-2" @onclick="() => OpenCreateTransactionModal(activity.Id)">
           <i class="bi bi-plus"></i> Nova Transação
@@ -224,7 +225,7 @@ else
                        CurrentSortColumn="@tableState.SortColumn"
                        IsSortAscending="@(!tableState.SortDescending)"
                        OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
-        @if (!report.IsPublished && isAdmin)
+        @if (!report.IsPublished && CanCreateReports())
             {
             <th>Ações</th>
      }
@@ -245,7 +246,7 @@ else
     <td class="@(transaction.Type == "Income" ? "text-success" : "text-danger")">
         @(transaction.Type == "Income" ? "+" : "-")€@transaction.Amount.ToString("N2")
     </td>
-          @if (!report.IsPublished && isAdmin)
+          @if (!report.IsPublished && CanCreateReports())
         {
              <td>
             <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditTransactionModal(transaction)" aria-label="Editar transação">
@@ -426,8 +427,10 @@ else
     private Dictionary<int, TransactionTableState> activityTableStates = new Dictionary<int, TransactionTableState>();
 
     private bool isAdmin = false;
+    private bool isOwner = false;
     private bool isMod = false;
     private string currentUserId = "";
+    private ApplicationUser? currentAppUser = null;
 
     private class TransactionTableState
     {
@@ -463,12 +466,14 @@ else
         if (user.Identity?.IsAuthenticated == true)
         {
             isAdmin = user.IsInRole("Admin");
+            isOwner = user.IsInRole("Owner");
             isMod = user.IsInRole("Mod");
             
             var appUser = await UserManager.GetUserAsync(user);
             if (appUser != null)
             {
                 currentUserId = appUser.Id;
+                currentAppUser = appUser;
             }
         }
         
@@ -476,6 +481,26 @@ else
         await LoadTransactions(); // Load transactions FIRST
      await LoadActivities();    // Then load activities (which recalculates totals using transactions)
   }
+
+    /// <summary>
+    /// Determines if the current user can create finance reports.
+    /// Admin and Owner: always can create
+    /// Mod: can create only if they are part of the Treasury Team (PrimeiroTesoureiro or SegundoTesoureiro position)
+    /// </summary>
+    private bool CanCreateReports()
+    {
+        // Admin and Owner always can create
+        if (isAdmin || isOwner)
+            return true;
+        
+        // Mod can create only if they are part of the Treasury Team
+        if (isMod && currentAppUser != null)
+        {
+            return currentAppUser.IsTreasuryTeam();
+        }
+        
+        return false;
+    }
 
     private async Task LoadActivities()
     {
