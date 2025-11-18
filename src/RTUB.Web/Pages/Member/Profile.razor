@@ -346,7 +346,9 @@ else
                                                          LabelCssClass="text-white-full"
                                                          @bind-Year="@editUser!.YearLeitao"
                                                          @bind-Month="@editUser!.MonthLeitao"
-                                                         @bind-Value="LeitaoDate" />
+                                                         @bind-Value="LeitaoDate"
+                                                         Disabled="@IsDatePairComplete(user.YearLeitao, user.MonthLeitao)"
+                                                         HelpText="@(IsDatePairComplete(user.YearLeitao, user.MonthLeitao) ? "Não podes alterar as datas. Se estão em erro, contacta o Magister." : null)" />
                                     </div>
                                     @if (!user.IsOnlyLeitao())
                                     {
@@ -356,7 +358,9 @@ else
                                                              LabelCssClass="text-white-full"
                                                              @bind-Year="@editUser!.YearCaloiro"
                                                              @bind-Month="@editUser!.MonthCaloiro"
-                                                             @bind-Value="CaloiroDate" />
+                                                             @bind-Value="CaloiroDate"
+                                                             Disabled="@IsDatePairComplete(user.YearCaloiro, user.MonthCaloiro)"
+                                                             HelpText="@(IsDatePairComplete(user.YearCaloiro, user.MonthCaloiro) ? "Não podes alterar as datas. Se estão em erro, contacta o Magister." : null)" />
                                         </div>
                                     }
                                     @if (user.IsTunoOrHigher())
@@ -367,7 +371,9 @@ else
                                                              LabelCssClass="text-white-full"
                                                              @bind-Year="@editUser!.YearTuno"
                                                              @bind-Month="@editUser!.MonthTuno"
-                                                             @bind-Value="TunoDate" />
+                                                             @bind-Value="TunoDate"
+                                                             Disabled="@IsDatePairComplete(user.YearTuno, user.MonthTuno)"
+                                                             HelpText="@(IsDatePairComplete(user.YearTuno, user.MonthTuno) ? "Não podes alterar as datas. Se estão em erro, contacta o Magister." : null)" />
                                         </div>
                                     }
                                 </div>
@@ -955,12 +961,26 @@ else
 
         user.Degree = editUser.Degree;
         user.MentorId = editUser.MentorId;
-        user.YearLeitao = editUser.YearLeitao;
-        user.MonthLeitao = editUser.MonthLeitao;
-        user.YearCaloiro = editUser.YearCaloiro;
-        user.MonthCaloiro = editUser.MonthCaloiro;
-        user.YearTuno = editUser.YearTuno;
-        user.MonthTuno = editUser.MonthTuno;
+        
+        // Backend security: Only update date pairs if they're not already complete in the database
+        // This prevents users from changing dates after they've been set once
+        if (!IsDatePairComplete(user.YearLeitao, user.MonthLeitao))
+        {
+            user.YearLeitao = editUser.YearLeitao;
+            user.MonthLeitao = editUser.MonthLeitao;
+        }
+        
+        if (!IsDatePairComplete(user.YearCaloiro, user.MonthCaloiro))
+        {
+            user.YearCaloiro = editUser.YearCaloiro;
+            user.MonthCaloiro = editUser.MonthCaloiro;
+        }
+        
+        if (!IsDatePairComplete(user.YearTuno, user.MonthTuno))
+        {
+            user.YearTuno = editUser.YearTuno;
+            user.MonthTuno = editUser.MonthTuno;
+        }
 
         await SetAuditContextToCurrentUser();
         await UserManager.UpdateAsync(user);
@@ -1180,6 +1200,15 @@ else
         {
             return (null, null);
         }
+    }
+    
+    /// <summary>
+    /// Checks if a date pair (Year + Month) is complete in the database.
+    /// A date pair is considered complete when BOTH year AND month have values.
+    /// </summary>
+    private bool IsDatePairComplete(int? year, int? month)
+    {
+        return year.HasValue && month.HasValue;
     }
 
 }

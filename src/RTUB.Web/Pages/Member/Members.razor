@@ -303,33 +303,51 @@ else
                 @if (showYearLeitao && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
+                        @{
+                            var leitaoComplete = !isCreateMode && IsDatePairComplete(editingUser.YearLeitao, editingUser.MonthLeitao);
+                            var leitaoDisabled = leitaoComplete && !CanEditDates;
+                        }
                         <MonthYearPicker Label="Entrada a Leitão"
                                          Icon="calendar-plus"
                                          @bind-Year="@editingUser.YearLeitao"
                                          @bind-Month="@editingUser.MonthLeitao"
-                                         @bind-Value="LeitaoDate" />
+                                         @bind-Value="LeitaoDate"
+                                         Disabled="@leitaoDisabled"
+                                         HelpText="@(leitaoDisabled ? "Não podes alterar as datas. Se estão em erro, contacta o Magister." : null)" />
                     </div>
                 }
 
                 @if (showYearCaloiro && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
+                        @{
+                            var caloiroComplete = !isCreateMode && IsDatePairComplete(editingUser.YearCaloiro, editingUser.MonthCaloiro);
+                            var caloiroDisabled = caloiroComplete && !CanEditDates;
+                        }
                         <MonthYearPicker Label="Passagem a Caloiro"
                                          Icon="calendar-event"
                                          @bind-Year="@editingUser.YearCaloiro"
                                          @bind-Month="@editingUser.MonthCaloiro"
-                                         @bind-Value="CaloiroDate" />
+                                         @bind-Value="CaloiroDate"
+                                         Disabled="@caloiroDisabled"
+                                         HelpText="@(caloiroDisabled ? "Não podes alterar as datas. Se estão em erro, contacta o Magister." : null)" />
                     </div>
                 }
 
                 @if (showYearTuno && !isFundador)
                 {
                     <div class="col-md-4 mb-3">
+                        @{
+                            var tunoComplete = !isCreateMode && IsDatePairComplete(editingUser.YearTuno, editingUser.MonthTuno);
+                            var tunoDisabled = tunoComplete && !CanEditDates;
+                        }
                         <MonthYearPicker Label="Passagem a Tuno"
                                          Icon="calendar-check"
                                          @bind-Year="@editingUser.YearTuno"
                                          @bind-Month="@editingUser.MonthTuno"
-                                         @bind-Value="TunoDate" />
+                                         @bind-Value="TunoDate"
+                                         Disabled="@tunoDisabled"
+                                         HelpText="@(tunoDisabled ? "Não podes alterar as datas. Se estão em erro, contacta o Magister." : null)" />
                     </div>
                 }
             </div>
@@ -770,6 +788,10 @@ else
     // Authorization flags
     private bool isAdmin = false;
     private bool isOwner = false;
+    private bool currentUserIsMagister = false;
+    
+    // Computed flag: Can the current user edit dates?
+    private bool CanEditDates => isOwner || currentUserIsMagister;
 
     protected override async Task OnInitializedAsync()
     {
@@ -783,6 +805,25 @@ else
         var user = authState.User;
         isAdmin = user.IsInRole("Admin");
         isOwner = user.IsInRole("Owner");
+        
+        if (isAdmin)
+        {
+            var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var currentUser = await UserManager.FindByIdAsync(userId);
+                if (currentUser != null)
+                {
+                    // Check if current user has Magister position in current fiscal year
+                    var currentFiscalYearStartYear = FiscalYearHelper.GetCurrentFiscalYearStartYear();
+                    var userAssignments = await RoleAssignmentService.GetAllRoleAssignmentsAsync();
+                    currentUserIsMagister = userAssignments.Any(ra => 
+                        ra.UserId == userId && 
+                        ra.Position == Position.Magister && 
+                        ra.StartYear == currentFiscalYearStartYear);
+                }
+            }
+        }
     }
 
     private async Task LoadMembers()
@@ -1462,12 +1503,65 @@ else
                 existingUser.City = editingUser.City;
                 existingUser.DateOfBirth = editingUser.DateOfBirth;
                 existingUser.Degree = editingUser.Degree;
-                existingUser.YearLeitao = editingUser.YearLeitao;
-                existingUser.MonthLeitao = editingUser.MonthLeitao;
-                existingUser.YearCaloiro = editingUser.YearCaloiro;
-                existingUser.MonthCaloiro = editingUser.MonthCaloiro;
-                existingUser.YearTuno = editingUser.YearTuno;
-                existingUser.MonthTuno = editingUser.MonthTuno;
+                
+                // Backend security: Only allow Owner/Magister to modify complete date pairs
+                // This prevents unauthorized date modifications even if UI is bypassed
+                // Incomplete date pairs can be updated by anyone to allow completion
+                
+                // Leitao date pair
+                if (IsDatePairComplete(existingUser.YearLeitao, existingUser.MonthLeitao))
+                {
+                    // Complete pair - only Owner/Magister can modify
+                    if (CanEditDates)
+                    {
+                        existingUser.YearLeitao = editingUser.YearLeitao;
+                        existingUser.MonthLeitao = editingUser.MonthLeitao;
+                    }
+                    // else keep existing values (ignore changes)
+                }
+                else
+                {
+                    // Incomplete pair - allow update to complete it
+                    existingUser.YearLeitao = editingUser.YearLeitao;
+                    existingUser.MonthLeitao = editingUser.MonthLeitao;
+                }
+                
+                // Caloiro date pair
+                if (IsDatePairComplete(existingUser.YearCaloiro, existingUser.MonthCaloiro))
+                {
+                    // Complete pair - only Owner/Magister can modify
+                    if (CanEditDates)
+                    {
+                        existingUser.YearCaloiro = editingUser.YearCaloiro;
+                        existingUser.MonthCaloiro = editingUser.MonthCaloiro;
+                    }
+                    // else keep existing values (ignore changes)
+                }
+                else
+                {
+                    // Incomplete pair - allow update to complete it
+                    existingUser.YearCaloiro = editingUser.YearCaloiro;
+                    existingUser.MonthCaloiro = editingUser.MonthCaloiro;
+                }
+                
+                // Tuno date pair
+                if (IsDatePairComplete(existingUser.YearTuno, existingUser.MonthTuno))
+                {
+                    // Complete pair - only Owner/Magister can modify
+                    if (CanEditDates)
+                    {
+                        existingUser.YearTuno = editingUser.YearTuno;
+                        existingUser.MonthTuno = editingUser.MonthTuno;
+                    }
+                    // else keep existing values (ignore changes)
+                }
+                else
+                {
+                    // Incomplete pair - allow update to complete it
+                    existingUser.YearTuno = editingUser.YearTuno;
+                    existingUser.MonthTuno = editingUser.MonthTuno;
+                }
+                
                 existingUser.MentorId = editingUser.MentorId;
                 
                 // Special handling for Fundador: set YearTuno to 1991, clear YearLeitao and YearCaloiro
@@ -1825,6 +1919,16 @@ else
         {
             isSavingNickname = false;
         }
+    }
+    
+    /// <summary>
+    /// Checks if a date pair (Year + Month) is complete.
+    /// A date pair is considered complete when BOTH year AND month have values.
+    /// Used to determine if date fields should be disabled for non-owner/non-magister users.
+    /// </summary>
+    private bool IsDatePairComplete(int? year, int? month)
+    {
+        return year.HasValue && month.HasValue;
     }
 }
 

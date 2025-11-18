@@ -61,6 +61,12 @@ input::placeholder, textarea::placeholder, select::placeholder {
     opacity: 0.7;
 }
 
+.form-select:disabled {
+    background-color: #212121;
+    color: #fff;
+    opacity: 0.7;
+}
+
 /* File input styling - dark text for "Choose File" button */
 input[type="file"].form-control {
   color: #fff;
