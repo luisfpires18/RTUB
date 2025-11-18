@@ -171,6 +171,7 @@ else
                 <label class="form-label">Selecionar Função</label>
                 <select class="form-select" @bind="selectedRoleInModal">
                     <option value="Member">Member</option>
+                    <option value="Mod">Mod</option>
                     <option value="Admin">Admin</option>
                     <option value="Owner">Owner</option>
                 </select>
@@ -178,6 +179,7 @@ else
                 <div class="mt-3">
                     <small class="text-muted">
                         <strong>Member:</strong> Acesso básico aos recursos da aplicação.<br/>
+                        <strong>Mod:</strong> Acesso moderado incluindo gestão de inventário, loja e logística.<br/>
                         <strong>Admin:</strong> Acesso a funcionalidades administrativas.<br/>
                         <strong>Owner:</strong> Acesso total incluindo gestão de utilizadores.
                     </small>
@@ -413,8 +415,9 @@ else
         // Lower number = higher priority
         if (roles.Contains("Owner")) return 1;
         if (roles.Contains("Admin")) return 2;
-        if (roles.Contains("Member")) return 3;
-        return 4; // No role
+        if (roles.Contains("Mod")) return 3;
+        if (roles.Contains("Member")) return 4;
+        return 5; // No role
     }
 
     protected override Dictionary<string, Func<ApplicationUser, IComparable>> GetSortColumnSelectors()
@@ -444,9 +447,10 @@ else
 
     private string GetPrimaryRole(List<string> roles)
     {
-        // Priority: Owner > Admin > Member
+        // Priority: Owner > Admin > Mod > Member
         if (roles.Contains("Owner")) return "Owner";
         if (roles.Contains("Admin")) return "Admin";
+        if (roles.Contains("Mod")) return "Mod";
         if (roles.Contains("Member")) return "Member";
         return "Sem Função";
     }

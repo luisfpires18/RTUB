@@ -532,7 +532,7 @@ else
             }
             
             <!-- Add Member Section (Admin Only for Past Events) -->
-            @if (isUserAdmin && !IsCaloiroAdmin() && selectedEvent.Date.Date < DateTime.Today)
+            @if (isUserAdmin && selectedEvent.Date.Date < DateTime.Today)
             {
                 <div class="mt-3">
                     <!-- Success Alert (auto-dismiss) -->
@@ -1541,8 +1541,8 @@ else
         // Calculate primary and other instrument counts
         await CalculateInstrumentCountsAsync();
         
-        // Load all members for adding if admin (not Caloiro) AND it's a past event
-        if (isUserAdmin && !IsCaloiroAdmin() && eventItem.Date.Date < DateTime.Today)
+        // Load all members for adding if admin AND it's a past event
+        if (isUserAdmin && eventItem.Date.Date < DateTime.Today)
         {
             allMembersForEnrollment = UserManager.Users.ToList();
             filteredAvailableMembersForEnrollment = new List<ApplicationUser>();
@@ -2214,40 +2214,27 @@ else
     }
     
     /// <summary>
-    /// Determines if the current user is a Caloiro with Admin role.
-    /// These users have restricted permissions compared to other Admins.
-    /// </summary>
-    private bool IsCaloiroAdmin()
-    {
-        if (currentUser == null) return false;
-        return currentUser.IsCaloiro() && isUserAdmin && !isUserOwner;
-    }
-    
-    /// <summary>
     /// Determines if the delete action should be available for events.
-    /// Hidden from Caloiro Admins.
     /// </summary>
     private bool CanDeleteEvent()
     {
-        return isUserAdmin && !IsCaloiroAdmin();
+        return isUserAdmin;
     }
     
     /// <summary>
     /// Determines if the cancel action should be available for events.
-    /// Hidden from Caloiro Admins.
     /// </summary>
     private bool CanCancelEvent()
     {
-        return isUserAdmin && !IsCaloiroAdmin();
+        return isUserAdmin;
     }
     
     /// <summary>
     /// Determines if the delete action should be available for enrollments.
-    /// Hidden from Caloiro Admins.
     /// </summary>
     private bool CanDeleteEnrollment()
     {
-        return isUserAdmin && !IsCaloiroAdmin();
+        return isUserAdmin;
     }
     
     // Add Member to Enrollment Methods (for past events)

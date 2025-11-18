@@ -25,15 +25,14 @@
 <h1 class="mb-2"><i class="bi bi-currency-euro"></i> Finanças</h1>
 <p class="lead mb-4 text-light-theme">Relatórios financeiros anuais.</p>
 
-    <AuthorizeView Roles="Admin">
-        <Authorized>
-            <div class="mb-3">
-                <button class="btn btn-success mb-2" @onclick="OpenCreateModal" title="Adicionar Relatório">
-                    <i class="bi bi-plus-lg"></i>
-                </button>
-            </div>
-        </Authorized>
-    </AuthorizeView>
+    @if (CanCreateReports())
+    {
+        <div class="mb-3">
+            <button class="btn btn-success mb-2" @onclick="OpenCreateModal" title="Adicionar Relatório">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+    }
 
     <div class="row mb-3">
         <div class="col-md-6">
@@ -188,9 +187,11 @@
     
     private bool isAdmin = false;
     private bool isOwner = false;
+    private bool isMod = false;
     private bool isLeitao = false;
     private bool canPublishReports = false;
     private string currentUserId = "";
+    private ApplicationUser? currentAppUser = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -210,11 +211,13 @@
         {
             isAdmin = user.IsInRole("Admin");
             isOwner = user.IsInRole("Owner");
+            isMod = user.IsInRole("Mod");
             
             var appUser = await UserManager.GetUserAsync(user);
             if (appUser != null)
             {
                 currentUserId = appUser.Id;
+                currentAppUser = appUser;
                 isLeitao = appUser.IsLeitao();
                 
                 // Determine if user can publish reports
@@ -223,10 +226,10 @@
                                    appUser.Positions.Contains(Position.SegundoTesoureiro);
                 
                 // Check access permission for Gestão pages (Finance is in Gestão)
-                if (!isOwner && !isAdmin)
+                if (!isOwner && !isAdmin && !isMod)
                 {
                     // Block Leitão members (already blocked via isLeitao check below)
-                    // Block Caloiro members who are not Admin
+                    // Block Caloiro members who are not Admin or Mod
                     if (appUser.IsCaloiro())
                     {
                         NavigationManager.NavigateTo("/");
@@ -520,5 +523,26 @@
         {
             Console.WriteLine($"Error generating PDF: {ex.Message}");
         }
+    }
+    
+    /// <summary>
+    /// Determines if the current user can create finance reports.
+    /// Admin and Owner: always can create
+    /// Mod: can create only if they have PrimeiroTesoureiro or SegundoTesoureiro position
+    /// </summary>
+    private bool CanCreateReports()
+    {
+        // Admin and Owner always can create
+        if (isAdmin || isOwner)
+            return true;
+        
+        // Mod can create only if they have treasurer position
+        if (isMod && currentAppUser != null)
+        {
+            return currentAppUser.Positions.Contains(Position.PrimeiroTesoureiro) || 
+                   currentAppUser.Positions.Contains(Position.SegundoTesoureiro);
+        }
+        
+        return false;
     }
 }

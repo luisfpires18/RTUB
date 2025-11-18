@@ -426,7 +426,7 @@ else
     private Dictionary<int, TransactionTableState> activityTableStates = new Dictionary<int, TransactionTableState>();
 
     private bool isAdmin = false;
-    private bool isOwner = false;
+    private bool isMod = false;
     private string currentUserId = "";
 
     private class TransactionTableState
@@ -463,7 +463,7 @@ else
         if (user.Identity?.IsAuthenticated == true)
         {
             isAdmin = user.IsInRole("Admin");
-            isOwner = user.IsInRole("Owner");
+            isMod = user.IsInRole("Mod");
             
             var appUser = await UserManager.GetUserAsync(user);
             if (appUser != null)

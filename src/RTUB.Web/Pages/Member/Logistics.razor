@@ -24,7 +24,7 @@
                 <h1 class="mb-2"><i class="bi bi-kanban"></i> Logística</h1>
                 <p class="lead mb-4 text-light-theme">Gestão de boards de tarefas e atuações.</p>
             </div>
-            <AuthorizeView Roles="Admin">
+            <AuthorizeView Roles="Admin,Owner,Mod">
                 <Authorized>
                     <button class="btn btn-success" @onclick="OpenCreateBoardModal">
                         <i class="bi bi-plus-lg"></i> Criar Quadro
@@ -65,7 +65,7 @@
                         {
                             <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
                                 <BoardCard Board="@board"
-                                           ShowActions="@isAdmin"
+                                           ShowActions="@canDoAction"
                                            OnView="@(() => Navigation.NavigateTo($"/logistics/{board.Id}"))"
                                            OnEdit="@(() => OpenEditBoardModal(board))"
                                            OnDelete="@(() => OpenDeleteBoardModal(board))" />
@@ -212,7 +212,9 @@
     private int pageSize = 4;
     private int totalCount = 0;
     private string searchTerm = string.Empty;
+    private bool isMod = false;
     private bool isAdmin = false;
+    private bool canDoAction = false;
 
     // Board modal state
     private bool showBoardModal = false;
@@ -240,12 +242,13 @@
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
+        isMod = user.IsInRole("Mod");
         isAdmin = user.IsInRole("Admin");
-        var isOwner = user.IsInRole("Owner");
+        canDoAction = isMod || isAdmin;
         
         // Check access permission for Gestão pages
         var currentUser = await UserManager.GetUserAsync(user);
-        if (currentUser != null && !isOwner && !isAdmin)
+        if (currentUser != null && !isAdmin && !isMod)
         {
             // Block Leitão members
             if (currentUser.IsLeitao())
@@ -254,12 +257,6 @@
                 return;
             }
             
-            // Block Caloiro members who are not Admin
-            if (currentUser.IsCaloiro())
-            {
-                Navigation.NavigateTo("/");
-                return;
-            }
         }
     }
 

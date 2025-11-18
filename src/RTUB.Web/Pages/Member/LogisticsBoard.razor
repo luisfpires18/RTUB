@@ -121,10 +121,10 @@
                             <div class="kanban-cards" data-list-id="@list.Id">
                                 @foreach (var card in GetFilteredCards(list.Cards))
                                 {
-                                    <div class="kanban-card @GetCardStatusClass(card.Status) @(isAdmin ? "clickable" : "")" 
+                                    <div class="kanban-card @GetCardStatusClass(card.Status) @(isAdmin || isMod ? "clickable" : "")" 
                                          data-card-id="@card.Id" 
                                          draggable="true"
-                                         @onclick="() => { if (isAdmin) OpenCardDetailsModal(card); }">
+                                         @onclick="() => { if (isAdmin || isMod) OpenCardDetailsModal(card); }">
                                         <div class="card-status-bar @GetCardStatusBarClass(card.Status)">
                                             <i class="bi bi-@GetCardStatusIcon(card.Status) me-1"></i>
                                             @GetCardStatusText(card.Status)
@@ -696,6 +696,7 @@
     private List<FileItem>? uploadedFiles;
     private IBrowserFile? selectedFile;
     private const long MaxFileSize = 10 * 1024 * 1024; // 10MB
+    private bool isMod = false;
     private bool isAdmin = false;
     private List<ApplicationUser>? filteredMembersForAssignment => users?.Where(u => 
         !string.IsNullOrEmpty(memberSearchTerm) && 
@@ -727,6 +728,7 @@
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
+        isMod = user.IsInRole("Mod");
         isAdmin = user.IsInRole("Admin");
     }
 

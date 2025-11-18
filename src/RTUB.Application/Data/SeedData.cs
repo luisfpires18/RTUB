@@ -24,8 +24,8 @@ public static partial class SeedData
             return; // Data already exists, skip seeding
         }
 
-        // Ensure roles exist (OWNER, ADMIN, and MEMBER)
-        string[] roles = new[] { "Owner", "Admin", "Member" };
+        // Ensure roles exist (OWNER, ADMIN, MOD, and MEMBER)
+        string[] roles = new[] { "Owner", "Admin", "Mod", "Member" };
         foreach (var role in roles)
         {
             if (!await roleManager.RoleExistsAsync(role))

@@ -287,13 +287,6 @@ else
                         Navigation.NavigateTo("/");
                         return;
                     }
-                    
-                    // Block Caloiro members who are not Admin
-                    if (currentUser.IsCaloiro())
-                    {
-                        Navigation.NavigateTo("/");
-                        return;
-                    }
                 }
             }
         }
@@ -479,22 +472,11 @@ else
     }
     
     /// <summary>
-    /// Determines if the current user is a Caloiro with Admin role.
-    /// These users have restricted permissions compared to other Admins.
-    /// </summary>
-    private bool IsCaloiroAdmin()
-    {
-        if (currentUser == null) return false;
-        return currentUser.IsCaloiro() && isAdmin && !isOwner;
-    }
-    
-    /// <summary>
     /// Determines if approve/refuse actions should be available.
-    /// Hidden from Caloiro Admins.
     /// </summary>
     private bool CanApproveRefuseRequests()
     {
-        return isAdmin && !IsCaloiroAdmin();
+        return isAdmin;
     }
 }
 

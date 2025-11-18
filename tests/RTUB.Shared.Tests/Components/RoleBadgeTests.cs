@@ -50,6 +50,29 @@ public class RoleBadgeTests : TestContext
     }
 
     [Fact]
+    public void RoleBadge_RendersModWithIcon()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<RoleBadge>(parameters => parameters
+            .Add(p => p.Role, "Mod"));
+
+        // Assert
+        cut.Markup.Should().Contain("Mod", "Mod role should display 'Mod' text");
+        cut.Markup.Should().Contain("bi-shield-check", "Mod role should display shield-check icon");
+    }
+
+    [Fact]
+    public void RoleBadge_AppliesWarningClass_ForModRole()
+    {
+        // Arrange & Act
+        var cut = RenderComponent<RoleBadge>(parameters => parameters
+            .Add(p => p.Role, "Mod"));
+
+        // Assert
+        cut.Markup.Should().Contain("bg-warning", "Mod role should have warning (yellow/orange) background");
+    }
+
+    [Fact]
     public void RoleBadge_HasBadgeClass()
     {
         // Arrange & Act
@@ -133,6 +156,7 @@ public class RoleBadgeTests : TestContext
     [Theory]
     [InlineData("Owner", "bi-star-fill", "Owner", "bg-danger")]
     [InlineData("Admin", "bi-shield-fill", "Admin", "bg-success")]
+    [InlineData("Mod", "bi-shield-check", "Mod", "bg-warning")]
     [InlineData("Member", "bi-person-fill", "Member", "#007bff")]
     public void RoleBadge_AppliesCorrectIconAndClass_ForEachRole(string role, string expectedIcon, string expectedText, string expectedClassOrColor)
     {

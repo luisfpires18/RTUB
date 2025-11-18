@@ -83,17 +83,25 @@
                                 </button>
                                 <ul class="dropdown-menu" aria-labelledby="managementDropdown">
                                     <li><NavLink class="dropdown-item" href="/meetings"><i class="bi bi-calendar3"></i> Reuniões</NavLink></li>
-                                    <li><NavLink class="dropdown-item" href="/documentation"><i class="bi bi-file-earmark-text"></i> Documentação</NavLink></li>
-                                    <li><NavLink class="dropdown-item" href="/logistics"><i class="bi bi-kanban"></i> Logística</NavLink></li>
-                                    <li><NavLink class="dropdown-item" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
-                                    <li><NavLink class="dropdown-item" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                                    @if (ShowBeVisibleToModAdminAndTunoOnly())
+                                    {
+                                        <li><NavLink class="dropdown-item" href="/documentation"><i class="bi bi-file-earmark-text"></i> Documentação</NavLink></li>
+                                        <li><NavLink class="dropdown-item" href="/logistics"><i class="bi bi-kanban"></i> Logística</NavLink></li>
+                                        <li><NavLink class="dropdown-item" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
+                                    }
+
+                                    @if (ShowBeVisibleToAdminOnly())
+                                    {
+                                        <li><NavLink class="dropdown-item" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                                    }
+                              
                                 </ul>
                             </li>
                         }
                     </Authorized>
                 </AuthorizeView>
 
-                @if (ShowBeVisibleToTunoOnly())
+                @if (ShowBeVisibleToAdminOnly())
                 {
                 <AuthorizeView Roles="Admin,Owner">
                     <Authorized Context="adminOwnerAuth">
@@ -256,10 +264,10 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadCurrentUser();
-        
+
         // Subscribe to profile picture updates
         ProfilePictureUpdateService.OnProfilePictureUpdated += HandleProfilePictureUpdated;
-        
+
         // Subscribe to location changes
         NavigationManager.LocationChanged += HandleLocationChanged;
         _lastLocation = NavigationManager.Uri;
@@ -278,26 +286,26 @@
     {
         // Debounce to avoid double fires
         _debounceTimer?.Dispose();
-        
+
         _debounceTimer = new System.Threading.Timer(_ =>
         {
             try
             {
                 var newLocation = e.Location;
-                
+
                 // Check if we have a valid previous location
                 if (string.IsNullOrEmpty(_lastLocation))
                 {
                     _lastLocation = newLocation;
                     return;
                 }
-                
+
                 var oldUri = new Uri(_lastLocation);
                 var newUri = new Uri(newLocation);
-                
+
                 // Check if it's a hash change only (same path)
                 bool isHashChangeOnly = oldUri.GetLeftPart(UriPartial.Path) == newUri.GetLeftPart(UriPartial.Path);
-                
+
                 // Reload user when navigating away from profile page (avatar may have changed)
                 if (_lastLocation.Contains("/profile", StringComparison.OrdinalIgnoreCase) && 
                     !newLocation.Contains("/profile", StringComparison.OrdinalIgnoreCase))
@@ -308,14 +316,14 @@
                         StateHasChanged();
                     });
                 }
-                
+
                 // Only scroll if it's not a hash-only change and not the first render
                 if (!isHashChangeOnly && !_isFirstRender)
                 {
                     // Fire-and-forget is intentional here; we don't need to wait for scroll completion
                     _ = JSRuntime.InvokeVoidAsync("scrollToTop.scrollInstant");
                 }
-                
+
                 _lastLocation = newLocation;
             }
             catch
@@ -338,7 +346,7 @@
             var nameClaim = claimsPrincipal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
 
             ApplicationUser? user = null;
-            
+
             // Try to find by username first
             if (!string.IsNullOrEmpty(userName))
             {
@@ -360,7 +368,7 @@
             {
                 user = await UserManager.FindByIdAsync(nameIdentifierClaim);
             }
-            
+
             // Reload the user to ensure we have the latest data from database
             if (user != null)
             {
@@ -393,67 +401,68 @@
         ProfilePictureUpdateService.OnProfilePictureUpdated -= HandleProfilePictureUpdated;
         _debounceTimer?.Dispose();
     }
-    
+
     /// <summary>
     /// Determines if the "Gestão" dropdown should be shown to the current user.
     /// Visibility rules:
-    /// - LEITÃO + MEMBER: HIDE
+    /// - LEITÃO: HIDE (always)
     /// - CALOIRO + MEMBER: HIDE
     /// - CALOIRO + ADMIN: SHOW
-    /// - TUNO + MEMBER: SHOW
-    /// - TUNO + ADMIN: SHOW
+    /// - CALOIRO + MOD: SHOW
+    /// - TUNO + any role: SHOW
+    /// - Admin: SHOW (always)
+    /// - Mod: SHOW (always)
     /// - Owner: SHOW (always)
     /// </summary>
     private bool ShouldShowGestaoDropdown()
     {
-        if (currentUser == null) return false;
-        
-        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
-        var isAdmin = authState.User.IsInRole("Admin");
-        var isOwner = authState.User.IsInRole("Owner");
-        
-        // Owner always sees it
-        if (isOwner) return true;
-        
-        // Leitão never sees it (even if admin, though that shouldn't happen)
-        if (currentUser.IsLeitao()) return false;
-        
-        // Caloiro sees it only if Admin
-        if (currentUser.IsCaloiro())
+        if (currentUser == null)
         {
-            return isAdmin;
+            return false;
         }
-        
-        // Tuno and higher categories always see it
-        if (currentUser.IsTuno() || currentUser.IsVeterano() || currentUser.IsTunossauro())
+
+        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
+        var user = authState.User;
+
+        // Admin / Owner / Mod always see it
+        if (user.IsInRole("Admin") || user.IsInRole("Owner") || user.IsInRole("Mod"))
         {
             return true;
         }
-        
-        // For any other categories (e.g., TunoHonorario, Fundador), show if Admin or Member
-        // Default to showing for authenticated members who aren't Leitão or Caloiro
-        return true;
+
+        // Everyone else except Leitão sees it
+        return !currentUser.IsLeitao();
     }
-    
+
+
     /// <summary>
     /// Determines if the "Images" menu item should be shown.
-    /// Hidden from Caloiro users even if they are Admin.
-    /// Shown to: Admin who are NOT Caloiro, Owner.
+    /// Shown to: Admin and Owner.
     /// </summary>
-    private bool ShowBeVisibleToTunoOnly()
+    private bool ShowBeVisibleToAdminOnly()
+    {
+        if (currentUser == null) return false;
+
+        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
+        var isAdmin = authState.User.IsInRole("Admin");
+        
+        return isAdmin;
+    }
+
+    /// <summary>
+    /// Determines if the "Images" menu item should be shown.
+    /// Shown to: Admin and Owner.
+    /// </summary>
+    private bool ShowBeVisibleToModAdminAndTunoOnly()
     {
         if (currentUser == null) return false;
         
         var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
+        var user = authState.User;
+        var isTuno = currentUser.IsTuno();
+        var isMod = authState.User.IsInRole("Mod");
         var isAdmin = authState.User.IsInRole("Admin");
-        var isOwner = authState.User.IsInRole("Owner");
         
-        // Show to Owner regardless of category
-        if (isOwner) return true;
-        
-        // Show to Admin who are NOT Caloiro
-        if (isAdmin && !currentUser.IsCaloiro()) return true;
-        
-        return false;
+        return isAdmin || isMod || isTuno;
     }
 }

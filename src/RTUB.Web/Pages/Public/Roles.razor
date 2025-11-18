@@ -23,7 +23,7 @@
 <p class="lead mb-4 text-light-theme">Estrutura organizacional e órgãos sociais da RTUB por ano letivo.</p>
 
 @* Admin Add button (top-left, green) *@
-<AuthorizeView Roles="Admin">
+<AuthorizeView Roles="Mod,Admin">
     <Authorized>
         <div class="mb-3">
             <button class="btn btn-success mb-2" @onclick="OpenCreateFiscalYearModal" title="Adicionar Ano Letivo">
@@ -56,7 +56,7 @@ else
     </div>
 
     @* RGI Section - Visible only to MEMBER and ADMIN *@
-    <AuthorizeView Roles="Member,Admin">
+    <AuthorizeView Roles="Member,Mod,Admin">
         <section class="mb-4">
             <div class="text-center">
                 <h4 class="mb-3">Verifica os regulamentos gerais internos</h4>
@@ -104,7 +104,7 @@ else
                             {
                                 <div class="text-light-theme">@magister.User.FirstName @magister.User.LastName</div>
                             }
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Mod,Admin">
                                 <Authorized>
                                     <div class="admin-action-chips mt-2">
                                         <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveAssignment(magister.Id)" title="Remover">
@@ -118,7 +118,7 @@ else
                     else
                     {
                         <div class="not-available-text">N/D</div>
-                        <AuthorizeView Roles="Admin">
+                        <AuthorizeView Roles="Mod,Admin">
                             <Authorized>
                                 <div class="admin-action-chips mt-2">
                                     <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.Magister, "Magister"))" title="Adicionar">
@@ -146,7 +146,7 @@ else
                             {
                                 <div class="text-light-theme">@viceMagister.User.FirstName @viceMagister.User.LastName</div>
                             }
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Mod,Admin">
                                 <Authorized>
                                     <div class="admin-action-chips mt-2">
                                         <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(viceMagister.Id))" title="Remover">
@@ -160,7 +160,7 @@ else
                     else
                     {
                         <div class="not-available-text">N/D</div>
-                        <AuthorizeView Roles="Admin">
+                        <AuthorizeView Roles="Mod,Admin">
                             <Authorized>
                                 <div class="admin-action-chips mt-2">
                                     <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.ViceMagister, "Vice-Magister"))" title="Adicionar">
@@ -189,7 +189,7 @@ else
                                 {
                                     <div class="text-light-theme">@secretario.User.FirstName @secretario.User.LastName</div>
                                 }
-                                <AuthorizeView Roles="Admin">
+                                <AuthorizeView Roles="Mod,Admin">
                                     <Authorized>
                                         <div class="admin-action-chips mt-2">
                                             <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(secretario.Id))" title="Remover">
@@ -203,7 +203,7 @@ else
                         else
                         {
                             <div class="not-available-text">N/D</div>
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Mod,Admin">
                                 <Authorized>
                                     <div class="admin-action-chips mt-2">
                                         <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.Secretario, "Secretário"))" title="Adicionar">
@@ -229,7 +229,7 @@ else
                                 {
                                     <div class="text-light-theme">@tesoureiro1.User.FirstName @tesoureiro1.User.LastName</div>
                                 }
-                                <AuthorizeView Roles="Admin">
+                                <AuthorizeView Roles="Mod,Admin">
                                     <Authorized>
                                         <div class="admin-action-chips mt-2">
                                             <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(tesoureiro1.Id))" title="Remover">
@@ -243,7 +243,7 @@ else
                         else
                         {
                             <div class="not-available-text">N/D</div>
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Mod,Admin">
                                 <Authorized>
                                     <div class="admin-action-chips mt-2">
                                         <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.PrimeiroTesoureiro, "1º Tesoureiro"))" title="Adicionar">
@@ -269,7 +269,7 @@ else
                                 {
                                     <div class="text-light-theme">@tesoureiro2.User.FirstName @tesoureiro2.User.LastName</div>
                                 }
-                                <AuthorizeView Roles="Admin">
+                                <AuthorizeView Roles="Mod,Admin">
                                     <Authorized>
                                         <div class="admin-action-chips mt-2">
                                             <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(tesoureiro2.Id))" title="Remover">
@@ -283,7 +283,7 @@ else
                         else
                         {
                             <div class="not-available-text">N/D</div>
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Mod,Admin">
                                 <Authorized>
                                     <div class="admin-action-chips mt-2">
                                         <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.SegundoTesoureiro, "2º Tesoureiro"))" title="Adicionar">
@@ -328,7 +328,7 @@ else
                             {
                                 <div class="text-light-theme">@presidenteMA.User.FirstName @presidenteMA.User.LastName</div>
                             }
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Mod,Admin">
                                 <Authorized>
                                     <div class="admin-action-chips mt-2">
                                         <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(presidenteMA.Id))" title="Remover">
@@ -342,7 +342,7 @@ else
                     else
                     {
                         <div class="not-available-text">N/D</div>
-                        <AuthorizeView Roles="Admin">
+                        <AuthorizeView Roles="Mod,Admin">
                             <Authorized>
                                 <div class="admin-action-chips mt-2">
                                     <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.PresidenteMesaAssembleia, "Presidente Mesa Assembleia"))" title="Adicionar">
@@ -371,7 +371,7 @@ else
                                 {
                                     <div class="text-light-theme">@secretario1MA.User.FirstName @secretario1MA.User.LastName</div>
                                 }
-                                <AuthorizeView Roles="Admin">
+                                <AuthorizeView Roles="Mod,Admin">
                                     <Authorized>
                                         <div class="admin-action-chips mt-2">
                                             <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(secretario1MA.Id))" title="Remover">
@@ -385,7 +385,7 @@ else
                         else
                         {
                             <div class="not-available-text">N/D</div>
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Mod,Admin">
                                 <Authorized>
                                     <div class="admin-action-chips mt-2">
                                         <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.PrimeiroSecretarioMesaAssembleia, "1º Secretário Mesa Assembleia"))" title="Adicionar">
@@ -411,7 +411,7 @@ else
                                 {
                                     <div class="text-light-theme">@secretario2MA.User.FirstName @secretario2MA.User.LastName</div>
                                 }
-                                <AuthorizeView Roles="Admin">
+                                <AuthorizeView Roles="Mod,Admin">
                                     <Authorized>
                                         <div class="admin-action-chips mt-2">
                                             <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(secretario2MA.Id))" title="Remover">
@@ -425,7 +425,7 @@ else
                         else
                         {
                             <div class="not-available-text">N/D</div>
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Mod,Admin">
                                 <Authorized>
                                     <div class="admin-action-chips mt-2">
                                         <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.SegundoSecretarioMesaAssembleia, "2º Secretário Mesa Assembleia"))" title="Adicionar">
@@ -470,7 +470,7 @@ else
                             {
                                 <div class="text-light-theme">@presidenteCF.User.FirstName @presidenteCF.User.LastName</div>
                             }
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Mod,Admin">
                                 <Authorized>
                                     <div class="admin-action-chips mt-2">
                                         <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(presidenteCF.Id))" title="Remover">
@@ -484,7 +484,7 @@ else
                     else
                     {
                         <div class="not-available-text">N/D</div>
-                        <AuthorizeView Roles="Admin">
+                        <AuthorizeView Roles="Mod,Admin">
                             <Authorized>
                                 <div class="admin-action-chips mt-2">
                                     <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.PresidenteConselhoFiscal, "Presidente Conselho Fiscal"))" title="Adicionar">
@@ -513,7 +513,7 @@ else
                                 {
                                     <div class="text-light-theme">@relator1CF.User.FirstName @relator1CF.User.LastName</div>
                                 }
-                                <AuthorizeView Roles="Admin">
+                                <AuthorizeView Roles="Mod,Admin">
                                     <Authorized>
                                         <div class="admin-action-chips mt-2">
                                             <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(relator1CF.Id))" title="Remover">
@@ -527,7 +527,7 @@ else
                         else
                         {
                             <div class="not-available-text">N/D</div>
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Mod,Admin">
                                 <Authorized>
                                     <div class="admin-action-chips mt-2">
                                         <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.PrimeiroRelatorConselhoFiscal, "1º Relator Conselho Fiscal"))" title="Adicionar">
@@ -553,7 +553,7 @@ else
                                 {
                                     <div class="text-light-theme">@relator2CF.User.FirstName @relator2CF.User.LastName</div>
                                 }
-                                <AuthorizeView Roles="Admin">
+                                <AuthorizeView Roles="Mod,Admin">
                                     <Authorized>
                                         <div class="admin-action-chips mt-2">
                                             <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(relator2CF.Id))" title="Remover">
@@ -567,7 +567,7 @@ else
                         else
                         {
                             <div class="not-available-text">N/D</div>
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Mod,Admin">
                                 <Authorized>
                                     <div class="admin-action-chips mt-2">
                                         <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.SegundoRelatorConselhoFiscal, "2º Relator Conselho Fiscal"))" title="Adicionar">
@@ -610,7 +610,7 @@ else
                             {
                                 <div class="text-light-theme">@presidenteCV.User.FirstName @presidenteCV.User.LastName</div>
                             }
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Mod,Admin">
                                 <Authorized>
                                     <div class="admin-action-chips mt-2">
                                         <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(presidenteCV.Id))" title="Remover">
@@ -624,7 +624,7 @@ else
                     else
                     {
                         <div class="not-available-text">N/D</div>
-                        <AuthorizeView Roles="Admin">
+                        <AuthorizeView Roles="Mod,Admin">
                             <Authorized>
                                 <div class="admin-action-chips mt-2">
                                     <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.PresidenteConselhoVeteranos, "Presidente Conselho de Veteranos"))" title="Adicionar">
@@ -666,7 +666,7 @@ else
                             {
                                 <div class="text-light-theme">@ensaiador.User.FirstName @ensaiador.User.LastName</div>
                             }
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Mod,Admin">
                                 <Authorized>
                                     <div class="admin-action-chips mt-2">
                                         <button class="btn btn-sm btn-outline-danger" @onclick="@(() => RemoveAssignment(ensaiador.Id))" title="Remover">
@@ -680,7 +680,7 @@ else
                     else
                     {
                         <div class="not-available-text">N/D</div>
-                        <AuthorizeView Roles="Admin">
+                        <AuthorizeView Roles="Mod,Admin">
                             <Authorized>
                                 <div class="admin-action-chips mt-2">
                                     <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenAssignMemberModal(Position.Ensaiador, "Ensaiador"))" title="Adicionar">
@@ -856,6 +856,8 @@ else
     private string selectedFiscalYear = "";
     private bool isLoading = true;
     private bool isAdmin = false;
+    private bool isMod = false;
+    private bool canDoAction = false;
     
     // RGI PDF state
     private bool showRgiModal = false;
@@ -889,12 +891,14 @@ else
         // Check if user is admin
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         isAdmin = authState.User.IsInRole("Admin");
+        isMod = authState.User.IsInRole("Mod");
+        canDoAction = isMod || isAdmin;
         
         // Load fiscal years
         await LoadFiscalYears();
         
         // Load all members for admin
-        if (isAdmin)
+        if (canDoAction)
         {
             LoadAllMembers();
         }
@@ -921,7 +925,7 @@ else
         
         // Handle ?manage=1 query parameter (redirect from /admin/roles)
         var manageParam = queryParams["manage"];
-        if (manageParam == "1" && isAdmin)
+        if (manageParam == "1" && canDoAction)
         {
             await OpenCreateFiscalYearModal();
         }
@@ -1228,17 +1232,21 @@ else
                 await UserManager.UpdateAsync(user);
             }
 
-            // Promote user from Member to Admin role
+            // Promote user from Member to Admin or Mod role
+            // CALOIRO members get Mod role, others get Admin role
             var currentRoles = await UserManager.GetRolesAsync(user);
-            if (!currentRoles.Contains("Admin"))
+            var isCaloiro = user.Categories.Contains(MemberCategory.Caloiro);
+            var targetRole = isCaloiro ? "Mod" : "Admin";
+            
+            if (!currentRoles.Contains("Admin") && !currentRoles.Contains("Mod"))
             {
                 // Remove Member role if present
                 if (currentRoles.Contains("Member"))
                 {
                     await UserManager.RemoveFromRoleAsync(user, "Member");
                 }
-                // Add Admin role
-                await UserManager.AddToRoleAsync(user, "Admin");
+                // Add appropriate role (Mod for Caloiro, Admin for others)
+                await UserManager.AddToRoleAsync(user, targetRole);
             }
         }
 
@@ -1290,12 +1298,19 @@ else
                 await UserManager.UpdateAsync(user);
             }
 
-            // Check if user has no more positions - if so, demote from Admin to Member
+            // Check if user has no more positions - if so, demote from Admin/Mod to Member
             var userRoles = await UserManager.GetRolesAsync(user);
-            if (!positions.Any() && userRoles.Contains("Admin") && !userRoles.Contains("Owner"))
+            if (!positions.Any() && (userRoles.Contains("Admin") || userRoles.Contains("Mod")) && !userRoles.Contains("Owner"))
             {
-                // Remove Admin role
-                await UserManager.RemoveFromRoleAsync(user, "Admin");
+                // Remove Admin or Mod role
+                if (userRoles.Contains("Admin"))
+                {
+                    await UserManager.RemoveFromRoleAsync(user, "Admin");
+                }
+                if (userRoles.Contains("Mod"))
+                {
+                    await UserManager.RemoveFromRoleAsync(user, "Mod");
+                }
                 
                 // Add Member role
                 await UserManager.AddToRoleAsync(user, "Member");

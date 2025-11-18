@@ -18,7 +18,7 @@
 <p class="lead mb-4 text-light-theme">Instrumentos da RTUB</p>
 
 <!-- Add Button (Admin/Owner only) -->
-<AuthorizeView Roles="Admin,Owner">
+<AuthorizeView Roles="Admin,Owner,Mod">
     <Authorized>
         <div class="mb-3">
             <button class="btn btn-success" @onclick="OpenCreateInstrumentModal" title="Novo Instrumento" disabled="@(loading || !categories.Any())">
@@ -89,7 +89,7 @@ else
         @foreach (var instrument in paginatedInstruments)
         {
             <div class="col-md-4 col-lg-2 mb-4">
-                <AuthorizeView Roles="Admin,Owner">
+                <AuthorizeView Roles="Admin,Owner,Mod">
                     <Authorized>
                         <InstrumentCircle Instrument="@instrument" 
                                         ImageUrl="@GetImageUrl(instrument.ImageSrc)"

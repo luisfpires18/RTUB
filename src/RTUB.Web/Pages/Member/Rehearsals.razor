@@ -2319,21 +2319,10 @@ else
     }
     
     /// <summary>
-    /// Determines if the current user is a Caloiro with Admin role.
-    /// These users have restricted permissions compared to other Admins.
-    /// </summary>
-    private bool IsCaloiroAdmin()
-    {
-        if (currentUser == null) return false;
-        return currentUser.IsCaloiro() && isAdmin && !isOwner;
-    }
-    
-    /// <summary>
     /// Determines if the delete action should be available for rehearsals.
-    /// Hidden from Caloiro Admins.
     /// </summary>
     private bool CanDeleteRehearsal()
     {
-        return isAdmin && !IsCaloiroAdmin();
+        return isAdmin;
     }
 }

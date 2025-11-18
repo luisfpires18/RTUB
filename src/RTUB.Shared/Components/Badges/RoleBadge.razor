@@ -16,7 +16,7 @@
 
 @code {
     /// <summary>
-    /// The role to display (e.g., "Owner", "Admin", "Member")
+    /// The role to display (e.g., "Owner", "Admin", "Mod", "Member")
     /// </summary>
     [Parameter]
     public string Role { get; set; } = string.Empty;
@@ -36,6 +36,7 @@
         {
             "Owner" => "bg-danger",      // Red
             "Admin" => "bg-success",     // Green
+            "Mod" => "bg-yellow",       // Yellow/Orange
             "Member" => "",              // Custom blue color via style
             _ => "bg-secondary"
         };
@@ -49,6 +50,7 @@
         return role switch
         {
             "Member" => "background-color: #007bff; color: white; text-transform: none;",
+            "Mod" => "color: #000; text-transform: none;",  // Black text on yellow/orange
             _ => "text-transform: none;"
         };
     }
@@ -62,6 +64,7 @@
         {
             "Owner" => "bi-star-fill",
             "Admin" => "bi-shield-fill",
+            "Mod" => "bi-shield-check",
             "Member" => "bi-person-fill",
             _ => "bi-circle"
         };

@@ -70,7 +70,7 @@ else
                    FolderPath="@folderPath"
                    Documents="@documents"
                    DefaultExpanded="@isFirstFolder"
-                   IsAdmin="@isAdmin"
+                   IsAdmin="@canDoAction"
                    OnUpload="@HandleUploadRequest"
                    OnDocumentView="@HandleDocumentView"
                    OnDocumentDownload="@HandleDocumentDownload"
@@ -259,7 +259,9 @@ else
 
 @code {
     private bool isLoading = true;
+    private bool isMod = false;
     private bool isAdmin = false;
+    private bool canDoAction = false;
     private string errorMessage = "";
     
     private List<string> folders = new();
@@ -316,22 +318,16 @@ else
         {
             // Check if user is admin or owner
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            isMod = authState.User.IsInRole("Admin");
             isAdmin = authState.User.IsInRole("Admin");
-            var isOwner = authState.User.IsInRole("Owner");
+            canDoAction = isMod || isAdmin;
             
             // Check access permission for Gestão pages
             var currentUser = await UserManager.GetUserAsync(authState.User);
-            if (currentUser != null && !isOwner && !isAdmin)
+            if (currentUser != null && !isAdmin && !isMod)
             {
                 // Block Leitão members
                 if (currentUser.IsLeitao())
-                {
-                    NavigationManager.NavigateTo("/");
-                    return;
-                }
-                
-                // Block Caloiro members who are not Admin
-                if (currentUser.IsCaloiro())
                 {
                     NavigationManager.NavigateTo("/");
                     return;
