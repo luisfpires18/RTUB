@@ -48,6 +48,10 @@ public class Program
         services.Configure<RTUB.Application.Configuration.RankingConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.RankingConfiguration.SectionName));
 
+        // Configure App Settings
+        services.Configure<RTUB.Application.Configuration.Toggles>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.Toggles.SectionName));
+
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
                                ?? "Data Source=app.db";
@@ -247,7 +251,6 @@ public class Program
                 AuthenticationRegion = "auto" // Required for Cloudflare R2
             };
             
-            logger.LogInformation("Cloudflare R2 S3 client initialized successfully");
             return new Amazon.S3.AmazonS3Client(credentials, config);
         });
         
@@ -275,6 +278,27 @@ public class Program
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IMentionService, MentionService>();
+        
+        // --------- Geocoding Service ---------
+        // Register HttpClient for Nominatim geocoding service
+        services.AddHttpClient("Nominatim")
+            .ConfigureHttpClient(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(10);
+            });
+        
+        // Geocoding queue (singleton - shared state across all requests)
+        services.AddSingleton<IGeocodingQueue, InMemoryGeocodingQueue>();
+        
+        // NominatimGeocodingService (scoped) - for background worker
+        services.AddScoped<NominatimGeocodingService>();
+        
+        // CachedGeocodingService - cache-only reads for UI (scoped to work with scoped DbContext)
+        // This is the default IGeocodingService used by UI components
+        services.AddScoped<IGeocodingService, CachedGeocodingService>();
+        
+        // Background worker for geocoding cities from the queue
+        services.AddHostedService<BackgroundGeocodingWorker>();
         
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();

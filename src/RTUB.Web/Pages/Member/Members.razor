@@ -9,8 +9,10 @@
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
+@using RTUB.Application.Configuration
 @using RTUB.Shared
 @using System.ComponentModel.DataAnnotations
+@using Microsoft.Extensions.Options
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
 @inject IRoleAssignmentService RoleAssignmentService
@@ -20,7 +22,9 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ApplicationDbContext DbContext
 @inject RTUB.Application.Services.AuditContext AuditContext
+@inject NavigationManager NavigationManager
 @inject ILogger<Members> _logger
+@inject IOptions<Toggles> Toggles
 @attribute [Authorize]
 
 <h1 class="mb-2"><i class="bi bi-people"></i> Membros</h1>
@@ -28,10 +32,16 @@
 
 <AuthorizeView Roles="Admin">
     <Authorized>
-        <div class="mb-3">
+        <div class="mb-3 d-flex gap-2">
             <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Membro">
-                <i class="bi bi-plus-lg"></i>
+                <i class="bi bi-plus-lg"></i> Adicionar Membro
             </button>
+            @if (Toggles.Value.MapEnabled)
+            {
+                <button class="btn btn-primary btn-primary-purple" @onclick="NavigateToMap" title="Ver Mapa de Membros">
+                    <i class="bi bi-geo-alt"></i> Ver Mapa de Membros
+                </button>
+            }
         </div>
     </Authorized>
 </AuthorizeView>
@@ -1947,6 +1957,14 @@ else
     private bool IsDatePairComplete(int? year, int? month)
     {
         return year.HasValue && month.HasValue;
+    }
+    
+    /// <summary>
+    /// Navigates to the Member Map page
+    /// </summary>
+    private void NavigateToMap()
+    {
+        NavigationManager.NavigateTo("/member/map");
     }
 }
 

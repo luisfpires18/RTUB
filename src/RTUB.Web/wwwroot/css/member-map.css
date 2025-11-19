@@ -1,0 +1,117 @@
+/* Member Map - Leaflet Popup Customization */
+/* These styles need to be global because Leaflet creates popups outside the Blazor component scope */
+
+/* Define CSS variables for member map */
+:root {
+    --purple: #6f42c1;
+    --purple-hover: #8a5dd1;
+    --card-bg: #1a1a1b;
+    --text-white-full: #ffffff;
+    --text-light-theme: #b0b0b0;
+    --border-color: #2f2f2f;
+    --hover-bg: #252525;
+}
+
+.leaflet-popup-content-wrapper {
+    background: var(--card-bg) !important;
+    color: var(--text-white-full) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.leaflet-popup-tip {
+    background: var(--card-bg) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+.leaflet-popup-close-button {
+    color: var(--text-white-full) !important;
+}
+
+.popup-city-name {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--purple);
+    margin-bottom: 0.5rem;
+    border-bottom: 2px solid var(--purple);
+    padding-bottom: 0.5rem;
+}
+
+.popup-member-count {
+    font-size: 0.875rem;
+    color: var(--text-light-theme);
+    margin-bottom: 1rem;
+}
+
+.popup-members-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 0.75rem;
+}
+
+.popup-member-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    background: var(--bs-dark);
+    border-radius: 6px;
+    transition: background 0.2s ease;
+}
+
+.popup-member-item:hover {
+    background: var(--hover-bg);
+}
+
+.popup-member-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 0.75rem;
+    border: 2px solid var(--purple);
+}
+
+.popup-member-info {
+    flex: 1;
+}
+
+.popup-member-name {
+    font-weight: 600;
+    color: var(--text-white-full);
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.popup-member-nickname {
+    font-size: 0.75rem;
+    color: var(--text-light-theme);
+    margin: 0;
+}
+
+/* Mobile responsiveness for popup */
+@media (max-width: 768px) {
+    .popup-members-list {
+        max-height: 200px;
+    }
+}
+
+/* Custom scrollbar for member list in popup */
+.popup-members-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.popup-members-list::-webkit-scrollbar-track {
+    background: var(--bs-dark);
+    border-radius: 4px;
+}
+
+.popup-members-list::-webkit-scrollbar-thumb {
+    background: var(--purple);
+    border-radius: 4px;
+}
+
+.popup-members-list::-webkit-scrollbar-thumb:hover {
+    background: var(--purple-hover);
+}

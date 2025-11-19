@@ -1,0 +1,363 @@
+@page "/member/map"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Extensions
+@using System.Text.Json
+@using RTUB.Shared
+@inject UserManager<ApplicationUser> UserManager
+@inject IGeocodingService GeocodingService
+@inject IGeocodingQueue GeocodingQueue
+@inject IJSRuntime JSRuntime
+@attribute [Authorize]
+
+<PageTitle>Mapa de Membros - RTUB</PageTitle>
+
+<h1 class="mb-2"><i class="bi bi-geo-alt"></i> Mapa de Membros</h1>
+<p class="lead mb-4 text-light-theme">Localização geográfica dos membros por cidade.</p>
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-purple" role="status">
+            <span class="visually-hidden">A carregar...</span>
+        </div>
+        <p class="mt-3 text-light-theme">A carregar o mapa...</p>
+    </div>
+}
+else if (hasError)
+{
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle"></i> Ocorreu um erro ao carregar o mapa. Por favor, tente novamente.
+    </div>
+}
+else
+{
+    <div class="member-map-container">
+        <div id="map" class="member-map"></div>
+        
+        @if (cityGroups.Any())
+        {
+            <div class="map-stats mt-3">
+                <div class="row g-3">
+                    <!-- Total Members Card -->
+                    <div class="col-md-4">
+                        <div class="stat-card">
+                            <div class="stat-card-header" @onclick="() => ToggleCard(0)">
+                                <i class="bi bi-people-fill"></i>
+                                <div class="stat-value">@totalMembers</div>
+                                <div class="stat-label">Total de Membros</div>
+                                <i class="bi bi-chevron-down chevron @(expandedCards[0] ? "rotated" : "")"></i>
+                            </div>
+                            <div class="collapse @(expandedCards[0] ? "show" : "")">
+                                <div class="stat-card-body">
+                                    <ul class="member-list">
+                                        @foreach (var cityGroup in cityGroups.OrderBy(c => c.CityName))
+                                        {
+                                            @foreach (var member in cityGroup.Members.OrderBy(m => m.Nickname))
+                                            {
+                                                <li class="member-list-item">
+                                                    <img src="@member.ImageUrl" alt="@member.Nickname" class="member-avatar" />
+                                                    <div class="member-info">
+                                                        <p class="member-nickname">@member.Nickname</p>
+                                                        <p class="member-city">@cityGroup.CityName</p>
+                                                    </div>
+                                                </li>
+                                            }
+                                        }
+                                        @if (membersWithoutCity > 0)
+                                        {
+                                            @foreach (var member in membersWithoutCityList.OrderBy(m => m.Nickname))
+                                            {
+                                                <li class="member-list-item">
+                                                    <img src="@member.ImageUrl" alt="@member.Nickname" class="member-avatar" />
+                                                    <div class="member-info">
+                                                        <p class="member-nickname">@member.Nickname</p>
+                                                        <p class="member-city">Sem cidade</p>
+                                                    </div>
+                                                </li>
+                                            }
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Cities Card -->
+                    <div class="col-md-4">
+                        <div class="stat-card">
+                            <div class="stat-card-header" @onclick="() => ToggleCard(1)">
+                                <i class="bi bi-geo-alt-fill"></i>
+                                <div class="stat-value">@cityGroups.Count</div>
+                                <div class="stat-label">Cidades</div>
+                                <i class="bi bi-chevron-down chevron @(expandedCards[1] ? "rotated" : "")"></i>
+                            </div>
+                            <div class="collapse @(expandedCards[1] ? "show" : "")">
+                                <div class="stat-card-body">
+                                    <ul class="member-list">
+                                        @foreach (var cityGroup in cityGroups.OrderByDescending(c => c.MemberCount))
+                                        {
+                                            <li class="city-list-item">
+                                                <span class="city-name">@cityGroup.CityName</span>
+                                                <span class="city-count">@cityGroup.MemberCount</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Without City Card -->
+                    <div class="col-md-4">
+                        <div class="stat-card">
+                            <div class="stat-card-header" @onclick="() => ToggleCard(2)">
+                                <i class="bi bi-question-circle-fill"></i>
+                                <div class="stat-value">@membersWithoutCity</div>
+                                <div class="stat-label">Sem Cidade</div>
+                                <i class="bi bi-chevron-down chevron @(expandedCards[2] ? "rotated" : "")"></i>
+                            </div>
+                            <div class="collapse @(expandedCards[2] ? "show" : "")">
+                                <div class="stat-card-body">
+                                    <ul class="member-list">
+                                        @foreach (var member in membersWithoutCityList.OrderBy(m => m.Nickname))
+                                        {
+                                            <li class="member-list-item">
+                                                <img src="@member.ImageUrl" alt="@member.Nickname" class="member-avatar" />
+                                                <div class="member-info">
+                                                    <p class="member-nickname">@member.Nickname</p>
+                                                </div>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pending Geocoding Card -->
+                    @if (pendingGeocodingCities.Any())
+                    {
+                        <div class="col-md-4">
+                            <div class="stat-card">
+                                <div class="stat-card-header" @onclick="() => ToggleCard(3)">
+                                    <i class="bi bi-hourglass-split"></i>
+                                    <div class="stat-value">@pendingGeocodingCities.Count</div>
+                                    <div class="stat-label">Em fila para geocodificação</div>
+                                    <i class="bi bi-chevron-down chevron @(expandedCards[3] ? "rotated" : "")"></i>
+                                </div>
+                                <div class="collapse @(expandedCards[3] ? "show" : "")">
+                                    <div class="stat-card-body">
+                                        <ul class="member-list">
+                                            @foreach (var city in pendingGeocodingCities.OrderBy(c => c))
+                                            {
+                                                <li class="city-list-item">
+                                                    <span class="city-name">@city</span>
+                                                </li>
+                                            }
+                                        </ul>
+                                        <p class="mt-2 text-muted small">
+                                            <i class="bi bi-info-circle"></i> 
+                                            Estas cidades serão geocodificadas automaticamente em segundo plano. 
+                                            Atualize a página em alguns minutos para ver os resultados.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <EmptyState Icon="bi-geo-alt"
+                       Title="Nenhum membro com coordenadas geocodificadas ainda"
+                       Message="@GetEmptyStateMessage()" />
+        }
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private bool hasError = false;
+    private List<CityGroup> cityGroups = new();
+    private int totalMembers = 0;
+    private int membersWithoutCity = 0;
+    private List<MemberInfo> membersWithoutCityList = new();
+    private List<string> pendingGeocodingCities = new();
+    private bool[] expandedCards = new bool[4]; // Track expanded state for 4 cards
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadMemberData();
+        }
+        catch (Exception)
+        {
+            hasError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !hasError)
+        {
+            try
+            {
+                // Wait for Leaflet library to load with fast retry mechanism
+                const int maxAttempts = 20;
+                const int initialDelayMs = 50;
+                bool success = false;
+                
+                for (int attempt = 1; attempt <= maxAttempts; attempt++)
+                {
+                    // Check if Leaflet is ready
+                    var isReady = await JSRuntime.InvokeAsync<bool>("isLeafletReady");
+                    
+                    if (isReady)
+                    {
+                        // Initialize map even if cityGroups is empty
+                        var mapData = JsonSerializer.Serialize(cityGroups);
+                        success = await JSRuntime.InvokeAsync<bool>("initializeMemberMap", mapData);
+                        
+                        if (success)
+                        {
+                            Console.WriteLine($"Map initialized successfully on attempt {attempt}");
+                            break;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Map initialization returned false on attempt {attempt}");
+                            // If Leaflet is ready but init failed, wait a bit for DOM
+                            await Task.Delay(50);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Leaflet not ready, attempt {attempt}/{maxAttempts}");
+                        // Only delay if Leaflet isn't ready yet
+                        if (attempt < maxAttempts)
+                        {
+                            await Task.Delay(initialDelayMs);
+                        }
+                    }
+                }
+                
+                if (!success)
+                {
+                    Console.WriteLine("Failed to initialize map after all attempts");
+                    hasError = true;
+                    StateHasChanged();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing map: {ex.Message}");
+                hasError = true;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void ToggleCard(int cardIndex)
+    {
+        expandedCards[cardIndex] = !expandedCards[cardIndex];
+    }
+
+    private async Task LoadMemberData()
+    {
+        var users = await UserManager.Users.ToListAsync();
+        
+        totalMembers = users.Count;
+        
+        // Group members by city
+        var groupedByCity = users
+            .Where(u => !string.IsNullOrWhiteSpace(u.City))
+            .GroupBy(u => u.City!.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        
+        // Get members without city
+        var usersWithoutCity = users.Where(u => string.IsNullOrWhiteSpace(u.City)).ToList();
+        membersWithoutCity = usersWithoutCity.Count;
+        membersWithoutCityList = usersWithoutCity.Select(u => new MemberInfo
+        {
+            FullName = u.GetDisplayName(),
+            Nickname = u.Nickname ?? u.GetDisplayName(),
+            ImageUrl = u.ProfilePictureSrc,
+            Id = u.Id
+        }).ToList();
+        
+        // Use cache-only geocoding (fast, non-blocking)
+        var pendingCities = new List<string>();
+        
+        foreach (var group in groupedByCity)
+        {
+            var coordinates = await GeocodingService.GetCoordinatesAsync(group.Key);
+            
+            if (coordinates.HasValue)
+            {
+                var members = group.Select(u => new MemberInfo
+                {
+                    FullName = u.GetDisplayName(),
+                    Nickname = u.Nickname ?? u.GetDisplayName(),
+                    ImageUrl = u.ProfilePictureSrc,
+                    Id = u.Id
+                }).ToList();
+
+                cityGroups.Add(new CityGroup
+                {
+                    CityName = group.Key,
+                    Latitude = coordinates.Value.Latitude,
+                    Longitude = coordinates.Value.Longitude,
+                    MemberCount = group.Count(),
+                    Members = members
+                });
+            }
+            else
+            {
+                // City not in cache - it was automatically enqueued by CachedGeocodingService
+                pendingCities.Add(group.Key);
+            }
+        }
+        
+        pendingGeocodingCities = pendingCities;
+        
+        // Sort by member count descending
+        cityGroups = cityGroups.OrderByDescending(cg => cg.MemberCount).ToList();
+    }
+
+    private string GetEmptyStateMessage()
+    {
+        if (pendingGeocodingCities.Any())
+        {
+            return $"{pendingGeocodingCities.Count} cidades em fila para geocodificação";
+        }
+        return "Nenhum membro com cidade definida encontrado";
+    }
+
+    private class CityGroup
+    {
+        public string CityName { get; set; } = "";
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public int MemberCount { get; set; }
+        public List<MemberInfo> Members { get; set; } = new();
+    }
+
+    private class MemberInfo
+    {
+        public string Id { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public string Nickname { get; set; } = "";
+        public string ImageUrl { get; set; } = "";
+    }
+}

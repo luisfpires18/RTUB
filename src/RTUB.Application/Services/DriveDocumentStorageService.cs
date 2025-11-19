@@ -145,13 +145,10 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
 
         var documentPath = folderPath + fileName;
 
-        _logger.LogInformation("Attempting to upload document to bucket '{Bucket}' with key: {DocumentPath}", _bucketName, documentPath);
-
         try
         {
             await PutObjectAsync(documentPath, fileStream, contentType);
             
-            _logger.LogInformation("Successfully uploaded document: {DocumentPath}", documentPath);
             return documentPath;
         }
         catch (AmazonS3Exception ex)
@@ -171,14 +168,10 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
             folderPath += "/";
         }
 
-        _logger.LogInformation("Attempting to create folder in bucket '{Bucket}' with key: {FolderPath}", _bucketName, folderPath);
-
         try
         {
             // Create an empty object with "/" suffix to represent a folder
             await PutObjectAsync(folderPath, new MemoryStream(), "application/x-directory");
-            
-            _logger.LogInformation("Successfully created folder: {FolderPath}", folderPath);
         }
         catch (AmazonS3Exception ex)
         {
