@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Utilities
+@using RTUB.Application.Helpers
 @using RTUB.Shared
 @inject IAlbumService AlbumService
 @inject ISongService SongService
@@ -38,7 +39,7 @@ else if (!albums.Any())
 else
 {
     <div class="row">
-        @foreach (var album in albums.OrderBy(a => a.Id))
+        @foreach (var album in paginatedAlbums)
         {
             <div class="col-md-4 col-lg-2 mb-4">
                 <div class="card album-card h-100">
@@ -94,6 +95,14 @@ else
             </div>
         }
     </div>
+
+    <TablePagination CurrentPage="@paginationHelper.CurrentPage"
+                    PageSize="@paginationHelper.PageSize"
+                    TotalItems="@albums.Count"
+                    ItemLabel="álbuns"
+                    PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                    OnPageChanged="@HandlePageChange"
+                    OnPageSizeChanged="@HandlePageSizeChange" />
 }
 
 <!-- CRUD Modals -->
@@ -178,7 +187,9 @@ else
 
 @code {
     private List<Album>? albums;
+    private List<Album> paginatedAlbums = new();
     private List<Song>? allSongs;
+    private PaginationHelper<Album> paginationHelper = new() { PageSize = 6 };
 
     private bool showEditModal = false;
     private bool showDeleteModal = false;
@@ -218,6 +229,32 @@ else
         }
         
         allSongs = (await SongService.GetAllSongsAsync()).ToList();
+        UpdatePagination();
+    }
+
+    private void UpdatePagination()
+    {
+        if (albums != null)
+        {
+            paginatedAlbums = paginationHelper.GetPageData(albums);
+        }
+    }
+
+    private async Task HandlePageChange(int newPage)
+    {
+        if (paginationHelper.GoToPage(newPage))
+        {
+            UpdatePagination();
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task HandlePageSizeChange(int newPageSize)
+    {
+        paginationHelper.PageSize = newPageSize;
+        paginationHelper.Reset();
+        UpdatePagination();
+        await Task.CompletedTask;
     }
 
     private int GetSongCount(int albumId)

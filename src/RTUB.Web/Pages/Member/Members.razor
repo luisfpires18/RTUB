@@ -143,7 +143,7 @@ else
                         PageSize="@paginationHelper.PageSize"
                         TotalItems="@filteredRegularMembers.Count"
                         ItemLabel="membros"
-                        PageSizeOptions="@(new[] { 12, 24, 36, 48, 60 })"
+                        PageSizeOptions="@(new[] { 30, 60, 90, 120, 150 })"
                         OnPageChanged="@HandleRegularMembersPageChange"
                         OnPageSizeChanged="@HandleRegularMembersPageSizeChange" />
     }
@@ -187,7 +187,7 @@ else
                         PageSize="@paginationHelperLeitoes.PageSize"
                         TotalItems="@filteredLeitoes.Count"
                         ItemLabel="leitões"
-                        PageSizeOptions="@(new[] { 12, 24, 36, 48, 60 })"
+                        PageSizeOptions="@(new[] { 18, 36, 54, 72, 90 })"
                         OnPageChanged="@HandleLeitoesPageChange"
                         OnPageSizeChanged="@HandleLeitoesPageSizeChange" />
     }
@@ -716,8 +716,8 @@ else
     // Helper instances
     private SearchHelper<ApplicationUser> searchHelper = new();
     private SortableTableHelper<ApplicationUser> sortHelper = new() { SortColumn = nameof(ApplicationUser.FirstName) };
-    private PaginationHelper<ApplicationUser> paginationHelper = new() { PageSize = 48 };
-    private PaginationHelper<ApplicationUser> paginationHelperLeitoes = new() { PageSize = 48 };
+    private PaginationHelper<ApplicationUser> paginationHelper = new() { PageSize = 30 };
+    private PaginationHelper<ApplicationUser> paginationHelperLeitoes = new() { PageSize = 18 };
 
     private string searchTerm = "";
     private int totalUsers = 0;

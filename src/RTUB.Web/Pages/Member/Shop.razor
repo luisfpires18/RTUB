@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Utilities
+@using RTUB.Application.Helpers
 @using RTUB.Core.Entities
 @using RTUB.Shared
 @using RTUB.Shared.Components.Cards
@@ -52,7 +53,7 @@ else
 
     <!-- Products Grid -->
     <div class="row">
-        @foreach (var product in filteredProducts)
+        @foreach (var product in paginatedProducts)
         {
             <div class="col-md-4 col-lg-2 mb-4">
                 <div class="card album-card h-100">
@@ -172,6 +173,14 @@ else
             </div>
         }
     </div>
+
+    <TablePagination CurrentPage="@paginationHelper.CurrentPage"
+                    PageSize="@paginationHelper.PageSize"
+                    TotalItems="@filteredProducts.Count"
+                    ItemLabel="produtos"
+                    PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                    OnPageChanged="@HandlePageChange"
+                    OnPageSizeChanged="@HandlePageSizeChange" />
 }
 
 <!-- CRUD Modal for Products -->
@@ -580,10 +589,12 @@ else
 @code {
     private List<Product> products = new();
     private List<Product> filteredProducts = new();
+    private List<Product> paginatedProducts = new();
     private List<string> productTypes = new();
     private string selectedType = "";
     private bool loading = true;
     private bool isMember = false;
+    private PaginationHelper<Product> paginationHelper = new() { PageSize = 6 };
 
     // Product Modal State
     private bool showProductEditModal = false;
@@ -692,6 +703,29 @@ else
         {
             filteredProducts = products.Where(p => p.Type == selectedType).ToList();
         }
+        UpdatePagination();
+    }
+
+    private void UpdatePagination()
+    {
+        paginatedProducts = paginationHelper.GetPageData(filteredProducts);
+    }
+
+    private async Task HandlePageChange(int newPage)
+    {
+        if (paginationHelper.GoToPage(newPage))
+        {
+            UpdatePagination();
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task HandlePageSizeChange(int newPageSize)
+    {
+        paginationHelper.PageSize = newPageSize;
+        paginationHelper.Reset();
+        UpdatePagination();
+        await Task.CompletedTask;
     }
 
     // Product Modal Methods
