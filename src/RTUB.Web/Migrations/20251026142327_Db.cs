@@ -52,7 +52,7 @@ namespace RTUB.Migrations
                     FirstName = table.Column<string>(type: "TEXT", maxLength: 80, nullable: false),
                     LastName = table.Column<string>(type: "TEXT", maxLength: 80, nullable: false),
                     Nickname = table.Column<string>(type: "TEXT", nullable: true),
-                    PhoneContact = table.Column<string>(type: "TEXT", maxLength: 80, nullable: false),
+                    PhoneContact = table.Column<string>(type: "TEXT", maxLength: 80, nullable: true),
                     DateOfBirth = table.Column<DateTime>(type: "TEXT", nullable: true),
                     Degree = table.Column<string>(type: "TEXT", nullable: true),
                     YearLeitao = table.Column<int>(type: "INTEGER", nullable: true),

@@ -38,7 +38,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetByIdAsync_ExistingPost_ReturnsPostWithIncludes()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -79,7 +79,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetByDiscussionIdAsync_ReturnsPostsPinnedFirstThenByLastActivity()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -113,7 +113,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetByDiscussionIdAsync_WithSearchTerm_FiltersResults()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -145,7 +145,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetByDiscussionIdAsync_WithPagination_ReturnsCorrectPage()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -177,7 +177,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetByDiscussionIdAsync_ExcludesDeletedPosts()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -208,7 +208,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetCountByDiscussionIdAsync_ReturnsCorrectCount()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -237,7 +237,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task CreateAsync_WithValidData_CreatesPost()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -264,7 +264,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task CreateAsync_WithMentions_SetsMentions()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -289,7 +289,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task UpdateAsync_WithValidData_UpdatesPost()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -326,7 +326,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task PinAsync_UnpinnedPost_PinsPost()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -354,7 +354,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task UnpinAsync_PinnedPost_UnpinsPost()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -383,7 +383,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task LockAsync_UnlockedPost_LocksPost()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -411,7 +411,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task UnlockAsync_LockedPost_UnlocksPost()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -440,7 +440,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task SoftDeleteAsync_ExistingPost_SoftDeletesPost()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -468,7 +468,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task UpdateLastActivityAsync_ExistingPost_UpdatesLastActivityTime()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user1", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 

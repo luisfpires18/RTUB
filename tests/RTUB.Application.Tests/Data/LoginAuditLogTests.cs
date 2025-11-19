@@ -65,7 +65,7 @@ public class LoginAuditLogTests : IDisposable
             FirstName = "John",
             LastName = "Doe",
             Nickname = "JDoe",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             EmailConfirmed = true
         };
         
@@ -107,7 +107,7 @@ public class LoginAuditLogTests : IDisposable
             FirstName = "Jane",
             LastName = "Doe",
             Nickname = "JaneDoe",
-            PhoneContact = "987654321",
+            PhoneNumber = "987654321",
             EmailConfirmed = true
         };
         

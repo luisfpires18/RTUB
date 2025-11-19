@@ -75,10 +75,10 @@ public class MembersPageGridTests
         // - LastName
         // - Nickname
         // - Email
-        // - PhoneContact
+        // - PhoneNumber
         // - City
         
-        var searchableFields = new[] { "FirstName", "LastName", "Nickname", "Email", "PhoneContact", "City" };
+        var searchableFields = new[] { "FirstName", "LastName", "Nickname", "Email", "PhoneNumber", "City" };
         searchableFields.Should().HaveCount(6, "Search should filter both Members and Leitões grids across 6 fields including City");
     }
 

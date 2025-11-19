@@ -36,7 +36,9 @@ public interface IEmailTemplateRenderer
         string eventLocation,
         string eventLink,
         string nickname = "",
-        string fullName = "");
+        string fullName = "",
+        string eventDescription = "",
+        DateTime? endDate = null);
 
     /// <summary>
     /// Renders the password reset email
@@ -75,7 +77,8 @@ public interface IEmailTemplateRenderer
         int daysUntilEvent,
         string nickname = "",
         string fullName = "",
-        string eventDescription = "");
+        string eventDescription = "",
+        DateTime? endDate = null);
     
     /// <summary>
     /// Renders the announcement email

@@ -35,7 +35,7 @@ public static partial class SeedData
                 FirstName = "Luís",
                 LastName = "Pires",
                 Nickname = "Jeans",
-                PhoneContact = "936854524",
+                PhoneNumber = "936854524",
                 Positions = new List<Position>(),
                 Categories = new List<MemberCategory> { MemberCategory.Tuno },
                 YearLeitao = 2013,

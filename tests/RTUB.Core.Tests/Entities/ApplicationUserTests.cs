@@ -73,7 +73,7 @@ public class ApplicationUserTests
             LastName = lastName,
             Nickname = nickname,
             Email = email,
-            PhoneContact = phoneContact,
+            PhoneNumber = phoneContact,
             City = city,
             DateOfBirth = dateOfBirth
         };
@@ -83,7 +83,7 @@ public class ApplicationUserTests
         user.LastName.Should().Be(lastName);
         user.Nickname.Should().Be(nickname);
         user.Email.Should().Be(email);
-        user.PhoneContact.Should().Be(phoneContact);
+        user.PhoneNumber.Should().Be(phoneContact);
         user.City.Should().Be(city);
         user.DateOfBirth.Should().Be(dateOfBirth);
     }

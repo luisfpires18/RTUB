@@ -62,6 +62,8 @@ public interface IEmailNotificationService
     /// <param name="eventLink">Absolute link to the event</param>
     /// <param name="recipientEmails">List of recipient email addresses</param>
     /// <param name="recipientData">Optional dictionary mapping emails to (nickname, fullName) tuples for personalization</param>
+    /// <param name="eventDescription">Optional event description</param>
+    /// <param name="endDate">Optional end date for date ranges</param>
     /// <returns>Tuple with success flag and count of emails sent</returns>
     Task<(bool success, int count, string? errorMessage)> SendEventNotificationAsync(
         int eventId, 
@@ -70,7 +72,9 @@ public interface IEmailNotificationService
         string eventLocation, 
         string eventLink, 
         List<string> recipientEmails,
-        Dictionary<string, (string nickname, string fullName)>? recipientData = null);
+        Dictionary<string, (string nickname, string fullName)>? recipientData = null,
+        string eventDescription = "",
+        DateTime? endDate = null);
 
     /// <summary>
     /// Sends birthday notification emails to subscribed members
@@ -121,6 +125,7 @@ public interface IEmailNotificationService
     /// <param name="recipientEmails">List of recipient email addresses</param>
     /// <param name="recipientData">Optional dictionary mapping emails to (nickname, fullName) tuples for personalization</param>
     /// <param name="eventDescription">Optional event description</param>
+    /// <param name="endDate">Optional end date for date ranges</param>
     /// <returns>Tuple with success flag, count of emails sent, and optional error message</returns>
     Task<(bool success, int count, string? errorMessage)> SendEventReminderNotificationAsync(
         int eventId,
@@ -130,7 +135,8 @@ public interface IEmailNotificationService
         string eventLink,
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null,
-        string eventDescription = "");
+        string eventDescription = "",
+        DateTime? endDate = null);
     
     /// <summary>
     /// Sends announcement emails to all subscribed members

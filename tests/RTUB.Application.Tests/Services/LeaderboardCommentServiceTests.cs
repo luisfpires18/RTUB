@@ -51,7 +51,7 @@ public class LeaderboardCommentServiceTests : IClassFixture<DatabaseFixture>, ID
             Nickname = "TestUser",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789"
+            PhoneNumber = "123456789"
         };
 
         _testAuthor = new ApplicationUser
@@ -62,7 +62,7 @@ public class LeaderboardCommentServiceTests : IClassFixture<DatabaseFixture>, ID
             Nickname = "AuthorUser",
             FirstName = "Author",
             LastName = "User",
-            PhoneContact = "987654321"
+            PhoneNumber = "987654321"
         };
 
         _adminUser = new ApplicationUser
@@ -73,7 +73,7 @@ public class LeaderboardCommentServiceTests : IClassFixture<DatabaseFixture>, ID
             Nickname = "AdminUser",
             FirstName = "Admin",
             LastName = "User",
-            PhoneContact = "555555555"
+            PhoneNumber = "555555555"
         };
 
         _context.Users.AddRange(_testUser, _testAuthor, _adminUser);

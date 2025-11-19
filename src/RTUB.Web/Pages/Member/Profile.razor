@@ -85,7 +85,7 @@ else
                         <ProfileField Label="Idade" 
                                     Value="@(user.Age?.ToString() + " anos")" />
                     }
-                    <ProfileField Label="Contacto" Value="@user.PhoneContact" />
+                    <ProfileField Label="Contacto" Value="@user.PhoneNumber" />
                     <ProfileField Label="Cidade" Value="@user.City" />
                 </ChildContent>
                 <EditContent>
@@ -135,7 +135,7 @@ else
                                     <label class="form-label text-white-full fw-semibold">
                                         <i class="bi bi-telephone text-primary me-2"></i>Contacto
                                     </label>
-                                    <InputText class="form-control" @bind-Value="editUser.PhoneContact" placeholder="Inserir contacto..." />
+                                    <InputText class="form-control" @bind-Value="editUser.PhoneNumber" placeholder="Inserir contacto..." />
                                 </div>
                             </div>
 
@@ -785,7 +785,7 @@ else
             LastName = user.LastName,
             Nickname = user.Nickname,
             Email = user.Email,
-            PhoneContact = user.PhoneContact,
+            PhoneNumber = user.PhoneNumber,
             City = user.City,
             DateOfBirth = user.DateOfBirth,
             Degree = user.Degree,
@@ -937,7 +937,7 @@ else
         user.LastName = editUser.LastName;
         user.Nickname = editUser.Nickname;
         user.Email = editUser.Email;
-        user.PhoneContact = editUser.PhoneContact;
+        user.PhoneNumber = editUser.PhoneNumber;
         user.City = editUser.City;
         user.DateOfBirth = editUser.DateOfBirth;
 

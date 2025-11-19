@@ -65,6 +65,22 @@ public class EnrollmentService : IEnrollmentService
         return enrollment;
     }
 
+    public async Task<Enrollment> UpdateEnrollmentAsync(int enrollmentId, bool willAttend, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null)
+    {
+        var enrollment = await _context.Enrollments.FindAsync(enrollmentId);
+        if (enrollment == null)
+            throw new EntityNotFoundException(nameof(Enrollment), enrollmentId);
+
+        // Update enrollment fields
+        enrollment.WillAttend = willAttend;
+        enrollment.Instrument = instrument;
+        enrollment.Notes = notes;
+        enrollment.OtherInstruments = otherInstruments;
+        
+        await _context.SaveChangesAsync();
+        return enrollment;
+    }
+
     public async Task DeleteEnrollmentAsync(int id)
     {
         var enrollment = await _context.Enrollments.FindAsync(id);

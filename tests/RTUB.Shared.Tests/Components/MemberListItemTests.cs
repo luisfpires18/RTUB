@@ -33,7 +33,7 @@ public class MemberListItemTests : TestContext
             LastName = lastName,
             Nickname = nickname,
             Email = _fixture.Create<string>(),
-            PhoneContact = _fixture.Create<string>()
+            PhoneNumber = _fixture.Create<string>()
         };
         return user;
     }

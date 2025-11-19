@@ -27,9 +27,10 @@ public class ApplicationUser : IdentityUser
     [MaxLength(80, ErrorMessage = "O nome de tuna não pode exceder 80 caracteres")]
     public string? Nickname { get; set; }
 
+    // PhoneNumber is inherited from IdentityUser, override to add validation
     [Required(ErrorMessage = "O contacto telefónico é obrigatório")]
     [MaxLength(80, ErrorMessage = "O contacto telefónico não pode exceder 80 caracteres")]
-    public string? PhoneContact { get; set; }
+    public override string? PhoneNumber { get; set; }
     
     [MaxLength(100, ErrorMessage = "A cidade não pode exceder 100 caracteres")]
     public string? City { get; set; }

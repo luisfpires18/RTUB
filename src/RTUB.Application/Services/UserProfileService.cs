@@ -79,7 +79,7 @@ public class UserProfileService : IUserProfileService
         user.LastName = lastName;
         user.Nickname = nickname;
         user.DateOfBirth = dateOfBirth;
-        user.PhoneContact = phoneContact;
+        user.PhoneNumber = phoneContact;
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)

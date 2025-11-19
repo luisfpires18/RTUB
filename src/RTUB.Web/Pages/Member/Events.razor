@@ -1474,14 +1474,12 @@ else
             var existingEnrollment = await EnrollmentService.GetEnrollmentByIdAsync(enrollmentForm.Id);
             if (existingEnrollment != null && existingEnrollment.UserId == currentUser.Id)
             {
-                // Update enrollment - delete old and create new with updated data
-                await EnrollmentService.DeleteEnrollmentAsync(enrollmentForm.Id);
-                await EnrollmentService.CreateEnrollmentAsync(
-                    enrollmentForm.UserId,
-                    enrollmentForm.EventId,
+                // Update enrollment using the new UpdateEnrollmentAsync method
+                await EnrollmentService.UpdateEnrollmentAsync(
+                    enrollmentForm.Id,
+                    enrollmentForm.WillAttend,
                     instrumentToSave,
                     enrollmentForm.Notes,
-                    enrollmentForm.WillAttend,
                     otherInstrumentsText
                 );
             }
@@ -2008,7 +2006,8 @@ else
                     eventLink,
                     recipientEmails,
                     recipientData,
-                    selectedEventForEmail.Description ?? ""
+                    selectedEventForEmail.Description ?? "",
+                    selectedEventForEmail.EndDate
                 );
             }
             else
@@ -2021,7 +2020,9 @@ else
                     selectedEventForEmail.Location,
                     eventLink,
                     recipientEmails,
-                    recipientData
+                    recipientData,
+                    selectedEventForEmail.Description ?? "",
+                    selectedEventForEmail.EndDate
                 );
             }
 

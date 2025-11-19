@@ -306,7 +306,6 @@ namespace RTUB.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PhoneContact")
-                        .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 

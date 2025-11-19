@@ -52,6 +52,14 @@
     text-align: center;
 }
 
+.rank-xp {
+    font-weight: 500;
+    font-size: 0.7rem;
+    color: #a0a0a0;
+    white-space: nowrap;
+    text-align: center;
+}
+
 /* Trophy icon for Level 10 */
 .rank-trophy-icon {
     font-size: 1.5rem;

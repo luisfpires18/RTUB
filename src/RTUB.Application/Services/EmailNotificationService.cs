@@ -291,7 +291,9 @@ public class EmailNotificationService : IEmailNotificationService
         string eventLocation,
         string eventLink,
         List<string> recipientEmails,
-        Dictionary<string, (string nickname, string fullName)>? recipientData = null)
+        Dictionary<string, (string nickname, string fullName)>? recipientData = null,
+        string eventDescription = "",
+        DateTime? endDate = null)
     {
         // Rate limit: Prevent duplicate emails for the same event within 5 minutes
         var rateLimitKey = $"email-event-{eventId}";
@@ -356,7 +358,9 @@ public class EmailNotificationService : IEmailNotificationService
                             eventLocation,
                             eventLink,
                             nickname,
-                            fullName);
+                            fullName,
+                            eventDescription,
+                            endDate);
 
                         var mailMessage = new MailMessage
                         {
@@ -390,7 +394,11 @@ public class EmailNotificationService : IEmailNotificationService
                     eventTitle,
                     dateFormatted,
                     eventLocation,
-                    eventLink);
+                    eventLink,
+                    "",
+                    "",
+                    eventDescription,
+                    endDate);
 
                 // Send email via SMTP
                 using var smtpClient = CreateSmtpClient(config, BatchEmailTimeout);
@@ -651,7 +659,8 @@ public class EmailNotificationService : IEmailNotificationService
         string eventLink,
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null,
-        string eventDescription = "")
+        string eventDescription = "",
+        DateTime? endDate = null)
     {
         // Rate limit: Prevent duplicate emails for the same event reminder within 5 minutes
         var rateLimitKey = $"email-event-reminder-{eventId}";
@@ -721,7 +730,8 @@ public class EmailNotificationService : IEmailNotificationService
                             daysUntilEvent,
                             nickname,
                             fullName,
-                            eventDescription);
+                            eventDescription,
+                            endDate);
 
                         var mailMessage = new MailMessage
                         {

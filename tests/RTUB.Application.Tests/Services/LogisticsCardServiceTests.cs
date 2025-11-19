@@ -297,7 +297,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         var card = LogisticsCard.Create("Test Card", list.Id, 0);
         _context.LogisticsCards.Add(card);
 
-        var user = new ApplicationUser { Id = "user123", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user123", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -321,7 +321,7 @@ public class LogisticsCardServiceTests : IClassFixture<DatabaseFixture>, IDispos
         _context.LogisticsLists.Add(list);
         await _context.SaveChangesAsync();
 
-        var user = new ApplicationUser { Id = "user123", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "user123", UserName = "testuser", Email = "test@example.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 

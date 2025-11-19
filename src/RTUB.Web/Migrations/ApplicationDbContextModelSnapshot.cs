@@ -317,12 +317,8 @@ namespace RTUB.Migrations
                     b.Property<string>("PasswordHash")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("PhoneContact")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("PhoneNumber")
+                        .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("PhoneNumberConfirmed")

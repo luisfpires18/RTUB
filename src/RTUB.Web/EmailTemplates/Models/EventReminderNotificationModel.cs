@@ -14,4 +14,5 @@ public class EventReminderNotificationModel
     public string Nickname { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public int DaysUntilEvent { get; set; }
+    public DateTime? EndDate { get; set; }
 }

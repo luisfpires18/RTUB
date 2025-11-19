@@ -191,7 +191,44 @@ else
                     </div>
                 </div>
                 
-                <h6 class="mb-3">Estado da Conta</h6>
+                <h6 class="mb-3">Informação da Conta</h6>
+                
+                <div class="d-flex flex-column gap-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>ID:</span>
+                        <code class="text-muted small">@selectedUserForDetails.Id</code>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Último Login:</span>
+                        @if (selectedUserForDetails.LastLoginDate.HasValue)
+                        {
+                            <span class="text-muted small">@selectedUserForDetails.LastLoginDate.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">Nunca</span>
+                        }
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Subscrito a Emails:</span>
+                        @if (selectedUserForDetails.Subscribed)
+                        {
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle-fill"></i> Sim
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-x-circle-fill"></i> Não
+                            </span>
+                        }
+                    </div>
+                </div>
+                
+                <h6 class="mb-3 mt-4">Estado da Conta</h6>
                 
                 <div class="d-flex flex-column gap-2">
                     <div class="d-flex justify-content-between align-items-center">

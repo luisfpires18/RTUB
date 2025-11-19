@@ -63,7 +63,9 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
         string eventLocation,
         string eventLink,
         string nickname = "",
-        string fullName = "")
+        string fullName = "",
+        string eventDescription = "",
+        DateTime? endDate = null)
     {
         var model = new EventNotificationModel
         {
@@ -72,7 +74,9 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
             EventLocation = eventLocation,
             EventLink = eventLink,
             Nickname = nickname,
-            FullName = fullName
+            FullName = fullName,
+            EventDescription = eventDescription,
+            EndDate = endDate
         };
 
         return await _templateService.RenderTemplateAsync("EventNotification", model);
@@ -136,7 +140,8 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
         int daysUntilEvent,
         string nickname = "",
         string fullName = "",
-        string eventDescription = "")
+        string eventDescription = "",
+        DateTime? endDate = null)
     {
         var model = new EventReminderNotificationModel
         {
@@ -147,7 +152,8 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
             DaysUntilEvent = daysUntilEvent,
             Nickname = nickname,
             FullName = fullName,
-            EventDescription = eventDescription
+            EventDescription = eventDescription,
+            EndDate = endDate
         };
 
         return await _templateService.RenderTemplateAsync("EventReminderNotification", model);

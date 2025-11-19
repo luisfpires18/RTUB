@@ -155,7 +155,7 @@ public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         user.LastName.Should().Be(lastName);
         user.Nickname.Should().Be(nickname);
         user.DateOfBirth.Should().Be(dateOfBirth);
-        user.PhoneContact.Should().Be(phoneContact);
+        user.PhoneNumber.Should().Be(phoneContact);
         _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
     }
 

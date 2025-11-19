@@ -21,7 +21,7 @@ public class ApplicationUserValidationTests
             FirstName = "Test",
             LastName = "User",
             Nickname = "testuser",
-            PhoneContact = "912345678",
+            PhoneNumber = "912345678",
             Email = null // Invalid: Required
         };
 
@@ -41,7 +41,7 @@ public class ApplicationUserValidationTests
             FirstName = "Test",
             LastName = "User",
             Nickname = "testuser",
-            PhoneContact = "912345678",
+            PhoneNumber = "912345678",
             Email = "" // Invalid: Required
         };
 
@@ -61,7 +61,7 @@ public class ApplicationUserValidationTests
             FirstName = "Test",
             LastName = "User",
             Nickname = "testuser",
-            PhoneContact = "912345678",
+            PhoneNumber = "912345678",
             Email = "invalid-email" // Invalid: Not email format
         };
 
@@ -81,7 +81,7 @@ public class ApplicationUserValidationTests
             FirstName = "Test",
             LastName = "User",
             Nickname = "testuser",
-            PhoneContact = "912345678",
+            PhoneNumber = "912345678",
             Email = "test@example.com" // Valid
         };
 
@@ -105,7 +105,7 @@ public class ApplicationUserValidationTests
             FirstName = "Test",
             LastName = "User",
             Nickname = "testuser",
-            PhoneContact = "912345678",
+            PhoneNumber = "912345678",
             Email = email
         };
 
@@ -130,7 +130,7 @@ public class ApplicationUserValidationTests
             FirstName = "Test",
             LastName = "User",
             Nickname = "testuser",
-            PhoneContact = "912345678",
+            PhoneNumber = "912345678",
             Email = email
         };
 
@@ -159,7 +159,7 @@ public class ApplicationUserValidationTests
             FirstName = "Test",
             LastName = "User",
             Nickname = "testuser",
-            PhoneContact = "912345678",
+            PhoneNumber = "912345678",
             Email = "test@example.com",
             SelectedCategory = null // This is OK for DataAnnotations
         };
@@ -181,7 +181,7 @@ public class ApplicationUserValidationTests
             FirstName = "Test",
             LastName = "User",
             Nickname = "testuser",
-            PhoneContact = "912345678",
+            PhoneNumber = "912345678",
             Email = "test@example.com",
             SelectedCategory = "Tuno"
         };
@@ -225,7 +225,7 @@ public class ApplicationUserValidationTests
             FirstName = "João",
             LastName = "Silva",
             Nickname = "Joãozinho",
-            PhoneContact = "912345678",
+            PhoneNumber = "912345678",
             Email = "joao@rtub.pt",
             SelectedCategory = "Tuno"
         };
@@ -246,7 +246,7 @@ public class ApplicationUserValidationTests
             FirstName = "João",
             LastName = "Silva",
             Nickname = "Joãozinho",
-            PhoneContact = "912345678",
+            PhoneNumber = "912345678",
             Email = null, // Missing required field
             SelectedCategory = "Tuno"
         };

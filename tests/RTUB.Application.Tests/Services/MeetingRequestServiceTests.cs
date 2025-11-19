@@ -34,7 +34,7 @@ public class MeetingRequestServiceTests
             FirstName = "Test",
             LastName = "User",
             Nickname = username,
-            PhoneContact = "123456789"
+            PhoneNumber = "123456789"
         };
         context.Users.Add(user);
         await context.SaveChangesAsync();

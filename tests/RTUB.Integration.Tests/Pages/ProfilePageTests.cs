@@ -212,7 +212,7 @@ public class ProfilePageTests : IntegrationTestBase
             "Update TunaName",
             "Update Email",
             "Update DateOfBirth",
-            "Update PhoneContact",
+            "Update PhoneNumber",
             "Update City"
         };
 
@@ -234,7 +234,7 @@ public class ProfilePageTests : IntegrationTestBase
             "Nickname",
             "Email",
             "DateOfBirth",
-            "PhoneContact",
+            "PhoneNumber",
             "City"
         };
 
@@ -436,7 +436,7 @@ public class ProfilePageTests : IntegrationTestBase
         var personalInfoFieldsInModal = new[]
         {
             "Email",
-            "PhoneContact",
+            "PhoneNumber",
             "City",
             "DateOfBirth",
             "Degree"
@@ -459,7 +459,7 @@ public class ProfilePageTests : IntegrationTestBase
             "FirstName",
             "LastName",
             "Nickname",
-            "PhoneContact",
+            "PhoneNumber",
             "Email",
             "DateOfBirth",
             "Degree",
@@ -486,7 +486,7 @@ public class ProfilePageTests : IntegrationTestBase
             "FirstName",
             "LastName",
             "Nickname",
-            "PhoneContact",
+            "PhoneNumber",
             "City",
             "DateOfBirth",
             "Degree"
@@ -509,7 +509,7 @@ public class ProfilePageTests : IntegrationTestBase
             "FirstName",
             "LastName",
             "Nickname",
-            "PhoneContact",
+            "PhoneNumber",
             "Email",
             "City",
             "DateOfBirth",

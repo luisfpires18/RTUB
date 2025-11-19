@@ -183,6 +183,65 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             .WithMessage("*not found*");
     }
 
+    [Fact]
+    public async Task UpdateEnrollmentAsync_WithValidData_UpdatesEnrollment()
+    {
+        // Arrange
+        var eventEntity = await _eventService.CreateEventAsync(
+            "Test Event", DateTime.Now.AddDays(7), "Location", Core.Enums.EventType.Festival, "Description");
+        var enrollment = await _enrollmentService.CreateEnrollmentAsync(
+            "user123", eventEntity.Id, Core.Enums.InstrumentType.Guitarra, "Initial notes", true, "Viola");
+
+        // Act
+        var result = await _enrollmentService.UpdateEnrollmentAsync(
+            enrollment.Id, 
+            false, 
+            Core.Enums.InstrumentType.Percussao, 
+            "Updated notes", 
+            "Guitarra, Bandolim");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.WillAttend.Should().BeFalse();
+        result.Instrument.Should().Be(Core.Enums.InstrumentType.Percussao);
+        result.Notes.Should().Be("Updated notes");
+        result.OtherInstruments.Should().Be("Guitarra, Bandolim");
+    }
+
+    [Fact]
+    public async Task UpdateEnrollmentAsync_WithNullInstrument_UpdatesCorrectly()
+    {
+        // Arrange
+        var eventEntity = await _eventService.CreateEventAsync(
+            "Test Event", DateTime.Now.AddDays(7), "Location", Core.Enums.EventType.Festival, "Description");
+        var enrollment = await _enrollmentService.CreateEnrollmentAsync(
+            "user123", eventEntity.Id, Core.Enums.InstrumentType.Guitarra, "Notes", true);
+
+        // Act
+        var result = await _enrollmentService.UpdateEnrollmentAsync(
+            enrollment.Id, 
+            true, 
+            null, 
+            "New notes", 
+            null);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.WillAttend.Should().BeTrue();
+        result.Instrument.Should().BeNull();
+        result.Notes.Should().Be("New notes");
+        result.OtherInstruments.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateEnrollmentAsync_WithInvalidId_ThrowsException()
+    {
+        // Act & Assert
+        var act = async () => await _enrollmentService.UpdateEnrollmentAsync(999, true, null, null, null);
+        await act.Should().ThrowAsync<EntityNotFoundException>()
+            .WithMessage("*not found*");
+    }
+
     public void Dispose()
     {
         _context?.Dispose();

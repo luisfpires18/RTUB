@@ -308,7 +308,7 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
             FirstName = "Test",
             LastName = "User",
             Nickname = $"Nick_{userId}",
-            PhoneContact = "12312312"
+            PhoneNumber = "12312312"
         };
 
         await userManager.CreateAsync(user, "TestPassword123!");

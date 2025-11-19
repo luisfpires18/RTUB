@@ -273,7 +273,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
             CategoriesJson = "[0]",
             PositionsJson = "[5]"
@@ -290,7 +290,7 @@ public class ApplicationDbContextTests : IDisposable
         // This simulates a real scenario where EF detects actual changes
         var userFromDb = await _context.Users.FindAsync(user.Id);
         userFromDb.Should().NotBeNull(); // Explicit null check for clarity
-        userFromDb!.PhoneContact = "987654321";
+        userFromDb!.PhoneNumber = "987654321";
         // Re-set the JSON properties to the same values (this happens in real scenarios
         // when the form submits all fields)
         userFromDb.CategoriesJson = "[0]"; // Same value
@@ -304,8 +304,8 @@ public class ApplicationDbContextTests : IDisposable
         var auditLog = auditLogs.First();
         auditLog.Changes.Should().NotBeNullOrEmpty();
         
-        // The audit log should only contain PhoneContact change, not Categories or Positions
-        auditLog.Changes.Should().Contain("PhoneContact");
+        // The audit log should only contain PhoneNumber change, not Categories or Positions
+        auditLog.Changes.Should().Contain("PhoneNumber");
         auditLog.Changes.Should().NotContain("Categories");
         auditLog.Changes.Should().NotContain("Positions");
     }
@@ -320,7 +320,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test2@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
             CategoriesJson = "[]",  // Empty array
             PositionsJson = "[]"    // Empty array
@@ -336,7 +336,7 @@ public class ApplicationDbContextTests : IDisposable
         // Act - Load the user from DB, modify one property, then save
         var userFromDb = await _context.Users.FindAsync(user.Id);
         userFromDb.Should().NotBeNull();
-        userFromDb!.PhoneContact = "987654321";
+        userFromDb!.PhoneNumber = "987654321";
         // Re-set the empty JSON arrays (form resubmission scenario)
         userFromDb.CategoriesJson = "[]";  // Same empty array
         userFromDb.PositionsJson = "[]";   // Same empty array
@@ -349,8 +349,8 @@ public class ApplicationDbContextTests : IDisposable
         var auditLog = auditLogs.First();
         auditLog.Changes.Should().NotBeNullOrEmpty();
         
-        // The audit log should only contain PhoneContact change, not empty Categories or Positions
-        auditLog.Changes.Should().Contain("PhoneContact");
+        // The audit log should only contain PhoneNumber change, not empty Categories or Positions
+        auditLog.Changes.Should().Contain("PhoneNumber");
         auditLog.Changes.Should().NotContain("Categories");
         auditLog.Changes.Should().NotContain("Positions");
     }
@@ -365,7 +365,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test3@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
             CategoriesJson = null,  // Null initially
             PositionsJson = null    // Null initially
@@ -381,7 +381,7 @@ public class ApplicationDbContextTests : IDisposable
         // Act - Load the user from DB, modify one property, set nulls to empty arrays
         var userFromDb = await _context.Users.FindAsync(user.Id);
         userFromDb.Should().NotBeNull();
-        userFromDb!.PhoneContact = "987654321";
+        userFromDb!.PhoneNumber = "987654321";
         // Set null to empty array (semantically the same - no values)
         userFromDb.CategoriesJson = "[]";
         userFromDb.PositionsJson = "[]";
@@ -394,9 +394,9 @@ public class ApplicationDbContextTests : IDisposable
         var auditLog = auditLogs.First();
         auditLog.Changes.Should().NotBeNullOrEmpty();
         
-        // The audit log should only contain PhoneContact change
+        // The audit log should only contain PhoneNumber change
         // null -> [] is semantically no change (no values to no values)
-        auditLog.Changes.Should().Contain("PhoneContact");
+        auditLog.Changes.Should().Contain("PhoneNumber");
         auditLog.Changes.Should().NotContain("Categories");
         auditLog.Changes.Should().NotContain("Positions");
     }
@@ -422,7 +422,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "jeans@example.com",
             FirstName = "Jean",
             LastName = "Smith",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
         };
         _context.Users.Add(testUser);
@@ -481,7 +481,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "jeans@example.com",
             FirstName = "Jean",
             LastName = "Smith",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
         };
         _context.Users.Add(testUser);
@@ -532,7 +532,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
             DateOfBirth = DateTime.Parse("1990-01-01"),
             Degree = "Computer Science"
@@ -576,7 +576,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
         };
         _context.Users.Add(user);
@@ -614,7 +614,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
         };
         _context.Users.Add(user);
@@ -652,9 +652,8 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
-            PhoneNumber = "123456789"
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -691,7 +690,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
             PasswordHash = "oldhash"
         };
@@ -735,7 +734,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
             SecurityStamp = "oldstamp"
         };
@@ -779,9 +778,8 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
-            PhoneNumber = "123456789"
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -820,7 +818,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
         };
         _context.Users.Add(user);
@@ -852,7 +850,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
         };
         _context.Users.Add(user);
@@ -889,7 +887,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "target@example.com",
             FirstName = "Target",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
         };
         _context.Users.Add(user);
@@ -1007,7 +1005,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
             PasswordHash = "oldhash",
             SecurityStamp = "oldstamp"
@@ -1056,7 +1054,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
             SecurityStamp = "oldstamp"
         };
@@ -1090,7 +1088,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
             SecurityStamp = "oldstamp"
         };
@@ -1130,7 +1128,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
             SecurityStamp = "oldstamp",
             PasswordHash = "oldhash"
@@ -1177,7 +1175,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "test@example.com",
             FirstName = "Test",
             LastName = "User",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
         };
         _context.Users.Add(user);
@@ -1264,7 +1262,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "jeans@example.com",
             FirstName = "Jean",
             LastName = "Smith",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "TestUser",
         };
         _context.Users.Add(user);
@@ -1315,7 +1313,7 @@ public class ApplicationDbContextTests : IDisposable
             Email = "coordinator@example.com",
             FirstName = "Coord",
             LastName = "Inator",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             Nickname = "CoordUser",
         };
         _context.Users.Add(testUser);

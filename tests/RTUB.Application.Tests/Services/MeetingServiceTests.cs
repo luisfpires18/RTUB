@@ -53,7 +53,7 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             FirstName = "Veterano",
             LastName = "User",
             Nickname = "VetTest",
-            PhoneContact = "123456789",
+            PhoneNumber = "123456789",
             CategoriesJson = "[1]",  // Veterano enum value
             YearTuno = currentYear - 3,  // Started 3 years ago (>= 2 years makes them Veterano)
             MonthTuno = 1
@@ -69,7 +69,7 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             FirstName = "Tunossauro",
             LastName = "User",
             Nickname = "TunoTest",
-            PhoneContact = "111222333",
+            PhoneNumber = "111222333",
             CategoriesJson = "[2]",  // Tunossauro enum value
             YearTuno = currentYear - 7,  // Started 7 years ago (>= 6 years makes them Tunossauro)
             MonthTuno = 1
@@ -85,7 +85,7 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             FirstName = "Regular",
             LastName = "User",
             Nickname = "RegTest",
-            PhoneContact = "987654321",
+            PhoneNumber = "987654321",
             CategoriesJson = "[0]",  // Tuno enum value
             YearTuno = currentYear - 1,  // Started 1 year ago (< 2 years makes them Tuno)
             MonthTuno = 1
@@ -101,7 +101,7 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             FirstName = "Leitao",
             LastName = "User",
             Nickname = "LeitaoTest",
-            PhoneContact = "555666777",
+            PhoneNumber = "555666777",
             CategoriesJson = "[5]"  // Leitao enum value (Leitao = 5)
         };
 

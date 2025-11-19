@@ -66,7 +66,7 @@ public class AuthenticationTests : IntegrationTestBase
             FirstName = "Cookie",
             LastName = "Test",
             Nickname = "CookieTester",
-            PhoneContact = "123456789"
+            PhoneNumber = "123456789"
         };
 
         var createResult = await userManager.CreateAsync(testUser, "CookieTest123!");

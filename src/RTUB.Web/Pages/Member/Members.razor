@@ -249,7 +249,7 @@ else
                     <label class="form-label fw-semibold">
                         <i class="bi bi-telephone text-primary me-2"></i>Contacto <span class="text-danger">*</span>
                     </label>
-                    <InputText class="form-control" @bind-Value="editingUser.PhoneContact" />
+                    <InputText class="form-control" @bind-Value="editingUser.PhoneNumber" />
                 </div>
             </div>
             <div class="row">
@@ -582,7 +582,7 @@ else
                 </div>
                 <div class="modal-section-body">
                     <ProfileField Label="Email" Value="@viewingUser.Email" />
-                    <ProfileField Label="Contacto" Value="@viewingUser.PhoneContact" />
+                    <ProfileField Label="Contacto" Value="@viewingUser.PhoneNumber" />
                     <ProfileField Label="Cidade" Value="@viewingUser.City" />
                     <ProfileField Label="Data de Nascimento" 
                                 Value="@(viewingUser.DateOfBirth.HasValue ? viewingUser.DateOfBirth.Value.ToString("dd/MM/yyyy") + (viewingUser.Age.HasValue ? $" ({viewingUser.Age} anos)" : "") : null)" />
@@ -1114,7 +1114,7 @@ else
             u => u.LastName ?? "",
             u => u.Nickname ?? "",
             u => u.Email ?? "",
-            u => u.PhoneContact ?? "",
+            u => u.PhoneNumber ?? "",
             u => u.City ?? ""
         });
 
@@ -1329,7 +1329,7 @@ else
             FirstName = user.FirstName,
             LastName = user.LastName,
             Nickname = user.Nickname,
-            PhoneContact = user.PhoneContact,
+            PhoneNumber = user.PhoneNumber,
             City = user.City,
             DateOfBirth = user.DateOfBirth,
             Degree = user.Degree,
@@ -1727,7 +1727,7 @@ else
                 existingUser.FirstName = editingUser.FirstName;
                 existingUser.LastName = editingUser.LastName;
                 existingUser.Nickname = editingUser.Nickname;
-                existingUser.PhoneContact = editingUser.PhoneContact;
+                existingUser.PhoneNumber = editingUser.PhoneNumber;
                 // Username is set only on creation and should not be changed on edit
                 existingUser.Email = editingUser.Email;
                 existingUser.City = editingUser.City;

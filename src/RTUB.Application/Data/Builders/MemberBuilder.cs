@@ -121,12 +121,11 @@ public sealed class MemberBuilder
                 FirstName = firstName,
                 LastName = lastName,
                 Nickname = nickname,
-                PhoneContact = phone,
+                PhoneNumber = phone,
                 Degree = degree,
                 YearTuno = yearTuno,
                 YearCaloiro = yearCaloiro,
                 YearLeitao = yearLeitao,
-                PhoneNumber = new Random().Next(900000000, 999999999).ToString(),
                 Subscribed = false,
                 Positions = positions ?? new List<Position>(),
                 Categories = categories ?? new List<MemberCategory>(),
@@ -150,7 +149,7 @@ public sealed class MemberBuilder
             user.FirstName = firstName;
             user.LastName = lastName;
             user.Nickname = nickname;
-            user.PhoneContact = phone;
+            user.PhoneNumber = phone;
             user.Degree = degree;
             user.Positions = positions ?? new List<Position>();
             user.Categories = categories ?? new List<MemberCategory>();

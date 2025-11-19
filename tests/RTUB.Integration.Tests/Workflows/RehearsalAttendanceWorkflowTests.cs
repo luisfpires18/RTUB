@@ -41,7 +41,7 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
             FirstName = "Test",
             LastName = "User",
             Nickname = "TestNick",
-            PhoneContact = "123456789"
+            PhoneNumber = "123456789"
         };
 
         var result = await userManager.CreateAsync(testUser, "TestPassword123!");

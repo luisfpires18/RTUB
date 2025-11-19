@@ -6,7 +6,7 @@ namespace RTUB.Application.Data.Configurations;
 
 /// <summary>
 /// EF Core configuration for ApplicationUser entity
-/// Configures self-referencing mentor relationship
+/// Configures self-referencing mentor relationship and PhoneNumber nullability
 /// </summary>
 public class ApplicationUserConfiguration : IEntityTypeConfiguration<ApplicationUser>
 {
@@ -17,5 +17,10 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
             .WithMany()
             .HasForeignKey(u => u.MentorId)
             .OnDelete(DeleteBehavior.SetNull);
+        
+        // Explicitly configure PhoneNumber as nullable to override the [Required] attribute
+        // The [Required] attribute is for model validation, not database constraints
+        builder.Property(u => u.PhoneNumber)
+            .IsRequired(false);
     }
 }

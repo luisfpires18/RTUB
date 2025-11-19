@@ -254,7 +254,7 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
             FirstName = "Test",
             LastName = "User",
             Nickname = $"Nick_{userId}",
-            PhoneContact = "9123123"
+            PhoneNumber = "9123123"
         };
 
         await userManager.CreateAsync(user, "TestPassword123!");

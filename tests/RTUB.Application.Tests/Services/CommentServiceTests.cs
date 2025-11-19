@@ -40,7 +40,7 @@ public class CommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task CreateAsync_WithValidData_CreatesComment()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "author1", UserName = "testuser", Email = "test@test.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "author1", UserName = "testuser", Email = "test@test.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -70,7 +70,7 @@ public class CommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetByIdAsync_ExistingComment_ReturnsComment()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "author1", UserName = "testuser", Email = "test@test.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "author1", UserName = "testuser", Email = "test@test.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -110,7 +110,7 @@ public class CommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetByPostIdAsync_ReturnsCommentsForPost()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "author1", UserName = "testuser", Email = "test@test.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "author1", UserName = "testuser", Email = "test@test.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -139,7 +139,7 @@ public class CommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetByPostIdAsync_ExcludesDeletedComments()
     {
         // Arrange
-        var user = new ApplicationUser { Id = "author1", UserName = "testuser", Email = "test@test.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneContact = "123456789" };
+        var user = new ApplicationUser { Id = "author1", UserName = "testuser", Email = "test@test.com", FirstName = "Test", LastName = "User", Nickname = "Test", PhoneNumber = "123456789" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
