@@ -99,6 +99,25 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     }
 
     [Fact]
+    public async Task GetAllEnrollmentsAsync_IncludesEventEntity()
+    {
+        // Arrange
+        var eventDate = DateTime.Now.AddDays(7);
+        var eventEntity = await _eventService.CreateEventAsync(
+            "Test Event", eventDate, "Location", Core.Enums.EventType.Festival, "Description");
+        await _enrollmentService.CreateEnrollmentAsync("user123", eventEntity.Id);
+
+        // Act
+        var result = await _enrollmentService.GetAllEnrollmentsAsync();
+        var enrollment = result.First();
+
+        // Assert
+        enrollment.Event.Should().NotBeNull();
+        enrollment.Event!.Name.Should().Be("Test Event");
+        enrollment.Event.Date.Date.Should().Be(eventDate.Date);
+    }
+
+    [Fact]
     public async Task GetEnrollmentsByEventIdAsync_ReturnsEventEnrollments()
     {
         // Arrange

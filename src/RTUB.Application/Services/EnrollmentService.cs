@@ -31,6 +31,7 @@ public class EnrollmentService : IEnrollmentService
     {
         return await _context.Enrollments
             .AsNoTracking()
+            .Include(e => e.Event)
             .ToListAsync();
     }
 

@@ -138,6 +138,33 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
     }
 
     [Fact]
+    public async Task GetAttendancesByRehearsalIdAsync_IncludesRehearsalEntity()
+    {
+        // Arrange
+        var rehearsalDate = DateTime.Now.AddDays(7);
+        var rehearsal = Rehearsal.Create(rehearsalDate, "Test Location", "Test Theme");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, "user1");
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
+        // Clear change tracker to ensure fresh load
+        _context.ChangeTracker.Clear();
+
+        // Act
+        var result = await _attendanceService.GetAttendancesByRehearsalIdAsync(rehearsal.Id);
+        var firstAttendance = result.First();
+
+        // Assert
+        firstAttendance.Rehearsal.Should().NotBeNull();
+        firstAttendance.Rehearsal!.Location.Should().Be("Test Location");
+        firstAttendance.Rehearsal.Theme.Should().Be("Test Theme");
+        firstAttendance.Rehearsal.Date.Date.Should().Be(rehearsalDate.Date);
+    }
+
+    [Fact]
     public async Task GetAttendancesByUserIdAsync_ReturnsUserAttendances()
     {
         // Arrange

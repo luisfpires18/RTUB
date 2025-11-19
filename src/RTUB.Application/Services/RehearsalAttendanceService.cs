@@ -32,6 +32,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     {
         return await _context.RehearsalAttendances
             .AsNoTracking()
+            .Include(a => a.Rehearsal)
             .Where(a => a.RehearsalId == rehearsalId)
             .OrderBy(a => a.CheckedInAt)
             .ToListAsync();
