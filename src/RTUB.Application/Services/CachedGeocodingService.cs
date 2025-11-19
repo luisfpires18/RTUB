@@ -43,12 +43,10 @@ public class CachedGeocodingService : IGeocodingService
 
         if (cached != null)
         {
-            _logger.LogDebug("Returning cached coordinates for '{CityName}'", cityName);
             return (cached.Latitude, cached.Longitude);
         }
 
         // Not in cache - enqueue for background geocoding
-        _logger.LogDebug("City '{CityName}' not in cache, enqueueing for background geocoding", cityName);
         await _geocodingQueue.EnqueueCityAsync(normalizedCity, normalizedCountryCode);
 
         return null;

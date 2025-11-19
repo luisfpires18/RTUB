@@ -56,7 +56,6 @@ public class NominatimGeocodingService : IGeocodingService
         // If disabled in tests, return dummy coordinates
         if (_disabledInTests)
         {
-            _logger.LogDebug("Geocoding disabled in tests, returning dummy coordinates for '{CityName}'", cityName);
             return (38.7223, -9.1393); // Default to Lisbon coordinates
         }
         
@@ -67,7 +66,6 @@ public class NominatimGeocodingService : IGeocodingService
         
         if (cached != null)
         {
-            _logger.LogDebug("Returning cached coordinates for '{CityName}' from database", cityName);
             return (cached.Latitude, cached.Longitude);
         }
         
@@ -152,7 +150,6 @@ public class NominatimGeocodingService : IGeocodingService
             if (timeSinceLastRequest.TotalMilliseconds < MinMillisecondsBetweenRequests)
             {
                 var delayMs = MinMillisecondsBetweenRequests - (int)timeSinceLastRequest.TotalMilliseconds;
-                _logger.LogDebug("Rate limiting: waiting {DelayMs}ms", delayMs);
                 await Task.Delay(delayMs);
             }
             _lastRequestTime = DateTime.UtcNow;
@@ -172,8 +169,6 @@ public class NominatimGeocodingService : IGeocodingService
 
         var url = urlBuilder.ToString();
         
-        _logger.LogDebug("Nominatim API query: {Url}", url);
-
         try
         {
             var response = await _httpClient.GetAsync(url);
@@ -201,8 +196,6 @@ public class NominatimGeocodingService : IGeocodingService
                     Latitude: double.Parse(bestResult.lat, System.Globalization.CultureInfo.InvariantCulture),
                     Longitude: double.Parse(bestResult.lon, System.Globalization.CultureInfo.InvariantCulture)
                 );
-                
-                _logger.LogDebug("Match found: {DisplayName}", bestResult.display_name);
                 
                 return coordinates;
             }

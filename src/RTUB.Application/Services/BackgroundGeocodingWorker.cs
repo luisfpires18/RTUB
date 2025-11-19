@@ -73,7 +73,6 @@ public class BackgroundGeocodingWorker : BackgroundService
 
             try
             {
-                _logger.LogDebug("Geocoding city: {CityName}, {CountryCode}", cityName, countryCode);
                 var coordinates = await geocodingService.GetCoordinatesAsync(cityName, countryCode);
 
                 if (coordinates.HasValue)
