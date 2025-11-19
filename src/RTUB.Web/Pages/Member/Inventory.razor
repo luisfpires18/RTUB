@@ -17,10 +17,10 @@
 <h1 class="mb-2"><i class="bi bi-box-seam"></i> Instrumentos</h1>
 <p class="lead mb-4 text-light-theme">Instrumentos da RTUB</p>
 
-<!-- Add Button (Admin/Owner only) -->
+<!-- Page Header Actions -->
 <AuthorizeView Roles="Admin,Owner,Mod">
     <Authorized>
-        <div class="mb-3">
+        <div class="page-header-actions">
             <button class="btn btn-success" @onclick="OpenCreateInstrumentModal" title="Novo Instrumento" disabled="@(loading || !categories.Any())">
                 <i class="bi bi-plus-lg"></i> Adicionar Instrumento
             </button>

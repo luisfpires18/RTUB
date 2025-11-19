@@ -30,9 +30,10 @@
 <h1 class="mb-2"><i class="bi bi-people"></i> Membros</h1>
 <p class="lead mb-4 text-light-theme">Lista de todos os membros da RTUB.</p>
 
-<AuthorizeView Roles="Admin">
-    <Authorized>
-        <div class="mb-3 d-flex gap-2">
+<!-- Page Header Actions -->
+<div class="page-header-actions">
+    <AuthorizeView Roles="Admin">
+        <Authorized>
             <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Membro">
                 <i class="bi bi-plus-lg"></i> Adicionar Membro
             </button>
@@ -42,9 +43,14 @@
                     <i class="bi bi-geo-alt"></i> Ver Mapa de Membros
                 </button>
             }
-        </div>
-    </Authorized>
-</AuthorizeView>
+        </Authorized>
+    </AuthorizeView>
+    
+    <!-- Anniversaries button visible to all members -->
+    <button class="btn btn-purple" @onclick="OpenAnniversariesModal" title="Ver Aniversários dos Membros">
+        <i class="bi bi-cake2"></i> Aniversários
+    </button>
+</div>
 
 <!-- Search and Controls -->
 <div class="d-flex gap-2 mb-3 align-items-center">
@@ -700,6 +706,186 @@ else
     </FooterContent>
 </Modal>
 
+<!-- Anniversaries Modal -->
+<Modal Show="@showAnniversariesModal"
+       ShowChanged="@((bool show) => showAnniversariesModal = show)"
+       Title="Aniversários dos Membros"
+       Size="Modal.ModalSize.ExtraLarge"
+       Centered="true">
+    <BodyContent>
+        @if (anniversariesLoading)
+        {
+            <div class="d-flex justify-content-center my-5">
+                <LoadingSpinner />
+            </div>
+        }
+        else if (allAnniversaries == null || !allAnniversaries.Any())
+        {
+            <EmptyState Title="Nenhum aniversário encontrado"
+                       Message="Não há membros com data de nascimento registada."
+                       Icon="bi-cake2" />
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Membro</th>
+                            <th>Categoria</th>
+                            <th>Aniversário</th>
+                            <th>Idade</th>
+                            <th>Cidade</th>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <th>Ações</th>
+                                </Authorized>
+                            </AuthorizeView>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var member in paginatedAnniversaries)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="@member.ProfilePictureSrc" alt="@member.Nickname"
+                                             class="member-avatar-small me-2" />
+                                        <div>
+                                            <div><strong>@member.Nickname</strong></div>
+                                            <div class="text-muted small">@member.FirstName @member.LastName</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (member.Categories != null && member.Categories.Any())
+                                    {
+                                        foreach (var category in member.Categories)
+                                        {
+                                            <CategoryBadge Category="@category" />
+                                        }
+                                    }
+                                </td>
+                                <td>
+                                    @if (member.DateOfBirth.HasValue)
+                                    {
+                                        <text>@member.DateOfBirth.Value.ToString("dd/MM")</text>
+                                    }
+                                </td>
+                                <td>
+                                    @if (member.DateOfBirth.HasValue)
+                                    {
+                                        var age = DateTime.Now.Year - member.DateOfBirth.Value.Year;
+                                        <text>@age</text>
+                                    }
+                                </td>
+                                <td>
+                                    @(member.City ?? "-")
+                                </td>
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <td>
+                                            <button class="btn btn-sm @(IsBirthdayToday(member) ? "btn-success" : "btn-secondary")"
+                                                    @onclick="@(() => SendBirthdayEmail(member))"
+                                                    disabled="@(!IsBirthdayToday(member))"
+                                                    title="@(IsBirthdayToday(member) ? "Enviar email de aniversário" : "Não é aniversário hoje")">
+                                                <i class="bi bi-envelope-heart"></i>
+                                            </button>
+                                        </td>
+                                    </Authorized>
+                                </AuthorizeView>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <TablePagination CurrentPage="@anniversariesPaginationHelper.CurrentPage"
+                            PageSize="@anniversariesPaginationHelper.PageSize"
+                            TotalItems="@allAnniversaries.Count"
+                            ItemLabel="membros"
+                            PageSizeOptions="@(new[] { 10, 20, 30, 40, 50 })"
+                            OnPageChanged="ChangeAnniversariesPage"
+                            OnPageSizeChanged="ChangeAnniversariesPageSize" />
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseAnniversariesModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
+<!-- Birthday Notification Confirmation Modal -->
+<ConfirmDialog Show="@showBirthdayEmailModal"
+               ShowChanged="@((bool show) => showBirthdayEmailModal = show)"
+               Title="Enviar notificação de aniversário?"
+               ConfirmText="Sim"
+               CancelText="Não"
+               ConfirmButtonClass="btn-primary"
+               OnConfirm="@SendBirthdayNotification"
+               OnCancel="@CloseBirthdayEmailModal"
+               Size="Modal.ModalSize.Large">
+    <BodyContent>
+        @if (selectedUserForBirthday != null)
+        {
+            <div class="mb-3">
+                <h6 class="text-white-full">Detalhes do Aniversariante:</h6>
+                <div class="event-summary p-3 rounded bg-dark">
+                    <div><strong>Nome:</strong> @selectedUserForBirthday.Nickname (@selectedUserForBirthday.FirstName @selectedUserForBirthday.LastName)</div>
+                    @if (selectedUserForBirthday.DateOfBirth.HasValue)
+                    {
+                        <div><strong>Data de Nascimento:</strong> @selectedUserForBirthday.DateOfBirth.Value.ToString("dd/MM/yyyy")</div>
+                    }
+                </div>
+            </div>
+
+            @if (birthdayEmailLoadingSubscribers)
+            {
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">A carregar...</span>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(birthdayEmailErrorMessage))
+            {
+                <Alert Message="@birthdayEmailErrorMessage" 
+                       Type="Alert.AlertType.Error" 
+                       Dismissible="true"
+                       OnDismiss="@(() => birthdayEmailErrorMessage = null)" />
+            }
+            else
+            {
+                <div class="mb-3">
+                    <span class="badge bg-purple text-white p-2">
+                        @($"{birthdaySubscribedUsersCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")
+                    </span>
+                </div>
+
+                @if (birthdaySubscribedUsers != null && birthdaySubscribedUsers.Any())
+                {
+                    <div class="mb-3">
+                        <h6 class="text-white-full mb-2">Membros que irão receber:</h6>
+                        <div class="subscriber-list" style="max-height: 300px; overflow-y: auto;">
+                            @foreach (var user in birthdaySubscribedUsers)
+                            {
+                                <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                                    @(user.Nickname ?? $"{user.FirstName} {user.LastName}")
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <Alert Message="Nenhum membro subscrito às notificações por email." 
+                           Type="Alert.AlertType.Warning" />
+                }
+            }
+        }
+    </BodyContent>
+</ConfirmDialog>
+
 @code {
     // Cache enum values to avoid repeated allocation on each render
     private static readonly InstrumentType[] AllInstrumentTypes = Enum.GetValues<InstrumentType>();
@@ -740,6 +926,7 @@ else
     private bool showDeleteModal = false;
     private bool showViewDetailsModal = false;
     private bool showSetNicknameModal = false;
+    private bool showAnniversariesModal = false;
     private bool isCreateMode = false;
     private bool isSaving = false;
     private bool isSavingNickname = false;
@@ -752,6 +939,20 @@ else
     private NicknameFormModel nicknameForm = new();
     private bool isFundador = false; // Track if user is a founder
     private bool semAlcunha = false; // Track if leitão has no nickname yet
+    
+    // Anniversaries modal
+    private bool anniversariesLoading = false;
+    private List<ApplicationUser> allAnniversaries = new();
+    private List<ApplicationUser> paginatedAnniversaries = new();
+    private PaginationHelper<ApplicationUser> anniversariesPaginationHelper = new() { PageSize = 10 };
+    
+    // Birthday notification modal
+    private bool showBirthdayEmailModal = false;
+    private ApplicationUser? selectedUserForBirthday = null;
+    private List<ApplicationUser>? birthdaySubscribedUsers = null;
+    private int birthdaySubscribedUsersCount = 0;
+    private bool birthdayEmailLoadingSubscribers = false;
+    private string? birthdayEmailErrorMessage = null;
     
     // Nickname form model
     public class NicknameFormModel
@@ -913,7 +1114,8 @@ else
             u => u.LastName ?? "",
             u => u.Nickname ?? "",
             u => u.Email ?? "",
-            u => u.PhoneContact ?? ""
+            u => u.PhoneContact ?? "",
+            u => u.City ?? ""
         });
 
         // Apply instrument filter to all users before separating (applies to both grids)
@@ -1965,6 +2167,212 @@ else
     private void NavigateToMap()
     {
         NavigationManager.NavigateTo("/member/map");
+    }
+    
+    // Anniversaries modal methods
+    
+    /// <summary>
+    /// Opens the anniversaries modal and loads birthday data
+    /// </summary>
+    private async Task OpenAnniversariesModal()
+    {
+        showAnniversariesModal = true;
+        anniversariesLoading = true;
+        StateHasChanged();
+        
+        try
+        {
+            // Get current date and year
+            var today = DateTime.Now.Date;
+            var currentYear = today.Year;
+            
+            // Get all users with birthdays
+            var usersWithBirthdays = users?
+                .Where(u => u.DateOfBirth.HasValue)
+                .ToList() ?? new List<ApplicationUser>();
+            
+            // Filter to only show birthdays in current year that are today or in the future
+            // Compute nextBirthday for each member and filter
+            var filteredUsers = usersWithBirthdays
+                .Select(u => new
+                {
+                    User = u,
+                    NextBirthday = new DateTime(currentYear, u.DateOfBirth!.Value.Month, u.DateOfBirth.Value.Day)
+                })
+                .Where(x => x.NextBirthday >= today && x.NextBirthday.Year == currentYear)
+                .ToList();
+            
+            // Sort by next anniversary (day/month) ascending, then by name
+            allAnniversaries = filteredUsers
+                .OrderBy(x => x.NextBirthday)
+                .ThenBy(x => x.User.FirstName)
+                .ThenBy(x => x.User.LastName)
+                .Select(x => x.User)
+                .ToList();
+            
+            // Reset pagination and update
+            anniversariesPaginationHelper.CurrentPage = 1;
+            UpdateAnniversariesPagination();
+        }
+        finally
+        {
+            anniversariesLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    /// <summary>
+    /// Closes the anniversaries modal
+    /// </summary>
+    private void CloseAnniversariesModal()
+    {
+        showAnniversariesModal = false;
+        allAnniversaries.Clear();
+        paginatedAnniversaries.Clear();
+    }
+    
+    /// <summary>
+    /// Updates the paginated anniversaries list
+    /// </summary>
+    private void UpdateAnniversariesPagination()
+    {
+        paginatedAnniversaries = anniversariesPaginationHelper.GetPageData(allAnniversaries);
+    }
+    
+    /// <summary>
+    /// Changes the current page in anniversaries modal
+    /// </summary>
+    private async Task ChangeAnniversariesPage(int newPage)
+    {
+        anniversariesPaginationHelper.CurrentPage = newPage;
+        UpdateAnniversariesPagination();
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+    
+    /// <summary>
+    /// Changes the page size in anniversaries modal
+    /// </summary>
+    private async Task ChangeAnniversariesPageSize(int newPageSize)
+    {
+        anniversariesPaginationHelper.PageSize = newPageSize;
+        anniversariesPaginationHelper.CurrentPage = 1; // Reset to first page
+        UpdateAnniversariesPagination();
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+    
+    // Birthday email methods
+    
+    /// <summary>
+    /// Checks if today is the user's birthday
+    /// </summary>
+    private bool IsBirthdayToday(ApplicationUser user)
+    {
+        if (!user.DateOfBirth.HasValue)
+            return false;
+        
+        var today = DateTime.Now;
+        return user.DateOfBirth.Value.Month == today.Month && 
+               user.DateOfBirth.Value.Day == today.Day;
+    }
+    
+    /// <summary>
+    /// Initiates the birthday email sending process
+    /// </summary>
+    private async Task SendBirthdayEmail(ApplicationUser user)
+    {
+        if (!IsBirthdayToday(user))
+        {
+            return;
+        }
+        
+        selectedUserForBirthday = user;
+        birthdayEmailLoadingSubscribers = true;
+        birthdayEmailErrorMessage = null;
+        showBirthdayEmailModal = true;
+        StateHasChanged();
+
+        try
+        {
+            // Get all subscribed users with confirmed emails (excluding the birthday person)
+            var subscribedUsers = await Task.Run(() => 
+                UserManager.Users
+                    .Where(u => u.Subscribed && u.EmailConfirmed && u.Id != user.Id && !string.IsNullOrEmpty(u.Email))
+                    .OrderBy(u => u.Nickname ?? u.FirstName)
+                    .ToList());
+            
+            birthdaySubscribedUsers = subscribedUsers;
+            birthdaySubscribedUsersCount = subscribedUsers.Count;
+        }
+        catch (Exception ex)
+        {
+            birthdayEmailErrorMessage = $"Erro ao carregar membros: {ex.Message}";
+        }
+        finally
+        {
+            birthdayEmailLoadingSubscribers = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Closes the birthday email modal
+    /// </summary>
+    private void CloseBirthdayEmailModal()
+    {
+        showBirthdayEmailModal = false;
+        selectedUserForBirthday = null;
+        birthdaySubscribedUsers = null;
+        birthdaySubscribedUsersCount = 0;
+        birthdayEmailErrorMessage = null;
+    }
+
+    /// <summary>
+    /// Sends the birthday notification email to subscribed users
+    /// </summary>
+    private async Task SendBirthdayNotification()
+    {
+        if (selectedUserForBirthday == null || birthdaySubscribedUsers == null || !birthdaySubscribedUsers.Any())
+        {
+            CloseBirthdayEmailModal();
+            return;
+        }
+
+        StateHasChanged();
+
+        try
+        {
+            var recipientEmails = birthdaySubscribedUsers
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .Select(u => u.Email!)
+                .ToList();
+
+            var recipientData = birthdaySubscribedUsers
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .ToDictionary(
+                    u => u.Email!,
+                    u => (u.Nickname ?? u.FirstName ?? "", $"{u.FirstName} {u.LastName}")
+                );
+            
+            var (success, count, errorMessage) = await EmailNotificationService.SendBirthdayNotificationAsync(
+                selectedUserForBirthday.Id,
+                selectedUserForBirthday.Nickname ?? selectedUserForBirthday.FirstName ?? "",
+                $"{selectedUserForBirthday.FirstName} {selectedUserForBirthday.LastName}",
+                recipientEmails,
+                recipientData
+            );
+            
+            CloseBirthdayEmailModal();
+            
+            // Note: We don't have a message/isError system in Members page like UserRoles
+            // The email will be sent silently. If needed, could add toast notifications.
+        }
+        catch (Exception ex)
+        {
+            CloseBirthdayEmailModal();
+            _logger.LogError(ex, "Error sending birthday email");
+        }
     }
 }
 

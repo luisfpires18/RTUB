@@ -178,3 +178,33 @@
     color: #fff;
     transition: transform 0.2s ease;
 }
+
+/* ========================================
+   Page Header Actions
+   Responsive container for action buttons at the top of pages
+   ======================================== */
+
+.page-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Desktop: buttons in a single row */
+@media (min-width: 768px) {
+    .page-header-actions {
+        flex-wrap: nowrap;
+    }
+}
+
+/* Mobile: buttons can wrap to multiple lines or stack */
+@media (max-width: 767px) {
+    .page-header-actions {
+        flex-direction: column;
+    }
+    
+    .page-header-actions .btn {
+        width: 100%;
+    }
+}

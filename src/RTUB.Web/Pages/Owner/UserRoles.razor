@@ -9,7 +9,6 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject IEmailNotificationService EmailNotificationService
 @attribute [Authorize(Roles = "Owner")]
 @inherits CrudTablePageBase<ApplicationUser>
 
@@ -63,11 +62,6 @@ else
                                         CurrentSortColumn="@SortHelper.SortColumn"
                                         IsSortAscending="@SortHelper.SortAscending"
                                         OnSortChanged="SortBy" />
-                    <SortableTableHeader HeaderText="Aniversário" 
-                                        SortColumn="Birthday"
-                                        CurrentSortColumn="@SortHelper.SortColumn"
-                                        IsSortAscending="@SortHelper.SortAscending"
-                                        OnSortChanged="SortBy" />
                     <SortableTableHeader HeaderText="Função Atual" 
                                         SortColumn="Role"
                                         CurrentSortColumn="@SortHelper.SortColumn"
@@ -101,16 +95,6 @@ else
                         <td><code>@user.UserName</code></td>
                         <td>@user.Email</td>
                         <td>
-                            @if (user.DateOfBirth.HasValue)
-                            {
-                                <text>@user.DateOfBirth.Value.ToString("dd/MM/yyyy")</text>
-                            }
-                            else
-                            {
-                                <span class="text-muted">N/A</span>
-                            }
-                        </td>
-                        <td>
                             <RoleBadge Role="@currentRole" />
                         </td>
                         <td>
@@ -126,12 +110,6 @@ else
                                     @onclick="@(() => OpenEditRoleModal(user, currentRole))"
                                     title="Editar Função">
                                 <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm @(IsBirthdayToday(user) ? "btn-success" : "btn-secondary")" 
-                                    @onclick="@(() => SendBirthdayEmail(user))"
-                                    disabled="@(!IsBirthdayToday(user))"
-                                    title="@(IsBirthdayToday(user) ? "Enviar email de aniversário" : "Não é aniversário hoje")">
-                                <i class="bi bi-envelope-heart"></i>
                             </button>
                         </td>
                     </tr>
@@ -277,77 +255,6 @@ else
                OnConfirm="ConfirmRoleChange"
                OnCancel="CancelRoleChange" />
 
-<!-- Birthday Notification Confirmation Modal -->
-<ConfirmDialog Show="@showBirthdayEmailModal"
-               ShowChanged="@((bool show) => showBirthdayEmailModal = show)"
-               Title="Enviar notificação de aniversário?"
-               ConfirmText="Sim"
-               CancelText="Não"
-               ConfirmButtonClass="btn-primary"
-               OnConfirm="@SendBirthdayNotification"
-               OnCancel="@CloseBirthdayEmailModal"
-               Size="Modal.ModalSize.Large">
-    <BodyContent>
-        @if (selectedUserForBirthday != null)
-        {
-            <div class="mb-3">
-                <h6 class="text-white-full">Detalhes do Aniversariante:</h6>
-                <div class="event-summary p-3 rounded bg-dark">
-                    <div><strong>Nome:</strong> @selectedUserForBirthday.Nickname (@selectedUserForBirthday.FirstName @selectedUserForBirthday.LastName)</div>
-                    @if (selectedUserForBirthday.DateOfBirth.HasValue)
-                    {
-                        <div><strong>Data de Nascimento:</strong> @selectedUserForBirthday.DateOfBirth.Value.ToString("dd/MM/yyyy")</div>
-                    }
-                </div>
-            </div>
-
-            @if (birthdayEmailLoadingSubscribers)
-            {
-                <div class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">A carregar...</span>
-                    </div>
-                </div>
-            }
-            else if (!string.IsNullOrEmpty(birthdayEmailErrorMessage))
-            {
-                <Alert Message="@birthdayEmailErrorMessage" 
-                       Type="Alert.AlertType.Error" 
-                       Dismissible="true"
-                       OnDismiss="@(() => birthdayEmailErrorMessage = null)" />
-            }
-            else
-            {
-                <div class="mb-3">
-                    <span class="badge bg-purple text-white p-2">
-                        @($"{birthdaySubscribedUsersCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")
-                    </span>
-                </div>
-
-                @if (birthdaySubscribedUsers != null && birthdaySubscribedUsers.Any())
-                {
-                    <div class="mb-3">
-                        <h6 class="text-white-full mb-2">Membros que irão receber:</h6>
-                        <div class="subscriber-list" style="max-height: 300px; overflow-y: auto;">
-                            @foreach (var user in birthdaySubscribedUsers)
-                            {
-                                <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
-                                    @(user.Nickname ?? $"{user.FirstName} {user.LastName}")
-                                </div>
-                            }
-                        </div>
-                    </div>
-                }
-                else
-                {
-                    <Alert Message="Nenhum membro subscrito às notificações por email." 
-                           Type="Alert.AlertType.Warning" />
-                }
-            }
-        }
-    </BodyContent>
-</ConfirmDialog>
-
 @code {
     private Dictionary<string, List<string>> userRolesDict = new();
     private string message = "";
@@ -367,14 +274,6 @@ else
     private ApplicationUser? selectedUser = null;
     private string selectedRole = "";
     private string confirmMessage = "";
-    
-    // Birthday notification modal
-    private bool showBirthdayEmailModal = false;
-    private ApplicationUser? selectedUserForBirthday = null;
-    private List<ApplicationUser>? birthdaySubscribedUsers = null;
-    private int birthdaySubscribedUsersCount = 0;
-    private bool birthdayEmailLoadingSubscribers = false;
-    private string? birthdayEmailErrorMessage = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -588,117 +487,6 @@ else
         }
         catch (Exception ex)
         {
-            message = $"Erro inesperado: {ex.Message}";
-            isError = true;
-        }
-    }
-    
-    private bool IsBirthdayToday(ApplicationUser user)
-    {
-        if (!user.DateOfBirth.HasValue)
-            return false;
-        
-        var today = DateTime.Now;
-        return user.DateOfBirth.Value.Month == today.Month && 
-               user.DateOfBirth.Value.Day == today.Day;
-    }
-    
-    // Birthday notification modal methods
-    private async Task SendBirthdayEmail(ApplicationUser user)
-    {
-        if (!IsBirthdayToday(user))
-        {
-            message = "Não é aniversário deste utilizador hoje.";
-            isError = true;
-            return;
-        }
-        
-        selectedUserForBirthday = user;
-        birthdayEmailLoadingSubscribers = true;
-        birthdayEmailErrorMessage = null;
-        showBirthdayEmailModal = true;
-        StateHasChanged();
-
-        try
-        {
-            // Get all subscribed users with confirmed emails (excluding the birthday person)
-            var subscribedUsers = await Task.Run(() => 
-                UserManager.Users
-                    .Where(u => u.Subscribed && u.EmailConfirmed && u.Id != user.Id && !string.IsNullOrEmpty(u.Email))
-                    .OrderBy(u => u.Nickname ?? u.FirstName)
-                    .ToList());
-            
-            birthdaySubscribedUsers = subscribedUsers;
-            birthdaySubscribedUsersCount = subscribedUsers.Count;
-        }
-        catch (Exception ex)
-        {
-            birthdayEmailErrorMessage = $"Erro ao carregar membros: {ex.Message}";
-        }
-        finally
-        {
-            birthdayEmailLoadingSubscribers = false;
-            StateHasChanged();
-        }
-    }
-
-    private void CloseBirthdayEmailModal()
-    {
-        showBirthdayEmailModal = false;
-        selectedUserForBirthday = null;
-        birthdaySubscribedUsers = null;
-        birthdaySubscribedUsersCount = 0;
-        birthdayEmailErrorMessage = null;
-    }
-
-    private async Task SendBirthdayNotification()
-    {
-        if (selectedUserForBirthday == null || birthdaySubscribedUsers == null || !birthdaySubscribedUsers.Any())
-        {
-            CloseBirthdayEmailModal();
-            return;
-        }
-
-        StateHasChanged();
-
-        try
-        {
-            var recipientEmails = birthdaySubscribedUsers
-                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
-                .Select(u => u.Email!)
-                .ToList();
-
-            var recipientData = birthdaySubscribedUsers
-                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
-                .ToDictionary(
-                    u => u.Email!,
-                    u => (u.Nickname ?? u.FirstName ?? "", $"{u.FirstName} {u.LastName}")
-                );
-            
-            var (success, count, errorMessage) = await EmailNotificationService.SendBirthdayNotificationAsync(
-                selectedUserForBirthday.Id,
-                selectedUserForBirthday.Nickname ?? selectedUserForBirthday.FirstName ?? "",
-                $"{selectedUserForBirthday.FirstName} {selectedUserForBirthday.LastName}",
-                recipientEmails,
-                recipientData
-            );
-            
-            CloseBirthdayEmailModal();
-            
-            if (success)
-            {
-                message = $"Email de aniversário enviado com sucesso para {count} utilizadores subscritos.";
-                isError = false;
-            }
-            else
-            {
-                message = errorMessage ?? "Erro ao enviar email de aniversário.";
-                isError = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            CloseBirthdayEmailModal();
             message = $"Erro inesperado: {ex.Message}";
             isError = true;
         }

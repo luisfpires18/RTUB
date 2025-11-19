@@ -105,7 +105,7 @@
     /// Number of items per page
     /// </summary>
     [Parameter]
-    public int PageSize { get; set; } = 25;
+    public int PageSize { get; set; } = 10;
 
     /// <summary>
     /// Total number of items
@@ -135,7 +135,7 @@
     /// Page size options to display in the dropdown. Defaults to standard sizes.
     /// </summary>
     [Parameter]
-    public int[] PageSizeOptions { get; set; } = new[] { 10, 25, 50, 100 };
+    public int[] PageSizeOptions { get; set; } = new[] { 10, 20, 30, 40, 50 };
 
     private int TotalPages => TotalItems > 0 ? (int)Math.Ceiling((double)TotalItems / PageSize) : 1;
     private bool HasPreviousPage => CurrentPage > 1;

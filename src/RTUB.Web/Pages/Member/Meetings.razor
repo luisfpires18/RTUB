@@ -31,22 +31,23 @@ else
 <h1 class="mb-2"><i class="bi bi-calendar3"></i> Reuniões</h1>
 <p class="lead mb-4 text-light-theme">Gerir reuniões e assembleias da organização.</p>
 
-<div class="mb-3">
+<!-- Page Header Actions -->
+<div class="page-header-actions">
     @if (CanManageMeetings())
     {
-        <button class="btn btn-success mb-2" @onclick="OpenCreateModal" title="Adicionar Nova Reunião">
+        <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Nova Reunião">
             <i class="bi bi-plus-lg"></i> Criar Reunião
         </button>
     }
     @if (CanProposeCVMeeting())
     {
-        <button class="btn btn-primary mb-2 ms-2" @onclick="OpenProposalModal" title="Propor Reunião de CV">
+        <button class="btn btn-primary" @onclick="OpenProposalModal" title="Propor Reunião de CV">
             <i class="bi bi-megaphone"></i> Propor Reunião de CV
         </button>
     }
     @if (CanProposeAGMeeting())
     {
-        <button class="btn btn-primary mb-2 ms-2" @onclick="OpenAGProposalModal" title="Propor Assembleia Geral">
+        <button class="btn btn-primary" @onclick="OpenAGProposalModal" title="Propor Assembleia Geral">
             <i class="bi bi-people"></i> Propor Assembleia Geral
         </button>
     }
