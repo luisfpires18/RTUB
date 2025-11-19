@@ -155,5 +155,93 @@ public class NominatimGeocodingServiceTests
         // Assert
         result.Should().BeNull();
     }
+
+    [Fact]
+    public async Task GetCoordinatesAsync_WithBraganca_ReturnsLocalFallbackCoordinates()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "Geocoding:DisabledInTests", "false" }
+            })
+            .Build();
+        
+        using var scope = _serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, dbContext, config);
+
+        // Act
+        var result = await service.GetCoordinatesAsync("Bragança", "PT");
+
+        // Assert - Should use local fallback coordinates instead of hitting API
+        result.Should().NotBeNull();
+        result.Value.Latitude.Should().Be(41.80582);
+        result.Value.Longitude.Should().Be(-6.75719);
+    }
+
+    [Fact]
+    public async Task GetCoordinatesAsync_WithBragancaCaseInsensitive_ReturnsLocalFallbackCoordinates()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "Geocoding:DisabledInTests", "false" }
+            })
+            .Build();
+        
+        using var scope = _serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, dbContext, config);
+
+        // Act - Test case insensitivity
+        var result = await service.GetCoordinatesAsync("BRAGANÇA", "PT");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Value.Latitude.Should().Be(41.80582);
+        result.Value.Longitude.Should().Be(-6.75719);
+    }
+
+    [Fact]
+    public async Task GetCoordinatesAsync_BragancaStoredInCache_UsesLocalFallback()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "Geocoding:DisabledInTests", "false" }
+            })
+            .Build();
+        
+        using var scope = _serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, dbContext, config);
+
+        // Act - First call should use fallback and store in cache
+        var result1 = await service.GetCoordinatesAsync("Bragança", "PT");
+
+        // Assert - First call uses local fallback
+        result1.Should().NotBeNull();
+        result1.Value.Latitude.Should().Be(41.80582);
+        result1.Value.Longitude.Should().Be(-6.75719);
+
+        // Verify it was stored in cache
+        var cached = await dbContext.GeocodingCaches
+            .FirstOrDefaultAsync(g => g.CityName == "bragança" && g.CountryCode == "PT");
+        
+        cached.Should().NotBeNull();
+        cached!.Latitude.Should().Be(41.80582);
+        cached.Longitude.Should().Be(-6.75719);
+
+        // Act - Second call should use cache
+        var result2 = await service.GetCoordinatesAsync("Bragança", "PT");
+
+        // Assert - Second call also returns correct coordinates from cache
+        result2.Should().NotBeNull();
+        result2.Value.Latitude.Should().Be(41.80582);
+        result2.Value.Longitude.Should().Be(-6.75719);
+    }
 }
 

@@ -27,6 +27,12 @@ public class NominatimGeocodingService : IGeocodingService
     private static readonly SemaphoreSlim _rateLimiter = new(1, 1);
     private static DateTime _lastRequestTime = DateTime.MinValue;
     private const int MinMillisecondsBetweenRequests = 1100; // Slightly over 1 second to be safe
+    
+    // Local fallback coordinates for specific cities (override remote geocoding)
+    private static readonly Dictionary<string, (double Latitude, double Longitude)> LocalFallbackCoordinates = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "bragança", (41.80582, -6.75719) }
+    };
 
     public NominatimGeocodingService(
         IHttpClientFactory httpClientFactory, 
@@ -127,6 +133,13 @@ public class NominatimGeocodingService : IGeocodingService
 
     private async Task<(double Latitude, double Longitude)?> TryGeocodeWithStrategies(string cityName, string? countryCode)
     {
+        // Check local fallback coordinates first (explicit overrides)
+        if (LocalFallbackCoordinates.TryGetValue(cityName, out var fallbackCoords))
+        {
+            _logger.LogInformation("Using local fallback coordinates for '{CityName}'", cityName);
+            return fallbackCoords;
+        }
+        
         // Strategy 1: Search as city with country filter (most common case)
         var result = await TryGeocode(cityName, countryCode, "city,town,village,municipality");
         if (result.HasValue) return result;
@@ -192,11 +205,7 @@ public class NominatimGeocodingService : IGeocodingService
             
             if (bestResult != null)
             {
-                var coordinates = (
-                    Latitude: double.Parse(bestResult.lat, System.Globalization.CultureInfo.InvariantCulture),
-                    Longitude: double.Parse(bestResult.lon, System.Globalization.CultureInfo.InvariantCulture)
-                );
-                
+                var coordinates = ExtractCoordinates(bestResult);
                 return coordinates;
             }
 
@@ -214,6 +223,45 @@ public class NominatimGeocodingService : IGeocodingService
         }
     }
 
+    private (double Latitude, double Longitude) ExtractCoordinates(NominatimResult result)
+    {
+        // If result has a bounding box and is a place (city/town/village), compute center
+        if (result.boundingbox != null && 
+            result.boundingbox.Count == 4 &&
+            result.@class == "place" &&
+            result.type != null &&
+            new[] { "city", "town", "village" }.Contains(result.type.ToLowerInvariant()))
+        {
+            try
+            {
+                // Bounding box format: [south, north, west, east]
+                var south = double.Parse(result.boundingbox[0], System.Globalization.CultureInfo.InvariantCulture);
+                var north = double.Parse(result.boundingbox[1], System.Globalization.CultureInfo.InvariantCulture);
+                var west = double.Parse(result.boundingbox[2], System.Globalization.CultureInfo.InvariantCulture);
+                var east = double.Parse(result.boundingbox[3], System.Globalization.CultureInfo.InvariantCulture);
+                
+                var centerLat = (south + north) / 2.0;
+                var centerLon = (west + east) / 2.0;
+                
+                _logger.LogDebug("Using bounding box center for {DisplayName}: ({Lat}, {Lon})", 
+                    result.display_name, centerLat, centerLon);
+                
+                return (centerLat, centerLon);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to parse bounding box for {DisplayName}, falling back to direct coordinates", 
+                    result.display_name);
+            }
+        }
+        
+        // Fallback to direct lat/lon
+        var latitude = double.Parse(result.lat, System.Globalization.CultureInfo.InvariantCulture);
+        var longitude = double.Parse(result.lon, System.Globalization.CultureInfo.InvariantCulture);
+        
+        return (latitude, longitude);
+    }
+
     private NominatimResult? FindBestMatch(List<NominatimResult> results, string query, string? featureType)
     {
         if (results.Count == 0) return null;
@@ -221,11 +269,12 @@ public class NominatimGeocodingService : IGeocodingService
         var queryLower = query.ToLowerInvariant();
         var preferredTypes = new[] { "city", "town", "village", "hamlet", "municipality" };
 
-        // First, try to find exact name match with preferred type
+        // First, try to find exact name match with class="place" and preferred type
         foreach (var result in results)
         {
             var nameMatch = result.display_name.Split(',')[0].Trim().ToLowerInvariant();
             if (nameMatch == queryLower && 
+                result.@class == "place" &&
                 result.type != null && 
                 preferredTypes.Contains(result.type.ToLowerInvariant()))
             {
@@ -233,7 +282,18 @@ public class NominatimGeocodingService : IGeocodingService
             }
         }
 
-        // Second, find any result with preferred type
+        // Second, find any result with class="place" and preferred type
+        foreach (var result in results)
+        {
+            if (result.@class == "place" &&
+                result.type != null && 
+                preferredTypes.Contains(result.type.ToLowerInvariant()))
+            {
+                return result;
+            }
+        }
+
+        // Third, find any result with preferred type (even without class="place")
         foreach (var result in results)
         {
             if (result.type != null && preferredTypes.Contains(result.type.ToLowerInvariant()))
@@ -252,8 +312,10 @@ public class NominatimGeocodingService : IGeocodingService
         public string lon { get; set; } = "";
         public string display_name { get; set; } = "";
         public string? type { get; set; }
+        public string? @class { get; set; }
         public double importance { get; set; }
         public Address? address { get; set; }
+        public List<string>? boundingbox { get; set; }
     }
 
     private class Address
