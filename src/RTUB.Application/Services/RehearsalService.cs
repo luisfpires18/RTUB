@@ -22,6 +22,7 @@ public class RehearsalService : IRehearsalService
     public async Task<Rehearsal?> GetRehearsalByIdAsync(int id)
     {
         return await _context.Rehearsals
+            .AsNoTracking()
             .Include(r => r.Attendances)
             .FirstOrDefaultAsync(r => r.Id == id);
     }
@@ -30,6 +31,7 @@ public class RehearsalService : IRehearsalService
     {
         var normalizedDate = date.Date;
         return await _context.Rehearsals
+            .AsNoTracking()
             .Include(r => r.Attendances)
             .FirstOrDefaultAsync(r => r.Date == normalizedDate);
     }
@@ -37,6 +39,7 @@ public class RehearsalService : IRehearsalService
     public async Task<IEnumerable<Rehearsal>> GetRehearsalsAsync(DateTime startDate, DateTime endDate)
     {
         return await _context.Rehearsals
+            .AsNoTracking()
             .Include(r => r.Attendances)
             .Where(r => r.Date >= startDate.Date && r.Date <= endDate.Date)
             .OrderBy(r => r.Date)
@@ -47,6 +50,7 @@ public class RehearsalService : IRehearsalService
     {
         var today = DateTime.Today;
         return await _context.Rehearsals
+            .AsNoTracking()
             .Include(r => r.Attendances)
             .Where(r => r.Date >= today && !r.IsCanceled)
             .OrderBy(r => r.Date)

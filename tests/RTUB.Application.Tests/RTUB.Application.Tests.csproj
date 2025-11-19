@@ -22,6 +22,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\RTUB.Core\RTUB.Core.csproj" />
     <ProjectReference Include="..\..\src\RTUB.Application\RTUB.Application.csproj" />
   </ItemGroup>

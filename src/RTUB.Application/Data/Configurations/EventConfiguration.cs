@@ -37,6 +37,10 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.Property(e => e.CreatedAt)
             .IsRequired();
         
+        // Indexes for common queries
+        builder.HasIndex(e => e.Date)
+            .HasDatabaseName("IX_Events_Date");
+        
         // Relationships
         builder.HasMany(e => e.Enrollments)
             .WithOne(en => en.Event)

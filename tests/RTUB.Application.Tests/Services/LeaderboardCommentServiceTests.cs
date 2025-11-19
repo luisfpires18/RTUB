@@ -3,6 +3,7 @@ using Moq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using RTUB.Application.Data;
+using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 
@@ -12,9 +13,10 @@ namespace RTUB.Application.Tests.Services;
 /// Unit tests for LeaderboardCommentService
 /// Tests business logic and service layer operations for leaderboard comments and likes
 /// </summary>
-public class LeaderboardCommentServiceTests : IDisposable
+public class LeaderboardCommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly ApplicationDbContext _context;
+    private readonly DatabaseFixture _fixture;
     private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
     private readonly LeaderboardCommentService _service;
     private readonly ApplicationUser _testUser;

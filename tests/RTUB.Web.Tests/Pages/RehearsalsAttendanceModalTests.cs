@@ -102,7 +102,6 @@ public class RehearsalsAttendanceModalTests
     public void NotAttending_ShouldShowCategoryBadge()
     {
         // Arrange
-        var willAttend = false;
         var showCategoryBadge = true; // New behavior: show category for not attending
 
         // Assert
@@ -171,7 +170,6 @@ public class RehearsalsAttendanceModalTests
     public void SearchFilter_ShouldApplyToBothSections()
     {
         // Arrange
-        var searchTerm = "João";
         var appliedToMainParticipants = true;
         var appliedToLeitoes = true;
 
@@ -197,7 +195,6 @@ public class RehearsalsAttendanceModalTests
     public void ApprovalFilter_Pendente_ShouldShowOnlyNotAttended()
     {
         // Arrange
-        var filterValue = "Pendente";
         var shouldShowAttended = false;
         var shouldShowNotAttended = true;
 
@@ -210,7 +207,6 @@ public class RehearsalsAttendanceModalTests
     public void ApprovalFilter_Aprovado_ShouldShowOnlyAttended()
     {
         // Arrange
-        var filterValue = "Aprovado";
         var shouldShowAttended = true;
         var shouldShowNotAttended = false;
 

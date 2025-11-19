@@ -11,6 +11,10 @@ public class MeetingConfiguration : IEntityTypeConfiguration<Meeting>
 {
     public void Configure(EntityTypeBuilder<Meeting> builder)
     {
+        // Indexes for common queries
+        builder.HasIndex(m => m.Date)
+            .HasDatabaseName("IX_Meetings_Date");
+        
         // Configure the Organizer relationship to use OrganizerUserId as the foreign key
         builder.HasOne(m => m.Organizer)
             .WithMany()

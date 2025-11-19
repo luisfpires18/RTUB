@@ -4,6 +4,8 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Data
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
@@ -16,6 +18,7 @@
 @inject IMemberInstrumentService MemberInstrumentService
 @inject IEmailNotificationService EmailNotificationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ApplicationDbContext DbContext
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject ILogger<Members> _logger
 @attribute [Authorize]
@@ -51,7 +54,7 @@
     <div style="flex: 1;">
         <select class="form-select" @bind="selectedInstrumentFilter" @bind:after="ApplyFilters">
             <option value="">Instrumento</option>
-            @foreach (var instrument in Enum.GetValues<InstrumentType>())
+            @foreach (var instrument in AllInstrumentTypes)
             {
                 <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
             }
@@ -362,7 +365,7 @@ else
                 <div class="input-group mb-2">
                     <select class="form-select" @bind-value="selectedInstrumentToAdd" @bind-value:event="onchange">
                         <option value="">Selecionar instrumento...</option>
-                        @foreach (var instrument in Enum.GetValues<InstrumentType>().Where(i => !memberInstruments.Any(mi => mi.InstrumentType == i)))
+                        @foreach (var instrument in AllInstrumentTypes.Where(i => !memberInstruments.Any(mi => mi.InstrumentType == i)))
                         {
                             <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                         }
@@ -688,6 +691,9 @@ else
 </Modal>
 
 @code {
+    // Cache enum values to avoid repeated allocation on each render
+    private static readonly InstrumentType[] AllInstrumentTypes = Enum.GetValues<InstrumentType>();
+    
     private List<ApplicationUser>? users;
     private List<ApplicationUser> filteredUsers = new();
     private List<ApplicationUser> filteredRegularMembers = new();
@@ -830,16 +836,26 @@ else
     {
         users = UserManager.Users.ToList();
         totalUsers = users.Count;
+        var userIdList = users.Select(u => u.Id).ToList();
 
+        // Batch load all user roles in a single query
+        var userRolesQuery = await DbContext.UserRoles
+            .Where(ur => userIdList.Contains(ur.UserId))
+            .Join(DbContext.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
+            .ToListAsync();
+
+        userRoles.Clear();
         foreach (var user in users)
         {
-            var roles = await UserManager.GetRolesAsync(user);
-            userRoles[user.Id] = roles.ToList();
+            userRoles[user.Id] = userRolesQuery
+                .Where(ur => ur.UserId == user.Id)
+                .Select(ur => ur.Name!)
+                .ToList();
         }
 
-        // Load role assignments
+        // Load role assignments in a single query
         var allAssignments = (await RoleAssignmentService.GetAllRoleAssignmentsAsync())
-            .Where(ra => users.Select(u => u.Id).Contains(ra.UserId))
+            .Where(ra => userIdList.Contains(ra.UserId))
             .ToList();
 
         userRoleAssignments.Clear();
@@ -851,12 +867,14 @@ else
                 .ToList();
         }
 
-        // Load primary instruments for all users
+        // Batch load all member instruments in a single query
+        var allInstrumentsByUser = await MemberInstrumentService.GetMemberInstrumentsByUserIdsAsync(userIdList);
+        
         userPrimaryInstruments.Clear();
         userPrimaryInstrumentObjects.Clear();
         foreach (var user in users)
         {
-            var instruments = await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id);
+            var instruments = allInstrumentsByUser.GetValueOrDefault(user.Id, new List<MemberInstrument>());
             var primary = instruments.FirstOrDefault(i => i.IsPrimary);
             userPrimaryInstruments[user.Id] = primary != null ? StatusHelper.GetInstrumentDisplay(primary.InstrumentType) : "";
             userPrimaryInstrumentObjects[user.Id] = primary;

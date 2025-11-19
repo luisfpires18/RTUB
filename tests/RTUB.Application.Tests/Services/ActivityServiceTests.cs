@@ -3,6 +3,7 @@ using Moq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
+using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -13,18 +14,22 @@ namespace RTUB.Application.Tests.Services;
 /// Unit tests for ActivityService
 /// Tests business logic and service layer operations
 /// </summary>
-public class ActivityServiceTests : IDisposable
+public class ActivityServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly ApplicationDbContext _context;
+    private readonly DatabaseFixture _fixture;
     private readonly ActivityService _service;
 
-    public ActivityServiceTests()
+    public ActivityServiceTests(DatabaseFixture fixture)
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new ApplicationDbContext(options, Mock.Of<IHttpContextAccessor>(), new AuditContext());
+        // Clean database at constructor start to ensure test isolation
+        _fixture = fixture;
+        var tempContext = _fixture.CreateContext();
+        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
+        tempContext.Dispose();
+        
+        _fixture = fixture;
+        _context = _fixture.CreateContext();
         _service = new ActivityService(_context);
     }
 

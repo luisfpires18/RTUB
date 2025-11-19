@@ -3,6 +3,7 @@ using Moq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
+using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 
@@ -12,18 +13,22 @@ namespace RTUB.Application.Tests.Services;
 /// Unit tests for AuditLogService
 /// Tests audit log query and filter operations
 /// </summary>
-public class AuditLogServiceTests : IDisposable
+public class AuditLogServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly ApplicationDbContext _context;
+    private readonly DatabaseFixture _fixture;
     private readonly AuditLogService _auditLogService;
 
-    public AuditLogServiceTests()
+    public AuditLogServiceTests(DatabaseFixture fixture)
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
+        // Clean database at constructor start to ensure test isolation
+        _fixture = fixture;
+        var tempContext = _fixture.CreateContext();
+        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
+        tempContext.Dispose();
+        
+        _fixture = fixture;
+        _context = _fixture.CreateContext();
         _auditLogService = new AuditLogService(_context);
     }
 
@@ -529,6 +534,7 @@ public class AuditLogServiceTests : IDisposable
 
     public void Dispose()
     {
+        _fixture.CleanDatabase(_context).GetAwaiter().GetResult();
         _context.Dispose();
     }
 }

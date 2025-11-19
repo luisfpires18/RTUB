@@ -40,6 +40,12 @@ public interface IRankingService
     /// Gets the rank progress information for a user
     /// </summary>
     Task<RankProgressInfo> GetRankProgressAsync(string userId);
+    
+    /// <summary>
+    /// Gets the rank progress information for multiple users in a single batch operation
+    /// Optimized to avoid N+1 queries
+    /// </summary>
+    Task<Dictionary<string, RankProgressInfo>> GetRankProgressBatchAsync(IEnumerable<string> userIds);
 }
 
 /// <summary>

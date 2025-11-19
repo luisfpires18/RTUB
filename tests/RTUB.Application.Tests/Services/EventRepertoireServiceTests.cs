@@ -5,6 +5,7 @@ using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Enums;
 
 namespace RTUB.Application.Tests.Services;
@@ -12,10 +13,12 @@ namespace RTUB.Application.Tests.Services;
 /// <summary>
 /// Unit tests for EventRepertoireService
 /// Tests repertoire CRUD operations and ordering
+/// Uses shared database fixture for better performance
 /// </summary>
-public class EventRepertoireServiceTests : IDisposable
+public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly ApplicationDbContext _context;
+    private readonly DatabaseFixture _fixture;
     private readonly EventRepertoireService _repertoireService;
     private readonly EventService _eventService;
     private readonly AlbumService _albumService;
@@ -23,13 +26,16 @@ public class EventRepertoireServiceTests : IDisposable
     private readonly Mock<IImageStorageService> _mockImageStorageService;
     private readonly DateTime _testEventDate = new DateTime(2025, 12, 31, 20, 0, 0);
 
-    public EventRepertoireServiceTests()
+    public EventRepertoireServiceTests(DatabaseFixture fixture)
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
+        // Clean database at constructor start to ensure test isolation
+        _fixture = fixture;
+        var tempContext = _fixture.CreateContext();
+        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
+        tempContext.Dispose();
+        
+        _fixture = fixture;
+        _context = _fixture.CreateContext();
         _repertoireService = new EventRepertoireService(_context);
         _mockImageStorageService = new Mock<IImageStorageService>();
         _eventService = new EventService(_context, _mockImageStorageService.Object);
@@ -725,6 +731,8 @@ public class EventRepertoireServiceTests : IDisposable
 
     public void Dispose()
     {
+        // Clean the database for the next test in this collection
+        _fixture.CleanDatabase(_context).GetAwaiter().GetResult();
         _context.Dispose();
     }
 }

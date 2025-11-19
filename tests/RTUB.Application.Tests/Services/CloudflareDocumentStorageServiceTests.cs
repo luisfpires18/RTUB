@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Data;
+using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
 using Xunit;
 
@@ -16,13 +17,14 @@ namespace RTUB.Application.Tests.Services;
 /// <summary>
 /// Tests for CloudflareDocumentStorageService
 /// </summary>
-public class CloudflareDocumentStorageServiceTests : IDisposable
+public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly Mock<ILogger<CloudflareDocumentStorageService>> _mockLogger;
     private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly Mock<IAmazonS3> _mockS3Client;
     private readonly Mock<IHostEnvironment> _mockHostEnvironment;
     private readonly ApplicationDbContext _context;
+    private readonly DatabaseFixture _fixture;
     private readonly AuditContext _auditContext;
 
     public CloudflareDocumentStorageServiceTests()

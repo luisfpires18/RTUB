@@ -3,6 +3,7 @@ using Moq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
+using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
@@ -14,19 +15,23 @@ namespace RTUB.Application.Tests.Services;
 /// Unit tests for CommentService
 /// Tests business logic and service layer operations
 /// </summary>
-public class CommentServiceTests : IDisposable
+public class CommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly ApplicationDbContext _context;
+    private readonly DatabaseFixture _fixture;
     private readonly Mock<IPostService> _postServiceMock;
     private readonly CommentService _service;
 
-    public CommentServiceTests()
+    public CommentServiceTests(DatabaseFixture fixture)
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new ApplicationDbContext(options, Mock.Of<IHttpContextAccessor>(), new AuditContext());
+        // Clean database at constructor start to ensure test isolation
+        _fixture = fixture;
+        var tempContext = _fixture.CreateContext();
+        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
+        tempContext.Dispose();
+        
+        _fixture = fixture;
+        _context = _fixture.CreateContext();
         _postServiceMock = new Mock<IPostService>();
         _service = new CommentService(_context, _postServiceMock.Object);
     }

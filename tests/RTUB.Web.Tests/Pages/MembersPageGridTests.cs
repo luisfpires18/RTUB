@@ -403,7 +403,6 @@ public class MembersPageGridTests
     {
         // When user is not admin, category check should not be performed
         
-        var isAdmin = false;
         var currentUserIsCaloiro = false;
         
         // Logic: if (isAdmin) { check category } else { currentUserIsCaloiro remains false }

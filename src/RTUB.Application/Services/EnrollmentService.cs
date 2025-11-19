@@ -29,12 +29,15 @@ public class EnrollmentService : IEnrollmentService
 
     public async Task<IEnumerable<Enrollment>> GetAllEnrollmentsAsync()
     {
-        return await _context.Enrollments.ToListAsync();
+        return await _context.Enrollments
+            .AsNoTracking()
+            .ToListAsync();
     }
 
     public async Task<IEnumerable<Enrollment>> GetEnrollmentsByEventIdAsync(int eventId)
     {
         return await _context.Enrollments
+            .AsNoTracking()
             .Where(e => e.EventId == eventId)
             .Include(e => e.User)
             .ToListAsync();
@@ -43,6 +46,7 @@ public class EnrollmentService : IEnrollmentService
     public async Task<IEnumerable<Enrollment>> GetEnrollmentsByUserIdAsync(string userId)
     {
         return await _context.Enrollments
+            .AsNoTracking()
             .Where(e => e.UserId == userId)
             .Include(e => e.Event)
             .ToListAsync();

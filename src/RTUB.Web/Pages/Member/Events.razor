@@ -1542,9 +1542,19 @@ else
         await CalculateInstrumentCountsAsync();
         
         // Load all members for adding if admin AND it's a past event
+        // Use projection to load only needed fields for better performance
         if (isUserAdmin && eventItem.Date.Date < DateTime.Today)
         {
-            allMembersForEnrollment = UserManager.Users.ToList();
+            allMembersForEnrollment = await UserManager.Users
+                .Select(u => new ApplicationUser
+                {
+                    Id = u.Id,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    Nickname = u.Nickname,
+                    ImageUrl = u.ImageUrl
+                })
+                .ToListAsync();
             filteredAvailableMembersForEnrollment = new List<ApplicationUser>();
             showAddMemberToEnrollmentDropdown = false;
             addMemberToEnrollmentSearchTerm = "";

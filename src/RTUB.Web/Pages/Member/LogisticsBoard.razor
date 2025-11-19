@@ -517,7 +517,7 @@
                                             <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => DownloadFile(file)" title="Descarregar">
                                                 <i class="bi bi-download"></i>
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveFile(file)" title="Eliminar">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="async () => await RemoveFile(file)" title="Eliminar">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
@@ -1141,10 +1141,10 @@
         }
     }
 
-    private void RemoveFile(FileItem file)
+    private async Task RemoveFile(FileItem file)
     {
         uploadedFiles?.Remove(file);
-        SaveFiles().Wait();
+        await SaveFiles();
     }
 
     private async Task DownloadFile(FileItem file)

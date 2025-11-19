@@ -3,6 +3,7 @@ using Moq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
+using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -10,18 +11,22 @@ using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
-public class RoleAssignmentServiceTests : IDisposable
+public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly ApplicationDbContext _context;
+    private readonly DatabaseFixture _fixture;
     private readonly RoleAssignmentService _service;
 
-    public RoleAssignmentServiceTests()
+    public RoleAssignmentServiceTests(DatabaseFixture fixture)
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
+        // Clean database at constructor start to ensure test isolation
+        _fixture = fixture;
+        var tempContext = _fixture.CreateContext();
+        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
+        tempContext.Dispose();
+        
+        _fixture = fixture;
+        _context = _fixture.CreateContext();
         _service = new RoleAssignmentService(_context);
     }
 
@@ -214,6 +219,7 @@ public class RoleAssignmentServiceTests : IDisposable
 
     public void Dispose()
     {
+        _fixture.CleanDatabase(_context).GetAwaiter().GetResult();
         _context.Dispose();
     }
 }

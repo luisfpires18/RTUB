@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using RTUB.Application.Data;
+using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
@@ -11,20 +12,23 @@ using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
-public class UserProfileServiceTests : IDisposable
+public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly ApplicationDbContext _context;
+    private readonly DatabaseFixture _fixture;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
     private readonly UserProfileService _service;
 
-    public UserProfileServiceTests()
+    public UserProfileServiceTests(DatabaseFixture fixture)
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
+        // Clean database at constructor start to ensure test isolation
+        _fixture = fixture;
+        var tempContext = _fixture.CreateContext();
+        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
+        tempContext.Dispose();
+        
+        _context = _fixture.CreateContext();
         
         // Mock UserManager
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
@@ -251,6 +255,7 @@ public class UserProfileServiceTests : IDisposable
 
     public void Dispose()
     {
+        _fixture.CleanDatabase(_context).GetAwaiter().GetResult();
         _context.Dispose();
     }
 }

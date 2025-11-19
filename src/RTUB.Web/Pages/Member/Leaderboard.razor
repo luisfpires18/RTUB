@@ -446,6 +446,10 @@ else
         var users = await UserManager.Users.ToListAsync();
         var now = DateTime.UtcNow;
         
+        // Batch load all rank progress data in a single operation to avoid N+1
+        var userIds = users.Select(u => u.Id).ToList();
+        var rankProgressByUser = await RankingService.GetRankProgressBatchAsync(userIds);
+        
         // Batch load all attendance and enrollment data in two queries to avoid N+1
         // Only count past rehearsals where Attended == true
         var allRehearsalAttendances = await DbContext.RehearsalAttendances
@@ -475,7 +479,11 @@ else
         var entries = new List<LeaderboardEntry>();
         foreach (var user in users)
         {
-            var rankProgress = await RankingService.GetRankProgressAsync(user.Id);
+            var rankProgress = rankProgressByUser.GetValueOrDefault(user.Id, new RankProgressInfo
+            {
+                CurrentLevel = 1,
+                CurrentRankName = "Desconhecido"
+            });
             
             var eventsByType = userEventsByType.GetValueOrDefault(user.Id, new Dictionary<EventType, int>());
             var totalEvents = eventsByType.Values.Sum();

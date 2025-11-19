@@ -356,12 +356,19 @@ else
             // Load folders
             folders = await DocumentStorageService.ListFoldersAsync("docs/");
             
-            // Load documents for each folder
+            // Load documents for all folders in parallel (eliminates N+1 Cloudflare API calls)
             folderDocuments.Clear();
-            foreach (var folder in folders)
+            var documentTasks = folders.Select(async folder =>
             {
                 var documents = await DocumentStorageService.ListDocumentsInFolderAsync($"docs/{HostEnvironment.EnvironmentName}/{folder}");
-                folderDocuments[folder] = documents;
+                return new { Folder = folder, Documents = documents };
+            });
+            
+            var results = await Task.WhenAll(documentTasks);
+            
+            foreach (var result in results)
+            {
+                folderDocuments[result.Folder] = result.Documents;
             }
         }
         catch (Exception ex)

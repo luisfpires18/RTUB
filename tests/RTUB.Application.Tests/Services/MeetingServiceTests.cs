@@ -3,6 +3,7 @@ using Moq;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
+using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
@@ -12,23 +13,29 @@ namespace RTUB.Application.Tests.Services;
 /// <summary>
 /// Unit tests for MeetingService
 /// Tests business logic for meeting operations and Veterano visibility filtering
+/// Uses shared database fixture for better performance
 /// </summary>
-public class MeetingServiceTests : IDisposable
+[Collection("MeetingService Collection")]
+public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly ApplicationDbContext _context;
+    private readonly DatabaseFixture _fixture;
     private readonly MeetingService _meetingService;
     private readonly ApplicationUser _veteranoUser;
     private readonly ApplicationUser _tunossauroUser;
     private readonly ApplicationUser _nonVeteranoUser;
     private readonly ApplicationUser _leitaoUser;
 
-    public MeetingServiceTests()
+    public MeetingServiceTests(DatabaseFixture fixture)
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
+        // Clean database at constructor start to ensure test isolation
+        _fixture = fixture;
+        var tempContext = _fixture.CreateContext();
+        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
+        tempContext.Dispose();
+        
+        _fixture = fixture;
+        _context = _fixture.CreateContext();
         _meetingService = new MeetingService(_context);
 
         // Disable auditing for test setup
@@ -98,11 +105,15 @@ public class MeetingServiceTests : IDisposable
             CategoriesJson = "[5]"  // Leitao enum value (Leitao = 5)
         };
 
-        _context.Users.Add(_veteranoUser);
-        _context.Users.Add(_tunossauroUser);
-        _context.Users.Add(_nonVeteranoUser);
-        _context.Users.Add(_leitaoUser);
-        _context.SaveChanges();
+        // Only add users if they don't already exist (for shared database with multiple test runs)
+        if (!_context.Users.Any(u => u.Id == _veteranoUser.Id))
+        {
+            _context.Users.Add(_veteranoUser);
+            _context.Users.Add(_tunossauroUser);
+            _context.Users.Add(_nonVeteranoUser);
+            _context.Users.Add(_leitaoUser);
+            _context.SaveChanges();
+        }
         
         // Re-enable auditing
         _context.EnableAuditing();
@@ -647,6 +658,7 @@ public class MeetingServiceTests : IDisposable
 
     public void Dispose()
     {
+        _fixture.CleanDatabase(_context).GetAwaiter().GetResult();
         _context.Dispose();
     }
 }

@@ -23,6 +23,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     public async Task<RehearsalAttendance?> GetAttendanceByIdAsync(int id)
     {
         return await _context.RehearsalAttendances
+            .AsNoTracking()
             .Include(a => a.Rehearsal)
             .FirstOrDefaultAsync(a => a.Id == id);
     }
@@ -30,6 +31,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     public async Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdAsync(int rehearsalId)
     {
         return await _context.RehearsalAttendances
+            .AsNoTracking()
             .Where(a => a.RehearsalId == rehearsalId)
             .OrderBy(a => a.CheckedInAt)
             .ToListAsync();
@@ -38,6 +40,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     public async Task<IEnumerable<RehearsalAttendance>> GetAttendancesByUserIdAsync(string userId)
     {
         return await _context.RehearsalAttendances
+            .AsNoTracking()
             .Include(a => a.Rehearsal)
             .Where(a => a.UserId == userId)
             .OrderByDescending(a => a.Rehearsal!.Date)

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using RTUB.Application.Data;
+using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Exceptions;
@@ -13,19 +14,23 @@ namespace RTUB.Application.Tests.Services;
 /// Unit tests for AlbumService
 /// Tests album CRUD operations
 /// </summary>
-public class AlbumServiceTests : IDisposable
+public class AlbumServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly ApplicationDbContext _context;
+    private readonly DatabaseFixture _fixture;
     private readonly AlbumService _albumService;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
 
-    public AlbumServiceTests()
+    public AlbumServiceTests(DatabaseFixture fixture)
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
+        // Clean database at constructor start to ensure test isolation
+        _fixture = fixture;
+        var tempContext = _fixture.CreateContext();
+        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
+        tempContext.Dispose();
+        
+        _fixture = fixture;
+        _context = _fixture.CreateContext();
         _mockImageStorageService = new Mock<IImageStorageService>();
         _albumService = new AlbumService(_context, _mockImageStorageService.Object);
     }

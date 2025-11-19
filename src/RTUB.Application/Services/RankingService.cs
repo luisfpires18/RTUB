@@ -116,18 +116,60 @@ public class RankingService : IRankingService
 
     public async Task<RankProgressInfo> GetRankProgressAsync(string userId)
     {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-        {
-            return new RankProgressInfo
-            {
-                CurrentLevel = 1,
-                CurrentRankName = "Desconhecido"
-            };
-        }
-
         // Calculate current XP
         var currentXp = await CalculateTotalXpAsync(userId);
+        return BuildRankProgressInfo(currentXp);
+    }
+
+    public async Task<Dictionary<string, RankProgressInfo>> GetRankProgressBatchAsync(IEnumerable<string> userIds)
+    {
+        var userIdList = userIds.ToList();
+        if (!userIdList.Any())
+        {
+            return new Dictionary<string, RankProgressInfo>();
+        }
+
+        var now = DateTime.UtcNow;
+        
+        // Batch load all rehearsal attendances in a single query
+        var rehearsalXpByUser = await _context.RehearsalAttendances
+            .Include(ra => ra.Rehearsal)
+            .Where(ra => userIdList.Contains(ra.UserId) && ra.Attended && ra.Rehearsal!.Date < now)
+            .GroupBy(ra => ra.UserId)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.UserId, x => x.Count * _rankingConfig.Value.XpPerRehearsal);
+
+        // Batch load all enrollments with event types in a single query
+        var enrollmentsByUser = await _context.Enrollments
+            .Include(e => e.Event)
+            .Where(e => userIdList.Contains(e.UserId) && e.WillAttend && e.Event!.Date < now)
+            .Select(e => new { e.UserId, EventType = e.Event!.Type.ToString() })
+            .ToListAsync();
+
+        // Calculate event XP for each user
+        var eventXpByUser = enrollmentsByUser
+            .GroupBy(e => e.UserId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Sum(e => _rankingConfig.Value.XpPerEventType.TryGetValue(e.EventType, out var xp) ? xp : 0)
+            );
+
+        // Build result dictionary
+        var result = new Dictionary<string, RankProgressInfo>();
+        foreach (var userId in userIdList)
+        {
+            var rehearsalXp = rehearsalXpByUser.GetValueOrDefault(userId, 0);
+            var eventXp = eventXpByUser.GetValueOrDefault(userId, 0);
+            var totalXp = rehearsalXp + eventXp;
+            
+            result[userId] = BuildRankProgressInfo(totalXp);
+        }
+
+        return result;
+    }
+
+    private RankProgressInfo BuildRankProgressInfo(int currentXp)
+    {
         var currentLevel = GetLevelFromXp(currentXp);
         var currentRankName = GetRankName(currentLevel);
         var xpForCurrentLevel = GetXpForCurrentLevel(currentLevel);
