@@ -1687,6 +1687,10 @@ else
         if (selectedEvent == null || eventEnrollments == null)
             return;
         
+        // Assign the loaded enrollments to the Event's navigation property
+        // so that GetPrimaryInstrumentCounts and GetOtherInstrumentCounts can iterate over them
+        selectedEvent.Enrollments = eventEnrollments;
+        
         // Get all user IDs from enrollments
         var userIds = eventEnrollments
             .Where(e => e.WillAttend && !string.IsNullOrEmpty(e.UserId))
