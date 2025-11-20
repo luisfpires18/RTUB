@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewEngines;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace RTUB.Web.Services;
 
@@ -25,26 +26,31 @@ public interface IEmailTemplateService
 
 /// <summary>
 /// Implementation of email template service using Razor view engine
+/// Fixed to use IServiceScopeFactory to avoid ObjectDisposedException when rendering templates in batches
 /// </summary>
 public class EmailTemplateService : IEmailTemplateService
 {
     private readonly IRazorViewEngine _razorViewEngine;
     private readonly ITempDataProvider _tempDataProvider;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public EmailTemplateService(
         IRazorViewEngine razorViewEngine,
         ITempDataProvider tempDataProvider,
-        IServiceProvider serviceProvider)
+        IServiceScopeFactory serviceScopeFactory)
     {
         _razorViewEngine = razorViewEngine;
         _tempDataProvider = tempDataProvider;
-        _serviceProvider = serviceProvider;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     public async Task<string> RenderTemplateAsync<TModel>(string viewName, TModel model)
     {
-        var actionContext = GetActionContext();
+        // Create a new scope for this rendering operation to avoid ObjectDisposedException
+        using var scope = _serviceScopeFactory.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+        
+        var actionContext = GetActionContext(serviceProvider);
         var viewPath = $"~/EmailTemplates/{viewName}.cshtml";
         
         var viewEngineResult = _razorViewEngine.GetView(executingFilePath: null, viewPath: viewPath, isMainPage: false);
@@ -73,9 +79,9 @@ public class EmailTemplateService : IEmailTemplateService
         return sw.ToString();
     }
 
-    private ActionContext GetActionContext()
+    private ActionContext GetActionContext(IServiceProvider serviceProvider)
     {
-        var httpContext = new DefaultHttpContext { RequestServices = _serviceProvider };
+        var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
         return new ActionContext(httpContext, new Microsoft.AspNetCore.Routing.RouteData(), new ActionDescriptor());
     }
 }

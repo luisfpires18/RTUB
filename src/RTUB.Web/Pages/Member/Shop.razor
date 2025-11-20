@@ -18,7 +18,7 @@
 <h1 class="mb-2"><i class="bi bi-cart"></i> Loja RTUB</h1>
 <p class="lead mb-4 text-light-theme">Produtos oficiais da Real Tuna Universitária de Bragança</p>
 
-<AuthorizeView Roles="Admin,Owner,Mod">
+<AuthorizeView Roles="Admin,Mod">
     <Authorized>
         <div class="mb-3">
             <button class="btn btn-success" @onclick="OpenCreateProductModal" title="Adicionar Novo Produto">
@@ -68,7 +68,7 @@ else
                                 <i class="bi bi-bag-fill music-icon-large"></i>
                             </div>
                         }
-                        <AuthorizeView Roles="Admin,Owner">
+                        <AuthorizeView Roles="Admin">
                             <Authorized>
                                 <div class="admin-overlay">
                                     <button class="btn btn-sm music-btn-edit" @onclick="() => OpenEditProductModal(product)" title="Editar">
@@ -413,7 +413,7 @@ else
                     @foreach (var reservation in productReservations)
                     {
                         <div class="col-md-6 col-lg-4">
-                            <AuthorizeView Roles="Owner">
+                            <AuthorizeView Roles="Admin">
                                 <Authorized>
                                     <ReservationCard 
                                         ProductName="@selectedProduct.Name"

@@ -44,7 +44,7 @@
     <div class="request-grid">
         @foreach (var req in PaginatedPendingRequests)
         {
-            <AuthorizeView Roles="Owner">
+            <AuthorizeView Roles="Admin">
                 <Authorized Context="ownerContext">
                     <RequestCard Request="@req"
                                 IsOwner="true"
@@ -91,7 +91,7 @@ else
     <div class="request-grid">
         @foreach (var req in PaginatedAnsweredRequests)
         {
-            <AuthorizeView Roles="Owner">
+            <AuthorizeView Roles="Admin">
                 <Authorized Context="ownerContext">
                     <RequestCard Request="@req"
                                 IsOwner="true"

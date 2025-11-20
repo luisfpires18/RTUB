@@ -506,7 +506,9 @@ public class EmailNotificationService : IEmailNotificationService
     }
 
     /// <summary>
-    /// Sends personalized emails to a batch of recipients
+    /// Sends personalized emails to a batch of recipients with bounded concurrency
+    /// Uses SemaphoreSlim to limit concurrent sends and avoid overwhelming SMTP/Razor rendering
+    /// Each email rendering gets its own scope to avoid ObjectDisposedException
     /// </summary>
     private async Task<(bool success, int count, string? errorMessage)> SendPersonalizedBatchAsync(
         EmailConfiguration config,
@@ -517,17 +519,30 @@ public class EmailNotificationService : IEmailNotificationService
         object entityId,
         string emailType)
     {
+        const int MaxConcurrentSends = 10;
         int successCount = 0;
+        var successCountLock = new object();
+        
+        // Use SemaphoreSlim to limit concurrent sends
+        using var semaphore = new SemaphoreSlim(MaxConcurrentSends, MaxConcurrentSends);
+        
+        // Create one SMTP client with extended timeout for batch operations
         using var smtpClient = _smtpFactory.CreateClient(config, SmtpClientFactory.BatchEmailTimeout);
+        
+        // SMTP operations need to be synchronized as SmtpClient is not thread-safe
+        using var smtpSemaphore = new SemaphoreSlim(1, 1);
 
-        foreach (var email in recipientEmails)
+        var tasks = recipientEmails.Select(async email =>
         {
             if (string.IsNullOrWhiteSpace(email))
-                continue;
+                return;
 
+            await semaphore.WaitAsync();
             try
             {
                 var (nickname, fullName) = recipientData.TryGetValue(email, out var data) ? data : ("", "");
+                
+                // Render template - this will create its own scope internally in EmailTemplateService
                 var body = await bodyRenderer(nickname, fullName);
 
                 var mailMessage = new MailMessage
@@ -541,14 +556,33 @@ public class EmailNotificationService : IEmailNotificationService
                 };
                 mailMessage.To.Add(email);
 
-                await smtpClient.SendMailAsync(mailMessage);
-                successCount++;
+                // SMTP send needs to be synchronized as SmtpClient is not thread-safe
+                await smtpSemaphore.WaitAsync();
+                try
+                {
+                    await smtpClient.SendMailAsync(mailMessage);
+                }
+                finally
+                {
+                    smtpSemaphore.Release();
+                }
+                
+                lock (successCountLock)
+                {
+                    successCount++;
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to send {EmailType} email to {Email}", emailType, email);
             }
-        }
+            finally
+            {
+                semaphore.Release();
+            }
+        }).ToList();
+
+        await Task.WhenAll(tasks);
 
         _logger.LogInformation("{EmailType} emails sent for {EntityId} to {SuccessCount}/{TotalCount} members",
             emailType, entityId, successCount, recipientEmails.Count);

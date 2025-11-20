@@ -139,7 +139,7 @@ else
                         @{
                             var userEnrollment = GetUserEnrollment(eventItem.Id);
                         }
-                        <AuthorizeView Roles="Owner">
+                        <AuthorizeView Roles="Admin">
                             <Authorized Context="editContext">
                                 <EventCard Event="@eventItem"
                                            ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
@@ -672,7 +672,7 @@ else
        Size="Modal.ModalSize.Large"
        Centered="true">
     <BodyContent>
-        <AuthorizeView Roles="Admin,Owner">
+        <AuthorizeView Roles="Admin">
             <Authorized>
                 <div class="mb-3">
                     <button class="btn btn-success btn-sm" @onclick="OpenCreateTrophyModal">
@@ -694,7 +694,7 @@ else
                 {
                     <div class="col-md-4 col-sm-6">
                         <div class="card h-100 text-center p-3 position-relative trophy-card" style="background-color: #151516; border: 2px solid #2f2f2f; transition: border-color 0.2s ease, box-shadow 0.2s ease;">
-                            <AuthorizeView Roles="Admin,Owner">
+                            <AuthorizeView Roles="Admin">
                                 <Authorized>
                                     <div class="position-absolute top-0 end-0 p-2">
                                         <button class="btn btn-sm admin-btn-edit me-1" @onclick="() => OpenEditTrophyModal(trophy)" title="Editar">

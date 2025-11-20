@@ -59,7 +59,6 @@ public static partial class SeedData
         }
 
         // ===== 2. MEMBERS =====
-        // GUITARRA
         var nabo = await Member(userManager).Nickname("Nabo").Name("Rafael", "Magalhães")
             .Role("Member").Instrument(InstrumentType.Guitarra)
             .Category(MemberCategory.Tuno).YearTuno(2018)
@@ -87,7 +86,6 @@ public static partial class SeedData
             .Category(MemberCategory.Tuno).YearTuno(2019)
             .CreateAsync();
 
-        // example “speaker”
         var speaker = await Member(userManager).Nickname("Erbalife").Name("Carlos", "Silva")
             .Role("Member").Instrument(InstrumentType.Guitarra)
             .Category(MemberCategory.Tuno).YearTuno(2015)
@@ -130,7 +128,6 @@ public static partial class SeedData
             .Category(MemberCategory.Caloiro).YearCaloiro(2023)
             .CreateAsync();
 
-        // BANDOLIM
         var pilao = await Member(userManager).Nickname("Pilão").Name("Samuel", "Silva")
             .Role("Member").Instrument(InstrumentType.Bandolim)
             .Category(MemberCategory.Tuno).YearTuno(2016)
@@ -172,6 +169,81 @@ public static partial class SeedData
             .Category(MemberCategory.Tuno).YearTuno(2016)
             .CreateAsync();
 
+        var piroco = await Member(userManager).Nickname("Piroco").Name("Cláudio", "Espadanedo")
+            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Category(MemberCategory.Tuno).YearTuno(2013)
+            .CreateAsync();
+
+        var mago = await Member(userManager).Nickname("Mago De Quintanilha").Name("Bruno", "Miranda")
+              .Role("Member").Instrument(InstrumentType.Flauta)
+              .Category(MemberCategory.Tuno).YearTuno(2005)
+              .CreateAsync();
+
+        var fodanice = await Member(userManager).Nickname("Foda Nice").Name("Bruno", "Berra")
+              .Role("Member").Instrument(InstrumentType.Flauta)
+              .Category(MemberCategory.Tuno).YearTuno(2006)
+              .CreateAsync();
+
+        var flor = await Member(userManager).Nickname("Flor").Name("Marco", "Pinheiro")
+              .Role("Member").Instrument(InstrumentType.Pandeireta)
+              .Category(MemberCategory.Tuno).YearTuno(2006)
+              .CreateAsync();
+
+        var jornal = await Member(userManager).Nickname("Jornal").Name("Nuno", "Jornal")
+              .Role("Member").Instrument(InstrumentType.Estandarte)
+              .Category(MemberCategory.Tuno).YearTuno(2006)
+              .CreateAsync();
+
+        var krika = await Member(userManager).Nickname("Krika").Name("André", "Marçal")
+              .Role("Member").Instrument(InstrumentType.Bandolim)
+              .Category(MemberCategory.Tuno).YearTuno(2006)
+              .CreateAsync();
+
+        var joy = await Member(userManager).Nickname("Joy").Name("", "")
+              .Role("Member").Instrument(InstrumentType.Pandeireta)
+              .Category(MemberCategory.Tuno).YearTuno(2006)
+              .CreateAsync();
+
+        var dimitri = await Member(userManager).Nickname("dimitri").Name("Luis", "Martins")
+              .Role("Member").Instrument(InstrumentType.Pandeireta)
+              .Category(MemberCategory.Tuno).YearTuno(2006)
+              .CreateAsync();
+
+        var frutis = await Member(userManager).Nickname("Frutis").Name("João", "Patuleia")
+              .Role("Member").Instrument(InstrumentType.Pandeireta)
+              .Category(MemberCategory.Tuno).YearTuno(2006)
+              .CreateAsync();
+
+        var cestinho = await Member(userManager).Nickname("Cestinho").Name("Daniel", "Ramos")
+              .Role("Member").Instrument(InstrumentType.Pandeireta)
+              .Category(MemberCategory.Tuno).YearTuno(2006)
+              .CreateAsync();
+
+        var pinta = await Member(userManager).Nickname("Pinta a Calça").Name("André", "Gomes")
+              .Role("Member").Instrument(InstrumentType.Acordeao)
+              .Category(MemberCategory.Tuno).YearTuno(2015)
+              .CreateAsync();
+
+        var metralha = await Member(userManager).Nickname("Metralha").Name("Ruben", "Santos")
+              .Role("Member").Instrument(InstrumentType.Acordeao)
+              .Category(MemberCategory.Tuno).YearTuno(2005)
+              .CreateAsync();
+
+        var brandao = await Member(userManager).Nickname("Brandao").Name("Jorge", "Brandão")
+              .Role("Member").Instrument(InstrumentType.Guitarra)
+              .Category(MemberCategory.Tuno).YearTuno(2005)
+              .CreateAsync();
+
+        var esquilo = await Member(userManager).Nickname("Exkill Bill").Name("Miguel", "Vicente")
+              .Role("Member").Instrument(InstrumentType.Bandolim)
+              .Category(MemberCategory.Tuno).YearTuno(2005)
+              .CreateAsync();
+
+        var pirikito = await Member(userManager).Nickname("Pirikito").Name("Jorge", "Ferreira")
+              .Role("Member").Instrument(InstrumentType.Guitarra)
+              .Category(MemberCategory.Tuno).YearTuno(2012)
+              .CreateAsync();
+
         var autoscopio = await Member(userManager).Nickname("Autoscópio").Name("Sergio", "Silva")
             .Role("Member").Instrument(InstrumentType.Bandolim)
             .Category(MemberCategory.Tuno).YearTuno(2018)
@@ -182,7 +254,6 @@ public static partial class SeedData
             .Category(MemberCategory.Caloiro).YearCaloiro(2024)
             .CreateAsync();
 
-        // CAVAQUINHO
         var borat = await Member(userManager).Nickname("Borat").Name("Rui", "Almeida")
             .Role("Member").Instrument(InstrumentType.Cavaquinho)
             .Category(MemberCategory.Tuno).YearTuno(2015)
@@ -198,7 +269,6 @@ public static partial class SeedData
             .Category(MemberCategory.Tuno).YearTuno(2019)
             .CreateAsync();
 
-        // ACORDEÃO
         var ambrosio = await Member(userManager).Nickname("Ambrósio").Name("Pedro", "Pereira")
             .Role("Admin").Instrument(InstrumentType.Acordeao)
             .Position(Position.PresidenteMesaAssembleia)
@@ -210,13 +280,11 @@ public static partial class SeedData
             .Category(MemberCategory.Caloiro).YearCaloiro(2023)
             .CreateAsync();
 
-        // FAGOTE
         var kimkana = await Member(userManager).Nickname("KimKana").Name("Joni", "Figueiredo")
             .Role("Member").Instrument(InstrumentType.Fagote)
             .Category(MemberCategory.Caloiro).YearCaloiro(2024)
             .CreateAsync();
 
-        // FLAUTA
         var txaio = await Member(userManager).Nickname("Txaio").Name("Bruno", "Rafael")
             .Role("Member").Instrument(InstrumentType.Flauta)
             .Category(MemberCategory.Tuno).YearTuno(2018)
@@ -227,7 +295,6 @@ public static partial class SeedData
             .Category(MemberCategory.Tuno).YearTuno(2019)
             .CreateAsync();
 
-        // BAIXO
         var zecadiabo = await Member(userManager).Nickname("Zeca Diabo").Name("Marcos", "António")
             .Role("Member").Instrument(InstrumentType.Baixo)
             .Category(MemberCategory.Tuno).YearTuno(2015)
@@ -244,7 +311,6 @@ public static partial class SeedData
             .Category(MemberCategory.Caloiro).YearCaloiro(2023)
             .CreateAsync();
 
-        // PERCUSSÃO
         var passaromal = await Member(userManager).Nickname("Pássaro Maluco").Name("Joel", "Gaspar")
             .Role("Admin").Instrument(InstrumentType.Percussao)
             .Position(Position.PresidenteConselhoVeteranos)
@@ -266,7 +332,6 @@ public static partial class SeedData
             .Category(MemberCategory.Tuno).YearTuno(2019)
             .CreateAsync();
 
-        // PANDEIRETA
         var frango = await Member(userManager).Nickname("Frango").Name("Samuel", "Carneiro")
             .Role("Member").Instrument(InstrumentType.Pandeireta)
             .Category(MemberCategory.Tuno).YearTuno(2017)
@@ -287,7 +352,6 @@ public static partial class SeedData
             .Category(MemberCategory.Tuno).YearTuno(2020)
             .CreateAsync();
 
-        // ESTANDARTE
         var bombeiro = await Member(userManager).Nickname("Bombeiro").Name("Alexandre", "Figueiredo")
             .Role("Admin").Instrument(InstrumentType.Estandarte)
             .Position(Position.PrimeiroRelatorConselhoFiscal)
@@ -336,6 +400,72 @@ public static partial class SeedData
             .Role("Member").Instrument(InstrumentType.Estandarte)
             .Category(MemberCategory.Tuno).YearTuno(2021)
             .CreateAsync();
+
+        var machadi  = await Member(userManager).Nickname("Barbatov").Name("Luis", "Machado")
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2016)
+            .CreateAsync();
+
+        var teddyboy = await Member(userManager).Nickname("Xantrao").Name("Maciel", "Santos")
+            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Category(MemberCategory.Tuno).YearTuno(2000)
+            .CreateAsync();
+
+        var matrix = await Member(userManager).Nickname("Matrix").Name("Bruno", "Teixeira")
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2000)
+            .CreateAsync();
+
+        var alan = await Member(userManager).Nickname("Alentejano").Name("Tiago", "Baroa")
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2000)
+            .CreateAsync();
+
+        var bean = await Member(userManager).Nickname("Bean").Name("Pedro", "Pinto")
+            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Category(MemberCategory.Tuno).YearTuno(2000)
+            .CreateAsync();
+
+        var mangas = await Member(userManager).Nickname("Mangas").Name("Tiago", "Henriques")
+            .Role("Member").Instrument(InstrumentType.Bandolim)
+            .Category(MemberCategory.Tuno).YearTuno(2000)
+            .CreateAsync();
+
+        var meiokg = await Member(userManager).Nickname("Meio Kg").Name("Sérgio", "Ferreira")
+            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Category(MemberCategory.Tuno).YearTuno(2000)
+            .CreateAsync();
+
+        var lacas = await Member(userManager).Nickname("Lacas").Name("Daniel", "Cunha")
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2010)
+            .CreateAsync();
+
+        var parabento = await Member(userManager).Nickname("Parabento").Name("David", "Gomes")
+            .Role("Member").Instrument(InstrumentType.Pandeireta)
+            .Category(MemberCategory.Tuno).YearTuno(2010)
+            .CreateAsync();
+
+        var caldas = await Member(userManager).Nickname("Caldas").Name("Vitor", "Caldas")
+            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Category(MemberCategory.Tuno).YearTuno(2010)
+            .CreateAsync();
+
+        var botox = await Member(userManager).Nickname("Botox").Name("Nurio", "Fernandes")
+            .Role("Member").Instrument(InstrumentType.Estandarte)
+            .Category(MemberCategory.Tuno).YearTuno(2010)
+            .CreateAsync();
+
+        var chicaestrume = await Member(userManager).Nickname("Chicaestrume").Name("Luis", "Salsas")
+            .Role("Member").Instrument(InstrumentType.Cavaquinho)
+            .Category(MemberCategory.Tuno).YearTuno(2010)
+            .CreateAsync();
+
+        var esbarrafat = await Member(userManager).Nickname("Esbarrafat").Name("Bruno", "Costa")
+            .Role("Member").Instrument(InstrumentType.Guitarra)
+            .Category(MemberCategory.Tuno).YearTuno(2010)
+            .CreateAsync();
+
 
         // LEITÕES
         var merdas1 = await Member(userManager).Nickname("Merdas 1").Name("Porquinho", "Leitao1")
@@ -456,6 +586,48 @@ public static partial class SeedData
 
         SetMentor(pilao, coma);
         SetMentor(mija, pilao);
+
+        SetMentor(indigesto, piroco);
+        SetMentor(jornal, piroco);
+        SetMentor(krika, piroco);
+
+        SetMentor(speaker, fodanice);
+        SetMentor(flor, fodanice);
+        SetMentor(piroco, fodanice);
+
+        SetMentor(joy, flor);
+        SetMentor(dimitri, flor);
+        SetMentor(frutis, flor);
+
+        SetMentor(smeagol, frutis);
+        SetMentor(matchero, frutis);
+
+        SetMentor(cestinho, joy);
+
+        SetMentor(delay, cestinho);
+        SetMentor(conchita, cestinho);
+
+        SetMentor(caldas, alan);
+        SetMentor(fodanice, mago);
+
+        SetMentor(lacas, bean);
+
+        SetMentor(parabento, lacas);
+        SetMentor(pirikito, lacas);
+
+        SetMentor(txaio, matrix);
+        SetMentor(mangas, matrix);
+        SetMentor(chicaestrume, matrix);
+        SetMentor(matrix, teddyboy);
+
+        SetMentor(esbarrafat, esquilo);
+        SetMentor(snoopy, esquilo);
+
+        SetMentor(castanholas, pinta);
+        SetMentor(pinta, metralha);
+        SetMentor(botox, metralha);
+
+        SetMentor(machadi, esbarrafat);
     }
 
     private static void SetMentor(ApplicationUser? mentee, ApplicationUser? mentor)
