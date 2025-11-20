@@ -44,26 +44,35 @@
                     <Authorized>
                         <!-- 4. Ensaios (Member) -->
                         <li class="nav-item"><NavLink class="nav-link" href="/rehearsals"><i class="bi bi-music-note-list"></i> Ensaios</NavLink></li>
-                        
-                        <!-- 5. Membros (Member) -->
-                        <li class="nav-item"><NavLink class="nav-link" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
-                        
-                        <!-- 6. Hierarquia (Member) -->
-                        <li class="nav-item"><NavLink class="nav-link" href="/hierarchy"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
-                        
-                        <!-- 7. Órgãos Sociais (Member) - shown here for members -->
                     </Authorized>
                 </AuthorizeView>
 
-                <!-- 7. Órgãos Sociais (Public / Member) -->
-                <li class="nav-item"><NavLink class="nav-link" href="/roles"><i class="bi bi-bank"></i> Órgãos Sociais</NavLink></li>
+                <!-- 7. Órgãos Sociais (Public only) -->
+                <AuthorizeView>
+                    <NotAuthorized>
+                        <li class="nav-item"><NavLink class="nav-link" href="/roles"><i class="bi bi-bank"></i> Órgãos Sociais</NavLink></li>
+                    </NotAuthorized>
+                </AuthorizeView>
 
                 <AuthorizeView Context="mainAuthContext2">
                     <Authorized>
-                        <!-- 8. Classificação (Member) -->
+                        <!-- 5. Classificação (Member) -->
                         <li class="nav-item"><NavLink class="nav-link" href="/leaderboard"><i class="bi bi-trophy-fill"></i> Classificação</NavLink></li>
                         
-                        <!-- 9. Inventário (Member Dropdown) -->
+                        <!-- 6. Membros (Member Dropdown) -->
+                        <li class="nav-item dropdown">
+                            <button class="nav-link dropdown-toggle" type="button" id="membersDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                                <i class="bi bi-people"></i> Membros
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="membersDropdown">
+                                <li><NavLink class="dropdown-item" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/hierarchy"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/roles"><i class="bi bi-bank"></i> Órgãos Sociais</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/hall-of-fame"><i class="bi bi-trophy"></i> Hall of Fame</NavLink></li>
+                            </ul>
+                        </li>
+                        
+                        <!-- 7. Inventário (Member Dropdown) -->
                         <li class="nav-item dropdown">
                             <button class="nav-link dropdown-toggle" type="button" id="inventoryDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
                                 <i class="bi bi-box-seam"></i> Inventário
@@ -74,7 +83,7 @@
                             </ul>
                         </li>
                         
-                        <!-- 9. Gestão (Member Dropdown) -->
+                        <!-- 8. Gestão (Member Dropdown) -->
                         @if (ShouldShowGestaoDropdown())
                         {
                             <li class="nav-item dropdown">

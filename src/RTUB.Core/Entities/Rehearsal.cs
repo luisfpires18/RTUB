@@ -27,6 +27,9 @@ public class Rehearsal : BaseEntity
     
     public bool IsCanceled { get; set; } = false;
     
+    [MaxLength(1000, ErrorMessage = "O motivo de cancelamento não pode exceder 1000 caracteres")]
+    public string? CancellationReason { get; set; }
+    
     // Navigation
     public virtual ICollection<RehearsalAttendance> Attendances { get; set; } = new List<RehearsalAttendance>();
 
@@ -58,14 +61,19 @@ public class Rehearsal : BaseEntity
         Notes = notes;
     }
 
-    public void Cancel()
+    public void Cancel(string reason)
     {
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new ArgumentException("O motivo de cancelamento é obrigatório", nameof(reason));
+        
         IsCanceled = true;
+        CancellationReason = reason;
     }
 
-    public void Reactivate()
+    public void Uncancel()
     {
         IsCanceled = false;
+        CancellationReason = null;
     }
 
     /// <summary>

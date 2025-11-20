@@ -50,10 +50,15 @@
     height: 100%;
 }
 
-.enrollment-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.25);
-}
+    .enrollment-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 0 2px var(--bs-primary);
+    }
+    .enrollment-card:focus-visible {
+        transform: translateY(-2px);
+        box-shadow: 0 0 0 2px var(--bs-primary);
+        outline: none;
+    }
 
 /* Top-right action buttons */
 .enrollment-card-edit-btn,

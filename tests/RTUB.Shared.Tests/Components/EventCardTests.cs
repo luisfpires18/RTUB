@@ -310,7 +310,7 @@ public class EventCardTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("HOJE", "should display HOJE badge for today's event");
-        cut.Markup.Should().Contain("event-today-badge", "should have event-today-badge class");
+        cut.Markup.Should().Contain("date-badge-hoje", "should have date-badge-hoje class");
     }
 
     [Fact]

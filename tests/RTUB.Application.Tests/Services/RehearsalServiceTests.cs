@@ -31,7 +31,7 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _rehearsalService = new RehearsalService(new RehearsalRepository(_context));
+        _rehearsalService = new RehearsalService(new RehearsalRepository(_context), new RehearsalAttendanceRepository(_context));
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var upcoming1 = Rehearsal.Create(DateTime.Today.AddDays(5), "Future 1");
         var upcoming2 = Rehearsal.Create(DateTime.Today.AddDays(10), "Future 2");
         var canceled = Rehearsal.Create(DateTime.Today.AddDays(7), "Canceled");
-        canceled.Cancel();
+        canceled.Cancel("Test cancellation");
         
         _context.Rehearsals.AddRange(upcoming1, upcoming2, canceled);
         await _context.SaveChangesAsync();
@@ -140,9 +140,9 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Act
         var result = await _rehearsalService.GetUpcomingRehearsalsAsync(10);
 
-        // Assert
-        result.Should().HaveCount(2);
-        result.Should().NotContain(r => r.IsCanceled);
+        // Assert - Now includes cancelled rehearsals (like events)
+        result.Should().HaveCount(3);
+        result.Should().Contain(r => r.IsCanceled); // Cancelled rehearsals are now included
     }
 
     [Fact]
@@ -181,18 +181,19 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        await _rehearsalService.CancelRehearsalAsync(rehearsal.Id);
+        await _rehearsalService.CancelRehearsalAsync(rehearsal.Id, "Test reason");
 
         // Assert
         var canceled = await _context.Rehearsals.FindAsync(rehearsal.Id);
         canceled!.IsCanceled.Should().BeTrue();
+        canceled.CancellationReason.Should().Be("Test reason");
     }
 
     [Fact]
     public async Task CancelRehearsalAsync_NonExistingRehearsal_ThrowsException()
     {
         // Act & Assert
-        var act = async () => await _rehearsalService.CancelRehearsalAsync(999);
+        var act = async () => await _rehearsalService.CancelRehearsalAsync(999, "Test reason");
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }

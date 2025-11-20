@@ -45,7 +45,7 @@ public class RehearsalRepository : Repository<Rehearsal>, IRehearsalRepository
         return await _dbSet
             .AsNoTracking()
             .Include(r => r.Attendances)
-            .Where(r => r.Date >= today && !r.IsCanceled)
+            .Where(r => r.Date >= today)
             .OrderBy(r => r.Date)
             .Take(count)
             .ToListAsync();

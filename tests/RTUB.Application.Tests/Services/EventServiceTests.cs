@@ -22,6 +22,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     private readonly ApplicationDbContext _context;
     private readonly DatabaseFixture _fixture;
     private readonly EventRepository _eventRepository;
+    private readonly EnrollmentRepository _enrollmentRepository;
     private readonly EventService _eventService;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
 
@@ -37,7 +38,8 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _context = _fixture.CreateContext();
         _mockImageStorageService = new Mock<IImageStorageService>();
         _eventRepository = new EventRepository(_context);
-        _eventService = new EventService(_eventRepository, _mockImageStorageService.Object);
+        _enrollmentRepository = new EnrollmentRepository(_context);
+        _eventService = new EventService(_eventRepository, _mockImageStorageService.Object, _enrollmentRepository);
     }
 
     [Fact]

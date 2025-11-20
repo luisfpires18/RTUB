@@ -18,6 +18,12 @@ public interface IRehearsalAttendanceService
     /// </summary>
     Task<RehearsalAttendance> MarkAttendanceAsync(int rehearsalId, string userId, bool willAttend = true, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null);
     Task UpdateAttendanceAsync(int id, bool attended, InstrumentType? instrument = null);
+    
+    /// <summary>
+    /// Cancels an attendance by setting WillAttend to false. Used for past rehearsals.
+    /// </summary>
+    Task CancelAttendanceAsync(int id);
+    
     Task DeleteAttendanceAsync(int id);
     
     // Statistics

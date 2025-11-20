@@ -1,0 +1,22 @@
+@namespace RTUB.Shared
+@*
+    DateBadge Component
+    Reusable badge for displaying "HOJE" or "AMANHÃ" based on date
+*@
+
+@if (Date.Date == DateTime.Today)
+{
+    <span class="date-badge date-badge-hoje">HOJE</span>
+}
+else if (Date.Date == DateTime.Today.AddDays(1))
+{
+    <span class="date-badge date-badge-amanha">AMANHÃ</span>
+}
+
+@code {
+    /// <summary>
+    /// The date to compare against today and tomorrow
+    /// </summary>
+    [Parameter]
+    public DateTime Date { get; set; }
+}

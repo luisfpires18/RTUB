@@ -44,10 +44,7 @@
                 <i class="bi bi-calendar3 meeting-icon"></i>
                 <span class="meeting-text">
                     @Meeting.Date.ToString("dd MMM yyyy") (@GetDayOfWeek(Meeting.Date))
-                    @if (Meeting.Date.Date == DateTime.Today)
-                    {
-                        <span class="meeting-today-badge">HOJE</span>
-                    }
+                    <DateBadge Date="@Meeting.Date" />
                 </span>
             </div>
             

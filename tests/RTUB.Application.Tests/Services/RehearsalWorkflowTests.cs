@@ -35,7 +35,7 @@ public class RehearsalWorkflowTests : IDisposable
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
 
-        _rehearsalService = new RehearsalService(new RehearsalRepository(_context));
+        _rehearsalService = new RehearsalService(new RehearsalRepository(_context), new RehearsalAttendanceRepository(_context));
         _attendanceService = new RehearsalAttendanceService(new RehearsalAttendanceRepository(_context));
     }
 

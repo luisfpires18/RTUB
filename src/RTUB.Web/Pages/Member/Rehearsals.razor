@@ -93,8 +93,11 @@ else
                                IsAdmin="@isAdmin"
                                IsPastRehearsal="false"
                                ShowDeleteButton="@CanDeleteRehearsal()"
+                               ShowCancelButton="@CanCancelRehearsal()"
                                OnEdit="@(() => OpenEditModal(rehearsal))"
                                OnDelete="@(() => OpenDeleteModal(rehearsal))"
+                               OnCancel="@(() => OpenCancelRehearsalModal(rehearsal))"
+                               OnUncancel="@(() => UncancelRehearsal(rehearsal))"
                                OnMarkAttendance="@(() => MarkAttendance(rehearsal))"
                                OnViewAttendances="@(() => ViewAttendances(rehearsal))"
                                OnEditAttendance="@(() => EditAttendance(rehearsal))"
@@ -143,8 +146,11 @@ else
                                    IsAdmin="@isAdmin"
                                    IsPastRehearsal="true"
                                    ShowDeleteButton="@CanDeleteRehearsal()"
+                                   ShowCancelButton="@CanCancelRehearsal()"
                                    OnEdit="@(() => OpenEditModal(rehearsal))"
                                    OnDelete="@(() => OpenDeleteModal(rehearsal))"
+                                   OnCancel="@(() => OpenCancelRehearsalModal(rehearsal))"
+                                   OnUncancel="@(() => UncancelRehearsal(rehearsal))"
                                    OnMarkAttendance="@(() => {})"
                                    OnViewAttendances="@(() => ViewAttendances(rehearsal))"
                                    OnEditAttendance="@(() => {})"
@@ -204,7 +210,7 @@ else
                     {
                         <!-- Filter and Search Row -->
                         <div class="row g-2 mb-3">
-                            @if (isAdmin && isSelectedRehearsalPast)
+                            @if (isAdmin && isSelectedRehearsalApprovable)
                             {
                                 <div class="col-12 col-md-4">
                                     <select class="form-select" @bind="attendanceApprovalFilter" @bind:after="FilterAttendances">
@@ -214,7 +220,7 @@ else
                                     </select>
                                 </div>
                             }
-                            <div class="@(isAdmin && isSelectedRehearsalPast ? "col-12 col-md-8" : "col-12")">
+                            <div class="@(isAdmin && isSelectedRehearsalApprovable ? "col-12 col-md-8" : "col-12")">
                                 <TableSearchBar SearchTerm="@attendanceSearchTerm"
                                                Placeholder="Pesquisar por nome..."
                                                OnSearchChanged="@HandleAttendanceSearchChanged" />
@@ -240,9 +246,9 @@ else
                                         Notes="@attendance.Notes"
                                         AltText="@attendance.User?.GetDisplayName()"
                                         ShowEditButton="false"
-                                        ShowDeleteButton="@(isOwner && isSelectedRehearsalPast && attendance.Attended)"
-                                        ShowApproveButton="@(isAdmin && isSelectedRehearsalPast && !attendance.Attended)"
-                                        ShowCancelButton="@(isAdmin && isSelectedRehearsalPast && !attendance.Attended)"
+                                        ShowDeleteButton="@(isOwner && isSelectedRehearsalApprovable && attendance.Attended)"
+                                        ShowApproveButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
+                                        ShowCancelButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
                                         OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
                                         OnApprove="@(() => ApproveAttendance(attendance))"
                                         OnCancel="@(() => OpenDeleteAttendanceModal(attendance))"
@@ -319,9 +325,9 @@ else
                                         Notes="@attendance.Notes"
                                         AltText="@attendance.User?.GetDisplayName()"
                                         ShowEditButton="false"
-                                        ShowDeleteButton="@(isOwner && isSelectedRehearsalPast && attendance.Attended)"
-                                        ShowApproveButton="@(isAdmin && isSelectedRehearsalPast && !attendance.Attended)"
-                                        ShowCancelButton="@(isAdmin && isSelectedRehearsalPast && !attendance.Attended)"
+                                        ShowDeleteButton="@(isOwner && isSelectedRehearsalApprovable && attendance.Attended)"
+                                        ShowApproveButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
+                                        ShowCancelButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
                                         OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
                                         OnApprove="@(() => ApproveAttendance(attendance))"
                                         OnCancel="@(() => OpenDeleteAttendanceModal(attendance))"
@@ -364,11 +370,11 @@ else
                             }
                         }
                         
-                        @if (notAttendingMembers.Any())
+                        @if (filteredNotAttending.Any())
                         {
-                            <h6 class="mb-3 mt-4 heading-danger">Não vão participar (@notAttendingMembers.Count)</h6>
+                            <h6 class="mb-3 mt-4 heading-danger">Não vão participar (@filteredNotAttending.Count)</h6>
                             <div class="enrollment-card-grid">
-                                @foreach (var attendance in notAttendingMembers)
+                                @foreach (var attendance in paginatedNotAttending)
                                 {
                                     <EnrollmentCard 
                                         AvatarUrl="@attendance.User?.ProfilePictureSrc"
@@ -378,9 +384,12 @@ else
                                         Notes="@attendance.Notes"
                                         AltText="@attendance.User?.GetDisplayName()"
                                         ShowEditButton="false"
-                                        ShowDeleteButton="@(isOwner && isSelectedRehearsalPast)"
+                                        ShowDeleteButton="@(isOwner && isSelectedRehearsalApprovable)"
+                                        ShowCancelButton="@(isSelectedRehearsalApprovable)"
                                         OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
-                                        DeleteTooltip="Eliminar">
+                                        OnCancel="@(() => CancelAttendance(attendance))"
+                                        DeleteTooltip="Eliminar"
+                                        CancelTooltip="Cancelar Presença">
                                         <BadgeContent>
                                             @if (attendance.User != null)
                                             {
@@ -408,6 +417,20 @@ else
                                     </EnrollmentCard>
                                 }
                             </div>
+                            
+                            <!-- Pagination for Not Attending Members -->
+                            @if (filteredNotAttending.Count > 0)
+                            {
+                                <div class="mt-3">
+                                    <TablePagination 
+                                        TotalItems="@filteredNotAttending.Count"
+                                        CurrentPage="@notAttendingPagination.CurrentPage"
+                                        PageSize="@notAttendingPagination.PageSize"
+                                        PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
+                                        OnPageChanged="@HandleNotAttendingPageChange"
+                                        OnPageSizeChanged="@HandleNotAttendingPageSizeChange" />
+                                </div>
+                            }
                         }
                     }
                     else
@@ -416,8 +439,8 @@ else
                                    Icon="bi-calendar-check" />
                     }
                     
-                    <!-- Add Member Section (Admin Only for Past Rehearsals) -->
-                    @if (isAdmin && isSelectedRehearsalPast)
+                    <!-- Add Member Section (Admin Only for Approvable Rehearsals) -->
+                    @if (isAdmin && isSelectedRehearsalApprovable)
                     {
                         <div class="mt-3">
                             <!-- Success Alert (auto-dismiss) -->
@@ -558,6 +581,54 @@ else
                ConfirmButtonClass="btn-danger"
                OnConfirm="ConfirmCancelMyAttendance"
                OnCancel="CloseCancelMyAttendanceModal" />
+
+<!-- Cancel Rehearsal Modal (Admin Only) -->
+<Modal Show="@showCancelRehearsalModal"
+       ShowChanged="@((bool show) => showCancelRehearsalModal = show)"
+       Title="Cancelar Ensaio"
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true">
+    <BodyContent>
+        @if (selectedRehearsalForCancellation != null)
+        {
+            <div class="mb-3">
+                <h6 class="text-white-full">Ensaio:</h6>
+                <div class="rehearsal-summary p-3 rounded bg-dark">
+                    <div><strong>Data:</strong> @selectedRehearsalForCancellation.Date.ToString("dd MMM yyyy")</div>
+                    <div><strong>Local:</strong> @selectedRehearsalForCancellation.Location</div>
+                    @if (!string.IsNullOrEmpty(selectedRehearsalForCancellation.Theme))
+                    {
+                        <div><strong>Tema:</strong> @selectedRehearsalForCancellation.Theme</div>
+                    }
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(cancelRehearsalErrorMessage))
+            {
+                <ErrorDisplay Errors="@(new[] { cancelRehearsalErrorMessage })" />
+            }
+
+            <div class="mb-3">
+                <label class="form-label text-white-full">Motivo do Cancelamento <span class="text-danger">*</span></label>
+                <textarea class="form-control" rows="4" 
+                          @bind="cancelRehearsalReason" 
+                          placeholder="Descreva o motivo do cancelamento do ensaio..."
+                          maxlength="1000"></textarea>
+                <small class="text-muted">Máximo 1000 caracteres</small>
+            </div>
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Nota:</strong> Nenhuma notificação por email será enviada para os membros.
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseCancelRehearsalModal">Não Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelRehearsal">Cancelar Ensaio</button>
+    </FooterContent>
+</Modal>
 
 <!-- Create Single Rehearsal Modal (Admin Only) -->
 @if (showCreateModal && isAdmin)
@@ -818,6 +889,17 @@ else
                     <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedRehearsal.Notes</p>
                 </InfoSection>
             }
+
+            <!-- Cancellation Reason Section -->
+            @if (selectedRehearsal.IsCanceled && !string.IsNullOrEmpty(selectedRehearsal.CancellationReason))
+            {
+                <InfoSection SectionTitle="Motivo de Cancelamento"
+                             IconClass="bi-exclamation-triangle-fill"
+                             CssClass="mb-3"
+                             Style="background-color: rgba(220, 38, 38, 0.1); border-left: 4px solid #DC2626;">
+                    <p class="mb-0" style="white-space: pre-line; color: #FCA5A5;">@selectedRehearsal.CancellationReason</p>
+                </InfoSection>
+            }
         }
     </Sections>
 </DetailsModal>
@@ -966,6 +1048,7 @@ else
     private bool showDeleteModal = false;
     private bool showDeleteAttendanceModal = false;
     private bool showCancelMyAttendanceModal = false;
+    private bool showCancelRehearsalModal = false;
     private bool showCreateModal = false;
     private bool showStatsModal = false;
     private bool showDateRangeModal = false;
@@ -974,8 +1057,10 @@ else
     
     private Rehearsal? selectedRehearsal;
     private bool isSelectedRehearsalPast = false;
+    private bool isSelectedRehearsalApprovable = false;
     private Rehearsal? editingRehearsal;
     private Rehearsal? deletingRehearsal;
+    private Rehearsal? selectedRehearsalForCancellation;
     private RehearsalAttendance? deletingAttendance;
     private RehearsalAttendance? cancellingMyAttendance;
     private AttendanceFormModel? attendanceForm;
@@ -983,6 +1068,8 @@ else
     private string editLocation = "";
     private string? editTheme;
     private string? editNotes;
+    private string cancelRehearsalReason = string.Empty;
+    private string? cancelRehearsalErrorMessage;
     private List<RehearsalAttendance>? selectedRehearsalAttendances;
     private List<RehearsalAttendance> filteredAttendances = new();
     private List<RehearsalAttendance> paginatedAttendances = new();
@@ -990,13 +1077,16 @@ else
     private string attendanceApprovalFilter = "Todos"; // "Todos", "Pendente", "Aprovado"
     private PaginationHelper<RehearsalAttendance> attendancesPagination = new() { PageSize = 8 };
     
-    // Separate pagination for main participants and leitões
+    // Separate pagination for main participants, leitões, and not attending
     private List<RehearsalAttendance> filteredMainParticipants = new();
     private List<RehearsalAttendance> filteredLeitoes = new();
+    private List<RehearsalAttendance> filteredNotAttending = new();
     private PaginationHelper<RehearsalAttendance> mainParticipantsPagination = new() { PageSize = 8 };
     private PaginationHelper<RehearsalAttendance> leitoesPagination = new() { PageSize = 8 };
+    private PaginationHelper<RehearsalAttendance> notAttendingPagination = new() { PageSize = 8 };
     private List<RehearsalAttendance> paginatedMainParticipants => mainParticipantsPagination.GetPageData(filteredMainParticipants);
     private List<RehearsalAttendance> paginatedLeitoes => leitoesPagination.GetPageData(filteredLeitoes);
+    private List<RehearsalAttendance> paginatedNotAttending => notAttendingPagination.GetPageData(filteredNotAttending);
     
     // Instrument count tracking
     private Dictionary<InstrumentType, int> primaryInstrumentCounts = new();
@@ -1103,9 +1193,9 @@ else
         // Load all rehearsals within the fiscal year date range
         var allRehearsals = await RehearsalService.GetRehearsalsAsync(startDate, endDate);
         
-        // Split into upcoming and previous
+        // Split into upcoming and previous (include cancelled rehearsals)
         upcomingRehearsals = allRehearsals
-            .Where(r => !r.IsCanceled && r.Date >= DateTime.Today)
+            .Where(r => r.Date >= DateTime.Today)
             .OrderBy(r => r.Date)
             .ToList();
 
@@ -1321,6 +1411,11 @@ else
     {
         selectedRehearsal = rehearsal;
         isSelectedRehearsalPast = rehearsal.Date.Date < DateTime.Today;
+        
+        // Allow approval for past rehearsals OR today's rehearsals with start time >= 21:00
+        isSelectedRehearsalApprovable = isSelectedRehearsalPast || 
+            (rehearsal.Date.Date == DateTime.Today && rehearsal.StartTime.Hours >= 21);
+        
         selectedRehearsalAttendances = (await AttendanceService.GetAttendancesByRehearsalIdAsync(rehearsal.Id)).ToList();
 
         // Load user details for display
@@ -1343,9 +1438,9 @@ else
         // Calculate primary and other instrument counts
         await CalculateRehearsalInstrumentCountsAsync();
 
-        // Load all members for adding if admin AND it's a past rehearsal
+        // Load all members for adding if admin AND it's an approvable rehearsal
         // Use projection to load only needed fields for better performance
-        if (isAdmin && isSelectedRehearsalPast)
+        if (isAdmin && isSelectedRehearsalApprovable)
         {
             allMembers = await UserManager.Users
                 .Select(u => new ApplicationUser
@@ -1372,15 +1467,18 @@ else
         showAttendancesModal = false;
         selectedRehearsal = null;
         isSelectedRehearsalPast = false;
+        isSelectedRehearsalApprovable = false;
         selectedRehearsalAttendances = null;
         filteredAttendances = new();
         filteredMainParticipants = new();
         filteredLeitoes = new();
+        filteredNotAttending = new();
         paginatedAttendances = new();
         attendanceSearchTerm = "";
         attendancesPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
         mainParticipantsPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
         leitoesPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
+        notAttendingPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
         showAddMemberDropdown = false;
         addMemberSearchTerm = "";
         addMemberFeedbackMessage = "";
@@ -1401,6 +1499,7 @@ else
             filteredAttendances = new();
             filteredMainParticipants = new();
             filteredLeitoes = new();
+            filteredNotAttending = new();
             UpdatePaginatedAttendances();
             return;
         }
@@ -1424,7 +1523,8 @@ else
             filtered = filtered.Where(a => 
                 (a.User?.FirstName?.ToLower().Contains(search) ?? false) ||
                 (a.User?.LastName?.ToLower().Contains(search) ?? false) ||
-                (a.User?.Nickname?.ToLower().Contains(search) ?? false));
+                (a.User?.Nickname?.ToLower().Contains(search) ?? false) ||
+                (a.User?.Email?.ToLower().Contains(search) ?? false));
         }
 
         filteredAttendances = filtered
@@ -1445,13 +1545,30 @@ else
             .ThenBy(a => a.User?.FirstName)
             .ToList();
         
+        // Filter not attending members with search
+        var notAttending = selectedRehearsalAttendances
+            .Where(a => a.User != null && !a.WillAttend)
+            .AsEnumerable();
+        
+        if (!string.IsNullOrWhiteSpace(attendanceSearchTerm))
+        {
+            var search = attendanceSearchTerm.ToLower();
+            notAttending = notAttending.Where(a => 
+                (a.User?.FirstName?.ToLower().Contains(search) ?? false) ||
+                (a.User?.LastName?.ToLower().Contains(search) ?? false) ||
+                (a.User?.Nickname?.ToLower().Contains(search) ?? false) ||
+                (a.User?.Email?.ToLower().Contains(search) ?? false));
+        }
+        
         filteredMainParticipants = mainParticipants;
         filteredLeitoes = leitoes;
+        filteredNotAttending = notAttending.OrderBy(a => a.User?.FirstName).ToList();
 
         // Reset to page 1 when filters change
         attendancesPagination.GoToPage(1);
         mainParticipantsPagination.CurrentPage = 1;
         leitoesPagination.CurrentPage = 1;
+        notAttendingPagination.CurrentPage = 1;
         UpdatePaginatedAttendances();
     }
     
@@ -1499,6 +1616,41 @@ else
         leitoesPagination.PageSize = pageSize;
         leitoesPagination.CurrentPage = 1;
         StateHasChanged();
+    }
+    
+    private void HandleNotAttendingPageChange(int page)
+    {
+        notAttendingPagination.CurrentPage = page;
+        StateHasChanged();
+    }
+
+    private void HandleNotAttendingPageSizeChange(int pageSize)
+    {
+        notAttendingPagination.PageSize = pageSize;
+        notAttendingPagination.CurrentPage = 1;
+        StateHasChanged();
+    }
+    
+    private async Task CancelAttendance(RehearsalAttendance attendance)
+    {
+        try
+        {
+            // Update the attendance to set WillAttend to false (cancel attendance)
+            await AttendanceService.CancelAttendanceAsync(attendance.Id);
+            
+            // Refresh the attendance list
+            if (selectedRehearsal != null)
+            {
+                selectedRehearsalAttendances = (await AttendanceService.GetAttendancesByRehearsalIdAsync(selectedRehearsal.Id)).ToList();
+                FilterAttendances();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle error silently or show error message
+            Console.WriteLine($"Error canceling attendance: {ex.Message}");
+        }
     }
 
     private async Task ApproveAttendance(RehearsalAttendance attendance)
@@ -1610,12 +1762,12 @@ else
 
         try
         {
-            // For past rehearsals, mark as attended (approved) immediately
-            bool attended = isSelectedRehearsalPast;
+            // For approvable rehearsals (past or today after 21:00), mark as attended (approved) immediately
+            bool attended = isSelectedRehearsalApprovable;
             await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, user.Id, true, null, null);
             
-            // If it's a past rehearsal, immediately approve the attendance
-            if (isSelectedRehearsalPast)
+            // If it's an approvable rehearsal, immediately approve the attendance
+            if (isSelectedRehearsalApprovable)
             {
                 // Get the just-created attendance and update it to approved
                 var newAttendances = await AttendanceService.GetAttendancesByRehearsalIdAsync(selectedRehearsal.Id);
@@ -1780,6 +1932,62 @@ else
             await RehearsalService.DeleteRehearsalAsync(deletingRehearsal.Id);
             await LoadData();
             CloseDeleteModal();
+        }
+    }
+    
+    // Cancel/Uncancel rehearsal methods (Admin only, NO email notifications)
+    private void OpenCancelRehearsalModal(Rehearsal rehearsal)
+    {
+        selectedRehearsalForCancellation = rehearsal;
+        cancelRehearsalReason = string.Empty;
+        cancelRehearsalErrorMessage = null;
+        showCancelRehearsalModal = true;
+    }
+    
+    private void CloseCancelRehearsalModal()
+    {
+        showCancelRehearsalModal = false;
+        selectedRehearsalForCancellation = null;
+        cancelRehearsalReason = string.Empty;
+        cancelRehearsalErrorMessage = null;
+    }
+    
+    private async Task ConfirmCancelRehearsal()
+    {
+        if (selectedRehearsalForCancellation == null || string.IsNullOrWhiteSpace(cancelRehearsalReason))
+        {
+            cancelRehearsalErrorMessage = "O motivo do cancelamento é obrigatório.";
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            // Cancel the rehearsal (NO email notifications sent)
+            await RehearsalService.CancelRehearsalAsync(selectedRehearsalForCancellation.Id, cancelRehearsalReason);
+            
+            // Reload rehearsals
+            await LoadData();
+            
+            CloseCancelRehearsalModal();
+        }
+        catch (Exception ex)
+        {
+            cancelRehearsalErrorMessage = $"Erro ao cancelar ensaio: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+    
+    private async Task UncancelRehearsal(Rehearsal rehearsal)
+    {
+        try
+        {
+            await RehearsalService.UncancelRehearsalAsync(rehearsal.Id);
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            // Handle error silently or show a toast notification
         }
     }
 
@@ -2205,9 +2413,9 @@ else
                 .Take(showAllRehearsals ? int.MaxValue : 10)
                 .ToList();
 
-            // Get upcoming rehearsals to include in the attendance tracking
+            // Get upcoming rehearsals to include in the attendance tracking (exclude cancelled)
             var upcomingRehearsalsWithAttendance = upcomingRehearsals
-                .Where(r => userAttendances.ContainsKey(r.Id))
+                .Where(r => !r.IsCanceled && userAttendances.ContainsKey(r.Id))
                 .ToList();
 
             // Combine past rehearsals (for modal display) with upcoming rehearsals (for button state)
@@ -2333,6 +2541,11 @@ else
     /// Determines if the delete action should be available for rehearsals.
     /// </summary>
     private bool CanDeleteRehearsal()
+    {
+        return isAdmin;
+    }
+    
+    private bool CanCancelRehearsal()
     {
         return isAdmin;
     }

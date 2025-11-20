@@ -48,12 +48,7 @@ public static partial class SeedData
 
             if (date > today && date == today.AddDays(14) && date.DayOfWeek == DayOfWeek.Thursday)
             {
-                rehearsal.Cancel();
-                rehearsal.UpdateDetails(
-                    rehearsal.Location,
-                    rehearsal.Theme,
-                    "Cancelado devido a feriado"
-                );
+                rehearsal.Cancel("Cancelado devido a feriado");
             }
 
             rehearsalsToCreate.Add(rehearsal);

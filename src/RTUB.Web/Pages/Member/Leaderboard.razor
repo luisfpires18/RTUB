@@ -16,7 +16,7 @@
 @inject IRankingService RankingService
 @inject ILabelService LabelService
 @inject ILeaderboardCommentService LeaderboardCommentService
-@inject ApplicationDbContext DbContext
+@inject IMemberStatisticsService MemberStatisticsService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject Microsoft.Extensions.Options.IOptions<RankingConfiguration> RankingConfig
 @attribute [Authorize]
@@ -453,19 +453,10 @@ else
         
         // Batch load all attendance and enrollment data in two queries to avoid N+1
         // Only count past rehearsals where Attended == true
-        var allRehearsalAttendances = await DbContext.RehearsalAttendances
-            .Include(ra => ra.Rehearsal)
-            .Where(a => a.Attended && a.Rehearsal!.Date < now)
-            .GroupBy(a => a.UserId)
-            .Select(g => new { UserId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.UserId, x => x.Count);
+        var allRehearsalAttendances = await MemberStatisticsService.GetRehearsalAttendanceCountsByUserAsync(now);
         
         // Load enrollments with event types - only past events where WillAttend == true
-        var allEnrollmentsWithTypes = await DbContext.Enrollments
-            .Include(e => e.Event)
-            .Where(e => e.WillAttend && e.Event != null && e.Event!.Date < now)
-            .Select(e => new { e.UserId, EventType = e.Event!.Type })
-            .ToListAsync();
+        var allEnrollmentsWithTypes = await MemberStatisticsService.GetEnrollmentsByUserWithEventTypeAsync(now);
         
         // Group by user, then by event type
         var userEventsByType = allEnrollmentsWithTypes

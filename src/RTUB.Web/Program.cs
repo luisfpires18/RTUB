@@ -247,6 +247,7 @@ public class Program
         services.AddRankingServices();
         services.AddEmailServices();
         services.AddStorageServices();
+        services.AddMemberQueryServices();
         
         // --------- Mention Service (Social feature) ---------
         services.AddScoped<IMentionService, MentionService>();

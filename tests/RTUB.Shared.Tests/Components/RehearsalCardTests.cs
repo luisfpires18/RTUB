@@ -87,7 +87,7 @@ public class RehearsalCardTests : TestContext
     {
         // Arrange
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
-        rehearsal.Cancel();
+        rehearsal.Cancel("Test cancellation");
 
         // Act
         var cut = RenderComponent<RehearsalCard>(parameters => parameters
@@ -209,7 +209,7 @@ public class RehearsalCardTests : TestContext
     {
         // Arrange
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
-        rehearsal.Cancel();
+        rehearsal.Cancel("Test cancellation");
 
         // Act
         var cut = RenderComponent<RehearsalCard>(parameters => parameters
@@ -267,8 +267,8 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.AttendanceCount, 0));
 
         // Assert
-        cut.Markup.Should().Contain("Hoje", "should display 'Hoje' badge for today's rehearsal");
-        cut.Markup.Should().Contain("rehearsal-today-badge", "should have today badge class");
+        cut.Markup.Should().Contain("HOJE", "should display 'HOJE' badge for today's rehearsal");
+        cut.Markup.Should().Contain("date-badge-hoje", "should have date-badge-hoje class");
     }
 
     [Fact]

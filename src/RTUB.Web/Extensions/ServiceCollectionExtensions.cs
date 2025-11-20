@@ -180,4 +180,16 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Registers member query and statistics services
+    /// Provides optimized queries for member pages (Leaderboard, Members)
+    /// </summary>
+    public static IServiceCollection AddMemberQueryServices(this IServiceCollection services)
+    {
+        services.AddScoped<IMemberStatisticsService, MemberStatisticsService>();
+        services.AddScoped<IUserRoleQueryService, UserRoleQueryService>();
+
+        return services;
+    }
 }

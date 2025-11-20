@@ -85,6 +85,18 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         
         await _attendanceRepository.UpdateAsync(attendance);
     }
+    
+    public async Task CancelAttendanceAsync(int id)
+    {
+        var attendance = await _attendanceRepository.GetByIdAsync(id);
+        if (attendance == null)
+            throw new EntityNotFoundException(nameof(RehearsalAttendance), id);
+
+        // Set WillAttend to false to cancel the attendance
+        attendance.WillAttend = false;
+        
+        await _attendanceRepository.UpdateAsync(attendance);
+    }
 
     public async Task DeleteAttendanceAsync(int id)
     {

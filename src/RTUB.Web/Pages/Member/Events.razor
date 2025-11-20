@@ -481,9 +481,9 @@ else
 
                 @if (notAttendingMembers.Any())
                 {
-                    <h6 class="mb-3 mt-4 heading-danger">Não vão participar (@notAttendingMembers.Count)</h6>
+                    <h6 class="mb-3 mt-4 heading-danger">Não vão participar (@filteredNotAttending.Count)</h6>
                     <div class="enrollment-card-grid">
-                        @foreach (var enrollment in notAttendingMembers)
+                        @foreach (var enrollment in paginatedNotAttending)
                         {
                             <EnrollmentCard 
                                 AvatarUrl="@enrollment.User?.ProfilePictureSrc"
@@ -523,6 +523,20 @@ else
                             </EnrollmentCard>
                         }
                     </div>
+                    
+                    <!-- Pagination for Not Attending Members -->
+                    @if (filteredNotAttending.Count > 0)
+                    {
+                        <div class="mt-3">
+                            <TablePagination 
+                                TotalItems="@filteredNotAttending.Count"
+                                CurrentPage="@notAttendingPagination.CurrentPage"
+                                PageSize="@notAttendingPagination.PageSize"
+                                PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
+                                OnPageChanged="@HandleNotAttendingPageChange"
+                                OnPageSizeChanged="@HandleNotAttendingPageSizeChange" />
+                        </div>
+                    }
                 }
             }
             else
@@ -1001,6 +1015,7 @@ else
     private SortableTableHelper<Enrollment> enrollmentSortHelper = new() { SortColumn = "EnrolledAt", SortAscending = false };
     private List<Enrollment> filteredPerformingMembers = new();
     private List<Enrollment> filteredLeitoes = new();
+    private List<Enrollment> filteredNotAttending = new();
     
     // Instrument count tracking
     private Dictionary<InstrumentType, int> primaryInstrumentCounts = new();
@@ -1009,8 +1024,10 @@ else
     // Pagination for enrollment modals
     private PaginationHelper<Enrollment> performingMembersPagination = new() { PageSize = 8 };
     private PaginationHelper<Enrollment> leitoesPagination = new() { PageSize = 8 };
+    private PaginationHelper<Enrollment> notAttendingPagination = new() { PageSize = 8 };
     private List<Enrollment> paginatedPerformingMembers => performingMembersPagination.GetPageData(filteredPerformingMembers ?? new List<Enrollment>());
     private List<Enrollment> paginatedLeitoes => leitoesPagination.GetPageData(filteredLeitoes ?? new List<Enrollment>());
+    private List<Enrollment> paginatedNotAttending => notAttendingPagination.GetPageData(filteredNotAttending ?? new List<Enrollment>());
     
     // Email notification modal variables
     private List<ApplicationUser>? subscribedUsers;
@@ -1580,6 +1597,7 @@ else
         eventEnrollments = null;
         filteredPerformingMembers.Clear();
         filteredLeitoes.Clear();
+        filteredNotAttending.Clear();
         
         // Clean up add member state
         allMembersForEnrollment.Clear();
@@ -1596,6 +1614,7 @@ else
         {
             filteredPerformingMembers = new List<Enrollment>();
             filteredLeitoes = new List<Enrollment>();
+            filteredNotAttending = new List<Enrollment>();
             return;
         }
         
@@ -1607,7 +1626,11 @@ else
             .Where(e => e.User != null && e.WillAttend && e.User.Categories.Contains(MemberCategory.Leitao))
             .ToList();
         
-        // Apply search filter to performing members
+        var notAttendingMembers = eventEnrollments
+            .Where(e => e.User != null && !e.WillAttend)
+            .ToList();
+        
+        // Apply search filter to performing members, leitões, and not attending
         if (!string.IsNullOrWhiteSpace(enrollmentSearchTerm))
         {
             var searchTerms = enrollmentSearchTerm.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
@@ -1618,17 +1641,35 @@ else
             {
                 if (e.User == null) return false;
                 
-                var searchableText = $"{e.User.FirstName} {e.User.LastName} {e.User.Nickname}".ToLower();
+                var searchableText = $"{e.User.FirstName} {e.User.LastName} {e.User.Nickname} {e.User.Email}".ToLower();
+                return searchTerms.All(term => searchableText.Contains(term));
+            }).ToList();
+            
+            leitaoMembers = leitaoMembers.Where(e =>
+            {
+                if (e.User == null) return false;
+                
+                var searchableText = $"{e.User.FirstName} {e.User.LastName} {e.User.Nickname} {e.User.Email}".ToLower();
+                return searchTerms.All(term => searchableText.Contains(term));
+            }).ToList();
+            
+            notAttendingMembers = notAttendingMembers.Where(e =>
+            {
+                if (e.User == null) return false;
+                
+                var searchableText = $"{e.User.FirstName} {e.User.LastName} {e.User.Nickname} {e.User.Email}".ToLower();
                 return searchTerms.All(term => searchableText.Contains(term));
             }).ToList();
         }
         
         filteredPerformingMembers = performingMembers;
         filteredLeitoes = leitaoMembers.OrderBy(e => e.User?.FirstName).ToList();
+        filteredNotAttending = notAttendingMembers.OrderBy(e => e.User?.FirstName).ToList();
         
         // Reset to page 1 when search changes
         performingMembersPagination.CurrentPage = 1;
         leitoesPagination.CurrentPage = 1;
+        notAttendingPagination.CurrentPage = 1;
         
         ApplySortToEnrollments();
     }
@@ -1656,6 +1697,19 @@ else
     {
         leitoesPagination.PageSize = pageSize;
         leitoesPagination.CurrentPage = 1;
+        StateHasChanged();
+    }
+    
+    private void HandleNotAttendingPageChange(int page)
+    {
+        notAttendingPagination.CurrentPage = page;
+        StateHasChanged();
+    }
+
+    private void HandleNotAttendingPageSizeChange(int pageSize)
+    {
+        notAttendingPagination.PageSize = pageSize;
+        notAttendingPagination.CurrentPage = 1;
         StateHasChanged();
     }
     

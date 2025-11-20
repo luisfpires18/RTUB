@@ -18,11 +18,13 @@ public class EventService : IEventService
 {
     private readonly IEventRepository _eventRepository;
     private readonly IImageStorageService _imageStorageService;
+    private readonly IEnrollmentRepository _enrollmentRepository;
 
-    public EventService(IEventRepository eventRepository, IImageStorageService imageStorageService)
+    public EventService(IEventRepository eventRepository, IImageStorageService imageStorageService, IEnrollmentRepository enrollmentRepository)
     {
         _eventRepository = eventRepository;
         _imageStorageService = imageStorageService;
+        _enrollmentRepository = enrollmentRepository;
     }
 
     public async Task<Event?> GetEventByIdAsync(int id)
@@ -162,6 +164,13 @@ public class EventService : IEventService
 
         eventEntity.Cancel(reason);
         await _eventRepository.UpdateAsync(eventEntity);
+        
+        // Delete all enrollments for this event
+        var enrollments = await _enrollmentRepository.GetByEventIdAsync(id);
+        foreach (var enrollment in enrollments)
+        {
+            await _enrollmentRepository.DeleteAsync(enrollment.Id);
+        }
     }
 
     public async Task UncancelEventAsync(int id)

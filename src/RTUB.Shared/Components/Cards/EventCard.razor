@@ -105,10 +105,7 @@
                         <span>, @Event.Date.ToString("HH:mm")h</span>
                     }
                 }
-                @if (Event.Date.Date == DateTime.Today)
-                {
-                    <span class="event-today-badge">HOJE</span>
-                }
+                <DateBadge Date="@Event.Date" />
             </small>
         </p>
         @if (!string.IsNullOrEmpty(Event.Location))
@@ -141,150 +138,177 @@
             @if (!IsPastEvent)
             {
                 <div class="enrollment-section mt-auto p-2 rounded">
-                    <!-- Event buttons row -->
-                    <div class="event-buttons-container mb-2">
-                        <!-- View Details button -->
-                        <button class="btn event-icon-btn btn-outline-secondary" 
-                                @onclick="OnViewDetails" 
-                                title="Detalhes">
-                            <i class="bi bi-eye"></i>
-                        </button>
+                    @if (Event.IsCancelled)
+                    {
+                        <!-- For cancelled events, only show View Details button -->
+                        <div class="event-buttons-container">
+                            <!-- View Details button -->
+                            <button class="btn event-icon-btn btn-outline-secondary" 
+                                    @onclick="OnViewDetails" 
+                                    title="Detalhes">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Event buttons row -->
+                        <div class="event-buttons-container mb-2">
+                            <!-- View Details button -->
+                            <button class="btn event-icon-btn btn-outline-secondary" 
+                                    @onclick="OnViewDetails" 
+                                    title="Detalhes">
+                                <i class="bi bi-eye"></i>
+                            </button>
 
-                        <!-- View Enrollments button with centered count -->
-                        <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
-                                @onclick="OnViewEnrollments" 
-                                title="Participantes">
-                            <i class="bi bi-people"></i>
-                            <span class="enrollment-count-centered">@EnrollmentCount</span>
-                        </button>
+                            <!-- View Enrollments button with centered count -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
+                                    @onclick="OnViewEnrollments" 
+                                    title="Participantes">
+                                <i class="bi bi-people"></i>
+                                <span class="enrollment-count-centered">@EnrollmentCount</span>
+                            </button>
 
-                        <!-- Watch Repertoire button -->
-                        <button class="btn event-icon-btn btn-outline-primary" 
-                                @onclick="OnWatchRepertoire" 
-                                title="Repertório">
-                            <i class="bi bi-music-note-list"></i>
-                        </button>
+                            <!-- Watch Repertoire button -->
+                            <button class="btn event-icon-btn btn-outline-primary" 
+                                    @onclick="OnWatchRepertoire" 
+                                    title="Repertório">
+                                <i class="bi bi-music-note-list"></i>
+                            </button>
 
-                        <!-- Discussion button -->
-                        <button class="btn event-icon-btn btn-outline-info" 
-                                @onclick="OnViewDiscussion" 
-                                title="Discussão">
-                            <i class="bi bi-chat-dots"></i>
-                        </button>
-                    </div>
+                            <!-- Discussion button -->
+                            <button class="btn event-icon-btn btn-outline-info" 
+                                    @onclick="OnViewDiscussion" 
+                                    title="Discussão">
+                                <i class="bi bi-chat-dots"></i>
+                            </button>
+                        </div>
 
-                    <!-- Enrollment action buttons row -->
-                    <div class="event-buttons-container">
-                        @if (UserEnrollment == null)
-                        {
-                            <!-- Enroll button -->
-                            <button class="btn event-icon-btn btn-purple" 
-                                    @onclick="OnEnroll" 
-                                    disabled="@Event.IsCancelled"
-                                    title="@(Event.IsCancelled ? "Evento cancelado" : "Inscrever")">
-                                <i class="bi bi-plus-circle-fill"></i>
-                            </button>
-                        }
-                        else if (UserEnrollment.WillAttend)
-                        {
-                            <!-- Enrolled status button (disabled, purple) -->
-                            <button class="btn event-icon-btn btn-purple" 
-                                    disabled 
-                                    title="Inscrito">
-                                <i class="bi bi-check-circle-fill"></i>
-                            </button>
-                            
-                            <!-- Edit enrollment button (white) -->
-                            <button class="btn event-icon-btn btn-light" 
-                                    @onclick="OnEditEnrollment" 
-                                    disabled="@Event.IsCancelled"
-                                    title="@(Event.IsCancelled ? "Evento cancelado" : "Editar Inscrição")">
-                                <i class="bi bi-pencil-fill"></i>
-                            </button>
-                            
-                            <!-- Remove enrollment button (red) -->
-                            <button class="btn event-icon-btn btn-danger" 
-                                    @onclick="OnRemoveEnrollment" 
-                                    title="Cancelar Inscrição">
-                                <i class="bi bi-x-circle-fill"></i>
-                            </button>
-                        }
-                        else
-                        {
-                            <!-- Not attending status button (disabled, red) -->
-                            <button class="btn event-icon-btn btn-danger" 
-                                    disabled 
-                                    title="Não vou">
-                                <i class="bi bi-x-circle-fill"></i>
-                            </button>
-                            
-                            <!-- Edit enrollment button (white) -->
-                            <button class="btn event-icon-btn btn-light" 
-                                    @onclick="OnEditEnrollment" 
-                                    disabled="@Event.IsCancelled"
-                                    title="@(Event.IsCancelled ? "Evento cancelado" : "Editar Inscrição")">
-                                <i class="bi bi-pencil-fill"></i>
-                            </button>
-                        }
-                    </div>
+                        <!-- Enrollment action buttons row -->
+                        <div class="event-buttons-container">
+                            @if (UserEnrollment == null)
+                            {
+                                <!-- Enroll button -->
+                                <button class="btn event-icon-btn btn-purple" 
+                                        @onclick="OnEnroll" 
+                                        title="Inscrever">
+                                    <i class="bi bi-plus-circle-fill"></i>
+                                </button>
+                            }
+                            else if (UserEnrollment.WillAttend)
+                            {
+                                <!-- Enrolled status button (disabled, purple) -->
+                                <button class="btn event-icon-btn btn-purple" 
+                                        disabled 
+                                        title="Inscrito">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                </button>
+                                
+                                <!-- Edit enrollment button (white) -->
+                                <button class="btn event-icon-btn btn-light" 
+                                        @onclick="OnEditEnrollment" 
+                                        title="Editar Inscrição">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                
+                                <!-- Remove enrollment button (red) -->
+                                <button class="btn event-icon-btn btn-danger" 
+                                        @onclick="OnRemoveEnrollment" 
+                                        title="Cancelar Inscrição">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            }
+                            else
+                            {
+                                <!-- Not attending status button (disabled, red) -->
+                                <button class="btn event-icon-btn btn-danger" 
+                                        disabled 
+                                        title="Não vou">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                                
+                                <!-- Edit enrollment button (white) -->
+                                <button class="btn event-icon-btn btn-light" 
+                                        @onclick="OnEditEnrollment" 
+                                        title="Editar Inscrição">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                            }
+                        </div>
+                    }
                 </div>
             }
             else
             {
                 <!-- Past event buttons -->
                 <div class="enrollment-section mt-auto p-2 rounded">
-                    <div class="event-buttons-container">
-                        <!-- View Details button -->
-                        <button class="btn event-icon-btn btn-outline-secondary" 
-                                @onclick="OnViewDetails" 
-                                title="Detalhes">
-                            <i class="bi bi-eye"></i>
-                        </button>
-
-                        <!-- View Enrollments button with centered count -->
-                        <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
-                                @onclick="OnViewEnrollments" 
-                                title="Participantes">
-                            <i class="bi bi-people"></i>
-                            <span class="enrollment-count-centered">@EnrollmentCount</span>
-                        </button>
-
-                        <!-- Watch Repertoire button -->
-                        <button class="btn event-icon-btn btn-outline-primary" 
-                                @onclick="OnWatchRepertoire" 
-                                title="Repertório">
-                            <i class="bi bi-music-note-list"></i>
-                        </button>
-
-                        <!-- Discussion button -->
-                        <button class="btn event-icon-btn btn-outline-info" 
-                                @onclick="OnViewDiscussion" 
-                                title="Discussão">
-                            <i class="bi bi-chat-dots"></i>
-                        </button>
-
-                        <!-- Trophy button (for Festival events only) -->
-                        @if (ShowTrophy && Event.Type == EventType.Festival)
-                        {
-                            <button class="btn event-icon-btn btn-warning" 
-                                    @onclick="OnViewTrophies" 
-                                    title="Prémios">
-                                <i class="bi bi-trophy-fill"></i>
-                            </button>
-                        }
-                    </div>
-                    
-                    <!-- Enrollment management for past events -->
-                    @if (UserEnrollment != null && UserEnrollment.WillAttend)
+                    @if (Event.IsCancelled)
                     {
-                        <div class="event-buttons-container mt-2">
-                            <!-- Remove enrollment button for user's own enrollment -->
-                            <button class="btn event-icon-btn btn-danger" 
-                                    @onclick="OnRemoveEnrollment" 
-                                    title="Remover Inscrição">
-                                <i class="bi bi-x-circle-fill"></i>
+                        <!-- For cancelled past events, only show View Details button -->
+                        <div class="event-buttons-container">
+                            <!-- View Details button -->
+                            <button class="btn event-icon-btn btn-outline-secondary" 
+                                    @onclick="OnViewDetails" 
+                                    title="Detalhes">
+                                <i class="bi bi-eye"></i>
                             </button>
                         </div>
+                    }
+                    else
+                    {
+                        <div class="event-buttons-container">
+                            <!-- View Details button -->
+                            <button class="btn event-icon-btn btn-outline-secondary" 
+                                    @onclick="OnViewDetails" 
+                                    title="Detalhes">
+                                <i class="bi bi-eye"></i>
+                            </button>
+
+                            <!-- View Enrollments button with centered count -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-secondary" 
+                                    @onclick="OnViewEnrollments" 
+                                    title="Participantes">
+                                <i class="bi bi-people"></i>
+                                <span class="enrollment-count-centered">@EnrollmentCount</span>
+                            </button>
+
+                            <!-- Watch Repertoire button -->
+                            <button class="btn event-icon-btn btn-outline-primary" 
+                                    @onclick="OnWatchRepertoire" 
+                                    title="Repertório">
+                                <i class="bi bi-music-note-list"></i>
+                            </button>
+
+                            <!-- Discussion button -->
+                            <button class="btn event-icon-btn btn-outline-info" 
+                                    @onclick="OnViewDiscussion" 
+                                    title="Discussão">
+                                <i class="bi bi-chat-dots"></i>
+                            </button>
+
+                            <!-- Trophy button (for Festival events only) -->
+                            @if (ShowTrophy && Event.Type == EventType.Festival)
+                            {
+                                <button class="btn event-icon-btn btn-warning" 
+                                        @onclick="OnViewTrophies" 
+                                        title="Prémios">
+                                    <i class="bi bi-trophy-fill"></i>
+                                </button>
+                            }
+                        </div>
+                        
+                        <!-- Enrollment management for past events -->
+                        @if (UserEnrollment != null && UserEnrollment.WillAttend)
+                        {
+                            <div class="event-buttons-container mt-2">
+                                <!-- Remove enrollment button for user's own enrollment -->
+                                <button class="btn event-icon-btn btn-danger" 
+                                        @onclick="OnRemoveEnrollment" 
+                                        title="Remover Inscrição">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            </div>
+                        }
                     }
                 </div>
             }

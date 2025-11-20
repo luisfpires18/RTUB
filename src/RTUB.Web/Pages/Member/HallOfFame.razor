@@ -1,0 +1,701 @@
+@page "/hall-of-fame"
+@rendermode InteractiveServer
+@using RTUB.Application.Interfaces
+@using RTUB.Application.Helpers
+@using RTUB.Application.Extensions
+@using RTUB.Core.Enums
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@inject UserManager<ApplicationUser> UserManager
+@inject IRoleAssignmentService RoleAssignmentService
+@inject IEnrollmentService EnrollmentService
+@inject IRehearsalService RehearsalService
+@inject IRehearsalAttendanceRepository RehearsalAttendanceRepository
+@inject IMemberInstrumentService MemberInstrumentService
+@attribute [Authorize]
+
+<h1 class="mb-2"><i class="bi bi-trophy"></i> Hall of Fame</h1>
+<p class="lead mb-4 text-light-theme">Os recordistas da RTUB - quem brilha mais em cada categoria.</p>
+
+@if (isLoading)
+{
+    <div class="d-flex justify-content-center my-5">
+        <div class="spinner-border text-purple" role="status">
+            <span class="visually-hidden">A carregar...</span>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Row 1: Tempo a Caloiro -->
+    <div class="hof-row">
+        <div class="hof-panel">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">MAIS TEMPO A CALOIRO</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (longestCaloiro.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in longestCaloiro)
+                                {
+                                    <div class="col-md-@(longestCaloiro.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@FormatDuration(member.Duration)</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="hof-panel">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">MENOS TEMPO A CALOIRO</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (shortestCaloiro.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in shortestCaloiro)
+                                {
+                                    <div class="col-md-@(shortestCaloiro.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@FormatDuration(member.Duration)</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Row 2: Tempo a Leitão -->
+    <div class="hof-row">
+        <div class="hof-panel">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">MAIS TEMPO A LEITÃO</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (longestLeitao.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in longestLeitao)
+                                {
+                                    <div class="col-md-@(longestLeitao.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@FormatDuration(member.Duration)</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="hof-panel">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">MENOS TEMPO A LEITÃO</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (shortestLeitao.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in shortestLeitao)
+                                {
+                                    <div class="col-md-@(shortestLeitao.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@FormatDuration(member.Duration)</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Row 3: Cargos & Magister -->
+    <div class="hof-row">
+        <div class="hof-panel">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">MAIS CARGOS</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (mostPositions.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in mostPositions)
+                                {
+                                    <div class="col-md-@(mostPositions.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "cargo" : "cargos")</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="hof-panel">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">MAIS VEZES MAGISTER</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (mostMagister.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in mostMagister)
+                                {
+                                    <div class="col-md-@(mostMagister.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "mandato" : "mandatos")</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Row 4: Ensaios & Atuações -->
+    <div class="hof-row">
+        <div class="hof-panel">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">MAIS ENSAIOS</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (mostRehearsals.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in mostRehearsals)
+                                {
+                                    <div class="col-md-@(mostRehearsals.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "ensaio" : "ensaios")</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="hof-panel">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">MAIS ATUAÇÕES</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (mostPerformances.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in mostPerformances)
+                                {
+                                    <div class="col-md-@(mostPerformances.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "atuação" : "atuações")</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Row 5: Instrumentos -->
+    <div class="hof-row">
+        <div class="col-md-6 offset-md-3">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">MAIS INSTRUMENTOS A TOCAR</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (mostInstruments.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in mostInstruments)
+                                {
+                                    <div class="col-md-@(mostInstruments.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "instrumento" : "instrumentos")</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    
+    // Data models for metrics
+    private class MemberDuration
+    {
+        public ApplicationUser User { get; set; } = null!;
+        public int Duration { get; set; } // Duration in months
+    }
+    
+    private class MemberCount
+    {
+        public ApplicationUser User { get; set; } = null!;
+        public int Count { get; set; }
+    }
+    
+    // Metric results
+    private List<MemberDuration> longestCaloiro = new();
+    private List<MemberDuration> shortestCaloiro = new();
+    private List<MemberDuration> longestLeitao = new();
+    private List<MemberDuration> shortestLeitao = new();
+    private List<MemberCount> mostPositions = new();
+    private List<MemberCount> mostMagister = new();
+    private List<MemberCount> mostRehearsals = new();
+    private List<MemberCount> mostPerformances = new();
+    private List<MemberCount> mostInstruments = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        isLoading = false;
+    }
+
+    private async Task LoadData()
+    {
+        // Get all users
+        var allUsers = UserManager.Users.ToList();
+        
+        // Get all role assignments
+        var allRoleAssignments = await RoleAssignmentService.GetAllRoleAssignmentsAsync();
+        
+        // Load user data for role assignments
+        var userIds = allRoleAssignments.Select(ra => ra.UserId).Distinct().ToList();
+        var usersDict = new Dictionary<string, ApplicationUser>();
+        foreach (var userId in userIds)
+        {
+            var user = await UserManager.FindByIdAsync(userId);
+            if (user != null)
+            {
+                usersDict[userId] = user;
+            }
+        }
+        
+        // Assign users to role assignments
+        foreach (var assignment in allRoleAssignments)
+        {
+            if (usersDict.TryGetValue(assignment.UserId, out var user))
+            {
+                assignment.User = user;
+            }
+        }
+        
+        // Calculate metrics
+        await CalculateCaloiroDurations(allUsers);
+        await CalculateLeitaoDurations(allUsers);
+        await CalculateMostPositions(allUsers, allRoleAssignments.ToList());
+        await CalculateMostMagister(allUsers, allRoleAssignments.ToList());
+        await CalculateMostRehearsals(allUsers);
+        await CalculateMostPerformances(allUsers);
+        await CalculateMostInstruments(allUsers);
+    }
+
+    private async Task CalculateCaloiroDurations(List<ApplicationUser> allUsers)
+    {
+        var durations = new List<MemberDuration>();
+        
+        foreach (var user in allUsers)
+        {
+            // Need both Caloiro and Tuno dates
+            if (user.YearCaloiro.HasValue && user.MonthCaloiro.HasValue &&
+                user.YearTuno.HasValue && user.MonthTuno.HasValue)
+            {
+                var caloiroDate = new DateTime(user.YearCaloiro.Value, user.MonthCaloiro.Value, 1);
+                var tunoDate = new DateTime(user.YearTuno.Value, user.MonthTuno.Value, 1);
+                
+                // Calculate duration in months
+                var durationMonths = ((tunoDate.Year - caloiroDate.Year) * 12) + (tunoDate.Month - caloiroDate.Month);
+                
+                if (durationMonths > 0)
+                {
+                    durations.Add(new MemberDuration
+                    {
+                        User = user,
+                        Duration = durationMonths
+                    });
+                }
+            }
+        }
+        
+        if (durations.Any())
+        {
+            var maxDuration = durations.Max(d => d.Duration);
+            longestCaloiro = durations.Where(d => d.Duration == maxDuration).ToList();
+            
+            var minDuration = durations.Min(d => d.Duration);
+            shortestCaloiro = durations.Where(d => d.Duration == minDuration).ToList();
+        }
+        
+        await Task.CompletedTask;
+    }
+
+    private async Task CalculateLeitaoDurations(List<ApplicationUser> allUsers)
+    {
+        var durations = new List<MemberDuration>();
+        
+        foreach (var user in allUsers)
+        {
+            // Need both Leitao and Caloiro dates
+            if (user.YearLeitao.HasValue && user.MonthLeitao.HasValue &&
+                user.YearCaloiro.HasValue && user.MonthCaloiro.HasValue)
+            {
+                var leitaoDate = new DateTime(user.YearLeitao.Value, user.MonthLeitao.Value, 1);
+                var caloiroDate = new DateTime(user.YearCaloiro.Value, user.MonthCaloiro.Value, 1);
+                
+                // Calculate duration in months
+                var durationMonths = ((caloiroDate.Year - leitaoDate.Year) * 12) + (caloiroDate.Month - leitaoDate.Month);
+                
+                if (durationMonths > 0)
+                {
+                    durations.Add(new MemberDuration
+                    {
+                        User = user,
+                        Duration = durationMonths
+                    });
+                }
+            }
+        }
+        
+        if (durations.Any())
+        {
+            var maxDuration = durations.Max(d => d.Duration);
+            longestLeitao = durations.Where(d => d.Duration == maxDuration).ToList();
+            
+            var minDuration = durations.Min(d => d.Duration);
+            shortestLeitao = durations.Where(d => d.Duration == minDuration).ToList();
+        }
+        
+        await Task.CompletedTask;
+    }
+
+    private async Task CalculateMostPositions(List<ApplicationUser> allUsers, List<RoleAssignment> allRoleAssignments)
+    {
+        var counts = allUsers
+            .Select(user => new MemberCount
+            {
+                User = user,
+                Count = allRoleAssignments.Count(ra => ra.UserId == user.Id)
+            })
+            .Where(mc => mc.Count > 0)
+            .ToList();
+        
+        if (counts.Any())
+        {
+            var maxCount = counts.Max(c => c.Count);
+            mostPositions = counts.Where(c => c.Count == maxCount).ToList();
+        }
+        
+        await Task.CompletedTask;
+    }
+
+    private async Task CalculateMostMagister(List<ApplicationUser> allUsers, List<RoleAssignment> allRoleAssignments)
+    {
+        var counts = allUsers
+            .Select(user => new MemberCount
+            {
+                User = user,
+                Count = allRoleAssignments.Count(ra => ra.UserId == user.Id && ra.Position == Position.Magister)
+            })
+            .Where(mc => mc.Count > 0)
+            .ToList();
+        
+        if (counts.Any())
+        {
+            var maxCount = counts.Max(c => c.Count);
+            mostMagister = counts.Where(c => c.Count == maxCount).ToList();
+        }
+        
+        await Task.CompletedTask;
+    }
+
+    private async Task CalculateMostRehearsals(List<ApplicationUser> allUsers)
+    {
+        // Use efficient query to count rehearsal attendances per member
+        // Filter by past dates and not cancelled (matching leaderboard XP logic)
+        var now = DateTime.UtcNow;
+        
+        // Build efficient query using repository - single database roundtrip
+        var rehearsalCounts = await RehearsalAttendanceRepository.Query()
+            .Include(ra => ra.Rehearsal)
+            .Include(ra => ra.User)
+            .Where(ra => ra.Rehearsal != null 
+                      && ra.Rehearsal.Date < now 
+                      && !ra.Rehearsal.IsCanceled 
+                      && ra.Attended)
+            .GroupBy(ra => ra.UserId)
+            .Select(g => new 
+            { 
+                UserId = g.Key, 
+                Count = g.Count() 
+            })
+            .ToListAsync();
+        
+        // If no data at all, leave mostRehearsals empty
+        if (!rehearsalCounts.Any())
+        {
+            mostRehearsals = new List<MemberCount>();
+            return;
+        }
+        
+        // Find the maximum count
+        var maxCount = rehearsalCounts.Max(rc => rc.Count);
+        
+        // Get all users with the maximum count
+        var topUserIds = rehearsalCounts
+            .Where(rc => rc.Count == maxCount)
+            .Select(rc => rc.UserId)
+            .ToHashSet();
+        
+        // Map to MemberCount with User objects
+        mostRehearsals = allUsers
+            .Where(u => topUserIds.Contains(u.Id))
+            .Select(u => new MemberCount
+            {
+                User = u,
+                Count = maxCount
+            })
+            .ToList();
+    }
+
+    private async Task CalculateMostPerformances(List<ApplicationUser> allUsers)
+    {
+        // Get all enrollments - filter by past dates and not cancelled (matching leaderboard XP logic)
+        var now = DateTime.UtcNow;
+        var allEnrollments = await EnrollmentService.GetAllEnrollmentsAsync();
+        
+        // Filter to past, non-cancelled events with WillAttend = true
+        var counts = allUsers
+            .Select(user => new MemberCount
+            {
+                User = user,
+                Count = allEnrollments
+                    .Where(e => e.Event != null && e.Event.Date < now && !e.Event.IsCancelled)
+                    .Count(e => e.UserId == user.Id && e.WillAttend)
+            })
+            .Where(mc => mc.Count > 0)
+            .ToList();
+        
+        if (counts.Any())
+        {
+            var maxCount = counts.Max(c => c.Count);
+            mostPerformances = counts.Where(c => c.Count == maxCount).ToList();
+        }
+    }
+
+    private async Task CalculateMostInstruments(List<ApplicationUser> allUsers)
+    {
+        var counts = new List<MemberCount>();
+        
+        foreach (var user in allUsers)
+        {
+            var instruments = await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id);
+            var count = instruments.Count();
+            
+            if (count > 0)
+            {
+                counts.Add(new MemberCount
+                {
+                    User = user,
+                    Count = count
+                });
+            }
+        }
+        
+        if (counts.Any())
+        {
+            var maxCount = counts.Max(c => c.Count);
+            mostInstruments = counts.Where(c => c.Count == maxCount).ToList();
+        }
+    }
+
+    private string FormatDuration(int months)
+    {
+        if (months < 12)
+        {
+            return $"{months} {(months == 1 ? "mês" : "meses")}";
+        }
+        
+        var years = months / 12;
+        var remainingMonths = months % 12;
+        
+        if (remainingMonths == 0)
+        {
+            return $"{years} {(years == 1 ? "ano" : "anos")}";
+        }
+        
+        return $"{years} {(years == 1 ? "ano" : "anos")} {remainingMonths} {(remainingMonths == 1 ? "mês" : "meses")}";
+    }
+}

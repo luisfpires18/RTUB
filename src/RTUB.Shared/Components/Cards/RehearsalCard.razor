@@ -19,6 +19,32 @@
                     </button>
                 }
             </div>
+            
+            @* Cancellation button in bottom-right corner (for future rehearsals only) *@
+            @if (!IsPastRehearsal)
+            {
+                <div class="position-absolute bottom-0 end-0 p-2">
+                    @if (!Rehearsal.IsCanceled)
+                    {
+                        @if (ShowCancelButton)
+                        {
+                            <button class="btn btn-sm btn-danger music-btn-cancel" 
+                                    @onclick="HandleCancel" 
+                                    title="Cancelar ensaio">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        }
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-warning music-btn-uncancel" 
+                                @onclick="HandleUncancel" 
+                                title="Reativar ensaio">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                    }
+                </div>
+            }
         }
         <div class="rehearsal-icon-header">
             <div class="rehearsal-icon-circle">
@@ -46,10 +72,7 @@
             <div class="rehearsal-info-row">
                 <i class="bi bi-clock rehearsal-icon"></i>
                 <span class="rehearsal-text">@Rehearsal.StartTime.ToString(@"hh\:mm") - @Rehearsal.EndTime.ToString(@"hh\:mm")</span>
-                @if (Rehearsal.Date.Date == DateTime.Today)
-                {
-                    <span class="rehearsal-today-badge">Hoje</span>
-                }
+                <DateBadge Date="@Rehearsal.Date" />
             </div>
             
             @if (!string.IsNullOrEmpty(Rehearsal.Location))
@@ -136,6 +159,21 @@
                 }
             </div>
         }
+        else
+        {
+            <!-- For cancelled rehearsals, only show View Details button -->
+            <div class="rehearsal-actions-section mt-auto p-2 rounded">
+                <div class="d-flex gap-2 align-items-center justify-content-center">
+                    <!-- View Details button -->
+                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" 
+                            @onclick="HandleViewDetails" 
+                            title="Ver Detalhes">
+                        <i class="bi bi-eye-fill icon-size-1rem"></i>
+                        <span>Ver</span>
+                    </button>
+                </div>
+            </div>
+        }
     </div>
 </div>
 
@@ -213,11 +251,30 @@
     public EventCallback OnViewDetails { get; set; }
     
     /// <summary>
+    /// Callback when the cancel button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+    
+    /// <summary>
+    /// Callback when the uncancel button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnUncancel { get; set; }
+    
+    /// <summary>
     /// Whether to show the delete button (default: true)
     /// Can be set to false for users with restricted permissions (e.g., Caloiro Admins)
     /// </summary>
     [Parameter]
     public bool ShowDeleteButton { get; set; } = true;
+    
+    /// <summary>
+    /// Whether to show the cancel button (default: true)
+    /// Can be set to false for users with restricted permissions (e.g., Caloiro Admins)
+    /// </summary>
+    [Parameter]
+    public bool ShowCancelButton { get; set; } = true;
 
     // Handler methods to ensure events fire properly
     private async Task HandleViewAttendances()
@@ -273,6 +330,22 @@
         if (OnDelete.HasDelegate)
         {
             await OnDelete.InvokeAsync();
+        }
+    }
+    
+    private async Task HandleCancel()
+    {
+        if (OnCancel.HasDelegate)
+        {
+            await OnCancel.InvokeAsync();
+        }
+    }
+    
+    private async Task HandleUncancel()
+    {
+        if (OnUncancel.HasDelegate)
+        {
+            await OnUncancel.InvokeAsync();
         }
     }
 

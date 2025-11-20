@@ -4,7 +4,6 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
-@using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Data
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
@@ -19,8 +18,8 @@
 @inject IEnrollmentService EnrollmentService
 @inject IMemberInstrumentService MemberInstrumentService
 @inject IEmailNotificationService EmailNotificationService
+@inject IUserRoleQueryService UserRoleQueryService
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject ApplicationDbContext DbContext
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject NavigationManager NavigationManager
 @inject ILogger<Members> _logger
@@ -769,7 +768,11 @@ else
                                 <td>
                                     @if (member.DateOfBirth.HasValue)
                                     {
+                                        var currentYear = DateTime.Now.Year;
+                                        var thisBirthday = new DateTime(currentYear, member.DateOfBirth.Value.Month, member.DateOfBirth.Value.Day);
+                                        
                                         <text>@member.DateOfBirth.Value.ToString("dd/MM")</text>
+                                        <DateBadge Date="@thisBirthday" />
                                     }
                                 </td>
                                 <td>
@@ -1050,17 +1053,14 @@ else
         var userIdList = users.Select(u => u.Id).ToList();
 
         // Batch load all user roles in a single query
-        var userRolesQuery = await DbContext.UserRoles
-            .Where(ur => userIdList.Contains(ur.UserId))
-            .Join(DbContext.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
-            .ToListAsync();
+        var userRolesQuery = await UserRoleQueryService.GetUserRolesAsync(userIdList);
 
         userRoles.Clear();
         foreach (var user in users)
         {
             userRoles[user.Id] = userRolesQuery
                 .Where(ur => ur.UserId == user.Id)
-                .Select(ur => ur.Name!)
+                .Select(ur => ur.RoleName)
                 .ToList();
         }
 

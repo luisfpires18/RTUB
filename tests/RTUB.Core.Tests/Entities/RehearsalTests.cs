@@ -120,24 +120,26 @@ public class RehearsalTests
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
 
         // Act
-        rehearsal.Cancel();
+        rehearsal.Cancel("Test reason");
 
         // Assert
         rehearsal.IsCanceled.Should().BeTrue();
+        rehearsal.CancellationReason.Should().Be("Test reason");
     }
 
     [Fact]
-    public void Reactivate_SetsCanceledToFalse()
+    public void Uncancel_SetsCanceledToFalse()
     {
         // Arrange
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
-        rehearsal.Cancel();
+        rehearsal.Cancel("Test reason");
 
         // Act
-        rehearsal.Reactivate();
+        rehearsal.Uncancel();
 
         // Assert
         rehearsal.IsCanceled.Should().BeFalse();
+        rehearsal.CancellationReason.Should().BeNull();
     }
 
     [Fact]
