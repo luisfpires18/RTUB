@@ -660,6 +660,17 @@ else
                         <p class="text-white-full mb-0" style="white-space: pre-line;">@selectedEvent.Description</p>
                     </InfoSection>
                 }
+
+                <!-- Cancellation Reason Section -->
+                @if (selectedEvent.IsCancelled && !string.IsNullOrEmpty(selectedEvent.CancellationReason))
+                {
+                    <InfoSection SectionTitle="Motivo de Cancelamento" 
+                                IconClass="bi-exclamation-triangle-fill" 
+                                CssClass="mb-3"
+                                Style="background-color: rgba(220, 38, 38, 0.1); border-left: 4px solid #DC2626;">
+                        <p class="mb-0" style="white-space: pre-line; color: #FCA5A5;">@selectedEvent.CancellationReason</p>
+                    </InfoSection>
+                }
             }
         </Sections>
     </DetailsModal>
@@ -2196,7 +2207,8 @@ else
                     cancelEventReason,
                     eventLink,
                     recipientEmails,
-                    recipientData
+                    recipientData,
+                    selectedEventForCancellation.EndDate
                 );
             }
 

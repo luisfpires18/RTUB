@@ -626,7 +626,7 @@ else
         // Check if user has Owner or Mod role
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        if (!user.IsInRole("Owner") && !user.IsInRole("Mod"))
+        if (!user.IsInRole("Admin") && !user.IsInRole("Mod"))
         {
             return; // Unauthorized
         }
@@ -715,7 +715,7 @@ else
         // Check if user has Owner or Mod role
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        if (!user.IsInRole("Owner") && !user.IsInRole("Mod"))
+        if (!user.IsInRole("Admin") && !user.IsInRole("Mod"))
         {
             return; // Unauthorized
         }
@@ -768,7 +768,7 @@ else
         // Check if user has Owner or Mod role
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        if (!user.IsInRole("Owner") && !user.IsInRole("Mod"))
+        if (!user.IsInRole("Admin") && !user.IsInRole("Mod"))
         {
             return; // Unauthorized
         }

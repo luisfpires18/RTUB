@@ -59,7 +59,8 @@ public interface IEmailTemplateRenderer
     /// </summary>
     Task<string> RenderEventCancellationNotificationAsync(
         string eventTitle,
-        string dateFormatted,
+        DateTime startDate,
+        DateTime? endDate,
         string eventLocation,
         string cancellationReason,
         string eventLink,

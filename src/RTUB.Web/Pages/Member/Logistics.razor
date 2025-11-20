@@ -133,6 +133,9 @@
                                 @foreach (var evt in filteredEvents.Take(10))
                                 {
                                     <button type="button" class="list-group-item list-group-item-action d-flex align-items-center" 
+                                            style="color: #E0E0E0; background-color: #1A1A1A;"
+                                            onmouseover="this.style.backgroundColor='#6E56CF'; this.style.color='#FFFFFF';"
+                                            onmouseout="this.style.backgroundColor='#1A1A1A'; this.style.color='#E0E0E0';"
                                             @onclick="() => SelectEvent(evt.Id.ToString(), evt.Name)">
                                         <i class="bi bi-calendar-event text-primary me-2"></i>
                                         <div>

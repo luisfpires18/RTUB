@@ -55,9 +55,14 @@ public static class DateFormatHelper
     /// <returns>Formatted date string</returns>
     public static string FormatEventDateRangeForEmail(DateTime startDate, DateTime? endDate = null)
     {
-        // Single day event - include day of week
+        // Single day event - include day of week and time if present
         if (!endDate.HasValue || endDate.Value.Date == startDate.Date)
         {
+            // Check if the start date has a time component
+            if (startDate.TimeOfDay != TimeSpan.Zero)
+            {
+                return startDate.ToString("dddd, dd 'de' MMMM 'de' yyyy, HH:mm", PortugueseCulture);
+            }
             return startDate.ToString("dddd, dd 'de' MMMM 'de' yyyy", PortugueseCulture);
         }
 

@@ -69,15 +69,18 @@
                 }
                 
                 <!-- Filter dropdown - after description, narrower width -->
-                <div class="d-flex justify-content-center mt-3">
-                    <div style="max-width: 300px;">
-                        <FilterDropdown IconClass="bi-tag" 
-                                       AllItemsLabel="Todas as Etiquetas"
-                                       Items="@availableLabels"
-                                       SelectedValue="@selectedLabelFilter"
-                                       SelectedValueChanged="@((value) => { selectedLabelFilter = value; StateHasChanged(); })" />
+                @if (availableLabels != null && availableLabels.Any())
+                {
+                    <div class="d-flex justify-content-center mt-3">
+                        <div style="max-width: 300px;">
+                            <FilterDropdown IconClass="bi-tag" 
+                                           AllItemsLabel="Todas as Etiquetas"
+                                           Items="@availableLabels"
+                                           SelectedValue="@selectedLabelFilter"
+                                           SelectedValueChanged="@((value) => { selectedLabelFilter = value; StateHasChanged(); })" />
+                        </div>
                     </div>
-                </div>
+                }
             </div>
 
             @if (!lists.Any())
@@ -340,8 +343,8 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-4">
-                        <label class="form-label fw-bold text-primary">
-                            <i class="bi bi-toggles me-2"></i>Estado
+                        <label class="form-label fw-bold text-white">
+                            <i class="bi bi-toggles me-2 text-primary"></i>Estado
                         </label>
                         <div class="btn-group w-100" role="group">
                             <button type="button" class="btn status-todo @(selectedCard.Status == CardStatus.Todo ? "active" : "")" 
@@ -360,8 +363,8 @@
                     </div>
                     
                     <div class="mb-4">
-                        <label class="form-label fw-bold text-primary">
-                            <i class="bi bi-tags me-2"></i>Etiquetas
+                        <label class="form-label fw-bold text-white">
+                            <i class="bi bi-tags me-2 text-primary"></i>Etiquetas
                         </label>
                         <div class="d-flex flex-wrap gap-2 mb-2">
                             @if (cardLabels != null && cardLabels.Any())
@@ -390,8 +393,8 @@
                     </div>
                     
                     <div class="mb-4">
-                        <label class="form-label fw-bold text-primary">
-                            <i class="bi bi-calendar3 me-2"></i>Datas
+                        <label class="form-label fw-bold text-white">
+                            <i class="bi bi-calendar3 me-2 text-primary"></i>Datas
                         </label>
                         <div class="row g-3">
                             <div class="col-6">
@@ -406,16 +409,16 @@
                     </div>
                     
                     <div class="mb-4">
-                        <label class="form-label fw-bold text-primary">
-                            <i class="bi bi-text-left me-2"></i>Detalhes
+                        <label class="form-label fw-bold text-white">
+                            <i class="bi bi-text-left me-2 text-primary"></i>Detalhes
                         </label>
                         <textarea class="form-control" rows="4" placeholder="Adicionar detalhes..." 
                                   @bind="cardDetailsText" @onblur="UpdateCardDetails"></textarea>
                     </div>
                     
                     <div class="mb-4">
-                        <label class="form-label fw-bold text-primary">
-                            <i class="bi bi-check2-square me-2"></i>Checklist
+                        <label class="form-label fw-bold text-white">
+                            <i class="bi bi-check2-square me-2 text-primary"></i>Checklist
                         </label>
                         @if (checklistItems != null && checklistItems.Any())
                         {
@@ -446,8 +449,8 @@
                     </div>
                     
                     <div class="mb-4">
-                        <label class="form-label fw-bold text-primary">
-                            <i class="bi bi-link-45deg me-2"></i>Ligações
+                        <label class="form-label fw-bold text-white">
+                            <i class="bi bi-link-45deg me-2 text-primary"></i>Ligações
                         </label>
                         @if (cardAttachments != null && cardAttachments.Any())
                         {
@@ -499,8 +502,8 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold text-primary">
-                            <i class="bi bi-paperclip me-2"></i>Anexos
+                        <label class="form-label fw-bold text-white">
+                            <i class="bi bi-paperclip me-2 text-primary"></i>Anexos
                         </label>
                         @if (uploadedFiles != null && uploadedFiles.Any())
                         {
@@ -539,8 +542,8 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-bold text-primary">
-                            <i class="bi bi-person me-2"></i>Membro Atribuído
+                        <label class="form-label fw-bold text-white">
+                            <i class="bi bi-person me-2 text-primary"></i>Membro Atribuído
                         </label>
                         @if (selectedCard?.AssignedToUser != null)
                         {

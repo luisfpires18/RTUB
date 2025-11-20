@@ -11,9 +11,12 @@
         ? $"{Model.Nickname} ({Model.FullName})" 
         : Model.Nickname;
     
-    var daysText = Model.DaysUntilEvent == 1 
-        ? "Falta apenas 1 dia" 
-        : $"Faltam apenas {Model.DaysUntilEvent} dias";
+    var daysText = Model.DaysUntilEvent switch
+    {
+        0 => "é hoje!",
+        1 => "é já amanhã!",
+        _ => $"faltam {Model.DaysUntilEvent} dias!"
+    };
     
     // Format date with range using DateFormatHelper
     var formattedDate = DateFormatHelper.FormatEventDateRangeForEmail(Model.StartDate, Model.EndDate);
@@ -28,7 +31,7 @@
 </p>
 
 <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333333;">
-    A atuação <strong>@Html.Raw(Model.EventTitle)</strong> está a aproximar-se. <strong>@Html.Raw(daysText)</strong>!
+    A atuação <strong>@Html.Raw(Model.EventTitle)</strong> @Html.Raw(daysText)!
 </p>
 
 <!-- Event Details -->

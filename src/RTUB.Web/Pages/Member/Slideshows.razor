@@ -180,27 +180,6 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Check if user is Caloiro Admin and redirect them
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        
-        if (user.Identity?.IsAuthenticated == true)
-        {
-            var userName = user.Identity.Name;
-            if (!string.IsNullOrEmpty(userName))
-            {
-                currentUser = await UserManager.FindByNameAsync(userName);
-                
-                // Redirect Caloiro Admins - they should not access this page
-                if (currentUser != null && currentUser.IsCaloiro() && 
-                    user.IsInRole("Admin") && !user.IsInRole("Owner"))
-                {
-                    Navigation.NavigateTo("/");
-                    return;
-                }
-            }
-        }
-        
         SortHelper.SortColumn = nameof(Slideshow.Order);
         PaginationHelper.PageSize = 3; // Default page size for slideshow list
         await LoadItemsAsync();

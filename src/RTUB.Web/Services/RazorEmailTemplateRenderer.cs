@@ -111,7 +111,8 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
 
     public async Task<string> RenderEventCancellationNotificationAsync(
         string eventTitle,
-        string dateFormatted,
+        DateTime startDate,
+        DateTime? endDate,
         string eventLocation,
         string cancellationReason,
         string eventLink,
@@ -121,7 +122,8 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
         var model = new EventCancellationNotificationModel
         {
             EventTitle = eventTitle,
-            DateFormatted = dateFormatted,
+            StartDate = startDate,
+            EndDate = endDate,
             EventLocation = eventLocation,
             CancellationReason = cancellationReason,
             EventLink = eventLink,

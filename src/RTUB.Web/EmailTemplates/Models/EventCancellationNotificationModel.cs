@@ -6,7 +6,8 @@ namespace RTUB.Web.EmailTemplates.Models;
 public class EventCancellationNotificationModel
 {
     public string EventTitle { get; set; } = string.Empty;
-    public string DateFormatted { get; set; } = string.Empty;
+    public DateTime StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public string EventLocation { get; set; } = string.Empty;
     public string CancellationReason { get; set; } = string.Empty;
     public string EventLink { get; set; } = string.Empty;

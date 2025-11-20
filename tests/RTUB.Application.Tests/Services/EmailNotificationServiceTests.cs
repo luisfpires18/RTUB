@@ -48,7 +48,7 @@ public class EmailNotificationServiceTests : IDisposable
             .ReturnsAsync("Test event email");
         
         _mockTemplateRenderer.Setup(x => x.RenderEventCancellationNotificationAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test cancellation email");
 
         // Create the refactored dependencies

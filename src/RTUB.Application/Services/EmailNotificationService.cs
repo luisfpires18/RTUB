@@ -233,7 +233,8 @@ public class EmailNotificationService : IEmailNotificationService
         string cancellationReason,
         string eventLink,
         List<string> recipientEmails,
-        Dictionary<string, (string nickname, string fullName)>? recipientData = null)
+        Dictionary<string, (string nickname, string fullName)>? recipientData = null,
+        DateTime? endDate = null)
     {
         var rateLimitKey = $"email-event-cancellation-{eventId}";
         if (_rateLimiter.ShouldRateLimit(rateLimitKey))
@@ -263,12 +264,10 @@ public class EmailNotificationService : IEmailNotificationService
             }
 
             var subject = $"⚠️ Atuação cancelada: {eventTitle}";
-            var dateFormatted = eventDate.ToString("dddd, dd 'de' MMMM 'de' yyyy",
-                new System.Globalization.CultureInfo("pt-PT"));
 
             return await SendPersonalizedBatchAsync(config, recipientEmails, recipientData, subject,
                 async (nickname, fullName) => await _templateRenderer.RenderEventCancellationNotificationAsync(
-                    eventTitle, dateFormatted, eventLocation, cancellationReason, eventLink, nickname, fullName),
+                    eventTitle, eventDate, endDate, eventLocation, cancellationReason, eventLink, nickname, fullName),
                 eventId, "event cancellation notification");
         }
         catch (Exception ex)

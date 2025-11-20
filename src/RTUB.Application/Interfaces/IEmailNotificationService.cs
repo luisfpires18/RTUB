@@ -103,6 +103,7 @@ public interface IEmailNotificationService
     /// <param name="eventLink">Absolute link to the event</param>
     /// <param name="recipientEmails">List of recipient email addresses</param>
     /// <param name="recipientData">Optional dictionary mapping emails to (nickname, fullName) tuples for personalization</param>
+    /// <param name="endDate">Optional end date for date ranges</param>
     /// <returns>Tuple with success flag, count of emails sent, and optional error message</returns>
     Task<(bool success, int count, string? errorMessage)> SendEventCancellationNotificationAsync(
         int eventId,
@@ -112,7 +113,8 @@ public interface IEmailNotificationService
         string cancellationReason,
         string eventLink,
         List<string> recipientEmails,
-        Dictionary<string, (string nickname, string fullName)>? recipientData = null);
+        Dictionary<string, (string nickname, string fullName)>? recipientData = null,
+        DateTime? endDate = null);
     
     /// <summary>
     /// Sends event reminder notification emails to subscribed members
