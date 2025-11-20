@@ -910,8 +910,8 @@ else
     {
         return type switch
         {
-            MeetingType.AssembleiaGeralOrdinaria => "bg-primary",
-            MeetingType.AssembleiaGeralExtraordinaria => "bg-danger",
+            MeetingType.AssembleiaGeralOrdinaria => "bg-primary",  // Blue for ordinary assembly
+            MeetingType.AssembleiaGeralExtraordinaria => "bg-primary",  // Blue for extraordinary assembly
             MeetingType.ConselhoVeteranos => "bg-warning text-dark",
             _ => "bg-secondary"
         };

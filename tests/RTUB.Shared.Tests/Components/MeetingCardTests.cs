@@ -587,7 +587,7 @@ public class MeetingCardTests : TestContext
 
     [Theory]
     [InlineData(MeetingType.AssembleiaGeralOrdinaria, "bg-primary")]
-    [InlineData(MeetingType.AssembleiaGeralExtraordinaria, "bg-danger")]
+    [InlineData(MeetingType.AssembleiaGeralExtraordinaria, "bg-primary")]
     [InlineData(MeetingType.ConselhoVeteranos, "bg-warning text-dark")]
     public void MeetingCard_DisplaysColoredBadgeForMeetingType(MeetingType type, string expectedBadgeClass)
     {

@@ -59,24 +59,24 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
 
     public async Task<string> RenderEventNotificationAsync(
         string eventTitle,
-        string dateFormatted,
+        DateTime startDate,
+        DateTime? endDate,
         string eventLocation,
         string eventLink,
         string nickname = "",
         string fullName = "",
-        string eventDescription = "",
-        DateTime? endDate = null)
+        string eventDescription = "")
     {
         var model = new EventNotificationModel
         {
             EventTitle = eventTitle,
-            DateFormatted = dateFormatted,
+            StartDate = startDate,
+            EndDate = endDate,
             EventLocation = eventLocation,
             EventLink = eventLink,
             Nickname = nickname,
             FullName = fullName,
-            EventDescription = eventDescription,
-            EndDate = endDate
+            EventDescription = eventDescription
         };
 
         return await _templateService.RenderTemplateAsync("EventNotification", model);
@@ -134,26 +134,26 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
     
     public async Task<string> RenderEventReminderNotificationAsync(
         string eventTitle,
-        string dateFormatted,
+        DateTime startDate,
+        DateTime? endDate,
         string eventLocation,
         string eventLink,
         int daysUntilEvent,
         string nickname = "",
         string fullName = "",
-        string eventDescription = "",
-        DateTime? endDate = null)
+        string eventDescription = "")
     {
         var model = new EventReminderNotificationModel
         {
             EventTitle = eventTitle,
-            DateFormatted = dateFormatted,
+            StartDate = startDate,
+            EndDate = endDate,
             EventLocation = eventLocation,
             EventLink = eventLink,
             DaysUntilEvent = daysUntilEvent,
             Nickname = nickname,
             FullName = fullName,
-            EventDescription = eventDescription,
-            EndDate = endDate
+            EventDescription = eventDescription
         };
 
         return await _templateService.RenderTemplateAsync("EventReminderNotification", model);

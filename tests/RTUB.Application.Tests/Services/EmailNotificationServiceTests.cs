@@ -44,7 +44,7 @@ public class EmailNotificationServiceTests : IDisposable
             .ReturnsAsync("Test welcome email");
         
         _mockTemplateRenderer.Setup(x => x.RenderEventNotificationAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test event email");
         
         _mockTemplateRenderer.Setup(x => x.RenderEventCancellationNotificationAsync(
@@ -338,7 +338,7 @@ public class EmailNotificationServiceTests : IDisposable
 
         // Setup mock for RenderEventReminderNotificationAsync
         _mockTemplateRenderer.Setup(x => x.RenderEventReminderNotificationAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test reminder email");
 
@@ -370,7 +370,7 @@ public class EmailNotificationServiceTests : IDisposable
 
         // Setup mock for RenderEventReminderNotificationAsync
         _mockTemplateRenderer.Setup(x => x.RenderEventReminderNotificationAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test reminder email");
 
@@ -406,7 +406,7 @@ public class EmailNotificationServiceTests : IDisposable
 
         // Setup mock for RenderEventReminderNotificationAsync
         _mockTemplateRenderer.Setup(x => x.RenderEventReminderNotificationAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test reminder email");
 

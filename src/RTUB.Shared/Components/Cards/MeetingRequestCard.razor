@@ -177,8 +177,8 @@
         return MeetingRequest.RequestedMeetingType switch
         {
             MeetingType.ConselhoVeteranos => "bg-dark text-white",
-            MeetingType.AssembleiaGeralOrdinaria => "bg-primary",
-            MeetingType.AssembleiaGeralExtraordinaria => "bg-info",
+            MeetingType.AssembleiaGeralOrdinaria => "bg-primary",  // Blue for ordinary assembly
+            MeetingType.AssembleiaGeralExtraordinaria => "bg-primary",  // Blue for extraordinary assembly
             _ => "bg-secondary"
         };
     }

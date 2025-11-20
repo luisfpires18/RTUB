@@ -864,7 +864,7 @@ else
                 <h6 class="text-white-full">Evento:</h6>
                 <div class="event-summary p-3 rounded bg-dark">
                     <div><strong>Título:</strong> @selectedEventForCancellation.Name</div>
-                    <div><strong>Data:</strong> @selectedEventForCancellation.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"))</div>
+                    <div><strong>Data:</strong> @FormatEventDateRange(selectedEventForCancellation)</div>
                     <div><strong>Local:</strong> @selectedEventForCancellation.Location</div>
                 </div>
             </div>
@@ -2356,6 +2356,11 @@ else
     private void NavigateToDiscussion(Event eventItem)
     {
         Navigation.NavigateTo($"/events/{eventItem.Id}/discussion");
+    }
+
+    private string FormatEventDateRange(Event eventItem)
+    {
+        return RTUB.Application.Utilities.DateFormatHelper.FormatEventDateRange(eventItem.Date, eventItem.EndDate);
     }
 }
 

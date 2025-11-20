@@ -32,13 +32,13 @@ public interface IEmailTemplateRenderer
     /// </summary>
     Task<string> RenderEventNotificationAsync(
         string eventTitle,
-        string dateFormatted,
+        DateTime startDate,
+        DateTime? endDate,
         string eventLocation,
         string eventLink,
         string nickname = "",
         string fullName = "",
-        string eventDescription = "",
-        DateTime? endDate = null);
+        string eventDescription = "");
 
     /// <summary>
     /// Renders the password reset email
@@ -71,14 +71,14 @@ public interface IEmailTemplateRenderer
     /// </summary>
     Task<string> RenderEventReminderNotificationAsync(
         string eventTitle,
-        string dateFormatted,
+        DateTime startDate,
+        DateTime? endDate,
         string eventLocation,
         string eventLink,
         int daysUntilEvent,
         string nickname = "",
         string fullName = "",
-        string eventDescription = "",
-        DateTime? endDate = null);
+        string eventDescription = "");
     
     /// <summary>
     /// Renders the announcement email

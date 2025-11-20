@@ -17,7 +17,7 @@ public class EmailTemplateTests
         var model = new EventNotificationModel
         {
             EventTitle = "Festa de São João",
-            DateFormatted = "23 de Junho de 2025",
+            StartDate = new DateTime(2025, 6, 23),
             EventLocation = "Ribeira do Porto",
             EventLink = "https://rtub.azurewebsites.net/events/1",
             EventDescription = "Vamos celebrar o São João com música e dança tradicional!",
@@ -26,7 +26,7 @@ public class EmailTemplateTests
 
         // Assert
         model.EventTitle.Should().Be("Festa de São João");
-        model.DateFormatted.Should().Be("23 de Junho de 2025");
+        model.StartDate.Should().Be(new DateTime(2025, 6, 23));
         model.EventLocation.Should().Be("Ribeira do Porto");
         model.EventLink.Should().Be("https://rtub.azurewebsites.net/events/1");
         model.EventDescription.Should().Be("Vamos celebrar o São João com música e dança tradicional!");
@@ -129,7 +129,7 @@ public class EmailTemplateTests
 
         // Assert
         model.EventTitle.Should().Be(string.Empty);
-        model.DateFormatted.Should().Be(string.Empty);
+        model.StartDate.Should().Be(default(DateTime));
         model.EventLocation.Should().Be(string.Empty);
         model.EventLink.Should().Be(string.Empty);
         model.EventDescription.Should().Be(string.Empty);
@@ -189,7 +189,7 @@ public class EmailTemplateTests
         var model = new EventNotificationModel
         {
             EventTitle = "Test Event",
-            DateFormatted = "01/01/2025",
+            StartDate = new DateTime(2025, 1, 1),
             EventLocation = "Porto",
             EventLink = "https://test.com"
             // EventDescription and PreferencesLink not set - should use defaults
@@ -252,7 +252,7 @@ public class EmailTemplateTests
         var model = new EventNotificationModel
         {
             EventTitle = "Test",
-            DateFormatted = "01/01/2025",
+            StartDate = new DateTime(2025, 1, 1),
             EventLocation = "Porto",
             EventLink = "https://test.com"
         };

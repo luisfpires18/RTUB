@@ -63,6 +63,29 @@
     font-weight: 700;
 }
 
+/* Fix dropdown selected background - use dark background */
+::deep .form-select option:checked,
+::deep .form-select option:hover {
+    background-color: #0f0f10 !important;
+    color: #ffffff !important;
+}
+
+/* Change "+" button colors from blue to purple */
+::deep .btn-outline-primary.add-button,
+::deep .input-group .btn-outline-primary {
+    --bs-btn-color: #6E56CF;
+    --bs-btn-border-color: #6E56CF;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #6E56CF;
+    --bs-btn-hover-border-color: #6E56CF;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #6E56CF;
+    --bs-btn-active-border-color: #6E56CF;
+    --bs-btn-disabled-color: #6E56CF;
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: #6E56CF;
+}
+
 /* Modal improvements for card details */
 .modal-dialog-scrollable .modal-body {
     scrollbar-width: thin;
@@ -92,6 +115,29 @@
 .modal-content .form-select:focus {
     border-color: var(--bs-primary);
     box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+/* Fix dropdown options background color in dark mode */
+.modal-content .form-select {
+    background-color: #0f0f10;
+    color: #ffffff;
+}
+
+.modal-content .form-select option {
+    background-color: #0f0f10;
+    color: #ffffff;
+}
+
+/* Fix list-group-item-action active and hover background */
+::deep .list-group-item-action:hover,
+::deep .list-group-item-action:focus {
+    background-color: #1a1a1c !important;
+    color: #ffffff !important;
+}
+
+::deep .list-group-item-action:active {
+    background-color: #2a2a2c !important;
+    color: #ffffff !important;
 }
 
 /* Badge enhancements */

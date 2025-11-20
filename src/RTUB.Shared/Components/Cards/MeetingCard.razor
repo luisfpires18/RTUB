@@ -276,8 +276,8 @@
         return Meeting.Type switch
         {
             MeetingType.ConselhoVeteranos => "bg-warning text-dark",  // Yellow/orange for veteran council
-            MeetingType.AssembleiaGeralOrdinaria => "bg-primary",
-            MeetingType.AssembleiaGeralExtraordinaria => "bg-danger",  // Red for extraordinary assembly
+            MeetingType.AssembleiaGeralOrdinaria => "bg-primary",  // Blue for ordinary assembly
+            MeetingType.AssembleiaGeralExtraordinaria => "bg-primary",  // Blue for extraordinary assembly
             _ => "bg-secondary"
         };
     }

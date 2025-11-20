@@ -160,20 +160,18 @@ public class EmailNotificationService : IEmailNotificationService
             }
 
             var subject = $"Nova atuação: {eventTitle} — {eventDate:dd MMM yyyy}";
-            var dateFormatted = eventDate.ToString("dddd, dd 'de' MMMM 'de' yyyy",
-                new System.Globalization.CultureInfo("pt-PT"));
 
             // Personalized emails
             if (recipientData is not null && recipientData.Any())
             {
                 return await SendPersonalizedBatchAsync(config, recipientEmails, recipientData, subject,
                     async (nickname, fullName) => await _templateRenderer.RenderEventNotificationAsync(
-                        eventTitle, dateFormatted, eventLocation, eventLink, nickname, fullName, eventDescription, endDate),
+                        eventTitle, eventDate, endDate, eventLocation, eventLink, nickname, fullName, eventDescription),
                     eventId, "event notification");
             }
 
             // Non-personalized (BCC mode)
-            var body = await _templateRenderer.RenderEventNotificationAsync(eventTitle, dateFormatted, eventLocation, eventLink, "", "", eventDescription, endDate);
+            var body = await _templateRenderer.RenderEventNotificationAsync(eventTitle, eventDate, endDate, eventLocation, eventLink, "", "", eventDescription);
             return await SendBccEmailAsync(config, recipientEmails, subject, body, eventId, "event notification");
         }
         catch (Exception ex)
@@ -321,12 +319,10 @@ public class EmailNotificationService : IEmailNotificationService
 
             var daysUntilEvent = (int)Math.Ceiling((eventDate.Date - DateTime.UtcNow.Date).TotalDays);
             var subject = $"Lembrete: {eventTitle} — faltam {daysUntilEvent} {(daysUntilEvent == 1 ? "dia" : "dias")}";
-            var dateFormatted = eventDate.ToString("dddd, dd 'de' MMMM 'de' yyyy",
-                new System.Globalization.CultureInfo("pt-PT"));
 
             return await SendPersonalizedBatchAsync(config, recipientEmails, recipientData, subject,
                 async (nickname, fullName) => await _templateRenderer.RenderEventReminderNotificationAsync(
-                    eventTitle, dateFormatted, eventLocation, eventLink, daysUntilEvent, nickname, fullName, eventDescription, endDate),
+                    eventTitle, eventDate, endDate, eventLocation, eventLink, daysUntilEvent, nickname, fullName, eventDescription),
                 eventId, "event reminder notification");
         }
         catch (Exception ex)
