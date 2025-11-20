@@ -36,16 +36,17 @@
             <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Membro">
                 <i class="bi bi-plus-lg"></i> Adicionar Membro
             </button>
-            @if (Toggles.Value.MapEnabled)
-            {
-                <button class="btn btn-primary btn-primary-purple" @onclick="NavigateToMap" title="Ver Mapa de Membros">
-                    <i class="bi bi-geo-alt"></i> Ver Mapa de Membros
-                </button>
-            }
         </Authorized>
     </AuthorizeView>
     
     <!-- Anniversaries button visible to all members -->
+    @if (Toggles.Value.MapEnabled)
+    {
+        <button class="btn btn-primary btn-primary-purple" @onclick="NavigateToMap" title="Ver Mapa de Membros">
+            <i class="bi bi-geo-alt"></i> Ver Mapa de Membros
+        </button>
+    }
+
     <button class="btn btn-primary btn-primary-purple" @onclick="OpenAnniversariesModal" title="Ver Aniversários dos Membros">
         <i class="bi bi-cake2"></i> Aniversários
     </button>
