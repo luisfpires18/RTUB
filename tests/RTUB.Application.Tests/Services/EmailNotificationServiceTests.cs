@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Services.Email;
 using RTUB.Core.Enums;
 using Xunit;
 
@@ -13,6 +14,7 @@ namespace RTUB.Application.Tests.Services;
 public class EmailNotificationServiceTests : IDisposable
 {
     private readonly Mock<ILogger<EmailNotificationService>> _mockLogger;
+    private readonly Mock<ILogger<EmailConfigurationProvider>> _mockConfigLogger;
     private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly IMemoryCache _cache;
     private readonly Mock<IEmailTemplateRenderer> _mockTemplateRenderer;
@@ -21,6 +23,7 @@ public class EmailNotificationServiceTests : IDisposable
     public EmailNotificationServiceTests()
     {
         _mockLogger = new Mock<ILogger<EmailNotificationService>>();
+        _mockConfigLogger = new Mock<ILogger<EmailConfigurationProvider>>();
         _mockConfiguration = new Mock<IConfiguration>();
         _cache = new MemoryCache(new MemoryCacheOptions());
         _mockTemplateRenderer = new Mock<IEmailTemplateRenderer>();
@@ -48,7 +51,17 @@ public class EmailNotificationServiceTests : IDisposable
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test cancellation email");
 
-        _service = new EmailNotificationService(_mockLogger.Object, _mockConfiguration.Object, _cache, _mockTemplateRenderer.Object);
+        // Create the refactored dependencies
+        var configProvider = new EmailConfigurationProvider(_mockConfiguration.Object, _mockConfigLogger.Object);
+        var smtpFactory = new SmtpClientFactory();
+        var rateLimiter = new EmailRateLimiter(_cache);
+
+        _service = new EmailNotificationService(
+            _mockLogger.Object,
+            configProvider,
+            smtpFactory,
+            rateLimiter,
+            _mockTemplateRenderer.Object);
     }
 
     [Fact]

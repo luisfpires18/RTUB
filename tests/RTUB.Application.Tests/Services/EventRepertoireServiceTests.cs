@@ -5,6 +5,7 @@ using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Enums;
 
@@ -36,11 +37,11 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _repertoireService = new EventRepertoireService(_context);
+        _repertoireService = new EventRepertoireService(new EventRepertoireRepository(_context));
         _mockImageStorageService = new Mock<IImageStorageService>();
-        _eventService = new EventService(_context, _mockImageStorageService.Object);
-        _albumService = new AlbumService(_context, _mockImageStorageService.Object);
-        _songService = new SongService(_context);
+        _eventService = new EventService(new EventRepository(_context), _mockImageStorageService.Object);
+        _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
+        _songService = new SongService(new SongRepository(_context));
     }
 
     [Fact]

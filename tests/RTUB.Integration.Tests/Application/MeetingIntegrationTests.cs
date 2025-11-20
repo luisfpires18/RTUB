@@ -7,6 +7,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using Xunit;
@@ -29,7 +30,7 @@ public class MeetingIntegrationTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
-        _meetingService = new MeetingService(_context);
+        _meetingService = new MeetingService(new MeetingRepository(_context), _context);
     }
 
     #region Meeting Lifecycle Tests

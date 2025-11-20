@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 
@@ -10,33 +8,27 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class DiscussionService : IDiscussionService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDiscussionRepository _discussionRepository;
 
-    public DiscussionService(ApplicationDbContext context)
+    public DiscussionService(IDiscussionRepository discussionRepository)
     {
-        _context = context;
+        _discussionRepository = discussionRepository;
     }
 
     public async Task<Discussion?> GetByIdAsync(int id)
     {
-        return await _context.Discussions
-            .Include(d => d.Event)
-            .FirstOrDefaultAsync(d => d.Id == id);
+        return await _discussionRepository.GetByIdWithEventAsync(id);
     }
 
     public async Task<Discussion?> GetByEventIdAsync(int eventId)
     {
-        return await _context.Discussions
-            .Include(d => d.Event)
-            .FirstOrDefaultAsync(d => d.EventId == eventId);
+        return await _discussionRepository.GetByEventIdAsync(eventId);
     }
 
     public async Task<Discussion> CreateForEventAsync(int eventId)
     {
         var discussion = Discussion.Create(eventId);
-        _context.Discussions.Add(discussion);
-        await _context.SaveChangesAsync();
-        return discussion;
+        return await _discussionRepository.AddAsync(discussion);
     }
 
     public async Task<Discussion> GetOrCreateForEventAsync(int eventId)

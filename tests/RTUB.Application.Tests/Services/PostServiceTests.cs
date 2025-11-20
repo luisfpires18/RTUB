@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
@@ -31,7 +32,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _service = new PostService(_context);
+        _service = new PostService(new PostRepository(_context));
     }
 
     [Fact]

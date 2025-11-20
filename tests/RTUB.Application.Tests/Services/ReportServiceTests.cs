@@ -1,9 +1,7 @@
 using FluentAssertions;
 using Moq;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
-using RTUB.Application.Data;
-using RTUB.Application.Tests.Fixtures;
+using MockQueryable.Moq;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -14,23 +12,15 @@ namespace RTUB.Application.Tests.Services;
 /// Unit tests for ReportService
 /// Tests financial report operations and calculations
 /// </summary>
-public class ReportServiceTests : IClassFixture<DatabaseFixture>, IDisposable
+public class ReportServiceTests
 {
-    private readonly ApplicationDbContext _context;
-    private readonly DatabaseFixture _fixture;
+    private readonly Mock<IReportRepository> _mockReportRepository;
     private readonly ReportService _reportService;
 
-    public ReportServiceTests(DatabaseFixture fixture)
+    public ReportServiceTests()
     {
-        // Clean database at constructor start to ensure test isolation
-        _fixture = fixture;
-        var tempContext = _fixture.CreateContext();
-        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
-        tempContext.Dispose();
-        
-        _fixture = fixture;
-        _context = _fixture.CreateContext();
-        _reportService = new ReportService(_context);
+        _mockReportRepository = new Mock<IReportRepository>();
+        _reportService = new ReportService(_mockReportRepository.Object);
     }
 
     [Fact]
@@ -40,6 +30,10 @@ public class ReportServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var title = "Annual Report 2023-2024";
         var year = 2023;
         var summary = "Financial summary";
+        var expectedReport = Report.Create(title, year, summary);
+
+        _mockReportRepository.Setup(r => r.AddAsync(It.IsAny<Report>()))
+            .ReturnsAsync(expectedReport);
 
         // Act
         var result = await _reportService.CreateReportAsync(title, year, summary);
@@ -56,7 +50,9 @@ public class ReportServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetReportByIdAsync_ExistingReport_ReturnsReport()
     {
         // Arrange
-        var report = await _reportService.CreateReportAsync("Test Report", 2023);
+        var report = Report.Create("Test Report", 2023);
+        _mockReportRepository.Setup(r => r.GetByIdWithActivitiesAsync(report.Id))
+            .ReturnsAsync(report);
 
         // Act
         var result = await _reportService.GetReportByIdAsync(report.Id);
@@ -70,6 +66,10 @@ public class ReportServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     [Fact]
     public async Task GetReportByIdAsync_NonExistingReport_ReturnsNull()
     {
+        // Arrange
+        _mockReportRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Report?)null);
+
         // Act
         var result = await _reportService.GetReportByIdAsync(999);
 
@@ -81,9 +81,14 @@ public class ReportServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetAllReportsAsync_WithMultipleReports_ReturnsAll()
     {
         // Arrange
-        await _reportService.CreateReportAsync("Report 1", 2021);
-        await _reportService.CreateReportAsync("Report 2", 2022);
-        await _reportService.CreateReportAsync("Report 3", 2023);
+        var reports = new List<Report>
+        {
+            Report.Create("Report 1", 2021),
+            Report.Create("Report 2", 2022),
+            Report.Create("Report 3", 2023)
+        };
+        _mockReportRepository.Setup(r => r.GetAllWithActivitiesAsync())
+            .ReturnsAsync(reports);
 
         // Act
         var result = await _reportService.GetAllReportsAsync();
@@ -96,12 +101,14 @@ public class ReportServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetPublishedReportsAsync_OnlyReturnsPublished()
     {
         // Arrange
-        var report1 = await _reportService.CreateReportAsync("Report 1", 2021);
-        var report2 = await _reportService.CreateReportAsync("Report 2", 2022);
-        var report3 = await _reportService.CreateReportAsync("Report 3", 2023);
-        
-        await _reportService.PublishReportAsync(report1.Id);
-        await _reportService.PublishReportAsync(report3.Id);
+        var report1 = Report.Create("Report 1", 2021);
+        report1.Publish();
+        var report3 = Report.Create("Report 3", 2023);
+        report3.Publish();
+
+        var publishedReports = new List<Report> { report1, report3 };
+        _mockReportRepository.Setup(r => r.GetPublishedWithActivitiesAsync())
+            .ReturnsAsync(publishedReports);
 
         // Act
         var result = await _reportService.GetPublishedReportsAsync();
@@ -109,21 +116,22 @@ public class ReportServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         result.Should().HaveCount(2);
         result.Should().OnlyContain(r => r.IsPublished);
-        result.Should().Contain(r => r.Id == report1.Id);
-        result.Should().Contain(r => r.Id == report3.Id);
     }
 
     [Fact]
     public async Task GetPublishedReportsAsync_OrdersByYearDescending()
     {
         // Arrange
-        var report1 = await _reportService.CreateReportAsync("Report 2021", 2021);
-        var report2 = await _reportService.CreateReportAsync("Report 2023", 2023);
-        var report3 = await _reportService.CreateReportAsync("Report 2022", 2022);
-        
-        await _reportService.PublishReportAsync(report1.Id);
-        await _reportService.PublishReportAsync(report2.Id);
-        await _reportService.PublishReportAsync(report3.Id);
+        var report1 = Report.Create("Report 2021", 2021);
+        report1.Publish();
+        var report2 = Report.Create("Report 2023", 2023);
+        report2.Publish();
+        var report3 = Report.Create("Report 2022", 2022);
+        report3.Publish();
+
+        var publishedReports = new List<Report> { report2, report3, report1 }; // Already ordered
+        _mockReportRepository.Setup(r => r.GetPublishedWithActivitiesAsync())
+            .ReturnsAsync(publishedReports);
 
         // Act
         var result = (await _reportService.GetPublishedReportsAsync()).ToList();
@@ -137,20 +145,27 @@ public class ReportServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task UpdateReportAsync_UpdatesSummary()
     {
         // Arrange
-        var report = await _reportService.CreateReportAsync("Test Report", 2023);
+        var report = Report.Create("Test Report", 2023);
         var newSummary = "Updated summary";
+
+        _mockReportRepository.Setup(r => r.GetByIdAsync(report.Id))
+            .ReturnsAsync(report);
 
         // Act
         await _reportService.UpdateReportAsync(report.Id, newSummary);
-        var updated = await _reportService.GetReportByIdAsync(report.Id);
 
         // Assert
-        updated!.Summary.Should().Be(newSummary);
+        report.Summary.Should().Be(newSummary);
+        _mockReportRepository.Verify(r => r.UpdateAsync(report), Times.Once);
     }
 
     [Fact]
     public async Task UpdateReportAsync_WithInvalidId_ThrowsException()
     {
+        // Arrange
+        _mockReportRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Report?)null);
+
         // Act & Assert
         var act = async () => await _reportService.UpdateReportAsync(999, "Summary");
         await act.Should().ThrowAsync<EntityNotFoundException>()
@@ -161,20 +176,26 @@ public class ReportServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task PublishReportAsync_PublishesReport()
     {
         // Arrange
-        var report = await _reportService.CreateReportAsync("Test Report", 2023);
+        var report = Report.Create("Test Report", 2023);
+        _mockReportRepository.Setup(r => r.GetByIdAsync(report.Id))
+            .ReturnsAsync(report);
 
         // Act
         await _reportService.PublishReportAsync(report.Id);
-        var published = await _reportService.GetReportByIdAsync(report.Id);
 
         // Assert
-        published!.IsPublished.Should().BeTrue();
-        published.PublishedAt.Should().NotBeNull();
+        report.IsPublished.Should().BeTrue();
+        report.PublishedAt.Should().NotBeNull();
+        _mockReportRepository.Verify(r => r.UpdateAsync(report), Times.Once);
     }
 
     [Fact]
     public async Task PublishReportAsync_WithInvalidId_ThrowsException()
     {
+        // Arrange
+        _mockReportRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Report?)null);
+
         // Act & Assert
         var act = async () => await _reportService.PublishReportAsync(999);
         await act.Should().ThrowAsync<EntityNotFoundException>()
@@ -185,29 +206,30 @@ public class ReportServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task UnpublishReportAsync_UnpublishesReport()
     {
         // Arrange
-        var report = await _reportService.CreateReportAsync("Test Report", 2023);
-        await _reportService.PublishReportAsync(report.Id);
+        var report = Report.Create("Test Report", 2023);
+        report.Publish();
+        _mockReportRepository.Setup(r => r.GetByIdAsync(report.Id))
+            .ReturnsAsync(report);
 
         // Act
         await _reportService.UnpublishReportAsync(report.Id);
-        var unpublished = await _reportService.GetReportByIdAsync(report.Id);
 
         // Assert
-        unpublished!.IsPublished.Should().BeFalse();
-        unpublished.PublishedAt.Should().BeNull();
+        report.IsPublished.Should().BeFalse();
+        report.PublishedAt.Should().BeNull();
+        _mockReportRepository.Verify(r => r.UpdateAsync(report), Times.Once);
     }
 
     [Fact]
     public async Task UnpublishReportAsync_WithInvalidId_ThrowsException()
     {
+        // Arrange
+        _mockReportRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Report?)null);
+
         // Act & Assert
         var act = async () => await _reportService.UnpublishReportAsync(999);
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
-    }
-
-    public void Dispose()
-    {
-        _context?.Dispose();
     }
 }

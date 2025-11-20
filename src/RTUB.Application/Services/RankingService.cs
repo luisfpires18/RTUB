@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
-using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 
@@ -11,19 +10,23 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// Service for managing the ranking/level system
 /// Calculates XP from attendance and determines user levels
+/// Refactored to use repository pattern instead of direct DbContext access
 /// </summary>
 public class RankingService : IRankingService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IRehearsalAttendanceRepository _attendanceRepository;
+    private readonly IEnrollmentRepository _enrollmentRepository;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IOptions<RankingConfiguration> _rankingConfig;
 
     public RankingService(
-        ApplicationDbContext context,
+        IRehearsalAttendanceRepository attendanceRepository,
+        IEnrollmentRepository enrollmentRepository,
         UserManager<ApplicationUser> userManager,
         IOptions<RankingConfiguration> config)
     {
-        _context = context;
+        _attendanceRepository = attendanceRepository;
+        _enrollmentRepository = enrollmentRepository;
         _userManager = userManager;
         _rankingConfig = config;
     }
@@ -33,13 +36,13 @@ public class RankingService : IRankingService
         var now = DateTime.UtcNow;
         
         // Count rehearsal attendances where Attended == true AND rehearsal date is in the past
-        var rehearsalXp = await _context.RehearsalAttendances
+        var rehearsalXp = await _attendanceRepository.Query()
             .Include(ra => ra.Rehearsal)
             .Where(ra => ra.UserId == userId && ra.Attended && ra.Rehearsal!.Date < now)
             .CountAsync() * _rankingConfig.Value.XpPerRehearsal;
 
         // Calculate event XP with type-specific values - only count events with configured XP
-        var eventTypes = await _context.Enrollments
+        var eventTypes = await _enrollmentRepository.Query()
             .Include(e => e.Event)
             .Where(e => e.UserId == userId && e.WillAttend && e.Event!.Date < now)
             .Select(e => e.Event!.Type.ToString())
@@ -132,7 +135,7 @@ public class RankingService : IRankingService
         var now = DateTime.UtcNow;
         
         // Batch load all rehearsal attendances in a single query
-        var rehearsalXpByUser = await _context.RehearsalAttendances
+        var rehearsalXpByUser = await _attendanceRepository.Query()
             .Include(ra => ra.Rehearsal)
             .Where(ra => userIdList.Contains(ra.UserId) && ra.Attended && ra.Rehearsal!.Date < now)
             .GroupBy(ra => ra.UserId)
@@ -140,7 +143,7 @@ public class RankingService : IRankingService
             .ToDictionaryAsync(x => x.UserId, x => x.Count * _rankingConfig.Value.XpPerRehearsal);
 
         // Batch load all enrollments with event types in a single query
-        var enrollmentsByUser = await _context.Enrollments
+        var enrollmentsByUser = await _enrollmentRepository.Query()
             .Include(e => e.Event)
             .Where(e => userIdList.Contains(e.UserId) && e.WillAttend && e.Event!.Date < now)
             .Select(e => new { e.UserId, EventType = e.Event!.Type.ToString() })

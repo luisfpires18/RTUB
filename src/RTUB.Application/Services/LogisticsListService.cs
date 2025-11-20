@@ -2,38 +2,40 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 
 namespace RTUB.Application.Services;
 
 /// <summary>
 /// Logistics List service implementation
 /// Contains business logic for logistics list operations
+/// Refactored to use only repository pattern - no direct DbContext access
 /// </summary>
 public class LogisticsListService : ILogisticsListService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ILogisticsListRepository _listRepository;
+    private readonly ILogisticsCardRepository _cardRepository;
 
-    public LogisticsListService(ApplicationDbContext context)
+    public LogisticsListService(ILogisticsListRepository listRepository, ILogisticsCardRepository cardRepository)
     {
-        _context = context;
+        _listRepository = listRepository;
+        _cardRepository = cardRepository;
     }
 
     public async Task<LogisticsList?> GetListByIdAsync(int id)
     {
-        return await _context.LogisticsLists.FindAsync(id);
+        return await _listRepository.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<LogisticsList>> GetAllListsAsync()
     {
-        return await _context.LogisticsLists
+        return await _listRepository.Query()
             .OrderBy(l => l.Position)
             .ToListAsync();
     }
 
     public async Task<IEnumerable<LogisticsList>> GetListsWithCardsAsync()
     {
-        return await _context.LogisticsLists
+        return await _listRepository.Query()
             .Include(l => l.Cards.OrderBy(c => c.Position))
             .ThenInclude(c => c.Event)
             .Include(l => l.Cards)
@@ -44,15 +46,12 @@ public class LogisticsListService : ILogisticsListService
 
     public async Task<IEnumerable<LogisticsList>> GetListsByBoardIdAsync(int boardId)
     {
-        return await _context.LogisticsLists
-            .Where(l => l.BoardId == boardId)
-            .OrderBy(l => l.Position)
-            .ToListAsync();
+        return await _listRepository.GetListsByBoardIdAsync(boardId);
     }
 
     public async Task<IEnumerable<LogisticsList>> GetListsWithCardsByBoardIdAsync(int boardId)
     {
-        return await _context.LogisticsLists
+        return await _listRepository.Query()
             .Include(l => l.Cards.OrderBy(c => c.Position))
             .ThenInclude(c => c.Event)
             .Include(l => l.Cards)
@@ -65,34 +64,32 @@ public class LogisticsListService : ILogisticsListService
     public async Task<LogisticsList> CreateListAsync(string name, int boardId, int position)
     {
         var list = LogisticsList.Create(name, boardId, position);
-        _context.LogisticsLists.Add(list);
-        await _context.SaveChangesAsync();
-        return list;
+        return await _listRepository.AddAsync(list);
     }
 
     public async Task UpdateListAsync(int id, string name)
     {
-        var list = await _context.LogisticsLists.FindAsync(id);
+        var list = await _listRepository.GetByIdAsync(id);
         if (list == null)
             throw new InvalidOperationException($"Lista com ID {id} não encontrada");
 
         list.UpdateName(name);
-        await _context.SaveChangesAsync();
+        await _listRepository.UpdateAsync(list);
     }
 
     public async Task UpdateListPositionAsync(int id, int position)
     {
-        var list = await _context.LogisticsLists.FindAsync(id);
+        var list = await _listRepository.GetByIdAsync(id);
         if (list == null)
             throw new InvalidOperationException($"Lista com ID {id} não encontrada");
 
         list.UpdatePosition(position);
-        await _context.SaveChangesAsync();
+        await _listRepository.UpdateAsync(list);
     }
 
     public async Task DeleteListAsync(int id)
     {
-        var list = await _context.LogisticsLists
+        var list = await _listRepository.Query()
             .Include(l => l.Cards)
             .FirstOrDefaultAsync(l => l.Id == id);
             
@@ -100,8 +97,13 @@ public class LogisticsListService : ILogisticsListService
             throw new InvalidOperationException($"Lista com ID {id} não encontrada");
 
         // Delete all cards in the list first
-        _context.LogisticsCards.RemoveRange(list.Cards);
-        _context.LogisticsLists.Remove(list);
-        await _context.SaveChangesAsync();
+        // Create a copy of the collection to avoid "collection modified during enumeration" exception
+        var cards = list.Cards.ToList();
+        foreach (var card in cards)
+        {
+            await _cardRepository.DeleteAsync(card);
+        }
+        
+        await _listRepository.DeleteAsync(list);
     }
 }

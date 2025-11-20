@@ -1,47 +1,45 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 
 namespace RTUB.Application.Services;
 
 /// <summary>
 /// Logistics Board service implementation
 /// Contains business logic for logistics board operations
+/// Refactored to use only repository pattern - no direct DbContext access
 /// </summary>
 public class LogisticsBoardService : ILogisticsBoardService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ILogisticsBoardRepository _boardRepository;
+    private readonly ILogisticsListRepository _listRepository;
+    private readonly ILogisticsCardRepository _cardRepository;
 
-    public LogisticsBoardService(ApplicationDbContext context)
+    public LogisticsBoardService(
+        ILogisticsBoardRepository boardRepository,
+        ILogisticsListRepository listRepository,
+        ILogisticsCardRepository cardRepository)
     {
-        _context = context;
+        _boardRepository = boardRepository;
+        _listRepository = listRepository;
+        _cardRepository = cardRepository;
     }
 
     public async Task<LogisticsBoard?> GetBoardByIdAsync(int id)
     {
-        return await _context.LogisticsBoards
+        return await _boardRepository.Query()
             .Include(b => b.Event)
             .FirstOrDefaultAsync(b => b.Id == id);
     }
 
     public async Task<LogisticsBoard?> GetBoardWithListsAndCardsAsync(int id)
     {
-        return await _context.LogisticsBoards
-            .Include(b => b.Event)
-            .Include(b => b.Lists.OrderBy(l => l.Position))
-            .ThenInclude(l => l.Cards.OrderBy(c => c.Position))
-            .ThenInclude(c => c.Event)
-            .Include(b => b.Lists)
-            .ThenInclude(l => l.Cards)
-            .ThenInclude(c => c.AssignedToUser)
-            .FirstOrDefaultAsync(b => b.Id == id);
+        return await _boardRepository.GetBoardWithListsAndCardsAsync(id);
     }
 
     public async Task<IEnumerable<LogisticsBoard>> GetAllBoardsAsync()
     {
-        return await _context.LogisticsBoards
+        return await _boardRepository.Query()
             .Include(b => b.Event)
             .OrderByDescending(b => b.CreatedAt)
             .ToListAsync();
@@ -49,22 +47,17 @@ public class LogisticsBoardService : ILogisticsBoardService
 
     public async Task<(IEnumerable<LogisticsBoard> Boards, int TotalCount)> GetBoardsPagedAsync(int page, int pageSize, string? searchTerm = null)
     {
-        var query = _context.LogisticsBoards
+        var query = _boardRepository.Query()
             .Include(b => b.Event)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            query = query.Where(b => b.Name.Contains(searchTerm) || b.Description.Contains(searchTerm));
+            query = query.Where(b => b.Name.Contains(searchTerm!) || b.Description.Contains(searchTerm!));
         }
 
         var totalCount = await query.CountAsync();
-
-        var boards = await query
-            .OrderByDescending(b => b.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        var boards = await _boardRepository.SearchBoardsAsync(searchTerm, page, pageSize);
 
         return (boards, totalCount);
     }
@@ -72,34 +65,32 @@ public class LogisticsBoardService : ILogisticsBoardService
     public async Task<LogisticsBoard> CreateBoardAsync(string name, string description = "")
     {
         var board = LogisticsBoard.Create(name, description);
-        _context.LogisticsBoards.Add(board);
-        await _context.SaveChangesAsync();
-        return board;
+        return await _boardRepository.AddAsync(board);
     }
 
     public async Task UpdateBoardAsync(int id, string name, string description)
     {
-        var board = await _context.LogisticsBoards.FindAsync(id);
+        var board = await _boardRepository.GetByIdAsync(id);
         if (board == null)
             throw new InvalidOperationException($"Quadro com ID {id} não encontrado");
 
         board.UpdateDetails(name, description);
-        await _context.SaveChangesAsync();
+        await _boardRepository.UpdateAsync(board);
     }
 
     public async Task AssociateBoardWithEventAsync(int id, int? eventId)
     {
-        var board = await _context.LogisticsBoards.FindAsync(id);
+        var board = await _boardRepository.GetByIdAsync(id);
         if (board == null)
             throw new InvalidOperationException($"Quadro com ID {id} não encontrado");
 
         board.AssociateWithEvent(eventId);
-        await _context.SaveChangesAsync();
+        await _boardRepository.UpdateAsync(board);
     }
 
     public async Task DeleteBoardAsync(int id)
     {
-        var board = await _context.LogisticsBoards
+        var board = await _boardRepository.Query()
             .Include(b => b.Lists)
             .ThenInclude(l => l.Cards)
             .FirstOrDefaultAsync(b => b.Id == id);
@@ -107,13 +98,16 @@ public class LogisticsBoardService : ILogisticsBoardService
         if (board == null)
             throw new InvalidOperationException($"Quadro com ID {id} não encontrado");
 
-        // Delete all cards in all lists, then all lists, then the board
+        // Delete all cards in all lists first, then lists, then board
         foreach (var list in board.Lists)
         {
-            _context.LogisticsCards.RemoveRange(list.Cards);
+            foreach (var card in list.Cards)
+            {
+                await _cardRepository.DeleteAsync(card);
+            }
+            await _listRepository.DeleteAsync(list);
         }
-        _context.LogisticsLists.RemoveRange(board.Lists);
-        _context.LogisticsBoards.Remove(board);
-        await _context.SaveChangesAsync();
+        
+        await _boardRepository.DeleteAsync(board);
     }
 }

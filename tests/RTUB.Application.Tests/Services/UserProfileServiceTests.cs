@@ -1,9 +1,6 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Http;
 using Moq;
-using RTUB.Application.Data;
-using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
@@ -12,24 +9,14 @@ using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
-public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposable
+public class UserProfileServiceTests
 {
-    private readonly ApplicationDbContext _context;
-    private readonly DatabaseFixture _fixture;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
     private readonly UserProfileService _service;
 
-    public UserProfileServiceTests(DatabaseFixture fixture)
+    public UserProfileServiceTests()
     {
-        // Clean database at constructor start to ensure test isolation
-        _fixture = fixture;
-        var tempContext = _fixture.CreateContext();
-        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
-        tempContext.Dispose();
-        
-        _context = _fixture.CreateContext();
-        
         // Mock UserManager
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
@@ -37,7 +24,7 @@ public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         
         _mockImageStorageService = new Mock<IImageStorageService>();
         
-        _service = new UserProfileService(_mockUserManager.Object, _context, _mockImageStorageService.Object);
+        _service = new UserProfileService(_mockUserManager.Object, _mockImageStorageService.Object);
     }
 
     [Fact]
@@ -127,9 +114,6 @@ public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         // Assert
         result.Should().HaveCount(3);
     }
-
-
-
 
     [Fact]
     public async Task UpdateUserInfoAsync_WithValidUser_UpdatesUserInfo()
@@ -251,11 +235,5 @@ public class UserProfileServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         // Assert
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("ApplicationUser with ID invalid-id not found");
-    }
-
-    public void Dispose()
-    {
-        _fixture.CleanDatabase(_context).GetAwaiter().GetResult();
-        _context.Dispose();
     }
 }

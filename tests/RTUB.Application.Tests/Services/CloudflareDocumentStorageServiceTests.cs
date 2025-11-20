@@ -24,7 +24,6 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
     private readonly Mock<IAmazonS3> _mockS3Client;
     private readonly Mock<IHostEnvironment> _mockHostEnvironment;
     private readonly ApplicationDbContext _context;
-    private readonly DatabaseFixture _fixture;
     private readonly AuditContext _auditContext;
 
     public CloudflareDocumentStorageServiceTests()

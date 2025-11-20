@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -7,31 +6,27 @@ using RTUB.Core.Enums;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Service for managing member instruments
+/// Service for managing member instruments using Repository pattern
 /// Implements business logic and data access for MemberInstrument entities
+/// Now depends on IMemberInstrumentRepository abstraction instead of concrete DbContext
 /// </summary>
 public class MemberInstrumentService : IMemberInstrumentService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IMemberInstrumentRepository _memberInstrumentRepository;
 
-    public MemberInstrumentService(ApplicationDbContext context)
+    public MemberInstrumentService(IMemberInstrumentRepository memberInstrumentRepository)
     {
-        _context = context;
+        _memberInstrumentRepository = memberInstrumentRepository;
     }
 
     public async Task<IEnumerable<MemberInstrument>> GetMemberInstrumentsAsync(string memberId)
     {
-        return await _context.Set<MemberInstrument>()
-            .Where(mi => mi.MemberId == memberId)
-            .OrderByDescending(mi => mi.IsPrimary)
-            .ThenBy(mi => mi.InstrumentType)
-            .ToListAsync();
+        return await _memberInstrumentRepository.GetByMemberIdAsync(memberId);
     }
 
     public async Task<MemberInstrument?> GetPrimaryInstrumentAsync(string memberId)
     {
-        return await _context.Set<MemberInstrument>()
-            .FirstOrDefaultAsync(mi => mi.MemberId == memberId && mi.IsPrimary);
+        return await _memberInstrumentRepository.GetPrimaryInstrumentAsync(memberId);
     }
 
     public async Task<MemberInstrument> AddInstrumentAsync(string memberId, InstrumentType instrumentType, bool isPrimary = false)
@@ -51,29 +46,24 @@ public class MemberInstrumentService : IMemberInstrumentService
             await UnmarkAllPrimaryInstrumentsAsync(memberId);
         }
 
-        _context.Set<MemberInstrument>().Add(instrument);
-        await _context.SaveChangesAsync();
-
-        return instrument;
+        return await _memberInstrumentRepository.AddAsync(instrument);
     }
 
     public async Task RemoveInstrumentAsync(int instrumentId)
     {
-        var instrument = await _context.Set<MemberInstrument>()
-            .FindAsync(instrumentId);
+        var instrument = await _memberInstrumentRepository.GetByIdAsync(instrumentId);
 
         if (instrument == null)
         {
             throw new InvalidOperationException("Instrumento não encontrado.");
         }
 
-        _context.Set<MemberInstrument>().Remove(instrument);
-        await _context.SaveChangesAsync();
+        await _memberInstrumentRepository.DeleteAsync(instrument);
     }
 
     public async Task SetPrimaryInstrumentAsync(int instrumentId, string memberId)
     {
-        var instrument = await _context.Set<MemberInstrument>()
+        var instrument = await _memberInstrumentRepository.Query()
             .FirstOrDefaultAsync(mi => mi.Id == instrumentId && mi.MemberId == memberId);
 
         if (instrument == null)
@@ -86,19 +76,17 @@ public class MemberInstrumentService : IMemberInstrumentService
 
         // Mark this one as primary
         instrument.MarkAsPrimary();
-        await _context.SaveChangesAsync();
+        await _memberInstrumentRepository.UpdateAsync(instrument);
     }
 
     public async Task<bool> HasInstrumentAsync(string memberId, InstrumentType instrumentType)
     {
-        return await _context.Set<MemberInstrument>()
-            .AnyAsync(mi => mi.MemberId == memberId && mi.InstrumentType == instrumentType);
+        return await _memberInstrumentRepository.AnyAsync(mi => mi.MemberId == memberId && mi.InstrumentType == instrumentType);
     }
 
     public async Task<MemberInstrument?> GetByIdAsync(int id)
     {
-        return await _context.Set<MemberInstrument>()
-            .FirstOrDefaultAsync(mi => mi.Id == id);
+        return await _memberInstrumentRepository.GetByIdAsync(id);
     }
 
     /// <summary>
@@ -106,19 +94,20 @@ public class MemberInstrumentService : IMemberInstrumentService
     /// </summary>
     private async Task UnmarkAllPrimaryInstrumentsAsync(string memberId)
     {
-        var primaryInstruments = await _context.Set<MemberInstrument>()
+        var primaryInstruments = await _memberInstrumentRepository.Query()
             .Where(mi => mi.MemberId == memberId && mi.IsPrimary)
             .ToListAsync();
 
         foreach (var instrument in primaryInstruments)
         {
             instrument.UnmarkAsPrimary();
+            await _memberInstrumentRepository.UpdateAsync(instrument);
         }
     }
 
     public async Task<Dictionary<string, List<MemberInstrument>>> GetMemberInstrumentsByUserIdsAsync(IEnumerable<string> userIds)
     {
-        var instruments = await _context.Set<MemberInstrument>()
+        var instruments = await _memberInstrumentRepository.Query()
             .Where(mi => userIds.Contains(mi.MemberId))
             .ToListAsync();
 

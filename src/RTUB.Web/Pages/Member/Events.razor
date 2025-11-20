@@ -801,7 +801,7 @@ else
             }
             else if (!string.IsNullOrEmpty(emailErrorMessage))
             {
-                <Alert Title="@emailErrorMessage" 
+                <Alert Message="@emailErrorMessage" 
                        Type="Alert.AlertType.Error" 
                        Dismissible="true"
                        OnDismiss="@(() => emailErrorMessage = null)" />

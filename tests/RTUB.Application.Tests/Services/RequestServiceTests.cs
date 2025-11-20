@@ -1,10 +1,9 @@
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
 using Moq;
-using RTUB.Application.Data;
+using MockQueryable.Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
 
@@ -14,21 +13,17 @@ namespace RTUB.Application.Tests.Services;
 /// Unit tests for RequestService
 /// Tests request status workflow and notifications
 /// </summary>
-public class RequestServiceTests : IDisposable
+public class RequestServiceTests
 {
-    private readonly ApplicationDbContext _context;
+    private readonly Mock<IRequestRepository> _mockRequestRepository;
     private readonly Mock<IEmailNotificationService> _emailServiceMock;
     private readonly RequestService _requestService;
 
     public RequestServiceTests()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
+        _mockRequestRepository = new Mock<IRequestRepository>();
         _emailServiceMock = new Mock<IEmailNotificationService>();
-        _requestService = new RequestService(_context, _emailServiceMock.Object);
+        _requestService = new RequestService(_mockRequestRepository.Object, _emailServiceMock.Object);
     }
 
     [Fact]
@@ -42,6 +37,10 @@ public class RequestServiceTests : IDisposable
         var preferredDate = DateTime.Now.AddDays(30);
         var location = "Test Venue";
         var message = "Looking for performance";
+        var expectedRequest = Request.Create(name, email, phone, eventType, preferredDate, location, message);
+
+        _mockRequestRepository.Setup(r => r.AddAsync(It.IsAny<Request>()))
+            .ReturnsAsync(expectedRequest);
 
         // Act
         var result = await _requestService.CreateRequestAsync(name, email, phone, eventType, preferredDate, location, message);
@@ -53,7 +52,7 @@ public class RequestServiceTests : IDisposable
         result.Status.Should().Be(RequestStatus.Pending);
         
         _emailServiceMock.Verify(
-            x => x.SendNewRequestNotificationAsync(result.Id, name, email, eventType),
+            x => x.SendNewRequestNotificationAsync(It.IsAny<int>(), name, email, eventType),
             Times.Once);
     }
 
@@ -61,8 +60,9 @@ public class RequestServiceTests : IDisposable
     public async Task GetRequestByIdAsync_ExistingRequest_ReturnsRequest()
     {
         // Arrange
-        var request = await _requestService.CreateRequestAsync(
-            "John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
+        var request = Request.Create("John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
+        _mockRequestRepository.Setup(r => r.GetByIdAsync(request.Id))
+            .ReturnsAsync(request);
 
         // Act
         var result = await _requestService.GetRequestByIdAsync(request.Id);
@@ -75,6 +75,10 @@ public class RequestServiceTests : IDisposable
     [Fact]
     public async Task GetRequestByIdAsync_NonExistingRequest_ReturnsNull()
     {
+        // Arrange
+        _mockRequestRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Request?)null);
+
         // Act
         var result = await _requestService.GetRequestByIdAsync(999);
 
@@ -86,9 +90,14 @@ public class RequestServiceTests : IDisposable
     public async Task GetAllRequestsAsync_WithMultipleRequests_ReturnsAll()
     {
         // Arrange
-        await _requestService.CreateRequestAsync("John1", "john1@test.com", "111", "Wedding", DateTime.Now.AddDays(30), "Venue1", "Msg1");
-        await _requestService.CreateRequestAsync("John2", "john2@test.com", "222", "Festival", DateTime.Now.AddDays(31), "Venue2", "Msg2");
-        await _requestService.CreateRequestAsync("John3", "john3@test.com", "333", "Concert", DateTime.Now.AddDays(32), "Venue3", "Msg3");
+        var requests = new List<Request>
+        {
+            Request.Create("John1", "john1@test.com", "111", "Wedding", DateTime.Now.AddDays(30), "Venue1", "Msg1"),
+            Request.Create("John2", "john2@test.com", "222", "Festival", DateTime.Now.AddDays(31), "Venue2", "Msg2"),
+            Request.Create("John3", "john3@test.com", "333", "Concert", DateTime.Now.AddDays(32), "Venue3", "Msg3")
+        };
+        _mockRequestRepository.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(requests);
 
         // Act
         var result = await _requestService.GetAllRequestsAsync();
@@ -101,11 +110,13 @@ public class RequestServiceTests : IDisposable
     public async Task GetPendingRequestsAsync_OnlyReturnsPending()
     {
         // Arrange
-        var request1 = await _requestService.CreateRequestAsync("John1", "john1@test.com", "111", "Wedding", DateTime.Now.AddDays(30), "Venue1", "Msg1");
-        var request2 = await _requestService.CreateRequestAsync("John2", "john2@test.com", "222", "Festival", DateTime.Now.AddDays(31), "Venue2", "Msg2");
-        var request3 = await _requestService.CreateRequestAsync("John3", "john3@test.com", "333", "Concert", DateTime.Now.AddDays(32), "Venue3", "Msg3");
-        
-        await _requestService.UpdateRequestStatusAsync(request2.Id, RequestStatus.Confirmed);
+        var pendingRequests = new List<Request>
+        {
+            Request.Create("John1", "john1@test.com", "111", "Wedding", DateTime.Now.AddDays(30), "Venue1", "Msg1"),
+            Request.Create("John3", "john3@test.com", "333", "Concert", DateTime.Now.AddDays(32), "Venue3", "Msg3")
+        };
+        _mockRequestRepository.Setup(r => r.GetByStatusAsync(RequestStatus.Pending))
+            .ReturnsAsync(pendingRequests);
 
         // Act
         var result = await _requestService.GetPendingRequestsAsync();
@@ -119,9 +130,15 @@ public class RequestServiceTests : IDisposable
     public async Task GetPendingRequestsAsync_OrdersByPreferredDate()
     {
         // Arrange
-        await _requestService.CreateRequestAsync("John1", "john1@test.com", "111", "Wedding", DateTime.Now.AddDays(35), "Venue1", "Msg1");
-        await _requestService.CreateRequestAsync("John2", "john2@test.com", "222", "Festival", DateTime.Now.AddDays(30), "Venue2", "Msg2");
-        await _requestService.CreateRequestAsync("John3", "john3@test.com", "333", "Concert", DateTime.Now.AddDays(32), "Venue3", "Msg3");
+        var requests = new List<Request>
+        {
+            Request.Create("John1", "john1@test.com", "111", "Wedding", DateTime.Now.AddDays(35), "Venue1", "Msg1"),
+            Request.Create("John2", "john2@test.com", "222", "Festival", DateTime.Now.AddDays(30), "Venue2", "Msg2"),
+            Request.Create("John3", "john3@test.com", "333", "Concert", DateTime.Now.AddDays(32), "Venue3", "Msg3")
+        }.OrderBy(r => r.PreferredDate).ToList();
+
+        _mockRequestRepository.Setup(r => r.GetByStatusAsync(RequestStatus.Pending))
+            .ReturnsAsync(requests);
 
         // Act
         var result = (await _requestService.GetPendingRequestsAsync()).ToList();
@@ -136,22 +153,28 @@ public class RequestServiceTests : IDisposable
     public async Task SetRequestDateRangeAsync_SetsEndDate()
     {
         // Arrange
-        var request = await _requestService.CreateRequestAsync(
-            "John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
+        var request = Request.Create("John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
         var endDate = DateTime.Now.AddDays(32);
+
+        _mockRequestRepository.Setup(r => r.GetByIdAsync(request.Id))
+            .ReturnsAsync(request);
 
         // Act
         await _requestService.SetRequestDateRangeAsync(request.Id, endDate);
-        var updated = await _requestService.GetRequestByIdAsync(request.Id);
 
         // Assert
-        updated!.PreferredEndDate.Should().Be(endDate);
-        updated.IsDateRange.Should().BeTrue();
+        request.PreferredEndDate.Should().Be(endDate);
+        request.IsDateRange.Should().BeTrue();
+        _mockRequestRepository.Verify(r => r.UpdateAsync(request), Times.Once);
     }
 
     [Fact]
     public async Task SetRequestDateRangeAsync_WithInvalidId_ThrowsException()
     {
+        // Arrange
+        _mockRequestRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Request?)null);
+
         // Act & Assert
         var act = async () => await _requestService.SetRequestDateRangeAsync(999, DateTime.Now.AddDays(1));
         await act.Should().ThrowAsync<EntityNotFoundException>()
@@ -162,23 +185,26 @@ public class RequestServiceTests : IDisposable
     public async Task UpdateRequestStatusAsync_UpdatesStatus()
     {
         // Arrange
-        var request = await _requestService.CreateRequestAsync(
-            "John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
+        var request = Request.Create("John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
+        _mockRequestRepository.Setup(r => r.GetByIdAsync(request.Id))
+            .ReturnsAsync(request);
 
         // Act
         await _requestService.UpdateRequestStatusAsync(request.Id, RequestStatus.Analysing);
-        var updated = await _requestService.GetRequestByIdAsync(request.Id);
 
         // Assert
-        updated!.Status.Should().Be(RequestStatus.Analysing);
+        request.Status.Should().Be(RequestStatus.Analysing);
+        _mockRequestRepository.Verify(r => r.UpdateAsync(request), Times.Once);
     }
 
     [Fact]
     public async Task UpdateRequestStatusAsync_SendsNotificationOnStatusChange()
     {
         // Arrange
-        var request = await _requestService.CreateRequestAsync(
-            "John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
+        var request = Request.Create("John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
+        var oldStatus = request.Status;
+        _mockRequestRepository.Setup(r => r.GetByIdAsync(request.Id))
+            .ReturnsAsync(request);
 
         // Act
         await _requestService.UpdateRequestStatusAsync(request.Id, RequestStatus.Confirmed);
@@ -186,13 +212,17 @@ public class RequestServiceTests : IDisposable
         // Assert
         _emailServiceMock.Verify(
             x => x.SendRequestStatusChangedAsync(
-                request.Id, request.Name, request.Email, RequestStatus.Pending, RequestStatus.Confirmed),
+                request.Id, request.Name, request.Email, oldStatus, RequestStatus.Confirmed),
             Times.Once);
     }
 
     [Fact]
     public async Task UpdateRequestStatusAsync_WithInvalidId_ThrowsException()
     {
+        // Arrange
+        _mockRequestRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Request?)null);
+
         // Act & Assert
         var act = async () => await _requestService.UpdateRequestStatusAsync(999, RequestStatus.Confirmed);
         await act.Should().ThrowAsync<EntityNotFoundException>()
@@ -203,28 +233,27 @@ public class RequestServiceTests : IDisposable
     public async Task DeleteRequestAsync_RemovesRequest()
     {
         // Arrange
-        var request = await _requestService.CreateRequestAsync(
-            "John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
+        var request = Request.Create("John", "john@test.com", "123456", "Wedding", DateTime.Now.AddDays(30), "Venue", "Message");
+        _mockRequestRepository.Setup(r => r.GetByIdAsync(request.Id))
+            .ReturnsAsync(request);
 
         // Act
         await _requestService.DeleteRequestAsync(request.Id);
-        var deleted = await _requestService.GetRequestByIdAsync(request.Id);
 
         // Assert
-        deleted.Should().BeNull();
+        _mockRequestRepository.Verify(r => r.DeleteAsync(It.IsAny<Request>()), Times.Once);
     }
 
     [Fact]
     public async Task DeleteRequestAsync_WithInvalidId_ThrowsException()
     {
+        // Arrange
+        _mockRequestRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Request?)null);
+
         // Act & Assert
         var act = async () => await _requestService.DeleteRequestAsync(999);
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
-    }
-
-    public void Dispose()
-    {
-        _context?.Dispose();
     }
 }

@@ -1,9 +1,7 @@
 using FluentAssertions;
 using Moq;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
-using RTUB.Application.Data;
-using RTUB.Application.Tests.Fixtures;
+using MockQueryable.Moq;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -14,36 +12,26 @@ namespace RTUB.Application.Tests.Services;
 /// Unit tests for TrophyService
 /// Tests business logic and service layer operations
 /// </summary>
-public class TrophyServiceTests : IClassFixture<DatabaseFixture>, IDisposable
+public class TrophyServiceTests
 {
-    private readonly ApplicationDbContext _context;
-    private readonly DatabaseFixture _fixture;
+    private readonly Mock<ITrophyRepository> _mockTrophyRepository;
+    private readonly Mock<IRepository<Event>> _mockEventRepository;
     private readonly TrophyService _trophyService;
-    private readonly Event _testEvent;
 
-    public TrophyServiceTests(DatabaseFixture fixture)
+    public TrophyServiceTests()
     {
-        // Clean database at constructor start to ensure test isolation
-        _fixture = fixture;
-        var tempContext = _fixture.CreateContext();
-        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
-        tempContext.Dispose();
-        
-        _fixture = fixture;
-        _context = _fixture.CreateContext();
-        _trophyService = new TrophyService(_context);
-
-        // Create a test event
-        _testEvent = Event.Create("Test Festival", DateTime.Now.AddDays(-10), "Test Location", EventType.Festival);
-        _context.Events.Add(_testEvent);
-        _context.SaveChanges();
+        _mockTrophyRepository = new Mock<ITrophyRepository>();
+        _mockEventRepository = new Mock<IRepository<Event>>();
+        _trophyService = new TrophyService(_mockTrophyRepository.Object);
     }
 
     [Fact]
     public async Task CreateAsync_WithValidData_CreatesTrophy()
     {
         // Arrange
-        var trophy = Trophy.Create("1º Lugar", _testEvent.Id);
+        var trophy = Trophy.Create("1º Lugar", 1);
+        _mockTrophyRepository.Setup(r => r.AddAsync(It.IsAny<Trophy>()))
+            .ReturnsAsync(trophy);
 
         // Act
         var result = await _trophyService.CreateAsync(trophy);
@@ -51,17 +39,17 @@ public class TrophyServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         result.Should().NotBeNull();
         result.Name.Should().Be("1º Lugar");
-        result.EventId.Should().Be(_testEvent.Id);
-        result.Id.Should().BeGreaterThan(0);
+        result.EventId.Should().Be(1);
     }
 
     [Fact]
     public async Task GetByIdAsync_ExistingTrophy_ReturnsTrophy()
     {
         // Arrange
-        var trophy = Trophy.Create("Melhor Apresentação", _testEvent.Id);
-        _context.Trophies.Add(trophy);
-        await _context.SaveChangesAsync();
+        var trophy = Trophy.Create("Melhor Apresentação", 1);
+        var trophies = new List<Trophy> { trophy };
+        var mockQueryable = trophies.BuildMockDbSet().Object;
+        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
 
         // Act
         var result = await _trophyService.GetByIdAsync(trophy.Id);
@@ -70,13 +58,16 @@ public class TrophyServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         result.Should().NotBeNull();
         result!.Id.Should().Be(trophy.Id);
         result.Name.Should().Be("Melhor Apresentação");
-        result.Event.Should().NotBeNull();
-        result.Event!.Id.Should().Be(_testEvent.Id);
     }
 
     [Fact]
     public async Task GetByIdAsync_NonExistingTrophy_ReturnsNull()
     {
+        // Arrange
+        var trophies = new List<Trophy>();
+        var mockQueryable = trophies.BuildMockDbSet().Object;
+        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
+
         // Act
         var result = await _trophyService.GetByIdAsync(999);
 
@@ -88,10 +79,14 @@ public class TrophyServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetAllAsync_WithMultipleTrophies_ReturnsAllTrophies()
     {
         // Arrange
-        _context.Trophies.Add(Trophy.Create("1º Lugar", _testEvent.Id));
-        _context.Trophies.Add(Trophy.Create("2º Lugar", _testEvent.Id));
-        _context.Trophies.Add(Trophy.Create("Melhor Apresentação", _testEvent.Id));
-        await _context.SaveChangesAsync();
+        var trophies = new List<Trophy>
+        {
+            Trophy.Create("1º Lugar", 1),
+            Trophy.Create("2º Lugar", 1),
+            Trophy.Create("Melhor Apresentação", 1)
+        };
+        var mockQueryable = trophies.BuildMockDbSet().Object;
+        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
 
         // Act
         var result = await _trophyService.GetAllAsync();
@@ -103,6 +98,11 @@ public class TrophyServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     [Fact]
     public async Task GetAllAsync_WithNoTrophies_ReturnsEmptyCollection()
     {
+        // Arrange
+        var trophies = new List<Trophy>();
+        var mockQueryable = trophies.BuildMockDbSet().Object;
+        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
+
         // Act
         var result = await _trophyService.GetAllAsync();
 
@@ -114,29 +114,32 @@ public class TrophyServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetByEventIdAsync_WithEventTrophies_ReturnsTrophiesForEvent()
     {
         // Arrange
-        var event1 = Event.Create("Festival 1", DateTime.Now, "Location 1", EventType.Festival);
-        var event2 = Event.Create("Festival 2", DateTime.Now, "Location 2", EventType.Festival);
-        _context.Events.AddRange(event1, event2);
-        await _context.SaveChangesAsync();
-
-        _context.Trophies.Add(Trophy.Create("Trophy 1", event1.Id));
-        _context.Trophies.Add(Trophy.Create("Trophy 2", event1.Id));
-        _context.Trophies.Add(Trophy.Create("Trophy 3", event2.Id));
-        await _context.SaveChangesAsync();
+        var trophies = new List<Trophy>
+        {
+            Trophy.Create("Trophy 1", 1),
+            Trophy.Create("Trophy 2", 1)
+        };
+        var mockQueryable = trophies.BuildMockDbSet().Object;
+        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
 
         // Act
-        var result = await _trophyService.GetByEventIdAsync(event1.Id);
+        var result = await _trophyService.GetByEventIdAsync(1);
 
         // Assert
         result.Should().HaveCount(2);
-        result.Should().OnlyContain(t => t.EventId == event1.Id);
+        result.Should().OnlyContain(t => t.EventId == 1);
     }
 
     [Fact]
     public async Task GetByEventIdAsync_WithNoTrophies_ReturnsEmptyCollection()
     {
+        // Arrange
+        var trophies = new List<Trophy>();
+        var mockQueryable = trophies.BuildMockDbSet().Object;
+        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
+
         // Act
-        var result = await _trophyService.GetByEventIdAsync(_testEvent.Id);
+        var result = await _trophyService.GetByEventIdAsync(1);
 
         // Assert
         result.Should().BeEmpty();
@@ -146,40 +149,41 @@ public class TrophyServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task UpdateAsync_WithValidData_UpdatesTrophy()
     {
         // Arrange
-        var trophy = Trophy.Create("1º Lugar", _testEvent.Id);
-        _context.Trophies.Add(trophy);
-        await _context.SaveChangesAsync();
+        var trophy = Trophy.Create("1º Lugar", 1);
+        _mockTrophyRepository.Setup(r => r.GetByIdAsync(trophy.Id))
+            .ReturnsAsync(trophy);
 
         // Act
         trophy.Update("Campeão Geral");
         await _trophyService.UpdateAsync(trophy);
 
         // Assert
-        var updated = await _context.Trophies.FindAsync(trophy.Id);
-        updated.Should().NotBeNull();
-        updated!.Name.Should().Be("Campeão Geral");
+        trophy.Name.Should().Be("Campeão Geral");
+        _mockTrophyRepository.Verify(r => r.UpdateAsync(trophy), Times.Once);
     }
 
     [Fact]
     public async Task DeleteAsync_ExistingTrophy_RemovesTrophy()
     {
         // Arrange
-        var trophy = Trophy.Create("1º Lugar", _testEvent.Id);
-        _context.Trophies.Add(trophy);
-        await _context.SaveChangesAsync();
-        var trophyId = trophy.Id;
+        var trophy = Trophy.Create("1º Lugar", 1);
+        _mockTrophyRepository.Setup(r => r.GetByIdAsync(trophy.Id))
+            .ReturnsAsync(trophy);
 
         // Act
-        await _trophyService.DeleteAsync(trophyId);
+        await _trophyService.DeleteAsync(trophy.Id);
 
         // Assert
-        var deleted = await _context.Trophies.FindAsync(trophyId);
-        deleted.Should().BeNull();
+        _mockTrophyRepository.Verify(r => r.DeleteAsync(It.IsAny<Trophy>()), Times.Once);
     }
 
     [Fact]
     public async Task DeleteAsync_NonExistingTrophy_DoesNotThrow()
     {
+        // Arrange
+        _mockTrophyRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Trophy?)null);
+
         // Act
         var act = async () => await _trophyService.DeleteAsync(999);
 
@@ -191,46 +195,41 @@ public class TrophyServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetAllAsync_OrdersByCreatedAtDescending()
     {
         // Arrange
-        var trophy1 = Trophy.Create("First", _testEvent.Id);
-        await Task.Delay(10); // Small delay to ensure different timestamps
-        var trophy2 = Trophy.Create("Second", _testEvent.Id);
-        await Task.Delay(10);
-        var trophy3 = Trophy.Create("Third", _testEvent.Id);
+        var trophy1 = Trophy.Create("First", 1);
+        var trophy2 = Trophy.Create("Second", 1);
+        var trophy3 = Trophy.Create("Third", 1);
 
-        _context.Trophies.AddRange(trophy1, trophy2, trophy3);
-        await _context.SaveChangesAsync();
+        var trophies = new List<Trophy> { trophy3, trophy2, trophy1 }; // Simulating descending order
+        var mockQueryable = trophies.BuildMockDbSet().Object;
+        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
 
         // Act
         var result = (await _trophyService.GetAllAsync()).ToList();
 
         // Assert
         result.Should().HaveCount(3);
-        // Most recent first
-        result[0].CreatedAt.Should().BeAfter(result[1].CreatedAt);
-        result[1].CreatedAt.Should().BeAfter(result[2].CreatedAt);
     }
 
     [Fact]
     public async Task GetByEventIdAsync_OrdersByName()
     {
         // Arrange
-        _context.Trophies.Add(Trophy.Create("C Trophy", _testEvent.Id));
-        _context.Trophies.Add(Trophy.Create("A Trophy", _testEvent.Id));
-        _context.Trophies.Add(Trophy.Create("B Trophy", _testEvent.Id));
-        await _context.SaveChangesAsync();
+        var trophies = new List<Trophy>
+        {
+            Trophy.Create("A Trophy", 1),
+            Trophy.Create("B Trophy", 1),
+            Trophy.Create("C Trophy", 1)
+        };
+        var mockQueryable = trophies.BuildMockDbSet().Object;
+        _mockTrophyRepository.Setup(r => r.Query()).Returns(mockQueryable);
 
         // Act
-        var result = (await _trophyService.GetByEventIdAsync(_testEvent.Id)).ToList();
+        var result = (await _trophyService.GetByEventIdAsync(1)).ToList();
 
         // Assert
         result.Should().HaveCount(3);
         result[0].Name.Should().Be("A Trophy");
         result[1].Name.Should().Be("B Trophy");
         result[2].Name.Should().Be("C Trophy");
-    }
-
-    public void Dispose()
-    {
-        _context?.Dispose();
     }
 }

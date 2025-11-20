@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Identity;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
-using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 
 
 namespace RTUB.Application.Services;
@@ -11,17 +9,16 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// User profile service implementation
 /// Handles user profile operations and business logic
+/// Uses UserManager for Identity operations (correct pattern for ASP.NET Core Identity)
 /// </summary>
 public class UserProfileService : IUserProfileService
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly ApplicationDbContext _context;
     private readonly IImageStorageService _imageStorageService;
 
-    public UserProfileService(UserManager<ApplicationUser> userManager, ApplicationDbContext context, IImageStorageService imageStorageService)
+    public UserProfileService(UserManager<ApplicationUser> userManager, IImageStorageService imageStorageService)
     {
         _userManager = userManager;
-        _context = context;
         _imageStorageService = imageStorageService;
     }
 

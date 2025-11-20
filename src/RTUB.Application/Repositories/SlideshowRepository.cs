@@ -1,0 +1,25 @@
+using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Data;
+using RTUB.Application.Interfaces;
+using RTUB.Core.Entities;
+
+namespace RTUB.Application.Repositories;
+
+/// <summary>
+/// Repository implementation for Slideshow entity
+/// </summary>
+public class SlideshowRepository : Repository<Slideshow>, ISlideshowRepository
+{
+    public SlideshowRepository(ApplicationDbContext context) : base(context)
+    {
+    }
+
+    public async Task<IEnumerable<Slideshow>> GetActiveSlideshowsAsync()
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Where(s => s.IsActive)
+            .OrderBy(s => s.Order)
+            .ToListAsync();
+    }
+}

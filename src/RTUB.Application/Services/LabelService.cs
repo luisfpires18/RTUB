@@ -2,44 +2,44 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 
 
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Label service implementation
+/// Label service implementation using Repository pattern
 /// Contains business logic for label operations
 /// Follows Single Responsibility and Dependency Inversion principles
+/// Now depends on ILabelRepository abstraction instead of concrete DbContext
 /// </summary>
 public class LabelService : ILabelService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ILabelRepository _labelRepository;
 
-    public LabelService(ApplicationDbContext context)
+    public LabelService(ILabelRepository labelRepository)
     {
-        _context = context;
+        _labelRepository = labelRepository;
     }
 
     public async Task<Label?> GetLabelByIdAsync(int id)
     {
-        return await _context.Labels.FindAsync(id);
+        return await _labelRepository.GetByIdAsync(id);
     }
 
     public async Task<Label?> GetLabelByReferenceAsync(string reference)
     {
-        return await _context.Labels
+        return await _labelRepository.Query()
             .FirstOrDefaultAsync(l => l.Reference == reference && l.IsActive);
     }
 
     public async Task<IEnumerable<Label>> GetAllLabelsAsync()
     {
-        return await _context.Labels.ToListAsync();
+        return await _labelRepository.GetAllAsync();
     }
 
     public async Task<IEnumerable<Label>> GetActiveLabelsAsync()
     {
-        return await _context.Labels
+        return await _labelRepository.Query()
             .Where(l => l.IsActive)
             .ToListAsync();
     }
@@ -47,48 +47,45 @@ public class LabelService : ILabelService
     public async Task<Label> CreateLabelAsync(string reference, string title, string content, bool isActive = true)
     {
         var label = Label.Create(reference, title, content, isActive);
-        _context.Labels.Add(label);
-        await _context.SaveChangesAsync();
-        return label;
+        return await _labelRepository.AddAsync(label);
     }
 
     public async Task UpdateLabelContentAsync(int id, string title, string content, bool isActive)
     {
-        var label = await _context.Labels.FindAsync(id);
+        var label = await _labelRepository.GetByIdAsync(id);
         if (label == null)
             throw new EntityNotFoundException(nameof(Label), id);
 
         label.UpdateContent(title, content, isActive);
-                await _context.SaveChangesAsync();
+        await _labelRepository.UpdateAsync(label);
     }
 
     public async Task ActivateLabelAsync(int id)
     {
-        var label = await _context.Labels.FindAsync(id);
+        var label = await _labelRepository.GetByIdAsync(id);
         if (label == null)
             throw new EntityNotFoundException(nameof(Label), id);
 
         label.Activate();
-                await _context.SaveChangesAsync();
+        await _labelRepository.UpdateAsync(label);
     }
 
     public async Task DeactivateLabelAsync(int id)
     {
-        var label = await _context.Labels.FindAsync(id);
+        var label = await _labelRepository.GetByIdAsync(id);
         if (label == null)
             throw new EntityNotFoundException(nameof(Label), id);
 
         label.Deactivate();
-                await _context.SaveChangesAsync();
+        await _labelRepository.UpdateAsync(label);
     }
 
     public async Task DeleteLabelAsync(int id)
     {
-        var label = await _context.Labels.FindAsync(id);
+        var label = await _labelRepository.GetByIdAsync(id);
         if (label == null)
             throw new EntityNotFoundException(nameof(Label), id);
 
-        _context.Labels.Remove(label);
-        await _context.SaveChangesAsync();
+        await _labelRepository.DeleteAsync(label);
     }
 }

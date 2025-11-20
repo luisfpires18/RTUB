@@ -1,75 +1,66 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
-using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 
 
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Transaction service implementation
+/// Transaction service implementation using Repository pattern
 /// Contains business logic for transaction operations
-/// Follows Single Responsibility and Dependency Inversion principles
+/// Now depends on ITransactionRepository abstraction instead of concrete DbContext
 /// </summary>
 public class TransactionService : ITransactionService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ITransactionRepository _transactionRepository;
 
-    public TransactionService(ApplicationDbContext context)
+    public TransactionService(ITransactionRepository transactionRepository)
     {
-        _context = context;
+        _transactionRepository = transactionRepository;
     }
 
     public async Task<Transaction?> GetTransactionByIdAsync(int id)
     {
-        return await _context.Transactions.FindAsync(id);
+        return await _transactionRepository.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<Transaction>> GetAllTransactionsAsync()
     {
-        return await _context.Transactions.ToListAsync();
+        return await _transactionRepository.GetAllAsync();
     }
 
     public async Task<IEnumerable<Transaction>> GetTransactionsByActivityIdAsync(int activityId)
     {
-        return await _context.Transactions
-            .Where(t => t.ActivityId == activityId)
-            .OrderBy(t => t.Date)
-            .ToListAsync();
+        return await _transactionRepository.GetTransactionsByActivityIdAsync(activityId);
     }
 
     public async Task<IEnumerable<Transaction>> GetTransactionsByTypeAsync(string type)
     {
-        var allTransactions = await _context.Transactions.ToListAsync();
-        return allTransactions.Where(t => t.Type == type);
+        return await _transactionRepository.GetTransactionsByTypeAsync(type);
     }
 
     public async Task<Transaction> CreateTransactionAsync(DateTime date, string description, string category, decimal amount, string type, int? activityId = null)
     {
         var transaction = Transaction.Create(date, description, category, amount, type, activityId);
-        _context.Transactions.Add(transaction);
-        await _context.SaveChangesAsync();
-        return transaction;
+        return await _transactionRepository.AddAsync(transaction);
     }
 
     public async Task UpdateTransactionAsync(int id, DateTime date, string description, string category, decimal amount, string type)
     {
-        var transaction = await _context.Transactions.FindAsync(id);
+        var transaction = await _transactionRepository.GetByIdAsync(id);
         if (transaction == null)
             throw new EntityNotFoundException(nameof(Transaction), id);
 
         transaction.UpdateDetails(date, description, category, amount, type);
-                await _context.SaveChangesAsync();
+        await _transactionRepository.UpdateAsync(transaction);
     }
 
     public async Task DeleteTransactionAsync(int id)
     {
-        var transaction = await _context.Transactions.FindAsync(id);
+        var transaction = await _transactionRepository.GetByIdAsync(id);
         if (transaction == null)
             throw new EntityNotFoundException(nameof(Transaction), id);
 
-        _context.Transactions.Remove(transaction);
-        await _context.SaveChangesAsync();
+        await _transactionRepository.DeleteAsync(transaction);
     }
 }

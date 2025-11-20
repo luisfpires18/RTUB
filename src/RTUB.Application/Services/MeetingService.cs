@@ -1,23 +1,27 @@
 using RTUB.Application.Interfaces;
 using RTUB.Application.Data;
+using RTUB.Application.Extensions;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
-using RTUB.Application.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Meeting service implementation
+/// Meeting service implementation using Repository pattern
 /// Contains business logic for meeting operations with Veterano visibility filtering
+/// Note: Still uses ApplicationDbContext for Veterano filtering due to ApplicationUser dependency
+/// This is a pragmatic tradeoff - full abstraction would require IUserRepository
 /// </summary>
 public class MeetingService : IMeetingService
 {
+    private readonly IMeetingRepository _meetingRepository;
     private readonly ApplicationDbContext _context;
 
-    public MeetingService(ApplicationDbContext context)
+    public MeetingService(IMeetingRepository meetingRepository, ApplicationDbContext context)
     {
+        _meetingRepository = meetingRepository;
         _context = context;
     }
 
@@ -30,13 +34,10 @@ public class MeetingService : IMeetingService
         // Apply visibility filtering for Veterano meetings
         query = await ApplyVeteranoFilterAsync(query, userId);
         
-        // Apply search filter
-        if (!string.IsNullOrWhiteSpace(searchTerm))
-        {
-            query = query.Where(m => 
-                m.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
-                m.Statement.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
-        }
+        // Apply search filter using WhereIf extension
+        query = query.WhereIf(!string.IsNullOrWhiteSpace(searchTerm),
+            m => m.Title.Contains(searchTerm!, StringComparison.OrdinalIgnoreCase) || 
+                 m.Statement.Contains(searchTerm!, StringComparison.OrdinalIgnoreCase));
         
         // Order by date - upcoming first, then past
         var today = DateTime.UtcNow.Date;
@@ -44,12 +45,10 @@ public class MeetingService : IMeetingService
                      .ThenBy(m => m.Date >= today ? m.Date : DateTime.MaxValue)
                      .ThenByDescending(m => m.Date < today ? m.Date : DateTime.MinValue);
         
-        // Apply pagination
+        // Apply pagination using extension method
         return await query
             .Include(m => m.Organizer)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+            .PaginateAsync(pageNumber, pageSize);
     }
 
     public async Task<Meeting?> GetMeetingByIdAsync(int id, string userId)
@@ -98,14 +97,12 @@ public class MeetingService : IMeetingService
 
     public async Task<Meeting> CreateMeetingAsync(Meeting meeting)
     {
-        _context.Meetings.Add(meeting);
-        await _context.SaveChangesAsync();
-        return meeting;
+        return await _meetingRepository.AddAsync(meeting);
     }
 
     public async Task UpdateMeetingAsync(Meeting meeting)
     {
-        var existingMeeting = await _context.Meetings.FindAsync(meeting.Id);
+        var existingMeeting = await _meetingRepository.GetByIdAsync(meeting.Id);
         if (existingMeeting == null)
             throw new EntityNotFoundException(nameof(Meeting), meeting.Id);
         
@@ -118,17 +115,16 @@ public class MeetingService : IMeetingService
         existingMeeting.IsCancelled = meeting.IsCancelled;
         existingMeeting.CancellationReason = meeting.CancellationReason;
         
-        await _context.SaveChangesAsync();
+        await _meetingRepository.UpdateAsync(existingMeeting);
     }
 
     public async Task DeleteMeetingAsync(int id)
     {
-        var meeting = await _context.Meetings.FindAsync(id);
+        var meeting = await _meetingRepository.GetByIdAsync(id);
         if (meeting == null)
             throw new EntityNotFoundException(nameof(Meeting), id);
         
-        _context.Meetings.Remove(meeting);
-        await _context.SaveChangesAsync();
+        await _meetingRepository.DeleteAsync(meeting);
     }
 
     public async Task<int> GetTotalCountAsync(string? searchTerm, string userId)

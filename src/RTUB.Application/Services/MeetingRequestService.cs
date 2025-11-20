@@ -1,5 +1,6 @@
 using RTUB.Application.Interfaces;
 using RTUB.Application.Data;
+using RTUB.Application.Extensions;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
@@ -13,90 +14,55 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class MeetingRequestService : IMeetingRequestService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IMeetingRequestRepository _meetingRequestRepository;
 
-    public MeetingRequestService(ApplicationDbContext context)
+    public MeetingRequestService(IMeetingRequestRepository meetingRequestRepository)
     {
-        _context = context;
+        _meetingRequestRepository = meetingRequestRepository;
     }
 
     public async Task<IEnumerable<MeetingRequest>> GetAllAsync(RequestStatus? status = null)
     {
-        var query = _context.MeetingRequests
-            .Include(mr => mr.Author)
-            .AsQueryable();
-        
-        if (status.HasValue)
-        {
-            query = query.Where(mr => mr.Status == status.Value);
-        }
-        
-        return await query
-            .OrderByDescending(mr => mr.CreatedAt)
-            .ToListAsync();
+        var requests = await _meetingRequestRepository.GetAllWithAuthorAsync(status);
+        return requests.OrderByDescending(r => r.CreatedAt);
     }
 
     public async Task<IEnumerable<MeetingRequest>> GetPagedAsync(int page, int pageSize, RequestStatus? status = null)
     {
-        var query = _context.MeetingRequests
-            .Include(mr => mr.Author)
-            .AsQueryable();
-        
-        if (status.HasValue)
-        {
-            query = query.Where(mr => mr.Status == status.Value);
-        }
-        
-        return await query
-            .OrderByDescending(mr => mr.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        return await _meetingRequestRepository.GetPagedWithAuthorAsync(page, pageSize, status);
     }
 
     public async Task<int> GetTotalCountAsync(RequestStatus? status = null)
     {
-        var query = _context.MeetingRequests.AsQueryable();
-        
-        if (status.HasValue)
-        {
-            query = query.Where(mr => mr.Status == status.Value);
-        }
-        
-        return await query.CountAsync();
+        return await _meetingRequestRepository.GetCountAsync(status);
     }
 
     public async Task<MeetingRequest?> GetByIdAsync(int id)
     {
-        return await _context.MeetingRequests
-            .Include(mr => mr.Author)
-            .FirstOrDefaultAsync(mr => mr.Id == id);
+        return await _meetingRequestRepository.GetByIdWithAuthorAsync(id);
     }
 
     public async Task<MeetingRequest> CreateAsync(MeetingRequest request)
     {
-        _context.MeetingRequests.Add(request);
-        await _context.SaveChangesAsync();
-        return request;
+        return await _meetingRequestRepository.AddAsync(request);
     }
 
     public async Task UpdateStatusAsync(int id, RequestStatus status)
     {
-        var request = await _context.MeetingRequests.FindAsync(id);
+        var request = await _meetingRequestRepository.GetByIdAsync(id);
         if (request == null)
             throw new InvalidOperationException($"Meeting request with ID {id} not found");
         
         request.Status = status;
-                await _context.SaveChangesAsync();
+        await _meetingRequestRepository.UpdateAsync(request);
     }
 
     public async Task DeleteAsync(int id)
     {
-        var request = await _context.MeetingRequests.FindAsync(id);
+        var request = await _meetingRequestRepository.GetByIdAsync(id);
         if (request == null)
             throw new InvalidOperationException($"Meeting request with ID {id} not found");
         
-        _context.MeetingRequests.Remove(request);
-        await _context.SaveChangesAsync();
+        await _meetingRequestRepository.DeleteAsync(id);
     }
 }

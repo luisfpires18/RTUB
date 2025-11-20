@@ -1,9 +1,7 @@
 using FluentAssertions;
 using Moq;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
-using RTUB.Application.Data;
-using RTUB.Application.Tests.Fixtures;
+using MockQueryable.Moq;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -14,31 +12,30 @@ namespace RTUB.Application.Tests.Services;
 /// Unit tests for LabelService - Content/label management
 /// MEDIUM PRIORITY - Phase 1 Service
 /// </summary>
-public class LabelServiceTests : IClassFixture<DatabaseFixture>, IDisposable
+public class LabelServiceTests
 {
-    private readonly ApplicationDbContext _context;
-    private readonly DatabaseFixture _fixture;
+    private readonly Mock<ILabelRepository> _mockLabelRepository;
     private readonly LabelService _service;
 
-    public LabelServiceTests(DatabaseFixture fixture)
+    public LabelServiceTests()
     {
-        // Clean database at constructor start to ensure test isolation
-        _fixture = fixture;
-        var tempContext = _fixture.CreateContext();
-        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
-        tempContext.Dispose();
-        
-        _fixture = fixture;
-        _context = _fixture.CreateContext();
-        _service = new LabelService(_context);
+        _mockLabelRepository = new Mock<ILabelRepository>();
+        _service = new LabelService(_mockLabelRepository.Object);
     }
 
     [Fact]
     public async Task CreateLabelAsync_WithValidData_CreatesLabel()
     {
+        // Arrange
+        var expectedLabel = Label.Create("about-us", "About Us", "Content");
+        _mockLabelRepository.Setup(r => r.AddAsync(It.IsAny<Label>()))
+            .ReturnsAsync(expectedLabel);
+
+        // Act
         var result = await _service.CreateLabelAsync("about-us", "About Us", "Content");
+
+        // Assert
         result.Should().NotBeNull();
-        result.Id.Should().BeGreaterThan(0);
         result.Reference.Should().Be("about-us");
         result.IsActive.Should().BeTrue();
     }
@@ -46,11 +43,15 @@ public class LabelServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     [Fact]
     public async Task GetLabelByIdAsync_WithExistingId_ReturnsLabel()
     {
+        // Arrange
         var label = Label.Create("test-ref", "Test", "Content");
-        _context.Labels.Add(label);
-        await _context.SaveChangesAsync();
-        
+        _mockLabelRepository.Setup(r => r.GetByIdAsync(label.Id))
+            .ReturnsAsync(label);
+
+        // Act
         var result = await _service.GetLabelByIdAsync(label.Id);
+
+        // Assert
         result.Should().NotBeNull();
         result!.Reference.Should().Be("test-ref");
     }
@@ -58,18 +59,30 @@ public class LabelServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     [Fact]
     public async Task GetLabelByIdAsync_WithNonExistingId_ReturnsNull()
     {
+        // Arrange
+        _mockLabelRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Label?)null);
+
+        // Act
         var result = await _service.GetLabelByIdAsync(999);
+
+        // Assert
         result.Should().BeNull();
     }
 
     [Fact]
     public async Task GetLabelByReferenceAsync_WithExistingReference_ReturnsLabel()
     {
+        // Arrange
         var label = Label.Create("about-us", "About Us", "Content");
-        _context.Labels.Add(label);
-        await _context.SaveChangesAsync();
-        
+        var labelsList = new List<Label> { label };
+        var mockQueryable = labelsList.BuildMockDbSet().Object;
+        _mockLabelRepository.Setup(r => r.Query()).Returns(mockQueryable);
+
+        // Act
         var result = await _service.GetLabelByReferenceAsync("about-us");
+
+        // Assert
         result.Should().NotBeNull();
         result!.Title.Should().Be("About Us");
     }
@@ -77,30 +90,48 @@ public class LabelServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     [Fact]
     public async Task GetLabelByReferenceAsync_WithNonExistingReference_ReturnsNull()
     {
+        // Arrange
+        var labelsList = new List<Label>();
+        var mockQueryable = labelsList.BuildMockDbSet().Object;
+        _mockLabelRepository.Setup(r => r.Query()).Returns(mockQueryable);
+
+        // Act
         var result = await _service.GetLabelByReferenceAsync("non-existent");
+
+        // Assert
         result.Should().BeNull();
     }
 
     [Fact]
     public async Task GetLabelByReferenceAsync_WithInactiveLabel_ReturnsNull()
     {
+        // Arrange
         var label = Label.Create("inactive-label", "Inactive", "Content");
         label.Deactivate();
-        _context.Labels.Add(label);
-        await _context.SaveChangesAsync();
-        
+        var labelsList = new List<Label> { label };
+        var mockQueryable = labelsList.BuildMockDbSet().Object;
+        _mockLabelRepository.Setup(r => r.Query()).Returns(mockQueryable);
+
+        // Act
         var result = await _service.GetLabelByReferenceAsync("inactive-label");
+
+        // Assert
         result.Should().BeNull();
     }
 
     [Fact]
     public async Task GetLabelByReferenceAsync_WithActiveLabel_ReturnsLabel()
     {
+        // Arrange
         var label = Label.Create("active-label", "Active", "Content");
-        _context.Labels.Add(label);
-        await _context.SaveChangesAsync();
-        
+        var labelsList = new List<Label> { label };
+        var mockQueryable = labelsList.BuildMockDbSet().Object;
+        _mockLabelRepository.Setup(r => r.Query()).Returns(mockQueryable);
+
+        // Act
         var result = await _service.GetLabelByReferenceAsync("active-label");
+
+        // Assert
         result.Should().NotBeNull();
         result!.IsActive.Should().BeTrue();
     }
@@ -108,28 +139,38 @@ public class LabelServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     [Fact]
     public async Task GetAllLabelsAsync_ReturnsAllLabels()
     {
-        _context.Labels.AddRange(
+        // Arrange
+        var labelsList = new List<Label>
+        {
             Label.Create("ref1", "Label 1", "Content 1"),
             Label.Create("ref2", "Label 2", "Content 2"),
             Label.Create("ref3", "Label 3", "Content 3")
-        );
-        await _context.SaveChangesAsync();
-        
+        };
+        _mockLabelRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(labelsList);
+
+        // Act
         var result = await _service.GetAllLabelsAsync();
+
+        // Assert
         result.Should().HaveCount(3);
     }
 
     [Fact]
     public async Task GetActiveLabelsAsync_ReturnsOnlyActiveLabels()
     {
+        // Arrange
         var active1 = Label.Create("active1", "Active 1", "Content");
         var active2 = Label.Create("active2", "Active 2", "Content");
         var inactive = Label.Create("inactive", "Inactive", "Content");
         inactive.Deactivate();
-        _context.Labels.AddRange(active1, active2, inactive);
-        await _context.SaveChangesAsync();
-        
+        var labelsList = new List<Label> { active1, active2, inactive };
+        var mockQueryable = labelsList.BuildMockDbSet().Object;
+        _mockLabelRepository.Setup(r => r.Query()).Returns(mockQueryable);
+
+        // Act
         var result = await _service.GetActiveLabelsAsync();
+
+        // Assert
         result.Should().HaveCount(2);
         result.Should().AllSatisfy(l => l.IsActive.Should().BeTrue());
     }
@@ -137,21 +178,29 @@ public class LabelServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     [Fact]
     public async Task UpdateLabelContentAsync_WithValidData_UpdatesContent()
     {
+        // Arrange
         var label = Label.Create("test-ref", "Original", "Original Content");
-        _context.Labels.Add(label);
-        await _context.SaveChangesAsync();
-        
+        _mockLabelRepository.Setup(r => r.GetByIdAsync(label.Id))
+            .ReturnsAsync(label);
+
+        // Act
         await _service.UpdateLabelContentAsync(label.Id, "Updated", "Updated Content", false);
-        
-        var updated = await _context.Labels.FindAsync(label.Id);
-        updated!.Title.Should().Be("Updated");
-        updated.Content.Should().Be("Updated Content");
-        updated.IsActive.Should().BeFalse();
+
+        // Assert
+        label.Title.Should().Be("Updated");
+        label.Content.Should().Be("Updated Content");
+        label.IsActive.Should().BeFalse();
+        _mockLabelRepository.Verify(r => r.UpdateAsync(label), Times.Once);
     }
 
     [Fact]
     public async Task UpdateLabelContentAsync_WithNonExistingId_ThrowsException()
     {
+        // Arrange
+        _mockLabelRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Label?)null);
+
+        // Act & Assert
         var act = async () => await _service.UpdateLabelContentAsync(999, "Title", "Content", true);
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("Label with ID 999 not found");
@@ -160,20 +209,28 @@ public class LabelServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     [Fact]
     public async Task ActivateLabelAsync_WithValidId_ActivatesLabel()
     {
+        // Arrange
         var label = Label.Create("test-ref", "Test", "Content");
         label.Deactivate();
-        _context.Labels.Add(label);
-        await _context.SaveChangesAsync();
-        
+        _mockLabelRepository.Setup(r => r.GetByIdAsync(label.Id))
+            .ReturnsAsync(label);
+
+        // Act
         await _service.ActivateLabelAsync(label.Id);
-        
-        var activated = await _context.Labels.FindAsync(label.Id);
-        activated!.IsActive.Should().BeTrue();
+
+        // Assert
+        label.IsActive.Should().BeTrue();
+        _mockLabelRepository.Verify(r => r.UpdateAsync(label), Times.Once);
     }
 
     [Fact]
     public async Task ActivateLabelAsync_WithNonExistingId_ThrowsException()
     {
+        // Arrange
+        _mockLabelRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Label?)null);
+
+        // Act & Assert
         var act = async () => await _service.ActivateLabelAsync(999);
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("Label with ID 999 not found");
@@ -182,19 +239,27 @@ public class LabelServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     [Fact]
     public async Task DeactivateLabelAsync_WithValidId_DeactivatesLabel()
     {
+        // Arrange
         var label = Label.Create("test-ref", "Test", "Content");
-        _context.Labels.Add(label);
-        await _context.SaveChangesAsync();
-        
+        _mockLabelRepository.Setup(r => r.GetByIdAsync(label.Id))
+            .ReturnsAsync(label);
+
+        // Act
         await _service.DeactivateLabelAsync(label.Id);
-        
-        var deactivated = await _context.Labels.FindAsync(label.Id);
-        deactivated!.IsActive.Should().BeFalse();
+
+        // Assert
+        label.IsActive.Should().BeFalse();
+        _mockLabelRepository.Verify(r => r.UpdateAsync(label), Times.Once);
     }
 
     [Fact]
     public async Task DeactivateLabelAsync_WithNonExistingId_ThrowsException()
     {
+        // Arrange
+        _mockLabelRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Label?)null);
+
+        // Act & Assert
         var act = async () => await _service.DeactivateLabelAsync(999);
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("Label with ID 999 not found");
@@ -203,26 +268,28 @@ public class LabelServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     [Fact]
     public async Task DeleteLabelAsync_WithExistingId_DeletesLabel()
     {
+        // Arrange
         var label = Label.Create("test-ref", "Test", "Content");
-        _context.Labels.Add(label);
-        await _context.SaveChangesAsync();
-        
+        _mockLabelRepository.Setup(r => r.GetByIdAsync(label.Id))
+            .ReturnsAsync(label);
+
+        // Act
         await _service.DeleteLabelAsync(label.Id);
-        var deleted = await _context.Labels.FindAsync(label.Id);
-        deleted.Should().BeNull();
+
+        // Assert
+        _mockLabelRepository.Verify(r => r.DeleteAsync(It.IsAny<Label>()), Times.Once);
     }
 
     [Fact]
     public async Task DeleteLabelAsync_WithNonExistingId_ThrowsException()
     {
+        // Arrange
+        _mockLabelRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Label?)null);
+
+        // Act & Assert
         var act = async () => await _service.DeleteLabelAsync(999);
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("Label with ID 999 not found");
-    }
-
-    public void Dispose()
-    {
-        _context.Database.EnsureDeleted();
-        _context.Dispose();
     }
 }

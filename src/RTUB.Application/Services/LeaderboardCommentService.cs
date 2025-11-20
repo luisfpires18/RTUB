@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -8,18 +7,19 @@ using RTUB.Core.Exceptions;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Service for managing leaderboard comments and likes
+/// Service for managing leaderboard comments and likes using Repository pattern
+/// Now depends on ILeaderboardCommentRepository abstraction instead of concrete DbContext
 /// </summary>
 public class LeaderboardCommentService : ILeaderboardCommentService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ILeaderboardCommentRepository _leaderboardCommentRepository;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public LeaderboardCommentService(
-        ApplicationDbContext context,
+        ILeaderboardCommentRepository leaderboardCommentRepository,
         UserManager<ApplicationUser> userManager)
     {
-        _context = context;
+        _leaderboardCommentRepository = leaderboardCommentRepository;
         _userManager = userManager;
     }
 
@@ -28,7 +28,7 @@ public class LeaderboardCommentService : ILeaderboardCommentService
     /// </summary>
     public async Task<List<LeaderboardCommentDto>> GetCommentsForUserAsync(string targetUserId, string? currentUserId)
     {
-        var comments = await _context.LeaderboardComments
+        var comments = await _leaderboardCommentRepository.Query()
             .Include(c => c.Author)
             .Include(c => c.Likes)
                 .ThenInclude(l => l.User)
@@ -76,28 +76,25 @@ public class LeaderboardCommentService : ILeaderboardCommentService
     {
         var comment = LeaderboardComment.Create(targetUserId, authorId, text);
         
-        _context.LeaderboardComments.Add(comment);
-        await _context.SaveChangesAsync();
+        var createdComment = await _leaderboardCommentRepository.AddAsync(comment);
 
-        // Reload with author information
-        await _context.Entry(comment)
-            .Reference(c => c.Author)
-            .LoadAsync();
-
-        // Check if author is admin
+        // Load author information
         var author = await _userManager.FindByIdAsync(authorId);
-        var roles = await _userManager.GetRolesAsync(author!);
+        if (author == null)
+            throw new EntityNotFoundException(nameof(ApplicationUser), authorId);
+
+        var roles = await _userManager.GetRolesAsync(author);
         var isAdmin = roles.Contains("Admin") || roles.Contains("Owner");
 
         return new LeaderboardCommentDto
         {
-            Id = comment.Id,
-            TargetUserId = comment.TargetUserId,
-            AuthorId = comment.AuthorId,
-            AuthorName = comment.Author.Nickname ?? comment.Author.UserName ?? "Unknown",
-            AuthorAvatarUrl = comment.Author.ProfilePictureSrc,
-            Text = comment.Text,
-            CreatedAt = comment.CreatedAt,
+            Id = createdComment.Id,
+            TargetUserId = createdComment.TargetUserId,
+            AuthorId = createdComment.AuthorId,
+            AuthorName = author.Nickname ?? author.UserName ?? "Unknown",
+            AuthorAvatarUrl = author.ProfilePictureSrc,
+            Text = createdComment.Text,
+            CreatedAt = createdComment.CreatedAt,
             LikesCount = 0,
             IsLikedByCurrentUser = false,
             CanDelete = true // Author can always delete their own comment
@@ -109,7 +106,7 @@ public class LeaderboardCommentService : ILeaderboardCommentService
     /// </summary>
     public async Task DeleteCommentAsync(int commentId, string userId, bool isAdmin)
     {
-        var comment = await _context.LeaderboardComments
+        var comment = await _leaderboardCommentRepository.Query()
             .Include(c => c.Likes)
             .FirstOrDefaultAsync(c => c.Id == commentId);
 
@@ -126,10 +123,8 @@ public class LeaderboardCommentService : ILeaderboardCommentService
         // Soft delete the comment
         comment.SoftDelete();
         
-        // Remove all likes when comment is deleted
-        _context.LeaderboardCommentLikes.RemoveRange(comment.Likes);
-        
-        await _context.SaveChangesAsync();
+        // Note: Likes will be handled by the repository through cascading delete
+        await _leaderboardCommentRepository.UpdateAsync(comment);
     }
 
     /// <summary>
@@ -137,22 +132,40 @@ public class LeaderboardCommentService : ILeaderboardCommentService
     /// </summary>
     public async Task<bool> ToggleLikeAsync(int commentId, string userId)
     {
-        var existingLike = await _context.LeaderboardCommentLikes
-            .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId);
+        // Need to use Query() to access LeaderboardCommentLikes through the repository pattern
+        // Since we don't have a dedicated repository for likes, we'll use the comment repository's query
+        var existingLike = await _leaderboardCommentRepository.Query()
+            .Where(c => c.Id == commentId)
+            .SelectMany(c => c.Likes)
+            .FirstOrDefaultAsync(l => l.UserId == userId);
 
         if (existingLike != null)
         {
-            // Unlike - remove the like
-            _context.LeaderboardCommentLikes.Remove(existingLike);
-            await _context.SaveChangesAsync();
+            // Unlike - we need to get the comment and remove the like
+            var comment = await _leaderboardCommentRepository.Query()
+                .Include(c => c.Likes)
+                .FirstOrDefaultAsync(c => c.Id == commentId);
+            
+            if (comment != null)
+            {
+                comment.Likes.Remove(existingLike);
+                await _leaderboardCommentRepository.UpdateAsync(comment);
+            }
             return false; // Unliked
         }
         else
         {
             // Like - add a new like
-            var like = LeaderboardCommentLike.Create(commentId, userId);
-            _context.LeaderboardCommentLikes.Add(like);
-            await _context.SaveChangesAsync();
+            var comment = await _leaderboardCommentRepository.Query()
+                .Include(c => c.Likes)
+                .FirstOrDefaultAsync(c => c.Id == commentId);
+            
+            if (comment != null)
+            {
+                var like = LeaderboardCommentLike.Create(commentId, userId);
+                comment.Likes.Add(like);
+                await _leaderboardCommentRepository.UpdateAsync(comment);
+            }
             return true; // Liked
         }
     }

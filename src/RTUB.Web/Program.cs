@@ -7,6 +7,7 @@ using Microsoft.Extensions.Caching.Memory;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Web.Extensions;
 using System.Security.Claims;
 using ApplicationUser = RTUB.Core.Entities.ApplicationUser;
 
@@ -197,27 +198,6 @@ public class Program
         services.AddScoped<RTUB.Web.Services.IEmailTemplateService, RTUB.Web.Services.EmailTemplateService>();
         services.AddScoped<RTUB.Application.Interfaces.IEmailTemplateRenderer, RTUB.Web.Services.RazorEmailTemplateRenderer>();
 
-        // --------- Application Services (Direct DbContext access) ---------
-        services.AddScoped<IEventService, EventService>();
-        services.AddScoped<IAlbumService, AlbumService>();
-        services.AddScoped<IReportService, ReportService>();
-        services.AddScoped<ISongService, SongService>();
-        services.AddScoped<IRequestService, RequestService>();
-        services.AddScoped<ISlideshowService, SlideshowService>();
-        services.AddScoped<ILabelService, LabelService>();
-        services.AddScoped<IRoleAssignmentService, RoleAssignmentService>();
-        services.AddScoped<ITransactionService, TransactionService>();
-        services.AddScoped<IActivityService, ActivityService>();
-        services.AddScoped<IEnrollmentService, EnrollmentService>();
-        services.AddScoped<IMemberInstrumentService, MemberInstrumentService>();
-        services.AddScoped<IUserProfileService, UserProfileService>();
-        services.AddScoped<ILogisticsBoardService, LogisticsBoardService>();
-        services.AddScoped<ILogisticsListService, LogisticsListService>();
-        services.AddScoped<ILogisticsCardService, LogisticsCardService>();
-        services.AddScoped<IMeetingService, MeetingService>();
-        services.AddScoped<IMeetingRequestService, MeetingRequestService>();
-        services.AddScoped<ILeaderboardCommentService, LeaderboardCommentService>();
-        
         // --------- Cloudflare R2 S3 Client (Singleton) ---------
         // Register a single shared AmazonS3Client with exact config that works with Cloudflare R2
         services.AddSingleton<Amazon.S3.IAmazonS3>(serviceProvider =>
@@ -253,30 +233,22 @@ public class Program
             
             return new Amazon.S3.AmazonS3Client(credentials, config);
         });
+
+        // --------- Repositories (Data Access Layer) ---------
+        services.AddRepositories();
+
+        // --------- Application Services (organized by domain) ---------
+        services.AddApplicationServices();
+        services.AddRehearsalServices();
+        services.AddLogisticsServices();
+        services.AddMeetingServices();
+        services.AddInventoryServices();
+        services.AddDiscussionServices();
+        services.AddRankingServices();
+        services.AddEmailServices();
+        services.AddStorageServices();
         
-        services.AddScoped<IImageStorageService, CloudflareImageStorageService>();
-        services.AddScoped<IEmailNotificationService, EmailNotificationService>();
-        services.AddScoped<IFiscalYearService, FiscalYearService>();
-        services.AddScoped<IEventRepertoireService, EventRepertoireService>();
-        services.AddScoped<IRehearsalService, RehearsalService>();
-        services.AddScoped<IRehearsalAttendanceService, RehearsalAttendanceService>();
-        services.AddScoped<IAuditLogService, AuditLogService>();
-        services.AddScoped<IRankingService, RankingService>();
-        services.AddSingleton<IAudioStorageService, DriveAudioStorageService>();
-        services.AddSingleton<ILyricStorageService, DriveLyricStorageService>();
-        services.AddScoped<IDocumentStorageService, CloudflareDocumentStorageService>();
-        services.AddScoped<DriveDocumentStorageService>(); // For /roles page RGI document from IDrive
-        
-        // --------- Inventory & Shop Services ---------
-        services.AddScoped<IInstrumentService, InstrumentService>();
-        services.AddScoped<IProductService, ProductService>();
-        services.AddScoped<IProductReservationService, ProductReservationService>();
-        services.AddScoped<ITrophyService, TrophyService>();
-        
-        // --------- Discussion Services ---------
-        services.AddScoped<IDiscussionService, DiscussionService>();
-        services.AddScoped<IPostService, PostService>();
-        services.AddScoped<ICommentService, CommentService>();
+        // --------- Mention Service (Social feature) ---------
         services.AddScoped<IMentionService, MentionService>();
         
         // --------- Geocoding Service ---------

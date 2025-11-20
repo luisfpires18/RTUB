@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
@@ -28,7 +29,9 @@ public class LogisticsListServiceTests : IClassFixture<DatabaseFixture>, IDispos
         tempContext.Dispose();
         
         _context = _fixture.CreateContext();
-        _service = new LogisticsListService(_context);
+        var listRepo = new LogisticsListRepository(_context);
+        var cardRepo = new LogisticsCardRepository(_context);
+        _service = new LogisticsListService(listRepo, cardRepo);
     }
 
     [Fact]

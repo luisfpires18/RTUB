@@ -1,98 +1,75 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
-using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Rehearsal service implementation
+/// Rehearsal service implementation using Repository pattern
 /// Contains business logic for rehearsal operations
+/// Now depends on IRehearsalRepository abstraction instead of concrete DbContext
 /// </summary>
 public class RehearsalService : IRehearsalService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IRehearsalRepository _rehearsalRepository;
 
-    public RehearsalService(ApplicationDbContext context)
+    public RehearsalService(IRehearsalRepository rehearsalRepository)
     {
-        _context = context;
+        _rehearsalRepository = rehearsalRepository;
     }
 
     public async Task<Rehearsal?> GetRehearsalByIdAsync(int id)
     {
-        return await _context.Rehearsals
-            .AsNoTracking()
-            .Include(r => r.Attendances)
-            .FirstOrDefaultAsync(r => r.Id == id);
+        return await _rehearsalRepository.GetByIdAsync(id);
     }
 
     public async Task<Rehearsal?> GetRehearsalByDateAsync(DateTime date)
     {
-        var normalizedDate = date.Date;
-        return await _context.Rehearsals
-            .AsNoTracking()
-            .Include(r => r.Attendances)
-            .FirstOrDefaultAsync(r => r.Date == normalizedDate);
+        return await _rehearsalRepository.GetRehearsalByDateAsync(date);
     }
 
     public async Task<IEnumerable<Rehearsal>> GetRehearsalsAsync(DateTime startDate, DateTime endDate)
     {
-        return await _context.Rehearsals
-            .AsNoTracking()
-            .Include(r => r.Attendances)
-            .Where(r => r.Date >= startDate.Date && r.Date <= endDate.Date)
-            .OrderBy(r => r.Date)
-            .ToListAsync();
+        return await _rehearsalRepository.GetRehearsalsAsync(startDate, endDate);
     }
 
     public async Task<IEnumerable<Rehearsal>> GetUpcomingRehearsalsAsync(int count = 10)
     {
-        var today = DateTime.Today;
-        return await _context.Rehearsals
-            .AsNoTracking()
-            .Include(r => r.Attendances)
-            .Where(r => r.Date >= today && !r.IsCanceled)
-            .OrderBy(r => r.Date)
-            .Take(count)
-            .ToListAsync();
+        return await _rehearsalRepository.GetUpcomingRehearsalsAsync(count);
     }
 
     public async Task<Rehearsal> CreateRehearsalAsync(DateTime date, string location, string? theme = null)
     {
         var rehearsal = Rehearsal.Create(date, location, theme);
-        _context.Rehearsals.Add(rehearsal);
-        await _context.SaveChangesAsync();
-        return rehearsal;
+        return await _rehearsalRepository.AddAsync(rehearsal);
     }
 
     public async Task UpdateRehearsalAsync(int id, string location, string? theme, string? notes)
     {
-        var rehearsal = await _context.Rehearsals.FindAsync(id);
+        var rehearsal = await _rehearsalRepository.GetByIdAsync(id);
         if (rehearsal == null)
             throw new EntityNotFoundException(nameof(Rehearsal), id);
 
         rehearsal.UpdateDetails(location, theme, notes);
-        await _context.SaveChangesAsync();
+        await _rehearsalRepository.UpdateAsync(rehearsal);
     }
 
     public async Task CancelRehearsalAsync(int id)
     {
-        var rehearsal = await _context.Rehearsals.FindAsync(id);
+        var rehearsal = await _rehearsalRepository.GetByIdAsync(id);
         if (rehearsal == null)
             throw new EntityNotFoundException(nameof(Rehearsal), id);
 
         rehearsal.Cancel();
-        await _context.SaveChangesAsync();
+        await _rehearsalRepository.UpdateAsync(rehearsal);
     }
 
     public async Task DeleteRehearsalAsync(int id)
     {
-        var rehearsal = await _context.Rehearsals.FindAsync(id);
+        var rehearsal = await _rehearsalRepository.GetByIdAsync(id);
         if (rehearsal == null)
             throw new EntityNotFoundException(nameof(Rehearsal), id);
 
-        _context.Rehearsals.Remove(rehearsal);
-        await _context.SaveChangesAsync();
+        await _rehearsalRepository.DeleteAsync(rehearsal);
     }
 }

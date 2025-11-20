@@ -5,6 +5,7 @@ using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
 using Xunit;
@@ -33,9 +34,9 @@ public class ImageStorageIntegrationTests : IDisposable
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
         _mockImageStorageService = new Mock<IImageStorageService>();
         
-        _albumService = new AlbumService(_context, _mockImageStorageService.Object);
-        _eventService = new EventService(_context, _mockImageStorageService.Object);
-        _slideshowService = new SlideshowService(_context, _mockImageStorageService.Object);
+        _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
+        _eventService = new EventService(new EventRepository(_context), _mockImageStorageService.Object);
+        _slideshowService = new SlideshowService(new SlideshowRepository(_context), _mockImageStorageService.Object);
     }
 
     #region Album Image Tests

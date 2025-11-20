@@ -3,7 +3,6 @@ using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 
 namespace RTUB.Application.Services;
 
@@ -13,46 +12,40 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class RehearsalAttendanceService : IRehearsalAttendanceService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IRehearsalAttendanceRepository _attendanceRepository;
 
-    public RehearsalAttendanceService(ApplicationDbContext context)
+    public RehearsalAttendanceService(IRehearsalAttendanceRepository attendanceRepository)
     {
-        _context = context;
+        _attendanceRepository = attendanceRepository;
     }
 
     public async Task<RehearsalAttendance?> GetAttendanceByIdAsync(int id)
     {
-        return await _context.RehearsalAttendances
-            .AsNoTracking()
-            .Include(a => a.Rehearsal)
-            .FirstOrDefaultAsync(a => a.Id == id);
+        var attendance = await _attendanceRepository.GetByIdAsync(id);
+        if (attendance != null)
+        {
+            // Load the rehearsal navigation property
+            await _attendanceRepository.Query()
+                .Include(a => a.Rehearsal)
+                .FirstOrDefaultAsync(a => a.Id == id);
+        }
+        return attendance;
     }
 
     public async Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdAsync(int rehearsalId)
     {
-        return await _context.RehearsalAttendances
-            .AsNoTracking()
-            .Include(a => a.Rehearsal)
-            .Where(a => a.RehearsalId == rehearsalId)
-            .OrderBy(a => a.CheckedInAt)
-            .ToListAsync();
+        return await _attendanceRepository.GetAttendancesByRehearsalIdAsync(rehearsalId);
     }
 
     public async Task<IEnumerable<RehearsalAttendance>> GetAttendancesByUserIdAsync(string userId)
     {
-        return await _context.RehearsalAttendances
-            .AsNoTracking()
-            .Include(a => a.Rehearsal)
-            .Where(a => a.UserId == userId)
-            .OrderByDescending(a => a.Rehearsal!.Date)
-            .ToListAsync();
+        return await _attendanceRepository.GetAttendancesByUserIdAsync(userId);
     }
 
     public async Task<RehearsalAttendance> MarkAttendanceAsync(int rehearsalId, string userId, bool willAttend = true, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null)
     {
         // Check if attendance already exists
-        var existing = await _context.RehearsalAttendances
-            .FirstOrDefaultAsync(a => a.RehearsalId == rehearsalId && a.UserId == userId);
+        var existing = await _attendanceRepository.GetAttendanceByRehearsalAndUserAsync(rehearsalId, userId);
         
         if (existing != null)
         {
@@ -65,7 +58,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             // Update other instruments
             existing.OtherInstruments = otherInstruments;
             
-                        await _context.SaveChangesAsync();
+            await _attendanceRepository.UpdateAsync(existing);
             return existing;
         }
 
@@ -77,14 +70,12 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         // Set other instruments
         attendance.OtherInstruments = otherInstruments;
         
-        _context.RehearsalAttendances.Add(attendance);
-        await _context.SaveChangesAsync();
-        return attendance;
+        return await _attendanceRepository.AddAsync(attendance);
     }
 
     public async Task UpdateAttendanceAsync(int id, bool attended, InstrumentType? instrument = null)
     {
-        var attendance = await _context.RehearsalAttendances.FindAsync(id);
+        var attendance = await _attendanceRepository.GetByIdAsync(id);
         if (attendance == null)
             throw new EntityNotFoundException(nameof(RehearsalAttendance), id);
 
@@ -92,22 +83,21 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         if (instrument.HasValue)
             attendance.UpdateInstrument(instrument);
         
-                await _context.SaveChangesAsync();
+        await _attendanceRepository.UpdateAsync(attendance);
     }
 
     public async Task DeleteAttendanceAsync(int id)
     {
-        var attendance = await _context.RehearsalAttendances.FindAsync(id);
+        var attendance = await _attendanceRepository.GetByIdAsync(id);
         if (attendance == null)
             throw new EntityNotFoundException(nameof(RehearsalAttendance), id);
-
-        _context.RehearsalAttendances.Remove(attendance);
-        await _context.SaveChangesAsync();
+        
+        await _attendanceRepository.DeleteAsync(id);
     }
 
     public async Task<int> GetUserAttendanceCountAsync(string userId, DateTime startDate, DateTime endDate)
     {
-        return await _context.RehearsalAttendances
+        return await _attendanceRepository.Query()
             .Include(a => a.Rehearsal)
             .Where(a => a.UserId == userId && 
                        a.Attended && 
@@ -118,7 +108,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
 
     public async Task<Dictionary<string, int>> GetAttendanceStatsAsync(DateTime startDate, DateTime endDate)
     {
-        var attendances = await _context.RehearsalAttendances
+        var attendances = await _attendanceRepository.Query()
             .Include(a => a.Rehearsal)
             .Include(a => a.User)
             .Where(a => a.Attended && 

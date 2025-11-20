@@ -5,7 +5,6 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Core.Constants;
 
 
@@ -13,89 +12,73 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// Service for managing reports including report generation, activities, and transactions.
+/// Now depends on IReportRepository abstraction instead of concrete DbContext
 /// </summary>
 public class ReportService : IReportService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IReportRepository _reportRepository;
 
-    public ReportService(ApplicationDbContext context)
+    public ReportService(IReportRepository reportRepository)
     {
-        _context = context;
+        _reportRepository = reportRepository;
     }
 
     public async Task<Report?> GetReportByIdAsync(int id)
     {
-        // Include Activities and Transactions for computed properties
-        return await _context.Reports
-            .Include(r => r.Activities)
-                .ThenInclude(a => a.Transactions)
-            .FirstOrDefaultAsync(r => r.Id == id);
+        // Get report with activities and transactions for computed properties
+        return await _reportRepository.GetByIdWithActivitiesAsync(id);
     }
 
     public async Task<IEnumerable<Report>> GetAllReportsAsync()
     {
-        // Include Activities and Transactions for computed properties
-        return await _context.Reports
-            .Include(r => r.Activities)
-                .ThenInclude(a => a.Transactions)
-            .ToListAsync();
+        return await _reportRepository.GetAllWithActivitiesAsync();
     }
 
     public async Task<IEnumerable<Report>> GetPublishedReportsAsync()
     {
-        // Include Activities and Transactions for computed properties
-        return await _context.Reports
-            .Include(r => r.Activities)
-                .ThenInclude(a => a.Transactions)
-            .Where(r => r.IsPublished)
-            .OrderByDescending(r => r.Year)
-            .ToListAsync();
+        // Get published reports with activities and transactions
+        return await _reportRepository.GetPublishedWithActivitiesAsync();
     }
 
     public async Task<Report> CreateReportAsync(string title, int year, string? summary = null)
     {
         var report = Report.Create(title, year, summary);
-        _context.Reports.Add(report);
-        await _context.SaveChangesAsync();
-        return report;
+        return await _reportRepository.AddAsync(report);
     }
 
     public async Task UpdateReportAsync(int id, string? summary)
     {
-        var report = await _context.Reports.FindAsync(id);
+        var report = await _reportRepository.GetByIdAsync(id);
         if (report == null)
             throw new EntityNotFoundException(nameof(Report), id);
 
         report.UpdateSummary(summary);
-                await _context.SaveChangesAsync();
+        await _reportRepository.UpdateAsync(report);
     }
 
     public async Task PublishReportAsync(int id)
     {
-        var report = await _context.Reports.FindAsync(id);
+        var report = await _reportRepository.GetByIdAsync(id);
         if (report == null)
             throw new EntityNotFoundException(nameof(Report), id);
 
         report.Publish();
-                await _context.SaveChangesAsync();
+        await _reportRepository.UpdateAsync(report);
     }
 
     public async Task UnpublishReportAsync(int id)
     {
-        var report = await _context.Reports.FindAsync(id);
+        var report = await _reportRepository.GetByIdAsync(id);
         if (report == null)
             throw new EntityNotFoundException(nameof(Report), id);
 
         report.Unpublish();
-                await _context.SaveChangesAsync();
+        await _reportRepository.UpdateAsync(report);
     }
 
     public async Task<byte[]> GenerateReportPdfAsync(int reportId)
     {
-        var report = await _context.Reports
-            .Include(r => r.Activities)
-                .ThenInclude(a => a.Transactions)
-            .FirstOrDefaultAsync(r => r.Id == reportId);
+        var report = await _reportRepository.GetByIdWithActivitiesAsync(reportId);
             
         if (report == null)
             throw new EntityNotFoundException(nameof(Report), reportId);
@@ -113,39 +96,20 @@ public class ReportService : IReportService
         var pdfData = GeneratePdf(report, activities, allTransactions);
         
         report.SetPdfData(pdfData);
-                await _context.SaveChangesAsync();
+        await _reportRepository.UpdateAsync(report);
 
         return pdfData;
     }
 
     public async Task DeleteReportAsync(int reportId)
     {
-        var report = await _context.Reports
-            .Include(r => r.Activities)
-                .ThenInclude(a => a.Transactions)
-            .FirstOrDefaultAsync(r => r.Id == reportId);
+        var report = await _reportRepository.GetByIdWithActivitiesAsync(reportId);
             
         if (report == null)
             throw new EntityNotFoundException(nameof(Report), reportId);
 
-        // Delete all transactions for each activity
-        foreach (var activity in report.Activities)
-        {
-            foreach (var transaction in activity.Transactions)
-            {
-                _context.Transactions.Remove(transaction);
-            }
-        }
-
-        // Delete all activities
-        foreach (var activity in report.Activities)
-        {
-            _context.Activities.Remove(activity);
-        }
-
-        // Finally delete the report
-        _context.Reports.Remove(report);
-        await _context.SaveChangesAsync();
+        // Repository will handle cascading deletes through EF Core relationships
+        await _reportRepository.DeleteAsync(report);
     }
 
     private byte[] GeneratePdf(Report report, List<Activity> activities, List<(Activity activity, List<Transaction> transactions)> allTransactions)

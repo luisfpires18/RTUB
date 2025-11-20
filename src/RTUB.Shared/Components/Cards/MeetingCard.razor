@@ -68,7 +68,7 @@
             {
                 <div class="meeting-info-row mb-2">
                     <i class="bi bi-person-badge meeting-icon"></i>
-                    <span class="meeting-text">@Organizer.Nickname, @PositionHelper.GetDisplayName(Organizer.Positions.First())</span>
+                    <span class="meeting-text">Organizador: @Organizer.Nickname, @PositionHelper.GetDisplayName(Organizer.Positions.First())</span>
                 </div>
             }
         </div>
@@ -275,9 +275,9 @@
     {
         return Meeting.Type switch
         {
-            MeetingType.ConselhoVeteranos => "bg-dark text-white",
+            MeetingType.ConselhoVeteranos => "bg-warning text-dark",  // Yellow/orange for veteran council
             MeetingType.AssembleiaGeralOrdinaria => "bg-primary",
-            MeetingType.AssembleiaGeralExtraordinaria => "bg-info",
+            MeetingType.AssembleiaGeralExtraordinaria => "bg-danger",  // Red for extraordinary assembly
             _ => "bg-secondary"
         };
     }

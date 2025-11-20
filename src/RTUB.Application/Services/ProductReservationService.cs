@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -7,41 +6,36 @@ using RTUB.Core.Exceptions;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Service for managing product reservations
+/// Service for managing product reservations using Repository pattern
+/// Now depends on IProductReservationRepository abstraction instead of concrete DbContext
 /// </summary>
 public class ProductReservationService : IProductReservationService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IProductReservationRepository _productReservationRepository;
 
-    public ProductReservationService(ApplicationDbContext context)
+    public ProductReservationService(IProductReservationRepository productReservationRepository)
     {
-        _context = context;
+        _productReservationRepository = productReservationRepository;
     }
 
     public async Task<ProductReservation?> GetByIdAsync(int id)
     {
-        return await _context.ProductReservations.FindAsync(id);
+        return await _productReservationRepository.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<ProductReservation>> GetByProductIdAsync(int productId)
     {
-        return await _context.ProductReservations
-            .Where(r => r.ProductId == productId)
-            .OrderBy(r => r.CreatedAt)
-            .ToListAsync();
+        return await _productReservationRepository.GetByProductIdAsync(productId);
     }
 
     public async Task<IEnumerable<ProductReservation>> GetByUserIdAsync(string userId)
     {
-        return await _context.ProductReservations
-            .Where(r => r.UserId == userId)
-            .OrderByDescending(r => r.CreatedAt)
-            .ToListAsync();
+        return await _productReservationRepository.GetByUserIdAsync(userId);
     }
 
     public async Task<ProductReservation?> GetByProductAndUserAsync(int productId, string userId)
     {
-        return await _context.ProductReservations
+        return await _productReservationRepository.Query()
             .FirstOrDefaultAsync(r => r.ProductId == productId && r.UserId == userId);
     }
 
@@ -54,24 +48,20 @@ public class ProductReservationService : IProductReservationService
             throw new InvalidOperationException("Já existe uma reserva para este produto");
         }
 
-        _context.ProductReservations.Add(reservation);
-        await _context.SaveChangesAsync();
-        return reservation;
+        return await _productReservationRepository.AddAsync(reservation);
     }
 
     public async Task DeleteAsync(int id)
     {
-        var reservation = await _context.ProductReservations.FindAsync(id);
+        var reservation = await _productReservationRepository.GetByIdAsync(id);
         if (reservation != null)
         {
-            _context.ProductReservations.Remove(reservation);
-            await _context.SaveChangesAsync();
+            await _productReservationRepository.DeleteAsync(reservation);
         }
     }
 
     public async Task<bool> HasReservationAsync(int productId, string userId)
     {
-        return await _context.ProductReservations
-            .AnyAsync(r => r.ProductId == productId && r.UserId == userId);
+        return await _productReservationRepository.AnyAsync(r => r.ProductId == productId && r.UserId == userId);
     }
 }

@@ -1601,8 +1601,8 @@ else
                 if (existingUser != null)
                 {
                     // Clear previous validation errors for this field before adding new one
-                    memberValidationStore.Clear(() => editingUser.Nickname);
-                    memberValidationStore.Add(() => editingUser.Nickname, $"Já existe um utilizador com o nome de tuna '{editingUser.Nickname}' (username: {editingUser.UserName}).");
+                    memberValidationStore.Clear(() => editingUser.Nickname!);
+                    memberValidationStore.Add(() => editingUser.Nickname!, $"Já existe um utilizador com o nome de tuna '{editingUser.Nickname}' (username: {editingUser.UserName}).");
                     editContext.NotifyValidationStateChanged();
                     return;
                 }

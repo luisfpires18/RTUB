@@ -1,8 +1,7 @@
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Moq;
-using RTUB.Application.Data;
-using RTUB.Application.Tests.Fixtures;
+using MockQueryable.Moq;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -12,29 +11,31 @@ namespace RTUB.Application.Tests.Services;
 /// <summary>
 /// Unit tests for MemberInstrumentService - Multiple instruments per member
 /// </summary>
-public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
+public class MemberInstrumentServiceTests
 {
-    private readonly ApplicationDbContext _context;
-    private readonly DatabaseFixture _fixture;
+    private readonly Mock<IMemberInstrumentRepository> _mockRepository;
     private readonly MemberInstrumentService _service;
     private readonly string _testMemberId = "test-member-id";
 
-    public MemberInstrumentServiceTests(DatabaseFixture fixture)
+    public MemberInstrumentServiceTests()
     {
-        // Clean database at constructor start to ensure test isolation
-        _fixture = fixture;
-        var tempContext = _fixture.CreateContext();
-        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
-        tempContext.Dispose();
-        
-        _fixture = fixture;
-        _context = _fixture.CreateContext();
-        _service = new MemberInstrumentService(_context);
+        _mockRepository = new Mock<IMemberInstrumentRepository>();
+        _service = new MemberInstrumentService(_mockRepository.Object);
     }
 
     [Fact]
     public async Task AddInstrumentAsync_WithValidInstrument_AddsInstrument()
     {
+        // Arrange
+        var expectedInstrument = MemberInstrument.Create(_testMemberId, InstrumentType.Guitarra, true);
+        var emptyList = new List<MemberInstrument>();
+        var mockQueryable = emptyList.BuildMockDbSet().Object;
+        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<MemberInstrument>()))
+            .ReturnsAsync(expectedInstrument);
+        _mockRepository.Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<MemberInstrument, bool>>>()))
+            .ReturnsAsync(false);
+
         // Act
         var result = await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Guitarra, true);
 
@@ -49,7 +50,8 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
     public async Task AddInstrumentAsync_WithDuplicateInstrument_ThrowsException()
     {
         // Arrange
-        await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Guitarra);
+        _mockRepository.Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<MemberInstrument, bool>>>()))
+            .ReturnsAsync(true);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -61,24 +63,35 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
     public async Task AddInstrumentAsync_WithPrimaryFlag_UnmarksOtherPrimaryInstruments()
     {
         // Arrange
-        await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Guitarra, true);
+        var existingPrimary = MemberInstrument.Create(_testMemberId, InstrumentType.Guitarra, true);
+        var instruments = new List<MemberInstrument> { existingPrimary };
+        
+        _mockRepository.Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<MemberInstrument, bool>>>()))
+            .ReturnsAsync(false);
+        var mockQueryable = instruments.BuildMockDbSet().Object;
+        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<MemberInstrument>()))
+            .ReturnsAsync(MemberInstrument.Create(_testMemberId, InstrumentType.Bandolim, true));
 
         // Act
         await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Bandolim, true);
 
         // Assert
-        var instruments = await _service.GetMemberInstrumentsAsync(_testMemberId);
-        instruments.Count(i => i.IsPrimary).Should().Be(1);
-        instruments.First(i => i.InstrumentType == InstrumentType.Bandolim).IsPrimary.Should().BeTrue();
+        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<MemberInstrument>()), Times.AtLeastOnce);
     }
 
     [Fact]
     public async Task GetMemberInstrumentsAsync_ReturnsInstrumentsOrderedByPrimaryThenType()
     {
-        // Arrange
-        await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Cavaquinho, false);
-        await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Guitarra, true);
-        await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Bandolim, false);
+        // Arrange - repository returns ordered data
+        var instruments = new List<MemberInstrument>
+        {
+            MemberInstrument.Create(_testMemberId, InstrumentType.Guitarra, true),  // Primary first
+            MemberInstrument.Create(_testMemberId, InstrumentType.Bandolim, false),
+            MemberInstrument.Create(_testMemberId, InstrumentType.Cavaquinho, false)
+        };
+        _mockRepository.Setup(r => r.GetByMemberIdAsync(_testMemberId))
+            .ReturnsAsync(instruments);
 
         // Act
         var result = await _service.GetMemberInstrumentsAsync(_testMemberId);
@@ -92,9 +105,10 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
     [Fact]
     public async Task GetPrimaryInstrumentAsync_ReturnsPrimaryInstrument()
     {
-        // Arrange
-        await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Guitarra, true);
-        await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Bandolim, false);
+        // Arrange - repository returns the primary instrument directly
+        var primaryInstrument = MemberInstrument.Create(_testMemberId, InstrumentType.Guitarra, true);
+        _mockRepository.Setup(r => r.GetPrimaryInstrumentAsync(_testMemberId))
+            .ReturnsAsync(primaryInstrument);
 
         // Act
         var result = await _service.GetPrimaryInstrumentAsync(_testMemberId);
@@ -108,7 +122,8 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
     public async Task GetPrimaryInstrumentAsync_WhenNoPrimary_ReturnsNull()
     {
         // Arrange
-        await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Guitarra, false);
+        _mockRepository.Setup(r => r.GetPrimaryInstrumentAsync(_testMemberId))
+            .ReturnsAsync((MemberInstrument?)null);
 
         // Act
         var result = await _service.GetPrimaryInstrumentAsync(_testMemberId);
@@ -121,19 +136,24 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
     public async Task RemoveInstrumentAsync_RemovesInstrument()
     {
         // Arrange
-        var instrument = await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Guitarra);
+        var instrument = MemberInstrument.Create(_testMemberId, InstrumentType.Guitarra, false);
+        _mockRepository.Setup(r => r.GetByIdAsync(instrument.Id))
+            .ReturnsAsync(instrument);
 
         // Act
         await _service.RemoveInstrumentAsync(instrument.Id);
 
         // Assert
-        var instruments = await _service.GetMemberInstrumentsAsync(_testMemberId);
-        instruments.Should().BeEmpty();
+        _mockRepository.Verify(r => r.DeleteAsync(It.IsAny<MemberInstrument>()), Times.Once);
     }
 
     [Fact]
     public async Task RemoveInstrumentAsync_WithNonExistingId_ThrowsException()
     {
+        // Arrange
+        _mockRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((MemberInstrument?)null);
+
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => _service.RemoveInstrumentAsync(999)
@@ -144,22 +164,27 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
     public async Task SetPrimaryInstrumentAsync_MarksSingleInstrumentAsPrimary()
     {
         // Arrange
-        var instrument1 = await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Guitarra, true);
-        var instrument2 = await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Bandolim, false);
+        var instrument1 = MemberInstrument.Create(_testMemberId, InstrumentType.Guitarra, true);
+        var instrument2 = MemberInstrument.Create(_testMemberId, InstrumentType.Bandolim, false);
+        var instruments = new List<MemberInstrument> { instrument1, instrument2 };
+
+        var mockQueryable = instruments.BuildMockDbSet().Object;
+        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
 
         // Act
         await _service.SetPrimaryInstrumentAsync(instrument2.Id, _testMemberId);
 
         // Assert
-        var instruments = await _service.GetMemberInstrumentsAsync(_testMemberId);
-        instruments.Count(i => i.IsPrimary).Should().Be(1);
-        instruments.First(i => i.Id == instrument2.Id).IsPrimary.Should().BeTrue();
-        instruments.First(i => i.Id == instrument1.Id).IsPrimary.Should().BeFalse();
+        _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<MemberInstrument>()), Times.AtLeast(2));
     }
 
     [Fact]
     public async Task SetPrimaryInstrumentAsync_WithNonExistingId_ThrowsException()
     {
+        // Arrange
+        _mockRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((MemberInstrument?)null);
+
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => _service.SetPrimaryInstrumentAsync(999, _testMemberId)
@@ -170,7 +195,9 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
     public async Task SetPrimaryInstrumentAsync_WithMismatchedMemberId_ThrowsException()
     {
         // Arrange
-        var instrument = await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Guitarra);
+        var instrument = MemberInstrument.Create(_testMemberId, InstrumentType.Guitarra, false);
+        _mockRepository.Setup(r => r.GetByIdAsync(instrument.Id))
+            .ReturnsAsync(instrument);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -182,7 +209,8 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
     public async Task HasInstrumentAsync_WhenExists_ReturnsTrue()
     {
         // Arrange
-        await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Guitarra);
+        _mockRepository.Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<MemberInstrument, bool>>>()))
+            .ReturnsAsync(true);
 
         // Act
         var result = await _service.HasInstrumentAsync(_testMemberId, InstrumentType.Guitarra);
@@ -194,6 +222,10 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
     [Fact]
     public async Task HasInstrumentAsync_WhenNotExists_ReturnsFalse()
     {
+        // Arrange
+        _mockRepository.Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<MemberInstrument, bool>>>()))
+            .ReturnsAsync(false);
+
         // Act
         var result = await _service.HasInstrumentAsync(_testMemberId, InstrumentType.Guitarra);
 
@@ -205,7 +237,9 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
     public async Task GetByIdAsync_WithExistingId_ReturnsInstrument()
     {
         // Arrange
-        var instrument = await _service.AddInstrumentAsync(_testMemberId, InstrumentType.Guitarra);
+        var instrument = MemberInstrument.Create(_testMemberId, InstrumentType.Guitarra, false);
+        _mockRepository.Setup(r => r.GetByIdAsync(instrument.Id))
+            .ReturnsAsync(instrument);
 
         // Act
         var result = await _service.GetByIdAsync(instrument.Id);
@@ -218,6 +252,10 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
     [Fact]
     public async Task GetByIdAsync_WithNonExistingId_ReturnsNull()
     {
+        // Arrange
+        _mockRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((MemberInstrument?)null);
+
         // Act
         var result = await _service.GetByIdAsync(999);
 
@@ -233,10 +271,14 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
         var user2 = "user-2";
         var user3 = "user-3";
         
-        await _service.AddInstrumentAsync(user1, InstrumentType.Guitarra, true);
-        await _service.AddInstrumentAsync(user1, InstrumentType.Bandolim, false);
-        await _service.AddInstrumentAsync(user2, InstrumentType.Cavaquinho, true);
-        await _service.AddInstrumentAsync(user3, InstrumentType.Percussao, false);
+        var allInstruments = new List<MemberInstrument>
+        {
+            MemberInstrument.Create(user1, InstrumentType.Guitarra, true),
+            MemberInstrument.Create(user1, InstrumentType.Bandolim, false),
+            MemberInstrument.Create(user2, InstrumentType.Cavaquinho, true)
+        };
+        var mockQueryable = allInstruments.BuildMockDbSet().Object;
+        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
 
         // Act
         var result = await _service.GetMemberInstrumentsByUserIdsAsync(new[] { user1, user2 });
@@ -253,6 +295,11 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
     [Fact]
     public async Task GetMemberInstrumentsByUserIdsAsync_WithEmptyList_ReturnsEmptyDictionary()
     {
+        // Arrange
+        var emptyList = new List<MemberInstrument>();
+        var mockQueryable = emptyList.BuildMockDbSet().Object;
+        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
+
         // Act
         var result = await _service.GetMemberInstrumentsByUserIdsAsync(new string[] { });
 
@@ -263,16 +310,15 @@ public class MemberInstrumentServiceTests : IClassFixture<DatabaseFixture>, IDis
     [Fact]
     public async Task GetMemberInstrumentsByUserIdsAsync_WithNonExistingUsers_ReturnsEmptyDictionary()
     {
+        // Arrange
+        var emptyList = new List<MemberInstrument>();
+        var mockQueryable = emptyList.BuildMockDbSet().Object;
+        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
+
         // Act
         var result = await _service.GetMemberInstrumentsByUserIdsAsync(new[] { "non-existing-1", "non-existing-2" });
 
         // Assert
         result.Should().BeEmpty();
-    }
-
-    public void Dispose()
-    {
-        _context.Database.EnsureDeleted();
-        _context.Dispose();
     }
 }

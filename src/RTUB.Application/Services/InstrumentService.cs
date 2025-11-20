@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -12,67 +11,48 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class InstrumentService : IInstrumentService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IInstrumentRepository _instrumentRepository;
     private readonly IImageStorageService _imageStorageService;
 
-    public InstrumentService(ApplicationDbContext context, IImageStorageService imageStorageService)
+    public InstrumentService(IInstrumentRepository instrumentRepository, IImageStorageService imageStorageService)
     {
-        _context = context;
+        _instrumentRepository = instrumentRepository;
         _imageStorageService = imageStorageService;
     }
 
     public async Task<Instrument?> GetByIdAsync(int id)
     {
-        return await _context.Instruments
-            .AsNoTracking()
-            .FirstOrDefaultAsync(i => i.Id == id);
+        return await _instrumentRepository.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<Instrument>> GetAllAsync()
     {
-        return await _context.Instruments
-            .AsNoTracking()
-            .OrderBy(i => i.Name)
-            .ToListAsync();
+        return await _instrumentRepository.GetAllOrderedAsync();
     }
 
     public async Task<IEnumerable<Instrument>> GetByCategoryAsync(string category)
     {
-        return await _context.Instruments
-            .AsNoTracking()
-            .Where(i => i.Category == category)
-            .OrderBy(i => i.Name)
-            .ToListAsync();
+        return await _instrumentRepository.GetByCategoryAsync(category);
     }
 
     public async Task<IEnumerable<Instrument>> GetByConditionAsync(InstrumentCondition condition)
     {
-        return await _context.Instruments
-            .AsNoTracking()
-            .Where(i => i.Condition == condition)
-            .OrderBy(i => i.Name)
-            .ToListAsync();
+        return await _instrumentRepository.GetByConditionAsync(condition);
     }
 
     public async Task<IEnumerable<Instrument>> GetByLocationAsync(string location)
     {
-        return await _context.Instruments
-            .AsNoTracking()
-            .Where(i => i.Location == location)
-            .OrderBy(i => i.Name)
-            .ToListAsync();
+        return await _instrumentRepository.GetByLocationAsync(location);
     }
 
     public async Task<Instrument> CreateAsync(Instrument instrument)
     {
-        _context.Instruments.Add(instrument);
-        await _context.SaveChangesAsync();
-        return instrument;
+        return await _instrumentRepository.AddAsync(instrument);
     }
 
     public async Task UpdateAsync(Instrument instrument)
     {
-        var existingInstrument = await _context.Instruments.FindAsync(instrument.Id);
+        var existingInstrument = await _instrumentRepository.GetByIdAsync(instrument.Id);
         if (existingInstrument == null)
             throw new EntityNotFoundException(nameof(Instrument), instrument.Id);
 
@@ -80,14 +60,14 @@ public class InstrumentService : IInstrumentService
                                   instrument.Brand, instrument.Location);
         existingInstrument.UpdateMaintenance(instrument.MaintenanceNotes, instrument.LastMaintenanceDate);
         
-        await _context.SaveChangesAsync();
+        await _instrumentRepository.UpdateAsync(existingInstrument);
         
         // Invalidate the cached instrument image so the new image is served immediately
     }
 
     public async Task DeleteAsync(int id)
     {
-        var instrument = await _context.Instruments.FindAsync(id);
+        var instrument = await _instrumentRepository.GetByIdAsync(id);
         if (instrument != null)
         {
             // Delete associated image from R2 storage if it exists
@@ -96,14 +76,13 @@ public class InstrumentService : IInstrumentService
                 await _imageStorageService.DeleteImageAsync(instrument.ImageUrl);
             }
 
-            _context.Instruments.Remove(instrument);
-            await _context.SaveChangesAsync();
+            await _instrumentRepository.DeleteAsync(id);
         }
     }
 
     public async Task<Dictionary<InstrumentCondition, int>> GetConditionStatsAsync()
     {
-        return await _context.Instruments
+        return await _instrumentRepository.Query()
             .AsNoTracking()
             .GroupBy(i => i.Condition)
             .Select(g => new { Condition = g.Key, Count = g.Count() })
@@ -112,7 +91,7 @@ public class InstrumentService : IInstrumentService
 
     public async Task<Dictionary<string, int>> GetCategoryStatsAsync()
     {
-        return await _context.Instruments
+        return await _instrumentRepository.Query()
             .AsNoTracking()
             .GroupBy(i => i.Category)
             .Select(g => new { Category = g.Key, Count = g.Count() })

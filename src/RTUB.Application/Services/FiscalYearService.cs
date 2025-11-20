@@ -14,27 +14,26 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class FiscalYearService : IFiscalYearService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IFiscalYearRepository _fiscalYearRepository;
 
-    public FiscalYearService(ApplicationDbContext context)
+    public FiscalYearService(IFiscalYearRepository fiscalYearRepository)
     {
-        _context = context;
+        _fiscalYearRepository = fiscalYearRepository;
     }
 
     public async Task<FiscalYear?> GetFiscalYearByIdAsync(int id)
     {
-        return await _context.FiscalYears.FindAsync(id);
+        return await _fiscalYearRepository.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<FiscalYear>> GetAllFiscalYearsAsync()
     {
-        return await _context.FiscalYears.ToListAsync();
+        return await _fiscalYearRepository.GetAllAsync();
     }
 
     public async Task<FiscalYear?> GetFiscalYearByStartYearAsync(int startYear)
     {
-        var allFiscalYears = await _context.FiscalYears.ToListAsync();
-        return allFiscalYears.FirstOrDefault(fy => fy.StartYear == startYear);
+        return await _fiscalYearRepository.GetByStartYearAsync(startYear);
     }
 
     public async Task<FiscalYear> CreateFiscalYearAsync(int startYear)
@@ -58,19 +57,16 @@ public class FiscalYearService : IFiscalYearService
         var endYear = startYear + 1;
 
         var fiscalYear = FiscalYear.Create(startYear, endYear);
-        _context.FiscalYears.Add(fiscalYear);
-        await _context.SaveChangesAsync();
-        return fiscalYear;
+        return await _fiscalYearRepository.AddAsync(fiscalYear);
     }
 
     public async Task DeleteFiscalYearAsync(int id)
     {
-        var fiscalYear = await _context.FiscalYears.FindAsync(id);
+        var fiscalYear = await _fiscalYearRepository.GetByIdAsync(id);
         if (fiscalYear == null)
             throw new InvalidOperationException($"Fiscal year with ID {id} not found");
 
-        _context.FiscalYears.Remove(fiscalYear);
-        await _context.SaveChangesAsync();
+        await _fiscalYearRepository.DeleteAsync(id);
     }
 
     public async Task<IEnumerable<int>> GetAvailableFiscalYearStartYearsAsync()
@@ -82,7 +78,7 @@ public class FiscalYearService : IFiscalYearService
         int currentFiscalStartYear = currentMonth >= 9 ? currentYear : currentYear - 1;
 
         // Get all existing fiscal years
-        var existingFiscalYears = await _context.FiscalYears.ToListAsync();
+        var existingFiscalYears = await _fiscalYearRepository.GetAllAsync();
         var existingStartYears = new HashSet<int>(existingFiscalYears.Select(fy => fy.StartYear));
 
         // Generate list of available years from 1991 to current fiscal year

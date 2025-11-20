@@ -1,31 +1,21 @@
 using FluentAssertions;
 using Moq;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
-using RTUB.Application.Data;
-using RTUB.Application.Tests.Fixtures;
+using MockQueryable.Moq;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
 
-public class FiscalYearServiceTests : IClassFixture<DatabaseFixture>, IDisposable
+public class FiscalYearServiceTests
 {
-    private readonly ApplicationDbContext _context;
-    private readonly DatabaseFixture _fixture;
+    private readonly Mock<IFiscalYearRepository> _repositoryMock;
     private readonly FiscalYearService _service;
 
-    public FiscalYearServiceTests(DatabaseFixture fixture)
+    public FiscalYearServiceTests()
     {
-        // Clean database at constructor start to ensure test isolation
-        _fixture = fixture;
-        var tempContext = _fixture.CreateContext();
-        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
-        tempContext.Dispose();
-        
-        _fixture = fixture;
-        _context = _fixture.CreateContext();
-        _service = new FiscalYearService(_context);
+        _repositoryMock = new Mock<IFiscalYearRepository>();
+        _service = new FiscalYearService(_repositoryMock.Object);
     }
 
     [Fact]
@@ -33,6 +23,12 @@ public class FiscalYearServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     {
         // Arrange
         var startYear = DateTime.Now.Month >= 9 ? DateTime.Now.Year : DateTime.Now.Year - 1;
+        var expectedFiscalYear = FiscalYear.Create(startYear, startYear + 1);
+
+        _repositoryMock.Setup(r => r.GetByStartYearAsync(startYear))
+            .ReturnsAsync((FiscalYear?)null);
+        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<FiscalYear>()))
+            .ReturnsAsync(expectedFiscalYear);
 
         // Act
         var result = await _service.CreateFiscalYearAsync(startYear);
@@ -48,7 +44,10 @@ public class FiscalYearServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     {
         // Arrange
         var startYear = DateTime.Now.Month >= 9 ? DateTime.Now.Year : DateTime.Now.Year - 1;
-        await _service.CreateFiscalYearAsync(startYear);
+        var existingFiscalYear = FiscalYear.Create(startYear, startYear + 1);
+
+        _repositoryMock.Setup(r => r.GetByStartYearAsync(startYear))
+            .ReturnsAsync(existingFiscalYear);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => 
@@ -71,8 +70,9 @@ public class FiscalYearServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     {
         // Arrange
         var fiscalYear = FiscalYear.Create(2023, 2024);
-        _context.FiscalYears.Add(fiscalYear);
-        await _context.SaveChangesAsync();
+
+        _repositoryMock.Setup(r => r.GetByIdAsync(fiscalYear.Id))
+            .ReturnsAsync(fiscalYear);
 
         // Act
         var result = await _service.GetFiscalYearByIdAsync(fiscalYear.Id);
@@ -86,6 +86,10 @@ public class FiscalYearServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     [Fact]
     public async Task GetFiscalYearByIdAsync_NonExistingId_ReturnsNull()
     {
+        // Arrange
+        _repositoryMock.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((FiscalYear?)null);
+
         // Act
         var result = await _service.GetFiscalYearByIdAsync(999);
 
@@ -97,10 +101,14 @@ public class FiscalYearServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     public async Task GetAllFiscalYearsAsync_ReturnsAllFiscalYears()
     {
         // Arrange
-        var fiscalYear1 = FiscalYear.Create(2022, 2023);
-        var fiscalYear2 = FiscalYear.Create(2023, 2024);
-        _context.FiscalYears.AddRange(fiscalYear1, fiscalYear2);
-        await _context.SaveChangesAsync();
+        var fiscalYears = new List<FiscalYear>
+        {
+            FiscalYear.Create(2022, 2023),
+            FiscalYear.Create(2023, 2024)
+        };
+
+        _repositoryMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(fiscalYears);
 
         // Act
         var result = await _service.GetAllFiscalYearsAsync();
@@ -116,8 +124,9 @@ public class FiscalYearServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     {
         // Arrange
         var fiscalYear = FiscalYear.Create(2023, 2024);
-        _context.FiscalYears.Add(fiscalYear);
-        await _context.SaveChangesAsync();
+
+        _repositoryMock.Setup(r => r.GetByStartYearAsync(2023))
+            .ReturnsAsync(fiscalYear);
 
         // Act
         var result = await _service.GetFiscalYearByStartYearAsync(2023);
@@ -131,6 +140,10 @@ public class FiscalYearServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     [Fact]
     public async Task GetFiscalYearByStartYearAsync_NonExistingYear_ReturnsNull()
     {
+        // Arrange
+        _repositoryMock.Setup(r => r.GetByStartYearAsync(2025))
+            .ReturnsAsync((FiscalYear?)null);
+
         // Act
         var result = await _service.GetFiscalYearByStartYearAsync(2025);
 
@@ -143,21 +156,27 @@ public class FiscalYearServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     {
         // Arrange
         var fiscalYear = FiscalYear.Create(2023, 2024);
-        _context.FiscalYears.Add(fiscalYear);
-        await _context.SaveChangesAsync();
         var fiscalYearId = fiscalYear.Id;
+
+        _repositoryMock.Setup(r => r.GetByIdAsync(fiscalYearId))
+            .ReturnsAsync(fiscalYear);
+        _repositoryMock.Setup(r => r.DeleteAsync(fiscalYearId))
+            .Returns(Task.CompletedTask);
 
         // Act
         await _service.DeleteFiscalYearAsync(fiscalYearId);
 
         // Assert
-        var deleted = await _context.FiscalYears.FindAsync(fiscalYearId);
-        deleted.Should().BeNull();
+        _repositoryMock.Verify(r => r.DeleteAsync(fiscalYearId), Times.Once);
     }
 
     [Fact]
     public async Task DeleteFiscalYearAsync_NonExistingId_ThrowsException()
     {
+        // Arrange
+        _repositoryMock.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((FiscalYear?)null);
+
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => 
             _service.DeleteFiscalYearAsync(999));
@@ -171,10 +190,15 @@ public class FiscalYearServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var currentYear = DateTime.Now.Year;
         var currentFiscalStartYear = currentMonth >= 9 ? currentYear : currentYear - 1;
         
-        // Create some fiscal years
-        await _service.CreateFiscalYearAsync(1991);
-        await _service.CreateFiscalYearAsync(1992);
-        await _service.CreateFiscalYearAsync(currentFiscalStartYear);
+        var existingFiscalYears = new List<FiscalYear>
+        {
+            FiscalYear.Create(1991, 1992),
+            FiscalYear.Create(1992, 1993),
+            FiscalYear.Create(currentFiscalStartYear, currentFiscalStartYear + 1)
+        };
+
+        _repositoryMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(existingFiscalYears);
 
         // Act
         var availableYears = (await _service.GetAvailableFiscalYearStartYearsAsync()).ToList();
@@ -196,20 +220,19 @@ public class FiscalYearServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var currentFiscalStartYear = currentMonth >= 9 ? currentYear : currentYear - 1;
         
         // Create all fiscal years from 1991 to current
+        var allFiscalYears = new List<FiscalYear>();
         for (int year = 1991; year <= currentFiscalStartYear; year++)
         {
-            await _service.CreateFiscalYearAsync(year);
+            allFiscalYears.Add(FiscalYear.Create(year, year + 1));
         }
+
+        _repositoryMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(allFiscalYears);
 
         // Act
         var availableYears = (await _service.GetAvailableFiscalYearStartYearsAsync()).ToList();
 
         // Assert
         availableYears.Should().BeEmpty();
-    }
-
-    public void Dispose()
-    {
-        _context?.Dispose();
     }
 }

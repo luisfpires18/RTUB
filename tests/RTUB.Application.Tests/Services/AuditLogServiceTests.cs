@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
@@ -29,7 +30,7 @@ public class AuditLogServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _auditLogService = new AuditLogService(_context);
+        _auditLogService = new AuditLogService(new AuditLogRepository(_context));
     }
 
     [Fact]

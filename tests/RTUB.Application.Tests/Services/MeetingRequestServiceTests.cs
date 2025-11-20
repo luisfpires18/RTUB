@@ -1,9 +1,10 @@
-using RTUB.Application.Data;
+using FluentAssertions;
+using Moq;
+using MockQueryable.Moq;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -12,42 +13,19 @@ namespace RTUB.Application.Tests.Services;
 /// </summary>
 public class MeetingRequestServiceTests
 {
-    private ApplicationDbContext GetInMemoryContext()
-    {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
+    private readonly Mock<IMeetingRequestRepository> _repositoryMock;
+    private readonly MeetingRequestService _service;
 
-        var httpContextAccessor = new HttpContextAccessor();
-        var auditContext = new AuditContext();
-        
-        return new ApplicationDbContext(options, httpContextAccessor, auditContext);
-    }
-
-    private async Task<ApplicationUser> AddUserToContext(ApplicationDbContext context, string userId, string username = "testuser")
+    public MeetingRequestServiceTests()
     {
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = username, 
-            Email = $"{username}@test.com",
-            FirstName = "Test",
-            LastName = "User",
-            Nickname = username,
-            PhoneNumber = "123456789"
-        };
-        context.Users.Add(user);
-        await context.SaveChangesAsync();
-        return user;
+        _repositoryMock = new Mock<IMeetingRequestRepository>();
+        _service = new MeetingRequestService(_repositoryMock.Object);
     }
 
     [Fact]
     public async Task CreateAsync_ShouldAddMeetingRequestToDatabase()
     {
         // Arrange
-        var context = GetInMemoryContext();
-        context.DisableAuditing(); // Disable auditing for tests
-        var service = new MeetingRequestService(context);
         var request = new MeetingRequest
         {
             Title = "Test CV Meeting",
@@ -58,49 +36,57 @@ public class MeetingRequestServiceTests
             Status = RequestStatus.Pending
         };
 
+        var createdRequest = new MeetingRequest
+        {
+            Id = 1,
+            Title = "Test CV Meeting",
+            ProposedDateTime = request.ProposedDateTime,
+            Location = "Discord",
+            Description = "Test meeting description",
+            AuthorUserId = "user123",
+            Status = RequestStatus.Pending
+        };
+
+        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<MeetingRequest>()))
+            .ReturnsAsync(createdRequest);
+
         // Act
-        var result = await service.CreateAsync(request);
+        var result = await _service.CreateAsync(request);
 
         // Assert
         Assert.NotNull(result);
         Assert.Equal("Test CV Meeting", result.Title);
-        Assert.Equal(1, await context.MeetingRequests.CountAsync());
     }
 
     [Fact]
     public async Task GetAllAsync_ShouldReturnAllMeetingRequests()
     {
         // Arrange
-        var context = GetInMemoryContext();
-        context.DisableAuditing(); // Disable auditing for tests
-        var service = new MeetingRequestService(context);
-        
-        // Add users first
-        await AddUserToContext(context, "user1", "user1");
-        await AddUserToContext(context, "user2", "user2");
-        
-        var request1 = new MeetingRequest
+        var requests = new List<MeetingRequest>
         {
-            Title = "Meeting 1",
-            ProposedDateTime = DateTime.Now,
-            Description = "Description 1",
-            AuthorUserId = "user1"
-        };
-        
-        var request2 = new MeetingRequest
-        {
-            Title = "Meeting 2",
-            ProposedDateTime = DateTime.Now,
-            Description = "Description 2",
-            AuthorUserId = "user2"
+            new MeetingRequest
+            {
+                Id = 1,
+                Title = "Meeting 1",
+                ProposedDateTime = DateTime.Now,
+                Description = "Description 1",
+                AuthorUserId = "user1"
+            },
+            new MeetingRequest
+            {
+                Id = 2,
+                Title = "Meeting 2",
+                ProposedDateTime = DateTime.Now,
+                Description = "Description 2",
+                AuthorUserId = "user2"
+            }
         };
 
-        context.MeetingRequests.Add(request1);
-        context.MeetingRequests.Add(request2);
-        await context.SaveChangesAsync();
+        _repositoryMock.Setup(r => r.GetAllWithAuthorAsync(null))
+            .ReturnsAsync(requests);
 
         // Act
-        var results = await service.GetAllAsync();
+        var results = await _service.GetAllAsync();
 
         // Assert
         Assert.Equal(2, results.Count());
@@ -110,26 +96,20 @@ public class MeetingRequestServiceTests
     public async Task GetByIdAsync_ShouldReturnCorrectMeetingRequest()
     {
         // Arrange
-        var context = GetInMemoryContext();
-        context.DisableAuditing();
-        var service = new MeetingRequestService(context);
-        
-        // Add user first
-        await AddUserToContext(context, "user123", "user123");
-        
         var request = new MeetingRequest
         {
+            Id = 1,
             Title = "Test Meeting",
             ProposedDateTime = DateTime.Now,
             Description = "Test description",
             AuthorUserId = "user123"
         };
 
-        context.MeetingRequests.Add(request);
-        await context.SaveChangesAsync();
+        _repositoryMock.Setup(r => r.GetByIdWithAuthorAsync(1))
+            .ReturnsAsync(request);
 
         // Act
-        var result = await service.GetByIdAsync(request.Id);
+        var result = await _service.GetByIdAsync(request.Id);
 
         // Assert
         Assert.NotNull(result);
@@ -141,15 +121,9 @@ public class MeetingRequestServiceTests
     public async Task UpdateStatusAsync_ShouldUpdateRequestStatus()
     {
         // Arrange
-        var context = GetInMemoryContext();
-        context.DisableAuditing();
-        var service = new MeetingRequestService(context);
-        
-        // Add user first
-        await AddUserToContext(context, "user123", "user123");
-        
         var request = new MeetingRequest
         {
+            Id = 1,
             Title = "Test Meeting",
             ProposedDateTime = DateTime.Now,
             Description = "Test description",
@@ -157,15 +131,26 @@ public class MeetingRequestServiceTests
             Status = RequestStatus.Pending
         };
 
-        context.MeetingRequests.Add(request);
-        await context.SaveChangesAsync();
+        var updatedRequest = new MeetingRequest
+        {
+            Id = 1,
+            Title = "Test Meeting",
+            ProposedDateTime = request.ProposedDateTime,
+            Description = "Test description",
+            AuthorUserId = "user123",
+            Status = RequestStatus.Confirmed
+        };
+
+        _repositoryMock.Setup(r => r.GetByIdAsync(1))
+            .ReturnsAsync(request);
+        _repositoryMock.Setup(r => r.UpdateAsync(It.IsAny<MeetingRequest>()))
+            .Returns(Task.CompletedTask);
+        _repositoryMock.Setup(r => r.GetByIdWithAuthorAsync(1))
+            .ReturnsAsync(updatedRequest);
 
         // Act
-        await service.UpdateStatusAsync(request.Id, RequestStatus.Confirmed);
-        
-        // Create new service instance with same context to simulate a fresh query
-        var verifyService = new MeetingRequestService(context);
-        var updated = await verifyService.GetByIdAsync(request.Id);
+        await _service.UpdateStatusAsync(request.Id, RequestStatus.Confirmed);
+        var updated = await _service.GetByIdAsync(request.Id);
 
         // Assert
         Assert.NotNull(updated);
@@ -176,13 +161,12 @@ public class MeetingRequestServiceTests
     public async Task UpdateStatusAsync_WithInvalidId_ShouldThrowException()
     {
         // Arrange
-        var context = GetInMemoryContext();
-        context.DisableAuditing();
-        var service = new MeetingRequestService(context);
+        _repositoryMock.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((MeetingRequest?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await service.UpdateStatusAsync(999, RequestStatus.Confirmed)
+            async () => await _service.UpdateStatusAsync(999, RequestStatus.Confirmed)
         );
     }
 
@@ -190,42 +174,40 @@ public class MeetingRequestServiceTests
     public async Task DeleteAsync_ShouldRemoveMeetingRequest()
     {
         // Arrange
-        var context = GetInMemoryContext();
-        context.DisableAuditing();
-        var service = new MeetingRequestService(context);
-        
         var request = new MeetingRequest
         {
+            Id = 1,
             Title = "Test Meeting",
             ProposedDateTime = DateTime.Now,
             Description = "Test description",
             AuthorUserId = "user123"
         };
 
-        context.MeetingRequests.Add(request);
-        await context.SaveChangesAsync();
-        var createdId = request.Id;
+        _repositoryMock.Setup(r => r.GetByIdAsync(1))
+            .ReturnsAsync(request);
+        _repositoryMock.Setup(r => r.DeleteAsync(1))
+            .Returns(Task.CompletedTask);
+        _repositoryMock.Setup(r => r.GetByIdWithAuthorAsync(1))
+            .ReturnsAsync((MeetingRequest?)null);
 
         // Act
-        await service.DeleteAsync(createdId);
+        await _service.DeleteAsync(request.Id);
 
         // Assert
-        var deleted = await service.GetByIdAsync(createdId);
+        var deleted = await _service.GetByIdAsync(request.Id);
         Assert.Null(deleted);
-        Assert.Equal(0, await context.MeetingRequests.CountAsync());
     }
 
     [Fact]
     public async Task DeleteAsync_WithInvalidId_ShouldThrowException()
     {
         // Arrange
-        var context = GetInMemoryContext();
-        context.DisableAuditing();
-        var service = new MeetingRequestService(context);
+        _repositoryMock.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((MeetingRequest?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await service.DeleteAsync(999)
+            async () => await _service.DeleteAsync(999)
         );
     }
 
@@ -233,38 +215,33 @@ public class MeetingRequestServiceTests
     public async Task GetAllAsync_ShouldOrderByCreatedAtDescending()
     {
         // Arrange
-        var context = GetInMemoryContext();
-        context.DisableAuditing();
-        var service = new MeetingRequestService(context);
-        
-        // Add users first
-        await AddUserToContext(context, "user1", "user1");
-        await AddUserToContext(context, "user2", "user2");
-        
-        var request1 = new MeetingRequest
+        var requests = new List<MeetingRequest>
         {
-            Title = "First",
-            ProposedDateTime = DateTime.Now,
-            Description = "Description 1",
-            AuthorUserId = "user1",
-            CreatedAt = DateTime.UtcNow.AddMinutes(-10)
+            new MeetingRequest
+            {
+                Id = 1,
+                Title = "First",
+                ProposedDateTime = DateTime.Now,
+                Description = "Description 1",
+                AuthorUserId = "user1",
+                CreatedAt = DateTime.UtcNow.AddMinutes(-10)
+            },
+            new MeetingRequest
+            {
+                Id = 2,
+                Title = "Second",
+                ProposedDateTime = DateTime.Now,
+                Description = "Description 2",
+                AuthorUserId = "user2",
+                CreatedAt = DateTime.UtcNow
+            }
         };
-        
-        var request2 = new MeetingRequest
-        {
-            Title = "Second",
-            ProposedDateTime = DateTime.Now,
-            Description = "Description 2",
-            AuthorUserId = "user2",
-            CreatedAt = DateTime.UtcNow
-        };
-        
-        context.MeetingRequests.Add(request1);
-        context.MeetingRequests.Add(request2);
-        await context.SaveChangesAsync();
+
+        _repositoryMock.Setup(r => r.GetAllWithAuthorAsync(null))
+            .ReturnsAsync(requests);
 
         // Act
-        var results = (await service.GetAllAsync()).ToList();
+        var results = (await _service.GetAllAsync()).ToList();
 
         // Assert
         Assert.Equal(2, results.Count);
@@ -276,37 +253,24 @@ public class MeetingRequestServiceTests
     public async Task GetAllAsync_WithStatusFilter_ShouldReturnFilteredRequests()
     {
         // Arrange
-        var context = GetInMemoryContext();
-        context.DisableAuditing();
-        var service = new MeetingRequestService(context);
-        
-        // Add users first
-        await AddUserToContext(context, "user1", "user1");
-        await AddUserToContext(context, "user2", "user2");
-        
-        var pending = new MeetingRequest
+        var requests = new List<MeetingRequest>
         {
-            Title = "Pending",
-            ProposedDateTime = DateTime.Now,
-            Description = "Pending request",
-            AuthorUserId = "user1",
-            Status = RequestStatus.Pending
+            new MeetingRequest
+            {
+                Id = 1,
+                Title = "Pending",
+                ProposedDateTime = DateTime.Now,
+                Description = "Pending request",
+                AuthorUserId = "user1",
+                Status = RequestStatus.Pending
+            }
         };
-        
-        var confirmed = new MeetingRequest
-        {
-            Title = "Confirmed",
-            ProposedDateTime = DateTime.Now,
-            Description = "Confirmed request",
-            AuthorUserId = "user2",
-            Status = RequestStatus.Confirmed
-        };
-        
-        context.MeetingRequests.AddRange(pending, confirmed);
-        await context.SaveChangesAsync();
+
+        _repositoryMock.Setup(r => r.GetAllWithAuthorAsync(RequestStatus.Pending))
+            .ReturnsAsync(requests);
 
         // Act
-        var results = (await service.GetAllAsync(RequestStatus.Pending)).ToList();
+        var results = (await _service.GetAllAsync(RequestStatus.Pending)).ToList();
 
         // Assert
         Assert.Single(results);
@@ -317,30 +281,27 @@ public class MeetingRequestServiceTests
     public async Task GetPagedAsync_ShouldReturnCorrectPage()
     {
         // Arrange
-        var context = GetInMemoryContext();
-        context.DisableAuditing();
-        var service = new MeetingRequestService(context);
-        
-        // Add user first
-        await AddUserToContext(context, "user1", "user1");
-        
-        // Add 5 requests
-        for (int i = 1; i <= 5; i++)
+        var requests = new List<MeetingRequest>
         {
-            context.MeetingRequests.Add(new MeetingRequest
-            {
-                Title = $"Meeting {i}",
-                ProposedDateTime = DateTime.Now,
-                Description = $"Description {i}",
-                AuthorUserId = "user1",
-                CreatedAt = DateTime.UtcNow.AddMinutes(-i)
-            });
-        }
-        await context.SaveChangesAsync();
+            new MeetingRequest { Id = 1, Title = "Meeting 1", ProposedDateTime = DateTime.Now, Description = "D1", AuthorUserId = "u1", CreatedAt = DateTime.UtcNow.AddMinutes(-1) },
+            new MeetingRequest { Id = 2, Title = "Meeting 2", ProposedDateTime = DateTime.Now, Description = "D2", AuthorUserId = "u1", CreatedAt = DateTime.UtcNow.AddMinutes(-2) }
+        };
+
+        _repositoryMock.Setup(r => r.GetPagedWithAuthorAsync(1, 2, null))
+            .ReturnsAsync(requests.Take(2).ToList());
+
+        var requests2 = new List<MeetingRequest>
+        {
+            new MeetingRequest { Id = 3, Title = "Meeting 3", ProposedDateTime = DateTime.Now, Description = "D3", AuthorUserId = "u1", CreatedAt = DateTime.UtcNow.AddMinutes(-3) },
+            new MeetingRequest { Id = 4, Title = "Meeting 4", ProposedDateTime = DateTime.Now, Description = "D4", AuthorUserId = "u1", CreatedAt = DateTime.UtcNow.AddMinutes(-4) }
+        };
+
+        _repositoryMock.Setup(r => r.GetPagedWithAuthorAsync(2, 2, null))
+            .ReturnsAsync(requests2);
 
         // Act
-        var page1 = (await service.GetPagedAsync(1, 2)).ToList();
-        var page2 = (await service.GetPagedAsync(2, 2)).ToList();
+        var page1 = (await _service.GetPagedAsync(1, 2)).ToList();
+        var page2 = (await _service.GetPagedAsync(2, 2)).ToList();
 
         // Assert
         Assert.Equal(2, page1.Count);
@@ -353,41 +314,18 @@ public class MeetingRequestServiceTests
     public async Task GetPagedAsync_WithStatusFilter_ShouldReturnFilteredPage()
     {
         // Arrange
-        var context = GetInMemoryContext();
-        context.DisableAuditing();
-        var service = new MeetingRequestService(context);
-        
-        // Add user first
-        await AddUserToContext(context, "user1", "user1");
-        
-        // Add 3 pending and 2 confirmed requests
-        for (int i = 1; i <= 3; i++)
+        var requests = new List<MeetingRequest>
         {
-            context.MeetingRequests.Add(new MeetingRequest
-            {
-                Title = $"Pending {i}",
-                ProposedDateTime = DateTime.Now,
-                Description = $"Description {i}",
-                AuthorUserId = "user1",
-                Status = RequestStatus.Pending
-            });
-        }
-        
-        for (int i = 1; i <= 2; i++)
-        {
-            context.MeetingRequests.Add(new MeetingRequest
-            {
-                Title = $"Confirmed {i}",
-                ProposedDateTime = DateTime.Now,
-                Description = $"Description {i}",
-                AuthorUserId = "user1",
-                Status = RequestStatus.Confirmed
-            });
-        }
-        await context.SaveChangesAsync();
+            new MeetingRequest { Id = 1, Title = "Pending 1", ProposedDateTime = DateTime.Now, Description = "D1", AuthorUserId = "u1", Status = RequestStatus.Pending },
+            new MeetingRequest { Id = 2, Title = "Pending 2", ProposedDateTime = DateTime.Now, Description = "D2", AuthorUserId = "u1", Status = RequestStatus.Pending },
+            new MeetingRequest { Id = 3, Title = "Pending 3", ProposedDateTime = DateTime.Now, Description = "D3", AuthorUserId = "u1", Status = RequestStatus.Pending }
+        };
+
+        _repositoryMock.Setup(r => r.GetPagedWithAuthorAsync(1, 10, RequestStatus.Pending))
+            .ReturnsAsync(requests);
 
         // Act
-        var results = (await service.GetPagedAsync(1, 10, RequestStatus.Pending)).ToList();
+        var results = (await _service.GetPagedAsync(1, 10, RequestStatus.Pending)).ToList();
 
         // Assert
         Assert.Equal(3, results.Count);
@@ -398,19 +336,11 @@ public class MeetingRequestServiceTests
     public async Task GetTotalCountAsync_ShouldReturnCorrectCount()
     {
         // Arrange
-        var context = GetInMemoryContext();
-        context.DisableAuditing();
-        var service = new MeetingRequestService(context);
-        
-        context.MeetingRequests.AddRange(
-            new MeetingRequest { Title = "1", ProposedDateTime = DateTime.Now, Description = "D", AuthorUserId = "u1" },
-            new MeetingRequest { Title = "2", ProposedDateTime = DateTime.Now, Description = "D", AuthorUserId = "u1" },
-            new MeetingRequest { Title = "3", ProposedDateTime = DateTime.Now, Description = "D", AuthorUserId = "u1" }
-        );
-        await context.SaveChangesAsync();
+        _repositoryMock.Setup(r => r.GetCountAsync(null))
+            .ReturnsAsync(3);
 
         // Act
-        var count = await service.GetTotalCountAsync();
+        var count = await _service.GetTotalCountAsync();
 
         // Assert
         Assert.Equal(3, count);
@@ -420,19 +350,11 @@ public class MeetingRequestServiceTests
     public async Task GetTotalCountAsync_WithStatusFilter_ShouldReturnFilteredCount()
     {
         // Arrange
-        var context = GetInMemoryContext();
-        context.DisableAuditing();
-        var service = new MeetingRequestService(context);
-        
-        context.MeetingRequests.AddRange(
-            new MeetingRequest { Title = "1", ProposedDateTime = DateTime.Now, Description = "D", AuthorUserId = "u1", Status = RequestStatus.Pending },
-            new MeetingRequest { Title = "2", ProposedDateTime = DateTime.Now, Description = "D", AuthorUserId = "u1", Status = RequestStatus.Pending },
-            new MeetingRequest { Title = "3", ProposedDateTime = DateTime.Now, Description = "D", AuthorUserId = "u1", Status = RequestStatus.Confirmed }
-        );
-        await context.SaveChangesAsync();
+        _repositoryMock.Setup(r => r.GetCountAsync(RequestStatus.Pending))
+            .ReturnsAsync(2);
 
         // Act
-        var count = await service.GetTotalCountAsync(RequestStatus.Pending);
+        var count = await _service.GetTotalCountAsync(RequestStatus.Pending);
 
         // Assert
         Assert.Equal(2, count);

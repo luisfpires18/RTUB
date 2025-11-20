@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -7,42 +5,33 @@ using RTUB.Core.Exceptions;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Comment service implementation
+/// Comment service implementation using Repository pattern
+/// Now depends on ICommentRepository abstraction instead of concrete DbContext
 /// </summary>
 public class CommentService : ICommentService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ICommentRepository _commentRepository;
     private readonly IPostService _postService;
 
-    public CommentService(ApplicationDbContext context, IPostService postService)
+    public CommentService(ICommentRepository commentRepository, IPostService postService)
     {
-        _context = context;
+        _commentRepository = commentRepository;
         _postService = postService;
     }
 
     public async Task<Comment?> GetByIdAsync(int id)
     {
-        return await _context.Comments
-            .Include(c => c.Author)
-            .FirstOrDefaultAsync(c => c.Id == id);
+        return await _commentRepository.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<Comment>> GetByPostIdAsync(int postId, int page = 1, int pageSize = 50)
     {
-        return await _context.Comments
-            .Include(c => c.Author)
-            .Where(c => c.PostId == postId && !c.IsDeleted)
-            .OrderBy(c => c.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        return await _commentRepository.GetByPostIdAsync(postId, page, pageSize);
     }
 
     public async Task<int> GetCountByPostIdAsync(int postId)
     {
-        return await _context.Comments
-            .Where(c => c.PostId == postId && !c.IsDeleted)
-            .CountAsync();
+        return await _commentRepository.GetCountByPostIdAsync(postId);
     }
 
     public async Task<Comment> CreateAsync(int postId, string authorId, string body, string? mentionsJson = null)
@@ -53,18 +42,17 @@ public class CommentService : ICommentService
             comment.SetMentions(mentionsJson);
         }
 
-        _context.Comments.Add(comment);
-        await _context.SaveChangesAsync();
+        var createdComment = await _commentRepository.AddAsync(comment);
 
         // Update post's last activity timestamp
         await _postService.UpdateLastActivityAsync(postId);
 
-        return comment;
+        return createdComment;
     }
 
     public async Task UpdateAsync(int id, string body, string? mentionsJson = null)
     {
-        var comment = await _context.Comments.FindAsync(id);
+        var comment = await _commentRepository.GetByIdAsync(id);
         if (comment == null)
             throw new EntityNotFoundException(nameof(Comment), id);
 
@@ -74,16 +62,16 @@ public class CommentService : ICommentService
             comment.SetMentions(mentionsJson);
         }
 
-        await _context.SaveChangesAsync();
+        await _commentRepository.UpdateAsync(comment);
     }
 
     public async Task SoftDeleteAsync(int id)
     {
-        var comment = await _context.Comments.FindAsync(id);
+        var comment = await _commentRepository.GetByIdAsync(id);
         if (comment == null)
             throw new EntityNotFoundException(nameof(Comment), id);
 
         comment.SoftDelete();
-        await _context.SaveChangesAsync();
+        await _commentRepository.UpdateAsync(comment);
     }
 }

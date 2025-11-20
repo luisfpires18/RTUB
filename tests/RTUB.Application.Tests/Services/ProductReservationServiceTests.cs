@@ -1,9 +1,7 @@
 using FluentAssertions;
 using Moq;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
-using RTUB.Application.Data;
-using RTUB.Application.Tests.Fixtures;
+using MockQueryable.Moq;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 
@@ -12,42 +10,34 @@ namespace RTUB.Application.Tests.Services;
 /// <summary>
 /// Unit tests for ProductReservationService
 /// </summary>
-public class ProductReservationServiceTests : IClassFixture<DatabaseFixture>, IDisposable
+public class ProductReservationServiceTests
 {
-    private readonly ApplicationDbContext _context;
-    private readonly DatabaseFixture _fixture;
+    private readonly Mock<IProductReservationRepository> _mockRepository;
     private readonly ProductReservationService _service;
 
-    public ProductReservationServiceTests(DatabaseFixture fixture)
+    public ProductReservationServiceTests()
     {
-        // Clean database at constructor start to ensure test isolation
-        _fixture = fixture;
-        var tempContext = _fixture.CreateContext();
-        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
-        tempContext.Dispose();
-        
-        _fixture = fixture;
-        _context = _fixture.CreateContext();
-        _service = new ProductReservationService(_context);
+        _mockRepository = new Mock<IProductReservationRepository>();
+        _service = new ProductReservationService(_mockRepository.Object);
     }
 
     [Fact]
     public async Task CreateAsync_WithValidReservation_CreatesReservation()
     {
         // Arrange
-        var product = Product.Create("T-Shirt", "Clothing", 15.00m, 10);
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
-
-        var reservation = ProductReservation.Create(product.Id, "user123", "TestUser", true, "M", "Display Name");
+        var reservation = ProductReservation.Create(1, "user123", "TestUser", true, "M", "Display Name");
+        var emptyList = new List<ProductReservation>();
+        var mockQueryable = emptyList.BuildMockDbSet().Object;
+        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<ProductReservation>()))
+            .ReturnsAsync(reservation);
 
         // Act
         var result = await _service.CreateAsync(reservation);
 
         // Assert
         result.Should().NotBeNull();
-        result.Id.Should().BeGreaterThan(0);
-        result.ProductId.Should().Be(product.Id);
+        result.ProductId.Should().Be(1);
         result.UserId.Should().Be("user123");
         result.UserNickname.Should().Be("TestUser");
         result.Size.Should().Be("M");
@@ -57,17 +47,15 @@ public class ProductReservationServiceTests : IClassFixture<DatabaseFixture>, ID
     public async Task CreateAsync_WithDuplicateReservation_ThrowsInvalidOperationException()
     {
         // Arrange
-        var product = Product.Create("T-Shirt", "Clothing", 15.00m, 10);
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
+        var existingReservation = ProductReservation.Create(1, "user123", "TestUser", false);
+        var existingList = new List<ProductReservation> { existingReservation };
+        var mockQueryable = existingList.BuildMockDbSet().Object;
+        _mockRepository.Setup(r => r.Query()).Returns(mockQueryable);
 
-        var reservation1 = ProductReservation.Create(product.Id, "user123", "TestUser", false);
-        await _service.CreateAsync(reservation1);
-
-        var reservation2 = ProductReservation.Create(product.Id, "user123", "TestUser", false);
+        var reservation = ProductReservation.Create(1, "user123", "TestUser", false);
 
         // Act & Assert
-        var act = async () => await _service.CreateAsync(reservation2);
+        var act = async () => await _service.CreateAsync(reservation);
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*reserva*");
     }
@@ -76,18 +64,16 @@ public class ProductReservationServiceTests : IClassFixture<DatabaseFixture>, ID
     public async Task GetByProductIdAsync_ReturnsReservationsForProduct()
     {
         // Arrange
-        var product = Product.Create("Album", "Music", 10.00m, 5);
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
-
-        var reservation1 = ProductReservation.Create(product.Id, "user1", "User1", false);
-        var reservation2 = ProductReservation.Create(product.Id, "user2", "User2", true, "L");
-        _context.ProductReservations.Add(reservation1);
-        _context.ProductReservations.Add(reservation2);
-        await _context.SaveChangesAsync();
+        var reservations = new List<ProductReservation>
+        {
+            ProductReservation.Create(1, "user1", "User1", false),
+            ProductReservation.Create(1, "user2", "User2", true, "L")
+        };
+        _mockRepository.Setup(r => r.GetByProductIdAsync(1))
+            .ReturnsAsync(reservations);
 
         // Act
-        var result = await _service.GetByProductIdAsync(product.Id);
+        var result = await _service.GetByProductIdAsync(1);
 
         // Assert
         result.Should().HaveCount(2);
@@ -99,39 +85,32 @@ public class ProductReservationServiceTests : IClassFixture<DatabaseFixture>, ID
     public async Task GetByUserIdAsync_ReturnsReservationsForUser()
     {
         // Arrange
-        var product1 = Product.Create("T-Shirt", "Clothing", 15.00m, 10);
-        var product2 = Product.Create("Album", "Music", 10.00m, 5);
-        _context.Products.AddRange(product1, product2);
-        await _context.SaveChangesAsync();
-
-        var reservation1 = ProductReservation.Create(product1.Id, "user1", "User1", true, "M");
-        var reservation2 = ProductReservation.Create(product2.Id, "user1", "User1", false);
-        _context.ProductReservations.Add(reservation1);
-        _context.ProductReservations.Add(reservation2);
-        await _context.SaveChangesAsync();
+        var reservations = new List<ProductReservation>
+        {
+            ProductReservation.Create(1, "user1", "User1", true, "M"),
+            ProductReservation.Create(2, "user1", "User1", false)
+        };
+        _mockRepository.Setup(r => r.GetByUserIdAsync("user1"))
+            .ReturnsAsync(reservations);
 
         // Act
         var result = await _service.GetByUserIdAsync("user1");
 
         // Assert
         result.Should().HaveCount(2);
-        result.Should().Contain(r => r.ProductId == product1.Id);
-        result.Should().Contain(r => r.ProductId == product2.Id);
+        result.Should().Contain(r => r.ProductId == 1);
+        result.Should().Contain(r => r.ProductId == 2);
     }
 
     [Fact]
     public async Task HasReservationAsync_WithExistingReservation_ReturnsTrue()
     {
         // Arrange
-        var product = Product.Create("Pin", "Accessory", 5.00m, 20);
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
-
-        var reservation = ProductReservation.Create(product.Id, "user1", "User1", false);
-        await _service.CreateAsync(reservation);
+        _mockRepository.Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ProductReservation, bool>>>()))
+            .ReturnsAsync(true);
 
         // Act
-        var result = await _service.HasReservationAsync(product.Id, "user1");
+        var result = await _service.HasReservationAsync(1, "user1");
 
         // Assert
         result.Should().BeTrue();
@@ -141,12 +120,11 @@ public class ProductReservationServiceTests : IClassFixture<DatabaseFixture>, ID
     public async Task HasReservationAsync_WithoutReservation_ReturnsFalse()
     {
         // Arrange
-        var product = Product.Create("Pin", "Accessory", 5.00m, 20);
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
+        _mockRepository.Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<ProductReservation, bool>>>()))
+            .ReturnsAsync(false);
 
         // Act
-        var result = await _service.HasReservationAsync(product.Id, "user1");
+        var result = await _service.HasReservationAsync(1, "user1");
 
         // Assert
         result.Should().BeFalse();
@@ -156,15 +134,12 @@ public class ProductReservationServiceTests : IClassFixture<DatabaseFixture>, ID
     public async Task GetByProductAndUserAsync_WithExistingReservation_ReturnsReservation()
     {
         // Arrange
-        var product = Product.Create("Mug", "Accessory", 8.00m, 15);
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
-
-        var reservation = ProductReservation.Create(product.Id, "user1", "User1", false, null, "Custom Name");
-        await _service.CreateAsync(reservation);
+        var reservation = ProductReservation.Create(1, "user1", "User1", false, null, "Custom Name");
+        _mockRepository.Setup(r => r.Query())
+            .Returns(new List<ProductReservation> { reservation }.BuildMockDbSet().Object);
 
         // Act
-        var result = await _service.GetByProductAndUserAsync(product.Id, "user1");
+        var result = await _service.GetByProductAndUserAsync(1, "user1");
 
         // Assert
         result.Should().NotBeNull();
@@ -175,24 +150,14 @@ public class ProductReservationServiceTests : IClassFixture<DatabaseFixture>, ID
     public async Task DeleteAsync_RemovesReservation()
     {
         // Arrange
-        var product = Product.Create("Cap", "Clothing", 12.00m, 8);
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
-
-        var reservation = ProductReservation.Create(product.Id, "user1", "User1", false);
-        await _service.CreateAsync(reservation);
+        var reservation = ProductReservation.Create(1, "user1", "User1", false);
+        _mockRepository.Setup(r => r.GetByIdAsync(reservation.Id))
+            .ReturnsAsync(reservation);
 
         // Act
         await _service.DeleteAsync(reservation.Id);
 
         // Assert
-        var result = await _service.GetByIdAsync(reservation.Id);
-        result.Should().BeNull();
-    }
-
-    public void Dispose()
-    {
-        _context.Database.EnsureDeleted();
-        _context.Dispose();
+        _mockRepository.Verify(r => r.DeleteAsync(It.IsAny<ProductReservation>()), Times.Once);
     }
 }

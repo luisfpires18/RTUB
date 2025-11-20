@@ -5,6 +5,7 @@ using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Core.Exceptions;
 
@@ -19,6 +20,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     private readonly ApplicationDbContext _context;
     private readonly DatabaseFixture _fixture;
     private readonly EnrollmentService _enrollmentService;
+    private readonly EventRepository _eventRepository;
     private readonly EventService _eventService;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
 
@@ -32,9 +34,10 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _enrollmentService = new EnrollmentService(_context);
+        _enrollmentService = new EnrollmentService(new EnrollmentRepository(_context));
         _mockImageStorageService = new Mock<IImageStorageService>();
-        _eventService = new EventService(_context, _mockImageStorageService.Object);
+        _eventRepository = new EventRepository(_context);
+        _eventService = new EventService(_eventRepository, _mockImageStorageService.Object);
     }
 
     [Fact]

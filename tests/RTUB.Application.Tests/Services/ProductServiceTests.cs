@@ -6,6 +6,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
@@ -32,7 +33,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _imageStorageServiceMock = new Mock<IImageStorageService>();
-        _service = new ProductService(_context, _imageStorageServiceMock.Object);
+        _service = new ProductService(new ProductRepository(_context), _imageStorageServiceMock.Object);
     }
 
     [Fact]

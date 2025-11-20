@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -34,8 +35,8 @@ public class RehearsalWorkflowTests : IDisposable
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
 
-        _rehearsalService = new RehearsalService(_context);
-        _attendanceService = new RehearsalAttendanceService(_context);
+        _rehearsalService = new RehearsalService(new RehearsalRepository(_context));
+        _attendanceService = new RehearsalAttendanceService(new RehearsalAttendanceRepository(_context));
     }
 
     [Fact]

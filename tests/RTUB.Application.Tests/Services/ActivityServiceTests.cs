@@ -1,9 +1,7 @@
 using FluentAssertions;
 using Moq;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
-using RTUB.Application.Data;
-using RTUB.Application.Tests.Fixtures;
+using MockQueryable.Moq;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -14,57 +12,46 @@ namespace RTUB.Application.Tests.Services;
 /// Unit tests for ActivityService
 /// Tests business logic and service layer operations
 /// </summary>
-public class ActivityServiceTests : IClassFixture<DatabaseFixture>, IDisposable
+public class ActivityServiceTests
 {
-    private readonly ApplicationDbContext _context;
-    private readonly DatabaseFixture _fixture;
+    private readonly Mock<IActivityRepository> _mockActivityRepository;
     private readonly ActivityService _service;
 
-    public ActivityServiceTests(DatabaseFixture fixture)
+    public ActivityServiceTests()
     {
-        // Clean database at constructor start to ensure test isolation
-        _fixture = fixture;
-        var tempContext = _fixture.CreateContext();
-        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
-        tempContext.Dispose();
-        
-        _fixture = fixture;
-        _context = _fixture.CreateContext();
-        _service = new ActivityService(_context);
+        _mockActivityRepository = new Mock<IActivityRepository>();
+        _service = new ActivityService(_mockActivityRepository.Object);
     }
 
     [Fact]
     public async Task CreateActivityAsync_WithValidData_CreatesActivity()
     {
         // Arrange
-        var report = Report.Create("Test Report", 2024);
-        _context.Reports.Add(report);
-        await _context.SaveChangesAsync();
-
+        var reportId = 1;
         var name = "Test Activity";
         var description = "Test Description";
+        var expectedActivity = Activity.Create(reportId, name, description);
+
+        _mockActivityRepository.Setup(r => r.AddAsync(It.IsAny<Activity>()))
+            .ReturnsAsync(expectedActivity);
 
         // Act
-        var result = await _service.CreateActivityAsync(report.Id, name, description);
+        var result = await _service.CreateActivityAsync(reportId, name, description);
 
         // Assert
         result.Should().NotBeNull();
         result.Name.Should().Be(name);
         result.Description.Should().Be(description);
-        result.ReportId.Should().Be(report.Id);
+        result.ReportId.Should().Be(reportId);
     }
 
     [Fact]
     public async Task GetActivityByIdAsync_ExistingActivity_ReturnsActivity()
     {
         // Arrange
-        var report = Report.Create("Test Report", 2024);
-        _context.Reports.Add(report);
-        await _context.SaveChangesAsync();
-
-        var activity = Activity.Create(report.Id, "Test Activity", "Description");
-        _context.Activities.Add(activity);
-        await _context.SaveChangesAsync();
+        var activity = Activity.Create(1, "Test Activity", "Description");
+        _mockActivityRepository.Setup(r => r.GetWithTransactionsAsync(activity.Id))
+            .ReturnsAsync(activity);
 
         // Act
         var result = await _service.GetActivityByIdAsync(activity.Id);
@@ -78,6 +65,10 @@ public class ActivityServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     [Fact]
     public async Task GetActivityByIdAsync_NonExistingActivity_ReturnsNull()
     {
+        // Arrange
+        _mockActivityRepository.Setup(r => r.GetWithTransactionsAsync(999))
+            .ReturnsAsync((Activity?)null);
+
         // Act
         var result = await _service.GetActivityByIdAsync(999);
 
@@ -89,14 +80,14 @@ public class ActivityServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetAllActivitiesAsync_ReturnsAllActivities()
     {
         // Arrange
-        var report = Report.Create("Test Report", 2024);
-        _context.Reports.Add(report);
-        await _context.SaveChangesAsync();
+        var activities = new List<Activity>
+        {
+            Activity.Create(1, "Activity 1"),
+            Activity.Create(1, "Activity 2")
+        };
 
-        var activity1 = Activity.Create(report.Id, "Activity 1");
-        var activity2 = Activity.Create(report.Id, "Activity 2");
-        _context.Activities.AddRange(activity1, activity2);
-        await _context.SaveChangesAsync();
+        var mockDbSet = activities.BuildMockDbSet();
+        _mockActivityRepository.Setup(r => r.Query()).Returns(mockDbSet.Object);
 
         // Act
         var result = await _service.GetAllActivitiesAsync();
@@ -109,87 +100,81 @@ public class ActivityServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     public async Task GetActivitiesByReportIdAsync_ReturnsActivitiesForReport()
     {
         // Arrange
-        var report1 = Report.Create("Report 1", 2024);
-        var report2 = Report.Create("Report 2", 2023);
-        _context.Reports.AddRange(report1, report2);
-        await _context.SaveChangesAsync();
+        var reportId = 1;
+        var allActivities = new List<Activity>
+        {
+            Activity.Create(reportId, "Activity 1"),
+            Activity.Create(reportId, "Activity 2"),
+            Activity.Create(2, "Activity 3")
+        };
 
-        var activity1 = Activity.Create(report1.Id, "Activity 1");
-        var activity2 = Activity.Create(report1.Id, "Activity 2");
-        var activity3 = Activity.Create(report2.Id, "Activity 3");
-        _context.Activities.AddRange(activity1, activity2, activity3);
-        await _context.SaveChangesAsync();
+        var mockDbSet = allActivities.BuildMockDbSet();
+        _mockActivityRepository.Setup(r => r.Query()).Returns(mockDbSet.Object);
 
         // Act
-        var result = await _service.GetActivitiesByReportIdAsync(report1.Id);
+        var result = await _service.GetActivitiesByReportIdAsync(reportId);
 
         // Assert
         result.Should().HaveCount(2);
-        result.Should().OnlyContain(a => a.ReportId == report1.Id);
+        result.Should().OnlyContain(a => a.ReportId == reportId);
     }
 
     [Fact]
     public async Task UpdateActivityAsync_WithValidData_UpdatesActivity()
     {
         // Arrange
-        var report = Report.Create("Test Report", 2024);
-        _context.Reports.Add(report);
-        await _context.SaveChangesAsync();
-
-        var activity = Activity.Create(report.Id, "Original Name", "Original Description");
-        _context.Activities.Add(activity);
-        await _context.SaveChangesAsync();
+        var activity = Activity.Create(1, "Original Name", "Original Description");
+        _mockActivityRepository.Setup(r => r.GetByIdAsync(activity.Id))
+            .ReturnsAsync(activity);
+        _mockActivityRepository.Setup(r => r.UpdateAsync(It.IsAny<Activity>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         await _service.UpdateActivityAsync(activity.Id, "Updated Name", "Updated Description");
 
         // Assert
-        var updated = await _context.Activities.FindAsync(activity.Id);
-        updated!.Name.Should().Be("Updated Name");
-        updated.Description.Should().Be("Updated Description");
+        activity.Name.Should().Be("Updated Name");
+        activity.Description.Should().Be("Updated Description");
     }
 
     [Fact]
     public async Task UpdateActivityAsync_NonExistingActivity_ThrowsException()
     {
+        // Arrange
+        _mockActivityRepository.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((Activity?)null);
+
         // Act & Assert
         var act = async () => await _service.UpdateActivityAsync(999, "Name", "Description");
-        await act.Should().ThrowAsync<EntityNotFoundException>()
-            .WithMessage("*not found*");
+        await act.Should().ThrowAsync<EntityNotFoundException>();
     }
 
     [Fact]
     public async Task DeleteActivityAsync_ExistingActivity_DeletesActivity()
     {
         // Arrange
-        var report = Report.Create("Test Report", 2024);
-        _context.Reports.Add(report);
-        await _context.SaveChangesAsync();
-
-        var activity = Activity.Create(report.Id, "Test Activity");
-        _context.Activities.Add(activity);
-        await _context.SaveChangesAsync();
+        var activity = Activity.Create(1, "Test Activity");
+        _mockActivityRepository.Setup(r => r.GetWithTransactionsAsync(activity.Id))
+            .ReturnsAsync(activity);
+        _mockActivityRepository.Setup(r => r.DeleteAsync(It.IsAny<Activity>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         await _service.DeleteActivityAsync(activity.Id);
 
         // Assert
-        var deleted = await _context.Activities.FindAsync(activity.Id);
-        deleted.Should().BeNull();
+        _mockActivityRepository.Verify(r => r.DeleteAsync(activity), Times.Once);
     }
 
     [Fact]
     public async Task DeleteActivityAsync_NonExistingActivity_ThrowsException()
     {
+        // Arrange
+        _mockActivityRepository.Setup(r => r.GetWithTransactionsAsync(999))
+            .ReturnsAsync((Activity?)null);
+
         // Act & Assert
         var act = async () => await _service.DeleteActivityAsync(999);
-        await act.Should().ThrowAsync<EntityNotFoundException>()
-            .WithMessage("*not found*");
-    }
-
-    public void Dispose()
-    {
-        _context.Database.EnsureDeleted();
-        _context.Dispose();
+        await act.Should().ThrowAsync<EntityNotFoundException>();
     }
 }

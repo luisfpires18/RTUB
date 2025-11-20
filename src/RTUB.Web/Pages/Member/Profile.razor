@@ -191,7 +191,7 @@ else
                         </div>
                     </div>
 
-                    <ProfileField Label="Curso" Value="@user.Degree" />
+                    <ProfileField Label="Curso" Value="@(user!.Degree ?? "")" />
 
                 </ChildContent>
                 <EditContent>

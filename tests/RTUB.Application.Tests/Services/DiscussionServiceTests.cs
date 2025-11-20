@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -30,7 +31,7 @@ public class DiscussionServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _service = new DiscussionService(_context);
+        _service = new DiscussionService(new DiscussionRepository(_context));
     }
 
     [Fact]

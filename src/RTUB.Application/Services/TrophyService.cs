@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -7,20 +6,21 @@ using RTUB.Core.Exceptions;
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Service for managing trophies earned at events
+/// Service for managing trophies earned at events using Repository pattern
+/// Now depends on ITrophyRepository abstraction instead of concrete DbContext
 /// </summary>
 public class TrophyService : ITrophyService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ITrophyRepository _trophyRepository;
 
-    public TrophyService(ApplicationDbContext context)
+    public TrophyService(ITrophyRepository trophyRepository)
     {
-        _context = context;
+        _trophyRepository = trophyRepository;
     }
 
     public async Task<Trophy?> GetByIdAsync(int id)
     {
-        return await _context.Trophies
+        return await _trophyRepository.Query()
             .AsNoTracking()
             .Include(t => t.Event)
             .FirstOrDefaultAsync(t => t.Id == id);
@@ -28,7 +28,7 @@ public class TrophyService : ITrophyService
 
     public async Task<IEnumerable<Trophy>> GetAllAsync()
     {
-        return await _context.Trophies
+        return await _trophyRepository.Query()
             .AsNoTracking()
             .Include(t => t.Event)
             .OrderByDescending(t => t.CreatedAt)
@@ -37,7 +37,7 @@ public class TrophyService : ITrophyService
 
     public async Task<IEnumerable<Trophy>> GetByEventIdAsync(int eventId)
     {
-        return await _context.Trophies
+        return await _trophyRepository.Query()
             .AsNoTracking()
             .Where(t => t.EventId == eventId)
             .OrderBy(t => t.Name)
@@ -46,28 +46,25 @@ public class TrophyService : ITrophyService
 
     public async Task<Trophy> CreateAsync(Trophy trophy)
     {
-        _context.Trophies.Add(trophy);
-        await _context.SaveChangesAsync();
-        return trophy;
+        return await _trophyRepository.AddAsync(trophy);
     }
 
     public async Task UpdateAsync(Trophy trophy)
     {
-        var existingTrophy = await _context.Trophies.FindAsync(trophy.Id);
+        var existingTrophy = await _trophyRepository.GetByIdAsync(trophy.Id);
         if (existingTrophy == null)
             throw new EntityNotFoundException(nameof(Trophy), trophy.Id);
 
         existingTrophy.Update(trophy.Name);
-        await _context.SaveChangesAsync();
+        await _trophyRepository.UpdateAsync(existingTrophy);
     }
 
     public async Task DeleteAsync(int id)
     {
-        var trophy = await _context.Trophies.FindAsync(id);
+        var trophy = await _trophyRepository.GetByIdAsync(id);
         if (trophy != null)
         {
-            _context.Trophies.Remove(trophy);
-            await _context.SaveChangesAsync();
+            await _trophyRepository.DeleteAsync(trophy);
         }
     }
 }

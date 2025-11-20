@@ -247,7 +247,7 @@ public class TablePaginationTests : TestContext
         // Arrange & Act
         var cut = RenderComponent<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
-            .Add(p => p.PageSize, 25)
+            .Add(p => p.PageSize, 20)  // Changed from 25 to 20 which is in default options
             .Add(p => p.TotalItems, 100));
 
         // Assert
@@ -262,15 +262,15 @@ public class TablePaginationTests : TestContext
         // Arrange & Act
         var cut = RenderComponent<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
-            .Add(p => p.PageSize, 25)
+            .Add(p => p.PageSize, 20)  // Changed from 25 to 20 which is in default options
             .Add(p => p.TotalItems, 100));
 
         // Assert
         var select = cut.Find("select");
         select.InnerHtml.Should().Contain("value=\"10\"", "should have 10 option");
-        select.InnerHtml.Should().Contain("value=\"25\"", "should have 25 option");
+        select.InnerHtml.Should().Contain("value=\"20\"", "should have 20 option");
+        select.InnerHtml.Should().Contain("value=\"30\"", "should have 30 option");
         select.InnerHtml.Should().Contain("value=\"50\"", "should have 50 option");
-        select.InnerHtml.Should().Contain("value=\"100\"", "should have 100 option");
     }
 
     [Fact]
@@ -296,7 +296,7 @@ public class TablePaginationTests : TestContext
 
         var cut = RenderComponent<TablePagination>(parameters => parameters
             .Add(p => p.CurrentPage, 1)
-            .Add(p => p.PageSize, 25)
+            .Add(p => p.PageSize, 20)  // Changed from 25 to 20 which is in default options
             .Add(p => p.TotalItems, 100)
             .Add(p => p.OnPageSizeChanged, EventCallback.Factory.Create<int>(this, (size) =>
             {

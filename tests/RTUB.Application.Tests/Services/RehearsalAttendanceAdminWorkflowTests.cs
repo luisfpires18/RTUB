@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
@@ -26,7 +27,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
-        _attendanceService = new RehearsalAttendanceService(_context);
+        _attendanceService = new RehearsalAttendanceService(new RehearsalAttendanceRepository(_context));
     }
 
     #region Admin Add Member Workflow Tests

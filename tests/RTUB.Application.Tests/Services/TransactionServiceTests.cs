@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 
@@ -31,7 +32,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _service = new TransactionService(_context);
+        _service = new TransactionService(new TransactionRepository(_context));
     }
 
     #region Create Tests

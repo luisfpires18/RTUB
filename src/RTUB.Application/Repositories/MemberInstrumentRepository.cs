@@ -1,0 +1,31 @@
+using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Data;
+using RTUB.Application.Interfaces;
+using RTUB.Core.Entities;
+
+namespace RTUB.Application.Repositories;
+
+/// <summary>
+/// Repository implementation for MemberInstrument entity
+/// </summary>
+public class MemberInstrumentRepository : Repository<MemberInstrument>, IMemberInstrumentRepository
+{
+    public MemberInstrumentRepository(ApplicationDbContext context) : base(context)
+    {
+    }
+
+    public async Task<IEnumerable<MemberInstrument>> GetByMemberIdAsync(string memberId)
+    {
+        return await _dbSet
+            .Where(mi => mi.MemberId == memberId)
+            .OrderByDescending(mi => mi.IsPrimary)
+            .ThenBy(mi => mi.InstrumentType)
+            .ToListAsync();
+    }
+
+    public async Task<MemberInstrument?> GetPrimaryInstrumentAsync(string memberId)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(mi => mi.MemberId == memberId && mi.IsPrimary);
+    }
+}

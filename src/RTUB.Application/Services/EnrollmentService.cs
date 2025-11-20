@@ -2,9 +2,6 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
-using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
-
 
 namespace RTUB.Application.Services;
 
@@ -15,42 +12,31 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class EnrollmentService : IEnrollmentService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IEnrollmentRepository _enrollmentRepository;
 
-    public EnrollmentService(ApplicationDbContext context)
+    public EnrollmentService(IEnrollmentRepository enrollmentRepository)
     {
-        _context = context;
+        _enrollmentRepository = enrollmentRepository;
     }
 
     public async Task<Enrollment?> GetEnrollmentByIdAsync(int id)
     {
-        return await _context.Enrollments.FindAsync(id);
+        return await _enrollmentRepository.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<Enrollment>> GetAllEnrollmentsAsync()
     {
-        return await _context.Enrollments
-            .AsNoTracking()
-            .Include(e => e.Event)
-            .ToListAsync();
+        return await _enrollmentRepository.GetAllAsync();
     }
 
     public async Task<IEnumerable<Enrollment>> GetEnrollmentsByEventIdAsync(int eventId)
     {
-        return await _context.Enrollments
-            .AsNoTracking()
-            .Where(e => e.EventId == eventId)
-            .Include(e => e.User)
-            .ToListAsync();
+        return await _enrollmentRepository.GetByEventIdAsync(eventId);
     }
 
     public async Task<IEnumerable<Enrollment>> GetEnrollmentsByUserIdAsync(string userId)
     {
-        return await _context.Enrollments
-            .AsNoTracking()
-            .Where(e => e.UserId == userId)
-            .Include(e => e.Event)
-            .ToListAsync();
+        return await _enrollmentRepository.GetByUserIdAsync(userId);
     }
 
     public async Task<Enrollment> CreateEnrollmentAsync(string userId, int eventId, InstrumentType? instrument = null, string? notes = null, bool willAttend = true, string? otherInstruments = null)
@@ -60,34 +46,40 @@ public class EnrollmentService : IEnrollmentService
         enrollment.Notes = notes;
         enrollment.WillAttend = willAttend;
         enrollment.OtherInstruments = otherInstruments;
-        _context.Enrollments.Add(enrollment);
-        await _context.SaveChangesAsync();
-        return enrollment;
+        return await _enrollmentRepository.AddAsync(enrollment);
     }
 
-    public async Task<Enrollment> UpdateEnrollmentAsync(int enrollmentId, bool willAttend, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null)
+    public async Task<Enrollment> UpdateEnrollmentAsync(
+       int enrollmentId,
+       bool willAttend,
+       InstrumentType? instrument = null,
+       string? notes = null,
+       string? otherInstruments = null)
     {
-        var enrollment = await _context.Enrollments.FindAsync(enrollmentId);
+        var enrollment = await _enrollmentRepository.GetByIdAsync(enrollmentId);
+
         if (enrollment == null)
+        {
             throw new EntityNotFoundException(nameof(Enrollment), enrollmentId);
+        }
 
         // Update enrollment fields
         enrollment.WillAttend = willAttend;
         enrollment.Instrument = instrument;
         enrollment.Notes = notes;
         enrollment.OtherInstruments = otherInstruments;
-        
-        await _context.SaveChangesAsync();
+
+        await _enrollmentRepository.UpdateAsync(enrollment);
+
         return enrollment;
     }
 
     public async Task DeleteEnrollmentAsync(int id)
     {
-        var enrollment = await _context.Enrollments.FindAsync(id);
+        var enrollment = await _enrollmentRepository.GetByIdAsync(id);
         if (enrollment == null)
             throw new EntityNotFoundException(nameof(Enrollment), id);
 
-        _context.Enrollments.Remove(enrollment);
-        await _context.SaveChangesAsync();
+        await _enrollmentRepository.DeleteAsync(id);
     }
 }

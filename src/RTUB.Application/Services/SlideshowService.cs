@@ -2,44 +2,41 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.Utilities;
 
 
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Slideshow service implementation
+/// Slideshow service implementation using Repository pattern
 /// Contains business logic for slideshow operations
 /// Follows Single Responsibility and Dependency Inversion principles
+/// Now depends on ISlideshowRepository abstraction instead of concrete DbContext
 /// </summary>
 public class SlideshowService : ISlideshowService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ISlideshowRepository _slideshowRepository;
     private readonly IImageStorageService _imageStorageService;
 
-    public SlideshowService(ApplicationDbContext context, IImageStorageService imageStorageService)
+    public SlideshowService(ISlideshowRepository slideshowRepository, IImageStorageService imageStorageService)
     {
-        _context = context;
+        _slideshowRepository = slideshowRepository;
         _imageStorageService = imageStorageService;
     }
 
     public async Task<Slideshow?> GetSlideshowByIdAsync(int id)
     {
-        return await _context.Slideshows.FindAsync(id);
+        return await _slideshowRepository.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<Slideshow>> GetAllSlideshowsAsync()
     {
-        return await _context.Slideshows.ToListAsync();
+        return await _slideshowRepository.GetAllAsync();
     }
 
     public async Task<IEnumerable<Slideshow>> GetActiveSlideshowsAsync()
     {
-        return await _context.Slideshows
-            .Where(s => s.IsActive)
-            .OrderBy(s => s.Order)
-            .ToListAsync();
+        return await _slideshowRepository.GetActiveSlideshowsAsync();
     }
 
     public async Task<Slideshow> CreateSlideshowAsync(string title, int order, string description = "", int intervalMs = 5000, string? imageUrl = null)
@@ -49,14 +46,12 @@ public class SlideshowService : ISlideshowService
         {
             slideshow.SetImage(imageUrl);
         }
-        _context.Slideshows.Add(slideshow);
-        await _context.SaveChangesAsync();
-        return slideshow;
+        return await _slideshowRepository.AddAsync(slideshow);
     }
 
     public async Task UpdateSlideshowAsync(int id, string title, string description, int order, int intervalMs, bool isActive)
     {
-        var slideshow = await _context.Slideshows.FindAsync(id);
+        var slideshow = await _slideshowRepository.GetByIdAsync(id);
         if (slideshow == null)
             throw new EntityNotFoundException(nameof(Slideshow), id);
 
@@ -72,12 +67,12 @@ public class SlideshowService : ISlideshowService
             slideshow.Deactivate();
         }
         
-                await _context.SaveChangesAsync();
+        await _slideshowRepository.UpdateAsync(slideshow);
     }
 
     public async Task UpdateSlideshowWithImageAsync(int id, string title, string description, int order, int intervalMs, bool isActive, Stream imageStream, string fileName, string contentType)
     {
-        var slideshow = await _context.Slideshows.FindAsync(id);
+        var slideshow = await _slideshowRepository.GetByIdAsync(id);
         if (slideshow == null)
             throw new EntityNotFoundException(nameof(Slideshow), id);
 
@@ -105,12 +100,12 @@ public class SlideshowService : ISlideshowService
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", normalizedName);
         slideshow.SetImage(imageUrl);
         
-                await _context.SaveChangesAsync();
+        await _slideshowRepository.UpdateAsync(slideshow);
     }
 
     public async Task SetSlideshowImageAsync(int id, Stream imageStream, string fileName, string contentType)
     {
-        var slideshow = await _context.Slideshows.FindAsync(id);
+        var slideshow = await _slideshowRepository.GetByIdAsync(id);
         if (slideshow == null)
             throw new EntityNotFoundException(nameof(Slideshow), id);
 
@@ -125,32 +120,32 @@ public class SlideshowService : ISlideshowService
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", normalizedName);
         slideshow.SetImage(imageUrl);
         
-                await _context.SaveChangesAsync();
+        await _slideshowRepository.UpdateAsync(slideshow);
     }
 
     public async Task ActivateSlideshowAsync(int id)
     {
-        var slideshow = await _context.Slideshows.FindAsync(id);
+        var slideshow = await _slideshowRepository.GetByIdAsync(id);
         if (slideshow == null)
             throw new EntityNotFoundException(nameof(Slideshow), id);
 
         slideshow.Activate();
-                await _context.SaveChangesAsync();
+        await _slideshowRepository.UpdateAsync(slideshow);
     }
 
     public async Task DeactivateSlideshowAsync(int id)
     {
-        var slideshow = await _context.Slideshows.FindAsync(id);
+        var slideshow = await _slideshowRepository.GetByIdAsync(id);
         if (slideshow == null)
             throw new EntityNotFoundException(nameof(Slideshow), id);
 
         slideshow.Deactivate();
-                await _context.SaveChangesAsync();
+        await _slideshowRepository.UpdateAsync(slideshow);
     }
 
     public async Task DeleteSlideshowAsync(int id)
     {
-        var slideshow = await _context.Slideshows.FindAsync(id);
+        var slideshow = await _slideshowRepository.GetByIdAsync(id);
         if (slideshow == null)
             throw new EntityNotFoundException(nameof(Slideshow), id);
 
@@ -160,7 +155,6 @@ public class SlideshowService : ISlideshowService
             await _imageStorageService.DeleteImageAsync(slideshow.ImageUrl);
         }
 
-        _context.Slideshows.Remove(slideshow);
-        await _context.SaveChangesAsync();
+        await _slideshowRepository.DeleteAsync(slideshow);
     }
 }

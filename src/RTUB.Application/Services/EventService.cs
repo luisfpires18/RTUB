@@ -3,68 +3,51 @@ using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.Utilities;
 
 
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Event service implementation
+/// Event service implementation using Repository pattern
 /// Contains business logic for event operations
 /// Follows Single Responsibility and Dependency Inversion principles
+/// Now depends on IEventRepository abstraction instead of concrete DbContext
 /// </summary>
 public class EventService : IEventService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IEventRepository _eventRepository;
     private readonly IImageStorageService _imageStorageService;
 
-    public EventService(ApplicationDbContext context, IImageStorageService imageStorageService)
+    public EventService(IEventRepository eventRepository, IImageStorageService imageStorageService)
     {
-        _context = context;
+        _eventRepository = eventRepository;
         _imageStorageService = imageStorageService;
     }
 
     public async Task<Event?> GetEventByIdAsync(int id)
     {
-        return await _context.Events.FindAsync(id);
+        return await _eventRepository.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<Event>> GetAllEventsAsync()
     {
-        return await _context.Events
-            .AsNoTracking()
-            .ToListAsync();
+        return await _eventRepository.GetAllAsync();
     }
 
     public async Task<IEnumerable<Event>> GetUpcomingEventsAsync(int count = 10)
     {
-        var today = DateTime.Today;
-        return await _context.Events
-            .AsNoTracking()
-            .Where(e => (e.EndDate.HasValue ? e.EndDate.Value.Date : e.Date.Date) >= today)
-            .OrderBy(e => e.Date)
-            .Take(count)
-            .ToListAsync();
+        return await _eventRepository.GetUpcomingEventsAsync(count);
     }
 
     public async Task<IEnumerable<Event>> GetPastEventsAsync(int count = 10)
     {
-        var today = DateTime.Today;
-        return await _context.Events
-            .AsNoTracking()
-            .Where(e => (e.EndDate.HasValue ? e.EndDate.Value.Date : e.Date.Date) < today)
-            .OrderByDescending(e => e.Date)
-            .Take(count)
-            .ToListAsync();
+        return await _eventRepository.GetPastEventsAsync(count);
     }
 
     public async Task<IEnumerable<Event>> GetEventsByTypeAsync(EventType type)
     {
-        return await _context.Events
-            .AsNoTracking()
-            .Where(e => e.Type == type)
-            .ToListAsync();
+        return await _eventRepository.GetEventsByTypeAsync(type);
     }
 
     public async Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null, string? imageUrl = null)
@@ -81,14 +64,12 @@ public class EventService : IEventService
             eventEntity.SetImage(imageUrl);
         }
         
-        _context.Events.Add(eventEntity);
-        await _context.SaveChangesAsync();
-        return eventEntity;
+        return await _eventRepository.AddAsync(eventEntity);
     }
 
     public async Task UpdateEventAsync(int id, string name, DateTime date, string location, string description, DateTime? endDate = null)
     {
-        var eventEntity = await _context.Events.FindAsync(id);
+        var eventEntity = await _eventRepository.GetByIdAsync(id);
         if (eventEntity == null)
             throw new EntityNotFoundException(nameof(Event), id);
 
@@ -103,12 +84,12 @@ public class EventService : IEventService
             eventEntity.EndDate = null;
         }
         
-        await _context.SaveChangesAsync();
+        await _eventRepository.UpdateAsync(eventEntity);
     }
 
     public async Task UpdateEventWithImageAsync(int id, string name, DateTime date, string location, string description, DateTime? endDate, Stream imageStream, string fileName, string contentType)
     {
-        var eventEntity = await _context.Events.FindAsync(id);
+        var eventEntity = await _eventRepository.GetByIdAsync(id);
         if (eventEntity == null)
             throw new EntityNotFoundException(nameof(Event), id);
 
@@ -135,12 +116,12 @@ public class EventService : IEventService
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", normalizedName);
         eventEntity.SetImage(imageUrl);
         
-        await _context.SaveChangesAsync();
+        await _eventRepository.UpdateAsync(eventEntity);
     }
 
     public async Task SetEventImageAsync(int id, Stream imageStream, string fileName, string contentType)
     {
-        var eventEntity = await _context.Events.FindAsync(id);
+        var eventEntity = await _eventRepository.GetByIdAsync(id);
         if (eventEntity == null)
             throw new EntityNotFoundException(nameof(Event), id);
 
@@ -155,12 +136,12 @@ public class EventService : IEventService
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", normalizedName);
         eventEntity.SetImage(imageUrl);
         
-        await _context.SaveChangesAsync();
+        await _eventRepository.UpdateAsync(eventEntity);
     }
 
     public async Task DeleteEventAsync(int id)
     {
-        var eventEntity = await _context.Events.FindAsync(id);
+        var eventEntity = await _eventRepository.GetByIdAsync(id);
         if (eventEntity == null)
             throw new EntityNotFoundException(nameof(Event), id);
 
@@ -170,27 +151,26 @@ public class EventService : IEventService
             await _imageStorageService.DeleteImageAsync(eventEntity.ImageUrl);
         }
 
-        _context.Events.Remove(eventEntity);
-        await _context.SaveChangesAsync();
+        await _eventRepository.DeleteAsync(eventEntity);
     }
 
     public async Task CancelEventAsync(int id, string reason)
     {
-        var eventEntity = await _context.Events.FindAsync(id);
+        var eventEntity = await _eventRepository.GetByIdAsync(id);
         if (eventEntity == null)
             throw new EntityNotFoundException(nameof(Event), id);
 
         eventEntity.Cancel(reason);
-        await _context.SaveChangesAsync();
+        await _eventRepository.UpdateAsync(eventEntity);
     }
 
     public async Task UncancelEventAsync(int id)
     {
-        var eventEntity = await _context.Events.FindAsync(id);
+        var eventEntity = await _eventRepository.GetByIdAsync(id);
         if (eventEntity == null)
             throw new EntityNotFoundException(nameof(Event), id);
 
         eventEntity.Uncancel();
-        await _context.SaveChangesAsync();
+        await _eventRepository.UpdateAsync(eventEntity);
     }
 }

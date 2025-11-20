@@ -15,17 +15,14 @@
                 <span class="folder-count">(@DocumentCount @(DocumentCount == 1 ? "documento" : "documentos"))</span>
             </div>
             <div class="d-flex align-items-center gap-2">
-                @* Upload button - Admin and Mod only *@
-                @if (IsAdmin)
-                {
-                    <button class="btn btn-sm btn-success folder-upload-btn" 
-                            @onclick="HandleUploadClick" 
-                            @onclick:stopPropagation="true"
-                            title="Carregar documento">
-                        <i class="bi bi-upload"></i>
-                        <span class="d-none d-md-inline ms-1"></span>
-                    </button>
-                }
+                @* Upload button - visible to all members *@
+                <button class="btn btn-sm btn-success folder-upload-btn" 
+                        @onclick="HandleUploadClick" 
+                        @onclick:stopPropagation="true"
+                        title="Carregar documento">
+                    <i class="bi bi-upload"></i>
+                    <span class="d-none d-md-inline ms-1">Carregar</span>
+                </button>
                 
                 @* Delete button - Admin and Mod only *@
                 @if (IsAdmin)

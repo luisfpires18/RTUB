@@ -5,6 +5,7 @@ using Moq;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -57,7 +58,9 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         };
         
         var configOptions = Options.Create(_config);
-        _service = new RankingService(_context, _mockUserManager.Object, configOptions);
+        var attendanceRepo = new RehearsalAttendanceRepository(_context);
+        var enrollmentRepo = new EnrollmentRepository(_context);
+        _service = new RankingService(attendanceRepo, enrollmentRepo, _mockUserManager.Object, configOptions);
     }
 
     [Fact]

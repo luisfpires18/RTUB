@@ -554,7 +554,7 @@ public class OwnerEmailTests
 
         // Assert
         filteredUsers.Count.Should().Be(2, "Should find two users with email containing 'company'");
-        filteredUsers.All(u => u.Email.Contains("company")).Should().BeTrue("All filtered users should have 'company' in email");
+        filteredUsers.All(u => u.Email!.Contains("company")).Should().BeTrue("All filtered users should have 'company' in email");
     }
 
     [Fact]

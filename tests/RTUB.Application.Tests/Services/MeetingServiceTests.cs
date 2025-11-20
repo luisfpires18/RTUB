@@ -3,6 +3,7 @@ using Moq;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -36,7 +37,7 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _meetingService = new MeetingService(_context);
+        _meetingService = new MeetingService(new MeetingRepository(_context), _context);
 
         // Disable auditing for test setup
         _context.DisableAuditing();

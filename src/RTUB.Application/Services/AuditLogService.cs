@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 
@@ -10,15 +10,15 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class AuditLogService : IAuditLogService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IAuditLogRepository _auditLogRepository;
 
-    public AuditLogService(ApplicationDbContext context)
+    public AuditLogService(IAuditLogRepository auditLogRepository)
     {
-        _context = context;
+        _auditLogRepository = auditLogRepository;
     }
 
     /// <summary>
-    /// Applies filters to an audit log query
+    /// Applies filters to an audit log query using WhereIf extension for cleaner conditional filtering
     /// </summary>
     private IQueryable<AuditLog> ApplyFilters(
         IQueryable<AuditLog> query,
@@ -30,42 +30,21 @@ public class AuditLogService : IAuditLogService
         DateTime? toDate = null,
         bool? criticalOnly = null)
     {
-        if (!string.IsNullOrWhiteSpace(userName))
-        {
-            query = query.Where(a => a.UserName != null && a.UserName.Contains(userName));
-        }
-
-        if (!string.IsNullOrWhiteSpace(excludeUserName))
-        {
-            query = query.Where(a => a.UserName == null || a.UserName != excludeUserName);
-        }
-
-        if (!string.IsNullOrWhiteSpace(entityType))
-        {
-            query = query.Where(a => a.EntityType == entityType);
-        }
-
-        if (!string.IsNullOrWhiteSpace(action))
-        {
-            query = query.Where(a => a.Action == action);
-        }
-
-        if (fromDate.HasValue)
-        {
-            query = query.Where(a => a.Timestamp >= fromDate.Value);
-        }
-
-        if (toDate.HasValue)
-        {
-            query = query.Where(a => a.Timestamp <= toDate.Value);
-        }
-
-        if (criticalOnly.HasValue && criticalOnly.Value)
-        {
-            query = query.Where(a => a.IsCriticalAction);
-        }
-
-        return query;
+        return query
+            .WhereIf(!string.IsNullOrWhiteSpace(userName), 
+                a => a.UserName != null && a.UserName.Contains(userName!))
+            .WhereIf(!string.IsNullOrWhiteSpace(excludeUserName), 
+                a => a.UserName == null || a.UserName != excludeUserName)
+            .WhereIf(!string.IsNullOrWhiteSpace(entityType), 
+                a => a.EntityType == entityType)
+            .WhereIf(!string.IsNullOrWhiteSpace(action), 
+                a => a.Action == action)
+            .WhereIf(fromDate.HasValue, 
+                a => a.Timestamp >= fromDate!.Value)
+            .WhereIf(toDate.HasValue, 
+                a => a.Timestamp <= toDate!.Value)
+            .WhereIf(criticalOnly.HasValue && criticalOnly.Value, 
+                a => a.IsCriticalAction);
     }
 
     public async Task<IEnumerable<AuditLog>> GetAllAsync(
@@ -80,7 +59,7 @@ public class AuditLogService : IAuditLogService
         int pageSize = 100)
     {
         var query = ApplyFilters(
-            _context.AuditLogs.AsQueryable(),
+            _auditLogRepository.Query(),
             userName,
             excludeUserName,
             entityType,
@@ -91,9 +70,7 @@ public class AuditLogService : IAuditLogService
 
         return await query
             .OrderByDescending(a => a.Timestamp)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+            .PaginateAsync(page, pageSize);
     }
 
     public async Task<int> GetCountAsync(
@@ -106,7 +83,7 @@ public class AuditLogService : IAuditLogService
         bool? criticalOnly = null)
     {
         var query = ApplyFilters(
-            _context.AuditLogs.AsQueryable(),
+            _auditLogRepository.Query(),
             userName,
             excludeUserName,
             entityType,
@@ -120,7 +97,7 @@ public class AuditLogService : IAuditLogService
 
     public async Task<IEnumerable<AuditLog>> GetEntityHistoryAsync(string entityType, int entityId)
     {
-        return await _context.AuditLogs
+        return await _auditLogRepository.Query()
             .Where(a => a.EntityType == entityType && a.EntityId == entityId)
             .OrderByDescending(a => a.Timestamp)
             .ToListAsync();
@@ -133,17 +110,15 @@ public class AuditLogService : IAuditLogService
             return Enumerable.Empty<AuditLog>();
         }
 
-        return await _context.AuditLogs
+        return await _auditLogRepository.Query()
             .Where(a => a.Changes != null && a.Changes.Contains(searchTerm))
             .OrderByDescending(a => a.Timestamp)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+            .PaginateAsync(page, pageSize);
     }
 
     public async Task<IEnumerable<string>> GetEntityTypesAsync()
     {
-        return await _context.AuditLogs
+        return await _auditLogRepository.Query()
             .Select(a => a.EntityType)
             .Distinct()
             .OrderBy(e => e)
@@ -152,7 +127,7 @@ public class AuditLogService : IAuditLogService
 
     public async Task<IEnumerable<string>> GetActionTypesAsync()
     {
-        return await _context.AuditLogs
+        return await _auditLogRepository.Query()
             .Select(a => a.Action)
             .Distinct()
             .OrderBy(a => a)
@@ -161,7 +136,7 @@ public class AuditLogService : IAuditLogService
 
     public async Task<IEnumerable<string>> GetUserNamesAsync()
     {
-        return await _context.AuditLogs
+        return await _auditLogRepository.Query()
             .Where(a => a.UserName != null)
             .Select(a => a.UserName!)
             .Distinct()
@@ -171,20 +146,17 @@ public class AuditLogService : IAuditLogService
 
     public async Task DeleteAsync(int id)
     {
-        var auditLog = await _context.AuditLogs.FindAsync(id);
-        if (auditLog is not null)
-        {
-            _context.AuditLogs.Remove(auditLog);
-            await _context.SaveChangesAsync();
-        }
+        await _auditLogRepository.DeleteAsync(id);
     }
 
     public async Task TruncateAsync()
     {
         // Remove all audit logs (works with both in-memory and real databases)
-        var allLogs = await _context.AuditLogs.ToListAsync();
-        _context.AuditLogs.RemoveRange(allLogs);
-        await _context.SaveChangesAsync();
+        var allLogs = await _auditLogRepository.GetAllAsync();
+        foreach (var log in allLogs)
+        {
+            await _auditLogRepository.DeleteAsync(log.Id);
+        }
     }
 
     public async Task TruncateByUserAsync(string userName)
@@ -195,11 +167,14 @@ public class AuditLogService : IAuditLogService
         }
 
         // Remove all audit logs for the specified user
-        var userLogs = await _context.AuditLogs
+        var userLogs = await _auditLogRepository.Query()
             .Where(a => a.UserName == userName)
             .ToListAsync();
-        _context.AuditLogs.RemoveRange(userLogs);
-        await _context.SaveChangesAsync();
+        
+        foreach (var log in userLogs)
+        {
+            await _auditLogRepository.DeleteAsync(log.Id);
+        }
     }
 
     public async Task<IEnumerable<AuditLog>> GetAllForExportAsync(
@@ -212,7 +187,7 @@ public class AuditLogService : IAuditLogService
         bool? criticalOnly = null)
     {
         var query = ApplyFilters(
-            _context.AuditLogs.AsQueryable(),
+            _auditLogRepository.Query(),
             userName,
             excludeUserName,
             entityType,

@@ -1,61 +1,50 @@
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
-using Microsoft.EntityFrameworkCore;
-using RTUB.Application.Data;
 using RTUB.Application.Utilities;
 
 
 namespace RTUB.Application.Services;
 
 /// <summary>
-/// Service for managing photo albums and their operations.
+/// Service for managing photo albums using Repository pattern
+/// Contains business logic and image storage operations
+/// Now depends on IAlbumRepository abstraction instead of concrete DbContext
 /// </summary>
 public class AlbumService : IAlbumService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IAlbumRepository _albumRepository;
     private readonly IImageStorageService _imageStorageService;
 
-    public AlbumService(ApplicationDbContext context, IImageStorageService imageStorageService)
+    public AlbumService(IAlbumRepository albumRepository, IImageStorageService imageStorageService)
     {
-        _context = context;
+        _albumRepository = albumRepository;
         _imageStorageService = imageStorageService;
     }
 
     public async Task<Album?> GetAlbumByIdAsync(int id)
     {
-        return await _context.Albums.FindAsync(id);
+        return await _albumRepository.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<Album>> GetAllAlbumsAsync()
     {
-        return await _context.Albums
-            .AsNoTracking()
-            .ToListAsync();
+        return await _albumRepository.GetAllAsync();
     }
 
     public async Task<IEnumerable<Album>> GetPublicAlbumsAsync()
     {
-        return await _context.Albums
-            .AsNoTracking()
-            .Where(a => !a.IsPrivate)
-            .ToListAsync();
+        return await _albumRepository.GetPublicAlbumsAsync();
     }
 
     public async Task<IEnumerable<Album>> GetAlbumsWithSongsAsync()
     {
-        return await _context.Albums
-            .AsNoTracking()
-            .Include(a => a.Songs)
-            .ToListAsync();
+        return await _albumRepository.GetAlbumsWithSongsAsync();
     }
 
     public async Task<Album?> GetAlbumWithSongsAsync(int id)
     {
-        return await _context.Albums
-            .AsNoTracking()
-            .Include(a => a.Songs)
-            .FirstOrDefaultAsync(a => a.Id == id);
+        return await _albumRepository.GetAlbumWithSongsAsync(id);
     }
 
     public async Task<Album> CreateAlbumAsync(string title, int? year, string? description = null, string? imageUrl = null, bool isPrivate = false)
@@ -65,24 +54,22 @@ public class AlbumService : IAlbumService
         {
             album.SetCoverImage(imageUrl);
         }
-        _context.Albums.Add(album);
-        await _context.SaveChangesAsync();
-        return album;
+        return await _albumRepository.AddAsync(album);
     }
 
     public async Task UpdateAlbumAsync(int id, string title, int? year, string? description, bool isPrivate)
     {
-        var album = await _context.Albums.FindAsync(id);
+        var album = await _albumRepository.GetByIdAsync(id);
         if (album == null)
             throw new EntityNotFoundException(nameof(Album), id);
 
         album.UpdateDetails(title, year, description, isPrivate);
-        await _context.SaveChangesAsync();
+        await _albumRepository.UpdateAsync(album);
     }
 
     public async Task DeleteAlbumAsync(int id)
     {
-        var album = await _context.Albums.FindAsync(id);
+        var album = await _albumRepository.GetByIdAsync(id);
         if (album == null)
             throw new EntityNotFoundException(nameof(Album), id);
 
@@ -92,13 +79,12 @@ public class AlbumService : IAlbumService
             await _imageStorageService.DeleteImageAsync(album.ImageUrl);
         }
 
-        _context.Albums.Remove(album);
-        await _context.SaveChangesAsync();
+        await _albumRepository.DeleteAsync(album);
     }
 
     public async Task UpdateAlbumWithCoverAsync(int id, string title, int? year, string? description, bool isPrivate, Stream imageStream, string fileName, string contentType)
     {
-        var album = await _context.Albums.FindAsync(id);
+        var album = await _albumRepository.GetByIdAsync(id);
         if (album == null)
             throw new EntityNotFoundException(nameof(Album), id);
 
@@ -116,12 +102,12 @@ public class AlbumService : IAlbumService
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", normalizedName);
         album.SetCoverImage(imageUrl);
         
-        await _context.SaveChangesAsync();
+        await _albumRepository.UpdateAsync(album);
     }
 
     public async Task SetAlbumCoverAsync(int id, Stream imageStream, string fileName, string contentType)
     {
-        var album = await _context.Albums.FindAsync(id);
+        var album = await _albumRepository.GetByIdAsync(id);
         if (album == null)
             throw new EntityNotFoundException(nameof(Album), id);
 
@@ -136,6 +122,6 @@ public class AlbumService : IAlbumService
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", normalizedName);
         album.SetCoverImage(imageUrl);
         
-        await _context.SaveChangesAsync();
+        await _albumRepository.UpdateAsync(album);
     }
 }

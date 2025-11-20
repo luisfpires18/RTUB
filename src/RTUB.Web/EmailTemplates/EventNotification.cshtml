@@ -12,13 +12,49 @@
     
     // Format date with range if EndDate is set
     string formattedDate;
-    if (Model.EndDate.HasValue)
+    if (Model.EndDate.HasValue && Model.EndDate.Value.Date != DateTime.Parse(Model.DateFormatted.Split(',')[1].Trim().Split(' ')[0] + " " + Model.DateFormatted.Split(',')[1].Trim().Split(' ')[2] + " " + Model.DateFormatted.Split(',')[1].Trim().Split(' ')[4]).Date)
     {
         var culture = new System.Globalization.CultureInfo("pt-PT");
-        var startDay = Model.DateFormatted.Split(',')[1].Trim().Split(' ')[0];
-        var endFormatted = Model.EndDate.Value.ToString("dd 'de' MMMM 'de' yyyy", culture);
-        var endParts = endFormatted.Split(' ');
-        formattedDate = $"{startDay} de {Model.DateFormatted.Split(',')[1].Trim().Split(' ')[2]} - {endParts[0]} de {endParts[2]} de {endParts[4]}";
+        // Extract start date components from DateFormatted (e.g., "quinta-feira, 04 de maio de 2025")
+        var dateParts = Model.DateFormatted.Split(',');
+        if (dateParts.Length > 1)
+        {
+            var dateComponentsStr = dateParts[1].Trim(); // "04 de maio de 2025"
+            var dateComponents = dateComponentsStr.Split(' ');
+            if (dateComponents.Length >= 5)
+            {
+                var startDay = dateComponents[0]; // "04"
+                var startMonth = dateComponents[2]; // "maio"
+                var startYear = dateComponents[4]; // "2025"
+                
+                var endDay = Model.EndDate.Value.ToString("dd", culture);
+                var endMonth = Model.EndDate.Value.ToString("MMMM", culture);
+                var endYear = Model.EndDate.Value.ToString("yyyy", culture);
+                
+                // Format: "04 de maio - 06 de maio de 2025" or "04 de maio - 06 de junho de 2025"
+                if (startMonth == endMonth && startYear == endYear)
+                {
+                    formattedDate = $"{startDay} - {endDay} de {endMonth} de {endYear}";
+                }
+                else if (startYear == endYear)
+                {
+                    formattedDate = $"{startDay} de {startMonth} - {endDay} de {endMonth} de {endYear}";
+                }
+                else
+                {
+                    formattedDate = $"{startDay} de {startMonth} de {startYear} - {endDay} de {endMonth} de {endYear}";
+                }
+            }
+            else
+            {
+                // Fallback to regular date if parsing fails
+                formattedDate = Model.DateFormatted;
+            }
+        }
+        else
+        {
+            formattedDate = Model.DateFormatted;
+        }
     }
     else
     {

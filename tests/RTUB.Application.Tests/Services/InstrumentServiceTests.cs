@@ -6,6 +6,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -33,7 +34,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _imageStorageServiceMock = new Mock<IImageStorageService>();
-        _service = new InstrumentService(_context, _imageStorageServiceMock.Object);
+        _service = new InstrumentService(new InstrumentRepository(_context), _imageStorageServiceMock.Object);
     }
 
     [Fact]

@@ -5,6 +5,7 @@ using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Core.Exceptions;
 
@@ -12,12 +13,13 @@ namespace RTUB.Application.Tests.Services;
 
 /// <summary>
 /// Unit tests for SongService
-/// Tests song CRUD operations and YouTube URL management
+/// Tests song CRUD operations and YouTube URL management with Repository pattern
 /// </summary>
 public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly DatabaseFixture _fixture;
+    private readonly SongRepository _songRepository;
     private readonly SongService _songService;
     private readonly AlbumService _albumService;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
@@ -32,9 +34,10 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _songService = new SongService(_context);
+        _songRepository = new SongRepository(_context);
+        _songService = new SongService(_songRepository);
         _mockImageStorageService = new Mock<IImageStorageService>();
-        _albumService = new AlbumService(_context, _mockImageStorageService.Object);
+        _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
     }
 
     [Fact]

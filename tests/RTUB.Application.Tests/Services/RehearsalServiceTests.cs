@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 
@@ -30,7 +31,7 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _rehearsalService = new RehearsalService(_context);
+        _rehearsalService = new RehearsalService(new RehearsalRepository(_context));
     }
 
     [Fact]

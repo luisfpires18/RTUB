@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Application.Interfaces;
 using Moq;
 
@@ -26,9 +27,9 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
-        _songService = new SongService(_context);
+        _songService = new SongService(new SongRepository(_context));
         _mockImageStorageService = new Mock<IImageStorageService>();
-        _albumService = new AlbumService(_context, _mockImageStorageService.Object);
+        _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
     }
 
     [Fact]

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
+using RTUB.Application.Repositories;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -33,7 +34,7 @@ public class CommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _postServiceMock = new Mock<IPostService>();
-        _service = new CommentService(_context, _postServiceMock.Object);
+        _service = new CommentService(new CommentRepository(_context), _postServiceMock.Object);
     }
 
     [Fact]

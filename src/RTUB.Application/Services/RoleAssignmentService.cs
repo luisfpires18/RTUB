@@ -15,61 +15,55 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class RoleAssignmentService : IRoleAssignmentService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IRoleAssignmentRepository _roleAssignmentRepository;
 
-    public RoleAssignmentService(ApplicationDbContext context)
+    public RoleAssignmentService(IRoleAssignmentRepository roleAssignmentRepository)
     {
-        _context = context;
+        _roleAssignmentRepository = roleAssignmentRepository;
     }
 
     public async Task<RoleAssignment?> GetRoleAssignmentByIdAsync(int id)
     {
-        return await _context.RoleAssignments.FindAsync(id);
+        return await _roleAssignmentRepository.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<RoleAssignment>> GetAllRoleAssignmentsAsync()
     {
-        return await _context.RoleAssignments.ToListAsync();
+        return await _roleAssignmentRepository.GetAllAsync();
     }
 
     public async Task<IEnumerable<RoleAssignment>> GetRoleAssignmentsByUserIdAsync(string userId)
     {
-        return await _context.RoleAssignments
-            .Where(ra => ra.UserId == userId)
-            .ToListAsync();
+        return await _roleAssignmentRepository.GetByUserIdAsync(userId);
     }
 
     public async Task<IEnumerable<RoleAssignment>> GetRoleAssignmentsByPositionAsync(Position position)
     {
-        var allAssignments = await _context.RoleAssignments.ToListAsync();
-        return allAssignments.Where(ra => ra.Position == position);
+        return await _roleAssignmentRepository.GetByPositionAsync(position);
     }
 
     public async Task<RoleAssignment> CreateRoleAssignmentAsync(string userId, Position position, int startYear, int endYear, string? notes = null, string? createdBy = null)
     {
         var roleAssignment = RoleAssignment.Create(userId, position, startYear, endYear, notes, createdBy);
-        _context.RoleAssignments.Add(roleAssignment);
-        await _context.SaveChangesAsync();
-        return roleAssignment;
+        return await _roleAssignmentRepository.AddAsync(roleAssignment);
     }
 
     public async Task UpdateRoleAssignmentAsync(int id, Position position, int startYear, int endYear, string? notes)
     {
-        var roleAssignment = await _context.RoleAssignments.FindAsync(id);
+        var roleAssignment = await _roleAssignmentRepository.GetByIdAsync(id);
         if (roleAssignment == null)
             throw new EntityNotFoundException(nameof(RoleAssignment), id);
 
         roleAssignment.UpdateDetails(position, startYear, endYear, notes);
-                await _context.SaveChangesAsync();
+        await _roleAssignmentRepository.UpdateAsync(roleAssignment);
     }
 
     public async Task DeleteRoleAssignmentAsync(int id)
     {
-        var roleAssignment = await _context.RoleAssignments.FindAsync(id);
+        var roleAssignment = await _roleAssignmentRepository.GetByIdAsync(id);
         if (roleAssignment == null)
             throw new EntityNotFoundException(nameof(RoleAssignment), id);
 
-        _context.RoleAssignments.Remove(roleAssignment);
-        await _context.SaveChangesAsync();
+        await _roleAssignmentRepository.DeleteAsync(id);
     }
 }

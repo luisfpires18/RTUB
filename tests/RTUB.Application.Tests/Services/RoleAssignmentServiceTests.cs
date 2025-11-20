@@ -1,9 +1,7 @@
 using FluentAssertions;
 using Moq;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
-using RTUB.Application.Data;
-using RTUB.Application.Tests.Fixtures;
+using MockQueryable.Moq;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -11,23 +9,15 @@ using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Tests.Services;
 
-public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
+public class RoleAssignmentServiceTests
 {
-    private readonly ApplicationDbContext _context;
-    private readonly DatabaseFixture _fixture;
+    private readonly Mock<IRoleAssignmentRepository> _repositoryMock;
     private readonly RoleAssignmentService _service;
 
-    public RoleAssignmentServiceTests(DatabaseFixture fixture)
+    public RoleAssignmentServiceTests()
     {
-        // Clean database at constructor start to ensure test isolation
-        _fixture = fixture;
-        var tempContext = _fixture.CreateContext();
-        _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
-        tempContext.Dispose();
-        
-        _fixture = fixture;
-        _context = _fixture.CreateContext();
-        _service = new RoleAssignmentService(_context);
+        _repositoryMock = new Mock<IRoleAssignmentRepository>();
+        _service = new RoleAssignmentService(_repositoryMock.Object);
     }
 
     [Fact]
@@ -40,6 +30,20 @@ public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDispo
         var endYear = 2024;
         var notes = "Test notes";
         var createdBy = "admin";
+
+        var expectedRoleAssignment = new RoleAssignment
+        {
+            Id = 1,
+            UserId = userId,
+            Position = position,
+            StartYear = startYear,
+            EndYear = endYear,
+            Notes = notes,
+            CreatedBy = createdBy
+        };
+
+        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<RoleAssignment>()))
+            .ReturnsAsync(expectedRoleAssignment);
 
         // Act
         var roleAssignment = await _service.CreateRoleAssignmentAsync(userId, position, startYear, endYear, notes, createdBy);
@@ -58,7 +62,17 @@ public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDispo
     public async Task GetRoleAssignmentByIdAsync_WithExistingId_ReturnsRoleAssignment()
     {
         // Arrange
-        var roleAssignment = await _service.CreateRoleAssignmentAsync("user1", Position.Magister, 2023, 2024);
+        var roleAssignment = new RoleAssignment
+        {
+            Id = 1,
+            UserId = "user1",
+            Position = Position.Magister,
+            StartYear = 2023,
+            EndYear = 2024
+        };
+
+        _repositoryMock.Setup(r => r.GetByIdAsync(1))
+            .ReturnsAsync(roleAssignment);
 
         // Act
         var result = await _service.GetRoleAssignmentByIdAsync(roleAssignment.Id);
@@ -71,6 +85,10 @@ public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDispo
     [Fact]
     public async Task GetRoleAssignmentByIdAsync_WithNonExistentId_ReturnsNull()
     {
+        // Arrange
+        _repositoryMock.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((RoleAssignment?)null);
+
         // Act
         var result = await _service.GetRoleAssignmentByIdAsync(999);
 
@@ -82,15 +100,21 @@ public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDispo
     public async Task GetAllRoleAssignmentsAsync_ReturnsAllRoleAssignments()
     {
         // Arrange
-        await _service.CreateRoleAssignmentAsync("user1", Position.Magister, 2023, 2024);
-        await _service.CreateRoleAssignmentAsync("user2", Position.Secretario, 2023, 2024);
-        await _service.CreateRoleAssignmentAsync("user3", Position.PrimeiroTesoureiro, 2024, 2025);
+        var roleAssignments = new List<RoleAssignment>
+        {
+            new RoleAssignment { Id = 1, UserId = "user1", Position = Position.Magister, StartYear = 2023, EndYear = 2024 },
+            new RoleAssignment { Id = 2, UserId = "user2", Position = Position.Secretario, StartYear = 2023, EndYear = 2024 },
+            new RoleAssignment { Id = 3, UserId = "user3", Position = Position.PrimeiroTesoureiro, StartYear = 2024, EndYear = 2025 }
+        };
+
+        _repositoryMock.Setup(r => r.GetAllAsync())
+            .ReturnsAsync(roleAssignments);
 
         // Act
-        var roleAssignments = (await _service.GetAllRoleAssignmentsAsync()).ToList();
+        var result = (await _service.GetAllRoleAssignmentsAsync()).ToList();
 
         // Assert
-        roleAssignments.Should().HaveCount(3);
+        result.Should().HaveCount(3);
     }
 
     [Fact]
@@ -98,21 +122,30 @@ public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDispo
     {
         // Arrange
         var userId = "user123";
-        await _service.CreateRoleAssignmentAsync(userId, Position.Magister, 2022, 2023);
-        await _service.CreateRoleAssignmentAsync(userId, Position.Secretario, 2023, 2024);
-        await _service.CreateRoleAssignmentAsync("otherUser", Position.PrimeiroTesoureiro, 2023, 2024);
+        var userRoleAssignments = new List<RoleAssignment>
+        {
+            new RoleAssignment { Id = 1, UserId = userId, Position = Position.Magister, StartYear = 2022, EndYear = 2023 },
+            new RoleAssignment { Id = 2, UserId = userId, Position = Position.Secretario, StartYear = 2023, EndYear = 2024 }
+        };
+
+        _repositoryMock.Setup(r => r.GetByUserIdAsync(userId))
+            .ReturnsAsync(userRoleAssignments);
 
         // Act
-        var userRoleAssignments = (await _service.GetRoleAssignmentsByUserIdAsync(userId)).ToList();
+        var result = (await _service.GetRoleAssignmentsByUserIdAsync(userId)).ToList();
 
         // Assert
-        userRoleAssignments.Should().HaveCount(2);
-        userRoleAssignments.Should().AllSatisfy(ra => ra.UserId.Should().Be(userId));
+        result.Should().HaveCount(2);
+        result.Should().AllSatisfy(ra => ra.UserId.Should().Be(userId));
     }
 
     [Fact]
     public async Task GetRoleAssignmentsByUserIdAsync_WithNoAssignments_ReturnsEmpty()
     {
+        // Arrange
+        _repositoryMock.Setup(r => r.GetByUserIdAsync("nonexistent"))
+            .ReturnsAsync(new List<RoleAssignment>());
+
         // Act
         var roleAssignments = (await _service.GetRoleAssignmentsByUserIdAsync("nonexistent")).ToList();
 
@@ -127,23 +160,29 @@ public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDispo
     public async Task GetRoleAssignmentsByPositionAsync_ReturnsPositionRoleAssignments(Position position)
     {
         // Arrange
-        await _service.CreateRoleAssignmentAsync("user1", position, 2023, 2024);
-        await _service.CreateRoleAssignmentAsync("user2", position, 2024, 2025);
-        await _service.CreateRoleAssignmentAsync("user3", Position.ViceMagister, 2023, 2024);
+        var positionRoleAssignments = new List<RoleAssignment>
+        {
+            new RoleAssignment { Id = 1, UserId = "user1", Position = position, StartYear = 2023, EndYear = 2024 },
+            new RoleAssignment { Id = 2, UserId = "user2", Position = position, StartYear = 2024, EndYear = 2025 }
+        };
+
+        _repositoryMock.Setup(r => r.GetByPositionAsync(position))
+            .ReturnsAsync(positionRoleAssignments);
 
         // Act
-        var positionRoleAssignments = (await _service.GetRoleAssignmentsByPositionAsync(position)).ToList();
+        var result = (await _service.GetRoleAssignmentsByPositionAsync(position)).ToList();
 
         // Assert
-        positionRoleAssignments.Should().HaveCount(2);
-        positionRoleAssignments.Should().AllSatisfy(ra => ra.Position.Should().Be(position));
+        result.Should().HaveCount(2);
+        result.Should().AllSatisfy(ra => ra.Position.Should().Be(position));
     }
 
     [Fact]
     public async Task GetRoleAssignmentsByPositionAsync_WithNoAssignments_ReturnsEmpty()
     {
         // Arrange
-        await _service.CreateRoleAssignmentAsync("user1", Position.Magister, 2023, 2024);
+        _repositoryMock.Setup(r => r.GetByPositionAsync(Position.PrimeiroTesoureiro))
+            .ReturnsAsync(new List<RoleAssignment>());
 
         // Act
         var roleAssignments = (await _service.GetRoleAssignmentsByPositionAsync(Position.PrimeiroTesoureiro)).ToList();
@@ -156,7 +195,33 @@ public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDispo
     public async Task UpdateRoleAssignmentAsync_WithValidData_UpdatesRoleAssignment()
     {
         // Arrange
-        var roleAssignment = await _service.CreateRoleAssignmentAsync("user1", Position.Magister, 2023, 2024, "Old notes");
+        var roleAssignment = new RoleAssignment
+        {
+            Id = 1,
+            UserId = "user1",
+            Position = Position.Magister,
+            StartYear = 2023,
+            EndYear = 2024,
+            Notes = "Old notes"
+        };
+
+        var updatedRoleAssignment = new RoleAssignment
+        {
+            Id = 1,
+            UserId = "user1",
+            Position = Position.Secretario,
+            StartYear = 2024,
+            EndYear = 2025,
+            Notes = "Updated notes"
+        };
+
+        _repositoryMock.Setup(r => r.GetByIdAsync(1))
+            .ReturnsAsync(roleAssignment);
+        _repositoryMock.Setup(r => r.UpdateAsync(It.IsAny<RoleAssignment>()))
+            .Returns(Task.CompletedTask);
+        _repositoryMock.SetupSequence(r => r.GetByIdAsync(1))
+            .ReturnsAsync(roleAssignment)
+            .ReturnsAsync(updatedRoleAssignment);
 
         // Act
         await _service.UpdateRoleAssignmentAsync(roleAssignment.Id, Position.Secretario, 2024, 2025, "Updated notes");
@@ -172,6 +237,10 @@ public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDispo
     [Fact]
     public async Task UpdateRoleAssignmentAsync_WithNonExistentId_ThrowsException()
     {
+        // Arrange
+        _repositoryMock.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((RoleAssignment?)null);
+
         // Act
         var act = async () => await _service.UpdateRoleAssignmentAsync(999, Position.Magister, 2023, 2024, null);
 
@@ -184,7 +253,20 @@ public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDispo
     public async Task DeleteRoleAssignmentAsync_WithExistingId_DeletesRoleAssignment()
     {
         // Arrange
-        var roleAssignment = await _service.CreateRoleAssignmentAsync("user1", Position.Magister, 2023, 2024);
+        var roleAssignment = new RoleAssignment
+        {
+            Id = 1,
+            UserId = "user1",
+            Position = Position.Magister,
+            StartYear = 2023,
+            EndYear = 2024
+        };
+
+        _repositoryMock.SetupSequence(r => r.GetByIdAsync(1))
+            .ReturnsAsync(roleAssignment)      // First call in DeleteRoleAssignmentAsync
+            .ReturnsAsync((RoleAssignment?)null);  // Second call in test verification
+        _repositoryMock.Setup(r => r.DeleteAsync(1))
+            .Returns(Task.CompletedTask);
 
         // Act
         await _service.DeleteRoleAssignmentAsync(roleAssignment.Id);
@@ -197,6 +279,10 @@ public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDispo
     [Fact]
     public async Task DeleteRoleAssignmentAsync_WithNonExistentId_ThrowsException()
     {
+        // Arrange
+        _repositoryMock.Setup(r => r.GetByIdAsync(999))
+            .ReturnsAsync((RoleAssignment?)null);
+
         // Act
         var act = async () => await _service.DeleteRoleAssignmentAsync(999);
 
@@ -208,6 +294,21 @@ public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDispo
     [Fact]
     public async Task CreateRoleAssignmentAsync_WithoutOptionalParameters_CreatesSuccessfully()
     {
+        // Arrange
+        var expectedRoleAssignment = new RoleAssignment
+        {
+            Id = 1,
+            UserId = "user1",
+            Position = Position.ViceMagister,
+            StartYear = 2023,
+            EndYear = 2024,
+            Notes = null,
+            CreatedBy = null
+        };
+
+        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<RoleAssignment>()))
+            .ReturnsAsync(expectedRoleAssignment);
+
         // Act
         var roleAssignment = await _service.CreateRoleAssignmentAsync("user1", Position.ViceMagister, 2023, 2024);
 
@@ -215,11 +316,5 @@ public class RoleAssignmentServiceTests : IClassFixture<DatabaseFixture>, IDispo
         roleAssignment.Should().NotBeNull();
         roleAssignment.Notes.Should().BeNull();
         roleAssignment.CreatedBy.Should().BeNull();
-    }
-
-    public void Dispose()
-    {
-        _fixture.CleanDatabase(_context).GetAwaiter().GetResult();
-        _context.Dispose();
     }
 }

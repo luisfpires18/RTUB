@@ -56,11 +56,11 @@ public class RehearsalsAttendanceModalTests
     public void Leitoes_WithInstrument_ShouldDisplayInstrumentText()
     {
         // Arrange
-        var instrument = InstrumentType.Guitarra;
+        InstrumentType? instrument = InstrumentType.Guitarra;
         var expectedDisplay = "Guitarra";
 
         // Act
-        var hasInstrument = instrument != null;
+        var hasInstrument = instrument.HasValue;
         var displayText = hasInstrument ? expectedDisplay : "";
 
         // Assert
