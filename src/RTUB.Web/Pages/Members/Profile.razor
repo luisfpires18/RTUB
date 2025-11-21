@@ -495,8 +495,18 @@ else
             </div>
 
             <div class="d-flex justify-content-end gap-2">
-                <button type="button" class="btn btn-secondary" @onclick="ClosePasswordModal">Cancelar</button>
-                <button type="submit" class="btn btn-primary btn-primary-purple">Alterar Palavra-passe</button>
+                <button type="button" class="btn btn-secondary" @onclick="ClosePasswordModal" disabled="@isChangingPassword">Cancelar</button>
+                <button type="submit" class="btn btn-primary btn-primary-purple" disabled="@isChangingPassword">
+                    @if (isChangingPassword)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>A alterar...</span>
+                    }
+                    else
+                    {
+                        <span>Alterar Palavra-passe</span>
+                    }
+                </button>
             </div>
         </EditForm>
     </BodyContent>
@@ -518,6 +528,7 @@ else
     private ChangePasswordModel passwordModel = new();
     private string? ChangePasswordMessage;
     private bool ChangePasswordSucceeded;
+    private bool isChangingPassword;
     private int imageRefreshTrigger = 0;
     
     // Ranking system
@@ -1021,35 +1032,49 @@ else
 
     private async Task ChangePassword()
     {
-        ChangePasswordMessage = null;
-        ChangePasswordSucceeded = false;
-        if (user == null)
+        if (isChangingPassword)
         {
-            ChangePasswordMessage = "Utilizador não encontrado.";
             return;
         }
-        var result = await UserManager.ChangePasswordAsync(user, passwordModel.OldPassword, passwordModel.NewPassword);
-        if (result.Succeeded)
-        {
-            ChangePasswordSucceeded = true;
-            ChangePasswordMessage = "A sua palavra-passe foi alterada com sucesso.";
-            passwordModel = new ChangePasswordModel();
 
-            // Clear the password change requirement flag
-            if (user.RequirePasswordChange)
+        isChangingPassword = true;
+        ChangePasswordMessage = null;
+        ChangePasswordSucceeded = false;
+        try
+        {
+            if (user == null)
             {
-                user.RequirePasswordChange = false;
-                await SetAuditContextToCurrentUser();
-                await UserManager.UpdateAsync(user);
+                ChangePasswordMessage = "Utilizador não encontrado.";
+                return;
             }
 
-            // Close modal after delay if successful
-            await Task.Delay(1500);
-            ClosePasswordModal();
+            var result = await UserManager.ChangePasswordAsync(user, passwordModel.OldPassword, passwordModel.NewPassword);
+            if (result.Succeeded)
+            {
+                ChangePasswordSucceeded = true;
+                ChangePasswordMessage = "A sua palavra-passe foi alterada com sucesso.";
+                passwordModel = new ChangePasswordModel();
+
+                // Clear the password change requirement flag
+                if (user.RequirePasswordChange)
+                {
+                    user.RequirePasswordChange = false;
+                    await SetAuditContextToCurrentUser();
+                    await UserManager.UpdateAsync(user);
+                }
+
+                // Close modal after delay if successful
+                await Task.Delay(1500);
+                ClosePasswordModal();
+            }
+            else
+            {
+                ChangePasswordMessage = string.Join("; ", result.Errors.Select(e => e.Description));
+            }
         }
-        else
+        finally
         {
-            ChangePasswordMessage = string.Join("; ", result.Errors.Select(e => e.Description));
+            isChangingPassword = false;
         }
     }
 
