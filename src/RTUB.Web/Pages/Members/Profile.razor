@@ -12,6 +12,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.DTOs
 @using Microsoft.JSInterop
+@using Microsoft.Extensions.Options
 @attribute [Authorize]
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
@@ -22,7 +23,10 @@
 @inject IUserProfileService UserProfileService
 @inject IRankingService RankingService
 @inject IMemberInstrumentService MemberInstrumentService
+@inject IRetirementStatusService RetirementStatusService
+@inject IMemberStatusService MemberStatusService
 @inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
+@inject IOptions<RTUB.Application.Configuration.Toggles> Toggles
 
 <h1 class="text-center mb-4"><i class="bi bi-person-circle"></i> Meu Perfil</h1>
 
@@ -76,18 +80,23 @@ else
                           OnSave="@SavePersonalSection"
                           OnCancel="@CancelEdit">
                 <ChildContent>
-                    <ProfileField Label="Nome Completo" Value="@($"{user.FirstName} {user.LastName}")" />
-                    <ProfileField Label="Nome de Tuna" Value="@user.Nickname" />
-                    <ProfileField Label="Email" Value="@user.Email" />
-                    <ProfileField Label="Data de Nascimento" 
-                                Value="@(user.DateOfBirth?.ToString("dd/MM/yyyy"))" />
+                    <ProfileField Label="Nome Completo" Value="@($"{user.FirstName} {user.LastName}")" Icon="bi bi-person" />
+                    <ProfileField Label="Nome de Tuna" Value="@user.Nickname" Icon="bi bi-star" />
+                    <ProfileField Label="Email" Value="@user.Email" Icon="bi bi-envelope" />
+                    <ProfileField Label="Data de Nascimento"
+                                Value="@(user.DateOfBirth?.ToString("dd/MM/yyyy"))"
+                                Icon="bi bi-calendar3" />
                     @if (user.DateOfBirth.HasValue)
                     {
-                        <ProfileField Label="Idade" 
+                        <ProfileField Label="Idade"
                                     Value="@(user.Age?.ToString() + " anos")" />
                     }
-                    <ProfileField Label="Contacto" Value="@user.PhoneNumber" />
-                    <ProfileField Label="Cidade" Value="@user.City" />
+                    <ProfileField Label="Contacto" Value="@user.PhoneNumber" Icon="bi bi-telephone" />
+                    <ProfileField Label="Cidade" Value="@user.City" Icon="bi bi-geo-alt" />
+                    <ProfileField Label="Curso"
+                                  Value="@(user!.Degree ?? "")"
+                                  AdditionalClasses="mt-4"
+                                  Icon="bi bi-mortarboard" />
                 </ChildContent>
                 <EditContent>
                     @if (editUser != null)
@@ -146,6 +155,13 @@ else
                                 </label>
                                 <InputText class="form-control" @bind-Value="editUser.City" placeholder="Inserir cidade..." />
                             </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-white-full fw-semibold">
+                                    <i class="bi bi-mortarboard text-primary me-2"></i>Curso
+                                </label>
+                                <InputText class="form-control" @bind-Value="editUser.Degree" placeholder="Inserir curso..." />
+                            </div>
                         </EditForm>
                     }
                 </EditContent>
@@ -168,31 +184,76 @@ else
                         <ProfileField Label="Instrumentos"
                                     Value="@string.Join(", ", userInstrumentsForDisplay
                                         .OrderByDescending(i => i.IsPrimary)
-                                        .Select(i => StatusHelper.GetInstrumentDisplay(i.InstrumentType) + (i.IsPrimary ? " (Principal)" : "")))" />
+                                        .Select(i => StatusHelper.GetInstrumentDisplay(i.InstrumentType) + (i.IsPrimary ? " (Principal)" : "")))"
+                                    Icon="bi bi-music-note-list" />
                     }
                     else
                     {
-                        <ProfileField Label="Instrumentos" Value="@null" />
+                        <ProfileField Label="Instrumentos" Value="@null" Icon="bi bi-music-note-list" />
                     }
-                    
+
                     @if (user != null && (!user.IsLeitao() || user.IsCaloiro() || user.IsTuno()) && !user.IsFundador())
                     {
-                        <ProfileField Label="Padrinho" 
-                                    Value="@GetMentorDisplayName()" />
+                        <ProfileField Label="Padrinho"
+                                    Value="@GetMentorDisplayName()"
+                                    Icon="bi bi-person-heart" />
                     }
 
-                    <div class="profile-field">
-                        <div class="row">
-                            <div class="col-12 col-md-4 profile-field-label">
-                                <strong class="text-white-full">Percurso na Tuna:</strong>
+                    <ProfileField Label="Percurso na Tuna" Icon="bi bi-flag">
+                        <ValueContent>
+                            <UnifiedTimeline User="@user" RoleAssignments="@roleAssignments" />
+                        </ValueContent>
+                    </ProfileField>
+                    
+                    <!-- Estado na Tuna Section -->
+                    @{
+                        var isActiveMember = user?.Categories.Contains(MemberCategory.Caloiro) == true || 
+                                            user?.Categories.Contains(MemberCategory.Tuno) == true ||
+                                            user?.Categories.Contains(MemberCategory.Veterano) == true ||
+                                            user?.Categories.Contains(MemberCategory.Tunossauro) == true;
+                        var hasActivityHistory = memberStatusResult?.HasAnyActivity ?? false;
+                    }
+                    @if (isActiveMember && hasActivityHistory)
+                    {
+                        <div class="profile-field-section mt-4">
+                            <div class="profile-field-section-header mb-3">
+                                <strong class="text-white-full">
+                                    <i class="bi bi-flag-fill me-2 text-primary"></i>
+                                    Estado na Tuna
+                                </strong>
                             </div>
-                            <div class="col-12 col-md-8 profile-field-value">
-                                <UnifiedTimeline User="@user" RoleAssignments="@roleAssignments" />
-                            </div>
-                        </div>
-                    </div>
+                            
+                            <ProfileField Label="Estado atual" Value="badge">
+                                <ValueContent>
+                                    @if (memberStatusResult?.IsRetired == true)
+                                    {
+                                        <span class="badge badge-retired" 
+                                              title="Reformados: transitam para esta categoria os Associados Efectivos que por motivos profissionais ou pessoais, se encontrem afastados, por um período de seis meses ou superior, das actividades da RTUB. Poderão retornar à sua categoria após três meses de actividade ininterrupta.">
+                                            REFORMADO
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-active">
+                                            NO ATIVO
+                                        </span>
+                                    }
+                                </ValueContent>
+                            </ProfileField>
+                            
+                            <ProfileField Label="Último ensaio"
+                                        Icon="bi bi-calendar-check"
+                                        Value="@(memberStatusResult?.LastRehearsalDate.HasValue == true
+                                            ? memberStatusResult.LastRehearsalDate.Value.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("pt-PT"))
+                                            : null)" />
 
-                    <ProfileField Label="Curso" Value="@(user!.Degree ?? "")" />
+                            <ProfileField Label="Última atuação"
+                                        Icon="bi bi-calendar-event"
+                                        Value="@(memberStatusResult?.LastEventDate.HasValue == true
+                                            ? memberStatusResult.LastEventDate.Value.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("pt-PT"))
+                                            : null)" />
+                        </div>
+                    }
 
                 </ChildContent>
                 <EditContent>
@@ -380,13 +441,6 @@ else
                                 </div>
                             }
                         </EditForm>
-
-                        <div class="mb-3">
-                            <label class="form-label text-white-full fw-semibold">
-                                <i class="bi bi-mortarboard text-primary me-2"></i>Curso
-                            </label>
-                            <InputText class="form-control" @bind-Value="editUser.Degree" placeholder="Inserir curso..." />
-                        </div>
                     }
                 </EditContent>
             </ProfileSection>
@@ -530,6 +584,8 @@ else
     private bool ChangePasswordSucceeded;
     private bool isChangingPassword;
     private int imageRefreshTrigger = 0;
+    private RTUB.Application.Services.Retirement.RetirementStatusResult? retirementStatusResult;
+    private MemberStatusResult? memberStatusResult;
     
     // Ranking system
     private RankProgressInfo? rankProgress;
@@ -675,6 +731,34 @@ else
                 
                 // Load ranking data - always display for all users
                 rankProgress = await RankingService.GetRankProgressAsync(user.Id);
+                
+                // Load retirement status 
+                try
+                {
+                    retirementStatusResult = await RetirementStatusService.EvaluateRetirementStatusAsync(user.Id);
+                }
+                catch
+                {
+                    retirementStatusResult = null;
+                }
+                
+                // Load status data for active members (ALWAYS shown when there's activity)
+                var isActiveMember = user.Categories.Contains(MemberCategory.Caloiro) || 
+                                    user.Categories.Contains(MemberCategory.Tuno) ||
+                                    user.Categories.Contains(MemberCategory.Veterano) ||
+                                    user.Categories.Contains(MemberCategory.Tunossauro);
+                
+                if (isActiveMember)
+                {
+                    try
+                    {
+                        memberStatusResult = await MemberStatusService.GetMemberStatusAsync(user.Id);
+                    }
+                    catch
+                    {
+                        memberStatusResult = null;
+                    }
+                }
             }
         }
     }
@@ -951,6 +1035,7 @@ else
         user.Email = editUser.Email;
         user.PhoneNumber = editUser.PhoneNumber;
         user.City = editUser.City;
+        user.Degree = editUser.Degree;
         user.DateOfBirth = editUser.DateOfBirth;
 
         await SetAuditContextToCurrentUser();
@@ -971,7 +1056,6 @@ else
             editUser.MentorId = null;
         }
 
-        user.Degree = editUser.Degree;
         user.MentorId = editUser.MentorId;
         
         // Backend security: Only update date pairs if they're not already complete in the database

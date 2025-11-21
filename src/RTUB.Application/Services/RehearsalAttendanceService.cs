@@ -3,6 +3,8 @@ using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 
 namespace RTUB.Application.Services;
 
@@ -13,10 +15,14 @@ namespace RTUB.Application.Services;
 public class RehearsalAttendanceService : IRehearsalAttendanceService
 {
     private readonly IRehearsalAttendanceRepository _attendanceRepository;
+    private readonly IRetirementStatusService _retirementStatusService;
 
-    public RehearsalAttendanceService(IRehearsalAttendanceRepository attendanceRepository)
+    public RehearsalAttendanceService(
+        IRehearsalAttendanceRepository attendanceRepository,
+        IRetirementStatusService retirementStatusService)
     {
         _attendanceRepository = attendanceRepository;
+        _retirementStatusService = retirementStatusService;
     }
 
     public async Task<RehearsalAttendance?> GetAttendanceByIdAsync(int id)
@@ -113,6 +119,12 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             attendance.UpdateInstrument(instrument);
         
         await _attendanceRepository.UpdateAsync(attendance);
+        
+        // Update retirement status if attendance was marked as true
+        if (attended)
+        {
+            await _retirementStatusService.UpdateUserRetirementStatusAsync(attendance.UserId);
+        }
     }
     
     public async Task CancelAttendanceAsync(int id)

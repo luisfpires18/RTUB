@@ -21,6 +21,8 @@
 @inject IMemberInstrumentService MemberInstrumentService
 @inject IEmailNotificationService EmailNotificationService
 @inject IUserRoleQueryService UserRoleQueryService
+@inject IRetirementStatusService RetirementStatusService
+@inject IMemberStatusService MemberStatusService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject NavigationManager NavigationManager
@@ -646,8 +648,59 @@ else
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
+
+            <!-- Estado na Tuna Section -->
+            @{
+                var isActiveMember = viewingUser.Categories.Contains(MemberCategory.Caloiro) ||
+                                    viewingUser.Categories.Contains(MemberCategory.Tuno) ||
+                                    viewingUser.Categories.Contains(MemberCategory.Veterano) ||
+                                    viewingUser.Categories.Contains(MemberCategory.Tunossauro);
+                var statusResult = viewingUserStatusData.GetValueOrDefault(viewingUser.Id);
+                var hasActivityHistory = statusResult?.HasAnyActivity ?? false;
+            }
+            @if (isActiveMember && hasActivityHistory)
+            {
+                <div class="modal-info-section mb-3">
+                    <div class="modal-section-header">
+                        <h6 class="modal-section-title">
+                            <i class="bi bi-flag-fill me-2 text-primary"></i>
+                            Estado na Tuna
+                        </h6>
+                    </div>
+                    <div class="modal-section-body">
+                        <ProfileField Label="Estado atual" Value="badge">
+                            <ValueContent>
+                                @if (statusResult?.IsRetired == true)
+                                {
+                                    <span class="badge badge-retired"
+                                          title="Reformados: transitam para esta categoria os Associados Efectivos que por motivos profissionais ou pessoais, se encontrem afastados, por um período de seis meses ou superior, das actividades da RTUB. Poderão retornar à sua categoria após três meses de actividade ininterrupta.">
+                                        REFORMADO
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-active">
+                                        NO ATIVO
+                                    </span>
+                                }
+                            </ValueContent>
+                        </ProfileField>
+
+                        <ProfileField Label="Último ensaio"
+                                      Value="@(statusResult?.LastRehearsalDate.HasValue == true
+                                          ? statusResult.LastRehearsalDate.Value.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("pt-PT"))
+                                          : null)" />
+
+                        <ProfileField Label="Última atuação"
+                                      Value="@(statusResult?.LastEventDate.HasValue == true
+                                          ? statusResult.LastEventDate.Value.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("pt-PT"))
+                                          : null)" />
+                    </div>
+                </div>
+            }
         </BodyContent>
         <FooterContent>
             <button type="button" class="btn btn-secondary" @onclick="CloseViewDetailsModal">Fechar</button>
@@ -966,6 +1019,8 @@ else
     private NicknameFormModel nicknameForm = new();
     private bool isFundador = false; // Track if user is a founder
     private bool semAlcunha = false; // Track if leitão has no nickname yet
+    private Dictionary<string, RTUB.Application.Services.Retirement.RetirementStatusResult?> viewingUserRetirementStatus = new();
+    private Dictionary<string, MemberStatusResult?> viewingUserStatusData = new();
     
     // Anniversaries modal
     private bool anniversariesLoading = false;
@@ -1921,6 +1976,36 @@ else
         
         // Load member instruments
         viewingUserInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id)).ToList();
+        
+        // Load retirement status
+        try
+        {
+            var retirementStatus = await RetirementStatusService.EvaluateRetirementStatusAsync(user.Id);
+            viewingUserRetirementStatus[user.Id] = retirementStatus;
+        }
+        catch
+        {
+            viewingUserRetirementStatus[user.Id] = null;
+        }
+        
+        // Load status data for active members (ALWAYS shown when there's activity)
+        var isActiveMember = user.Categories.Contains(MemberCategory.Caloiro) || 
+                            user.Categories.Contains(MemberCategory.Tuno) ||
+                            user.Categories.Contains(MemberCategory.Veterano) ||
+                            user.Categories.Contains(MemberCategory.Tunossauro);
+        
+        if (isActiveMember)
+        {
+            try
+            {
+                var statusData = await MemberStatusService.GetMemberStatusAsync(user.Id);
+                viewingUserStatusData[user.Id] = statusData;
+            }
+            catch
+            {
+                viewingUserStatusData[user.Id] = null;
+            }
+        }
         
         showViewDetailsModal = true;
     }

@@ -310,6 +310,11 @@
   cursor: help;
 }
 
+.profile-field-separator {
+  border-top: 1px solid rgba(47, 47, 47, 0.5);
+  padding-top: 1rem;
+}
+
 /* Profile Timeline */
 .profile-timeline {
   padding: 1rem 0;

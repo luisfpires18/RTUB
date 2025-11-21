@@ -8,7 +8,13 @@
 
 <div class="profile-field row @AdditionalClasses">
     <div class="col-12 col-md-4 profile-field-label">
-        <strong class="text-white-full">@Label:</strong>
+        <strong class="text-white-full">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <i class="@Icon text-primary me-2"></i>
+            }
+            @Label:
+        </strong>
     </div>
     <div class="col-12 col-md-8 profile-field-value">
         @if (!string.IsNullOrWhiteSpace(Value))
@@ -50,4 +56,7 @@
 
     [Parameter]
     public string AdditionalClasses { get; set; } = "";
+
+    [Parameter]
+    public string? Icon { get; set; }
 }

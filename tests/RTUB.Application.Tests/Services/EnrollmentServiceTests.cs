@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Moq;
+using Microsoft.Extensions.Options;
 using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Interfaces;
@@ -23,6 +24,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     private readonly EventRepository _eventRepository;
     private readonly EventService _eventService;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
+    private readonly Mock<IRetirementStatusService> _mockRetirementStatusService;
 
     public EnrollmentServiceTests(DatabaseFixture fixture)
     {
@@ -34,8 +36,13 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _enrollmentService = new EnrollmentService(new EnrollmentRepository(_context));
         _mockImageStorageService = new Mock<IImageStorageService>();
+        _mockRetirementStatusService = new Mock<IRetirementStatusService>();
+        
+        _enrollmentService = new EnrollmentService(
+            new EnrollmentRepository(_context),
+            _mockRetirementStatusService.Object);
+
         _eventRepository = new EventRepository(_context);
         _eventService = new EventService(_eventRepository, _mockImageStorageService.Object, new EnrollmentRepository(_context));
     }

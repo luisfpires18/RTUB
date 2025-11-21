@@ -2,6 +2,8 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 
 namespace RTUB.Application.Services;
 
@@ -13,10 +15,14 @@ namespace RTUB.Application.Services;
 public class EnrollmentService : IEnrollmentService
 {
     private readonly IEnrollmentRepository _enrollmentRepository;
+    private readonly IRetirementStatusService _retirementStatusService;
 
-    public EnrollmentService(IEnrollmentRepository enrollmentRepository)
+    public EnrollmentService(
+        IEnrollmentRepository enrollmentRepository,
+        IRetirementStatusService retirementStatusService)
     {
         _enrollmentRepository = enrollmentRepository;
+        _retirementStatusService = retirementStatusService;
     }
 
     public async Task<Enrollment?> GetEnrollmentByIdAsync(int id)
@@ -70,6 +76,12 @@ public class EnrollmentService : IEnrollmentService
         enrollment.OtherInstruments = otherInstruments;
 
         await _enrollmentRepository.UpdateAsync(enrollment);
+        
+        // Update retirement status if enrollment was confirmed
+        if (willAttend)
+        {
+            await _retirementStatusService.UpdateUserRetirementStatusAsync(enrollment.UserId);
+        }
 
         return enrollment;
     }

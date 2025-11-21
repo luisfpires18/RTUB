@@ -2,9 +2,11 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -20,6 +22,7 @@ public class RehearsalWorkflowTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly RehearsalService _rehearsalService;
     private readonly RehearsalAttendanceService _attendanceService;
+    private readonly Mock<IRetirementStatusService> _mockRetirementStatusService;
 
     public RehearsalWorkflowTests()
     {
@@ -34,9 +37,13 @@ public class RehearsalWorkflowTests : IDisposable
 
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
+        
+        _mockRetirementStatusService = new Mock<IRetirementStatusService>();
 
         _rehearsalService = new RehearsalService(new RehearsalRepository(_context), new RehearsalAttendanceRepository(_context));
-        _attendanceService = new RehearsalAttendanceService(new RehearsalAttendanceRepository(_context));
+        _attendanceService = new RehearsalAttendanceService(
+            new RehearsalAttendanceRepository(_context),
+            _mockRetirementStatusService.Object);
     }
 
     [Fact]

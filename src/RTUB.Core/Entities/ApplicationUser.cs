@@ -53,6 +53,9 @@ public class ApplicationUser : IdentityUser
     // Email notification preferences
     public bool Subscribed { get; set; } = true;
     
+    // Retirement status - tracks if active members have been inactive 6+ months
+    public bool IsRetired { get; set; } = false;
+    
     // Mentor/Padrinho relationship
     public string? MentorId { get; set; }
     public ApplicationUser? Mentor { get; set; }

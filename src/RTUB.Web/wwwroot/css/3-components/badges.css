@@ -44,3 +44,16 @@
     border: 2px solid var(--bs-primary);
     font-weight: bold;
 }
+
+/* Retirement status badges */
+.badge-active {
+    background-color: var(--bs-primary);
+    color: white;
+    font-weight: 500;
+}
+
+.badge-retired {
+    background-color: #000000;
+    color: white;
+    font-weight: 500;
+}

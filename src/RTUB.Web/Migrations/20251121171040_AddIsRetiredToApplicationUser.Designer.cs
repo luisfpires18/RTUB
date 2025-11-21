@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251121171040_AddIsRetiredToApplicationUser")]
+    partial class AddIsRetiredToApplicationUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -402,14 +405,6 @@ namespace RTUB.Migrations
                     b.Property<bool>("IsCriticalAction")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("TargetMemberId")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TargetMemberName")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("TEXT");
 
@@ -643,9 +638,6 @@ namespace RTUB.Migrations
 
                     b.Property<int>("EventId")
                         .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("RepertoireDate")
-                        .HasColumnType("TEXT");
 
                     b.Property<int>("SongId")
                         .HasColumnType("INTEGER");

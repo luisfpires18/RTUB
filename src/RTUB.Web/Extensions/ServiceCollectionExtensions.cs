@@ -3,6 +3,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Application.Services.Email;
+using RTUB.Application.Services.Retirement;
 
 namespace RTUB.Web.Extensions;
 
@@ -79,6 +80,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFiscalYearService, FiscalYearService>();
         services.AddScoped<IEventRepertoireService, EventRepertoireService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
+        services.AddScoped<IRetirementStatusService, RetirementStatusService>();
 
         return services;
     }
@@ -189,6 +191,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IMemberStatisticsService, MemberStatisticsService>();
         services.AddScoped<IUserRoleQueryService, UserRoleQueryService>();
+        services.AddScoped<IMemberStatusService, MemberStatusService>();
 
         return services;
     }

@@ -2,9 +2,11 @@ using FluentAssertions;
 using Moq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Application.Repositories;
+using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
@@ -19,6 +21,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly RehearsalAttendanceService _attendanceService;
+    private readonly Mock<IRetirementStatusService> _mockRetirementStatusService;
 
     public RehearsalAttendanceAdminWorkflowTests()
     {
@@ -27,7 +30,12 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
-        _attendanceService = new RehearsalAttendanceService(new RehearsalAttendanceRepository(_context));
+        
+        _mockRetirementStatusService = new Mock<IRetirementStatusService>();
+        
+        _attendanceService = new RehearsalAttendanceService(
+            new RehearsalAttendanceRepository(_context),
+            _mockRetirementStatusService.Object);
     }
 
     #region Admin Add Member Workflow Tests
