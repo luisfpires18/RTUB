@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Helpers
+@using RTUB.Application.DTOs
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Utilities
@@ -807,69 +808,91 @@ else
     <BodyContent>
         @if (selectedEventForEmail != null)
         {
-            <div class="mb-3">
-                <h6 class="text-white-full">Detalhes do Evento:</h6>
-                <div class="event-summary p-3 rounded bg-dark">
-                    <div><strong>Título:</strong> @selectedEventForEmail.Name</div>
-                    <div><strong>Data:</strong> @selectedEventForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"))</div>
-                    <div><strong>Local:</strong> @selectedEventForEmail.Location</div>
-                </div>
-            </div>
-
-            @if (emailLoadingSubscribers)
+            <!-- Loading Overlay for Sending Emails -->
+            @if (IsSendingEmails)
             {
-                <div class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">A carregar...</span>
+                <div class="position-relative" style="min-height: 200px;">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">A enviar...</span>
+                        </div>
+                        <h5 class="text-white mb-2">Enviando emails...</h5>
+                        <p class="text-white-full mb-0">
+                            @EmailsSent / @EmailsTotal
+                            @if (!string.IsNullOrEmpty(LastRecipient))
+                            {
+                                <span> (último: @LastRecipient)</span>
+                            }
+                        </p>
                     </div>
                 </div>
             }
-            else if (!string.IsNullOrEmpty(emailErrorMessage))
-            {
-                <Alert Message="@emailErrorMessage" 
-                       Type="Alert.AlertType.Error" 
-                       Dismissible="true"
-                       OnDismiss="@(() => emailErrorMessage = null)" />
-            }
             else
             {
-                <!-- Notification Type Selection -->
                 <div class="mb-3">
-                    <label class="form-label text-white-full">Tipo de Notificação <span class="text-danger">*</span></label>
-                    <select class="form-select" @bind="selectedNotificationType">
-                        <option value="new">Nova Atuação</option>
-                        <option value="reminder">Lembrete de Atuação</option>
-                    </select>
-                    <small class="text-muted">
-                        @if (selectedNotificationType == "new")
-                        {
-                            <text>Notifica os membros sobre uma nova atuação criada.</text>
-                        }
-                        else
-                        {
-                            var daysUntil = (int)Math.Ceiling((selectedEventForEmail.Date.Date - DateTime.UtcNow.Date).TotalDays);
-                            var daysText = daysUntil == 1 ? "1 dia" : $"{daysUntil} dias";
-                            <text>Lembra os membros que a atuação é em @daysText e de confirmarem a presença.</text>
-                        }
-                    </small>
+                    <h6 class="text-white-full">Detalhes do Evento:</h6>
+                    <div class="event-summary p-3 rounded bg-dark">
+                        <div><strong>Título:</strong> @selectedEventForEmail.Name</div>
+                        <div><strong>Data:</strong> @selectedEventForEmail.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"))</div>
+                        <div><strong>Local:</strong> @selectedEventForEmail.Location</div>
+                    </div>
                 </div>
-                
-                <EmailRecipientsPreview 
-                    SubscribedUsers="@(subscribedUsers ?? new List<ApplicationUser>())"
-                    NonSubscribedUsers="@(nonSubscribedUsers ?? new List<ApplicationUser>())"
-                    SubscribedUsersTitle="Membros que irão receber:"
-                    NonSubscribedUsersTitle="Quem não irá receber:"
-                    ShowNonSubscribedUsers="true"
-                    MaxHeight="300px"
-                    InfoBadgeText="@($"{subscribedUsersCount} / {totalUsersCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")"
-                    ShowEmptySubscribedMessage="true"
-                    EmptySubscribedMessage="Nenhum membro subscrito às notificações por email." />
+
+                @if (emailLoadingSubscribers)
+                {
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">A carregar...</span>
+                        </div>
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(emailErrorMessage))
+                {
+                    <Alert Message="@emailErrorMessage" 
+                           Type="Alert.AlertType.Error" 
+                           Dismissible="true"
+                           OnDismiss="@(() => emailErrorMessage = null)" />
+                }
+                else
+                {
+                    <!-- Notification Type Selection -->
+                    <div class="mb-3">
+                        <label class="form-label text-white-full">Tipo de Notificação <span class="text-danger">*</span></label>
+                        <select class="form-select" @bind="selectedNotificationType">
+                            <option value="new">Nova Atuação</option>
+                            <option value="reminder">Lembrete de Atuação</option>
+                        </select>
+                        <small class="text-muted">
+                            @if (selectedNotificationType == "new")
+                            {
+                                <text>Notifica os membros sobre uma nova atuação criada.</text>
+                            }
+                            else
+                            {
+                                var daysUntil = (int)Math.Ceiling((selectedEventForEmail.Date.Date - DateTime.UtcNow.Date).TotalDays);
+                                var daysText = daysUntil == 1 ? "1 dia" : $"{daysUntil} dias";
+                                <text>Lembra os membros que a atuação é em @daysText e de confirmarem a presença.</text>
+                            }
+                        </small>
+                    </div>
+                    
+                    <EmailRecipientsPreview 
+                        SubscribedUsers="@(subscribedUsers ?? new List<ApplicationUser>())"
+                        NonSubscribedUsers="@(nonSubscribedUsers ?? new List<ApplicationUser>())"
+                        SubscribedUsersTitle="Membros que irão receber:"
+                        NonSubscribedUsersTitle="Quem não irá receber:"
+                        ShowNonSubscribedUsers="true"
+                        MaxHeight="300px"
+                        InfoBadgeText="@($"{subscribedUsersCount} / {totalUsersCount} membros têm 'Notificações por email' ativas e irão receber esta mensagem.")"
+                        ShowEmptySubscribedMessage="true"
+                        EmptySubscribedMessage="Nenhum membro subscrito às notificações por email." />
+                }
             }
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseEmailNotificationModal">Cancelar</button>
-        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendEventNotification" disabled="@(subscribedUsers == null || !subscribedUsers.Any())">
+        <button type="button" class="btn btn-secondary" @onclick="CloseEmailNotificationModal" disabled="@IsSendingEmails">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendEventNotification" disabled="@(IsSendingEmails || subscribedUsers == null || !subscribedUsers.Any())">
             Enviar Notificação
         </button>
     </FooterContent>
@@ -885,6 +908,26 @@ else
     <BodyContent>
         @if (selectedEventForCancellation != null)
         {
+            <!-- Loading Overlay for Sending Cancellation Emails -->
+            @if (IsSendingEmails)
+            {
+                <div class="position-relative" style="min-height: 200px;">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">A enviar...</span>
+                        </div>
+                        <h5 class="text-white mb-2">Enviando emails de cancelamento...</h5>
+                        <p class="text-white-full mb-0">
+                            @EmailsSent / @EmailsTotal
+                            @if (!string.IsNullOrEmpty(LastRecipient))
+                            {
+                                <span> (último: @LastRecipient)</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+            }
+            
             <div class="mb-3">
                 <h6 class="text-white-full">Evento:</h6>
                 <div class="event-summary p-3 rounded bg-dark">
@@ -939,8 +982,8 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseCancelEventModal">Não Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelEvent">Cancelar Evento</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseCancelEventModal" disabled="@IsSendingEmails">Não Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelEvent" disabled="@IsSendingEmails">Cancelar Evento</button>
     </FooterContent>
 </Modal>
 
@@ -1037,6 +1080,12 @@ else
     private bool emailLoadingSubscribers = false;
     private string? emailErrorMessage;
     private string selectedNotificationType = "new"; // "new" or "reminder"
+    
+    // Email sending progress variables
+    private bool IsSendingEmails = false;
+    private int EmailsTotal = 0;
+    private int EmailsSent = 0;
+    private string? LastRecipient = null;
     
     // Cancel event modal variables
     private bool notifySubscribersOnCancel = false;
@@ -2032,6 +2081,13 @@ else
             return;
         }
 
+        // Initialize progress tracking
+        IsSendingEmails = true;
+        EmailsTotal = subscribedUsers.Count;
+        EmailsSent = 0;
+        LastRecipient = null;
+        emailErrorMessage = null;
+        
         StateHasChanged();
 
         try
@@ -2057,6 +2113,15 @@ else
                     )
                 );
 
+            // Create progress reporter
+            var progress = new Progress<EmailSendProgress>(update =>
+            {
+                EmailsTotal = update.Total;
+                EmailsSent = update.Sent;
+                LastRecipient = update.LastRecipient;
+                StateHasChanged();
+            });
+
             // Send the appropriate notification based on selected type
             (bool success, int count, string? errorMessage) result;
             
@@ -2072,7 +2137,8 @@ else
                     recipientEmails,
                     recipientData,
                     selectedEventForEmail.Description ?? "",
-                    selectedEventForEmail.EndDate
+                    selectedEventForEmail.EndDate,
+                    progress
                 );
             }
             else
@@ -2087,17 +2153,16 @@ else
                     recipientEmails,
                     recipientData,
                     selectedEventForEmail.Description ?? "",
-                    selectedEventForEmail.EndDate
+                    selectedEventForEmail.EndDate,
+                    progress
                 );
             }
 
             if (result.success)
             {
-                // Close modal on success
+                // Success - close modal
+                emailErrorMessage = null;
                 CloseEmailNotificationModal();
-                
-                // Could show a success toast here if implemented
-                // For now, just close the modal
             }
             else
             {
@@ -2110,6 +2175,7 @@ else
         }
         finally
         {
+            IsSendingEmails = false;
             StateHasChanged();
         }
     }
@@ -2224,6 +2290,16 @@ else
             return;
         }
 
+        // Initialize progress tracking if sending emails
+        if (notifySubscribersOnCancel && cancelEventSubscribedUsers != null && cancelEventSubscribedUsers.Any())
+        {
+            IsSendingEmails = true;
+            EmailsTotal = cancelEventSubscribedUsers.Count;
+            EmailsSent = 0;
+            LastRecipient = null;
+            StateHasChanged();
+        }
+
         try
         {
             // Cancel the event
@@ -2252,6 +2328,15 @@ else
                         )
                     );
 
+                // Create progress reporter
+                var progress = new Progress<EmailSendProgress>(update =>
+                {
+                    EmailsTotal = update.Total;
+                    EmailsSent = update.Sent;
+                    LastRecipient = update.LastRecipient;
+                    StateHasChanged();
+                });
+
                 // Send the cancellation notification email
                 await EmailNotificationService.SendEventCancellationNotificationAsync(
                     selectedEventForCancellation.Id,
@@ -2262,7 +2347,8 @@ else
                     eventLink,
                     recipientEmails,
                     recipientData,
-                    selectedEventForCancellation.EndDate
+                    selectedEventForCancellation.EndDate,
+                    progress
                 );
             }
 
@@ -2275,6 +2361,10 @@ else
         catch (Exception ex)
         {
             cancelEventErrorMessage = $"Erro ao cancelar evento: {ex.Message}";
+        }
+        finally
+        {
+            IsSendingEmails = false;
             StateHasChanged();
         }
     }

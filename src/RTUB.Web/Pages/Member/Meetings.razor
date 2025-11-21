@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
+@using RTUB.Application.DTOs
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
 @using RTUB.Core.Entities
@@ -328,6 +329,26 @@ else
     <BodyContent>
         @if (selectedMeetingForEmail != null)
         {
+            <!-- Loading Overlay for Sending Emails -->
+            @if (IsSendingEmails)
+            {
+                <div class="position-relative" style="min-height: 200px;">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">A enviar...</span>
+                        </div>
+                        <h5 class="text-white mb-2">Enviando emails...</h5>
+                        <p class="text-white-full mb-0">
+                            @EmailsSent / @EmailsTotal
+                            @if (!string.IsNullOrEmpty(LastRecipient))
+                            {
+                                <span> (último: @LastRecipient)</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+            }
+            
             <div class="mb-3">
                 <h6 class="text-white-full">Detalhes da Reunião:</h6>
                 <div class="event-summary p-3 rounded bg-dark">
@@ -415,8 +436,8 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseEmailNotificationModal">Cancelar</button>
-        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendMeetingNotification" disabled="@(subscribedUsers == null || !subscribedUsers.Any() || string.IsNullOrWhiteSpace(emailSubject) || string.IsNullOrWhiteSpace(emailPlainTextBody))">
+        <button type="button" class="btn btn-secondary" @onclick="CloseEmailNotificationModal" disabled="@IsSendingEmails">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendMeetingNotification" disabled="@(IsSendingEmails || subscribedUsers == null || !subscribedUsers.Any() || string.IsNullOrWhiteSpace(emailSubject) || string.IsNullOrWhiteSpace(emailPlainTextBody))">
             Enviar Notificação
         </button>
     </FooterContent>
@@ -432,6 +453,26 @@ else
     <BodyContent>
         @if (selectedMeetingForCancellation != null)
         {
+            <!-- Loading Overlay for Sending Cancellation Emails -->
+            @if (IsSendingEmails)
+            {
+                <div class="position-relative" style="min-height: 200px;">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">A enviar...</span>
+                        </div>
+                        <h5 class="text-white mb-2">Enviando emails de cancelamento...</h5>
+                        <p class="text-white-full mb-0">
+                            @EmailsSent / @EmailsTotal
+                            @if (!string.IsNullOrEmpty(LastRecipient))
+                            {
+                                <span> (último: @LastRecipient)</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+            }
+            
             <div class="mb-3">
                 <h6 class="text-white-full">Reunião:</h6>
                 <div class="event-summary p-3 rounded bg-dark">
@@ -491,8 +532,8 @@ else
         }
     </BodyContent>
     <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseCancelMeetingModal">Não Cancelar</button>
-        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelMeeting">Cancelar Reunião</button>
+        <button type="button" class="btn btn-secondary" @onclick="CloseCancelMeetingModal" disabled="@IsSendingEmails">Não Cancelar</button>
+        <button type="button" class="btn btn-danger" @onclick="ConfirmCancelMeeting" disabled="@IsSendingEmails">Cancelar Reunião</button>
     </FooterContent>
 </Modal>
 
@@ -666,6 +707,12 @@ else
     private string emailBody = string.Empty;
     private string emailPlainTextBody = string.Empty;
     private string selectedTunoId = string.Empty;
+    
+    // Email sending progress variables
+    private bool IsSendingEmails = false;
+    private int EmailsTotal = 0;
+    private int EmailsSent = 0;
+    private string? LastRecipient = null;
     
     // Email preview variables
     private bool showEmailPreview = false;
@@ -1036,6 +1083,15 @@ else
             return;
         }
 
+        // Initialize progress tracking
+        IsSendingEmails = true;
+        EmailsTotal = subscribedUsers.Count;
+        EmailsSent = 0;
+        LastRecipient = null;
+        emailErrorMessage = null;
+        
+        StateHasChanged();
+
         try
         {
             // Generate HTML email body from plain text before sending
@@ -1088,17 +1144,28 @@ else
                     )
                 );
 
+            // Create progress reporter
+            var progress = new Progress<EmailSendProgress>(update =>
+            {
+                EmailsTotal = update.Total;
+                EmailsSent = update.Sent;
+                LastRecipient = update.LastRecipient;
+                StateHasChanged();
+            });
+
             // Send the meeting notification
             var result = await EmailNotificationService.SendMeetingNotificationAsync(
                 selectedMeetingForEmail.Id,
                 emailSubject,
                 emailBody,
                 recipientEmails,
-                recipientData);
+                recipientData,
+                progress);
 
             if (result.success)
             {
-                // Close modal on success
+                // Success - close modal and reload
+                emailErrorMessage = null;
                 CloseEmailNotificationModal();
                 await LoadMeetingsAsync();
             }
@@ -1110,6 +1177,10 @@ else
         catch (Exception ex)
         {
             emailErrorMessage = $"Erro ao enviar notificação: {ex.Message}";
+        }
+        finally
+        {
+            IsSendingEmails = false;
             StateHasChanged();
         }
     }
@@ -1230,6 +1301,16 @@ else
             return;
         }
 
+        // Initialize progress tracking if sending emails
+        if (notifySubscribersOnMeetingCancel && cancelMeetingSubscribedUsers != null && cancelMeetingSubscribedUsers.Any())
+        {
+            IsSendingEmails = true;
+            EmailsTotal = cancelMeetingSubscribedUsers.Count;
+            EmailsSent = 0;
+            LastRecipient = null;
+            StateHasChanged();
+        }
+
         try
         {
             // Cancel the meeting by setting the properties
@@ -1277,6 +1358,15 @@ else
                     nickname: "",
                     fullName: "");
 
+                // Create progress reporter
+                var progress = new Progress<EmailSendProgress>(update =>
+                {
+                    EmailsTotal = update.Total;
+                    EmailsSent = update.Sent;
+                    LastRecipient = update.LastRecipient;
+                    StateHasChanged();
+                });
+
                 // Send the cancellation notification
                 var subject = $"[RTUB] Cancelamento: {GetMeetingTypeFullName(selectedMeetingForCancellation.Type)} - {selectedMeetingForCancellation.Title}";
                 await EmailNotificationService.SendMeetingNotificationAsync(
@@ -1284,7 +1374,8 @@ else
                     subject,
                     emailBody,
                     recipientEmails,
-                    recipientData);
+                    recipientData,
+                    progress);
             }
 
             // Reload meetings
@@ -1295,6 +1386,10 @@ else
         catch (Exception ex)
         {
             cancelMeetingErrorMessage = $"Erro ao cancelar reunião: {ex.Message}";
+        }
+        finally
+        {
+            IsSendingEmails = false;
             StateHasChanged();
         }
     }

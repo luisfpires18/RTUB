@@ -488,6 +488,162 @@ public class EmailNotificationServiceTests : IDisposable
         await act.Should().NotThrowAsync();
     }
 
+    [Fact]
+    public async Task SendEventNotificationAsync_WithProgressCallback_AcceptsProgressParameter()
+    {
+        // Arrange
+        var recipientEmails = new List<string> { "user1@test.com", "user2@test.com", "user3@test.com" };
+        var recipientData = recipientEmails.ToDictionary(
+            email => email,
+            email => (nickname: $"User{email.Split('@')[0]}", fullName: $"Test {email.Split('@')[0]}"));
+
+        var progressUpdates = new List<RTUB.Application.DTOs.EmailSendProgress>();
+        var progress = new Progress<RTUB.Application.DTOs.EmailSendProgress>(update =>
+        {
+            progressUpdates.Add(update);
+        });
+
+        // Setup SMTP configuration
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpServer"]).Returns("smtp.test.com");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpPort"]).Returns("587");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpUsername"]).Returns("test@test.com");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpPassword"]).Returns("test-password");
+        _mockConfiguration.Setup(x => x["EmailSettings:SenderEmail"]).Returns("noreply@rtub.pt");
+        _mockConfiguration.Setup(x => x["EmailSettings:SenderName"]).Returns("RTUB");
+
+        // Act - method should accept progress parameter without errors
+        var result = await _service.SendEventNotificationAsync(
+            eventId: 1,
+            eventTitle: "Test Event",
+            eventDate: DateTime.Now.AddDays(7),
+            eventLocation: "Coimbra",
+            eventLink: "https://rtub.pt/events/1",
+            recipientEmails: recipientEmails,
+            recipientData: recipientData,
+            eventDescription: "Test",
+            endDate: null,
+            progress: progress);
+
+        // Assert - method completes without throwing, even if actual sending fails
+        result.Should().NotBeNull();
+        // Note: Progress may not be reported in unit tests without real SMTP
+    }
+
+    [Fact]
+    public async Task SendBirthdayNotificationAsync_WithProgressCallback_AcceptsProgressParameter()
+    {
+        // Arrange
+        var recipientEmails = new List<string> { "user1@test.com", "user2@test.com" };
+        var recipientData = recipientEmails.ToDictionary(
+            email => email,
+            email => (nickname: $"User{email.Split('@')[0]}", fullName: $"Test {email.Split('@')[0]}"));
+
+        var progressUpdates = new List<RTUB.Application.DTOs.EmailSendProgress>();
+        var progress = new Progress<RTUB.Application.DTOs.EmailSendProgress>(update =>
+        {
+            progressUpdates.Add(update);
+        });
+
+        // Setup SMTP configuration
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpServer"]).Returns("smtp.test.com");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpPort"]).Returns("587");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpUsername"]).Returns("test@test.com");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpPassword"]).Returns("test-password");
+        _mockConfiguration.Setup(x => x["EmailSettings:SenderEmail"]).Returns("noreply@rtub.pt");
+        _mockConfiguration.Setup(x => x["EmailSettings:SenderName"]).Returns("RTUB");
+
+        _mockTemplateRenderer.Setup(x => x.RenderBirthdayNotificationAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync("Test birthday email");
+
+        // Act - method should accept progress parameter without errors
+        var result = await _service.SendBirthdayNotificationAsync(
+            birthdayPersonId: "user123",
+            birthdayPersonNickname: "Jeans",
+            birthdayPersonFullName: "João Silva",
+            recipientEmails: recipientEmails,
+            recipientData: recipientData,
+            progress: progress);
+
+        // Assert - method completes without throwing
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task SendMeetingNotificationAsync_WithProgressCallback_AcceptsProgressParameter()
+    {
+        // Arrange
+        var recipientEmails = new List<string> { "user1@test.com", "user2@test.com", "user3@test.com" };
+        var recipientData = recipientEmails.ToDictionary(
+            email => email,
+            email => (nickname: $"User{email.Split('@')[0]}", fullName: $"Test {email.Split('@')[0]}"));
+
+        var progressUpdates = new List<RTUB.Application.DTOs.EmailSendProgress>();
+        var progress = new Progress<RTUB.Application.DTOs.EmailSendProgress>(update =>
+        {
+            progressUpdates.Add(update);
+        });
+
+        // Setup SMTP configuration
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpServer"]).Returns("smtp.test.com");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpPort"]).Returns("587");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpUsername"]).Returns("test@test.com");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpPassword"]).Returns("test-password");
+        _mockConfiguration.Setup(x => x["EmailSettings:SenderEmail"]).Returns("noreply@rtub.pt");
+        _mockConfiguration.Setup(x => x["EmailSettings:SenderName"]).Returns("RTUB");
+
+        // Act - method should accept progress parameter without errors
+        var result = await _service.SendMeetingNotificationAsync(
+            meetingId: 1,
+            subject: "Test Meeting",
+            body: "<html><body>Test meeting body</body></html>",
+            recipientEmails: recipientEmails,
+            recipientData: recipientData,
+            progress: progress);
+
+        // Assert - method completes without throwing
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task SendAnnouncementEmailAsync_WithProgressCallback_AcceptsProgressParameter()
+    {
+        // Arrange
+        var recipientEmails = new List<string> { "user1@test.com", "user2@test.com" };
+        var recipientData = recipientEmails.ToDictionary(
+            email => email,
+            email => (nickname: $"User{email.Split('@')[0]}", fullName: $"Test {email.Split('@')[0]}"));
+
+        var progressUpdates = new List<RTUB.Application.DTOs.EmailSendProgress>();
+        var progress = new Progress<RTUB.Application.DTOs.EmailSendProgress>(update =>
+        {
+            progressUpdates.Add(update);
+        });
+
+        // Setup SMTP configuration
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpServer"]).Returns("smtp.test.com");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpPort"]).Returns("587");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpUsername"]).Returns("test@test.com");
+        _mockConfiguration.Setup(x => x["EmailSettings:SmtpPassword"]).Returns("test-password");
+        _mockConfiguration.Setup(x => x["EmailSettings:SenderEmail"]).Returns("noreply@rtub.pt");
+        _mockConfiguration.Setup(x => x["EmailSettings:SenderName"]).Returns("RTUB");
+
+        _mockTemplateRenderer.Setup(x => x.RenderAnnouncementEmailAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync("Test announcement email");
+
+        // Act - method should accept progress parameter without errors
+        var result = await _service.SendAnnouncementEmailAsync(
+            title: "Test Announcement",
+            content: "This is a test announcement",
+            recipientEmails: recipientEmails,
+            recipientData: recipientData,
+            progress: progress);
+
+        // Assert - method completes without throwing
+        result.Should().NotBeNull();
+    }
+
     public void Dispose()
     {
         _cache?.Dispose();

@@ -1,3 +1,4 @@
+using RTUB.Application.DTOs;
 using RTUB.Core.Enums;
 
 namespace RTUB.Application.Interfaces;
@@ -64,6 +65,7 @@ public interface IEmailNotificationService
     /// <param name="recipientData">Optional dictionary mapping emails to (nickname, fullName) tuples for personalization</param>
     /// <param name="eventDescription">Optional event description</param>
     /// <param name="endDate">Optional end date for date ranges</param>
+    /// <param name="progress">Optional progress reporter for tracking email send progress</param>
     /// <returns>Tuple with success flag and count of emails sent</returns>
     Task<(bool success, int count, string? errorMessage)> SendEventNotificationAsync(
         int eventId, 
@@ -74,7 +76,8 @@ public interface IEmailNotificationService
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null,
         string eventDescription = "",
-        DateTime? endDate = null);
+        DateTime? endDate = null,
+        IProgress<EmailSendProgress>? progress = null);
 
     /// <summary>
     /// Sends birthday notification emails to subscribed members
@@ -84,13 +87,15 @@ public interface IEmailNotificationService
     /// <param name="birthdayPersonFullName">The full name of the birthday person</param>
     /// <param name="recipientEmails">List of recipient email addresses</param>
     /// <param name="recipientData">Dictionary mapping emails to (nickname, fullName) tuples for personalization</param>
+    /// <param name="progress">Optional progress reporter for tracking email send progress</param>
     /// <returns>Tuple with success flag, count of emails sent, and optional error message</returns>
     Task<(bool success, int count, string? errorMessage)> SendBirthdayNotificationAsync(
         string birthdayPersonId,
         string birthdayPersonNickname,
         string birthdayPersonFullName,
         List<string> recipientEmails,
-        Dictionary<string, (string nickname, string fullName)> recipientData);
+        Dictionary<string, (string nickname, string fullName)> recipientData,
+        IProgress<EmailSendProgress>? progress = null);
     
     /// <summary>
     /// Sends event cancellation notification emails to subscribed members
@@ -104,6 +109,7 @@ public interface IEmailNotificationService
     /// <param name="recipientEmails">List of recipient email addresses</param>
     /// <param name="recipientData">Optional dictionary mapping emails to (nickname, fullName) tuples for personalization</param>
     /// <param name="endDate">Optional end date for date ranges</param>
+    /// <param name="progress">Optional progress reporter for tracking email send progress</param>
     /// <returns>Tuple with success flag, count of emails sent, and optional error message</returns>
     Task<(bool success, int count, string? errorMessage)> SendEventCancellationNotificationAsync(
         int eventId,
@@ -114,7 +120,8 @@ public interface IEmailNotificationService
         string eventLink,
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null,
-        DateTime? endDate = null);
+        DateTime? endDate = null,
+        IProgress<EmailSendProgress>? progress = null);
     
     /// <summary>
     /// Sends event reminder notification emails to subscribed members
@@ -128,6 +135,7 @@ public interface IEmailNotificationService
     /// <param name="recipientData">Optional dictionary mapping emails to (nickname, fullName) tuples for personalization</param>
     /// <param name="eventDescription">Optional event description</param>
     /// <param name="endDate">Optional end date for date ranges</param>
+    /// <param name="progress">Optional progress reporter for tracking email send progress</param>
     /// <returns>Tuple with success flag, count of emails sent, and optional error message</returns>
     Task<(bool success, int count, string? errorMessage)> SendEventReminderNotificationAsync(
         int eventId,
@@ -138,7 +146,8 @@ public interface IEmailNotificationService
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null,
         string eventDescription = "",
-        DateTime? endDate = null);
+        DateTime? endDate = null,
+        IProgress<EmailSendProgress>? progress = null);
     
     /// <summary>
     /// Sends announcement emails to all subscribed members
@@ -147,12 +156,14 @@ public interface IEmailNotificationService
     /// <param name="content">The announcement content</param>
     /// <param name="recipientEmails">List of recipient email addresses</param>
     /// <param name="recipientData">Dictionary mapping emails to (nickname, fullName) tuples for personalization</param>
+    /// <param name="progress">Optional progress reporter for tracking email send progress</param>
     /// <returns>Tuple with success flag, count of emails sent, and optional error message</returns>
     Task<(bool success, int count, string? errorMessage)> SendAnnouncementEmailAsync(
         string title,
         string content,
         List<string> recipientEmails,
-        Dictionary<string, (string nickname, string fullName)> recipientData);
+        Dictionary<string, (string nickname, string fullName)> recipientData,
+        IProgress<EmailSendProgress>? progress = null);
 
     /// <summary>
     /// Sends meeting notification emails to members
@@ -162,13 +173,15 @@ public interface IEmailNotificationService
     /// <param name="body">The email body content</param>
     /// <param name="recipientEmails">List of recipient email addresses</param>
     /// <param name="recipientData">Optional dictionary mapping emails to (nickname, fullName) tuples for personalization</param>
+    /// <param name="progress">Optional progress reporter for tracking email send progress</param>
     /// <returns>Tuple with success flag, count of emails sent, and optional error message</returns>
     Task<(bool success, int count, string? errorMessage)> SendMeetingNotificationAsync(
         int meetingId,
         string subject,
         string body,
         List<string> recipientEmails,
-        Dictionary<string, (string nickname, string fullName)>? recipientData = null);
+        Dictionary<string, (string nickname, string fullName)>? recipientData = null,
+        IProgress<EmailSendProgress>? progress = null);
     
     /// <summary>
     /// Sends a notification email when a user's username has been changed

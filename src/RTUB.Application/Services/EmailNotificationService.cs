@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services.Email;
 using RTUB.Application.Extensions;
@@ -141,8 +142,11 @@ public class EmailNotificationService : IEmailNotificationService
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null,
         string eventDescription = "",
-        DateTime? endDate = null)
+        DateTime? endDate = null,
+        IProgress<EmailSendProgress>? progress = null)
     {
+        // Rate limiting: Prevents sending duplicate emails within a short time window
+        // The EmailRateLimiter tracks recent sends by key and returns true if we should skip
         var rateLimitKey = $"email-event-{eventId}";
         if (_rateLimiter.ShouldRateLimit(rateLimitKey))
         {
@@ -166,13 +170,14 @@ public class EmailNotificationService : IEmailNotificationService
 
             var subject = $"Nova atuação: {eventTitle} — {eventDate:dd MMM yyyy}";
 
-            // Personalized emails
+            // Batching: When recipient data is provided, emails are sent in batches with personalization
+            // This happens in SendPersonalizedBatchAsync which handles concurrent sending with SemaphoreSlim
             if (recipientData is not null && recipientData.Any())
             {
                 return await SendPersonalizedBatchAsync(config, recipientEmails, recipientData, subject,
                     async (nickname, fullName) => await _templateRenderer.RenderEventNotificationAsync(
                         eventTitle, eventDate, endDate, eventLocation, eventLink, nickname, fullName, eventDescription),
-                    eventId, "event notification");
+                    eventId, "event notification", progress);
             }
 
             // Non-personalized (BCC mode)
@@ -192,8 +197,10 @@ public class EmailNotificationService : IEmailNotificationService
         string birthdayPersonNickname,
         string birthdayPersonFullName,
         List<string> recipientEmails,
-        Dictionary<string, (string nickname, string fullName)> recipientData)
+        Dictionary<string, (string nickname, string fullName)> recipientData,
+        IProgress<EmailSendProgress>? progress = null)
     {
+        // Rate limiting: Uses a daily key to prevent sending birthday emails multiple times per day
         var rateLimitKey = $"email-birthday-{birthdayPersonId}-{DateTime.UtcNow:yyyy-MM-dd}";
         if (_rateLimiter.ShouldRateLimit(rateLimitKey))
         {
@@ -220,7 +227,7 @@ public class EmailNotificationService : IEmailNotificationService
             return await SendPersonalizedBatchAsync(config, recipientEmails, recipientData, subject,
                 async (nickname, fullName) => await _templateRenderer.RenderBirthdayNotificationAsync(
                     birthdayPersonNickname, birthdayPersonFullName, nickname, fullName),
-                birthdayPersonId, "birthday notification");
+                birthdayPersonId, "birthday notification", progress);
         }
         catch (Exception ex)
         {
@@ -239,8 +246,10 @@ public class EmailNotificationService : IEmailNotificationService
         string eventLink,
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null,
-        DateTime? endDate = null)
+        DateTime? endDate = null,
+        IProgress<EmailSendProgress>? progress = null)
     {
+        // Rate limiting: Prevents multiple cancellation emails for the same event
         var rateLimitKey = $"email-event-cancellation-{eventId}";
         if (_rateLimiter.ShouldRateLimit(rateLimitKey))
         {
@@ -273,7 +282,7 @@ public class EmailNotificationService : IEmailNotificationService
             return await SendPersonalizedBatchAsync(config, recipientEmails, recipientData, subject,
                 async (nickname, fullName) => await _templateRenderer.RenderEventCancellationNotificationAsync(
                     eventTitle, eventDate, endDate, eventLocation, cancellationReason, eventLink, nickname, fullName),
-                eventId, "event cancellation notification");
+                eventId, "event cancellation notification", progress);
         }
         catch (Exception ex)
         {
@@ -292,8 +301,10 @@ public class EmailNotificationService : IEmailNotificationService
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null,
         string eventDescription = "",
-        DateTime? endDate = null)
+        DateTime? endDate = null,
+        IProgress<EmailSendProgress>? progress = null)
     {
+        // Rate limiting: Prevents duplicate reminder emails within a short time window
         var rateLimitKey = $"email-event-reminder-{eventId}";
         if (_rateLimiter.ShouldRateLimit(rateLimitKey))
         {
@@ -345,7 +356,7 @@ public class EmailNotificationService : IEmailNotificationService
             return await SendPersonalizedBatchAsync(config, recipientEmails, recipientData, subject,
                 async (nickname, fullName) => await _templateRenderer.RenderEventReminderNotificationAsync(
                     eventTitle, eventDate, endDate, eventLocation, eventLink, daysUntilEvent, nickname, fullName, eventDescription, participants),
-                eventId, "event reminder notification");
+                eventId, "event reminder notification", progress);
         }
         catch (Exception ex)
         {
@@ -359,8 +370,10 @@ public class EmailNotificationService : IEmailNotificationService
         string title,
         string content,
         List<string> recipientEmails,
-        Dictionary<string, (string nickname, string fullName)> recipientData)
+        Dictionary<string, (string nickname, string fullName)> recipientData,
+        IProgress<EmailSendProgress>? progress = null)
     {
+        // Rate limiting: Uses timestamp to prevent accidental double-sends of announcements
         var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmm");
         var rateLimitKey = $"email-announcement-{timestamp}";
         if (_rateLimiter.ShouldRateLimit(rateLimitKey))
@@ -388,7 +401,7 @@ public class EmailNotificationService : IEmailNotificationService
             return await SendPersonalizedBatchAsync(config, recipientEmails, recipientData, subject,
                 async (nickname, fullName) => await _templateRenderer.RenderAnnouncementEmailAsync(
                     title, content, nickname, fullName),
-                title, "announcement");
+                title, "announcement", progress);
         }
         catch (Exception ex)
         {
@@ -403,8 +416,10 @@ public class EmailNotificationService : IEmailNotificationService
         string subject,
         string body,
         List<string> recipientEmails,
-        Dictionary<string, (string nickname, string fullName)>? recipientData = null)
+        Dictionary<string, (string nickname, string fullName)>? recipientData = null,
+        IProgress<EmailSendProgress>? progress = null)
     {
+        // Rate limiting: Prevents sending duplicate meeting notifications within same minute
         var rateLimitKey = $"email-meeting-{meetingId}-{DateTime.UtcNow:yyyyMMddHHmm}";
         if (_rateLimiter.ShouldRateLimit(rateLimitKey))
         {
@@ -428,6 +443,18 @@ public class EmailNotificationService : IEmailNotificationService
             }
 
             int successCount = 0;
+            int totalCount = recipientEmails.Count;
+            
+            // Report initial progress
+            progress?.Report(new EmailSendProgress
+            {
+                Total = totalCount,
+                Sent = 0,
+                LastRecipient = null
+            });
+            
+            // Performance consideration: Reuse SMTP client for all sends
+            // This avoids the overhead of creating a new connection for each email
             using var smtpClient = _smtpFactory.CreateClient(config);
 
             foreach (var recipientEmail in recipientEmails)
@@ -447,6 +474,14 @@ public class EmailNotificationService : IEmailNotificationService
                     successCount++;
                     _logger.LogInformation("Meeting notification email sent to {Email} for meeting {MeetingId}",
                         recipientEmail, meetingId);
+                    
+                    // Report progress after each successful send
+                    progress?.Report(new EmailSendProgress
+                    {
+                        Total = totalCount,
+                        Sent = successCount,
+                        LastRecipient = recipientEmail
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -528,9 +563,21 @@ public class EmailNotificationService : IEmailNotificationService
     }
 
     /// <summary>
-    /// Sends personalized emails to a batch of recipients with bounded concurrency
-    /// Uses SemaphoreSlim to limit concurrent sends and avoid overwhelming SMTP/Razor rendering
-    /// Each email rendering gets its own scope to avoid ObjectDisposedException
+    /// Sends personalized emails to a batch of recipients with bounded concurrency and progress reporting.
+    /// 
+    /// PERFORMANCE CONSIDERATIONS:
+    /// - Bounded concurrency: Uses SemaphoreSlim to limit concurrent sends (MaxConcurrentSends=10)
+    ///   This prevents overwhelming the SMTP server and ensures stable performance
+    /// - SMTP client reuse: Creates a single SMTP client for the entire batch to avoid connection overhead
+    ///   Note: SmtpClient is NOT thread-safe, so sends are synchronized with smtpSemaphore
+    /// - Scoped rendering: Each email template rendering gets its own scope (handled by EmailTemplateService)
+    ///   This prevents ObjectDisposedException in concurrent scenarios
+    /// 
+    /// WHY CENTRALIZED IN THE SERVICE (not in UI):
+    /// - Consistency: All callers benefit from the same performance optimizations
+    /// - Testing: Easier to test and benchmark performance in isolation
+    /// - Separation of concerns: UI handles presentation, service handles email logic
+    /// - Reusability: Can be called from background jobs, APIs, or UI without code duplication
     /// </summary>
     private async Task<(bool success, int count, string? errorMessage)> SendPersonalizedBatchAsync(
         EmailConfiguration config,
@@ -539,19 +586,31 @@ public class EmailNotificationService : IEmailNotificationService
         string subject,
         Func<string, string, Task<string>> bodyRenderer,
         object entityId,
-        string emailType)
+        string emailType,
+        IProgress<EmailSendProgress>? progress = null)
     {
+        // BATCHING: Maximum concurrent email sends to balance speed and server load
         const int MaxConcurrentSends = 10;
         int successCount = 0;
+        int totalCount = recipientEmails.Count;
         var successCountLock = new object();
         
-        // Use SemaphoreSlim to limit concurrent sends
+        // Report initial progress
+        progress?.Report(new EmailSendProgress
+        {
+            Total = totalCount,
+            Sent = 0,
+            LastRecipient = null
+        });
+        
+        // BOUNDED CONCURRENCY: SemaphoreSlim limits concurrent operations to prevent resource exhaustion
         using var semaphore = new SemaphoreSlim(MaxConcurrentSends, MaxConcurrentSends);
         
-        // Create one SMTP client with extended timeout for batch operations
+        // SMTP REUSE: Create one SMTP client with extended timeout for batch operations
+        // This significantly improves performance by reusing the same connection
         using var smtpClient = _smtpFactory.CreateClient(config, SmtpClientFactory.BatchEmailTimeout);
         
-        // SMTP operations need to be synchronized as SmtpClient is not thread-safe
+        // THREAD SAFETY: SMTP operations need to be synchronized as SmtpClient is not thread-safe
         using var smtpSemaphore = new SemaphoreSlim(1, 1);
 
         var tasks = recipientEmails.Select(async email =>
@@ -589,10 +648,21 @@ public class EmailNotificationService : IEmailNotificationService
                     smtpSemaphore.Release();
                 }
                 
+                // Update success count and report progress (thread-safe)
+                int currentCount;
                 lock (successCountLock)
                 {
                     successCount++;
+                    currentCount = successCount;
                 }
+                
+                // Report progress after each successful send
+                progress?.Report(new EmailSendProgress
+                {
+                    Total = totalCount,
+                    Sent = currentCount,
+                    LastRecipient = email
+                });
             }
             catch (Exception ex)
             {

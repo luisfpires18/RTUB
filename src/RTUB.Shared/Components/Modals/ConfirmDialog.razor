@@ -49,10 +49,10 @@
                     }
                 </div>
                 <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn btn-secondary" @onclick="HandleCancel">
+                    <button type="button" class="btn btn-secondary" @onclick="HandleCancel" disabled="@Disabled">
                         <i class="bi bi-x-circle me-2"></i>@CancelText
                     </button>
-                    <button type="button" class="btn @ConfirmButtonClass" @onclick="HandleConfirm">
+                    <button type="button" class="btn @ConfirmButtonClass" @onclick="HandleConfirm" disabled="@Disabled">
                         <i class="bi bi-@(ConfirmButtonClass == "btn-danger" ? "trash" : "check-circle") me-2"></i>@ConfirmText
                     </button>
                 </div>
@@ -139,6 +139,12 @@
     /// </summary>
     [Parameter]
     public bool ShowCloseButton { get; set; } = true;
+
+    /// <summary>
+    /// Whether to disable the buttons (useful during async operations)
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; } = false;
 
     /// <summary>
     /// Get CSS class for modal size

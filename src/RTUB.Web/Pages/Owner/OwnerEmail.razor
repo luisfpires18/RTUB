@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
+@using RTUB.Application.DTOs
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Shared
@@ -83,6 +84,23 @@
                         <i class="bi bi-info-circle"></i>
                         <strong>Informação:</strong> Este email será enviado para todos os utilizadores com notificações ativas.
                     </div>
+
+                    <!-- Progress Display -->
+                    @if (isSending)
+                    {
+                        <div class="alert alert-info mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">A enviar...</span>
+                                </div>
+                                <strong>Enviando emails: @EmailsSent/@EmailsTotal</strong>
+                                @if (!string.IsNullOrEmpty(LastRecipient))
+                                {
+                                    <span class="ms-2">(último: @LastRecipient)</span>
+                                }
+                            </div>
+                        </div>
+                    }
 
                     <div class="d-flex gap-2">
                         <button type="button" 
@@ -203,6 +221,11 @@
     private bool isProcessingBulkRemove = false;
     private bool isProcessingBulkAdd = false;
 
+    // Email sending progress variables
+    private int EmailsTotal = 0;
+    private int EmailsSent = 0;
+    private string? LastRecipient = null;
+
     private List<ApplicationUser> subscribedUsers = new();
     private List<ApplicationUser> nonSubscribedUsers = new();
     private int subscribedUsersCount = 0;
@@ -282,6 +305,9 @@
         }
 
         isSending = true;
+        EmailsTotal = subscribedUsers.Count;
+        EmailsSent = 0;
+        LastRecipient = null;
         message = "";
         StateHasChanged();
 
@@ -300,16 +326,26 @@
                     u => (u.Nickname ?? u.FirstName ?? "", $"{u.FirstName} {u.LastName}")
                 );
 
+            // Create progress reporter
+            var progress = new Progress<EmailSendProgress>(update =>
+            {
+                EmailsTotal = update.Total;
+                EmailsSent = update.Sent;
+                LastRecipient = update.LastRecipient;
+                StateHasChanged();
+            });
+
             // Send emails
             var (success, count, errorMessage) = await EmailNotificationService.SendAnnouncementEmailAsync(
                 title,
                 content,
                 recipientEmails,
-                recipientData);
+                recipientData,
+                progress);
 
             if (success)
             {
-                message = $"Email de anúncio enviado com sucesso para {count} utilizadores!";
+                message = $"Foram enviados {count} de {EmailsTotal} emails com sucesso.";
                 isError = false;
                 ClearForm();
             }

@@ -9,6 +9,7 @@
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Configuration
+@using RTUB.Application.DTOs
 @using RTUB.Shared
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.Extensions.Options
@@ -828,10 +829,31 @@ else
                ConfirmButtonClass="btn-primary"
                OnConfirm="@SendBirthdayNotification"
                OnCancel="@CloseBirthdayEmailModal"
-               Size="Modal.ModalSize.Large">
+               Size="Modal.ModalSize.Large"
+               Disabled="@IsSendingEmails">
     <BodyContent>
         @if (selectedUserForBirthday != null)
         {
+            <!-- Loading Overlay for Sending Birthday Emails -->
+            @if (IsSendingEmails)
+            {
+                <div class="position-relative" style="min-height: 200px;">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">A enviar...</span>
+                        </div>
+                        <h5 class="text-white mb-2">Enviando emails de aniversário...</h5>
+                        <p class="text-white-full mb-0">
+                            @EmailsSent / @EmailsTotal
+                            @if (!string.IsNullOrEmpty(LastRecipient))
+                            {
+                                <span> (último: @LastRecipient)</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+            }
+            
             <div class="mb-3">
                 <h6 class="text-white-full">Detalhes do Aniversariante:</h6>
                 <div class="event-summary p-3 rounded bg-dark">
@@ -957,6 +979,12 @@ else
     private int birthdaySubscribedUsersCount = 0;
     private bool birthdayEmailLoadingSubscribers = false;
     private string? birthdayEmailErrorMessage = null;
+    
+    // Email sending progress variables for birthday notifications
+    private bool IsSendingEmails = false;
+    private int EmailsTotal = 0;
+    private int EmailsSent = 0;
+    private string? LastRecipient = null;
     
     // Nickname form model
     public class NicknameFormModel
@@ -2340,6 +2368,13 @@ else
             return;
         }
 
+        // Initialize progress tracking
+        IsSendingEmails = true;
+        EmailsTotal = birthdaySubscribedUsers.Count;
+        EmailsSent = 0;
+        LastRecipient = null;
+        birthdayEmailErrorMessage = null;
+        
         StateHasChanged();
 
         try
@@ -2355,24 +2390,44 @@ else
                     u => u.Email!,
                     u => (u.Nickname ?? u.FirstName ?? "", $"{u.FirstName} {u.LastName}")
                 );
+
+            // Create progress reporter
+            var progress = new Progress<EmailSendProgress>(update =>
+            {
+                EmailsTotal = update.Total;
+                EmailsSent = update.Sent;
+                LastRecipient = update.LastRecipient;
+                StateHasChanged();
+            });
             
             var (success, count, errorMessage) = await EmailNotificationService.SendBirthdayNotificationAsync(
                 selectedUserForBirthday.Id,
                 selectedUserForBirthday.Nickname ?? selectedUserForBirthday.FirstName ?? "",
                 $"{selectedUserForBirthday.FirstName} {selectedUserForBirthday.LastName}",
                 recipientEmails,
-                recipientData
+                recipientData,
+                progress
             );
             
-            CloseBirthdayEmailModal();
-            
-            // Note: We don't have a message/isError system in Members page like UserRoles
-            // The email will be sent silently. If needed, could add toast notifications.
+            if (success)
+            {
+                birthdayEmailErrorMessage = null;
+                CloseBirthdayEmailModal();
+            }
+            else
+            {
+                birthdayEmailErrorMessage = errorMessage ?? "Erro ao enviar notificação.";
+            }
         }
         catch (Exception ex)
         {
-            CloseBirthdayEmailModal();
+            birthdayEmailErrorMessage = $"Erro ao enviar email: {ex.Message}";
             _logger.LogError(ex, "Error sending birthday email");
+        }
+        finally
+        {
+            IsSendingEmails = false;
+            StateHasChanged();
         }
     }
 }
