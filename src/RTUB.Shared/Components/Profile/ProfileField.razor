@@ -17,16 +17,13 @@
         </strong>
     </div>
     <div class="col-12 col-md-8 profile-field-value">
-        @if (!string.IsNullOrWhiteSpace(Value))
+        @if (ValueContent != null)
         {
-            @if (ValueContent != null)
-            {
-                @ValueContent
-            }
-            else
-            {
-                <span class="text-white-full">@Value</span>
-            }
+            @ValueContent
+        }
+        else if(!string.IsNullOrWhiteSpace(Value))
+        {
+            <span class="text-white-full">@Value</span>
         }
         else
         {
