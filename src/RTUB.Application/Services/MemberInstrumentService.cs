@@ -98,6 +98,7 @@ public class MemberInstrumentService : IMemberInstrumentService
             .Where(mi => mi.MemberId == memberId && mi.IsPrimary)
             .ToListAsync();
 
+        // Note: Typically only 0-1 primary instruments per member, so minimal overhead
         foreach (var instrument in primaryInstruments)
         {
             instrument.UnmarkAsPrimary();

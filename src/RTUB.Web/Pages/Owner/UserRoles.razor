@@ -324,7 +324,7 @@ else
     protected override async Task LoadItemsAsync()
     {
         // Load users efficiently
-        AllItems = await UserManager.Users.ToListAsync();
+        AllItems = await UserManager.Users.AsNoTracking().ToListAsync();
 
         // Load roles for all users efficiently using parallel tasks
         userRolesDict.Clear();

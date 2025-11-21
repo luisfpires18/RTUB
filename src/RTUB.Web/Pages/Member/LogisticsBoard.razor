@@ -758,7 +758,7 @@
             );
         }
         events = (await EventService.GetAllEventsAsync()).ToList();
-        users = await UserManager.Users.ToListAsync();
+        users = await UserManager.Users.AsNoTracking().ToListAsync();
     }
 
     // Filter cards by label
@@ -1213,7 +1213,7 @@
     }
 
     // Member assignment methods
-    private async void AssignUser(ApplicationUser user)
+    private async Task AssignUser(ApplicationUser user)
     {
         if (selectedCard == null) return;
         await CardService.AssignCardToUserAsync(selectedCard.Id, user.Id);
@@ -1223,7 +1223,7 @@
         await LoadData();
     }
 
-    private async void RemoveAssignedUser()
+    private async Task RemoveAssignedUser()
     {
         if (selectedCard == null) return;
         await CardService.AssignCardToUserAsync(selectedCard.Id, null);

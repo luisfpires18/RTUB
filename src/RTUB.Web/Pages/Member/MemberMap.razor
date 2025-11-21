@@ -275,7 +275,7 @@ else
 
     private async Task LoadMemberData()
     {
-        var users = await UserManager.Users.ToListAsync();
+        var users = await UserManager.Users.AsNoTracking().ToListAsync();
         
         totalMembers = users.Count;
         

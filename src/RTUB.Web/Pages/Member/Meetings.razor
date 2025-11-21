@@ -986,7 +986,7 @@ else
 
         try
         {
-            var allUsers = await UserManager.Users.ToListAsync();
+            var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
             
             // Build recipient list based on meeting type
             if (meeting.Type == MeetingType.ConselhoVeteranos)
@@ -1226,7 +1226,7 @@ else
 
         try
         {
-            var allUsers = await UserManager.Users.ToListAsync();
+            var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
             
             // Build recipient list based on meeting type (same logic as email notification)
             if (meeting.Type == MeetingType.ConselhoVeteranos)

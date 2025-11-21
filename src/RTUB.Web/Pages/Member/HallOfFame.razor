@@ -724,22 +724,23 @@ else
 
     private async Task CalculateMostInstruments(List<ApplicationUser> allUsers)
     {
-        var counts = new List<MemberCount>();
+        // Batch load all instruments in one query to avoid N+1
+        var userIds = allUsers.Select(u => u.Id).ToList();
+        var allInstrumentsByUser = await MemberInstrumentService.GetMemberInstrumentsByUserIdsAsync(userIds);
 
-        foreach (var user in allUsers)
-        {
-            var instruments = await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id);
-            var count = instruments.Count();
-
-            if (count > 0)
+        var counts = allUsers
+            .Select(user => new
             {
-                counts.Add(new MemberCount
-                {
-                    User = user,
-                    Count = count
-                });
-            }
-        }
+                User = user,
+                Count = allInstrumentsByUser.GetValueOrDefault(user.Id, new List<MemberInstrument>()).Count
+            })
+            .Where(x => x.Count > 0)
+            .Select(x => new MemberCount
+            {
+                User = x.User,
+                Count = x.Count
+            })
+            .ToList();
 
         if (counts.Any())
         {

@@ -444,7 +444,7 @@ else
 
     private async Task LoadLeaderboard()
     {
-        var users = await UserManager.Users.ToListAsync();
+        var users = await UserManager.Users.AsNoTracking().ToListAsync();
         var now = DateTime.UtcNow;
         
         // Batch load all rank progress data in a single operation to avoid N+1
@@ -576,7 +576,7 @@ else
         return Task.CompletedTask;
     }
 
-    private async void OpenDetailsModal(LeaderboardEntry item)
+    private async Task OpenDetailsModal(LeaderboardEntry item)
     {
         viewingItem = item;
         showDetailsModal = true;

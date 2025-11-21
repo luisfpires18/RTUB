@@ -1443,6 +1443,7 @@ else
         if (isAdmin && isSelectedRehearsalApprovable)
         {
             allMembers = await UserManager.Users
+                .AsNoTracking()
                 .Select(u => new ApplicationUser
                 {
                     Id = u.Id,
