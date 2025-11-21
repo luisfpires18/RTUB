@@ -633,6 +633,8 @@ else
                 ShowChanged="@((bool show) => showRepertoireModal = show)"
                 EventId="@(selectedEventForRepertoire?.Id ?? 0)"
                 EventName="@(selectedEventForRepertoire?.Name ?? "")"
+                EventDate="@(selectedEventForRepertoire?.Date ?? DateTime.Now)"
+                EventEndDate="@selectedEventForRepertoire?.EndDate"
                 IsAdmin="@isUserAdmin"
                 OnRepertoireChanged="@HandleRepertoireChanged" />
 

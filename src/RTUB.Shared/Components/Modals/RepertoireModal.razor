@@ -2,6 +2,7 @@
 @*
     RepertoireModal Component
     Modal for displaying and managing event repertoire with drag and drop functionality
+    Supports multi-day events with separate repertoires per day
 *@
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
@@ -20,6 +21,34 @@
         }
         else
         {
+            @* Multi-day event tabs *@
+            @if (eventDates != null && eventDates.Count > 1)
+            {
+                <div class="repertoire-tabs mb-3">
+                    <ul class="nav nav-tabs">
+                        @foreach (var date in eventDates)
+                        {
+                            <li class="nav-item">
+                                <button class="nav-link @(selectedDate == date ? "active" : "")" 
+                                        @onclick="() => SelectDate(date)">
+                                    @date.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("pt-PT"))
+                                    @if (IsAdmin)
+                                    {
+                                        <button class="btn btn-sm admin-btn-delete ms-2" 
+                                                @onclick="@(() => ConfirmDeleteDay(date))"
+                                                @onclick:stopPropagation="true"
+                                                title="Apagar dia e repertório"
+                                                type="button">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </button>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+
             @if (IsAdmin)
             {
                 <div class="mb-3">
@@ -29,7 +58,7 @@
                             <option value="0">Selecionar música...</option>
                             @foreach (var song in availableSongs)
                             {
-                                <option value="@song.Id">@song.Title (@song.Album?.Title)</option>
+                                <option value="@song.Id">@song.Title</option>
                             }
                         </select>
                         <button class="btn btn-success" @onclick="AddSongToRepertoire" disabled="@(selectedSongId == 0)">
@@ -71,7 +100,7 @@
                                 }
                                 
                                 <span class="repertoire-item-number">@item.DisplayOrder.</span>
-                                <span class="repertoire-item-text">@item.Song?.Title (@item.Song?.Album?.Title)</span>
+                                <span class="repertoire-item-text">@item.Song?.Title</span>
                                 
                                 @if (IsAdmin)
                                 {
@@ -88,6 +117,30 @@
                     }
                 </div>
             }
+        }
+        
+        @* Confirmation dialog for deleting a day *@
+        @if (showDeleteDayConfirmation)
+        {
+            <div class="modal-backdrop show"></div>
+            <div class="modal show d-block" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content bg-dark-rtub">
+                        <div class="modal-header">
+                            <h5 class="modal-title text-white-full">Confirmar Eliminação</h5>
+                            <button type="button" class="btn-close btn-close-white" @onclick="CancelDeleteDay"></button>
+                        </div>
+                        <div class="modal-body text-white">
+                            <p>Tem certeza que deseja eliminar todo o repertório do dia @dayToDelete?.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("pt-PT"))?</p>
+                            <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> Esta ação não pode ser desfeita.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CancelDeleteDay">Cancelar</button>
+                            <button type="button" class="btn btn-danger" @onclick="DeleteDay"><i class="bi bi-trash"></i> Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         }
     </BodyContent>
     <FooterContent>
@@ -107,6 +160,12 @@
 
     [Parameter]
     public string EventName { get; set; } = string.Empty;
+    
+    [Parameter]
+    public DateTime EventDate { get; set; }
+    
+    [Parameter]
+    public DateTime? EventEndDate { get; set; }
 
     [Parameter]
     public bool IsAdmin { get; set; }
@@ -114,26 +173,56 @@
     [Parameter]
     public EventCallback OnRepertoireChanged { get; set; }
 
+    private List<DateTime> eventDates = new();
+    private DateTime selectedDate;
     private List<EventRepertoire>? repertoireItems;
     private List<Song>? allSongs;
-    private List<Song> availableSongs => allSongs?.Where(s => 
-        repertoireItems?.All(r => r.SongId != s.Id) ?? true).ToList() ?? new List<Song>();
+    private List<Song> availableSongs = new();
     
     private int selectedSongId = 0;
     private bool isLoading = false;
     private int? draggingItemId = null;
     private int? dragOverItemId = null;
+    
+    private bool showDeleteDayConfirmation = false;
+    private DateTime? dayToDelete = null;
 
     protected override async Task OnParametersSetAsync()
     {
         if (Show && EventId > 0)
         {
+            InitializeEventDates();
             await LoadRepertoire();
             if (IsAdmin)
             {
                 await LoadAllSongs();
+                UpdateAvailableSongs();
             }
         }
+    }
+
+    private void InitializeEventDates()
+    {
+        eventDates.Clear();
+        
+        var startDate = EventDate.Date;
+        var endDate = EventEndDate?.Date ?? startDate;
+        
+        // Generate list of dates from start to end
+        for (var date = startDate; date <= endDate; date = date.AddDays(1))
+        {
+            eventDates.Add(date);
+        }
+        
+        // Select first date by default
+        selectedDate = eventDates.FirstOrDefault();
+    }
+
+    private async Task SelectDate(DateTime date)
+    {
+        selectedDate = date;
+        await LoadRepertoire();
+        UpdateAvailableSongs();
     }
 
     private async Task LoadRepertoire()
@@ -141,7 +230,7 @@
         isLoading = true;
         try
         {
-            repertoireItems = (await RepertoireService.GetRepertoireByEventIdAsync(EventId)).ToList();
+            repertoireItems = (await RepertoireService.GetRepertoireByEventIdAsync(EventId, selectedDate)).ToList();
         }
         finally
         {
@@ -151,7 +240,30 @@
 
     private async Task LoadAllSongs()
     {
-        allSongs = (await SongService.GetAllSongsAsync()).ToList();
+        var songs = await SongService.GetAllSongsAsync();
+        
+        // Deduplicate songs by title (case-insensitive) and sort alphabetically
+        // Note: HashSet.Add() returns true if the item was added (not already present),
+        // allowing us to filter duplicates in a single LINQ pass
+        var seenTitles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        allSongs = songs
+            .Where(s => seenTitles.Add(s.Title))
+            .OrderBy(s => s.Title)
+            .ToList();
+    }
+    
+    private void UpdateAvailableSongs()
+    {
+        if (allSongs == null)
+        {
+            availableSongs = new List<Song>();
+            return;
+        }
+        
+        // Filter out songs already in the current day's repertoire
+        availableSongs = allSongs
+            .Where(s => repertoireItems?.All(r => r.SongId != s.Id) ?? true)
+            .ToList();
     }
 
     private async Task AddSongToRepertoire()
@@ -164,14 +276,15 @@
                 ? repertoireItems!.Max(r => r.DisplayOrder) + 1 
                 : 1;
 
-            await RepertoireService.AddSongToRepertoireAsync(EventId, selectedSongId, nextOrder);
+            await RepertoireService.AddSongToRepertoireAsync(EventId, selectedSongId, nextOrder, selectedDate);
             await LoadRepertoire();
             selectedSongId = 0;
+            UpdateAvailableSongs();
             await OnRepertoireChanged.InvokeAsync();
         }
         catch (Exception)
         {
-            // Handle error - song already in repertoire
+            // Handle error - song already in repertoire for this date
         }
     }
 
@@ -181,6 +294,77 @@
 
         await RepertoireService.RemoveSongFromRepertoireAsync(repertoireItemId);
         await LoadRepertoire();
+        UpdateAvailableSongs();
+        await OnRepertoireChanged.InvokeAsync();
+    }
+    
+    private void ConfirmDeleteDay(DateTime date)
+    {
+        dayToDelete = date;
+        showDeleteDayConfirmation = true;
+    }
+    
+    private void CancelDeleteDay()
+    {
+        dayToDelete = null;
+        showDeleteDayConfirmation = false;
+    }
+    
+    private async Task DeleteDay()
+    {
+        if (!IsAdmin || dayToDelete == null) return;
+        
+        var dateToDelete = dayToDelete.Value;
+        
+        // Determine which date to select after deletion BEFORE removing from list
+        DateTime? newSelectedDate = null;
+        if (selectedDate == dateToDelete && eventDates.Count > 1)
+        {
+            var index = eventDates.IndexOf(dateToDelete);
+            if (index > 0)
+            {
+                // Select previous date
+                newSelectedDate = eventDates[index - 1];
+            }
+            else
+            {
+                // Select next date
+                newSelectedDate = eventDates[index + 1];
+            }
+        }
+        
+        // Remove the day's repertoire from database
+        await RepertoireService.RemoveRepertoireDayAsync(EventId, dateToDelete);
+        
+        // Remove the date from the eventDates list
+        eventDates.Remove(dateToDelete);
+        
+        // Update selected date if necessary
+        if (selectedDate == dateToDelete)
+        {
+            if (newSelectedDate.HasValue)
+            {
+                selectedDate = newSelectedDate.Value;
+            }
+            else if (eventDates.Any())
+            {
+                // Fallback to first available date
+                selectedDate = eventDates.FirstOrDefault();
+            }
+            else
+            {
+                // No more dates - close the modal
+                await Close();
+                return;
+            }
+        }
+        
+        showDeleteDayConfirmation = false;
+        dayToDelete = null;
+        
+        // Reload repertoire for the newly selected date
+        await LoadRepertoire();
+        UpdateAvailableSongs();
         await OnRepertoireChanged.InvokeAsync();
     }
 
@@ -261,7 +445,7 @@
             // Update display orders based on new list order
             var songIds = orderedList.Select(r => r.SongId).ToList();
             
-            await RepertoireService.UpdateRepertoireOrderAsync(EventId, songIds);
+            await RepertoireService.UpdateRepertoireOrderAsync(EventId, selectedDate, songIds);
             
             // Force reload to get updated order from database
             await LoadRepertoire();

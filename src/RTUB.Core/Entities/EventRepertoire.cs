@@ -18,6 +18,9 @@ public class EventRepertoire : BaseEntity
     [Range(1, 1000, ErrorMessage = "A ordem de exibição deve estar entre 1 e 1000")]
     public int DisplayOrder { get; set; }
     
+    [Required(ErrorMessage = "A data do repertório é obrigatória")]
+    public DateTime RepertoireDate { get; set; }
+    
     // Navigation properties
     public virtual Event? Event { get; set; }
     public virtual Song? Song { get; set; }
@@ -25,7 +28,7 @@ public class EventRepertoire : BaseEntity
     // Private constructor for EF Core
     public EventRepertoire() { }
 
-    public static EventRepertoire Create(int eventId, int songId, int displayOrder)
+    public static EventRepertoire Create(int eventId, int songId, int displayOrder, DateTime repertoireDate)
     {
         if (displayOrder < 1)
             throw new ArgumentException("Display order must be greater than 0", nameof(displayOrder));
@@ -34,7 +37,8 @@ public class EventRepertoire : BaseEntity
         {
             EventId = eventId,
             SongId = songId,
-            DisplayOrder = displayOrder
+            DisplayOrder = displayOrder,
+            RepertoireDate = repertoireDate.Date // Store only date part
         };
     }
 
