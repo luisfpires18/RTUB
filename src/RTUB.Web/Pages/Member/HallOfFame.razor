@@ -348,9 +348,47 @@ else
         </div>
     </div>
 
-    <!-- Row 5: Instrumentos -->
+    <!-- Row 5: Afilhados & Instrumentos -->
     <div class="hof-row">
-        <div class="col-md-6 offset-md-3">
+        <div class="hof-panel">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">MAIS AFILHADOS</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (mostAfilhados.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in mostAfilhados)
+                                {
+                                    <div class="col-md-@(mostAfilhados.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "afilhado" : "afilhados")</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="hof-panel">
             <section>
                 <div class="card shadow-sm portal-governing-body-card">
                     <div class="card-header gov-body-card-header">
@@ -393,20 +431,20 @@ else
 
 @code {
     private bool isLoading = true;
-    
+
     // Data models for metrics
     private class MemberDuration
     {
         public ApplicationUser User { get; set; } = null!;
         public int Duration { get; set; } // Duration in months
     }
-    
+
     private class MemberCount
     {
         public ApplicationUser User { get; set; } = null!;
         public int Count { get; set; }
     }
-    
+
     // Metric results
     private List<MemberDuration> longestCaloiro = new();
     private List<MemberDuration> shortestCaloiro = new();
@@ -416,6 +454,7 @@ else
     private List<MemberCount> mostMagister = new();
     private List<MemberCount> mostRehearsals = new();
     private List<MemberCount> mostPerformances = new();
+    private List<MemberCount> mostAfilhados = new();
     private List<MemberCount> mostInstruments = new();
 
     protected override async Task OnInitializedAsync()
@@ -428,10 +467,10 @@ else
     {
         // Get all users
         var allUsers = UserManager.Users.ToList();
-        
+
         // Get all role assignments
         var allRoleAssignments = await RoleAssignmentService.GetAllRoleAssignmentsAsync();
-        
+
         // Load user data for role assignments
         var userIds = allRoleAssignments.Select(ra => ra.UserId).Distinct().ToList();
         var usersDict = new Dictionary<string, ApplicationUser>();
@@ -443,7 +482,7 @@ else
                 usersDict[userId] = user;
             }
         }
-        
+
         // Assign users to role assignments
         foreach (var assignment in allRoleAssignments)
         {
@@ -452,7 +491,7 @@ else
                 assignment.User = user;
             }
         }
-        
+
         // Calculate metrics
         await CalculateCaloiroDurations(allUsers);
         await CalculateLeitaoDurations(allUsers);
@@ -460,13 +499,14 @@ else
         await CalculateMostMagister(allUsers, allRoleAssignments.ToList());
         await CalculateMostRehearsals(allUsers);
         await CalculateMostPerformances(allUsers);
+        await CalculateMostAfilhados(allUsers);
         await CalculateMostInstruments(allUsers);
     }
 
     private async Task CalculateCaloiroDurations(List<ApplicationUser> allUsers)
     {
         var durations = new List<MemberDuration>();
-        
+
         foreach (var user in allUsers)
         {
             // Need both Caloiro and Tuno dates
@@ -475,10 +515,10 @@ else
             {
                 var caloiroDate = new DateTime(user.YearCaloiro.Value, user.MonthCaloiro.Value, 1);
                 var tunoDate = new DateTime(user.YearTuno.Value, user.MonthTuno.Value, 1);
-                
+
                 // Calculate duration in months
                 var durationMonths = ((tunoDate.Year - caloiroDate.Year) * 12) + (tunoDate.Month - caloiroDate.Month);
-                
+
                 if (durationMonths > 0)
                 {
                     durations.Add(new MemberDuration
@@ -489,23 +529,23 @@ else
                 }
             }
         }
-        
+
         if (durations.Any())
         {
             var maxDuration = durations.Max(d => d.Duration);
             longestCaloiro = durations.Where(d => d.Duration == maxDuration).ToList();
-            
+
             var minDuration = durations.Min(d => d.Duration);
             shortestCaloiro = durations.Where(d => d.Duration == minDuration).ToList();
         }
-        
+
         await Task.CompletedTask;
     }
 
     private async Task CalculateLeitaoDurations(List<ApplicationUser> allUsers)
     {
         var durations = new List<MemberDuration>();
-        
+
         foreach (var user in allUsers)
         {
             // Need both Leitao and Caloiro dates
@@ -514,10 +554,10 @@ else
             {
                 var leitaoDate = new DateTime(user.YearLeitao.Value, user.MonthLeitao.Value, 1);
                 var caloiroDate = new DateTime(user.YearCaloiro.Value, user.MonthCaloiro.Value, 1);
-                
+
                 // Calculate duration in months
                 var durationMonths = ((caloiroDate.Year - leitaoDate.Year) * 12) + (caloiroDate.Month - leitaoDate.Month);
-                
+
                 if (durationMonths > 0)
                 {
                     durations.Add(new MemberDuration
@@ -528,16 +568,16 @@ else
                 }
             }
         }
-        
+
         if (durations.Any())
         {
             var maxDuration = durations.Max(d => d.Duration);
             longestLeitao = durations.Where(d => d.Duration == maxDuration).ToList();
-            
+
             var minDuration = durations.Min(d => d.Duration);
             shortestLeitao = durations.Where(d => d.Duration == minDuration).ToList();
         }
-        
+
         await Task.CompletedTask;
     }
 
@@ -551,13 +591,13 @@ else
             })
             .Where(mc => mc.Count > 0)
             .ToList();
-        
+
         if (counts.Any())
         {
             var maxCount = counts.Max(c => c.Count);
             mostPositions = counts.Where(c => c.Count == maxCount).ToList();
         }
-        
+
         await Task.CompletedTask;
     }
 
@@ -571,13 +611,13 @@ else
             })
             .Where(mc => mc.Count > 0)
             .ToList();
-        
+
         if (counts.Any())
         {
             var maxCount = counts.Max(c => c.Count);
             mostMagister = counts.Where(c => c.Count == maxCount).ToList();
         }
-        
+
         await Task.CompletedTask;
     }
 
@@ -586,39 +626,39 @@ else
         // Use efficient query to count rehearsal attendances per member
         // Filter by past dates and not cancelled (matching leaderboard XP logic)
         var now = DateTime.UtcNow;
-        
+
         // Build efficient query using repository - single database roundtrip
         var rehearsalCounts = await RehearsalAttendanceRepository.Query()
             .Include(ra => ra.Rehearsal)
             .Include(ra => ra.User)
-            .Where(ra => ra.Rehearsal != null 
-                      && ra.Rehearsal.Date < now 
-                      && !ra.Rehearsal.IsCanceled 
+            .Where(ra => ra.Rehearsal != null
+                      && ra.Rehearsal.Date < now
+                      && !ra.Rehearsal.IsCanceled
                       && ra.Attended)
             .GroupBy(ra => ra.UserId)
-            .Select(g => new 
-            { 
-                UserId = g.Key, 
-                Count = g.Count() 
+            .Select(g => new
+            {
+                UserId = g.Key,
+                Count = g.Count()
             })
             .ToListAsync();
-        
+
         // If no data at all, leave mostRehearsals empty
         if (!rehearsalCounts.Any())
         {
             mostRehearsals = new List<MemberCount>();
             return;
         }
-        
+
         // Find the maximum count
         var maxCount = rehearsalCounts.Max(rc => rc.Count);
-        
+
         // Get all users with the maximum count
         var topUserIds = rehearsalCounts
             .Where(rc => rc.Count == maxCount)
             .Select(rc => rc.UserId)
             .ToHashSet();
-        
+
         // Map to MemberCount with User objects
         mostRehearsals = allUsers
             .Where(u => topUserIds.Contains(u.Id))
@@ -635,7 +675,7 @@ else
         // Get all enrollments - filter by past dates and not cancelled (matching leaderboard XP logic)
         var now = DateTime.UtcNow;
         var allEnrollments = await EnrollmentService.GetAllEnrollmentsAsync();
-        
+
         // Filter to past, non-cancelled events with WillAttend = true
         var counts = allUsers
             .Select(user => new MemberCount
@@ -647,7 +687,7 @@ else
             })
             .Where(mc => mc.Count > 0)
             .ToList();
-        
+
         if (counts.Any())
         {
             var maxCount = counts.Max(c => c.Count);
@@ -655,15 +695,52 @@ else
         }
     }
 
+    private async Task CalculateMostAfilhados(List<ApplicationUser> allUsers)
+    {
+        // Count how many times a user appears as mentor for other members
+        var mentorCounts = allUsers
+            .Where(u => !string.IsNullOrEmpty(u.MentorId))
+            .GroupBy(u => u.MentorId!)
+            .Select(g => new
+            {
+                MentorId = g.Key,
+                Count = g.Count()
+            })
+            .ToList();
+
+        if (!mentorCounts.Any())
+        {
+            mostAfilhados = new List<MemberCount>();
+            return;
+        }
+
+        var maxCount = mentorCounts.Max(mc => mc.Count);
+        var topMentorIds = mentorCounts
+            .Where(mc => mc.Count == maxCount)
+            .Select(mc => mc.MentorId)
+            .ToHashSet();
+
+        mostAfilhados = allUsers
+            .Where(u => topMentorIds.Contains(u.Id))
+            .Select(u => new MemberCount
+            {
+                User = u,
+                Count = maxCount
+            })
+            .ToList();
+
+        await Task.CompletedTask;
+    }
+
     private async Task CalculateMostInstruments(List<ApplicationUser> allUsers)
     {
         var counts = new List<MemberCount>();
-        
+
         foreach (var user in allUsers)
         {
             var instruments = await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id);
             var count = instruments.Count();
-            
+
             if (count > 0)
             {
                 counts.Add(new MemberCount
@@ -673,7 +750,7 @@ else
                 });
             }
         }
-        
+
         if (counts.Any())
         {
             var maxCount = counts.Max(c => c.Count);
@@ -687,15 +764,15 @@ else
         {
             return $"{months} {(months == 1 ? "mês" : "meses")}";
         }
-        
+
         var years = months / 12;
         var remainingMonths = months % 12;
-        
+
         if (remainingMonths == 0)
         {
             return $"{years} {(years == 1 ? "ano" : "anos")}";
         }
-        
+
         return $"{years} {(years == 1 ? "ano" : "anos")} {remainingMonths} {(remainingMonths == 1 ? "mês" : "meses")}";
     }
 }
