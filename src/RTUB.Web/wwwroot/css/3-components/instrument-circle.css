@@ -15,9 +15,17 @@
     padding: 1rem;
 }
 
-.instrument-circle:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 16px rgba(111, 66, 193, 0.3);
+.instrument-circle:hover,
+.instrument-circle:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--bs-primary);
+    outline: none;
+}
+
+.instrument-circle:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--bs-primary);
+    outline: none;
 }
 
 /* Top-right action buttons */
