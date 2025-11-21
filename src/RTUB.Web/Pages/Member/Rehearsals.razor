@@ -1985,7 +1985,7 @@ else
             await RehearsalService.UncancelRehearsalAsync(rehearsal.Id);
             await LoadData();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Handle error silently or show a toast notification
         }
