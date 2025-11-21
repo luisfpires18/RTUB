@@ -69,24 +69,6 @@
   opacity: 1;
 }
 
-/* Status badge for canceled rehearsals */
-.rehearsal-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-}
-
-.rehearsal-status-badge.cancelled {
-  background-color: rgba(231, 76, 60, 0.15);
-  color: var(--bs-danger);
-  border: 1px solid rgba(231, 76, 60, 0.3);
-}
-
 /* Rehearsal info section */
 .rehearsal-info {
   display: flex;
@@ -259,6 +241,26 @@
   .rehearsal-actions-section .icon-size-1rem {
     display: inline-flex;
     align-items: center;
+  }
+  
+  /* Mobile: Hide desktop cancel button, show mobile version in action row */
+  .rehearsal-cancel-desktop {
+    display: none !important;
+  }
+  
+  .rehearsal-cancel-mobile {
+    display: flex !important;
+  }
+}
+
+/* Desktop: Show desktop cancel button, hide mobile version */
+@media (min-width: 768px) {
+  .rehearsal-cancel-desktop {
+    display: block !important;
+  }
+  
+  .rehearsal-cancel-mobile {
+    display: none !important;
   }
 }
 

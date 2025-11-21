@@ -759,7 +759,7 @@ else
                                         </div>
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="Categoria">
                                     @if (member.Categories != null && member.Categories.Any())
                                     {
                                         foreach (var category in member.Categories)
@@ -768,7 +768,7 @@ else
                                         }
                                     }
                                 </td>
-                                <td>
+                                <td data-label="Aniversário">
                                     @if (member.DateOfBirth.HasValue)
                                     {
                                         var currentYear = DateTime.Now.Year;
@@ -778,14 +778,14 @@ else
                                         <DateBadge Date="@thisBirthday" />
                                     }
                                 </td>
-                                <td>
+                                <td data-label="Idade">
                                     @if (member.DateOfBirth.HasValue)
                                     {
                                         var age = DateTime.Now.Year - member.DateOfBirth.Value.Year;
                                         <text>@age</text>
                                     }
                                 </td>
-                                <td>
+                                <td data-label="Cidade">
                                     @(member.City ?? "-")
                                 </td>
                                 <AuthorizeView Roles="Admin">

@@ -1,0 +1,129 @@
+/* Members.razor specific styles - Anniversaries Modal Mobile Support */
+
+/* Desktop: Keep table as-is (default behavior) */
+
+/* Mobile: Responsive anniversaries table */
+@media (max-width: 768px) {
+    /* Transform table rows into cards on mobile */
+    .table-responsive table.table thead {
+        display: none;
+    }
+    
+    .table-responsive table.table,
+    .table-responsive table.table tbody,
+    .table-responsive table.table tr {
+        display: block;
+        width: 100%;
+    }
+    
+    .table-responsive table.table tr {
+        margin-bottom: 1rem;
+        border: 1px solid #343536;
+        border-radius: 8px;
+        background-color: #1a1a1b;
+        padding: 0.75rem;
+    }
+    
+    .table-responsive table.table td {
+        display: block;
+        text-align: left !important;
+        padding: 0.5rem 0;
+        border: none;
+        position: relative;
+        padding-left: 45%;
+    }
+    
+    /* Add labels for each field on mobile */
+    .table-responsive table.table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 40%;
+        padding-right: 10px;
+        font-weight: 600;
+        color: var(--bs-primary);
+        text-align: left;
+    }
+    
+    /* First cell (Member) - special layout */
+    .table-responsive table.table tr td:first-child {
+        padding-left: 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #343536;
+        margin-bottom: 0.5rem;
+    }
+    
+    .table-responsive table.table tr td:first-child::before {
+        display: none;
+    }
+    
+    /* Member info stays horizontal with avatar */
+    .table-responsive table.table tr td:first-child .d-flex {
+        display: flex !important;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    /* Avatar sizing */
+    .member-avatar-small {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+    }
+    
+    /* Actions cell */
+    .table-responsive table.table tr td:last-child {
+        padding-left: 0;
+        padding-top: 0.75rem;
+        border-top: 1px solid #343536;
+        margin-top: 0.5rem;
+        text-align: center !important;
+    }
+    
+    .table-responsive table.table tr td:last-child::before {
+        display: none;
+    }
+    
+    .table-responsive table.table tr td:last-child .btn {
+        width: 100%;
+        max-width: 200px;
+    }
+    
+    /* Badges alignment on mobile */
+    .table-responsive table.table td .badge {
+        display: inline-block;
+        margin-right: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+}
+
+/* Extra small devices - further optimizations */
+@media (max-width: 480px) {
+    .table-responsive table.table td {
+        padding-left: 0;
+        padding-top: 0.35rem;
+        padding-bottom: 0.35rem;
+    }
+    
+    .table-responsive table.table td::before {
+        position: static;
+        display: block;
+        width: 100%;
+        padding-bottom: 0.25rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Tighter spacing on very small screens */
+    .table-responsive table.table tr {
+        padding: 0.625rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .member-avatar-small {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+    }
+}
