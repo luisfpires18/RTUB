@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Data;
+using RTUB.Application.DTOs;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
 using Xunit;
@@ -92,7 +93,7 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
     public void DocumentMetadata_Properties_CanBeSetAndGet()
     {
         // Arrange
-        var metadata = new RTUB.Application.Interfaces.DocumentMetadata
+        var metadata = new DocumentMetadata
         {
             FileName = "test.pdf",
             FilePath = "docs/test/test.pdf",

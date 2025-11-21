@@ -10,21 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 namespace RTUB.Web.Services;
 
 /// <summary>
-/// Service for rendering Razor email templates
-/// </summary>
-public interface IEmailTemplateService
-{
-    /// <summary>
-    /// Renders a Razor view to string
-    /// </summary>
-    /// <typeparam name="TModel">The model type</typeparam>
-    /// <param name="viewName">Name of the view (without .cshtml extension)</param>
-    /// <param name="model">The model instance</param>
-    /// <returns>Rendered HTML string</returns>
-    Task<string> RenderTemplateAsync<TModel>(string viewName, TModel model);
-}
-
-/// <summary>
 /// Implementation of email template service using Razor view engine
 /// Fixed to use IServiceScopeFactory to avoid ObjectDisposedException when rendering templates in batches
 /// </summary>

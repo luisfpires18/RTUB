@@ -1,7 +1,7 @@
 using Xunit;
 using FluentAssertions;
 
-namespace RTUB.Web.Tests.Pages.Owner;
+namespace RTUB.Web.Tests.Pages.Admin;
 
 /// <summary>
 /// Unit tests for OwnerEmail page behavior

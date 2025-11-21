@@ -8,7 +8,7 @@ using RTUB.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
-namespace RTUB.Application.Services;
+namespace RTUB.Application.Services.Geocoding;
 
 /// <summary>
 /// Geocoding service using Nominatim (OpenStreetMap) API
@@ -306,25 +306,4 @@ public class NominatimGeocodingService : IGeocodingService
         return results.OrderByDescending(r => r.importance).FirstOrDefault();
     }
 
-    private class NominatimResult
-    {
-        public string lat { get; set; } = "";
-        public string lon { get; set; } = "";
-        public string display_name { get; set; } = "";
-        public string? type { get; set; }
-        public string? @class { get; set; }
-        public double importance { get; set; }
-        public Address? address { get; set; }
-        public List<string>? boundingbox { get; set; }
-    }
-
-    private class Address
-    {
-        public string? city { get; set; }
-        public string? town { get; set; }
-        public string? village { get; set; }
-        public string? hamlet { get; set; }
-        public string? municipality { get; set; }
-        public string? country { get; set; }
-    }
 }

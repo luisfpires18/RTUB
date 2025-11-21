@@ -11,13 +11,3 @@ public class RankingConfiguration
     public Dictionary<string, int> XpPerEventType { get; set; } = new();
     public List<LevelDefinition> Levels { get; set; } = new();
 }
-
-/// <summary>
-/// Defines a single level/rank in the progression system
-/// </summary>
-public class LevelDefinition
-{
-    public int Level { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public int XpThreshold { get; set; }
-}

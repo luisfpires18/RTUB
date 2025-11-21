@@ -1,3 +1,4 @@
+using RTUB.Application.DTOs;
 using RTUB.Core.Enums;
 
 namespace RTUB.Application.Interfaces;
@@ -22,14 +23,4 @@ public interface IMemberStatisticsService
     /// <param name="beforeDate">Only include events before this date</param>
     /// <returns>List of user enrollments with event types</returns>
     Task<List<UserEnrollmentWithEventType>> GetEnrollmentsByUserWithEventTypeAsync(DateTime beforeDate);
-}
-
-/// <summary>
-/// DTO representing a user enrollment with associated event type
-/// Used for aggregating event participation statistics
-/// </summary>
-public class UserEnrollmentWithEventType
-{
-    public string UserId { get; set; } = string.Empty;
-    public EventType EventType { get; set; }
 }

@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Services.Geocoding;
 
 namespace RTUB.Application.Services;
 

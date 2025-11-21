@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
+using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services.Storage;
 using RTUB.Core.Entities;

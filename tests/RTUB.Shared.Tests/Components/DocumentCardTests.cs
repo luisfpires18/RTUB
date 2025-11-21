@@ -2,6 +2,7 @@ using AutoFixture;
 using Bunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
+using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Shared;
 

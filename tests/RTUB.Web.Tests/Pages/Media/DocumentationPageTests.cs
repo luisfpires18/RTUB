@@ -1,5 +1,6 @@
 using Xunit;
 using FluentAssertions;
+using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 
 namespace RTUB.Web.Tests.Pages;

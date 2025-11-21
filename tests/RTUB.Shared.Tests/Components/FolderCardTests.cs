@@ -4,6 +4,7 @@ using Bunit.TestDoubles;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Shared;
 
