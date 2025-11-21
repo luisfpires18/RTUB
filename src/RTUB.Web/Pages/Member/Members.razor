@@ -2296,10 +2296,10 @@ else
 
         try
         {
-            // Get all subscribed users with confirmed emails (excluding the birthday person)
+            // Get all subscribed users with confirmed emails
             var subscribedUsers = await Task.Run(() => 
                 UserManager.Users
-                    .Where(u => u.Subscribed && u.EmailConfirmed && u.Id != user.Id && !string.IsNullOrEmpty(u.Email))
+                    .Where(u => u.Subscribed && u.EmailConfirmed && !string.IsNullOrEmpty(u.Email))
                     .OrderBy(u => u.Nickname ?? u.FirstName)
                     .ToList());
             
