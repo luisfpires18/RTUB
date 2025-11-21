@@ -13,6 +13,69 @@ public class RehearsalAttendanceRepository : Repository<RehearsalAttendance>, IR
     public RehearsalAttendanceRepository(ApplicationDbContext context) : base(context)
     {
     }
+    
+    public override async Task<RehearsalAttendance> AddAsync(RehearsalAttendance entity)
+    {
+        // Ensure the User is loaded into Local cache for audit log display name resolution
+        if (!string.IsNullOrEmpty(entity.UserId))
+        {
+            var user = await _context.Users.FindAsync(entity.UserId);
+            if (user != null)
+            {
+                // User is now in Local cache and can be accessed by GetEntityDisplayName
+            }
+        }
+        
+        // Ensure the Rehearsal is loaded into Local cache for audit log display name resolution
+        if (entity.RehearsalId > 0)
+        {
+            var rehearsal = await _context.Rehearsals.FindAsync(entity.RehearsalId);
+            if (rehearsal != null)
+            {
+                // Rehearsal is now in Local cache
+            }
+        }
+        
+        return await base.AddAsync(entity);
+    }
+    
+    public override async Task UpdateAsync(RehearsalAttendance entity)
+    {
+        // Ensure the User is loaded into Local cache for audit log display name resolution
+        if (!string.IsNullOrEmpty(entity.UserId))
+        {
+            var user = await _context.Users.FindAsync(entity.UserId);
+        }
+        
+        // Ensure the Rehearsal is loaded into Local cache for audit log display name resolution
+        if (entity.RehearsalId > 0)
+        {
+            var rehearsal = await _context.Rehearsals.FindAsync(entity.RehearsalId);
+        }
+        
+        await base.UpdateAsync(entity);
+    }
+    
+    public override async Task DeleteAsync(int id)
+    {
+        var entity = await _dbSet.FindAsync(id);
+        if (entity != null)
+        {
+            // Ensure the User is loaded into Local cache for audit log display name resolution
+            if (!string.IsNullOrEmpty(entity.UserId))
+            {
+                var user = await _context.Users.FindAsync(entity.UserId);
+            }
+            
+            // Ensure the Rehearsal is loaded into Local cache for audit log display name resolution
+            if (entity.RehearsalId > 0)
+            {
+                var rehearsal = await _context.Rehearsals.FindAsync(entity.RehearsalId);
+            }
+        }
+        
+        await base.DeleteAsync(id);
+    }
 
     public async Task<IEnumerable<RehearsalAttendance>> GetAttendancesByRehearsalIdAsync(int rehearsalId)
     {

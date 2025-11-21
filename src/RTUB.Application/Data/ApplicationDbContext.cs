@@ -383,6 +383,27 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         var isCritical = IsCriticalAction(entityType, action);
         var displayName = GetEntityDisplayName(entry);
+        
+        // Determine target member for Enrollment and RehearsalAttendance
+        string? targetMemberId = null;
+        string? targetMemberName = null;
+        
+        if (entityType == "Enrollment" && entry.Entity is Enrollment enrollment)
+        {
+            targetMemberId = enrollment.UserId;
+            // Try to get the user's name from navigation property or Local cache
+            var targetUser = enrollment.User 
+                ?? Users.Local.FirstOrDefault(u => u.Id == enrollment.UserId);
+            targetMemberName = targetUser?.Nickname ?? targetUser?.UserName;
+        }
+        else if (entityType == "RehearsalAttendance" && entry.Entity is RehearsalAttendance attendance)
+        {
+            targetMemberId = attendance.UserId;
+            // Try to get the user's name from navigation property or Local cache
+            var targetUser = attendance.User 
+                ?? Users.Local.FirstOrDefault(u => u.Id == attendance.UserId);
+            targetMemberName = targetUser?.Nickname ?? targetUser?.UserName;
+        }
 
         return new AuditLog
         {
@@ -391,6 +412,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             Action = action,
             UserId = userId,
             UserName = username,
+            TargetMemberName = targetMemberName,
             Timestamp = DateTime.UtcNow,
             Changes = changes.Any() ? JsonSerializer.Serialize(changes) : null,
             IsCriticalAction = isCritical,
@@ -815,45 +837,62 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "Enrollment":
                     if (entry.Entity is Enrollment enrollment)
                     {
-                        // Only check Local cache to avoid DB queries
-                        var evt2 = Events.Local.FirstOrDefault(e => e.Id == enrollment.EventId);
-                        return evt2?.Name;
+                        // Try navigation properties first (if loaded), then fall back to Local cache
+                        var userName = enrollment.User?.Nickname 
+                            ?? enrollment.User?.UserName
+                            ?? ResolveUserIdToNickname(enrollment.UserId);
+                        var eventName = enrollment.Event?.Name 
+                            ?? Events.Local.FirstOrDefault(e => e.Id == enrollment.EventId)?.Name;
+                        
+                        if (userName != null && eventName != null)
+                            return $"{userName} - {eventName}";
+                        return eventName ?? userName; // Return partial if one is missing
                     }
                     break;
                 
                 case "EventRepertoire":
                     if (entry.Entity is EventRepertoire repertoire)
                     {
-                        // Only check Local cache to avoid DB queries
-                        var evt3 = Events.Local.FirstOrDefault(e => e.Id == repertoire.EventId);
-                        var song2 = Songs.Local.FirstOrDefault(s => s.Id == repertoire.SongId);
-                        if (evt3 != null && song2 != null)
-                            return $"{evt3.Name} - {song2.Title}";
-                        return evt3?.Name ?? song2?.Title; // Return partial if one is missing
+                        // Try navigation properties first (if loaded), then fall back to Local cache
+                        var eventName = repertoire.Event?.Name 
+                            ?? Events.Local.FirstOrDefault(e => e.Id == repertoire.EventId)?.Name;
+                        var songTitle = repertoire.Song?.Title 
+                            ?? Songs.Local.FirstOrDefault(s => s.Id == repertoire.SongId)?.Title;
+                        
+                        if (eventName != null && songTitle != null)
+                            return $"{eventName} - {songTitle}";
+                        return eventName ?? songTitle; // Return partial if one is missing
                     }
                     break;
                 
                 case "RehearsalAttendance":
                     if (entry.Entity is RehearsalAttendance attendance)
                     {
-                        // Only check Local cache to avoid DB queries
-                        var userName = ResolveUserIdToNickname(attendance.UserId);
-                        var rehearsal = Rehearsals.Local.FirstOrDefault(r => r.Id == attendance.RehearsalId);
+                        // Try navigation properties first (if loaded), then fall back to Local cache
+                        var userName = attendance.User?.Nickname 
+                            ?? attendance.User?.UserName
+                            ?? ResolveUserIdToNickname(attendance.UserId);
+                        var rehearsal = attendance.Rehearsal 
+                            ?? Rehearsals.Local.FirstOrDefault(r => r.Id == attendance.RehearsalId);
+                        
                         if (userName != null && rehearsal != null)
                             return $"{userName} - {rehearsal.Date:yyyy-MM-dd}";
                         if (userName != null)
                             return userName;
                         if (rehearsal != null)
                             return rehearsal.Date.ToString("yyyy-MM-dd");
-                        return null; // Neither found in cache
+                        return null; // Neither user name nor rehearsal found - will fall back to entity ID display
                     }
                     break;
                 
                 case "RoleAssignment":
                     if (entry.Entity is RoleAssignment roleAssignment)
                     {
-                        // Only check Local cache to avoid DB queries
-                        var userName = ResolveUserIdToNickname(roleAssignment.UserId) ?? roleAssignment.UserId;
+                        // Try navigation property first (if loaded), then fall back to Local cache
+                        var userName = roleAssignment.User?.Nickname 
+                            ?? roleAssignment.User?.UserName
+                            ?? ResolveUserIdToNickname(roleAssignment.UserId) 
+                            ?? roleAssignment.UserId;
                         return $"{userName} - {roleAssignment.Position}";
                     }
                     break;
@@ -861,18 +900,20 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "SongYouTubeUrl":
                     if (entry.Entity is SongYouTubeUrl youtubeUrl)
                     {
-                        // Only check Local cache to avoid DB queries
-                        var song3 = Songs.Local.FirstOrDefault(s => s.Id == youtubeUrl.SongId);
-                        return song3?.Title;
+                        // Try navigation property first (if loaded), then fall back to Local cache
+                        var songTitle = youtubeUrl.Song?.Title 
+                            ?? Songs.Local.FirstOrDefault(s => s.Id == youtubeUrl.SongId)?.Title;
+                        return songTitle;
                     }
                     break;
                 
                 case "Transaction":
                     if (entry.Entity is Transaction transaction && transaction.ActivityId.HasValue)
                     {
-                        // Only check Local cache to avoid DB queries
-                        var activity = Activities.Local.FirstOrDefault(a => a.Id == transaction.ActivityId.Value);
-                        return activity?.Name;
+                        // Try navigation property first (if loaded), then fall back to Local cache
+                        var activityName = transaction.Activity?.Name 
+                            ?? Activities.Local.FirstOrDefault(a => a.Id == transaction.ActivityId.Value)?.Name;
+                        return activityName;
                     }
                     break;
                 
@@ -953,9 +994,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "LeaderboardComment":
                     if (entry.Entity is LeaderboardComment leaderboardComment)
                     {
-                        // Show target user and author for context
-                        var targetName = ResolveUserIdToNickname(leaderboardComment.TargetUserId) ?? leaderboardComment.TargetUserId;
-                        var authorName = ResolveUserIdToNickname(leaderboardComment.AuthorId) ?? leaderboardComment.AuthorId;
+                        // Try navigation properties first (if loaded), then fall back to Local cache
+                        var targetName = leaderboardComment.TargetUser?.Nickname 
+                            ?? leaderboardComment.TargetUser?.UserName
+                            ?? ResolveUserIdToNickname(leaderboardComment.TargetUserId) 
+                            ?? leaderboardComment.TargetUserId;
+                        var authorName = leaderboardComment.Author?.Nickname 
+                            ?? leaderboardComment.Author?.UserName
+                            ?? ResolveUserIdToNickname(leaderboardComment.AuthorId) 
+                            ?? leaderboardComment.AuthorId;
                         return $"{authorName} → {targetName}";
                     }
                     break;
@@ -963,12 +1010,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "LeaderboardCommentLike":
                     if (entry.Entity is LeaderboardCommentLike commentLike)
                     {
-                        // Show user nickname, target user, and comment text preview
-                        var userName = ResolveUserIdToNickname(commentLike.UserId) ?? commentLike.UserId;
-                        var likedComment = LeaderboardComments.Local.FirstOrDefault(c => c.Id == commentLike.CommentId);
+                        // Try navigation properties first (if loaded), then fall back to Local cache
+                        var userName = commentLike.User?.Nickname 
+                            ?? commentLike.User?.UserName
+                            ?? ResolveUserIdToNickname(commentLike.UserId) 
+                            ?? commentLike.UserId;
+                        var likedComment = commentLike.Comment 
+                            ?? LeaderboardComments.Local.FirstOrDefault(c => c.Id == commentLike.CommentId);
                         if (likedComment != null)
                         {
-                            var targetName = ResolveUserIdToNickname(likedComment.TargetUserId) ?? likedComment.TargetUserId;
+                            var targetName = likedComment.TargetUser?.Nickname 
+                                ?? likedComment.TargetUser?.UserName
+                                ?? ResolveUserIdToNickname(likedComment.TargetUserId) 
+                                ?? likedComment.TargetUserId;
                             var commentPreview = likedComment.Text.Length > 30 
                                 ? likedComment.Text[..30] + "..." 
                                 : likedComment.Text;
@@ -981,11 +1035,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "Post":
                     if (entry.Entity is Post post)
                     {
-                        // Show event name and post title
-                        var postDiscussion = Discussions.Local.FirstOrDefault(d => d.Id == post.DiscussionId);
+                        // Try navigation properties first (if loaded), then fall back to Local cache
+                        var postDiscussion = post.Discussion 
+                            ?? Discussions.Local.FirstOrDefault(d => d.Id == post.DiscussionId);
                         if (postDiscussion != null)
                         {
-                            var postEvent = Events.Local.FirstOrDefault(e => e.Id == postDiscussion.EventId);
+                            var postEvent = postDiscussion.Event 
+                                ?? Events.Local.FirstOrDefault(e => e.Id == postDiscussion.EventId);
                             if (postEvent != null)
                                 return $"{postEvent.Name} - {post.Title}";
                         }
@@ -996,20 +1052,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "Comment":
                     if (entry.Entity is Comment comment)
                     {
-                        // Show event name, author and truncated body for context
-                        var authorName = ResolveUserIdToNickname(comment.AuthorId) ?? comment.AuthorId;
+                        // Try navigation properties first (if loaded), then fall back to Local cache
+                        var authorName = comment.Author?.Nickname 
+                            ?? comment.Author?.UserName
+                            ?? ResolveUserIdToNickname(comment.AuthorId) 
+                            ?? comment.AuthorId;
                         var bodyPreview = comment.Body.Length > 50 
                             ? comment.Body[..50] + "..." 
                             : comment.Body;
                         
                         // Try to get event name through Post -> Discussion -> Event
-                        var commentPost = Posts.Local.FirstOrDefault(p => p.Id == comment.PostId);
+                        var commentPost = comment.Post 
+                            ?? Posts.Local.FirstOrDefault(p => p.Id == comment.PostId);
                         if (commentPost != null)
                         {
-                            var commentDiscussion = Discussions.Local.FirstOrDefault(d => d.Id == commentPost.DiscussionId);
+                            var commentDiscussion = commentPost.Discussion 
+                                ?? Discussions.Local.FirstOrDefault(d => d.Id == commentPost.DiscussionId);
                             if (commentDiscussion != null)
                             {
-                                var commentEvent = Events.Local.FirstOrDefault(e => e.Id == commentDiscussion.EventId);
+                                var commentEvent = commentDiscussion.Event 
+                                    ?? Events.Local.FirstOrDefault(e => e.Id == commentDiscussion.EventId);
                                 if (commentEvent != null)
                                     return $"{commentEvent.Name} - {authorName}: {bodyPreview}";
                             }
@@ -1022,8 +1084,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 case "MemberInstrument":
                     if (entry.Entity is MemberInstrument memberInstrument)
                     {
-                        // Show user nickname and instrument display name
-                        var userName = ResolveUserIdToNickname(memberInstrument.MemberId) ?? memberInstrument.MemberId;
+                        // Try navigation property first (if loaded), then fall back to Local cache
+                        var userName = memberInstrument.Member?.Nickname 
+                            ?? memberInstrument.Member?.UserName
+                            ?? ResolveUserIdToNickname(memberInstrument.MemberId) 
+                            ?? memberInstrument.MemberId;
                         var instrumentName = RTUB.Core.Helpers.InstrumentTypeHelper.GetDisplayName(memberInstrument.InstrumentType);
                         return $"{userName} - {instrumentName}";
                     }

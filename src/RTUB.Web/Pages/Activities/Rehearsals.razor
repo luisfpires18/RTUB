@@ -1763,20 +1763,16 @@ else
 
         try
         {
-            // For approvable rehearsals (past or today after 21:00), mark as attended (approved) immediately
-            bool attended = isSelectedRehearsalApprovable;
-            await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, user.Id, true, null, null);
-            
-            // If it's an approvable rehearsal, immediately approve the attendance
+            // For approvable rehearsals (past or today after 21:00), create attendance with immediate approval
+            // This avoids creating "Created + Modified" audit entries
             if (isSelectedRehearsalApprovable)
             {
-                // Get the just-created attendance and update it to approved
-                var newAttendances = await AttendanceService.GetAttendancesByRehearsalIdAsync(selectedRehearsal.Id);
-                var newAttendance = newAttendances.FirstOrDefault(a => a.UserId == user.Id);
-                if (newAttendance != null && !newAttendance.Attended)
-                {
-                    await AttendanceService.UpdateAttendanceAsync(newAttendance.Id, true, newAttendance.Instrument);
-                }
+                await AttendanceService.CreateAttendanceWithApprovalAsync(selectedRehearsal.Id, user.Id, null, null, null);
+            }
+            else
+            {
+                // For future rehearsals, create pending attendance (Attended = false)
+                await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, user.Id, true, null, null);
             }
             
             addMemberFeedbackMessage = $"Presença de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";

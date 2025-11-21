@@ -13,6 +13,69 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
     public EnrollmentRepository(ApplicationDbContext context) : base(context)
     {
     }
+    
+    public override async Task<Enrollment> AddAsync(Enrollment entity)
+    {
+        // Ensure the User is loaded into Local cache for audit log display name resolution
+        if (!string.IsNullOrEmpty(entity.UserId))
+        {
+            var user = await _context.Users.FindAsync(entity.UserId);
+            if (user != null)
+            {
+                // User is now in Local cache and can be accessed by GetEntityDisplayName
+            }
+        }
+        
+        // Ensure the Event is loaded into Local cache for audit log display name resolution
+        if (entity.EventId > 0)
+        {
+            var evt = await _context.Events.FindAsync(entity.EventId);
+            if (evt != null)
+            {
+                // Event is now in Local cache
+            }
+        }
+        
+        return await base.AddAsync(entity);
+    }
+    
+    public override async Task UpdateAsync(Enrollment entity)
+    {
+        // Ensure the User is loaded into Local cache for audit log display name resolution
+        if (!string.IsNullOrEmpty(entity.UserId))
+        {
+            var user = await _context.Users.FindAsync(entity.UserId);
+        }
+        
+        // Ensure the Event is loaded into Local cache for audit log display name resolution
+        if (entity.EventId > 0)
+        {
+            var evt = await _context.Events.FindAsync(entity.EventId);
+        }
+        
+        await base.UpdateAsync(entity);
+    }
+    
+    public override async Task DeleteAsync(int id)
+    {
+        var entity = await _dbSet.FindAsync(id);
+        if (entity != null)
+        {
+            // Ensure the User is loaded into Local cache for audit log display name resolution
+            if (!string.IsNullOrEmpty(entity.UserId))
+            {
+                var user = await _context.Users.FindAsync(entity.UserId);
+            }
+            
+            // Ensure the Event is loaded into Local cache for audit log display name resolution
+            if (entity.EventId > 0)
+            {
+                var evt = await _context.Events.FindAsync(entity.EventId);
+            }
+        }
+        
+        await base.DeleteAsync(id);
+    }
 
     public override async Task<IEnumerable<Enrollment>> GetAllAsync()
     {

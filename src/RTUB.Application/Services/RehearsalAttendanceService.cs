@@ -73,6 +73,35 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         return await _attendanceRepository.AddAsync(attendance);
     }
 
+    public async Task<RehearsalAttendance> CreateAttendanceWithApprovalAsync(int rehearsalId, string userId, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null)
+    {
+        // Check if attendance already exists
+        var existing = await _attendanceRepository.GetAttendanceByRehearsalAndUserAsync(rehearsalId, userId);
+        
+        if (existing != null)
+        {
+            // Update existing attendance to approved
+            existing.WillAttend = true;
+            existing.MarkAttendance(true); // Set Attended = true
+            if (instrument.HasValue)
+                existing.UpdateInstrument(instrument);
+            existing.Notes = notes;
+            existing.OtherInstruments = otherInstruments;
+            
+            await _attendanceRepository.UpdateAsync(existing);
+            return existing;
+        }
+
+        // Create new attendance with immediate approval (Attended = true)
+        var attendance = RehearsalAttendance.Create(rehearsalId, userId, instrument);
+        attendance.WillAttend = true;
+        attendance.MarkAttendance(true); // Set Attended = true immediately
+        attendance.Notes = notes;
+        attendance.OtherInstruments = otherInstruments;
+        
+        return await _attendanceRepository.AddAsync(attendance);
+    }
+
     public async Task UpdateAttendanceAsync(int id, bool attended, InstrumentType? instrument = null)
     {
         var attendance = await _attendanceRepository.GetByIdAsync(id);

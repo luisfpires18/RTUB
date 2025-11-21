@@ -13,6 +13,61 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
     public EventRepertoireRepository(ApplicationDbContext context) : base(context)
     {
     }
+    
+    public override async Task<EventRepertoire> AddAsync(EventRepertoire entity)
+    {
+        // Ensure the Event is loaded into Local cache for audit log display name resolution
+        if (entity.EventId > 0)
+        {
+            var evt = await _context.Events.FindAsync(entity.EventId);
+        }
+        
+        // Ensure the Song is loaded into Local cache for audit log display name resolution
+        if (entity.SongId > 0)
+        {
+            var song = await _context.Songs.FindAsync(entity.SongId);
+        }
+        
+        return await base.AddAsync(entity);
+    }
+    
+    public override async Task UpdateAsync(EventRepertoire entity)
+    {
+        // Ensure the Event is loaded into Local cache for audit log display name resolution
+        if (entity.EventId > 0)
+        {
+            var evt = await _context.Events.FindAsync(entity.EventId);
+        }
+        
+        // Ensure the Song is loaded into Local cache for audit log display name resolution
+        if (entity.SongId > 0)
+        {
+            var song = await _context.Songs.FindAsync(entity.SongId);
+        }
+        
+        await base.UpdateAsync(entity);
+    }
+    
+    public override async Task DeleteAsync(int id)
+    {
+        var entity = await _dbSet.FindAsync(id);
+        if (entity != null)
+        {
+            // Ensure the Event is loaded into Local cache for audit log display name resolution
+            if (entity.EventId > 0)
+            {
+                var evt = await _context.Events.FindAsync(entity.EventId);
+            }
+            
+            // Ensure the Song is loaded into Local cache for audit log display name resolution
+            if (entity.SongId > 0)
+            {
+                var song = await _context.Songs.FindAsync(entity.SongId);
+            }
+        }
+        
+        await base.DeleteAsync(id);
+    }
 
     public async Task<IEnumerable<EventRepertoire>> GetRepertoireByEventIdAsync(int eventId, DateTime? date = null)
     {
