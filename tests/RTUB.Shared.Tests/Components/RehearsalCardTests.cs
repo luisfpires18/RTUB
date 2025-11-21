@@ -95,9 +95,9 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.AttendanceCount, 0));
 
         // Assert
-        cut.Markup.Should().Contain("Cancelado", "should display canceled status");
-        cut.Markup.Should().Contain("rehearsal-status-badge cancelled", "canceled status should have cancelled badge class");
-        cut.Markup.Should().Contain("bi-x-circle", "canceled status should have X icon");
+        cut.Markup.Should().Contain("CANCELADO", "should display canceled status");
+        cut.Markup.Should().Contain("badge bg-danger fs-6", "canceled status should use danger badge styling");
+        cut.Markup.Should().Contain("bi-x-circle-fill", "canceled status should have X icon");
     }
 
     [Fact]
