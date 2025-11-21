@@ -118,35 +118,21 @@
                 </div>
             }
         }
-        
-        @* Confirmation dialog for deleting a day *@
-        @if (showDeleteDayConfirmation)
-        {
-            <div class="modal-backdrop show"></div>
-            <div class="modal show d-block" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content bg-dark-rtub">
-                        <div class="modal-header">
-                            <h5 class="modal-title text-white-full">Confirmar Eliminação</h5>
-                            <button type="button" class="btn-close btn-close-white" @onclick="CancelDeleteDay"></button>
-                        </div>
-                        <div class="modal-body text-white">
-                            <p>Tem certeza que deseja eliminar todo o repertório do dia @dayToDelete?.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("pt-PT"))?</p>
-                            <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> Esta ação não pode ser desfeita.</p>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" @onclick="CancelDeleteDay">Cancelar</button>
-                            <button type="button" class="btn btn-danger" @onclick="DeleteDay"><i class="bi bi-trash"></i> Eliminar</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="Close">Fechar</button>
     </FooterContent>
 </Modal>
+
+<ConfirmDialog Show="@showDeleteDayConfirmation"
+               ShowChanged="@(show => showDeleteDayConfirmation = show)"
+               Title="Confirmar Eliminação"
+               Message="@($"Tem certeza que deseja eliminar todo o repertório do dia {dayToDelete?.ToString("dd MMM yyyy", new System.Globalization.CultureInfo("pt-PT"))}?")"
+               WarningMessage="Esta ação não pode ser desfeita."
+               ConfirmText="Eliminar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="@DeleteDay"
+               OnCancel="@CancelDeleteDay" />
 
 @code {
     [Parameter]
