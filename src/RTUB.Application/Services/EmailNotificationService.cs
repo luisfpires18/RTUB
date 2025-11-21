@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services.Email;
+using RTUB.Application.Extensions;
 using RTUB.Core.Enums;
+using RTUB.Core.Helpers;
 using System.Net.Mail;
 using System.Text;
 
@@ -18,19 +20,22 @@ public class EmailNotificationService : IEmailNotificationService
     private readonly SmtpClientFactory _smtpFactory;
     private readonly EmailRateLimiter _rateLimiter;
     private readonly IEmailTemplateRenderer _templateRenderer;
+    private readonly IEnrollmentService _enrollmentService;
 
     public EmailNotificationService(
         ILogger<EmailNotificationService> logger,
         EmailConfigurationProvider configProvider,
         SmtpClientFactory smtpFactory,
         EmailRateLimiter rateLimiter,
-        IEmailTemplateRenderer templateRenderer)
+        IEmailTemplateRenderer templateRenderer,
+        IEnrollmentService enrollmentService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
         _smtpFactory = smtpFactory ?? throw new ArgumentNullException(nameof(smtpFactory));
         _rateLimiter = rateLimiter ?? throw new ArgumentNullException(nameof(rateLimiter));
         _templateRenderer = templateRenderer ?? throw new ArgumentNullException(nameof(templateRenderer));
+        _enrollmentService = enrollmentService ?? throw new ArgumentNullException(nameof(enrollmentService));
     }
 
     /// <inheritdoc/>
@@ -316,12 +321,30 @@ public class EmailNotificationService : IEmailNotificationService
                 return (false, 0, "Dados de destinatários não fornecidos.");
             }
 
+            // Load confirmed enrollments for this event
+            var enrollments = await _enrollmentService.GetEnrollmentsByEventIdAsync(eventId);
+            var confirmedEnrollments = enrollments.Where(e => e.WillAttend && e.User != null).ToList();
+            
+            // Build participants list with display name, category, instrument, and notes
+            var participants = confirmedEnrollments.Select(e =>
+            {
+                var user = e.User!;
+                var displayName = user.GetDisplayName();
+                var category = user.GetPrimaryCategoryName();
+                var instrument = e.Instrument.HasValue 
+                    ? InstrumentTypeHelper.GetDisplayName(e.Instrument.Value) 
+                    : "Não especificado";
+                var isLeitao = user.IsLeitao();
+                
+                return (displayName, category, instrument, e.Notes, isLeitao);
+            }).ToList();
+
             var daysUntilEvent = (int)Math.Ceiling((eventDate.Date - DateTime.UtcNow.Date).TotalDays);
-            var subject = $"Lembrete: {eventTitle} — faltam {daysUntilEvent} {(daysUntilEvent == 1 ? "dia" : "dias")}";
+            var subject = $"Lembrete: {eventTitle}, {(daysUntilEvent == 1 ? $"falta {daysUntilEvent} dia" : $"faltam {daysUntilEvent} dias")}";
 
             return await SendPersonalizedBatchAsync(config, recipientEmails, recipientData, subject,
                 async (nickname, fullName) => await _templateRenderer.RenderEventReminderNotificationAsync(
-                    eventTitle, eventDate, endDate, eventLocation, eventLink, daysUntilEvent, nickname, fullName, eventDescription),
+                    eventTitle, eventDate, endDate, eventLocation, eventLink, daysUntilEvent, nickname, fullName, eventDescription, participants),
                 eventId, "event reminder notification");
         }
         catch (Exception ex)

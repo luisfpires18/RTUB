@@ -79,7 +79,8 @@ public interface IEmailTemplateRenderer
         int daysUntilEvent,
         string nickname = "",
         string fullName = "",
-        string eventDescription = "");
+        string eventDescription = "",
+        List<(string displayName, string category, string instrument, string? notes, bool isLeitao)>? participants = null);
     
     /// <summary>
     /// Renders the announcement email

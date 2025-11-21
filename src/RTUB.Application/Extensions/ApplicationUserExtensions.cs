@@ -220,5 +220,19 @@ public static class ApplicationUserExtensions
         }
         return $"{user.Nickname} ({user.FirstName} {user.LastName})".Trim();
     }
+    
+    /// <summary>
+    /// Gets the primary category for display purposes
+    /// Priority order: Tunossauro > Veterano > Tuno > Caloiro > Leitão > Membro
+    /// </summary>
+    public static string GetPrimaryCategoryName(this ApplicationUser user)
+    {
+        if (user.IsTunossauro()) return "Tunossauro";
+        if (user.IsVeterano()) return "Veterano";
+        if (user.IsTuno()) return "Tuno";
+        if (user.IsCaloiro()) return "Caloiro";
+        if (user.IsLeitao()) return "Leitão";
+        return "Membro";
+    }
     #endregion
 }

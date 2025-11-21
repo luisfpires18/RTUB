@@ -21,6 +21,7 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
     private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly IMemoryCache _cache;
     private readonly Mock<IEmailTemplateRenderer> _mockTemplateRenderer;
+    private readonly Mock<IEnrollmentService> _mockEnrollmentService;
     private readonly EmailNotificationService _service;
 
     public EmailNotificationServiceConcurrencyIntegrationTests()
@@ -30,6 +31,7 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
         _mockConfiguration = new Mock<IConfiguration>();
         _cache = new MemoryCache(new MemoryCacheOptions());
         _mockTemplateRenderer = new Mock<IEmailTemplateRenderer>();
+        _mockEnrollmentService = new Mock<IEnrollmentService>();
 
         // Setup SMTP configuration to enable actual sending logic
         _mockConfiguration.Setup(x => x["EmailSettings:RecipientEmail"]).Returns("admin@rtub.pt");
@@ -62,15 +64,19 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
         
         _mockTemplateRenderer.Setup(x => x.RenderEventReminderNotificationAsync(
             It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), 
-            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>()))
             .ReturnsAsync((string title, DateTime start, DateTime? end, string loc, string link, 
-                int days, string nick, string full, string desc) => 
+                int days, string nick, string full, string desc, List<(string, string, string, string?, bool)> participants) => 
                 $"<html><body>Reminder: {title} in {days} days for {nick} ({full})</body></html>");
         
         _mockTemplateRenderer.Setup(x => x.RenderAnnouncementEmailAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync((string title, string content, string nick, string full) => 
                 $"<html><body>Announcement: {title} for {nick} ({full})</body></html>");
+
+        // Setup enrollment service to return empty list by default
+        _mockEnrollmentService.Setup(x => x.GetEnrollmentsByEventIdAsync(It.IsAny<int>()))
+            .ReturnsAsync(new List<RTUB.Core.Entities.Enrollment>());
 
         // Create the refactored dependencies
         var configProvider = new EmailConfigurationProvider(_mockConfiguration.Object, _mockConfigLogger.Object);
@@ -82,7 +88,8 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
             configProvider,
             smtpFactory,
             rateLimiter,
-            _mockTemplateRenderer.Object);
+            _mockTemplateRenderer.Object,
+            _mockEnrollmentService.Object);
     }
 
     [Fact]
@@ -211,7 +218,7 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
         // Verify template renderer was called for each recipient
         _mockTemplateRenderer.Verify(x => x.RenderEventReminderNotificationAsync(
             It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), 
-            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), 
+            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>()), 
             Times.Exactly(9));
     }
 

@@ -143,7 +143,8 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
         int daysUntilEvent,
         string nickname = "",
         string fullName = "",
-        string eventDescription = "")
+        string eventDescription = "",
+        List<(string displayName, string category, string instrument, string? notes, bool isLeitao)>? participants = null)
     {
         var model = new EventReminderNotificationModel
         {
@@ -155,7 +156,13 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
             DaysUntilEvent = daysUntilEvent,
             Nickname = nickname,
             FullName = fullName,
-            EventDescription = eventDescription
+            EventDescription = eventDescription,
+            Participants = participants?.Select(p => new EventParticipantModel
+            {
+                DisplayName = p.displayName,
+                Category = p.category,
+                IsLeitao = p.isLeitao
+            }).ToList() ?? new()
         };
 
         return await _templateService.RenderTemplateAsync("EventReminderNotification", model);
