@@ -151,12 +151,8 @@ public class AuditLogService : IAuditLogService
 
     public async Task TruncateAsync()
     {
-        // Remove all audit logs (works with both in-memory and real databases)
-        var allLogs = await _auditLogRepository.GetAllAsync();
-        foreach (var log in allLogs)
-        {
-            await _auditLogRepository.DeleteAsync(log.Id);
-        }
+        // Use bulk delete for efficient single-command deletion
+        await _auditLogRepository.DeleteAllAsync();
     }
 
     public async Task TruncateByUserAsync(string userName)
@@ -166,15 +162,8 @@ public class AuditLogService : IAuditLogService
             throw new ArgumentException("User name cannot be null or empty.", nameof(userName));
         }
 
-        // Remove all audit logs for the specified user
-        var userLogs = await _auditLogRepository.Query()
-            .Where(a => a.UserName == userName)
-            .ToListAsync();
-        
-        foreach (var log in userLogs)
-        {
-            await _auditLogRepository.DeleteAsync(log.Id);
-        }
+        // Use bulk delete for efficient single-command deletion
+        await _auditLogRepository.DeleteByUserAsync(userName);
     }
 
     public async Task<IEnumerable<AuditLog>> GetAllForExportAsync(
@@ -199,5 +188,37 @@ public class AuditLogService : IAuditLogService
         return await query
             .OrderByDescending(a => a.Timestamp)
             .ToListAsync();
+    }
+    
+    public async Task<(IEnumerable<AuditLog> logs, int totalCount)> GetPagedWithCountAsync(
+        string? userName = null,
+        string? excludeUserName = null,
+        string? entityType = null,
+        string? action = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        bool? criticalOnly = null,
+        int page = 1,
+        int pageSize = 100)
+    {
+        var query = ApplyFilters(
+            _auditLogRepository.Query(),
+            userName,
+            excludeUserName,
+            entityType,
+            action,
+            fromDate,
+            toDate,
+            criticalOnly);
+
+        // Get total count
+        var totalCount = await query.CountAsync();
+        
+        // Get paged data
+        var logs = await query
+            .OrderByDescending(a => a.Timestamp)
+            .PaginateAsync(page, pageSize);
+        
+        return (logs, totalCount);
     }
 }

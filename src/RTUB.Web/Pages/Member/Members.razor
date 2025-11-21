@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Data
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
@@ -1077,7 +1078,7 @@ else
 
     private async Task LoadMembers()
     {
-        users = UserManager.Users.ToList();
+        users = await UserManager.Users.AsNoTracking().ToListAsync();
         totalUsers = users.Count;
         var userIdList = users.Select(u => u.Id).ToList();
 
@@ -2325,11 +2326,11 @@ else
         try
         {
             // Get all subscribed users with confirmed emails
-            var subscribedUsers = await Task.Run(() => 
-                UserManager.Users
-                    .Where(u => u.Subscribed && u.EmailConfirmed && !string.IsNullOrEmpty(u.Email))
-                    .OrderBy(u => u.Nickname ?? u.FirstName)
-                    .ToList());
+            var subscribedUsers = await UserManager.Users
+                .Where(u => u.Subscribed && u.EmailConfirmed && !string.IsNullOrEmpty(u.Email))
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .AsNoTracking()
+                .ToListAsync();
             
             birthdaySubscribedUsers = subscribedUsers;
             birthdaySubscribedUsersCount = subscribedUsers.Count;

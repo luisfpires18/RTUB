@@ -61,10 +61,14 @@ public class MeetingService : IMeetingService
         if (meeting == null)
             return null;
         
+        // Load user once and cache for visibility checks
+        ApplicationUser? user = null;
+        
         // Check if user has permission to view this meeting
         if (meeting.Type == MeetingType.ConselhoVeteranos)
         {
-            var user = await _context.Users
+            user = await _context.Users
+                .AsNoTracking()
                 .Where(u => u.Id == userId)
                 .FirstOrDefaultAsync();
             
@@ -84,9 +88,14 @@ public class MeetingService : IMeetingService
         if (meeting.Type == MeetingType.AssembleiaGeralOrdinaria || 
             meeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
         {
-            var user = await _context.Users
-                .Where(u => u.Id == userId)
-                .FirstOrDefaultAsync();
+            // Reuse cached user if already loaded
+            if (user == null)
+            {
+                user = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == userId)
+                    .FirstOrDefaultAsync();
+            }
             
             if (user != null && user.IsLeitao())
                 return null;

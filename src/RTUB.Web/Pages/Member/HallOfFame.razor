@@ -465,22 +465,13 @@ else
     private async Task LoadData()
     {
         // Get all users
-        var allUsers = UserManager.Users.ToList();
+        var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
 
         // Get all role assignments
         var allRoleAssignments = await RoleAssignmentService.GetAllRoleAssignmentsAsync();
 
-        // Load user data for role assignments
-        var userIds = allRoleAssignments.Select(ra => ra.UserId).Distinct().ToList();
-        var usersDict = new Dictionary<string, ApplicationUser>();
-        foreach (var userId in userIds)
-        {
-            var user = await UserManager.FindByIdAsync(userId);
-            if (user != null)
-            {
-                usersDict[userId] = user;
-            }
-        }
+        // Build user dictionary for efficient lookup (avoid N+1)
+        var usersDict = allUsers.ToDictionary(u => u.Id);
 
         // Assign users to role assignments
         foreach (var assignment in allRoleAssignments)

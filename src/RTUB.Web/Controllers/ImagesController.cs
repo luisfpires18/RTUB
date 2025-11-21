@@ -102,11 +102,11 @@ public class ImagesController : ControllerBase
             // no-cache means "you must revalidate before using cached copy"
             Response.Headers.CacheControl = "no-cache";
 
-            // Return the file with E-Tag header
-            var fileBytes = System.IO.File.ReadAllBytes(fullImagePath);
+            // Set E-Tag header
             Response.GetTypedHeaders().ETag = etag;
             
-            return File(fileBytes, contentType);
+            // Stream the file directly from disk instead of loading into memory
+            return PhysicalFile(fullImagePath, contentType);
         }
         catch (Exception ex)
         {

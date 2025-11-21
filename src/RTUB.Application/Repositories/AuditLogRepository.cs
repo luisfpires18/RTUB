@@ -49,4 +49,24 @@ public class AuditLogRepository : Repository<AuditLog>, IAuditLogRepository
             .OrderByDescending(a => a.Timestamp)
             .PaginateAsync(page, pageSize);
     }
+    
+    public async Task DeleteAllAsync()
+    {
+        // Fetch all audit logs and remove them in bulk
+        // Note: Using RemoveRange instead of ExecuteDeleteAsync for compatibility
+        // with in-memory database provider used in tests
+        var allLogs = await _dbSet.ToListAsync();
+        _dbSet.RemoveRange(allLogs);
+        await _context.SaveChangesAsync();
+    }
+    
+    public async Task DeleteByUserAsync(string userName)
+    {
+        // Fetch all audit logs for the specified user and remove them in bulk
+        // Note: Using RemoveRange instead of ExecuteDeleteAsync for compatibility
+        // with in-memory database provider used in tests
+        var userLogs = await _dbSet.Where(a => a.UserName == userName).ToListAsync();
+        _dbSet.RemoveRange(userLogs);
+        await _context.SaveChangesAsync();
+    }
 }

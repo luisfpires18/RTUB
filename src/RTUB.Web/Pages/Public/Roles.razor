@@ -9,6 +9,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components
+@using Microsoft.EntityFrameworkCore
 @using RTUB.Shared
 @inject IRoleAssignmentService RoleAssignmentService
 @inject IFiscalYearService FiscalYearService
@@ -900,7 +901,7 @@ else
         // Load all members for admin
         if (canDoAction)
         {
-            LoadAllMembers();
+            await LoadAllMembers();
         }
         
         // Handle URL query parameter ?fy=
@@ -940,13 +941,15 @@ else
         fiscalYears = years.Select(y => y.FiscalYearString).ToList();
     }
     
-    private void LoadAllMembers()
+    private async Task LoadAllMembers()
     {
-        allMembers = UserManager.Users
+        // Load all users and filter in memory (Categories is JSON column, can't filter on server)
+        allMembers = (await UserManager.Users
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
-            .ToList()  // Materialize query first
-            .Where(u => !u.IsLeitao())  // Then filter in memory
+            .AsNoTracking()
+            .ToListAsync())
+            .Where(u => !u.IsLeitao())  // Filter in memory after load
             .ToList();
     }
     
@@ -980,16 +983,10 @@ else
 
         // Load all user data at once to avoid N+1 queries
         var userIds = roleAssignments.Select(ra => ra.UserId).Distinct().ToList();
-        var users = new Dictionary<string, ApplicationUser>();
-        
-        foreach (var userId in userIds)
-        {
-            var user = await UserManager.FindByIdAsync(userId);
-            if (user != null)
-            {
-                users[userId] = user;
-            }
-        }
+        var users = await UserManager.Users
+            .Where(u => userIds.Contains(u.Id))
+            .AsNoTracking()
+            .ToDictionaryAsync(u => u.Id);
 
         // Assign users to assignments
         foreach (var assignment in roleAssignments)

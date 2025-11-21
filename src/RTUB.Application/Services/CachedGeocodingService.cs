@@ -26,7 +26,7 @@ public class CachedGeocodingService : IGeocodingService
         _logger = logger;
     }
 
-    public async Task<(double Latitude, double Longitude)?> GetCoordinatesAsync(string cityName, string? countryCode = "PT")
+    public async Task<(double Latitude, double Longitude)?> GetCoordinatesAsync(string cityName, string? countryCode = "PT", CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(cityName))
         {
@@ -39,7 +39,7 @@ public class CachedGeocodingService : IGeocodingService
         // Check database cache only (no HTTP calls)
         var cached = await _dbContext.GeocodingCaches
             .AsNoTracking()
-            .FirstOrDefaultAsync(g => g.CityName == normalizedCity && g.CountryCode == normalizedCountryCode);
+            .FirstOrDefaultAsync(g => g.CityName == normalizedCity && g.CountryCode == normalizedCountryCode, cancellationToken);
 
         if (cached != null)
         {

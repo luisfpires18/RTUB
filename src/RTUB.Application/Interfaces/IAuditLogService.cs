@@ -84,4 +84,18 @@ public interface IAuditLogService
         DateTime? fromDate = null,
         DateTime? toDate = null,
         bool? criticalOnly = null);
+    
+    /// <summary>
+    /// Gets paged audit logs with total count in a single call (avoids double query)
+    /// </summary>
+    Task<(IEnumerable<AuditLog> logs, int totalCount)> GetPagedWithCountAsync(
+        string? userName = null,
+        string? excludeUserName = null,
+        string? entityType = null,
+        string? action = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        bool? criticalOnly = null,
+        int page = 1,
+        int pageSize = 100);
 }

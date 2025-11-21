@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using RTUB.Application.DTOs
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
@@ -242,18 +243,18 @@
         try
         {
             // Load all subscribed users with confirmed emails
-            subscribedUsers = await Task.Run(() => 
-                UserManager.Users
-                    .Where(u => u.Subscribed && u.EmailConfirmed && !string.IsNullOrEmpty(u.Email))
-                    .OrderBy(u => u.Nickname ?? u.FirstName)
-                    .ToList());
+            subscribedUsers = await UserManager.Users
+                .Where(u => u.Subscribed && u.EmailConfirmed && !string.IsNullOrEmpty(u.Email))
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .AsNoTracking()
+                .ToListAsync();
             
             // Load all non-subscribed users with confirmed emails
-            nonSubscribedUsers = await Task.Run(() => 
-                UserManager.Users
-                    .Where(u => !u.Subscribed && u.EmailConfirmed && !string.IsNullOrEmpty(u.Email))
-                    .OrderBy(u => u.Nickname ?? u.FirstName)
-                    .ToList());
+            nonSubscribedUsers = await UserManager.Users
+                .Where(u => !u.Subscribed && u.EmailConfirmed && !string.IsNullOrEmpty(u.Email))
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .AsNoTracking()
+                .ToListAsync();
             
             subscribedUsersCount = subscribedUsers.Count;
             nonSubscribedUsersCount = nonSubscribedUsers.Count;

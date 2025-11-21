@@ -46,6 +46,7 @@ public class EmailSender : IEmailSender
             // Check if SMTP is configured
             if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPassword) || smtpPassword == "YOUR_APP_PASSWORD_HERE")
             {
+                _logger.LogWarning("SMTP credentials or server configuration is missing or placeholder. Email will not be sent.");
                 return;
             }
 
@@ -56,7 +57,7 @@ public class EmailSender : IEmailSender
                 EnableSsl = enableSsl
             };
 
-            var mailMessage = new MailMessage
+            using var mailMessage = new MailMessage
             {
                 From = new MailAddress(senderEmail, senderName),
                 Subject = subject,

@@ -39,6 +39,9 @@ public class UserProfileService : IUserProfileService
 
     public async Task<IEnumerable<ApplicationUser>> GetAllUsersAsync()
     {
+        // Note: Cannot use ToListAsync() here because UserManager.Users may not always be
+        // an EF Core queryable (e.g., in tests with mocked UserManager).
+        // Using Task.FromResult with synchronous ToList() ensures compatibility.
         return await Task.FromResult(_userManager.Users.ToList());
     }
 

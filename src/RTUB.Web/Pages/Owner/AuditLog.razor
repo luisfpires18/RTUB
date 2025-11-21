@@ -502,7 +502,8 @@
         }
         else
         {
-            auditLogs = (await AuditLogService.GetAllAsync(
+            // Use single call to get both paged data and total count
+            var (logs, count) = await AuditLogService.GetPagedWithCountAsync(
                 selectedUser,
                 excludedUser,
                 selectedEntityType,
@@ -511,16 +512,10 @@
                 null, // toDate removed
                 criticalOnly ? true : null,
                 currentPage,
-                pageSize)).ToList();
-
-            totalRecords = await AuditLogService.GetCountAsync(
-                selectedUser,
-                excludedUser,
-                selectedEntityType,
-                selectedAction,
-                null, // fromDate removed
-                null, // toDate removed
-                criticalOnly ? true : null);
+                pageSize);
+            
+            auditLogs = logs.ToList();
+            totalRecords = count;
         }
 
         // Apply client-side sorting

@@ -26,4 +26,14 @@ public interface IAuditLogRepository : IRepository<AuditLog>
     /// Get audit logs by user
     /// </summary>
     Task<IEnumerable<AuditLog>> GetByUserAsync(string userName, int page, int pageSize);
+    
+    /// <summary>
+    /// Delete all audit logs in bulk (single database operation)
+    /// </summary>
+    Task DeleteAllAsync();
+    
+    /// <summary>
+    /// Delete all audit logs for a specific user in bulk (single database operation)
+    /// </summary>
+    Task DeleteByUserAsync(string userName);
 }

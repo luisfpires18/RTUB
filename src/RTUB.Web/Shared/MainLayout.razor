@@ -85,7 +85,7 @@
                         </li>
                         
                         <!-- 8. Gestão (Member Dropdown) -->
-                        @if (ShouldShowGestaoDropdown())
+                        @if (_shouldShowGestaoDropdown)
                         {
                             <li class="nav-item dropdown">
                                 <button class="nav-link dropdown-toggle" type="button" id="managementDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
@@ -94,13 +94,13 @@
                                 <ul class="dropdown-menu" aria-labelledby="managementDropdown">
                                     <li><NavLink class="dropdown-item" href="/meetings"><i class="bi bi-calendar3"></i> Reuniões</NavLink></li>
                                     <li><NavLink class="dropdown-item" href="/documentation"><i class="bi bi-file-earmark-text"></i> Documentação</NavLink></li>
-                                    @if (ShowBeVisibleToModAdminAndTunoOnly())
+                                    @if (_showBeVisibleToModAdminAndTunoOnly)
                                     {
                                         <li><NavLink class="dropdown-item" href="/logistics"><i class="bi bi-kanban"></i> Logística</NavLink></li>
                                         <li><NavLink class="dropdown-item" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
                                     }
 
-                                    @if (ShowBeVisibleToAdminOnly())
+                                    @if (_showBeVisibleToAdminOnly)
                                     {
                                         <li><NavLink class="dropdown-item" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
                                     }
@@ -111,7 +111,7 @@
                     </Authorized>
                 </AuthorizeView>
 
-                @if (ShowBeVisibleToAdminOnly())
+                @if (_showBeVisibleToAdminOnly)
                 {
                 <AuthorizeView Roles="Admin">
                     <Authorized Context="adminOwnerAuth">
@@ -280,6 +280,10 @@
     private string? _lastLocation;
     private System.Threading.Timer? _debounceTimer;
     private bool _isFirstRender = true;
+    private AuthenticationState? _cachedAuthState;
+    private bool _shouldShowGestaoDropdown;
+    private bool _showBeVisibleToAdminOnly;
+    private bool _showBeVisibleToModAdminAndTunoOnly;
 
     protected override async Task OnInitializedAsync()
     {
@@ -355,8 +359,8 @@
 
     private async Task LoadCurrentUser()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var claimsPrincipal = authState.User;
+        _cachedAuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claimsPrincipal = _cachedAuthState.User;
 
         if (claimsPrincipal?.Identity?.IsAuthenticated == true)
         {
@@ -397,6 +401,34 @@
                 currentUser = entry ?? user;
             }
         }
+        
+        // Update authorization flags after loading user
+        await UpdateAuthorizationFlags();
+    }
+    
+    private async Task EnsureCachedAuthStateAsync()
+    {
+        if (_cachedAuthState == null)
+        {
+            _cachedAuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        }
+    }
+    
+    private async Task UpdateAuthorizationFlags()
+    {
+        await EnsureCachedAuthStateAsync();
+        
+        // Execute authorization checks concurrently for better performance
+        var tasks = Task.WhenAll(
+            ShouldShowGestaoDropdown(),
+            ShowBeVisibleToAdminOnly(),
+            ShowBeVisibleToModAdminAndTunoOnly()
+        );
+        
+        var results = await tasks;
+        _shouldShowGestaoDropdown = results[0];
+        _showBeVisibleToAdminOnly = results[1];
+        _showBeVisibleToModAdminAndTunoOnly = results[2];
     }
 
     private string GetNavbarAvatarUrl()
@@ -434,15 +466,15 @@
     /// - Mod: SHOW (always)
     /// - Owner: SHOW (always)
     /// </summary>
-    private bool ShouldShowGestaoDropdown()
+    private async Task<bool> ShouldShowGestaoDropdown()
     {
         if (currentUser == null)
         {
             return false;
         }
 
-        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
-        var user = authState.User;
+        await EnsureCachedAuthStateAsync();
+        var user = _cachedAuthState!.User;
 
         // Admin / Owner / Mod always see it
         if (user.IsInRole("Admin") || user.IsInRole("Owner") || user.IsInRole("Mod"))
@@ -459,12 +491,12 @@
     /// Determines if the "Images" menu item should be shown.
     /// Shown to: Admin and Owner.
     /// </summary>
-    private bool ShowBeVisibleToAdminOnly()
+    private async Task<bool> ShowBeVisibleToAdminOnly()
     {
         if (currentUser == null) return false;
 
-        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
-        var isAdmin = authState.User.IsInRole("Admin");
+        await EnsureCachedAuthStateAsync();
+        var isAdmin = _cachedAuthState!.User.IsInRole("Admin");
         
         return isAdmin;
     }
@@ -473,15 +505,15 @@
     /// Determines if the "Images" menu item should be shown.
     /// Shown to: Admin and Owner.
     /// </summary>
-    private bool ShowBeVisibleToModAdminAndTunoOnly()
+    private async Task<bool> ShowBeVisibleToModAdminAndTunoOnly()
     {
         if (currentUser == null) return false;
         
-        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
-        var user = authState.User;
+        await EnsureCachedAuthStateAsync();
+        var user = _cachedAuthState!.User;
         var isTuno = currentUser.IsTuno();
-        var isMod = authState.User.IsInRole("Mod");
-        var isAdmin = authState.User.IsInRole("Admin");
+        var isMod = _cachedAuthState.User.IsInRole("Mod");
+        var isAdmin = _cachedAuthState.User.IsInRole("Admin");
         
         return isAdmin || isMod || isTuno;
     }

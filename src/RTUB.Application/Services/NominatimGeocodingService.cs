@@ -49,7 +49,7 @@ public class NominatimGeocodingService : IGeocodingService
         _disabledInTests = configuration.GetValue("Geocoding:DisabledInTests", false);
     }
 
-    public async Task<(double Latitude, double Longitude)?> GetCoordinatesAsync(string cityName, string? countryCode = "PT")
+    public async Task<(double Latitude, double Longitude)?> GetCoordinatesAsync(string cityName, string? countryCode = "PT", CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(cityName))
         {
@@ -68,7 +68,7 @@ public class NominatimGeocodingService : IGeocodingService
         // Check database cache first
         var cached = await _dbContext.GeocodingCaches
             .AsNoTracking()
-            .FirstOrDefaultAsync(g => g.CityName == normalizedCity && g.CountryCode == normalizedCountryCode);
+            .FirstOrDefaultAsync(g => g.CityName == normalizedCity && g.CountryCode == normalizedCountryCode, cancellationToken);
         
         if (cached != null)
         {
@@ -79,7 +79,7 @@ public class NominatimGeocodingService : IGeocodingService
         try
         {
             // Try geocoding with strategies
-            var coordinates = await TryGeocodeWithStrategies(cityName, normalizedCountryCode);
+            var coordinates = await TryGeocodeWithStrategies(cityName, normalizedCountryCode, cancellationToken);
             
             if (coordinates.HasValue)
             {
@@ -131,7 +131,7 @@ public class NominatimGeocodingService : IGeocodingService
         }
     }
 
-    private async Task<(double Latitude, double Longitude)?> TryGeocodeWithStrategies(string cityName, string? countryCode)
+    private async Task<(double Latitude, double Longitude)?> TryGeocodeWithStrategies(string cityName, string? countryCode, CancellationToken cancellationToken)
     {
         // Check local fallback coordinates first (explicit overrides)
         if (LocalFallbackCoordinates.TryGetValue(cityName, out var fallbackCoords))
@@ -141,29 +141,29 @@ public class NominatimGeocodingService : IGeocodingService
         }
         
         // Strategy 1: Search as city with country filter (most common case)
-        var result = await TryGeocode(cityName, countryCode, "city,town,village,municipality");
+        var result = await TryGeocode(cityName, countryCode, "city,town,village,municipality", cancellationToken);
         if (result.HasValue) return result;
 
         // Strategy 2: Include smaller settlements (for villages)
-        result = await TryGeocode(cityName, countryCode, "city,town,village,hamlet,municipality,suburb");
+        result = await TryGeocode(cityName, countryCode, "city,town,village,hamlet,municipality,suburb", cancellationToken);
         if (result.HasValue) return result;
 
         // Strategy 3: Broader search without strict type filtering (last resort)
-        result = await TryGeocode(cityName, countryCode, null);
+        result = await TryGeocode(cityName, countryCode, null, cancellationToken);
         return result;
     }
 
-    private async Task<(double Latitude, double Longitude)?> TryGeocode(string query, string? countryCode, string? featureType)
+    private async Task<(double Latitude, double Longitude)?> TryGeocode(string query, string? countryCode, string? featureType, CancellationToken cancellationToken)
     {
         // Rate limiting: ensure we don't exceed 1 request per second
-        await _rateLimiter.WaitAsync();
+        await _rateLimiter.WaitAsync(cancellationToken);
         try
         {
             var timeSinceLastRequest = DateTime.UtcNow - _lastRequestTime;
             if (timeSinceLastRequest.TotalMilliseconds < MinMillisecondsBetweenRequests)
             {
                 var delayMs = MinMillisecondsBetweenRequests - (int)timeSinceLastRequest.TotalMilliseconds;
-                await Task.Delay(delayMs);
+                await Task.Delay(delayMs, cancellationToken);
             }
             _lastRequestTime = DateTime.UtcNow;
         }
@@ -184,7 +184,7 @@ public class NominatimGeocodingService : IGeocodingService
         
         try
         {
-            var response = await _httpClient.GetAsync(url);
+            var response = await _httpClient.GetAsync(url, cancellationToken);
             
             if (!response.IsSuccessStatusCode)
             {
