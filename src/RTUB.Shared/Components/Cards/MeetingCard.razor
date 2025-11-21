@@ -78,10 +78,10 @@
                     <i class="bi bi-eye-fill"></i>
                     <span>Ver Detalhes</span>
                 </button>
-                @if (IsAdmin && !Meeting.IsCancelled)
+                @if (IsAdmin && !Meeting.IsCancelled && !IsMeetingCompleted())
                 {
-                    <button class="btn btn-sm btn-primary d-flex align-items-center gap-2" 
-                            @onclick="HandleSendEmail" 
+                    <button class="btn btn-sm btn-primary d-flex align-items-center gap-2"
+                            @onclick="HandleSendEmail"
                             title="Enviar notificação da reunião">
                         <i class="bi bi-envelope-fill"></i>
                         <span>Notificar</span>
@@ -244,6 +244,11 @@
         if (Meeting.IsCancelled)
             return "Cancelada";
         return Meeting.Date.Date < DateTime.Today ? "Realizada" : "Agendada";
+    }
+
+    private bool IsMeetingCompleted()
+    {
+        return !Meeting.IsCancelled && Meeting.Date.Date < DateTime.Today;
     }
 
     private string GetMeetingStatusClass()
