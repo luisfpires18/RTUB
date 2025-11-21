@@ -28,21 +28,21 @@
 }
 else
 {
-    <!-- Row 1: Tempo a Caloiro -->
+    <!-- Row 1: Afilhados & Cargos -->
     <div class="hof-row">
         <div class="hof-panel">
             <section>
                 <div class="card shadow-sm portal-governing-body-card">
                     <div class="card-header gov-body-card-header">
-                        <h3 class="mb-0">MAIS TEMPO A CALOIRO</h3>
+                        <h3 class="mb-0">MAIS AFILHADOS</h3>
                     </div>
                     <div class="card-body">
-                        @if (longestCaloiro.Any())
+                        @if (mostAfilhados.Any())
                         {
                             <div class="row">
-                                @foreach (var member in longestCaloiro)
+                                @foreach (var member in mostAfilhados)
                                 {
-                                    <div class="col-md-@(longestCaloiro.Count > 1 ? "6" : "12") text-center mb-3">
+                                    <div class="col-md-@(mostAfilhados.Count > 1 ? "6" : "12") text-center mb-3">
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                             @if (!string.IsNullOrEmpty(member.User.Nickname))
@@ -54,7 +54,7 @@ else
                                             {
                                                 <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
                                             }
-                                            <div class="text-muted small mt-1">@FormatDuration(member.Duration)</div>
+                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "afilhado" : "afilhados")</div>
                                         </div>
                                     </div>
                                 }
@@ -72,15 +72,15 @@ else
             <section>
                 <div class="card shadow-sm portal-governing-body-card">
                     <div class="card-header gov-body-card-header">
-                        <h3 class="mb-0">MENOS TEMPO A CALOIRO</h3>
+                        <h3 class="mb-0">MAIS CARGOS</h3>
                     </div>
                     <div class="card-body">
-                        @if (shortestCaloiro.Any())
+                        @if (mostPositions.Any())
                         {
                             <div class="row">
-                                @foreach (var member in shortestCaloiro)
+                                @foreach (var member in mostPositions)
                                 {
-                                    <div class="col-md-@(shortestCaloiro.Count > 1 ? "6" : "12") text-center mb-3">
+                                    <div class="col-md-@(mostPositions.Count > 1 ? "6" : "12") text-center mb-3">
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                             @if (!string.IsNullOrEmpty(member.User.Nickname))
@@ -92,7 +92,7 @@ else
                                             {
                                                 <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
                                             }
-                                            <div class="text-muted small mt-1">@FormatDuration(member.Duration)</div>
+                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "cargo" : "cargos")</div>
                                         </div>
                                     </div>
                                 }
@@ -108,7 +108,87 @@ else
         </div>
     </div>
 
-    <!-- Row 2: Tempo a Leitão -->
+    <!-- Row 2: Magister & Instrumentos -->
+    <div class="hof-row">
+        <div class="hof-panel">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">MAIS VEZES MAGISTER</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (mostMagister.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in mostMagister)
+                                {
+                                    <div class="col-md-@(mostMagister.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "mandato" : "mandatos")</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="hof-panel">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">MAIS INSTRUMENTOS A TOCAR</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (mostInstruments.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in mostInstruments)
+                                {
+                                    <div class="col-md-@(mostInstruments.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "instrumento" : "instrumentos")</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Row 3: Tempo a Leitão -->
     <div class="hof-row">
         <div class="hof-panel">
             <section>
@@ -188,21 +268,21 @@ else
         </div>
     </div>
 
-    <!-- Row 3: Cargos & Magister -->
+    <!-- Row 4: Tempo a Caloiro -->
     <div class="hof-row">
         <div class="hof-panel">
             <section>
                 <div class="card shadow-sm portal-governing-body-card">
                     <div class="card-header gov-body-card-header">
-                        <h3 class="mb-0">MAIS CARGOS</h3>
+                        <h3 class="mb-0">MAIS TEMPO A CALOIRO</h3>
                     </div>
                     <div class="card-body">
-                        @if (mostPositions.Any())
+                        @if (longestCaloiro.Any())
                         {
                             <div class="row">
-                                @foreach (var member in mostPositions)
+                                @foreach (var member in longestCaloiro)
                                 {
-                                    <div class="col-md-@(mostPositions.Count > 1 ? "6" : "12") text-center mb-3">
+                                    <div class="col-md-@(longestCaloiro.Count > 1 ? "6" : "12") text-center mb-3">
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                             @if (!string.IsNullOrEmpty(member.User.Nickname))
@@ -214,7 +294,7 @@ else
                                             {
                                                 <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
                                             }
-                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "cargo" : "cargos")</div>
+                                            <div class="text-muted small mt-1">@FormatDuration(member.Duration)</div>
                                         </div>
                                     </div>
                                 }
@@ -232,15 +312,15 @@ else
             <section>
                 <div class="card shadow-sm portal-governing-body-card">
                     <div class="card-header gov-body-card-header">
-                        <h3 class="mb-0">MAIS VEZES MAGISTER</h3>
+                        <h3 class="mb-0">MENOS TEMPO A CALOIRO</h3>
                     </div>
                     <div class="card-body">
-                        @if (mostMagister.Any())
+                        @if (shortestCaloiro.Any())
                         {
                             <div class="row">
-                                @foreach (var member in mostMagister)
+                                @foreach (var member in shortestCaloiro)
                                 {
-                                    <div class="col-md-@(mostMagister.Count > 1 ? "6" : "12") text-center mb-3">
+                                    <div class="col-md-@(shortestCaloiro.Count > 1 ? "6" : "12") text-center mb-3">
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
                                             @if (!string.IsNullOrEmpty(member.User.Nickname))
@@ -252,7 +332,7 @@ else
                                             {
                                                 <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
                                             }
-                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "mandato" : "mandatos")</div>
+                                            <div class="text-muted small mt-1">@FormatDuration(member.Duration)</div>
                                         </div>
                                     </div>
                                 }
@@ -268,7 +348,7 @@ else
         </div>
     </div>
 
-    <!-- Row 4: Ensaios & Atuações -->
+    <!-- Row 5: Ensaios & Atuações -->
     <div class="hof-row">
         <div class="hof-panel">
             <section>
@@ -347,88 +427,7 @@ else
             </section>
         </div>
     </div>
-
-    <!-- Row 5: Afilhados & Instrumentos -->
-    <div class="hof-row">
-        <div class="hof-panel">
-            <section>
-                <div class="card shadow-sm portal-governing-body-card">
-                    <div class="card-header gov-body-card-header">
-                        <h3 class="mb-0">MAIS AFILHADOS</h3>
-                    </div>
-                    <div class="card-body">
-                        @if (mostAfilhados.Any())
-                        {
-                            <div class="row">
-                                @foreach (var member in mostAfilhados)
-                                {
-                                    <div class="col-md-@(mostAfilhados.Count > 1 ? "6" : "12") text-center mb-3">
-                                        <div class="d-flex flex-column align-items-center">
-                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
-                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
-                                            {
-                                                <div class="text-light-theme">@member.User.Nickname</div>
-                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
-                                            }
-                                            else
-                                            {
-                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
-                                            }
-                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "afilhado" : "afilhados")</div>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="not-available-text">Sem dados suficientes</div>
-                        }
-                    </div>
-                </div>
-            </section>
-        </div>
-        <div class="hof-panel">
-            <section>
-                <div class="card shadow-sm portal-governing-body-card">
-                    <div class="card-header gov-body-card-header">
-                        <h3 class="mb-0">MAIS INSTRUMENTOS A TOCAR</h3>
-                    </div>
-                    <div class="card-body">
-                        @if (mostInstruments.Any())
-                        {
-                            <div class="row">
-                                @foreach (var member in mostInstruments)
-                                {
-                                    <div class="col-md-@(mostInstruments.Count > 1 ? "6" : "12") text-center mb-3">
-                                        <div class="d-flex flex-column align-items-center">
-                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
-                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
-                                            {
-                                                <div class="text-light-theme">@member.User.Nickname</div>
-                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
-                                            }
-                                            else
-                                            {
-                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
-                                            }
-                                            <div class="text-muted small mt-1">@member.Count @(member.Count == 1 ? "instrumento" : "instrumentos")</div>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="not-available-text">Sem dados suficientes</div>
-                        }
-                    </div>
-                </div>
-            </section>
-        </div>
-    </div>
 }
-
 @code {
     private bool isLoading = true;
 
