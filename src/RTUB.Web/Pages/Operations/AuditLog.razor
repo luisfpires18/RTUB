@@ -13,19 +13,21 @@
 
 <PageTitle>Audit Logs</PageTitle>
 
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h1 class="page-title"><i class="bi bi-shield-check"></i> Histórico de atividades</h1>
-            <p class="lead mb-4 text-light-theme">Rastreio de atividades em todo o sistema para fins de responsabilização e resolução de problemas</p>
-        </div>
-        <div class="col-md-4 text-end">
-            <button class="btn btn-success me-2" @onclick="ExportToJson" disabled="@isExporting">
-                <i class="bi bi-download"></i> @(isExporting ? "Exporting..." : "Export JSON")
-            </button>
-            <button class="btn btn-danger" @onclick="ShowTruncateConfirmation" disabled="@(totalRecords == 0)">
-                <i class="bi bi-trash"></i> Truncate All
-            </button>
+<div class="container-fluid audit-log-page">
+    <div class="page-header">
+        <div class="page-header-content">
+            <div class="page-header-title">
+                <h1 class="page-title"><i class="bi bi-shield-check"></i> Histórico de atividades</h1>
+                <p class="lead text-light-theme">Rastreio de atividades em todo o sistema para fins de responsabilização e resolução de problemas</p>
+            </div>
+            <div class="page-header-actions">
+                <button class="btn btn-success" @onclick="ExportToJson" disabled="@isExporting">
+                    <i class="bi bi-download"></i> <span class="btn-text">@(isExporting ? "Exporting..." : "Export JSON")</span>
+                </button>
+                <button class="btn btn-danger" @onclick="ShowTruncateConfirmation" disabled="@(totalRecords == 0)">
+                    <i class="bi bi-trash"></i> <span class="btn-text">Truncate All</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -35,14 +37,17 @@
     }
     else
     {
-        <!-- Filters Section -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-funnel"></i> Filters</h5>
+        <!-- Filters Section - Collapsible -->
+        <div class="card filters-card">
+            <div class="card-header filters-header" @onclick="ToggleFilters">
+                <div class="filters-header-content">
+                    <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtros</h5>
+                    <i class="bi bi-chevron-@(filtersExpanded ? "up" : "down")"></i>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-3">
+            <div class="card-body filters-body @(filtersExpanded ? "expanded" : "collapsed")">
+                <div class="filters-grid">
+                    <div class="filter-group">
                         <label class="form-label">User</label>
                         <select class="form-select" @bind="selectedUser" @bind:after="ApplyFilters">
                             <option value="">All Users</option>
@@ -52,7 +57,7 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="filter-group">
                         <label class="form-label">Exclude User</label>
                         <select class="form-select" @bind="excludedUser" @bind:after="ApplyFilters">
                             <option value="">No Exclusion</option>
@@ -62,7 +67,7 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="filter-group">
                         <label class="form-label">Entity Type</label>
                         <select class="form-select" @bind="selectedEntityType" @bind:after="ApplyFilters">
                             <option value="">All Entities</option>
@@ -72,7 +77,7 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="filter-group">
                         <label class="form-label">Action</label>
                         <select class="form-select" @bind="selectedAction" @bind:after="ApplyFilters">
                             <option value="">All Actions</option>
@@ -83,15 +88,14 @@
                         </select>
                     </div>
                 </div>
-                <div class="row g-3 mt-2">
-                    <div class="col-md-6">
+                <div class="filters-bottom">
+                    <div class="filter-group filter-search">
                         <TableSearchBar 
                             SearchTerm="@searchTerm"
                             OnSearchChanged="UpdateSearch"
                             Placeholder="Search in changes..." />
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label d-block">&nbsp;</label>
+                    <div class="filter-group filter-checkbox">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="criticalOnly" @bind="criticalOnly" @bind:after="ApplyFilters" />
                             <label class="form-check-label" for="criticalOnly">
@@ -99,9 +103,8 @@
                             </label>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label d-block">&nbsp;</label>
-                        <button class="btn btn-secondary" @onclick="ClearFilters">
+                    <div class="filter-group filter-clear">
+                        <button class="btn btn-secondary btn-sm" @onclick="ClearFilters">
                             <i class="bi bi-x-circle"></i> Clear Filters
                         </button>
                     </div>
@@ -109,43 +112,55 @@
             </div>
         </div>
 
-        <!-- Stats Section -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h3 class="mb-0">@totalRecords</h3>
-                        <p class="text-muted mb-0">Total Records</p>
+        <!-- Stats Section - Responsive Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-card-content">
+                    <div class="stat-icon">
+                        <i class="bi bi-database"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">@totalRecords</div>
+                        <div class="stat-label">Total Registos</div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h3 class="mb-0 text-danger">@criticalCount</h3>
-                        <p class="text-muted mb-0">Critical Actions</p>
+            <div class="stat-card stat-critical">
+                <div class="stat-card-content">
+                    <div class="stat-icon">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">@criticalCount</div>
+                        <div class="stat-label">Critical Actions</div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h3 class="mb-0 text-primary">@availableEntityTypes.Count()</h3>
-                        <p class="text-muted mb-0">Entity Types</p>
+            <div class="stat-card stat-entities">
+                <div class="stat-card-content">
+                    <div class="stat-icon">
+                        <i class="bi bi-box"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">@availableEntityTypes.Count()</div>
+                        <div class="stat-label">Entity Types</div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h3 class="mb-0 text-success">@availableUsers.Count()</h3>
-                        <p class="text-muted mb-0">Active Users</p>
+            <div class="stat-card stat-users">
+                <div class="stat-card-content">
+                    <div class="stat-icon">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">@availableUsers.Count()</div>
+                        <div class="stat-label">Active Users</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Audit Log Table -->
+        <!-- Audit Log Table - Mobile Responsive -->
         @if (!auditLogs.Any())
         {
             <EmptyState 
@@ -154,13 +169,13 @@
         }
         else
         {
-            <div class="card">
+            <div class="card activity-log-card">
                 <div class="card-header">
                     <h5 class="mb-0"><i class="bi bi-list-ul"></i> Activity Log</h5>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover mb-0">
+                    <div class="table-container">
+                        <table class="table table-striped table-hover activity-log-table mb-0">
                             <thead>
                                 <tr>
                                     <SortableTableHeader 
@@ -189,22 +204,22 @@
                                         OnSortChanged="SortBy" />
                                     <th>Changes</th>
                                     <th>Critical</th>
-                                    <th>Actions</th>
+                                    <th class="actions-column">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var log in auditLogs)
                                 {
                                     <tr>
-                                        <td>
+                                        <td class="timestamp-cell">
                                             <small>
                                                 @log.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
                                             </small>
                                         </td>
-                                        <td>
+                                        <td class="user-cell">
                                             <span class="badge bg-primary">@(log.UserName ?? "System")</span>
                                         </td>
-                                        <td>
+                                        <td class="entity-cell">
                                             <strong>@log.EntityType</strong>
                                             @if (!string.IsNullOrEmpty(log.EntityDisplayName))
                                             {
@@ -215,12 +230,12 @@
                                                 <br/><small class="text-muted">(ID: @log.EntityId)</small>
                                             }
                                         </td>
-                                        <td>
+                                        <td class="action-cell">
                                             <span class="badge @GetActionBadgeClass(log.Action)">
                                                 @log.Action
                                             </span>
                                         </td>
-                                        <td>
+                                        <td class="changes-cell">
                                             @if (!string.IsNullOrEmpty(log.Changes))
                                             {
                                                 <button class="btn btn-sm btn-outline-secondary" @onclick="() => ShowChangesModal(log)">
@@ -232,13 +247,13 @@
                                                 <small class="text-muted">No details</small>
                                             }
                                         </td>
-                                        <td class="text-center">
+                                        <td class="critical-cell text-center">
                                             @if (log.IsCriticalAction)
                                             {
                                                 <i class="bi bi-exclamation-triangle-fill text-danger"></i>
                                             }
                                         </td>
-                                        <td>
+                                        <td class="actions-cell">
                                             <button class="btn btn-sm btn-danger" @onclick="() => ShowDeleteConfirmation(log)" title="Delete this log">
                                                 <i class="bi bi-trash"></i>
                                             </button>
@@ -445,6 +460,7 @@
     private string selectedAction = "";
     private string searchTerm = "";
     private bool criticalOnly = false;
+    private bool filtersExpanded = true; // Desktop expanded by default
 
     // Pagination
     private int currentPage = 1;
@@ -590,6 +606,11 @@
     {
         currentPage = page;
         await LoadAuditLogs();
+    }
+
+    private void ToggleFilters()
+    {
+        filtersExpanded = !filtersExpanded;
     }
 
     private void ShowChangesModal(RTUB.Core.Entities.AuditLog log)
