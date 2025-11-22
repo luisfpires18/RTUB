@@ -407,7 +407,7 @@ public class Program
                         var path = ctx.Context.Request.Path.Value?.ToLowerInvariant() ?? "";
                         
                         // PWA icons and manifest should have shorter cache to allow updates
-                        if (path.Contains("/icons/") || path.EndsWith("manifest.json") || path.EndsWith("manifest.webmanifest"))
+                        if (path.Contains("/icons/") || path.EndsWith("manifest.json") || path.EndsWith("manifest.webmanifest") || path.StartsWith("/apple-touch-icon"))
                         {
                             // Cache for 1 hour with must-revalidate to ensure updates are picked up
                             ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600,must-revalidate");
