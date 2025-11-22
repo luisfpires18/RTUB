@@ -169,18 +169,20 @@
                                 <span class="enrollment-count-centered">@EnrollmentCount</span>
                             </button>
 
-                            <!-- Watch Repertoire button -->
-                            <button class="btn event-icon-btn btn-outline-primary" 
+                            <!-- Watch Repertoire button with count -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-primary" 
                                     @onclick="OnWatchRepertoire" 
                                     title="Repertório">
                                 <i class="bi bi-music-note-list"></i>
+                                <span class="enrollment-count-centered">@RepertoireCount</span>
                             </button>
 
-                            <!-- Discussion button -->
-                            <button class="btn event-icon-btn btn-outline-info" 
+                            <!-- Discussion button with count -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-info" 
                                     @onclick="OnViewDiscussion" 
                                     title="Discussão">
                                 <i class="bi bi-chat-dots"></i>
+                                <span class="enrollment-count-centered">@DiscussionCount</span>
                             </button>
                         </div>
 
@@ -272,18 +274,20 @@
                                 <span class="enrollment-count-centered">@EnrollmentCount</span>
                             </button>
 
-                            <!-- Watch Repertoire button -->
-                            <button class="btn event-icon-btn btn-outline-primary" 
+                            <!-- Watch Repertoire button with count -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-primary" 
                                     @onclick="OnWatchRepertoire" 
                                     title="Repertório">
                                 <i class="bi bi-music-note-list"></i>
+                                <span class="enrollment-count-centered">@RepertoireCount</span>
                             </button>
 
-                            <!-- Discussion button -->
-                            <button class="btn event-icon-btn btn-outline-info" 
+                            <!-- Discussion button with count -->
+                            <button class="btn event-icon-btn event-icon-btn-with-count btn-outline-info" 
                                     @onclick="OnViewDiscussion" 
                                     title="Discussão">
                                 <i class="bi bi-chat-dots"></i>
+                                <span class="enrollment-count-centered">@DiscussionCount</span>
                             </button>
 
                             <!-- Trophy button (for Festival events only) -->
@@ -334,6 +338,18 @@
     /// </summary>
     [Parameter]
     public int EnrollmentCount { get; set; }
+
+    /// <summary>
+    /// Total number of repertoire songs for this event
+    /// </summary>
+    [Parameter]
+    public int RepertoireCount { get; set; }
+
+    /// <summary>
+    /// Total number of discussion posts for this event
+    /// </summary>
+    [Parameter]
+    public int DiscussionCount { get; set; }
 
     /// <summary>
     /// Whether the current user has admin privileges

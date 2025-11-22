@@ -17,6 +17,9 @@
 @inject ITrophyService TrophyService
 @inject IEmailNotificationService EmailNotificationService
 @inject IImageStorageService ImageStorageService
+@inject IEventRepertoireService EventRepertoireService
+@inject IDiscussionService DiscussionService
+@inject IPostService PostService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IWebHostEnvironment Environment
@@ -66,6 +69,8 @@ else
                                    ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
                                    UserEnrollment="@userEnrollment"
                                    EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
+                                   RepertoireCount="@GetRepertoireCount(eventItem.Id)"
+                                   DiscussionCount="@GetDiscussionCount(eventItem.Id)"
                                    IsAdmin="@isUserAdmin"
                                    IsPastEvent="false"
                                    ShowDeleteButton="@CanDeleteEvent()"
@@ -87,6 +92,8 @@ else
                         <EventCard Event="@eventItem"
                                    ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
                                    EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
+                                   RepertoireCount="@GetRepertoireCount(eventItem.Id)"
+                                   DiscussionCount="@GetDiscussionCount(eventItem.Id)"
                                    IsAdmin="false"
                                    IsPastEvent="false"
                                    ShowButtons="false" />
@@ -146,6 +153,8 @@ else
                                            ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
                                            UserEnrollment="@userEnrollment"
                                            EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
+                                           RepertoireCount="@GetRepertoireCount(eventItem.Id)"
+                                           DiscussionCount="@GetDiscussionCount(eventItem.Id)"
                                            IsAdmin="true"
                                            IsPastEvent="true"
                                            ShowTrophy="true"
@@ -163,6 +172,8 @@ else
                                            ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
                                            UserEnrollment="@userEnrollment"
                                            EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
+                                           RepertoireCount="@GetRepertoireCount(eventItem.Id)"
+                                           DiscussionCount="@GetDiscussionCount(eventItem.Id)"
                                            IsAdmin="false"
                                            IsPastEvent="true"
                                            ShowTrophy="true"
@@ -993,6 +1004,8 @@ else
     private List<Event>? events;
     private List<Enrollment>? enrollments;
     private List<Enrollment>? eventEnrollments;
+    private List<EventRepertoire>? eventRepertoires;
+    private Dictionary<int, int>? discussionPostCounts; // eventId -> post count
     private ApplicationUser? currentUser;
     private List<MemberInstrument>? currentUserInstruments;
     private List<InstrumentType>? availableInstruments;
@@ -1112,6 +1125,8 @@ else
         await LoadEvents();
         await LoadPreviousEvents();
         await LoadEnrollments();
+        await LoadEventRepertoires();
+        await LoadDiscussionPosts();
         await LoadCurrentUser();
         
         // Check for query parameters to auto-open create modal with pre-filled data
@@ -1164,6 +1179,60 @@ else
     private async Task LoadEnrollments()
     {
         enrollments = (await EnrollmentService.GetAllEnrollmentsAsync()).ToList();
+    }
+
+    private async Task LoadEventRepertoires()
+    {
+        // Load all event repertoires for all events (both upcoming and past)
+        // This follows the same pattern as loading all enrollments
+        var repertoiresList = new List<EventRepertoire>();
+        
+        if (events != null)
+        {
+            foreach (var evt in events)
+            {
+                var repertoires = await EventRepertoireService.GetRepertoireByEventIdAsync(evt.Id);
+                repertoiresList.AddRange(repertoires);
+            }
+        }
+        
+        if (allPreviousEvents != null)
+        {
+            foreach (var evt in allPreviousEvents)
+            {
+                var repertoires = await EventRepertoireService.GetRepertoireByEventIdAsync(evt.Id);
+                repertoiresList.AddRange(repertoires);
+            }
+        }
+        
+        eventRepertoires = repertoiresList;
+    }
+
+    private async Task LoadDiscussionPosts()
+    {
+        // Load discussion post counts for all events (both upcoming and past)
+        // Store as dictionary mapping eventId to count for efficient lookup
+        var counts = new Dictionary<int, int>();
+        
+        var allEvents = new List<Event>();
+        if (events != null) allEvents.AddRange(events);
+        if (allPreviousEvents != null) allEvents.AddRange(allPreviousEvents);
+        
+        foreach (var evt in allEvents)
+        {
+            var discussion = await DiscussionService.GetByEventIdAsync(evt.Id);
+            if (discussion != null)
+            {
+                var count = await PostService.GetCountByDiscussionIdAsync(discussion.Id);
+                counts[evt.Id] = count;
+            }
+            else
+            {
+                counts[evt.Id] = 0;
+            }
+        }
+        
+        discussionPostCounts = counts;
     }
 
     private async Task LoadPreviousEvents()
@@ -1262,6 +1331,18 @@ else
     {
         if (enrollments == null) return 0;
         return enrollments.Count(e => e.EventId == eventId && e.WillAttend);
+    }
+
+    private int GetRepertoireCount(int eventId)
+    {
+        if (eventRepertoires == null) return 0;
+        return eventRepertoires.Count(r => r.EventId == eventId);
+    }
+
+    private int GetDiscussionCount(int eventId)
+    {
+        if (discussionPostCounts == null) return 0;
+        return discussionPostCounts.TryGetValue(eventId, out var count) ? count : 0;
     }
 
     private void OpenCreateModal()
