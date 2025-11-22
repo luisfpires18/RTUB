@@ -404,8 +404,16 @@ public class Program
                 {
                     OnPrepareResponse = ctx =>
                     {
-                        // Cache static files for 30 days in production
-                        if (!app.Environment.IsDevelopment())
+                        var path = ctx.Context.Request.Path.Value?.ToLowerInvariant() ?? "";
+                        
+                        // PWA icons and manifest should have shorter cache to allow updates
+                        if (path.Contains("/icons/") || path.EndsWith("manifest.json"))
+                        {
+                            // Cache for 1 hour with must-revalidate to ensure updates are picked up
+                            ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600,must-revalidate");
+                        }
+                        // Cache other static files for 30 days in production
+                        else if (!app.Environment.IsDevelopment())
                         {
                             ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=2592000");
                         }
