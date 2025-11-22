@@ -29,6 +29,13 @@
   justify-content: center;
   background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.15) 0%, rgba(var(--bs-primary-rgb), 0.05) 100%);
   border-bottom: 2px solid rgba(var(--bs-primary-rgb), 0.3);
+  position: relative;
+  z-index: 1;
+}
+
+.rehearsal-card__top {
+  position: relative;
+  z-index: 2;
 }
 
 .rehearsal-icon-circle {
@@ -41,11 +48,18 @@
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
-.rehearsal-card:hover .rehearsal-icon-circle {
+.rehearsal-card:not(.rehearsal-card--cancelled):hover .rehearsal-icon-circle {
   background-color: rgba(var(--bs-primary-rgb), 0.3);
   transform: scale(1.05);
+}
+
+.rehearsal-card--cancelled .rehearsal-icon-circle {
+  transform: none;
+  box-shadow: none;
 }
 
 .rehearsal-icon-circle i {
@@ -63,6 +77,11 @@
   z-index: 10;
   opacity: 0.85;
   transition: opacity 0.2s ease;
+}
+
+.rehearsal-cancel-badge {
+  position: relative;
+  z-index: 3;
 }
 
 .rehearsal-card:hover .rehearsal-admin-overlay {
