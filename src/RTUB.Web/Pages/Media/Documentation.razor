@@ -467,11 +467,21 @@ else
 
     private void HandleFileSelected(InputFileChangeEventArgs e)
     {
-        selectedFile = e.File;
-        documentationFileName = selectedFile?.Name;
+        var file = e.File;
+        if (file == null)
+        {
+            selectedFile = null;
+            documentationFileName = null;
+            uploadError = "Ficheiro inválido.";
+            uploadSuccess = "";
+            return;
+        }
+
+        selectedFile = file;
+        documentationFileName = selectedFile.Name;
         uploadError = "";
         uploadSuccess = "";
-        
+
         // Validate file extension
         var extension = Path.GetExtension(selectedFile.Name).ToLowerInvariant();
         if (!allowedExtensions.Contains(extension))
