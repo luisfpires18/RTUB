@@ -234,10 +234,20 @@
     <link rel="manifest" href="/manifest.json" />
     
     @* Apple Touch Icons for iOS (all required sizes for different devices) *@
+    @* Default icon without sizes attribute - critical for iOS fallback *@
+    <link rel="apple-touch-icon" href="/icons/rtub-logo-180.png" />
+    
+    @* Sized variants for specific devices *@
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/rtub-logo-180.png" /><!-- iPhone Retina, iPad Retina -->
     <link rel="apple-touch-icon" sizes="152x152" href="/icons/rtub-logo-152.png" /><!-- iPad Retina (iOS 7+) -->
     <link rel="apple-touch-icon" sizes="167x167" href="/icons/rtub-logo-167.png" /><!-- iPad Pro 9.7" -->
     <link rel="apple-touch-icon" sizes="120x120" href="/icons/rtub-logo-120.png" /><!-- iPhone Retina (iOS 7+) -->
+    
+    @* Precomposed variants for older iOS devices *@
+    <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/icons/rtub-logo-180.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="/icons/rtub-logo-152.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="167x167" href="/icons/rtub-logo-167.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="120x120" href="/icons/rtub-logo-120.png" />
     
     @* Standard favicons *@
     <link rel="icon" href="/favicon.ico" sizes="any" />
