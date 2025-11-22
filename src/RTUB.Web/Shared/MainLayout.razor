@@ -223,27 +223,20 @@
 <HeadContent>
     @* Mobile-first viewport configuration *@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="RTUB" />
-    <meta name="theme-color" content="#6f42c1" />
-    <meta name="application-name" content="RTUB" />
+    
+    @* Standard favicons for desktop browsers *@
+    <link rel="icon" type="image/png" sizes="32x32" href="images/icons/rtub-logo-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="images/icons/rtub-logo-16.png" />
+    <link rel="shortcut icon" href="favicon.ico" />
+    
+    @* Apple Touch Icon for iOS *@
+    <link rel="apple-touch-icon" sizes="180x180" href="images/icons/rtub-logo-180.png" />
     
     @* PWA Configuration *@
-    <link rel="manifest" href="/manifest.json" />
-    
-    @* Apple Touch Icons for iOS - CRITICAL: Default without sizes MUST come first *@
-    <link rel="apple-touch-icon" href="/icons/rtub-logo-180.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/rtub-logo-180.png" />
-    <link rel="apple-touch-icon" sizes="167x167" href="/icons/rtub-logo-167.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/icons/rtub-logo-152.png" />
-    <link rel="apple-touch-icon" sizes="120x120" href="/icons/rtub-logo-120.png" />
-    
-    @* Standard favicons for browsers *@
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/rtub-logo-192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/icons/rtub-logo-512.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#3F2A86" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
     @* Preconnect to CDN for faster loading *@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
