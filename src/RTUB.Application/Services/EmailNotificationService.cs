@@ -22,6 +22,7 @@ public class EmailNotificationService : IEmailNotificationService
     private readonly EmailRateLimiter _rateLimiter;
     private readonly IEmailTemplateRenderer _templateRenderer;
     private readonly IEnrollmentService _enrollmentService;
+    private readonly IEventRepertoireService _eventRepertoireService;
 
     public EmailNotificationService(
         ILogger<EmailNotificationService> logger,
@@ -29,7 +30,8 @@ public class EmailNotificationService : IEmailNotificationService
         SmtpClientFactory smtpFactory,
         EmailRateLimiter rateLimiter,
         IEmailTemplateRenderer templateRenderer,
-        IEnrollmentService enrollmentService)
+        IEnrollmentService enrollmentService,
+        IEventRepertoireService eventRepertoireService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
@@ -37,6 +39,7 @@ public class EmailNotificationService : IEmailNotificationService
         _rateLimiter = rateLimiter ?? throw new ArgumentNullException(nameof(rateLimiter));
         _templateRenderer = templateRenderer ?? throw new ArgumentNullException(nameof(templateRenderer));
         _enrollmentService = enrollmentService ?? throw new ArgumentNullException(nameof(enrollmentService));
+        _eventRepertoireService = eventRepertoireService ?? throw new ArgumentNullException(nameof(eventRepertoireService));
     }
 
     /// <inheritdoc/>
@@ -350,12 +353,30 @@ public class EmailNotificationService : IEmailNotificationService
                 return (displayName, category, instrument, e.Notes, isLeitao);
             }).ToList();
 
+            // Load repertoire songs for this event
+            // For single-day events: get repertoire for that specific day
+            // For date range events: get repertoire for all days in the range
+            var repertoireSongs = new List<(string title, string? albumTitle, DateTime repertoireDate)>();
+            var repertoireItems = await _eventRepertoireService.GetRepertoireByEventIdAsync(eventId);
+            
+            if (repertoireItems.Any())
+            {
+                repertoireSongs = repertoireItems
+                    .Where(r => r.Song != null)
+                    .Select(r => (
+                        title: r.Song!.Title,
+                        albumTitle: r.Song.Album?.Title,
+                        repertoireDate: r.RepertoireDate
+                    ))
+                    .ToList();
+            }
+
             var daysUntilEvent = (int)Math.Ceiling((eventDate.Date - DateTime.UtcNow.Date).TotalDays);
             var subject = $"Lembrete: {eventTitle}, {(daysUntilEvent == 1 ? $"falta {daysUntilEvent} dia" : $"faltam {daysUntilEvent} dias")}";
 
             return await SendPersonalizedBatchAsync(config, recipientEmails, recipientData, subject,
                 async (nickname, fullName) => await _templateRenderer.RenderEventReminderNotificationAsync(
-                    eventTitle, eventDate, endDate, eventLocation, eventLink, daysUntilEvent, nickname, fullName, eventDescription, participants),
+                    eventTitle, eventDate, endDate, eventLocation, eventLink, daysUntilEvent, nickname, fullName, eventDescription, participants, repertoireSongs),
                 eventId, "event reminder notification", progress);
         }
         catch (Exception ex)

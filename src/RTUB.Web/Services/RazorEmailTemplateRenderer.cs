@@ -144,7 +144,8 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
         string nickname = "",
         string fullName = "",
         string eventDescription = "",
-        List<(string displayName, string category, string instrument, string? notes, bool isLeitao)>? participants = null)
+        List<(string displayName, string category, string instrument, string? notes, bool isLeitao)>? participants = null,
+        List<(string title, string? albumTitle, DateTime repertoireDate)>? repertoireSongs = null)
     {
         var model = new EventReminderNotificationModel
         {
@@ -162,6 +163,12 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
                 DisplayName = p.displayName,
                 Category = p.category,
                 IsLeitao = p.isLeitao
+            }).ToList() ?? new(),
+            RepertoireSongs = repertoireSongs?.Select(r => new EventRepertoireSongModel
+            {
+                Title = r.title,
+                AlbumTitle = r.albumTitle,
+                RepertoireDate = r.repertoireDate
             }).ToList() ?? new()
         };
 

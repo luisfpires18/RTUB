@@ -19,6 +19,7 @@ public class EmailNotificationServiceTests : IDisposable
     private readonly IMemoryCache _cache;
     private readonly Mock<IEmailTemplateRenderer> _mockTemplateRenderer;
     private readonly Mock<IEnrollmentService> _mockEnrollmentService;
+    private readonly Mock<IEventRepertoireService> _mockEventRepertoireService;
     private readonly EmailNotificationService _service;
 
     public EmailNotificationServiceTests()
@@ -29,6 +30,7 @@ public class EmailNotificationServiceTests : IDisposable
         _cache = new MemoryCache(new MemoryCacheOptions());
         _mockTemplateRenderer = new Mock<IEmailTemplateRenderer>();
         _mockEnrollmentService = new Mock<IEnrollmentService>();
+        _mockEventRepertoireService = new Mock<IEventRepertoireService>();
 
         // Setup default configuration (SMTP not configured)
         _mockConfiguration.Setup(x => x["EmailSettings:RecipientEmail"]).Returns("jeans@rtub.pt");
@@ -50,7 +52,7 @@ public class EmailNotificationServiceTests : IDisposable
             .ReturnsAsync("Test event email");
         
         _mockTemplateRenderer.Setup(x => x.RenderEventReminderNotificationAsync(
-            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>()))
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>(), It.IsAny<List<(string, string?, DateTime)>>()))
             .ReturnsAsync("Test reminder email");
         
         _mockTemplateRenderer.Setup(x => x.RenderEventCancellationNotificationAsync(
@@ -60,6 +62,10 @@ public class EmailNotificationServiceTests : IDisposable
         // Setup enrollment service to return empty list by default
         _mockEnrollmentService.Setup(x => x.GetEnrollmentsByEventIdAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<RTUB.Core.Entities.Enrollment>());
+        
+        // Setup event repertoire service to return empty list by default
+        _mockEventRepertoireService.Setup(x => x.GetRepertoireByEventIdAsync(It.IsAny<int>(), It.IsAny<DateTime?>()))
+            .ReturnsAsync(new List<RTUB.Core.Entities.EventRepertoire>());
 
         // Create the refactored dependencies
         var configProvider = new EmailConfigurationProvider(_mockConfiguration.Object, _mockConfigLogger.Object);
@@ -72,7 +78,8 @@ public class EmailNotificationServiceTests : IDisposable
             smtpFactory,
             rateLimiter,
             _mockTemplateRenderer.Object,
-            _mockEnrollmentService.Object);
+            _mockEnrollmentService.Object,
+            _mockEventRepertoireService.Object);
     }
 
     [Fact]

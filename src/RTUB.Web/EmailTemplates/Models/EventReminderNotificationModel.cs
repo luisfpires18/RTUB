@@ -16,4 +16,5 @@ public class EventReminderNotificationModel
     public string FullName { get; set; } = string.Empty;
     public int DaysUntilEvent { get; set; }
     public List<EventParticipantModel> Participants { get; set; } = new();
+    public List<EventRepertoireSongModel> RepertoireSongs { get; set; } = new();
 }

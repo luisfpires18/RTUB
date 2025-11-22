@@ -22,6 +22,7 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
     private readonly IMemoryCache _cache;
     private readonly Mock<IEmailTemplateRenderer> _mockTemplateRenderer;
     private readonly Mock<IEnrollmentService> _mockEnrollmentService;
+    private readonly Mock<IEventRepertoireService> _mockEventRepertoireService;
     private readonly EmailNotificationService _service;
 
     public EmailNotificationServiceConcurrencyIntegrationTests()
@@ -32,6 +33,7 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
         _cache = new MemoryCache(new MemoryCacheOptions());
         _mockTemplateRenderer = new Mock<IEmailTemplateRenderer>();
         _mockEnrollmentService = new Mock<IEnrollmentService>();
+        _mockEventRepertoireService = new Mock<IEventRepertoireService>();
 
         // Setup SMTP configuration to enable actual sending logic
         _mockConfiguration.Setup(x => x["EmailSettings:RecipientEmail"]).Returns("admin@rtub.pt");
@@ -64,9 +66,9 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
         
         _mockTemplateRenderer.Setup(x => x.RenderEventReminderNotificationAsync(
             It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), 
-            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>()))
+            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>(), It.IsAny<List<(string, string?, DateTime)>>()))
             .ReturnsAsync((string title, DateTime start, DateTime? end, string loc, string link, 
-                int days, string nick, string full, string desc, List<(string, string, string, string?, bool)> participants) => 
+                int days, string nick, string full, string desc, List<(string, string, string, string?, bool)> participants, List<(string, string?, DateTime)> repertoire) => 
                 $"<html><body>Reminder: {title} in {days} days for {nick} ({full})</body></html>");
         
         _mockTemplateRenderer.Setup(x => x.RenderAnnouncementEmailAsync(
@@ -77,6 +79,10 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
         // Setup enrollment service to return empty list by default
         _mockEnrollmentService.Setup(x => x.GetEnrollmentsByEventIdAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<RTUB.Core.Entities.Enrollment>());
+        
+        // Setup event repertoire service to return empty list by default
+        _mockEventRepertoireService.Setup(x => x.GetRepertoireByEventIdAsync(It.IsAny<int>(), It.IsAny<DateTime?>()))
+            .ReturnsAsync(new List<RTUB.Core.Entities.EventRepertoire>());
 
         // Create the refactored dependencies
         var configProvider = new EmailConfigurationProvider(_mockConfiguration.Object, _mockConfigLogger.Object);
@@ -89,7 +95,8 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
             smtpFactory,
             rateLimiter,
             _mockTemplateRenderer.Object,
-            _mockEnrollmentService.Object);
+            _mockEnrollmentService.Object,
+            _mockEventRepertoireService.Object);
     }
 
     [Fact]
@@ -218,7 +225,7 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
         // Verify template renderer was called for each recipient
         _mockTemplateRenderer.Verify(x => x.RenderEventReminderNotificationAsync(
             It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), 
-            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>()), 
+            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>(), It.IsAny<List<(string, string?, DateTime)>>()), 
             Times.Exactly(9));
     }
 
