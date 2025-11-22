@@ -464,15 +464,17 @@ else
                     <div class="profile-field">
                         <div class="row">
                             <div class="col-12">
-                                <div class="form-check">
-                                    <input class="form-check-input" 
-                                           type="checkbox" 
-                                           id="emailNotificationCheckbox"
-                                           checked="@user.Subscribed" 
-                                           @onchange="OnSubscribedChanged" />
-                                    <label class="form-check-label text-white-full" for="emailNotificationCheckbox">
-                                        Pretendo ser notificado por email de novas atuações.
-                                    </label>
+                                <div class="rtub-checkbox-wrapper">
+                                    <div class="form-check">
+                                        <input class="form-check-input rtub-checkbox-large"
+                                               type="checkbox"
+                                               id="emailNotificationCheckbox"
+                                               checked="@user.Subscribed"
+                                               @onchange="OnSubscribedChanged" />
+                                        <label class="form-check-label text-white-full" for="emailNotificationCheckbox">
+                                            Pretendo ser notificado por email de novas atuações.
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>

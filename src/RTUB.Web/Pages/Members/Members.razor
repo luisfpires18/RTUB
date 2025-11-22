@@ -299,14 +299,16 @@ else
             @if (editingUser.SelectedCategory == "Leitão" && isCreateMode)
             {
                 <div class="mb-3">
-                    <div class="form-check">
-                        <InputCheckbox class="form-check-input" id="semAlcunhaCheckbox" @bind-Value="semAlcunha" @bind-Value:after="OnSemAlcunhaChanged" />
-                        <label class="form-check-label" for="semAlcunhaCheckbox">
-                            Sem alcunha (recém-entrada)
-                        </label>
-                        <small class="form-text text-muted d-block">
-                            Marque esta opção para leitões sem alcunha definida. O email será usado como username.
-                        </small>
+                    <div class="rtub-checkbox-wrapper">
+                        <div class="form-check">
+                            <InputCheckbox class="form-check-input rtub-checkbox-large" id="semAlcunhaCheckbox" @bind-Value="semAlcunha" @bind-Value:after="OnSemAlcunhaChanged" />
+                            <label class="form-check-label" for="semAlcunhaCheckbox">
+                                Sem alcunha (recém-entrada)
+                            </label>
+                            <small class="form-text text-muted d-block">
+                                Marque esta opção para leitões sem alcunha definida. O email será usado como username.
+                            </small>
+                        </div>
                     </div>
                 </div>
             }
@@ -314,11 +316,13 @@ else
             @if (editingUser.SelectedCategory == "Tuno")
             {
                 <div class="mb-3">
-                    <div class="form-check">
-                        <InputCheckbox class="form-check-input" id="fundadorCheckbox" @bind-Value="isFundador" @bind-Value:after="OnFundadorChanged" />
-                        <label class="form-check-label" for="fundadorCheckbox">
-                            Fundador
-                        </label>
+                    <div class="rtub-checkbox-wrapper">
+                        <div class="form-check">
+                            <InputCheckbox class="form-check-input rtub-checkbox-large" id="fundadorCheckbox" @bind-Value="isFundador" @bind-Value:after="OnFundadorChanged" />
+                            <label class="form-check-label" for="fundadorCheckbox">
+                                Fundador
+                            </label>
+                        </div>
                     </div>
                 </div>
             }
