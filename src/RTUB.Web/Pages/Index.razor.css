@@ -37,8 +37,7 @@
 }
 
 /* These classes are added during transitions */
-.carousel-item-next:not(.carousel-item-start),
-.carousel-item-prev:not(.carousel-item-end) {
+.carousel-item-next:not(.carousel-item-start) {
     transform: translateX(100%);
 }
 
@@ -98,6 +97,7 @@
     }
 }
 
+/* Mobile landscape orientation */
 @media (max-width: 768px) and (orientation: landscape) {
     .carousel-image {
         height: 200px;
