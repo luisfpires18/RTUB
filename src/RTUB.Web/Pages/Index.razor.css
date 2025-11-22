@@ -1,0 +1,143 @@
+/* Scoped styles for Index.razor (Landing Page) */
+
+/* ========================================
+   CAROUSEL FIX FOR TABLET
+   Ensures only active slide is visible at all viewports
+   ======================================== */
+
+/* Override any potential Bootstrap overrides - ensure carousel items are absolutely positioned */
+.carousel-inner {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Ensure all carousel items are absolutely positioned and hidden by default */
+.carousel-item {
+    position: relative;
+    display: none;
+    float: none;
+    width: 100%;
+    margin-right: 0;
+    backface-visibility: hidden;
+    transition: transform 0.6s ease-in-out;
+}
+
+/* Only the active carousel item should be visible */
+.carousel-item.active {
+    display: block;
+}
+
+/* Ensure proper stacking for transitions */
+.carousel-item-next,
+.carousel-item-prev {
+    display: block;
+    position: absolute;
+    top: 0;
+}
+
+/* These classes are added during transitions */
+.carousel-item-next:not(.carousel-item-start) {
+    transform: translateX(100%);
+}
+
+.carousel-item-prev:not(.carousel-item-end) {
+    transform: translateX(-100%);
+}
+
+/* Maintain image aspect ratio and sizing */
+.carousel-image {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    display: block;
+}
+
+/* Carousel caption styling */
+.carousel-caption {
+    position: absolute;
+    right: 15%;
+    bottom: 1.25rem;
+    left: 15%;
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+    color: #fff;
+    text-align: center;
+}
+
+/* Logo styling */
+.logo-main {
+    max-width: 300px;
+    height: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .carousel-image {
+        height: 250px;
+    }
+
+    .carousel-caption {
+        padding: 0.5rem;
+    }
+
+    .carousel-caption h2,
+    .carousel-caption .h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .carousel-caption p {
+        font-size: 0.85rem;
+        margin-bottom: 0;
+    }
+
+    .logo-main {
+        max-width: 200px;
+    }
+}
+
+/* Mobile landscape orientation */
+@media (max-width: 768px) and (orientation: landscape) {
+    .carousel-image {
+        height: 200px;
+    }
+}
+
+/* Tablet specific (769px - 1024px) - ensure carousel works properly */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .carousel-image {
+        height: 350px;
+    }
+
+    .logo-main {
+        max-width: 250px;
+    }
+
+    /* Critical: Ensure only active item is displayed on tablet */
+    .carousel-item:not(.active) {
+        display: none !important;
+    }
+
+    .carousel-item.active {
+        display: block !important;
+    }
+}
+
+/* Desktop */
+@media (min-width: 1025px) {
+    .carousel-image {
+        height: 440px;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 375px) {
+    .carousel-image {
+        height: 200px;
+    }
+
+    .logo-main {
+        max-width: 160px;
+    }
+}
