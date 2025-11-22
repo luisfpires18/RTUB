@@ -1947,8 +1947,8 @@ else
 
     private async Task HandleRepertoireChanged()
     {
-        // Refresh data if needed
-        await Task.CompletedTask;
+        await LoadEventRepertoires();
+        StateHasChanged();
     }
 
     // Trophy modal methods

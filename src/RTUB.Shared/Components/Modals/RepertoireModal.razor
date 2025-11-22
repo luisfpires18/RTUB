@@ -177,7 +177,7 @@
     {
         if (Show && EventId > 0)
         {
-            InitializeEventDates();
+            await InitializeEventDatesAsync();
             await LoadRepertoire();
             if (IsAdmin)
             {
@@ -187,19 +187,28 @@
         }
     }
 
-    private void InitializeEventDates()
+    private async Task InitializeEventDatesAsync()
     {
         eventDates.Clear();
-        
-        var startDate = EventDate.Date;
-        var endDate = EventEndDate?.Date ?? startDate;
-        
-        // Generate list of dates from start to end
-        for (var date = startDate; date <= endDate; date = date.AddDays(1))
+
+        var repertoireDates = (await RepertoireService.GetRepertoireDatesAsync(EventId)).ToList();
+
+        if (repertoireDates.Any())
         {
-            eventDates.Add(date);
+            eventDates.AddRange(repertoireDates);
         }
-        
+        else
+        {
+            var startDate = EventDate.Date;
+            var endDate = EventEndDate?.Date ?? startDate;
+
+            // Generate list of dates from start to end
+            for (var date = startDate; date <= endDate; date = date.AddDays(1))
+            {
+                eventDates.Add(date);
+            }
+        }
+
         // Select first date by default
         selectedDate = eventDates.FirstOrDefault();
     }
