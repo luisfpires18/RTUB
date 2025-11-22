@@ -233,10 +233,14 @@
     @* PWA Configuration *@
     <link rel="manifest" href="/manifest.json" />
     
-    @* Apple Touch Icon for iOS *@
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/rtub-logo-180.png" />
+    @* Apple Touch Icons for iOS (all required sizes for different devices) *@
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/rtub-logo-180.png" /><!-- iPhone Retina, iPad Retina -->
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/rtub-logo-152.png" /><!-- iPad Retina (iOS 7+) -->
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/rtub-logo-167.png" /><!-- iPad Pro 9.7" -->
+    <link rel="apple-touch-icon" sizes="120x120" href="/icons/rtub-logo-120.png" /><!-- iPhone Retina (iOS 7+) -->
     
-    @* Standard favicon *@
+    @* Standard favicons *@
+    <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/rtub-logo-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="/icons/rtub-logo-512.png" />
 
