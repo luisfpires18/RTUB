@@ -165,9 +165,17 @@ else
             <label class="form-label fw-semibold">
                 <i class="bi bi-file-earmark-arrow-up text-primary me-2"></i>Selecionar Ficheiro
             </label>
-            <InputFile OnChange="@HandleFileSelected" 
-                      class="form-control" 
-                      accept=".pdf,.txt,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx" />
+            <div class="localized-file-picker">
+                <InputFile id="@documentationFileInputId"
+                           class="d-none"
+                           OnChange="@HandleFileSelected"
+                           accept=".pdf,.txt,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx"
+                           aria-label="Escolher ficheiro" />
+                <label class="btn btn-outline-secondary localized-file-button" for="@documentationFileInputId">
+                    <i class="bi bi-upload me-2"></i>Escolher ficheiro
+                </label>
+                <span class="localized-file-name">@(!string.IsNullOrEmpty(documentationFileName) ? documentationFileName : "Sem ficheiro escolhido")</span>
+            </div>
             <div class="form-text">
                 Tipos permitidos: PDF, TXT, DOC, DOCX, XLS, XLSX, CSV, PPT, PPTX (máx. 50 MB)
             </div>
@@ -294,6 +302,8 @@ else
     private string selectedFolderPath = "";
     private string selectedFolderName = "";
     private IBrowserFile? selectedFile;
+    private string documentationFileInputId = $"doc-upload-{Guid.NewGuid():N}";
+    private string? documentationFileName;
     private bool isUploading = false;
     private string uploadError = "";
     private string uploadSuccess = "";
@@ -438,6 +448,7 @@ else
         selectedFolderPath = folderPath;
         selectedFolderName = folderPath.Replace("docs/", "").TrimEnd('/');
         selectedFile = null;
+        documentationFileName = null;
         uploadError = "";
         uploadSuccess = "";
         showUploadModal = true;
@@ -449,6 +460,7 @@ else
         selectedFolderPath = "";
         selectedFolderName = "";
         selectedFile = null;
+        documentationFileName = null;
         uploadError = "";
         uploadSuccess = "";
     }
@@ -456,6 +468,7 @@ else
     private void HandleFileSelected(InputFileChangeEventArgs e)
     {
         selectedFile = e.File;
+        documentationFileName = selectedFile?.Name;
         uploadError = "";
         uploadSuccess = "";
         

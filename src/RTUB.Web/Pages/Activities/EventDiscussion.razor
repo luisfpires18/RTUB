@@ -24,23 +24,25 @@
     else
     {
         <!-- Page Header -->
-        <div class="d-flex align-items-center justify-content-between mb-3">
-            <div class="d-flex align-items-center gap-2">
+        <div class="discussion-header text-center mb-4 position-relative">
+            <div class="position-absolute start-0 top-0">
                 <button class="btn btn-outline-secondary btn-sm" @onclick="NavigateBack">
                     <i class="bi bi-arrow-left"></i>
                 </button>
-                <div>
-                <h1 class="mb-2"><i class="bi bi-chat-dots"></i> Discussão</h1>
-                </div>
             </div>
+
             @if (canCreatePost)
             {
-                <button class="btn btn-success" @onclick="OpenCreatePostModal" title="Criar Novo Post">
-                    <i class="bi bi-plus-lg"></i> Novo Post
-                </button>
+                <div class="position-absolute end-0 top-0">
+                    <button class="btn btn-success" @onclick="OpenCreatePostModal" title="Criar Novo Post">
+                        <i class="bi bi-plus-lg"></i> Novo Post
+                    </button>
+                </div>
             }
+
+            <h1 class="mb-2"><i class="bi bi-chat-dots"></i> Discussão</h1>
+            <p class="mb-0 text-muted">@eventItem.Name</p>
         </div>
-        <p class="mb-4">@eventItem.Name</p>
 
         <!-- Search Bar -->
         <div class="mb-4">

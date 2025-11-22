@@ -525,15 +525,21 @@ else
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Localização</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-geo-alt text-primary me-2"></i>Localização
+                        </label>
                         <input type="text" class="form-control" @bind="editLocation" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Tema (opcional)</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-music-note-list text-primary me-2"></i>Tema (opcional)
+                        </label>
                         <input type="text" class="form-control" @bind="editTheme" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Notas (opcional)</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-file-text text-primary me-2"></i>Notas (opcional)
+                        </label>
                         <textarea class="form-control" rows="3" @bind="editNotes"></textarea>
                     </div>
                 </div>
@@ -759,7 +765,10 @@ else
                                 {
                                     <tr>
                                         <td>@stat.UserName</td>
-                                        <td>@stat.PastCountDisplay</td>
+                                        <td>
+                                            <span class="badge bg-warning text-dark me-2">@stat.PastPendingCount Pendente(s)</span>
+                                            <span class="badge bg-success">@stat.PastApprovedCount Aprovado(s)</span>
+                                        </td>
                                         <td>@stat.FutureCount</td>
                                     </tr>
                                 }

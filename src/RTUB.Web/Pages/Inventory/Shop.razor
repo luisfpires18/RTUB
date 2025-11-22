@@ -257,9 +257,19 @@ else
 
             <div class="mb-3">
                 <label class="form-label fw-semibold">
-                    <i class="bi bi-image text-primary me-2"></i>Imagem do Produto
+                    <i class="bi bi-image text-primary me-2"></i>Escolher imagem
                 </label>
-                <InputFile class="form-control file-input-dark" OnChange="HandleImageUpload" accept="image/*" />
+                <div class="localized-file-picker">
+                    <InputFile id="@shopImageInputId"
+                               class="d-none"
+                               OnChange="HandleImageUpload"
+                               accept="image/*"
+                               aria-label="Escolher imagem" />
+                    <label class="btn btn-outline-secondary localized-file-button" for="@shopImageInputId">
+                        <i class="bi bi-upload me-2"></i>Escolher imagem
+                    </label>
+                    <span class="localized-file-name">@(!string.IsNullOrEmpty(shopImageFileName) ? shopImageFileName : "Sem imagem escolhida")</span>
+                </div>
                 @if (!string.IsNullOrEmpty(editingProduct?.ImageUrl) && uploadedImagePath == null)
                 {
                     <div class="mt-2">
@@ -517,14 +527,14 @@ else
             <InfoSection SectionTitle="Informação do Produto" 
                         IconClass="bi-info-circle-fill" 
                         CssClass="mb-4">
-                <ProfileField Label="Nome" Value="@viewingProduct.Name" />
-                <ProfileField Label="Tipo" Value="@viewingProduct.Type" />
-                <ProfileField Label="Preço" Value="@($"{viewingProduct.Price:0.00} €")" />
-                <ProfileField Label="Stock" Value="@viewingProduct.Stock.ToString()" />
-                <ProfileField Label="Disponível" Value="@(viewingProduct.IsAvailable ? "Sim" : "Não")" />
+                <ProfileField Label="Nome" Value="@viewingProduct.Name" Icon="bi-bag-fill" />
+                <ProfileField Label="Tipo" Value="@viewingProduct.Type" Icon="bi-tags-fill" />
+                <ProfileField Label="Preço" Value="@($"{viewingProduct.Price:0.00} €")" Icon="bi-currency-euro" />
+                <ProfileField Label="Stock" Value="@viewingProduct.Stock.ToString()" Icon="bi-box-seam" />
+                <ProfileField Label="Disponível" Value="@(viewingProduct.IsAvailable ? "Sim" : "Não")" Icon="bi-toggle2-on" />
                 @if (!viewingProduct.IsPublic)
                 {
-                    <ProfileField Label="Visibilidade" Value="Apenas Membros" />
+                    <ProfileField Label="Visibilidade" Value="Apenas Membros" Icon="bi-lock-fill" />
                 }
             </InfoSection>
 
@@ -607,6 +617,8 @@ else
     private bool showCropperModal = false;
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
+    private string shopImageInputId = $"shop-image-{Guid.NewGuid():N}";
+    private string? shopImageFileName;
     private string? uploadedImagePath;
     private int imageRefreshTrigger = 0;
     private byte[]? croppedProductImageBytes;
@@ -833,6 +845,7 @@ else
         showProductEditModal = false;
         editingProduct = null;
         uploadedImagePath = null;
+        shopImageFileName = null;
     }
 
     private void CloseProductDeleteModal()
@@ -856,6 +869,7 @@ else
                 }
 
                 selectedFile = imageFile;
+                shopImageFileName = imageFile.Name;
 
                 if (imageCropper != null)
                 {

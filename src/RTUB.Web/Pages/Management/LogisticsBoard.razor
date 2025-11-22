@@ -532,8 +532,18 @@
                         {
                             <p class="text-light-theme small mb-2">Nenhum ficheiro anexado</p>
                         }
-                        <div class="input-group input-group-sm">
-                            <InputFile OnChange="HandleFileSelected" class="form-control file-input-dark" accept=".pdf,.docx,.doc,.xlsx,.xls,.txt" />
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="localized-file-picker mb-1 mb-sm-0">
+                                <InputFile id="@logisticsFileInputId"
+                                           class="d-none"
+                                           OnChange="HandleFileSelected"
+                                           accept=".pdf,.docx,.doc,.xlsx,.xls,.txt"
+                                           aria-label="Escolher ficheiro" />
+                                <label class="btn btn-outline-secondary localized-file-button" for="@logisticsFileInputId">
+                                    <i class="bi bi-upload me-2"></i>Escolher ficheiro
+                                </label>
+                                <span class="localized-file-name">@(!string.IsNullOrEmpty(logisticsFileName) ? logisticsFileName : "Sem ficheiro escolhido")</span>
+                            </div>
                             <button class="btn btn-outline-primary" type="button" @onclick="UploadFile" disabled="@(selectedFile == null)">
                                 <i class="bi bi-upload"></i>
                             </button>
@@ -698,6 +708,8 @@
     private string memberSearchTerm = string.Empty;
     private List<FileItem>? uploadedFiles;
     private IBrowserFile? selectedFile;
+    private string logisticsFileInputId = $"logistics-file-{Guid.NewGuid():N}";
+    private string? logisticsFileName;
     private const long MaxFileSize = 10 * 1024 * 1024; // 10MB
     private bool isMod = false;
     private bool isAdmin = false;
@@ -1108,6 +1120,7 @@
     private void HandleFileSelected(InputFileChangeEventArgs e)
     {
         selectedFile = e.File;
+        logisticsFileName = selectedFile?.Name;
     }
 
     private async Task UploadFile()
@@ -1136,6 +1149,7 @@
             });
 
             selectedFile = null;
+            logisticsFileName = null;
             await SaveFiles();
         }
         catch (Exception)

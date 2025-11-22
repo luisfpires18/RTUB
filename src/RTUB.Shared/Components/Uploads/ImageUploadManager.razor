@@ -3,8 +3,19 @@
 
 <div class="mb-3">
     <label class="form-label">@Label</label>
-    <InputFile class="form-control file-input-dark" OnChange="HandleImageUpload" accept="image/*" />
-    
+
+    <div class="localized-file-picker">
+        <InputFile id="@inputId"
+                   class="d-none"
+                   OnChange="HandleImageUpload"
+                   accept="image/*"
+                   aria-label="Escolher imagem" />
+        <label class="btn btn-outline-secondary localized-file-button" for="@inputId">
+            <i class="bi bi-upload me-2"></i>Escolher imagem
+        </label>
+        <span class="localized-file-name">@(!string.IsNullOrEmpty(selectedFileName) ? selectedFileName : "Sem imagem escolhida")</span>
+    </div>
+
     @if (ShowCurrentImage && !string.IsNullOrEmpty(CurrentImageUrl))
     {
         <div class="mt-2">
@@ -28,7 +39,7 @@
 </div>
 
 @code {
-    [Parameter] public string Label { get; set; } = "Imagem";
+    [Parameter] public string Label { get; set; } = "Escolher imagem";
     [Parameter] public string? CurrentImageUrl { get; set; }
     [Parameter] public bool ShowCurrentImage { get; set; } = true;
     [Parameter] public string PreviewCssClass { get; set; } = "music-album-preview";
@@ -38,6 +49,8 @@
     [Parameter] public EventCallback<ImageUploadResult> OnImageProcessed { get; set; }
     
     private IBrowserFile? selectedFile;
+    private string inputId = $"upload-{Guid.NewGuid():N}";
+    private string? selectedFileName;
     private bool HasNewImage { get; set; }
     private string? ErrorMessage { get; set; }
 
@@ -59,6 +72,7 @@
                 }
 
                 selectedFile = imageFile;
+                selectedFileName = imageFile.Name;
                 await OnFileSelected.InvokeAsync(selectedFile);
             }
         }
@@ -105,6 +119,7 @@
         HasNewImage = false;
         ErrorMessage = null;
         selectedFile = null;
+        selectedFileName = null;
     }
 
     /// <summary>

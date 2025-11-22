@@ -149,11 +149,13 @@ else
             </div>
 
             <div class="mb-3">
-                <div class="form-check">
-                    <InputCheckbox class="form-check-input" id="albumIsPrivate" @bind-Value="album!.IsPrivate" />
-                    <label class="form-check-label" for="albumIsPrivate">
-                        <i class="bi bi-lock text-primary me-2"></i>Privado (apenas membros autenticados)
-                    </label>
+                <div class="rtub-checkbox-wrapper">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input rtub-checkbox-large" id="albumIsPrivate" @bind-Value="album!.IsPrivate" />
+                        <label class="form-check-label" for="albumIsPrivate">
+                            <i class="bi bi-lock text-primary me-2"></i>Privado (apenas membros autenticados)
+                        </label>
+                    </div>
                 </div>
             </div>
 

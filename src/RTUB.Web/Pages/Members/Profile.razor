@@ -84,13 +84,8 @@ else
                     <ProfileField Label="Nome de Tuna" Value="@user.Nickname" Icon="bi bi-star" />
                     <ProfileField Label="Email" Value="@user.Email" Icon="bi bi-envelope" />
                     <ProfileField Label="Data de Nascimento"
-                                Value="@(user.DateOfBirth?.ToString("dd/MM/yyyy"))"
+                                Value="@(user.DateOfBirth.HasValue ? $"{user.DateOfBirth:dd/MM/yyyy}{(user.Age.HasValue ? $" ({user.Age} anos)" : string.Empty)}" : null)"
                                 Icon="bi bi-calendar3" />
-                    @if (user.DateOfBirth.HasValue)
-                    {
-                        <ProfileField Label="Idade"
-                                    Value="@(user.Age?.ToString() + " anos")" />
-                    }
                     <ProfileField Label="Contacto" Value="@user.PhoneNumber" Icon="bi bi-telephone" />
                     <ProfileField Label="Cidade" Value="@user.City" Icon="bi bi-geo-alt" />
                     <ProfileField Label="Curso"
@@ -493,7 +488,18 @@ else
        Size="Modal.ModalSize.Default"
        Centered="true">
     <BodyContent>
-        <InputFile class="form-control file-input-dark" OnChange="HandleImageUpload" accept="image/*" />
+        <label class="form-label">Escolher imagem</label>
+        <div class="localized-file-picker">
+            <InputFile id="@profileImageInputId"
+                       class="d-none"
+                       OnChange="HandleImageUpload"
+                       accept="image/*"
+                       aria-label="Escolher imagem" />
+            <label class="btn btn-outline-secondary localized-file-button" for="@profileImageInputId">
+                <i class="bi bi-upload me-2"></i>Escolher imagem
+            </label>
+            <span class="localized-file-name">@(!string.IsNullOrEmpty(profileImageFileName) ? profileImageFileName : "Sem imagem escolhida")</span>
+        </div>
         @if (!string.IsNullOrEmpty(uploadMessage))
         {
             <div class="alert alert-success mt-3">@uploadMessage</div>
@@ -581,6 +587,8 @@ else
     private string? uploadMessage;
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
+    private string profileImageInputId = $"profile-image-{Guid.NewGuid():N}";
+    private string? profileImageFileName;
     private ChangePasswordModel passwordModel = new();
     private string? ChangePasswordMessage;
     private bool ChangePasswordSucceeded;
@@ -768,6 +776,8 @@ else
     private void OpenUploadModal()
     {
         uploadMessage = null;
+        profileImageFileName = null;
+        selectedFile = null;
         showUploadModal = true;
     }
 
@@ -792,6 +802,7 @@ else
                 }
 
                 selectedFile = imageFile;
+                profileImageFileName = imageFile.Name;
 
                 // Close upload modal and open cropper
                 CloseUploadModal();

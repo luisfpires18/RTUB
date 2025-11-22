@@ -87,3 +87,33 @@ input[type="file"].form-control::file-selector-button:hover {
   background-color: #d3d9df;
   border-color: #bfc5cb;
 }
+
+/* Unified styling for date picker icons on dark backgrounds */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1);
+  opacity: 0.9;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+input[type="date"]:focus::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]:focus::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1);
+  opacity: 1;
+}
+
+.localized-file-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.localized-file-button {
+  min-width: 190px;
+}
+
+.localized-file-name {
+  color: #ced4da;
+}

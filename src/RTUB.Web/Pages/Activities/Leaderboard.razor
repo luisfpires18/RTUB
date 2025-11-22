@@ -252,8 +252,8 @@ else
                     </h6>
                 </div>
                 <div class="modal-section-body">
-                    <ProfileField Label="XP Total" Value="@viewingItem.RankProgress.CurrentXp.ToString()" />
-                    <ProfileField Label="Ensaios Frequentados" Value="@viewingItem.TotalRehearsals.ToString()" />
+                    <ProfileField Label="XP Total" Value="@viewingItem.RankProgress.CurrentXp.ToString()" Icon="bi-lightning-charge-fill" />
+                    <ProfileField Label="Ensaios Frequentados" Value="@viewingItem.TotalRehearsals.ToString()" Icon="bi-music-note-list" />
                     
                     <!-- Events by Type -->
                     <div class="mb-2">
@@ -263,8 +263,9 @@ else
                     {
                         @foreach (var eventTypeGroup in viewingItem.EventsByType.OrderByDescending(kvp => kvp.Value))
                         {
-                            <ProfileField Label="@StatusHelper.GetEventTypeDisplay(eventTypeGroup.Key)" 
-                                          Value="@eventTypeGroup.Value.ToString()" />
+                            <ProfileField Label="@StatusHelper.GetEventTypeDisplay(eventTypeGroup.Key)"
+                                          Value="@eventTypeGroup.Value.ToString()"
+                                          Icon="bi-calendar-event-fill" />
                         }
                     }
                     else

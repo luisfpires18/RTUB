@@ -146,13 +146,14 @@ else
             <InfoSection SectionTitle="Informações do Instrumento" 
                         IconClass="bi-info-circle-fill" 
                         CssClass="mb-4">
-                <ProfileField Label="Tipo" Value="@viewingInstrument.Category" />
-                <ProfileField Label="Marca" Value="@viewingInstrument.Brand" />
-                <ProfileField Label="Número de Série" Value="@viewingInstrument.SerialNumber" />
-                <ProfileField Label="Localização" Value="@viewingInstrument.Location" />
-                <ProfileField Label="Condição" Value="@InstrumentConditionHelper.GetDisplayName(viewingInstrument.Condition)" />
-                <ProfileField Label="Data Última Manutenção" 
-                            Value="@(viewingInstrument.LastMaintenanceDate.HasValue ? viewingInstrument.LastMaintenanceDate.Value.ToString("dd/MM/yyyy") : null)" />
+                <ProfileField Label="Tipo" Value="@viewingInstrument.Category" Icon="bi-tag-fill" />
+                <ProfileField Label="Marca" Value="@viewingInstrument.Brand" Icon="bi-bookmark-fill" />
+                <ProfileField Label="Número de Série" Value="@viewingInstrument.SerialNumber" Icon="bi-hash" />
+                <ProfileField Label="Localização" Value="@viewingInstrument.Location" Icon="bi-geo-alt-fill" />
+                <ProfileField Label="Condição" Value="@InstrumentConditionHelper.GetDisplayName(viewingInstrument.Condition)" Icon="bi-star-fill" />
+                <ProfileField Label="Data Última Manutenção"
+                            Value="@(viewingInstrument.LastMaintenanceDate.HasValue ? viewingInstrument.LastMaintenanceDate.Value.ToString("dd/MM/yyyy") : null)"
+                            Icon="bi-calendar-check-fill" />
             </InfoSection>
 
             <!-- Maintenance Notes Section -->
@@ -263,9 +264,19 @@ else
 
             <div class="mb-3">
                 <label class="form-label fw-semibold">
-                    <i class="bi bi-image text-primary me-2"></i>Imagem
+                    <i class="bi bi-image text-primary me-2"></i>Escolher imagem
                 </label>
-                <InputFile class="form-control file-input-dark" OnChange="HandleInstrumentImageUpload" accept="image/*" />
+                <div class="localized-file-picker">
+                    <InputFile id="@instrumentImageInputId"
+                               class="d-none"
+                               OnChange="HandleInstrumentImageUpload"
+                               accept="image/*"
+                               aria-label="Escolher imagem" />
+                    <label class="btn btn-outline-secondary localized-file-button" for="@instrumentImageInputId">
+                        <i class="bi bi-upload me-2"></i>Escolher imagem
+                    </label>
+                    <span class="localized-file-name">@(!string.IsNullOrEmpty(instrumentImageFileName) ? instrumentImageFileName : "Sem imagem escolhida")</span>
+                </div>
                 @if (!string.IsNullOrEmpty(editingInstrument?.ImageUrl) && uploadedInstrumentImagePath == null)
                 {
                     <div class="mt-2">
@@ -355,6 +366,8 @@ else
     private bool showCropperModal = false;
     private ImageCropper? imageCropper;
     private IBrowserFile? selectedFile;
+    private string instrumentImageInputId = $"instrument-image-{Guid.NewGuid():N}";
+    private string? instrumentImageFileName;
     private string? uploadedInstrumentImagePath;
     private int imageRefreshTrigger = 0;
     private byte[]? croppedInstrumentImageBytes;
@@ -362,6 +375,7 @@ else
     
     // Thumbnail Cropper
     private bool showThumbnailCropperModal = false;
+    private bool launchThumbnailCropper = false;
     private ImageCropper? thumbnailCropper;
     private byte[]? croppedThumbnailImageBytes;
     private string? croppedThumbnailImageFileName = "instrument-thumbnail.webp";
@@ -456,12 +470,15 @@ else
             StateHasChanged();
             return;
         }
-        
+
         editingInstrument = Instrument.CreateEmpty();
         isInstrumentCreateMode = true;
         uploadedInstrumentImagePath = null;
         croppedInstrumentImageBytes = null;
         croppedThumbnailImageBytes = null;
+        selectedFile = null;
+        instrumentImageFileName = null;
+        launchThumbnailCropper = false;
         showInstrumentEditModal = true;
     }
 
@@ -472,6 +489,9 @@ else
         uploadedInstrumentImagePath = null;
         croppedInstrumentImageBytes = null;
         croppedThumbnailImageBytes = null;
+        selectedFile = null;
+        instrumentImageFileName = null;
+        launchThumbnailCropper = false;
         showInstrumentEditModal = true;
     }
 
@@ -557,6 +577,9 @@ else
             uploadedInstrumentImagePath = null;
             croppedInstrumentImageBytes = null;
             croppedThumbnailImageBytes = null;
+            selectedFile = null;
+            instrumentImageFileName = null;
+            launchThumbnailCropper = false;
         }
         catch (Exception ex)
         {
@@ -587,6 +610,9 @@ else
         uploadedInstrumentImagePath = null;
         croppedInstrumentImageBytes = null;
         croppedThumbnailImageBytes = null;
+        instrumentImageFileName = null;
+        selectedFile = null;
+        launchThumbnailCropper = false;
     }
 
     private void CloseInstrumentDeleteModal()
@@ -609,7 +635,12 @@ else
                     return;
                 }
 
+                // Reset crop states for new image selection
+                croppedInstrumentImageBytes = null;
+                croppedThumbnailImageBytes = null;
+                launchThumbnailCropper = false;
                 selectedFile = imageFile;
+                instrumentImageFileName = imageFile.Name;
 
                 if (imageCropper != null)
                 {
@@ -634,14 +665,9 @@ else
                     // Store the cropped full image bytes
                     croppedInstrumentImageBytes = croppedImageData;
                     uploadedInstrumentImagePath = "uploaded";
-                    
-                    // Now load the same image into the thumbnail cropper
-                    if (thumbnailCropper != null && selectedFile != null)
-                    {
-                        await thumbnailCropper.LoadImageAsync(selectedFile);
-                    }
+                    launchThumbnailCropper = selectedFile != null;
                 }
-                
+
                 StateHasChanged();
             }
         }
@@ -672,9 +698,15 @@ else
         }
     }
 
-    private void OnCropperModalChanged(bool isOpen)
+    private async Task OnCropperModalChanged(bool isOpen)
     {
         showCropperModal = isOpen;
+        if (!isOpen && launchThumbnailCropper && thumbnailCropper != null && selectedFile != null)
+        {
+            // Open the thumbnail cropper only after the full image modal closes
+            launchThumbnailCropper = false;
+            await thumbnailCropper.LoadImageAsync(selectedFile);
+        }
         StateHasChanged();
     }
 
