@@ -79,8 +79,13 @@
             else
             {
                 <div class="repertoire-list">
-                    @foreach (var item in repertoireItems.OrderBy(r => r.DisplayOrder))
+                    @{
+                        var orderedItems = repertoireItems.OrderBy(r => r.DisplayOrder).ToList();
+                    }
+                    @for (int i = 0; i < orderedItems.Count; i++)
                     {
+                        var item = orderedItems[i];
+                        var displayIndex = i + 1; // Per-day index starting at 1
                         <div class="repertoire-card @(draggingItemId == item.Id ? "dragging" : "") @(dragOverItemId == item.Id ? "drag-over" : "")"
                              draggable="@(IsAdmin ? "true" : "false")"
                              @ondragstart="@(() => HandleDragStart(item.Id))"
@@ -99,7 +104,7 @@
                                     </div>
                                 }
                                 
-                                <span class="repertoire-item-number">@item.DisplayOrder.</span>
+                                <span class="repertoire-item-number">@displayIndex.</span>
                                 <span class="repertoire-item-text">@item.Song?.Title</span>
                                 
                                 @if (IsAdmin)

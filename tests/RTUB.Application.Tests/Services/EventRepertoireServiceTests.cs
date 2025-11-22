@@ -996,6 +996,67 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         dates.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task MultiDayEvent_PerDayDisplayOrder_StartsAt1ForEachDay()
+    {
+        // Arrange - Create multi-day event with songs on different days
+        var event1 = await _eventService.CreateEventAsync("Multi Day Festival", _testEventDate, "Test Location", EventType.Festival);
+        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
+        var song1 = await _songService.CreateSongAsync("Day 1 Song A", album.Id);
+        var song2 = await _songService.CreateSongAsync("Day 1 Song B", album.Id);
+        var song3 = await _songService.CreateSongAsync("Day 1 Song C", album.Id);
+        var song4 = await _songService.CreateSongAsync("Day 2 Song A", album.Id);
+        var song5 = await _songService.CreateSongAsync("Day 2 Song B", album.Id);
+        
+        var day1 = _testEventDate;
+        var day2 = _testEventDate.AddDays(1);
+        
+        // Add songs with specific display orders - Day 1 gets 1-3, Day 2 should also get 1-2
+        await _repertoireService.AddSongToRepertoireAsync(event1.Id, song1.Id, 1, day1);
+        await _repertoireService.AddSongToRepertoireAsync(event1.Id, song2.Id, 2, day1);
+        await _repertoireService.AddSongToRepertoireAsync(event1.Id, song3.Id, 3, day1);
+        await _repertoireService.AddSongToRepertoireAsync(event1.Id, song4.Id, 1, day2);
+        await _repertoireService.AddSongToRepertoireAsync(event1.Id, song5.Id, 2, day2);
+
+        // Act - Get repertoire for each day
+        var day1Result = (await _repertoireService.GetRepertoireByEventIdAsync(event1.Id, day1)).OrderBy(r => r.DisplayOrder).ToList();
+        var day2Result = (await _repertoireService.GetRepertoireByEventIdAsync(event1.Id, day2)).OrderBy(r => r.DisplayOrder).ToList();
+
+        // Assert - Each day should have its own 1-based ordering
+        // Day 1: 3 songs with DisplayOrder 1, 2, 3 (UI would show them as 1, 2, 3)
+        day1Result.Should().HaveCount(3);
+        day1Result[0].DisplayOrder.Should().Be(1);
+        day1Result[0].Song!.Title.Should().Be("Day 1 Song A");
+        day1Result[1].DisplayOrder.Should().Be(2);
+        day1Result[1].Song!.Title.Should().Be("Day 1 Song B");
+        day1Result[2].DisplayOrder.Should().Be(3);
+        day1Result[2].Song!.Title.Should().Be("Day 1 Song C");
+        
+        // Day 2: 2 songs with DisplayOrder 1, 2 (UI would show them as 1, 2)
+        day2Result.Should().HaveCount(2);
+        day2Result[0].DisplayOrder.Should().Be(1);
+        day2Result[0].Song!.Title.Should().Be("Day 2 Song A");
+        day2Result[1].DisplayOrder.Should().Be(2);
+        day2Result[1].Song!.Title.Should().Be("Day 2 Song B");
+        
+        // Verify that when ordered, UI display index calculation works correctly
+        // For day 1: orderedItems[0, 1, 2] => displayIndex = i + 1 => [1, 2, 3]
+        for (int i = 0; i < day1Result.Count; i++)
+        {
+            var displayIndex = i + 1;
+            day1Result[i].DisplayOrder.Should().Be(displayIndex, 
+                $"Day 1 song at position {i} should have DisplayOrder {displayIndex}");
+        }
+        
+        // For day 2: orderedItems[0, 1] => displayIndex = i + 1 => [1, 2]
+        for (int i = 0; i < day2Result.Count; i++)
+        {
+            var displayIndex = i + 1;
+            day2Result[i].DisplayOrder.Should().Be(displayIndex,
+                $"Day 2 song at position {i} should have DisplayOrder {displayIndex}");
+        }
+    }
+
     public void Dispose()
     {
         // Clean the database for the next test in this collection
