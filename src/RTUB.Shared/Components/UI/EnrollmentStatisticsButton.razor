@@ -243,12 +243,27 @@
         }
 
         // Apply sorting
-        var columnSelectors = new Dictionary<string, Func<UserEnrollmentStats, IComparable>>
+        if (statsSortHelper.SortColumn == nameof(UserEnrollmentStats.PastCount))
         {
-            { nameof(UserEnrollmentStats.UserName), s => s.UserName },
-            { nameof(UserEnrollmentStats.PastCount), s => s.PastCount }
-        };
-        filteredStatsUsers = statsSortHelper.ApplySort(filteredStatsUsers, columnSelectors);
+            filteredStatsUsers = statsSortHelper.SortAscending
+                ? filteredStatsUsers
+                    .OrderBy(s => s.PastCount)
+                    .ThenBy(s => s.FutureCount)
+                    .ToList()
+                : filteredStatsUsers
+                    .OrderByDescending(s => s.PastCount)
+                    .ThenByDescending(s => s.FutureCount)
+                    .ToList();
+        }
+        else
+        {
+            var columnSelectors = new Dictionary<string, Func<UserEnrollmentStats, IComparable>>
+            {
+                { nameof(UserEnrollmentStats.UserName), s => s.UserName },
+                { nameof(UserEnrollmentStats.PastCount), s => s.PastCount }
+            };
+            filteredStatsUsers = statsSortHelper.ApplySort(filteredStatsUsers, columnSelectors);
+        }
 
         // Apply pagination
         paginatedStatsUsers = statsPaginationHelper.GetPageData(filteredStatsUsers);
