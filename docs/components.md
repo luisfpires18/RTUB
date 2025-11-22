@@ -609,9 +609,9 @@ All form components follow consistent patterns with validation, labels, and erro
 **Purpose:** Button to view event enrollment statistics.
 
 **Parameters:**
-- `IsAdmin` (bool)
+- `IsMember` (bool)
 
-**Usage:** Events page (Admin only).
+**Usage:** Events page (Members).
 
 ---
 

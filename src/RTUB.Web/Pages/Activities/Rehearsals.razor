@@ -35,6 +35,9 @@
         <button class="btn btn-success" @onclick="OpenDateRangeModal" title="Criar Ensaios (Intervalo)">
             <i class="bi bi-calendar-range"></i> Adicionar Vários
         </button>
+    }
+    @if (isMember)
+    {
         <button class="btn btn-outline-primary" @onclick="OpenStatsModal" title="Ver Estatísticas">
             <i class="bi bi-bar-chart"></i> Estatísticas
         </button>
@@ -690,8 +693,8 @@ else
     </Modal>
 }
 
-<!-- Statistics Modal (Admin Only) -->
-@if (showStatsModal && isAdmin)
+<!-- Statistics Modal (Members) -->
+@if (showStatsModal && isMember)
 {
     <Modal Show="@showStatsModal"
            ShowChanged="@((bool show) => showStatsModal = show)"
@@ -744,18 +747,11 @@ else
                                             <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.UserName))"></i>
                                         }
                                     </th>
-                                    <th @onclick="() => SortStatsBy(nameof(UserAttendanceStats.PastApprovedCount))" class="clickable-row">
-                                        Participações Passadas
-                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserAttendanceStats.PastApprovedCount)))
+                                    <th @onclick="() => SortStatsBy(nameof(UserAttendanceStats.ApprovedCount))" class="clickable-row">
+                                        Participações
+                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserAttendanceStats.ApprovedCount)))
                                         {
-                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.PastApprovedCount))"></i>
-                                        }
-                                    </th>
-                                    <th @onclick="() => SortStatsBy(nameof(UserAttendanceStats.FutureCount))" class="clickable-row">
-                                        Participações Futuras
-                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserAttendanceStats.FutureCount)))
-                                        {
-                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.FutureCount))"></i>
+                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserAttendanceStats.ApprovedCount))"></i>
                                         }
                                     </th>
                                 </tr>
@@ -764,12 +760,31 @@ else
                                 @foreach (var stat in paginatedStatsUsers)
                                 {
                                     <tr>
-                                        <td>@stat.UserName</td>
                                         <td>
-                                            <span class="badge bg-warning text-dark me-2">@stat.PastPendingCount Pendente(s)</span>
-                                            <span class="badge bg-success">@stat.PastApprovedCount Aprovado(s)</span>
+                                            <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
+                                                <img src="@stat.AvatarUrl" alt="@stat.DisplayName" class="member-avatar-small" />
+                                                <div>
+                                                    <div>@stat.DisplayNickname</div>
+                                                    <div class="text-muted small">@stat.DisplayFullName</div>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td>@stat.FutureCount</td>
+                                        <td>
+                                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                                @if (stat.ApprovedCount > 0)
+                                                {
+                                                    <span class="badge bg-success">@stat.ApprovedCount aprovado(s)</span>
+                                                }
+                                                @if (stat.PendingCount > 0)
+                                                {
+                                                    <span class="badge bg-warning text-dark">@stat.PendingCount pendente(s)</span>
+                                                }
+                                                @if (stat.PendingCount == 0 && stat.ApprovedCount == 0)
+                                                {
+                                                    <span class="text-muted">Sem participações</span>
+                                                }
+                                            </div>
+                                        </td>
                                     </tr>
                                 }
                             </tbody>
@@ -1010,6 +1025,7 @@ else
     private bool loading = true;
     private bool isInitializing = true;
     private bool isAdmin = false;
+    private bool isMember = false;
     private bool isOwner = false;
     private string? currentUserId;
     private ApplicationUser? currentUser;
@@ -1129,7 +1145,7 @@ else
     private List<UserAttendanceStats> filteredStatsUsers = new();
     private List<UserAttendanceStats> paginatedStatsUsers = new();
     private string statsSearchTerm = string.Empty;
-    private SortableTableHelper<UserAttendanceStats> statsSortHelper = new() { SortColumn = nameof(UserAttendanceStats.PastApprovedCount), SortAscending = false };
+    private SortableTableHelper<UserAttendanceStats> statsSortHelper = new() { SortColumn = nameof(UserAttendanceStats.ApprovedCount), SortAscending = false };
     private PaginationHelper<UserAttendanceStats> statsPaginationHelper = new() { PageSize = 10 };
 
     protected override async Task OnInitializedAsync()
@@ -1145,6 +1161,7 @@ else
                 currentUserId = appUser.Id;
                 currentUser = appUser;
                 isAdmin = user.IsInRole("Admin") || user.IsInRole("Owner");
+                isMember = user.IsInRole("Member") || isAdmin;
                 isOwner = user.IsInRole("Owner");
             }
         }
@@ -2173,14 +2190,13 @@ else
                 .Where(a => a.Rehearsal != null && a.WillAttend)
                 .ToList();
 
-            // Group by user and count future, past approved, and past pending
+            // Group by user and count pending/approved participations
             var stats = filteredAttendances
                 .GroupBy(a => a.UserId)
-                .Select(g => new { 
-                    UserId = g.Key, 
-                    FutureCount = g.Count(a => a.Rehearsal!.Date >= DateTime.Today),
-                    PastApprovedCount = g.Count(a => a.Rehearsal!.Date < DateTime.Today && a.Attended),
-                    PastPendingCount = g.Count(a => a.Rehearsal!.Date < DateTime.Today && !a.Attended)
+                .Select(g => new {
+                    UserId = g.Key,
+                    PendingCount = g.Count(a => a.Rehearsal!.Date >= DateTime.Today || (a.Rehearsal!.Date < DateTime.Today && !a.Attended)),
+                    ApprovedCount = g.Count(a => a.Rehearsal!.Date < DateTime.Today && a.Attended)
                 })
                 .ToList();
 
@@ -2195,9 +2211,12 @@ else
                     {
                         UserId = stat.UserId,
                         UserName = user.GetDisplayName(),
-                        FutureCount = stat.FutureCount,
-                        PastApprovedCount = stat.PastApprovedCount,
-                        PastPendingCount = stat.PastPendingCount
+                        Nickname = user.Nickname ?? string.Empty,
+                        FirstName = user.FirstName ?? string.Empty,
+                        LastName = user.LastName ?? string.Empty,
+                        AvatarUrl = user.ProfilePictureSrc,
+                        PendingCount = stat.PendingCount,
+                        ApprovedCount = stat.ApprovedCount
                     });
                 }
             }
@@ -2230,7 +2249,7 @@ else
         {
             var search = statsSearchTerm.ToLower();
             filteredStatsUsers = attendanceStatsUsers
-                .Where(s => s.UserName.ToLower().Contains(search))
+                .Where(s => s.SearchText.Contains(search))
                 .ToList();
         }
 
@@ -2238,8 +2257,7 @@ else
         var columnSelectors = new Dictionary<string, Func<UserAttendanceStats, IComparable>>
         {
             { nameof(UserAttendanceStats.UserName), s => s.UserName },
-            { nameof(UserAttendanceStats.FutureCount), s => s.FutureCount },
-            { nameof(UserAttendanceStats.PastApprovedCount), s => s.PastApprovedCount }
+            { nameof(UserAttendanceStats.ApprovedCount), s => s.ApprovedCount }
         };
         filteredStatsUsers = statsSortHelper.ApplySort(filteredStatsUsers, columnSelectors);
 
@@ -2494,10 +2512,27 @@ else
     {
         public string UserId { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
-        public int FutureCount { get; set; }
-        public int PastApprovedCount { get; set; }
-        public int PastPendingCount { get; set; }
-        public string PastCountDisplay => $"{PastApprovedCount} aprovadas / {PastPendingCount} por aprovar";
+        public string Nickname { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string AvatarUrl { get; set; } = string.Empty;
+        public int PendingCount { get; set; }
+        public int ApprovedCount { get; set; }
+
+        public string DisplayNickname => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : UserName;
+
+        public string DisplayFullName
+        {
+            get
+            {
+                var fullName = $"{FirstName} {LastName}".Trim();
+                return string.IsNullOrWhiteSpace(fullName) ? UserName : fullName;
+            }
+        }
+
+        public string DisplayName => !string.IsNullOrWhiteSpace(UserName) ? UserName : DisplayFullName;
+
+        public string SearchText => $"{DisplayNickname} {DisplayFullName}".ToLower();
     }
 
     // Form models for validation

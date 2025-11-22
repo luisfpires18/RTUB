@@ -10,10 +10,10 @@
 @*
     Enrollment Statistics Button Component
     Shows statistics of member enrollments in events
-    Admin-only component
+    Member-only component
 *@
 
-@if (IsAdmin)
+@if (IsMember)
 {
     <button class="btn btn-outline-primary me-2" @onclick="OpenStatsModal" title="Ver Estatísticas">
         <i class="bi bi-bar-chart"></i> Estatísticas
@@ -75,17 +75,10 @@
                                         }
                                     </th>
                                     <th @onclick="() => SortStatsBy(nameof(UserEnrollmentStats.PastCount))" class="clickable-row">
-                                        Participações Passadas
+                                        Participações
                                         @if (statsSortHelper.IsActiveSortColumn(nameof(UserEnrollmentStats.PastCount)))
                                         {
                                             <i class="bi @statsSortHelper.GetSortIcon(nameof(UserEnrollmentStats.PastCount))"></i>
-                                        }
-                                    </th>
-                                    <th @onclick="() => SortStatsBy(nameof(UserEnrollmentStats.FutureCount))" class="clickable-row">
-                                        Participações Futuras
-                                        @if (statsSortHelper.IsActiveSortColumn(nameof(UserEnrollmentStats.FutureCount)))
-                                        {
-                                            <i class="bi @statsSortHelper.GetSortIcon(nameof(UserEnrollmentStats.FutureCount))"></i>
                                         }
                                     </th>
                                 </tr>
@@ -94,9 +87,31 @@
                                 @foreach (var stat in paginatedStatsUsers)
                                 {
                                     <tr>
-                                        <td>@stat.UserName</td>
-                                        <td>@stat.PastCount</td>
-                                        <td>@stat.FutureCount</td>
+                                        <td>
+                                            <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2">
+                                                <img src="@stat.AvatarUrl" alt="@stat.DisplayName" class="member-avatar-small" />
+                                                <div>
+                                                    <div>@stat.DisplayNickname</div>
+                                                    <div class="text-muted small">@stat.DisplayFullName</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                                @if (stat.PastCount > 0)
+                                                {
+                                                    <span class="badge bg-success">@stat.PastCount Participações</span>
+                                                }
+                                                @if (stat.FutureCount > 0)
+                                                {
+                                                    <span class="badge bg-warning text-dark">@stat.FutureCount Por Participar</span>
+                                                }
+                                                @if (stat.FutureCount == 0 && stat.PastCount == 0)
+                                                {
+                                                    <span class="text-muted">Sem participações</span>
+                                                }
+                                            </div>
+                                        </td>
                                     </tr>
                                 }
                             </tbody>
@@ -128,7 +143,7 @@
 
 @code {
     [Parameter]
-    public bool IsAdmin { get; set; }
+    public bool IsMember { get; set; }
 
     private bool showStatsModal = false;
     private DateTime statsStartDate = DateTime.Today.AddMonths(-1);
@@ -185,6 +200,10 @@
                     {
                         UserId = stat.UserId,
                         UserName = user.GetDisplayName(),
+                        Nickname = user.Nickname ?? string.Empty,
+                        FirstName = user.FirstName ?? string.Empty,
+                        LastName = user.LastName ?? string.Empty,
+                        AvatarUrl = user.ProfilePictureSrc,
                         FutureCount = stat.FutureCount,
                         PastCount = stat.PastCount
                     });
@@ -219,7 +238,7 @@
         {
             var search = statsSearchTerm.ToLower();
             filteredStatsUsers = enrollmentStatsUsers
-                .Where(s => s.UserName.ToLower().Contains(search))
+                .Where(s => s.SearchText.Contains(search))
                 .ToList();
         }
 
@@ -227,7 +246,6 @@
         var columnSelectors = new Dictionary<string, Func<UserEnrollmentStats, IComparable>>
         {
             { nameof(UserEnrollmentStats.UserName), s => s.UserName },
-            { nameof(UserEnrollmentStats.FutureCount), s => s.FutureCount },
             { nameof(UserEnrollmentStats.PastCount), s => s.PastCount }
         };
         filteredStatsUsers = statsSortHelper.ApplySort(filteredStatsUsers, columnSelectors);
@@ -268,7 +286,26 @@
     {
         public string UserId { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
+        public string Nickname { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string AvatarUrl { get; set; } = string.Empty;
         public int FutureCount { get; set; }
         public int PastCount { get; set; }
+
+        public string DisplayNickname => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : UserName;
+
+        public string DisplayFullName
+        {
+            get
+            {
+                var fullName = $"{FirstName} {LastName}".Trim();
+                return string.IsNullOrWhiteSpace(fullName) ? UserName : fullName;
+            }
+        }
+
+        public string DisplayName => !string.IsNullOrWhiteSpace(UserName) ? UserName : DisplayFullName;
+
+        public string SearchText => $"{DisplayNickname} {DisplayFullName}".ToLower();
     }
 }

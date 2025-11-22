@@ -42,22 +42,22 @@ public class EnrollmentStatisticsButtonTests : TestContext
     }
 
     [Fact]
-    public void EnrollmentStatisticsButton_DoesNotRender_WhenNotAdmin()
+    public void EnrollmentStatisticsButton_DoesNotRender_WhenNotMember()
     {
         // Arrange & Act
         var cut = RenderComponent<EnrollmentStatisticsButton>(parameters => parameters
-            .Add(p => p.IsAdmin, false));
+            .Add(p => p.IsMember, false));
 
         // Assert
         cut.Markup.Should().BeEmpty("button should not render for non-admin users");
     }
 
     [Fact]
-    public void EnrollmentStatisticsButton_Renders_WhenIsAdmin()
+    public void EnrollmentStatisticsButton_Renders_WhenIsMember()
     {
         // Arrange & Act
         var cut = RenderComponent<EnrollmentStatisticsButton>(parameters => parameters
-            .Add(p => p.IsAdmin, true));
+            .Add(p => p.IsMember, true));
 
         // Assert
         cut.Markup.Should().Contain("btn-outline-primary", "button should render with correct styling");
@@ -70,7 +70,7 @@ public class EnrollmentStatisticsButtonTests : TestContext
     {
         // Arrange & Act
         var cut = RenderComponent<EnrollmentStatisticsButton>(parameters => parameters
-            .Add(p => p.IsAdmin, true));
+            .Add(p => p.IsMember, true));
 
         // Assert
         var button = cut.Find("button");
@@ -81,16 +81,17 @@ public class EnrollmentStatisticsButtonTests : TestContext
     }
 
     [Fact]
-    public void EnrollmentStatisticsButton_ShowsTwoColumns()
+    public void EnrollmentStatisticsButton_OpensModalOnClick()
     {
         // Arrange & Act
         var cut = RenderComponent<EnrollmentStatisticsButton>(parameters => parameters
-            .Add(p => p.IsAdmin, true));
+            .Add(p => p.IsMember, true));
 
-        // The component should be designed to show two columns:
-        // "Participações Passadas" and "Participações Futuras"
-        // This is verified through the component rendering
-        cut.Markup.Should().Contain("btn-outline-primary");
+        // Click the button to open the modal
+        cut.Find("button").Click();
+
+        // Assert
+        cut.Markup.Should().Contain("Estatísticas de Inscrições", "modal should open when button is clicked");
     }
 }
 

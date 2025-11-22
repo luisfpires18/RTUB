@@ -35,11 +35,11 @@
             <button class="btn btn-success" @onclick="OpenCreateModal" title="Adicionar Novo Evento">
                 <i class="bi bi-plus-lg"></i> Adicionar Atuação
             </button>
-            <EnrollmentStatisticsButton IsAdmin="@isUserAdmin" />
         </Authorized>
     </AuthorizeView>
     <AuthorizeView>
         <Authorized>
+            <EnrollmentStatisticsButton IsMember="@isUserMember" />
             <MyEnrollmentsButton />
         </Authorized>
     </AuthorizeView>
@@ -1027,6 +1027,7 @@ else
     private bool isEditingEnrollment = false;
     private bool wantToPlay = false; // Toggle for "Quero tocar"
     private bool isUserAdmin = false;
+    private bool isUserMember = false;
     private bool isUserOwner = false;
     private bool isTrophyCreateMode = false;
     private Event? editingEvent;
@@ -1310,6 +1311,7 @@ else
         {
             currentUser = await UserManager.FindByNameAsync(userName);
             isUserAdmin = authState.User.IsInRole("Admin") || authState.User.IsInRole("Owner");
+            isUserMember = authState.User.IsInRole("Member") || isUserAdmin;
             isUserOwner = authState.User.IsInRole("Owner");
             
             // Load member's instruments

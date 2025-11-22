@@ -129,7 +129,7 @@ This document lists all Razor pages in the RTUB application with their routes, d
 
 **Main Components:**
 - `EventCard`
-- `EnrollmentStatisticsButton` (Admin only)
+- `EnrollmentStatisticsButton` (Members)
 - `MyEnrollmentsButton` (All authenticated)
 - `CrudModalManager` (Create/Edit)
 - `ConfirmDialog` (Delete)
