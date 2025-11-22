@@ -211,15 +211,15 @@
                                 @foreach (var log in auditLogs)
                                 {
                                     <tr>
-                                        <td class="timestamp-cell">
+                                        <td class="timestamp-cell" data-label="Timestamp">
                                             <small>
                                                 @log.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
                                             </small>
                                         </td>
-                                        <td class="user-cell">
+                                        <td class="user-cell" data-label="User">
                                             <span class="badge bg-primary">@(log.UserName ?? "System")</span>
                                         </td>
-                                        <td class="entity-cell">
+                                        <td class="entity-cell" data-label="Entity">
                                             <strong>@log.EntityType</strong>
                                             @if (!string.IsNullOrEmpty(log.EntityDisplayName))
                                             {
@@ -230,12 +230,12 @@
                                                 <br/><small class="text-muted">(ID: @log.EntityId)</small>
                                             }
                                         </td>
-                                        <td class="action-cell">
+                                        <td class="action-cell" data-label="Action">
                                             <span class="badge @GetActionBadgeClass(log.Action)">
                                                 @log.Action
                                             </span>
                                         </td>
-                                        <td class="changes-cell">
+                                        <td class="changes-cell" data-label="Changes">
                                             @if (!string.IsNullOrEmpty(log.Changes))
                                             {
                                                 <button class="btn btn-sm btn-outline-secondary" @onclick="() => ShowChangesModal(log)">
@@ -247,13 +247,13 @@
                                                 <small class="text-muted">No details</small>
                                             }
                                         </td>
-                                        <td class="critical-cell text-center">
+                                        <td class="critical-cell text-center" data-label="Critical">
                                             @if (log.IsCriticalAction)
                                             {
                                                 <i class="bi bi-exclamation-triangle-fill text-danger"></i>
                                             }
                                         </td>
-                                        <td class="actions-cell">
+                                        <td class="actions-cell" data-label="Actions">
                                             <button class="btn btn-sm btn-danger" @onclick="() => ShowDeleteConfirmation(log)" title="Delete this log">
                                                 <i class="bi bi-trash"></i>
                                             </button>

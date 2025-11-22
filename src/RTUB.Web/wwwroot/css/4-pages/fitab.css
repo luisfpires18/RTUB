@@ -168,6 +168,24 @@
 }
 
 /* Responsive Breakpoints */
+@media (max-width: 1024px) {
+    .fitab-overview-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .fitab-overview-card,
+    .fitab-features-card,
+    .fitab-when-card {
+        padding: 1.75rem;
+    }
+
+    .fitab-content-wrapper {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+}
+
 @media (max-width: 768px) {
     .fitab-subtitle {
         font-size: 1.25rem;

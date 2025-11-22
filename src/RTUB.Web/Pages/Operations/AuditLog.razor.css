@@ -347,7 +347,7 @@
 
     /* Activity Log Table */
     .activity-log-table {
-        min-width: var(--audit-table-min-width-mobile);
+        min-width: 100%;
         font-size: 0.8rem;
     }
 
@@ -357,8 +357,48 @@
         font-size: 0.8rem;
     }
 
+    .activity-log-table thead {
+        display: none;
+    }
+
+    .activity-log-table tbody,
+    .activity-log-table tr,
+    .activity-log-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .activity-log-table tr {
+        margin-bottom: 0.75rem;
+        border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+        border-radius: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        background: rgba(var(--bs-primary-rgb), 0.03);
+    }
+
+    .activity-log-table td {
+        display: grid;
+        grid-template-columns: 1fr 1.4fr;
+        align-items: center;
+        gap: 0.35rem 0.75rem;
+        border-bottom: 1px dashed rgba(var(--bs-primary-rgb), 0.15);
+        padding: 0.375rem 0;
+    }
+
+    .activity-log-table td:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .activity-log-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--bs-gray-400);
+        letter-spacing: 0.01em;
+    }
+
     .activity-log-table .timestamp-cell small {
-        font-size: 0.75rem;
+        font-size: 0.8rem;
     }
 
     .activity-log-table .badge {
@@ -369,6 +409,12 @@
     .activity-log-table .btn-sm {
         padding: 0.25rem 0.4rem;
         font-size: 0.75rem;
+    }
+
+    .activity-log-table .actions-cell {
+        display: flex;
+        justify-content: flex-start;
+        gap: 0.5rem;
     }
 }
 
@@ -422,6 +468,6 @@
     }
 
     .activity-log-table {
-        min-width: var(--audit-table-min-width-small);
+        min-width: 100%;
     }
 }

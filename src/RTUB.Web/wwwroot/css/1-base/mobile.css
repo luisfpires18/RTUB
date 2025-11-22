@@ -1,8 +1,17 @@
-/* Mobile and responsive styles */
-
 /* ========================================
    MOBILE RESPONSIVE STYLES
    ======================================== */
+
+/* Fluid media defaults so images and embeds never overflow */
+img,
+picture,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+  height: auto;
+}
 
 /* Mobile: Base styles for small screens (phones) */
 @media (max-width: 768px) {
@@ -47,6 +56,13 @@
   .navbar-avatar {
     width: 28px;
     height: 28px;
+  }
+
+  /* Ensure dropdown menus fill the available width when stacked */
+  .navbar .dropdown-menu {
+    width: 100%;
+    position: static;
+    float: none;
   }
 
   /* Sidebar mobile behavior */
@@ -546,6 +562,43 @@
   .container-xxl {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
+  }
+}
+
+/* Tablet optimizations */
+@media (max-width: 1024px) {
+  .content-main .rtub-wide,
+  .footer-main .rtub-wide,
+  .navbar-main .rtub-wide,
+  .rtub-wide {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Soften card spacing on medium viewports */
+  .card {
+    margin-bottom: 0.75rem;
+    padding: 0.875rem;
+  }
+
+  /* Tables automatically scroll horizontally even without wrappers */
+  .content-main table,
+  .content-main .table,
+  .table-responsive table,
+  .table-responsive .table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .content-main table thead,
+  .content-main .table thead {
+    display: table-header-group;
+  }
+
+  .content-main table tbody,
+  .content-main .table tbody {
+    display: table-row-group;
   }
 }
 

@@ -235,6 +235,33 @@
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+    .info-block-container {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .info-block-column {
+        padding: 1.75rem;
+    }
+
+    .info-block-column:first-child::after {
+        width: 80%;
+        height: 2px;
+        top: auto;
+        bottom: 0;
+        left: 10%;
+        right: auto;
+        background: linear-gradient(90deg, transparent 0%, var(--bs-primary) 50%, transparent 100%);
+    }
+
+    .join-us-activities,
+    .join-us-motivation,
+    .join-us-how-to {
+        padding: 1.75rem;
+    }
+}
+
 @media (max-width: 768px) {
     .info-block-container {
         flex-direction: column;
