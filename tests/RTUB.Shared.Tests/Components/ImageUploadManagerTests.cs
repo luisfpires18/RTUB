@@ -29,7 +29,7 @@ public class ImageUploadManagerTests : TestContext
         var cut = RenderComponent<ImageUploadManager>();
 
         // Assert
-        cut.Markup.Should().Contain("Imagem", "default label should be displayed");
+        cut.Markup.Should().Contain("Escolher imagem", "default label should be displayed");
     }
 
     [Fact]
@@ -39,9 +39,8 @@ public class ImageUploadManagerTests : TestContext
         var cut = RenderComponent<ImageUploadManager>();
 
         // Assert
-        cut.Markup.Should().Contain("input", "file input should be rendered");
-        cut.Markup.Should().Contain("type=\"file\"", "input should be of type file");
-        cut.Markup.Should().Contain("accept=\"image/*\"", "input should accept only images");
+        var input = cut.Find("input[type=file]");
+        input.GetAttribute("accept").Should().Be("image/*", "input should accept only images");
     }
 
     [Fact]
@@ -113,8 +112,8 @@ public class ImageUploadManagerTests : TestContext
         var cut = RenderComponent<ImageUploadManager>();
 
         // Assert
-        cut.Markup.Should().Contain("form-control", "should have form control class");
-        cut.Markup.Should().Contain("file-input-dark", "should have dark file input class");
+        cut.Markup.Should().Contain("localized-file-picker", "should render localized file picker");
+        cut.Markup.Should().Contain("localized-file-button", "should render localized file picker button");
     }
 
     [Fact]
