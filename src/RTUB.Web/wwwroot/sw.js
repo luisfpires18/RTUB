@@ -35,14 +35,37 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - network first, fallback to cache
 self.addEventListener('fetch', (event) => {
+  // Skip caching for non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Skip caching for API calls and dynamic content
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith('/api/') || 
+      url.pathname.startsWith('/_blazor') ||
+      url.pathname.includes('/auth/')) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone the response before caching
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
+        // Only cache successful responses
+        if (response && response.ok) {
+          // Clone the response before caching
+          const responseToCache = response.clone();
+          
+          // Cache static resources (HTML, CSS, JS, images, icons)
+          if (url.pathname.match(/\.(html|css|js|png|jpg|jpeg|gif|svg|webp|ico|json|webmanifest)$/i) ||
+              url.pathname === '/') {
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache).catch((error) => {
+                console.error('Failed to cache:', event.request.url, error);
+              });
+            });
+          }
+        }
         return response;
       })
       .catch(() => {
