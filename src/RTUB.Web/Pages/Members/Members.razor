@@ -389,18 +389,18 @@ else
                 <label class="form-label fw-semibold">
                     <i class="bi bi-music-note-list text-primary me-2"></i>Instrumentos
                 </label>
-                
+
                 @* Add Instrument Section *@
-                <div class="input-group mb-2">
-                    <select class="form-select" @bind-value="selectedInstrumentToAdd" @bind-value:event="onchange">
+                <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-end gap-2 mb-2">
+                    <select class="form-select flex-grow-1" @bind-value="selectedInstrumentToAdd" @bind-value:event="onchange">
                         <option value="">Selecionar instrumento...</option>
                         @foreach (var instrument in AllInstrumentTypes.Where(i => !memberInstruments.Any(mi => mi.InstrumentType == i)))
                         {
                             <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
                         }
                     </select>
-                    <button type="button" 
-                            class="btn btn-primary btn-primary-purple" 
+                    <button type="button"
+                            class="btn btn-primary btn-primary-purple flex-shrink-0"
                             @onclick="AddInstrumentToMember"
                             disabled="@(string.IsNullOrEmpty(selectedInstrumentToAdd))">
                         <i class="bi bi-plus-lg"></i> Adicionar
@@ -429,8 +429,8 @@ else
                                         }
                                     </span>
                                 </div>
-                                <button type="button" 
-                                        class="btn btn-sm btn-outline-danger" 
+                                <button type="button"
+                                        class="btn btn-sm btn-danger"
                                         @onclick="@(() => RemoveInstrumentFromMember(memberInstrument))"
                                         title="Remover instrumento">
                                     <i class="bi bi-trash"></i>

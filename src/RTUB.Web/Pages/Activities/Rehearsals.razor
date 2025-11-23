@@ -890,16 +890,24 @@ else
         @if (selectedRehearsal != null)
         {
             <!-- Rehearsal Information Section -->
-            <InfoSection SectionTitle="Informação do Ensaio" 
-                        IconClass="bi-info-circle-fill" 
+            <InfoSection SectionTitle="Informação do Ensaio"
+                        IconClass="bi-info-circle-fill"
                         CssClass="mb-4">
-                <ProfileField Label="Data" Value="@selectedRehearsal.Date.ToString("dd MMM yyyy")" />
-                <ProfileField Label="Localização" Value="@selectedRehearsal.Location" />
+                <ProfileField Label="Data"
+                              Value="@selectedRehearsal.Date.ToString("dd MMM yyyy")"
+                              Icon="bi-calendar-event" />
+                <ProfileField Label="Localização"
+                              Value="@selectedRehearsal.Location"
+                              Icon="bi-geo-alt-fill" />
                 @if (!string.IsNullOrEmpty(selectedRehearsal.Theme))
                 {
-                    <ProfileField Label="Tema" Value="@selectedRehearsal.Theme" />
+                    <ProfileField Label="Tema"
+                                  Value="@selectedRehearsal.Theme"
+                                  Icon="bi-music-note-beamed" />
                 }
-                <ProfileField Label="Horário" Value="@($"{selectedRehearsal.StartTime:hh\\:mm} - {selectedRehearsal.EndTime:hh\\:mm}")" />
+                <ProfileField Label="Horário"
+                              Value="@($"{selectedRehearsal.StartTime:hh\\:mm} - {selectedRehearsal.EndTime:hh\\:mm}")"
+                              Icon="bi-clock-history" />
             </InfoSection>
 
             <!-- Notes Section -->

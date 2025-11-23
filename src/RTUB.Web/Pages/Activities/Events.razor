@@ -673,14 +673,21 @@ else
             @if (selectedEvent != null)
             {
                 <!-- Event Information Section -->
-                <InfoSection SectionTitle="Informação da Atuação" 
-                            IconClass="bi-info-circle-fill" 
+                <InfoSection SectionTitle="Informação da Atuação"
+                            IconClass="bi-info-circle-fill"
                             CssClass="mb-4">
-                    <ProfileField Label="Nome" Value="@selectedEvent.Name" />
-                    <ProfileField Label="Tipo" Value="@GetEventTypeDisplay(selectedEvent.Type)" />
-                    <ProfileField Label="Data" 
-                                Value="@GetEventDateDisplay(selectedEvent)" />
-                    <ProfileField Label="Localização" Value="@selectedEvent.Location" />
+                    <ProfileField Label="Nome"
+                                  Value="@selectedEvent.Name"
+                                  Icon="bi-card-text" />
+                    <ProfileField Label="Tipo"
+                                  Value="@GetEventTypeDisplay(selectedEvent.Type)"
+                                  Icon="bi-tag-fill" />
+                    <ProfileField Label="Data"
+                                  Value="@GetEventDateDisplay(selectedEvent)"
+                                  Icon="bi-calendar-event" />
+                    <ProfileField Label="Localização"
+                                  Value="@selectedEvent.Location"
+                                  Icon="bi-geo-alt-fill" />
                 </InfoSection>
 
                 <!-- Description Section -->

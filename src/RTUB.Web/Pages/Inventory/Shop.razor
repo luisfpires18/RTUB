@@ -487,19 +487,27 @@ else
     <Sections>
         @if (userReservation != null)
         {
-            <InfoSection SectionTitle="Informação da Reserva" 
-                        IconClass="bi-info-circle-fill" 
+            <InfoSection SectionTitle="Informação da Reserva"
+                        IconClass="bi-info-circle-fill"
                         CssClass="mb-3">
-                <ProfileField Label="Reservado por" Value="@userReservation.UserNickname" />
+                <ProfileField Label="Reservado por"
+                              Value="@userReservation.UserNickname"
+                              Icon="bi-person-fill" />
                 @if (!string.IsNullOrEmpty(userReservation.DisplayName))
                 {
-                    <ProfileField Label="Nome para apresentação" Value="@userReservation.DisplayName" />
+                    <ProfileField Label="Nome para apresentação"
+                                  Value="@userReservation.DisplayName"
+                                  Icon="bi-person-badge-fill" />
                 }
                 @if (!string.IsNullOrEmpty(userReservation.Size))
                 {
-                    <ProfileField Label="Tamanho" Value="@userReservation.Size" />
+                    <ProfileField Label="Tamanho"
+                                  Value="@userReservation.Size"
+                                  Icon="bi-rulers" />
                 }
-                <ProfileField Label="Data da reserva" Value="@userReservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")" />
+                <ProfileField Label="Data da reserva"
+                              Value="@userReservation.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                              Icon="bi-calendar-check" />
             </InfoSection>
         }
     </Sections>

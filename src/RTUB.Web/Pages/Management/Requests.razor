@@ -152,22 +152,36 @@ else
         @if (selectedRequest != null)
         {
             <!-- Contact Information Section -->
-            <InfoSection SectionTitle="Informação de Contacto" 
-                        IconClass="bi-person-fill" 
+            <InfoSection SectionTitle="Informação de Contacto"
+                        IconClass="bi-person-fill"
                         CssClass="mb-4">
-                <ProfileField Label="Nome" Value="@selectedRequest.Name" />
-                <ProfileField Label="Email" Value="@selectedRequest.Email" />
-                <ProfileField Label="Telefone" Value="@selectedRequest.Phone" />
+                <ProfileField Label="Nome"
+                              Value="@selectedRequest.Name"
+                              Icon="bi-person-circle" />
+                <ProfileField Label="Email"
+                              Value="@selectedRequest.Email"
+                              Icon="bi-envelope-fill" />
+                <ProfileField Label="Telefone"
+                              Value="@selectedRequest.Phone"
+                              Icon="bi-telephone-fill" />
             </InfoSection>
 
             <!-- Event Information Section -->
-            <InfoSection SectionTitle="Informação do Evento" 
-                        IconClass="bi-calendar-event-fill" 
+            <InfoSection SectionTitle="Informação do Evento"
+                        IconClass="bi-calendar-event-fill"
                         CssClass="mb-4">
-                <ProfileField Label="Tipo de Evento" Value="@selectedRequest.EventType" />
-                <ProfileField Label="Data Preferida" Value="@selectedRequest.PreferredDate.ToPortugueseShortDate()" />
-                <ProfileField Label="Localização" Value="@selectedRequest.Location" />
-                <ProfileField Label="Submetido" Value="@selectedRequest.CreatedAt.ToPortugueseDateTime()" />
+                <ProfileField Label="Tipo de Evento"
+                              Value="@selectedRequest.EventType"
+                              Icon="bi-music-note-list" />
+                <ProfileField Label="Data Preferida"
+                              Value="@selectedRequest.PreferredDate.ToPortugueseShortDate()"
+                              Icon="bi-calendar-check" />
+                <ProfileField Label="Localização"
+                              Value="@selectedRequest.Location"
+                              Icon="bi-geo-alt-fill" />
+                <ProfileField Label="Submetido"
+                              Value="@selectedRequest.CreatedAt.ToPortugueseDateTime()"
+                              Icon="bi-clock-history" />
             </InfoSection>
 
             <!-- Additional Information Section -->
