@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace RTUB.Application.Extensions;
 
 /// <summary>
@@ -5,6 +7,8 @@ namespace RTUB.Application.Extensions;
 /// </summary>
 public static class DateTimeExtensions
 {
+    private static readonly CultureInfo PortugueseCulture = CultureInfo.GetCultureInfo("pt-PT");
+
     /// <summary>
     /// Formats date as dd/MM/yyyy (Portuguese short date format)
     /// </summary>
@@ -43,5 +47,16 @@ public static class DateTimeExtensions
     public static string ToPortugueseDateTime(this DateTime? date)
     {
         return date?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Gets the Portuguese weekday name with an initial capital letter
+    /// </summary>
+    public static string ToPortugueseWeekdayName(this DateTime date)
+    {
+        var dayName = PortugueseCulture.DateTimeFormat.GetDayName(date.DayOfWeek);
+        return string.IsNullOrEmpty(dayName)
+            ? string.Empty
+            : $"{char.ToUpper(dayName[0], PortugueseCulture)}{dayName[1..]}";
     }
 }

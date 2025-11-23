@@ -1,4 +1,5 @@
 @namespace RTUB.Shared
+@using RTUB.Application.Extensions
 @*
     RehearsalCard Component
     Compact card for displaying rehearsal information with attendance actions
@@ -382,18 +383,5 @@
     }
 
     // Helper method to get day of week in Portuguese
-    private string GetDayOfWeek(DateTime date)
-    {
-        return date.DayOfWeek switch
-        {
-            DayOfWeek.Monday => "Segunda",
-            DayOfWeek.Tuesday => "Terça",
-            DayOfWeek.Wednesday => "Quarta",
-            DayOfWeek.Thursday => "Quinta",
-            DayOfWeek.Friday => "Sexta",
-            DayOfWeek.Saturday => "Sábado",
-            DayOfWeek.Sunday => "Domingo",
-            _ => ""
-        };
-    }
+    private string GetDayOfWeek(DateTime date) => date.ToPortugueseWeekdayName();
 }

@@ -119,58 +119,55 @@ else
                         OnPageSizeChanged="@HandleUpcomingRehearsalsPageSizeChange" />
     }
     
-    <!-- Previous Rehearsals Section (Admin Only) -->
-    @if (isAdmin)
+    <!-- Previous Rehearsals Section -->
+    <h3 class="mt-5 mb-3">Ensaios Anteriores</h3>
+
+    <!-- Search for previous rehearsals -->
+    <div class="mb-3">
+        <SearchBar @bind-Value="previousRehearsalsSearch"
+                   Placeholder="Pesquisar ensaio anterior..."
+                   OnSearch="@HandlePreviousRehearsalsSearchChanged" />
+    </div>
+
+    @if (filteredPreviousRehearsals == null || !filteredPreviousRehearsals.Any())
     {
-        <h3 class="mt-5 mb-3">Ensaios Anteriores</h3>
-        
-        <!-- Search for previous rehearsals -->
-        <div class="mb-3">
-            <SearchBar @bind-Value="previousRehearsalsSearch"
-                       Placeholder="Pesquisar ensaio anterior..."
-                       OnSearch="@HandlePreviousRehearsalsSearchChanged" />
+        <EmptyState Title="Nenhum ensaio anterior encontrado"
+                   Icon="bi-info-circle" />
+    }
+    else
+    {
+        <div class="rehearsal-grid">
+            @foreach (var rehearsal in paginatedPreviousRehearsals)
+            {
+                var attendanceCount = rehearsal.Attendances.Count();
+
+                <RehearsalCard Rehearsal="@rehearsal"
+                               UserAttendance="null"
+                               AttendanceCount="@attendanceCount"
+                               IsAdmin="@isAdmin"
+                               IsPastRehearsal="true"
+                               ShowDeleteButton="@CanDeleteRehearsal()"
+                               ShowCancelButton="@CanCancelRehearsal()"
+                               OnEdit="@(() => OpenEditModal(rehearsal))"
+                               OnDelete="@(() => OpenDeleteModal(rehearsal))"
+                               OnCancel="@(() => OpenCancelRehearsalModal(rehearsal))"
+                               OnUncancel="@(() => UncancelRehearsal(rehearsal))"
+                               OnMarkAttendance="@(() => {})"
+                               OnViewAttendances="@(() => ViewAttendances(rehearsal))"
+                               OnEditAttendance="@(() => {})"
+                               OnRemoveAttendance="@(() => {})"
+                               OnViewDetails="@(() => OpenRehearsalDetailsModal(rehearsal))" />
+            }
         </div>
-        
-        @if (filteredPreviousRehearsals == null || !filteredPreviousRehearsals.Any())
-        {
-            <EmptyState Title="Nenhum ensaio anterior encontrado"
-                       Icon="bi-info-circle" />
-        }
-        else
-        {
-            <div class="rehearsal-grid">
-                @foreach (var rehearsal in paginatedPreviousRehearsals)
-                {
-                    var attendanceCount = rehearsal.Attendances.Count();
-                    
-                    <RehearsalCard Rehearsal="@rehearsal"
-                                   UserAttendance="null"
-                                   AttendanceCount="@attendanceCount"
-                                   IsAdmin="@isAdmin"
-                                   IsPastRehearsal="true"
-                                   ShowDeleteButton="@CanDeleteRehearsal()"
-                                   ShowCancelButton="@CanCancelRehearsal()"
-                                   OnEdit="@(() => OpenEditModal(rehearsal))"
-                                   OnDelete="@(() => OpenDeleteModal(rehearsal))"
-                                   OnCancel="@(() => OpenCancelRehearsalModal(rehearsal))"
-                                   OnUncancel="@(() => UncancelRehearsal(rehearsal))"
-                                   OnMarkAttendance="@(() => {})"
-                                   OnViewAttendances="@(() => ViewAttendances(rehearsal))"
-                                   OnEditAttendance="@(() => {})"
-                                   OnRemoveAttendance="@(() => {})"
-                                   OnViewDetails="@(() => OpenRehearsalDetailsModal(rehearsal))" />
-                }
-            </div>
-            
-            <!-- Pagination for previous rehearsals -->
-            <TablePagination CurrentPage="@previousRehearsalsPagination.CurrentPage"
-                            PageSize="@previousRehearsalsPagination.PageSize"
-                            TotalItems="@filteredPreviousRehearsals.Count"
-                            ItemLabel="ensaios"
-                            PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
-                            OnPageChanged="@HandlePreviousRehearsalsPageChange"
-                            OnPageSizeChanged="@HandlePreviousRehearsalsPageSizeChange" />
-        }
+
+        <!-- Pagination for previous rehearsals -->
+        <TablePagination CurrentPage="@previousRehearsalsPagination.CurrentPage"
+                        PageSize="@previousRehearsalsPagination.PageSize"
+                        TotalItems="@filteredPreviousRehearsals.Count"
+                        ItemLabel="ensaios"
+                        PageSizeOptions="@(new[] { 6, 12, 18, 24 })"
+                        OnPageChanged="@HandlePreviousRehearsalsPageChange"
+                        OnPageSizeChanged="@HandlePreviousRehearsalsPageSizeChange" />
     }
 }
 
@@ -968,7 +965,6 @@ else
                         <thead>
                             <tr>
                                 <th>Data</th>
-                                <th>Instrumento</th>
                                 <th>Estado</th>
                             </tr>
                         </thead>
@@ -976,15 +972,13 @@ else
                             @foreach (var item in paginatedRehearsalAttendances)
                             {
                                 <tr>
-                                    <td>@item.Rehearsal.Date.ToString("dd MMM yyyy")</td>
-                                    <td>@(item.Instrument?.ToString() ?? "-")</td>
+                                    <td>@FormatRehearsalDateWithDayOfWeek(item.Rehearsal)</td>
                                     <td>
                                         @if (item.WillAttend)
                                         {
-                                            @if (item.Attended)
+                                            if (item.Attended)
                                             {
                                                 <span class="badge bg-success">Foi</span>
-                                                <span class="badge bg-success ms-1">Aprovado</span>
                                             }
                                             else
                                             {
@@ -1052,7 +1046,13 @@ else
         public InstrumentType? Instrument => Attendance?.Instrument;
     }
 
-    // Previous rehearsals (admin only)
+    private string FormatRehearsalDateWithDayOfWeek(Rehearsal rehearsal)
+    {
+        var dayName = rehearsal.Date.ToPortugueseWeekdayName();
+        return $"{rehearsal.Date:dd MMM yyyy} ({dayName})";
+    }
+
+    // Previous rehearsals
     private List<Rehearsal> previousRehearsals = new();
     private List<Rehearsal> filteredPreviousRehearsals = new();
     private List<Rehearsal> paginatedPreviousRehearsals = new();
@@ -1228,14 +1228,11 @@ else
             .OrderBy(r => r.Date)
             .ToList();
 
-        // Load previous rehearsals for admins
-        if (isAdmin)
-        {
-            previousRehearsals = allRehearsals
-                .Where(r => r.Date < DateTime.Today)
-                .OrderByDescending(r => r.Date)
-                .ToList();
-        }
+        // Load previous rehearsals
+        previousRehearsals = allRehearsals
+            .Where(r => r.Date < DateTime.Today)
+            .OrderByDescending(r => r.Date)
+            .ToList();
 
         // Load user's recent attendances
         if (currentUserId != null)
@@ -1244,10 +1241,7 @@ else
         }
 
         FilterRehearsals();
-        if (isAdmin)
-        {
-            FilterPreviousRehearsals();
-        }
+        FilterPreviousRehearsals();
     }
 
     private async Task OnFiscalYearChanged()
@@ -1271,12 +1265,6 @@ else
 
         // Apply pagination to upcoming rehearsals
         paginatedUpcomingRehearsals = upcomingRehearsalsPagination.GetPageData(filteredUpcomingRehearsals);
-
-        // Also filter previous rehearsals if admin
-        if (isAdmin)
-        {
-            FilterPreviousRehearsals();
-        }
 
         // Update URL state
         UpdateUrlState();
