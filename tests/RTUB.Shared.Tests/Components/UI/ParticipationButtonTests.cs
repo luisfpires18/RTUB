@@ -35,7 +35,6 @@ public class EnrollmentStatisticsButtonTests : TestContext
         Services.AddSingleton(_mockUserManager.Object);
         
         // Add required services for components
-        ComponentFactories.AddStub<Modal>();
         ComponentFactories.AddStub<SearchBar>();
         ComponentFactories.AddStub<EmptyState>();
         ComponentFactories.AddStub<TablePagination>();
@@ -91,18 +90,22 @@ public class EnrollmentStatisticsButtonTests : TestContext
     [Fact]
     public void EnrollmentStatisticsButton_OpensModalOnClick()
     {
-        // Arrange & Act
+        // Arrange
         var authContext = this.AddTestAuthorization();
         authContext.SetAuthorized("TestUser");
         authContext.SetRoles("Member");
 
         var cut = RenderComponent<EnrollmentStatisticsButton>();
 
-        // Click the button to open the modal
+        // Act
         cut.Find("button").Click();
 
-        // Assert
-        cut.Markup.Should().Contain("Estatísticas de Inscrições", "modal should open when button is clicked");
+        // Assert - wait for modal content to appear (modal may render asynchronously)
+        cut.WaitForAssertion(() =>
+        {
+            cut.Markup.Should().Contain("Estatísticas de Inscrições",
+                "modal should open when button is clicked");
+        }, TimeSpan.FromSeconds(2));
     }
 }
 
