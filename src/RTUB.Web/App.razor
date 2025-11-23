@@ -2,31 +2,45 @@
 @using RTUB.Components
 @namespace RTUB
 
-<CascadingAuthenticationState>
-    <Router AppAssembly="@typeof(Program).Assembly">
-        <Found Context="routeData">
-            <AuthorizeRouteView RouteData="routeData" DefaultLayout="@typeof(RTUB.Shared.MainLayout)">
-                <NotAuthorized>
-                    @if (context.User.Identity?.IsAuthenticated != true)
-                    {
-                        <RedirectToLogin />
-                    }
-                    else
-                    {
-                        <LayoutView Layout="@typeof(RTUB.Shared.MainLayout)">
-                            <p role="alert">You are not authorized to access this resource.</p>
-                        </LayoutView>
-                    }
-                </NotAuthorized>
-            </AuthorizeRouteView>
-            <FocusOnNavigate RouteData="routeData" Selector="h1" />
-        </Found>
-        <NotFound>
-            <LayoutView Layout="@typeof(RTUB.Shared.MainLayout)">
-                <p role="alert">Sorry, there's nothing at this address.</p>
-            </LayoutView>
-        </NotFound>
-    </Router>
-</CascadingAuthenticationState>
-
-<HeadOutlet />
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    @* PWA manifest must be in static HTML for Android/Chrome detection *@
+    <link rel="manifest" href="/manifest.webmanifest" />
+    @* Apple touch icon for iOS (can be dynamic, but included here for consistency) *@
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/rtub-logo-180.png" />
+    @* HeadOutlet allows MainLayout to inject additional head content dynamically *@
+    <HeadOutlet />
+</head>
+<body>
+    <CascadingAuthenticationState>
+        <Router AppAssembly="@typeof(Program).Assembly">
+            <Found Context="routeData">
+                <AuthorizeRouteView RouteData="routeData" DefaultLayout="@typeof(RTUB.Shared.MainLayout)">
+                    <NotAuthorized>
+                        @if (context.User.Identity?.IsAuthenticated != true)
+                        {
+                            <RedirectToLogin />
+                        }
+                        else
+                        {
+                            <LayoutView Layout="@typeof(RTUB.Shared.MainLayout)">
+                                <p role="alert">You are not authorized to access this resource.</p>
+                            </LayoutView>
+                        }
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+                <FocusOnNavigate RouteData="routeData" Selector="h1" />
+            </Found>
+            <NotFound>
+                <LayoutView Layout="@typeof(RTUB.Shared.MainLayout)">
+                    <p role="alert">Sorry, there's nothing at this address.</p>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </CascadingAuthenticationState>
+</body>
+</html>

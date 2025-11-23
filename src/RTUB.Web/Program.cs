@@ -400,8 +400,13 @@ public class Program
             context => !context.Request.Path.StartsWithSegments("/images"),
             appBuilder =>
             {
+                // Configure content type provider to serve .webmanifest with correct MIME type
+                var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+                provider.Mappings[".webmanifest"] = "application/manifest+json";
+                
                 appBuilder.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
                 {
+                    ContentTypeProvider = provider,
                     OnPrepareResponse = ctx =>
                     {
                         var path = ctx.Context.Request.Path.Value?.ToLowerInvariant() ?? "";
