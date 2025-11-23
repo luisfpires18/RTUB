@@ -14,19 +14,25 @@
 @inject IImageStorageService ImageStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<h1 class="mb-2"><i class="bi bi-box-seam"></i> Instrumentos</h1>
-<p class="lead mb-4 text-light-theme">Instrumentos da RTUB</p>
-
-<!-- Page Header Actions -->
-<AuthorizeView Roles="Admin,Mod">
-    <Authorized>
-        <div class="page-header-actions">
-            <button class="btn btn-success" @onclick="OpenCreateInstrumentModal" title="Novo Instrumento" disabled="@(loading || !categories.Any())">
-                <i class="bi bi-plus-lg"></i> Adicionar Instrumento
-            </button>
+<div class="d-flex flex-column gap-3 mb-4">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <div>
+            <h1 class="mb-2"><i class="bi bi-box-seam"></i> Instrumentos</h1>
+            <p class="lead mb-0 text-light-theme">Instrumentos da RTUB</p>
         </div>
-    </Authorized>
-</AuthorizeView>
+
+        <!-- Page Header Actions -->
+        <AuthorizeView Roles="Admin,Mod">
+            <Authorized>
+                <div class="page-header-actions justify-content-lg-end">
+                    <button class="btn btn-success" @onclick="OpenCreateInstrumentModal" title="Novo Instrumento" disabled="@(loading || !categories.Any())">
+                        <i class="bi bi-plus-lg"></i> Adicionar Instrumento
+                    </button>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</div>
 
 @if (loading)
 {
@@ -65,21 +71,29 @@ else
     </div>
 
     <!-- Filters -->
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <FilterDropdown ShowIcon="true"
-                          AllItemsLabel="Todos os tipos"
-                          Items="@categories"
-                          @bind-SelectedValue="filterCategory"
-                          OnChange="ApplyFilters" />
+    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 mb-3 flex-wrap">
+        <div class="flex-grow-1" style="min-width: 360px; max-width: 640px;">
+            <SearchBar
+                @bind-Value="searchTerm"
+                OnSearch="HandleSearchChanged"
+                Placeholder="Pesquisar instrumentos..." />
         </div>
-        <div class="col-md-4">
-            <FilterDropdown ShowIcon="true"
-                            SelectedValue="@filterCondition"
-                            SelectedValueChanged="@(value => filterCondition = value)"
-                            OnChange="@ApplyFilters"
-                            AllItemsLabel="Todas as condições"
-                            Options="@conditionFilterOptions" />
+        <div class="d-flex flex-column flex-sm-row gap-2 ms-lg-auto">
+            <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
+                <FilterDropdown ShowIcon="true"
+                              AllItemsLabel="Todos os tipos"
+                              Items="@categories"
+                              @bind-SelectedValue="filterCategory"
+                              OnChange="ApplyFilters" />
+            </div>
+            <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
+                <FilterDropdown ShowIcon="true"
+                                SelectedValue="@filterCondition"
+                                SelectedValueChanged="@(value => filterCondition = value)"
+                                OnChange="@ApplyFilters"
+                                AllItemsLabel="Todas as condições"
+                                Options="@conditionFilterOptions" />
+            </div>
         </div>
     </div>
 
@@ -343,6 +357,7 @@ else
     private List<Instrument> paginatedInstruments = new();
     private List<string> categories = new();
     private Dictionary<InstrumentCondition, int> conditionStats = new();
+    private string searchTerm = string.Empty;
     private string filterCategory = "";
     private string filterCondition = "";
     private IEnumerable<FilterDropdownOption> conditionFilterOptions => Enum.GetValues<InstrumentCondition>()
@@ -410,9 +425,24 @@ else
         loading = false;
     }
 
+    private Task HandleSearchChanged(string term)
+    {
+        searchTerm = term;
+        ApplyFilters();
+        return Task.CompletedTask;
+    }
+
     private void ApplyFilters()
     {
         filteredInstruments = instruments;
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredInstruments = filteredInstruments.Where(i =>
+                (!string.IsNullOrEmpty(i.Name) && i.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(i.Category) && i.Category.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(i.Brand) && i.Brand.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))).ToList();
+        }
 
         if (!string.IsNullOrEmpty(filterCategory))
         {

@@ -16,24 +16,30 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 
-<h1 class="mb-2"><i class="bi bi-inbox"></i> Gestão de Pedidos</h1>
-<p class="lead mb-4 text-light-theme">Gerir todos os pedidos submetidos através do website.</p>
-
-<!-- Search and Filter Controls -->
-<div class="row mb-3">
-    <div class="col-md-6">
-        <SearchBar
-            @bind-Value="SearchTerm"
-            OnSearch="UpdateSearch"
-            Placeholder="Pesquisar por nome, email, tipo de evento..." />
+<div class="d-flex flex-column gap-3 mb-4">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <div>
+            <h1 class="mb-2"><i class="bi bi-inbox"></i> Gestão de Pedidos</h1>
+            <p class="lead mb-0 text-light-theme">Gerir todos os pedidos submetidos através do website.</p>
+        </div>
     </div>
-    <div class="col-md-3">
-        <FilterDropdown
-            Items="@statusFilterOptions"
-            SelectedValue="@selectedStatusFilter"
-            SelectedValueChanged="@((value) => { selectedStatusFilter = value; ApplyFiltersAndPagination(); })"
-            AllItemsLabel="Todos os Estados"
-            IconClass="bi-funnel" />
+
+    <!-- Search and Filter Controls -->
+    <div class="d-flex flex-column flex-lg-row gap-2 align-items-stretch">
+        <div class="flex-grow-1" style="min-width: 360px; max-width: 640px;">
+            <SearchBar
+                @bind-Value="SearchTerm"
+                OnSearch="UpdateSearch"
+                Placeholder="Pesquisar por nome, email, tipo de evento..." />
+        </div>
+        <div class="flex-lg-shrink-0 ms-lg-auto" style="min-width: 240px;">
+            <FilterDropdown
+                Items="@statusFilterOptions"
+                SelectedValue="@selectedStatusFilter"
+                SelectedValueChanged="@((value) => { selectedStatusFilter = value; ApplyFiltersAndPagination(); })"
+                AllItemsLabel="Todos os Estados"
+                IconClass="bi-funnel" />
+        </div>
     </div>
 </div>
 

@@ -15,18 +15,40 @@
 @inject IImageStorageService ImageStorageService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<h1 class="mb-2"><i class="bi bi-cart"></i> Loja RTUB</h1>
-<p class="lead mb-4 text-light-theme">Produtos oficiais da Real Tuna Universitária de Bragança</p>
-
-<AuthorizeView Roles="Admin,Mod">
-    <Authorized>
-        <div class="mb-3">
-            <button class="btn btn-success" @onclick="OpenCreateProductModal" title="Adicionar Novo Produto">
-                <i class="bi bi-plus-lg"></i> Adicionar Produto
-            </button>
+<div class="d-flex flex-column gap-3 mb-4">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <div>
+            <h1 class="mb-2"><i class="bi bi-cart"></i> Loja RTUB</h1>
+            <p class="lead mb-0 text-light-theme">Produtos oficiais da Real Tuna Universitária de Bragança</p>
         </div>
-    </Authorized>
-</AuthorizeView>
+
+        <AuthorizeView Roles="Admin,Mod">
+            <Authorized>
+                <div class="page-header-actions justify-content-lg-end">
+                    <button class="btn btn-success" @onclick="OpenCreateProductModal" title="Adicionar Novo Produto">
+                        <i class="bi bi-plus-lg"></i> Adicionar Produto
+                    </button>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+
+    <!-- Filter -->
+    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap">
+        <div class="flex-grow-1" style="min-width: 360px; max-width: 640px;">
+            <SearchBar @bind-Value="searchTerm"
+                       Placeholder="Pesquisar produtos..."
+                       OnSearch="HandleSearchChanged" />
+        </div>
+        <div class="flex-lg-shrink-0 ms-lg-auto" style="min-width: 200px; max-width: 240px;">
+            <FilterDropdown ShowIcon="true"
+                          AllItemsLabel="Todos os tipos"
+                          Items="@productTypes"
+                          @bind-SelectedValue="selectedType"
+                          OnChange="FilterProducts" />
+        </div>
+    </div>
+</div>
 
 @if (loading)
 {
@@ -40,17 +62,6 @@ else if (!filteredProducts.Any())
 }
 else
 {
-    <!-- Filter -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <FilterDropdown ShowIcon="true"
-                          AllItemsLabel="Todos os tipos"
-                          Items="@productTypes"
-                          @bind-SelectedValue="selectedType"
-                          OnChange="FilterProducts" />
-        </div>
-    </div>
-
     <!-- Products Grid -->
     <div class="row">
         @foreach (var product in paginatedProducts)
@@ -601,6 +612,7 @@ else
     private List<Product> filteredProducts = new();
     private List<Product> paginatedProducts = new();
     private List<string> productTypes = new();
+    private string searchTerm = string.Empty;
     private string selectedType = "";
     private bool loading = true;
     private bool isMember = false;
@@ -705,16 +717,29 @@ else
         loading = false;
     }
 
+    private Task HandleSearchChanged(string term)
+    {
+        searchTerm = term;
+        FilterProducts();
+        return Task.CompletedTask;
+    }
+
     private void FilterProducts()
     {
-        if (string.IsNullOrEmpty(selectedType))
+        filteredProducts = products;
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            filteredProducts = products;
+            filteredProducts = filteredProducts.Where(p =>
+                (!string.IsNullOrEmpty(p.Name) && p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(p.Type) && p.Type.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))).ToList();
         }
-        else
+
+        if (!string.IsNullOrEmpty(selectedType))
         {
-            filteredProducts = products.Where(p => p.Type == selectedType).ToList();
+            filteredProducts = filteredProducts.Where(p => p.Type == selectedType).ToList();
         }
+
         UpdatePagination();
     }
 

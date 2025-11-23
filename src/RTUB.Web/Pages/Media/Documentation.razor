@@ -18,19 +18,24 @@
 @inject IJSRuntime JSRuntime
 @inject AuditContext AuditContext
 
-<h1 class="mb-2"><i class="bi bi-file-earmark-text"></i> Documentação</h1>
-<p class="lead mb-4 text-light-theme">Documentos e recursos importantes da RTUB organizados por categoria.</p>
+<div class="d-flex flex-column gap-3 mb-4">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <div>
+            <h1 class="mb-2"><i class="bi bi-file-earmark-text"></i> Documentação</h1>
+            <p class="lead mb-0 text-light-theme">Documentos e recursos importantes da RTUB organizados por categoria.</p>
+        </div>
 
-@* Create Folder button - Available to Admin and Mod only *@
-@if (canDoAction)
-{
-    <div class="mb-3">
-        <button class="btn btn-success mb-2" @onclick="OpenCreateFolderModal" title="Criar Nova Pasta">
-            <i class="bi bi-folder-plus"></i>
-            <span class="ms-1 d-none d-md-inline">Criar Pasta</span>
-        </button>
+        @if (canDoAction)
+        {
+            <div class="d-flex justify-content-lg-end">
+                <button class="btn btn-success" @onclick="OpenCreateFolderModal" title="Criar Nova Pasta">
+                    <i class="bi bi-folder-plus"></i>
+                    <span class="ms-1 d-none d-md-inline">Criar Pasta</span>
+                </button>
+            </div>
+        }
     </div>
-}
+</div>
 
 @if (isLoading)
 {

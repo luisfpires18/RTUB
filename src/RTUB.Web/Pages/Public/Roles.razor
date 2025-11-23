@@ -20,21 +20,37 @@
 @inject NavigationManager NavigationManager
 @inject RTUB.Application.Services.AuditContext AuditContext
 
-<h1 class="mb-2"><i class="bi bi-shield-check"></i> Órgãos Sociais</h1>
-<p class="lead mb-4 text-light-theme">Estrutura organizacional e órgãos sociais da RTUB por ano letivo.</p>
-
-@* Admin Add button (top-left, green) *@
-<AuthorizeView Roles="Mod,Admin">
-    <Authorized>
-        <div class="mb-3">
-            <button class="btn btn-success mb-2" @onclick="OpenCreateFiscalYearModal" title="Adicionar Ano Letivo">
-                <i class="bi bi-plus-lg"></i> Adicionar Ano Letivo
-            </button>
+<div class="d-flex flex-column gap-3 mb-4">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <div>
+            <h1 class="mb-2"><i class="bi bi-shield-check"></i> Órgãos Sociais</h1>
+            <p class="lead mb-0 text-light-theme">Estrutura organizacional e órgãos sociais da RTUB por ano letivo.</p>
         </div>
-    </Authorized>
-</AuthorizeView>
 
-@* FY Dropdown without icon *@
+        <div class="d-flex flex-column align-items-lg-end gap-2">
+            <AuthorizeView Roles="Mod,Admin">
+                <Authorized>
+                    <button class="btn btn-success align-self-lg-end" @onclick="OpenCreateFiscalYearModal" title="Adicionar Ano Letivo">
+                        <i class="bi bi-plus-lg"></i> Adicionar Ano Letivo
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+
+            @if (fiscalYears.Any())
+            {
+                <div class="flex-sm-shrink-0 align-self-lg-end" style="min-width: 240px;">
+                    <FilterDropdown SelectedValue="@selectedFiscalYear"
+                                    SelectedValueChanged="@(value => selectedFiscalYear = value)"
+                                    OnChange="@OnFiscalYearChanged"
+                                    AllItemsLabel="Selecionar Ano Letivo"
+                                    Items="@fiscalYears"
+                                    IconClass="bi-calendar-event" />
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
 @if (!fiscalYears.Any())
 {
     <EmptyState Title="Nenhum ano letivo ainda"
@@ -43,19 +59,6 @@
 }
 else
 {
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <select class="form-select" @bind="selectedFiscalYear" @bind:after="OnFiscalYearChanged">
-                <option value="" disabled>Selecionar Ano Letivo</option>
-                @foreach (var year in fiscalYears)
-                {
-                    var isCurrent = year == currentFiscalYearString;
-                    <option value="@year">@year@(isCurrent ? " (Ano ativo)" : "")</option>
-                }
-            </select>
-        </div>
-    </div>
-
     @* RGI Section - Visible only to MEMBER and ADMIN *@
     <AuthorizeView Roles="Member,Mod,Admin">
         <section class="mb-4">

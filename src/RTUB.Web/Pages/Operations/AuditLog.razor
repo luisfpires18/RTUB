@@ -46,18 +46,17 @@
                 </div>
             </div>
             <div class="card-body filters-body @(filtersExpanded ? "expanded" : "collapsed")">
-                <div class="filters-grid">
-                    <div class="filter-group">
+                <div class="filters-grid row g-3">
+                    <div class="filter-group col-12 col-md-6">
                         <label class="form-label">User</label>
-                        <select class="form-select" @bind="selectedUser" @bind:after="ApplyFilters">
-                            <option value="">All Users</option>
-                            @foreach (var user in availableUsers)
-                            {
-                                <option value="@user">@user</option>
-                            }
-                        </select>
+                        <FilterDropdown ShowIcon="false"
+                                        SelectedValue="@selectedUser"
+                                        SelectedValueChanged="@(value => selectedUser = value)"
+                                        OnChange="@ApplyFilters"
+                                        AllItemsLabel="All Users"
+                                        Items="@availableUsers" />
                     </div>
-                    <div class="filter-group">
+                    <div class="filter-group col-12 col-md-6">
                         <label class="form-label">Exclude User</label>
                         <FilterDropdown ShowIcon="false"
                                         SelectedValue="@excludedUser"
@@ -66,7 +65,7 @@
                                         AllItemsLabel="No Exclusion"
                                         Items="@availableUsers" />
                     </div>
-                    <div class="filter-group">
+                    <div class="filter-group col-12 col-md-6">
                         <label class="form-label">Entity Type</label>
                         <FilterDropdown SelectedValue="@selectedEntityType"
                                         SelectedValueChanged="@(value => selectedEntityType = value)"
@@ -74,7 +73,7 @@
                                         AllItemsLabel="All Entities"
                                         Items="@availableEntityTypes" />
                     </div>
-                    <div class="filter-group">
+                    <div class="filter-group col-12 col-md-6">
                         <label class="form-label">Action</label>
                         <FilterDropdown SelectedValue="@selectedAction"
                                         SelectedValueChanged="@(value => selectedAction = value)"
@@ -83,25 +82,27 @@
                                         Items="@availableActions" />
                     </div>
                 </div>
-                <div class="filters-bottom">
-                    <div class="filter-group filter-search">
+                <div class="filters-bottom d-flex flex-column gap-3 w-100">
+                    <div class="filter-search w-100">
                         <SearchBar
                             @bind-Value="searchTerm"
                             OnSearch="UpdateSearch"
                             Placeholder="Search in changes..." />
                     </div>
-                    <div class="filter-group filter-checkbox">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="criticalOnly" @bind="criticalOnly" @bind:after="ApplyFilters" />
-                            <label class="form-check-label" for="criticalOnly">
-                                <i class="bi bi-exclamation-triangle-fill text-danger"></i> Critical Actions Only
-                            </label>
+                    <div class="filters-actions-row d-flex flex-row flex-wrap align-items-center justify-content-between gap-2 w-100">
+                        <div class="filter-group filter-checkbox mb-0">
+                            <div class="rtub-checkbox-wrapper d-flex align-items-center">
+                                <input class="form-check-input rtub-checkbox-large" type="checkbox" id="criticalOnly" @bind="criticalOnly" @bind:after="ApplyFilters" />
+                                <label class="form-check-label ms-2" for="criticalOnly">
+                                    <i class="bi bi-exclamation-triangle-fill text-danger"></i> Critical Actions Only
+                                </label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="filter-group filter-clear">
-                        <button class="btn btn-secondary btn-sm" @onclick="ClearFilters">
-                            <i class="bi bi-x-circle"></i> Clear Filters
-                        </button>
+                        <div class="filter-group filter-clear mb-0 ms-sm-auto">
+                            <button class="btn btn-secondary btn-sm" @onclick="ClearFilters">
+                                <i class="bi bi-x-circle"></i> Clear Filters
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
