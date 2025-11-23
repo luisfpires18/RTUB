@@ -168,7 +168,7 @@ th:hover {
 /* SearchBar component */
 .search-bar-container {
     width: 100%;
-    margin-top: 2.5rem;
+    margin-top: 1rem;
     margin-bottom: 1rem;
 }
 
@@ -242,6 +242,7 @@ th:hover {
 
 /* FilterDropdown component */
 .filter-dropdown {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -265,44 +266,72 @@ th:hover {
     display: inline-flex;
 }
 
-.filter-dropdown__select {
+.filter-dropdown__control {
     flex: 1;
     background: transparent;
     border: none;
     color: #ffffff;
     outline: none;
     padding: 0.25rem 0.1rem;
-    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    cursor: pointer;
 }
 
-.filter-dropdown__select:focus {
-    box-shadow: none;
+.filter-dropdown__control:focus {
+    outline: none;
 }
 
-.filter-dropdown__select option {
-    background-color: #1a1c24 !important;
-    color: #ffffff !important;
+.filter-dropdown__value {
+    text-align: left;
+    flex: 1;
 }
 
-.filter-dropdown__select option:hover,
-.filter-dropdown__select option:focus,
-.filter-dropdown__select option:active {
-    background-color: var(--bs-primary) !important;
-    color: #ffffff !important;
+.filter-dropdown__caret {
+    color: #cfcfe8;
+    font-size: 0.9rem;
 }
 
-.filter-dropdown__select option:checked,
-.filter-dropdown__select option[selected],
-.filter-dropdown__select option:selected {
-    background-color: #151516 !important;
-    color: #ffffff !important;
+.filter-dropdown__panel {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 0;
+    width: 100%;
+    background-color: #1a1c24;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.45);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    z-index: 3000;
+    padding: 0.35rem;
+    max-height: 18rem;
+    overflow-y: auto;
+}
+
+.filter-dropdown__option {
+    color: #ffffff;
+    padding: 0.45rem 0.65rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.filter-dropdown__option:hover,
+.filter-dropdown__option.is-focused {
+    background-color: var(--bs-primary);
+    color: #ffffff;
+}
+
+.filter-dropdown__option.is-selected {
+    background-color: #151516;
+    color: #ffffff;
 }
 
 /* Global dropdown option styling to remove system blue highlights */
 select option,
-.form-select option,
-.filter-dropdown__select option {
-    background-color: #1a1c24 !important;
+.form-select option {
+    background-color: #212121 !important;
     color: #ffffff !important;
 }
 
@@ -322,11 +351,44 @@ select option:selected,
 .form-select option:checked,
 .form-select option[selected],
 .form-select option:selected,
-.filter-dropdown__select option:checked,
-.filter-dropdown__select option[selected],
-.filter-dropdown__select option:selected {
-    background-color: #151516 !important;
+select option:checked:focus,
+select option:checked:hover,
+.form-select option:checked:focus,
+.form-select option:checked:hover {
+    background-color: var(--bs-primary) !important;
     color: #ffffff !important;
+}
+
+select::-ms-expand,
+.form-select::-ms-expand {
+    display: none;
+}
+
+/* Form dropdown chrome aligned to custom filter styling */
+select,
+.form-select {
+    background-color: #212121 !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.45);
+    border-radius: 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding-right: 2.5rem;
+    background-image: linear-gradient(45deg, transparent 50%, #cfcfe8 50%),
+                      linear-gradient(135deg, #cfcfe8 50%, transparent 50%);
+    background-position: calc(100% - 1.2rem) calc(50% - 0.15rem), calc(100% - 0.8rem) calc(50% - 0.15rem);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+}
+
+select:focus,
+.form-select:focus {
+    background-color: #212121;
+    color: #ffffff;
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
 }
 
 /* Override margin when search-bar-container is inside a horizontal flex container with gap (for inline filters like in Members page) */

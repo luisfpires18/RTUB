@@ -385,12 +385,11 @@ else
                 @if (performingMembers.Any())
                 {
                     <h6 class="mb-3 heading-purple">Membros (@performingMembers.Count)</h6>
-                    
+
                     <!-- Search Control -->
-                    <div class="mb-3">
-                        <input type="text" class="form-control" placeholder="Pesquisar por nome..." 
-                               @bind="enrollmentSearchTerm" @bind:event="oninput" @onkeyup="FilterEnrollments" />
-                    </div>
+                    <SearchBar @bind-Value="enrollmentSearchTerm"
+                               Placeholder="Pesquisar por nome..."
+                               OnSearch="HandleEnrollmentSearch" />
                     
                     <div class="enrollment-card-grid mb-4">
                         @foreach (var enrollment in paginatedPerformingMembers)
@@ -1741,7 +1740,17 @@ else
         addMemberToEnrollmentFeedbackMessage = "";
         addMemberToEnrollmentFeedbackIsError = false;
     }
-    
+
+    private Task HandleEnrollmentSearch(string term)
+    {
+        enrollmentSearchTerm = term;
+        performingMembersPagination.CurrentPage = 1;
+        leitoesPagination.CurrentPage = 1;
+        notAttendingPagination.CurrentPage = 1;
+        FilterEnrollments();
+        return Task.CompletedTask;
+    }
+
     private void FilterEnrollments()
     {
         if (eventEnrollments == null)

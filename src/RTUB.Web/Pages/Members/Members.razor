@@ -67,22 +67,15 @@
         <FilterDropdown SelectedValue="@selectedCategoryFilter"
                         SelectedValueChanged="@(value => selectedCategoryFilter = value)"
                         OnChange="@ApplyFilters"
-                        AllItemsLabel="Categoria">
-            <option value="Leitao">Leitão</option>
-            <option value="Caloiro">Caloiro</option>
-            <option value="Tuno">Tuno</option>
-        </FilterDropdown>
+                        AllItemsLabel="Categoria"
+                        Items="@(new[] { "Leitao", "Caloiro", "Tuno" })" />
     </div>
     <div style="flex: 1;">
         <FilterDropdown SelectedValue="@selectedInstrumentFilter"
                         SelectedValueChanged="@(value => selectedInstrumentFilter = value)"
                         OnChange="@ApplyFilters"
-                        AllItemsLabel="Instrumento">
-            @foreach (var instrument in AllInstrumentTypes)
-            {
-                <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
-            }
-        </FilterDropdown>
+                        AllItemsLabel="Instrumento"
+                        Options="@instrumentFilterOptions" />
     </div>
 </div>
 
@@ -995,10 +988,12 @@ else
 
     private string searchTerm = "";
     private int totalUsers = 0;
-    
+
     // Filter variables
     private string selectedCategoryFilter = "";
     private string selectedInstrumentFilter = "";
+    private IEnumerable<FilterDropdownOption> instrumentFilterOptions => AllInstrumentTypes
+        .Select(instrument => new FilterDropdownOption(instrument.ToString(), StatusHelper.GetInstrumentDisplay(instrument)));
 
     private bool showEditModal = false;
     private bool showDeleteModal = false;
@@ -1381,7 +1376,7 @@ else
         
         editingUser.MentorId = mentor.Id;
         selectedMentorCache = mentor;
-        mentorSearchTerm = $"{mentor.FirstName} {mentor.LastName}";
+        mentorSearchTerm = mentor.GetDisplayName();
         filteredMentors.Clear();
     }
 
@@ -1457,7 +1452,7 @@ else
             if (mentor != null)
             {
                 selectedMentorCache = mentor;
-                mentorSearchTerm = $"{mentor.FirstName} {mentor.LastName}";
+                mentorSearchTerm = mentor.GetDisplayName();
             }
         }
         else

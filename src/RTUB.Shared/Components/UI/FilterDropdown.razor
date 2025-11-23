@@ -1,5 +1,8 @@
 @namespace RTUB.Shared
+@implements IDisposable
+@using System
 @using System.Linq
+@using Microsoft.AspNetCore.Components.Web
 
 <div class="filter-dropdown @AdditionalClasses">
     @if (ShowIcon)
@@ -8,88 +11,80 @@
             <i class="bi @(string.IsNullOrWhiteSpace(IconClass) ? "bi-funnel" : IconClass)"></i>
         </span>
     }
-    <select class="filter-dropdown__select"
-            @bind="CurrentValue"
-            @bind:after="OnValueChanged">
-        @if (UseDefaultOption)
-        {
-            <option value="">@AllItemsLabel</option>
-        }
 
-        @if (ChildContent is not null)
-        {
-            @ChildContent
-        }
-        else if (Items?.Any() == true)
-        {
-            @foreach (var item in Items)
+    <button type="button"
+            class="filter-dropdown__control"
+            @onclick="ToggleDropdown"
+            @onkeydown="HandleTriggerKeyDown"
+            aria-haspopup="listbox"
+            aria-expanded="@isOpen">
+        <span class="filter-dropdown__value">@GetDisplayLabel(CurrentValue)</span>
+        <i class="bi bi-chevron-down filter-dropdown__caret"></i>
+    </button>
+
+    @if (isOpen)
+    {
+        <div class="filter-dropdown__panel"
+             role="listbox"
+             tabindex="-1"
+             @ref="optionsPanel"
+             @onkeydown="HandlePanelKeyDown">
+            @foreach (var optionData in options.Select((option, index) => new { option, index }))
             {
-                <option value="@item">@item</option>
+                var isSelected = optionData.option.Value == CurrentValue;
+                var isFocused = optionData.index == focusedIndex;
+                <div class="filter-dropdown__option @(isSelected ? "is-selected" : string.Empty) @(isFocused ? "is-focused" : string.Empty)"
+                     role="option"
+                     tabindex="-1"
+                     aria-selected="@isSelected"
+                     @onmouseenter="() => focusedIndex = optionData.index"
+                     @onclick="() => SelectOption(optionData.option.Value)">
+                    @optionData.option.Label
+                </div>
             }
-        }
-    </select>
+        </div>
+    }
 </div>
 
 @code {
-    /// <summary>
-    /// Whether to show the icon
-    /// </summary>
     [Parameter]
     public bool ShowIcon { get; set; } = true;
 
-    /// <summary>
-    /// Icon class for the filter (e.g., "bi-funnel")
-    /// </summary>
     [Parameter]
     public string IconClass { get; set; } = "bi-funnel";
 
-    /// <summary>
-    /// Label for "all items" option
-    /// </summary>
     [Parameter]
     public string AllItemsLabel { get; set; } = "Todos";
 
-    /// <summary>
-    /// Optional additional CSS classes
-    /// </summary>
     [Parameter]
     public string AdditionalClasses { get; set; } = string.Empty;
 
-    /// <summary>
-    /// List of items to display in dropdown
-    /// </summary>
     [Parameter]
     public IEnumerable<string> Items { get; set; } = Enumerable.Empty<string>();
 
-    /// <summary>
-    /// Currently selected value
-    /// </summary>
+    [Parameter]
+    public IEnumerable<FilterDropdownOption> Options { get; set; } = Enumerable.Empty<FilterDropdownOption>();
+
     [Parameter]
     public string SelectedValue { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Event callback when selection changes
-    /// </summary>
     [Parameter]
     public EventCallback<string> SelectedValueChanged { get; set; }
 
-    /// <summary>
-    /// Additional action to perform after value changes
-    /// </summary>
     [Parameter]
     public EventCallback OnChange { get; set; }
 
-    /// <summary>
-    /// Optional custom option markup
-    /// </summary>
-    [Parameter]
-    public RenderFragment? ChildContent { get; set; }
-
-    /// <summary>
-    /// Whether to render the default "all" option
-    /// </summary>
     [Parameter]
     public bool UseDefaultOption { get; set; } = true;
+
+    private static event Action<Guid>? DropdownOpened;
+
+    private readonly Guid instanceId = Guid.NewGuid();
+
+    private bool isOpen;
+    private int focusedIndex = -1;
+    private ElementReference optionsPanel;
+    private List<FilterDropdownOption> options = new();
 
     private string CurrentValue
     {
@@ -97,9 +92,202 @@
         set => SelectedValue = value;
     }
 
+    protected override void OnInitialized()
+    {
+        DropdownOpened += HandleDropdownOpened;
+    }
+
+    protected override void OnParametersSet()
+    {
+        options = BuildOptions().ToList();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (isOpen)
+        {
+            await optionsPanel.FocusAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        DropdownOpened -= HandleDropdownOpened;
+    }
+
+    private IEnumerable<FilterDropdownOption> BuildOptions()
+    {
+        var optionList = new List<FilterDropdownOption>();
+
+        if (UseDefaultOption)
+        {
+            optionList.Add(new FilterDropdownOption(string.Empty, AllItemsLabel));
+        }
+
+        if (Options?.Any() == true)
+        {
+            optionList.AddRange(Options);
+        }
+        else if (Items?.Any() == true)
+        {
+            optionList.AddRange(Items.Select(item => new FilterDropdownOption(item, item)));
+        }
+
+        return optionList;
+    }
+
+    private string GetDisplayLabel(string value)
+    {
+        var option = options.FirstOrDefault(o => o.Value == value);
+        if (option is not null)
+        {
+            return option.Label;
+        }
+
+        if (string.IsNullOrWhiteSpace(value) && UseDefaultOption)
+        {
+            return AllItemsLabel;
+        }
+
+        return value;
+    }
+
+    private void ToggleDropdown()
+    {
+        isOpen = !isOpen;
+        if (isOpen)
+        {
+            if (!options.Any())
+            {
+                focusedIndex = -1;
+            }
+            else
+            {
+                var currentIndex = options.FindIndex(o => o.Value == CurrentValue);
+                focusedIndex = currentIndex >= 0 ? currentIndex : 0;
+            }
+
+            DropdownOpened?.Invoke(instanceId);
+        }
+    }
+
+    private async Task HandleTriggerKeyDown(KeyboardEventArgs args)
+    {
+        switch (args.Key)
+        {
+            case "Enter":
+            case " ":
+                ToggleDropdown();
+                if (isOpen)
+                {
+                    await FocusPanelAsync();
+                }
+                break;
+            case "ArrowDown":
+            case "Down":
+                if (!isOpen)
+                {
+                    ToggleDropdown();
+                    await FocusPanelAsync();
+                }
+                else
+                {
+                    MoveFocus(1);
+                }
+                break;
+            case "ArrowUp":
+            case "Up":
+                if (!isOpen)
+                {
+                    ToggleDropdown();
+                    await FocusPanelAsync();
+                }
+                else
+                {
+                    MoveFocus(-1);
+                }
+                break;
+            case "Escape":
+                CloseDropdown();
+                break;
+        }
+    }
+
+    private async Task HandlePanelKeyDown(KeyboardEventArgs args)
+    {
+        switch (args.Key)
+        {
+            case "Escape":
+                CloseDropdown();
+                break;
+            case "Enter":
+                if (focusedIndex >= 0 && focusedIndex < options.Count)
+                {
+                    await SelectOption(options[focusedIndex].Value);
+                }
+                break;
+            case "ArrowDown":
+            case "Down":
+                MoveFocus(1);
+                break;
+            case "ArrowUp":
+            case "Up":
+                MoveFocus(-1);
+                break;
+        }
+    }
+
+    private async Task FocusPanelAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void MoveFocus(int direction)
+    {
+        if (!options.Any())
+        {
+            return;
+        }
+
+        if (focusedIndex < 0)
+        {
+            focusedIndex = 0;
+        }
+        else
+        {
+            focusedIndex = (focusedIndex + direction + options.Count) % options.Count;
+        }
+    }
+
+    private async Task SelectOption(string value)
+    {
+        CurrentValue = value;
+        await OnValueChanged();
+        CloseDropdown();
+    }
+
+    private void CloseDropdown()
+    {
+        isOpen = false;
+    }
+
     private async Task OnValueChanged()
     {
         await SelectedValueChanged.InvokeAsync(SelectedValue);
         await OnChange.InvokeAsync();
+    }
+
+    private void HandleDropdownOpened(Guid openedId)
+    {
+        if (openedId == instanceId)
+        {
+            return;
+        }
+
+        if (isOpen)
+        {
+            isOpen = false;
+            _ = InvokeAsync(StateHasChanged);
+        }
     }
 }

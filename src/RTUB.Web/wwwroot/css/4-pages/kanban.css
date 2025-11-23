@@ -388,6 +388,25 @@
     box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.5) !important;
 }
 
+/* Logistics modals - keep disabled buttons aligned with purple theme */
+.logistics-modal .btn:disabled,
+.logistics-modal .btn.disabled,
+.logistics-modal fieldset:disabled .btn {
+    background-color: rgba(var(--bs-primary-rgb), 0.2);
+    border-color: var(--bs-primary);
+    color: #fff;
+    opacity: 0.75;
+}
+
+.logistics-modal .btn-outline-primary:disabled,
+.logistics-modal .btn-outline-primary.disabled,
+.logistics-modal fieldset:disabled .btn-outline-primary {
+    background-color: rgba(var(--bs-primary-rgb), 0.12);
+    border-color: var(--bs-primary);
+    color: #fff;
+    opacity: 1;
+}
+
 /* Scrollbar styling */
 .kanban-cards::-webkit-scrollbar {
     width: 8px;

@@ -78,12 +78,8 @@ else
                             SelectedValue="@filterCondition"
                             SelectedValueChanged="@(value => filterCondition = value)"
                             OnChange="@ApplyFilters"
-                            AllItemsLabel="Todas as condições">
-                @foreach (InstrumentCondition condition in Enum.GetValues(typeof(InstrumentCondition)))
-                {
-                    <option value="@condition">@InstrumentConditionHelper.GetDisplayName(condition)</option>
-                }
-            </FilterDropdown>
+                            AllItemsLabel="Todas as condições"
+                            Options="@conditionFilterOptions" />
         </div>
     </div>
 
@@ -349,6 +345,8 @@ else
     private Dictionary<InstrumentCondition, int> conditionStats = new();
     private string filterCategory = "";
     private string filterCondition = "";
+    private IEnumerable<FilterDropdownOption> conditionFilterOptions => Enum.GetValues<InstrumentCondition>()
+        .Select(condition => new FilterDropdownOption(condition.ToString(), InstrumentConditionHelper.GetDisplayName(condition)));
 
     // Pagination
     private int currentPage = 1;

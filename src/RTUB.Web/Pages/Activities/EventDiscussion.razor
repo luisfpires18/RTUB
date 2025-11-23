@@ -45,19 +45,9 @@
         </div>
 
         <!-- Search Bar -->
-        <div class="mb-4">
-            <div class="input-group">
-                <span class="input-group-text bg-transparent">
-                    <i class="bi bi-search"></i>
-                </span>
-                <input type="text" 
-                       class="form-control" 
-                       placeholder="Pesquisar posts por título, conteúdo ou autor..." 
-                       @bind="searchTerm" 
-                       @bind:event="oninput" 
-                       @onkeyup="HandleSearch" />
-            </div>
-        </div>
+        <SearchBar @bind-Value="searchTerm"
+                   Placeholder="Pesquisar posts por título, conteúdo ou autor..."
+                   OnSearch="HandleSearch" />
 
         <!-- Posts Section -->
         @if (posts == null)
@@ -403,8 +393,9 @@
         Navigation.NavigateTo("/events");
     }
 
-    private async Task HandleSearch()
+    private async Task HandleSearch(string term)
     {
+        searchTerm = term;
         currentPage = 1;
         await LoadPostsAsync();
     }

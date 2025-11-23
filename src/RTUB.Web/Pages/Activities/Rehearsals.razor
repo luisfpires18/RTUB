@@ -54,13 +54,8 @@
         <FilterDropdown SelectedValue="@selectedFiscalYear"
                         SelectedValueChanged="@(value => selectedFiscalYear = value)"
                         OnChange="@OnFiscalYearChanged"
-                        AllItemsLabel="Todos os anos">
-            @foreach (var year in fiscalYears)
-            {
-                var isCurrent = year == currentFiscalYear;
-                <option value="@year">@year@(isCurrent ? " (ATUAL)" : "")</option>
-            }
-        </FilterDropdown>
+                        AllItemsLabel="Todos os anos"
+                        Options="@fiscalYearOptions" />
     </div>
     <div class="col-md-8">
         <label class="form-label">Pesquisar</label>
@@ -222,11 +217,8 @@ else
                                         SelectedValue="@attendanceApprovalFilter"
                                         SelectedValueChanged="@(value => attendanceApprovalFilter = value)"
                                         OnChange="@FilterAttendances"
-                                        UseDefaultOption="false">
-                                        <option value="Todos">Todos</option>
-                                        <option value="Pendente">Pendente</option>
-                                        <option value="Aprovado">Aprovado</option>
-                                    </FilterDropdown>
+                                        UseDefaultOption="false"
+                                        Items="@(new[] { "Todos", "Pendente", "Aprovado" })" />
                                 </div>
                             }
                             <div class="@(isAdmin && isSelectedRehearsalApprovable ? "col-12 col-md-8" : "col-12")">
@@ -1069,6 +1061,8 @@ else
     private List<string> fiscalYears = new();
     private string currentFiscalYear = "";
     private string selectedFiscalYear = "";
+    private IEnumerable<FilterDropdownOption> fiscalYearOptions => fiscalYears
+        .Select(year => new FilterDropdownOption(year, $"{year}{(year == currentFiscalYear ? " (ATUAL)" : string.Empty)}"));
     private string searchTerm = "";
     private SearchHelper<Rehearsal> searchHelper = new();
 

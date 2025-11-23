@@ -25,16 +25,12 @@
                     
                     <!-- Name and Badges -->
                     <div class="profile-header-info-centered">
+                        <h2 class="profile-display-name mb-1">@GetDisplayName()</h2>
                         @if (!string.IsNullOrEmpty(User.Nickname))
                         {
-                            <h2 class="profile-display-name mb-1">@User.Nickname</h2>
                             <p class="profile-full-name text-muted mb-3">
                                 @User.FirstName @User.LastName
                             </p>
-                        }
-                        else
-                        {
-                            <h2 class="profile-display-name mb-3">@GetDisplayName()</h2>
                         }
                         
                         <!-- Role Badges -->
@@ -95,6 +91,6 @@
     private string GetDisplayName()
     {
         if (User == null) return "";
-        return $"{User.FirstName} {User.LastName}";
+        return User.GetDisplayName();
     }
 }

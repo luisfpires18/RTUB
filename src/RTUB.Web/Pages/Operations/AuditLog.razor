@@ -59,37 +59,28 @@
                     </div>
                     <div class="filter-group">
                         <label class="form-label">Exclude User</label>
-                        <select class="form-select" @bind="excludedUser" @bind:after="ApplyFilters">
-                            <option value="">No Exclusion</option>
-                            @foreach (var user in availableUsers)
-                            {
-                                <option value="@user">@user</option>
-                            }
-                        </select>
+                        <FilterDropdown ShowIcon="false"
+                                        SelectedValue="@excludedUser"
+                                        SelectedValueChanged="@(value => excludedUser = value)"
+                                        OnChange="@ApplyFilters"
+                                        AllItemsLabel="No Exclusion"
+                                        Items="@availableUsers" />
                     </div>
                     <div class="filter-group">
                         <label class="form-label">Entity Type</label>
                         <FilterDropdown SelectedValue="@selectedEntityType"
                                         SelectedValueChanged="@(value => selectedEntityType = value)"
                                         OnChange="@ApplyFilters"
-                                        AllItemsLabel="All Entities">
-                            @foreach (var entity in availableEntityTypes)
-                            {
-                                <option value="@entity">@entity</option>
-                            }
-                        </FilterDropdown>
+                                        AllItemsLabel="All Entities"
+                                        Items="@availableEntityTypes" />
                     </div>
                     <div class="filter-group">
                         <label class="form-label">Action</label>
                         <FilterDropdown SelectedValue="@selectedAction"
                                         SelectedValueChanged="@(value => selectedAction = value)"
                                         OnChange="@ApplyFilters"
-                                        AllItemsLabel="All Actions">
-                            @foreach (var action in availableActions)
-                            {
-                                <option value="@action">@action</option>
-                            }
-                        </FilterDropdown>
+                                        AllItemsLabel="All Actions"
+                                        Items="@availableActions" />
                     </div>
                 </div>
                 <div class="filters-bottom">

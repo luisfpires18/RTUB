@@ -369,19 +369,14 @@ else
 
                                     @if (!string.IsNullOrEmpty(editUser.MentorId))
                                     {
-                                        var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editUser.MentorId);
-                                        if (displayMentor != null)
-                                        {
-                                            <div class="alert alert-purple mt-2 d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
-                                                </div>
-                                                <button type="button" class="btn btn-sm text-danger" style="background: none; border: none; padding: 0.25rem 0.5rem;" @onclick="ClearMentorSelection" title="Remover padrinho">
-                                                    <i class="bi bi-x-circle-fill" style="font-size: 1.25rem; color: white;"></i>
-                                                </button>
-                                            </div>
-                                        }
-                                    }
+                    var displayMentor = selectedMentorCache ?? eligibleMentors.FirstOrDefault(m => m.Id == editUser.MentorId);
+                    if (displayMentor != null)
+                    {
+                        <div class="alert alert-purple mt-2">
+                            <strong>Padrinho Selecionado:</strong> @displayMentor.GetDisplayName()
+                        </div>
+                    }
+                }
                                 </div>
                             }
 
@@ -911,7 +906,7 @@ else
                 if (existingMentor != null)
                 {
                     selectedMentorCache = existingMentor;
-                    mentorSearchTerm = $"{existingMentor.FirstName} {existingMentor.LastName}";
+                    mentorSearchTerm = existingMentor.GetDisplayName();
                 }
             }
             else
@@ -1217,7 +1212,7 @@ else
             editUser.MentorId = mentor.Id;
         }
         selectedMentorCache = mentor;
-        mentorSearchTerm = $"{mentor.FirstName} {mentor.LastName}";
+        mentorSearchTerm = mentor.GetDisplayName();
         filteredMentors.Clear();
     }
 
@@ -1234,17 +1229,11 @@ else
     
     private string? GetMentorDisplayName()
     {
-        // Try to get mentor from the loaded mentor object or by looking up the ID
         if (mentor != null)
         {
-            var displayName = $"{mentor.FirstName} {mentor.LastName}";
-            if (!string.IsNullOrEmpty(mentor.Nickname))
-            {
-                displayName += $" \"{mentor.Nickname}\"";
-            }
-            return displayName;
+            return mentor.GetDisplayName();
         }
-        
+
         // If mentor is null but user has a MentorId, the mentor might not have loaded
         // Return null to show "Não definido"
         return null;
