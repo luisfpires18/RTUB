@@ -31,9 +31,9 @@
 <!-- Search Box -->
 <div class="row mb-3">
     <div class="col-md-6">
-        <TableSearchBar 
-            SearchTerm="@SearchTerm"
-            OnSearchChanged="UpdateSearch"
+        <SearchBar
+            @bind-Value="SearchTerm"
+            OnSearch="UpdateSearch"
             Placeholder="Pesquisar por título ou descrição..." />
     </div>
 </div>

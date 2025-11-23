@@ -18,10 +18,10 @@
 
     @* Search Bar *@
     <div class="mb-3">
-        <TableSearchBar SearchTerm="@searchQuery"
-                        Placeholder="Pesquisar utilizadores..."
-                        OnSearchChanged="@HandleSearchChanged"
-                        DebounceDelay="300" />
+        <SearchBar @bind-Value="searchQuery"
+                   Placeholder="Pesquisar utilizadores..."
+                   OnSearch="@HandleSearchChanged"
+                   DebounceDelay="300" />
     </div>
 
     @* Subscribed Users Section *@

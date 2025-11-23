@@ -1,19 +1,26 @@
 @namespace RTUB.Shared
-@* 
-    Reusable Filter Dropdown Component
-    Used for filtering lists with a consistent design across the application
-*@
+@using System.Linq
 
-<div class="input-group">
+<div class="filter-dropdown @AdditionalClasses">
     @if (ShowIcon)
     {
-        <span class="input-group-text bg-white">
-            <i class="bi @IconClass text-dark"></i>
+        <span class="filter-dropdown__icon">
+            <i class="bi @(string.IsNullOrWhiteSpace(IconClass) ? "bi-funnel" : IconClass)"></i>
         </span>
     }
-    <select class="form-select" @bind="CurrentValue" @bind:after="OnValueChanged">
-        <option value="">@AllItemsLabel</option>
-        @if (Items != null)
+    <select class="filter-dropdown__select"
+            @bind="CurrentValue"
+            @bind:after="OnValueChanged">
+        @if (UseDefaultOption)
+        {
+            <option value="">@AllItemsLabel</option>
+        }
+
+        @if (ChildContent is not null)
+        {
+            @ChildContent
+        }
+        else if (Items?.Any() == true)
         {
             @foreach (var item in Items)
             {
@@ -43,10 +50,16 @@
     public string AllItemsLabel { get; set; } = "Todos";
 
     /// <summary>
+    /// Optional additional CSS classes
+    /// </summary>
+    [Parameter]
+    public string AdditionalClasses { get; set; } = string.Empty;
+
+    /// <summary>
     /// List of items to display in dropdown
     /// </summary>
     [Parameter]
-    public List<string> Items { get; set; } = new();
+    public IEnumerable<string> Items { get; set; } = Enumerable.Empty<string>();
 
     /// <summary>
     /// Currently selected value
@@ -65,6 +78,18 @@
     /// </summary>
     [Parameter]
     public EventCallback OnChange { get; set; }
+
+    /// <summary>
+    /// Optional custom option markup
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Whether to render the default "all" option
+    /// </summary>
+    [Parameter]
+    public bool UseDefaultOption { get; set; } = true;
 
     private string CurrentValue
     {

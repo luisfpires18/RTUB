@@ -322,27 +322,18 @@ else
                             @if (user != null && (!user.IsLeitao() || user.IsCaloiro() || user.IsTuno()) && !user.IsFundador())
                             {
                                 <div class="mb-3">
-                                    <label class="form-label text-white-full fw-semibold">
-                                        <i class="bi bi-person-heart text-primary me-2"></i>Padrinho
-                                    </label>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <label class="form-label text-white-full fw-semibold d-flex align-items-center gap-2 mb-0">
+                                            <i class="bi bi-person-hearts text-primary"></i>
+                                            <span>Padrinho</span>
+                                        </label>
+                                    </div>
                                     <div class="mentor-search-container">
-                                        <div class="input-group mb-2">
-                                            <span class="input-group-text">
-                                                <i class="bi bi-search"></i>
-                                            </span>
-                                            <input type="text" 
-                                                   class="form-control" 
-                                                   placeholder="Pesquisar padrinho por nome ou alcunha..."
-                                                   @bind="mentorSearchTerm" 
-                                                   @bind:event="oninput" 
-                                                   @onkeyup="FilterMentors" />
-                                            @if (!string.IsNullOrEmpty(mentorSearchTerm))
-                                            {
-                                                <button class="btn btn-outline-secondary" type="button" @onclick="ClearMentorSelection" title="Limpar seleção">
-                                                    <i class="bi bi-x-circle-fill"></i>
-                                                </button>
-                                            }
-                                        </div>
+                                        <SearchBar @bind-Value="mentorSearchTerm"
+                                                   Placeholder="Pesquisar padrinho por nome ou alcunha..."
+                                                   OnSearch="OnMentorSearch"
+                                                   OnClear="ClearMentorSelection"
+                                                   Compact="true" />
                                     </div>
                                     
                                     @if (filteredMentors.Any())
@@ -1203,6 +1194,12 @@ else
             u => $"{u.FirstName} {u.LastName}",
             u => u.Nickname ?? ""
         }, caseSensitive: false, accentSensitive: false);
+    }
+
+    private void OnMentorSearch(string term)
+    {
+        mentorSearchTerm = term;
+        FilterMentors();
     }
 
     private void SelectMentor(ApplicationUser mentor)

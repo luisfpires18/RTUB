@@ -36,9 +36,9 @@
         <AuthorizeView>
             <Authorized>
                 <div class="search-bar-container">
-                    <TableSearchBar SearchTerm="@searchTerm"
-                                    Placeholder="Pesquisar quadros..."
-                                    OnSearchChanged="HandleSearch" />
+                    <SearchBar @bind-Value="searchTerm"
+                               Placeholder="Pesquisar quadros..."
+                               OnSearch="HandleSearch" />
                 </div>
 
                 @if (boards == null)

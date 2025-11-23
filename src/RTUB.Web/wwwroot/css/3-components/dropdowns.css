@@ -165,10 +165,168 @@ th:hover {
    Component-specific styles moved from Razor files
    ======================================== */
 
-/* TableSearchBar component */
+/* SearchBar component */
 .search-bar-container {
+    width: 100%;
     margin-top: 2.5rem;
     margin-bottom: 1rem;
+}
+
+.search-bar-container--compact {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.search-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    background-color: #1a1c24;
+    color: #ffffff;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.65);
+    border-radius: 999px;
+    padding: 0.5rem 0.75rem;
+    box-shadow: 0 0 0 0 rgba(var(--bs-primary-rgb), 0.2);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.search-bar:focus-within {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
+    background-color: #202331;
+}
+
+.search-bar__icon {
+    color: #cfcfe8;
+    display: inline-flex;
+}
+
+.search-bar__input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    outline: none;
+    padding: 0.25rem 0.1rem;
+}
+
+.search-bar__input:focus {
+    box-shadow: none;
+}
+
+.search-bar__input::placeholder {
+    color: #bdbdd1;
+}
+
+.search-bar__clear {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 0.35rem 0.6rem;
+    line-height: 1;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-bar__clear:hover,
+.search-bar__clear:focus {
+    background: rgba(var(--bs-primary-rgb), 0.2);
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.search-bar__clear i {
+    vertical-align: middle;
+}
+
+/* FilterDropdown component */
+.filter-dropdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    background-color: #1a1c24;
+    color: #ffffff;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.65);
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.filter-dropdown:focus-within {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
+    background-color: #202331;
+}
+
+.filter-dropdown__icon {
+    color: #cfcfe8;
+    display: inline-flex;
+}
+
+.filter-dropdown__select {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    outline: none;
+    padding: 0.25rem 0.1rem;
+    appearance: none;
+}
+
+.filter-dropdown__select:focus {
+    box-shadow: none;
+}
+
+.filter-dropdown__select option {
+    background-color: #1a1c24 !important;
+    color: #ffffff !important;
+}
+
+.filter-dropdown__select option:hover,
+.filter-dropdown__select option:focus,
+.filter-dropdown__select option:active {
+    background-color: var(--bs-primary) !important;
+    color: #ffffff !important;
+}
+
+.filter-dropdown__select option:checked,
+.filter-dropdown__select option[selected],
+.filter-dropdown__select option:selected {
+    background-color: #151516 !important;
+    color: #ffffff !important;
+}
+
+/* Global dropdown option styling to remove system blue highlights */
+select option,
+.form-select option,
+.filter-dropdown__select option {
+    background-color: #1a1c24 !important;
+    color: #ffffff !important;
+}
+
+select option:hover,
+select option:focus,
+select option:active,
+.form-select option:hover,
+.form-select option:focus,
+.form-select option:active {
+    background-color: var(--bs-primary) !important;
+    color: #ffffff !important;
+}
+
+select option:checked,
+select option[selected],
+select option:selected,
+.form-select option:checked,
+.form-select option[selected],
+.form-select option:selected,
+.filter-dropdown__select option:checked,
+.filter-dropdown__select option[selected],
+.filter-dropdown__select option:selected {
+    background-color: #151516 !important;
+    color: #ffffff !important;
 }
 
 /* Override margin when search-bar-container is inside a horizontal flex container with gap (for inline filters like in Members page) */

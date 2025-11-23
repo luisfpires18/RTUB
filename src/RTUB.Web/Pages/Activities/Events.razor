@@ -124,9 +124,9 @@ else
             <h2>Atuações Anteriores</h2>
         </div>
 
-        <TableSearchBar SearchTerm="@previousEventsSearch"
-                        Placeholder="Pesquisar atuações anteriores..."
-                       OnSearchChanged="@HandlePreviousEventsSearch" />
+        <SearchBar @bind-Value="previousEventsSearch"
+                   Placeholder="Pesquisar atuações anteriores..."
+                   OnSearch="@HandlePreviousEventsSearch" />
 
         @if (filteredPreviousEvents == null)
         {
@@ -585,9 +585,9 @@ else
                     @if (showAddMemberToEnrollmentDropdown)
                     {
                         <div class="mb-2" @onkeydown="HandleAddMemberToEnrollmentKeyDown">
-                            <TableSearchBar SearchTerm="@addMemberToEnrollmentSearchTerm"
-                                           Placeholder="Pesquisar membro por nome..."
-                                           OnSearchChanged="@HandleAddMemberToEnrollmentSearchChanged" />
+                            <SearchBar @bind-Value="addMemberToEnrollmentSearchTerm"
+                                       Placeholder="Pesquisar membro por nome..."
+                                       OnSearch="@HandleAddMemberToEnrollmentSearchChanged" />
                             
                             @if (filteredAvailableMembersForEnrollment.Any())
                             {

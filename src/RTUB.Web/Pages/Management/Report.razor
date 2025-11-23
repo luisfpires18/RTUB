@@ -180,9 +180,10 @@ else
     else
         {
     <!-- Search Box -->
-     <TableSearchBar SearchTerm="@tableState.SearchTerm"
-                    Placeholder="Pesquisar transações..."
-                    OnSearchChanged="@(term => HandleTransactionSearch(activity.Id, term))" />
+     <SearchBar Value="@tableState.SearchTerm"
+                ValueChanged="@(term => tableState.SearchTerm = term)"
+                Placeholder="Pesquisar transações..."
+                OnSearch="@(term => HandleTransactionSearch(activity.Id, term))" />
      @if (!string.IsNullOrWhiteSpace(tableState.SearchTerm))
          {
            <small class="text-muted d-block mb-2">A mostrar @filteredCount de @activityTransactions.Count transações</small>

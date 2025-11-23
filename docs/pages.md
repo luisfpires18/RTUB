@@ -133,7 +133,7 @@ This document lists all Razor pages in the RTUB application with their routes, d
 - `MyEnrollmentsButton` (All authenticated)
 - `CrudModalManager` (Create/Edit)
 - `ConfirmDialog` (Delete)
-- `TableSearchBar`, `TablePagination`
+- `SearchBar`, `TablePagination`
 - `FilterDropdown` (by EventType)
 
 **Permissions:** 
@@ -171,7 +171,7 @@ This document lists all Razor pages in the RTUB application with their routes, d
 
 **Main Components:**
 - `MemberListItem` (table rows)
-- `TableSearchBar`, `TablePagination`, `SortableTableHeader`
+- `SearchBar`, `TablePagination`, `SortableTableHeader`
 - `DetailsModal` (View profile)
 - `CrudModalManager` (Edit - Admin only)
 - `ConfirmDialog` (Delete - Owner only)
@@ -239,7 +239,7 @@ This document lists all Razor pages in the RTUB application with their routes, d
 - `ParticipationModal` (Attendance)
 - `CrudModalManager` (Create/Edit - Admin)
 - `ConfirmDialog` (Delete - Admin)
-- `TableSearchBar`, `TablePagination`
+- `SearchBar`, `TablePagination`
 
 **Permissions:**
 - **View:** All authenticated users
@@ -279,7 +279,7 @@ This document lists all Razor pages in the RTUB application with their routes, d
 - `CrudModalManager` (Create/Edit transactions)
 - `ConfirmDialog` (Delete)
 - `ReportCard`
-- `TableSearchBar`, `TablePagination`
+- `SearchBar`, `TablePagination`
 - `FilterDropdown` (Income/Expense, Fiscal Year)
 
 **Permissions:** Admin, Owner only
@@ -319,7 +319,7 @@ This document lists all Razor pages in the RTUB application with their routes, d
 - `InstrumentCounter`
 - `CrudModalManager` (Create/Edit)
 - `ConfirmDialog` (Delete)
-- `TableSearchBar`, `TablePagination`
+- `SearchBar`, `TablePagination`
 - `FilterDropdown` (Condition, Type)
 
 **Permissions:**
@@ -360,7 +360,7 @@ This document lists all Razor pages in the RTUB application with their routes, d
 - `RequestCard`
 - `DetailsModal` (View details)
 - Approve/Reject buttons
-- `TableSearchBar`, `TablePagination`
+- `SearchBar`, `TablePagination`
 - `FilterDropdown` (Status)
 
 **Permissions:** Admin, Owner only
@@ -456,7 +456,7 @@ This document lists all Razor pages in the RTUB application with their routes, d
 - `CrudModalManager` (Create/Edit - Admin)
 - `ConfirmDialog` (Delete - Admin)
 - `ImageUploadManager`
-- `TableSearchBar`, `TablePagination`
+- `SearchBar`, `TablePagination`
 
 **Permissions:**
 - **View:** All authenticated users (implicit)
@@ -475,7 +475,7 @@ This document lists all Razor pages in the RTUB application with their routes, d
 - `SongCard`, `SongCardSkeleton` (loading)
 - `CrudModalManager` (Add song - Admin)
 - `ConfirmDialog` (Delete - Admin)
-- `TableSearchBar`
+- `SearchBar`
 
 **Permissions:**
 - **View:** All authenticated users (implicit)
@@ -499,7 +499,7 @@ Owner pages are restricted to users with the **Owner** role. This is the highest
 **Main Components:**
 - Audit log table
 - `FilterDropdown` (User, Action Type, Entity Type)
-- `TableSearchBar`, `TablePagination`, `SortableTableHeader`
+- `SearchBar`, `TablePagination`, `SortableTableHeader`
 - Export to JSON button
 - Truncate All button with `ConfirmDialog`
 
@@ -521,7 +521,7 @@ Owner pages are restricted to users with the **Owner** role. This is the highest
 - `RoleBadge`
 - `CrudModalManager` (Assign/remove roles)
 - `ConfirmDialog`
-- `TableSearchBar`, `TablePagination`
+- `SearchBar`, `TablePagination`
 
 **Permissions:** Owner only
 

@@ -36,7 +36,7 @@ public class EnrollmentStatisticsButtonTests : TestContext
         
         // Add required services for components
         ComponentFactories.AddStub<Modal>();
-        ComponentFactories.AddStub<TableSearchBar>();
+        ComponentFactories.AddStub<SearchBar>();
         ComponentFactories.AddStub<EmptyState>();
         ComponentFactories.AddStub<TablePagination>();
     }

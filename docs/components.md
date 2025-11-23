@@ -526,7 +526,7 @@ All form components follow consistent patterns with validation, labels, and erro
 
 ## Table Components
 
-### TableSearchBar
+### SearchBar
 **Purpose:** Search input with debouncing for filtering table data.
 
 **Parameters:**

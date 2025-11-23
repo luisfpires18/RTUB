@@ -50,9 +50,9 @@
             {
                 <!-- Search Bar -->
                 <div class="mb-3">
-                    <TableSearchBar SearchTerm="@statsSearchTerm"
-                                   Placeholder="Pesquisar por nome..."
-                                   OnSearchChanged="@HandleStatsSearchChanged" />
+                    <SearchBar @bind-Value="statsSearchTerm"
+                               Placeholder="Pesquisar por nome..."
+                               OnSearch="@HandleStatsSearchChanged" />
                 </div>
 
                 @if (!filteredStatsUsers.Any())

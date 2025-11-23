@@ -172,9 +172,9 @@ else
         
         <!-- Search Bar -->
         <div class="px-3 pt-3">
-            <TableSearchBar SearchTerm="@searchTerm"
-                           Placeholder="Pesquisar membros na classificação..."
-                           OnSearchChanged="@HandleSearchChanged" />
+            <SearchBar @bind-Value="searchTerm"
+                       Placeholder="Pesquisar membros na classificação..."
+                       OnSearch="@HandleSearchChanged" />
         </div>
         
         <div class="leaderboard-body">

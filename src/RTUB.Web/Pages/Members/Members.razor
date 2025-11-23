@@ -59,26 +59,30 @@
 <!-- Search and Controls -->
 <div class="d-flex gap-2 mb-3 align-items-center">
     <div style="flex: 2;">
-        <TableSearchBar SearchTerm="@searchTerm"
-                       Placeholder="Pesquisar membros..."
-                       OnSearchChanged="@HandleSearchChanged" />
+        <SearchBar @bind-Value="searchTerm"
+                   Placeholder="Pesquisar membros..."
+                   OnSearch="@HandleSearchChanged" />
     </div>
     <div style="flex: 1;">
-        <select class="form-select" @bind="selectedCategoryFilter" @bind:after="ApplyFilters">
-            <option value="">Categoria</option>
+        <FilterDropdown SelectedValue="@selectedCategoryFilter"
+                        SelectedValueChanged="@(value => selectedCategoryFilter = value)"
+                        OnChange="@ApplyFilters"
+                        AllItemsLabel="Categoria">
             <option value="Leitao">Leitão</option>
             <option value="Caloiro">Caloiro</option>
             <option value="Tuno">Tuno</option>
-        </select>
+        </FilterDropdown>
     </div>
     <div style="flex: 1;">
-        <select class="form-select" @bind="selectedInstrumentFilter" @bind:after="ApplyFilters">
-            <option value="">Instrumento</option>
+        <FilterDropdown SelectedValue="@selectedInstrumentFilter"
+                        SelectedValueChanged="@(value => selectedInstrumentFilter = value)"
+                        OnChange="@ApplyFilters"
+                        AllItemsLabel="Instrumento">
             @foreach (var instrument in AllInstrumentTypes)
             {
                 <option value="@instrument">@StatusHelper.GetInstrumentDisplay(instrument)</option>
             }
-        </select>
+        </FilterDropdown>
     </div>
 </div>
 
@@ -444,25 +448,18 @@ else
             @if ((editingUser.SelectedCategory == "Caloiro" || editingUser.SelectedCategory == "Tuno") && !isFundador)
             {
                 <div class="mb-3">
-                    <label class="form-label">Padrinho @(editingUser.SelectedCategory == "Caloiro" ? "(Obrigatório quando passa a Caloiro)" : "")</label>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <label class="form-label d-flex align-items-center gap-2 mb-0">
+                            <i class="bi bi-person-hearts text-primary"></i>
+                            <span>Padrinho @(editingUser.SelectedCategory == "Caloiro" ? "(Obrigatório quando passa a Caloiro)" : "")</span>
+                        </label>
+                    </div>
                     <div class="mentor-search-container">
-                        <div class="input-group mb-2">
-                            <span class="input-group-text">
-                                <i class="bi bi-search"></i>
-                            </span>
-                            <input type="text" 
-                                   class="form-control" 
-                                   placeholder="Pesquisar padrinho por nome ou alcunha..."
-                                   @bind="mentorSearchTerm" 
-                                   @bind:event="oninput" 
-                                   @onkeyup="FilterMentors" />
-                            @if (!string.IsNullOrEmpty(mentorSearchTerm))
-                            {
-                                <button class="btn btn-outline-secondary" type="button" @onclick="ClearMentorSelection" title="Limpar seleção">
-                                    <i class="bi bi-x-circle-fill"></i>
-                                </button>
-                            }
-                        </div>
+                        <SearchBar @bind-Value="mentorSearchTerm"
+                                   Placeholder="Pesquisar padrinho por nome ou alcunha..."
+                                   OnSearch="OnMentorSearch"
+                                   OnClear="ClearMentorSelection"
+                                   Compact="true" />
                     </div>
                     
                     @if (filteredMentors.Any())
@@ -780,6 +777,9 @@ else
         }
         else
         {
+            <SearchBar @bind-Value="anniversariesSearchTerm"
+                       Placeholder="Pesquisar aniversariantes por nome ou alcunha..."
+                       OnSearch="ApplyAnniversariesSearch" />
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
                     <thead>
@@ -860,7 +860,7 @@ else
             <!-- Pagination -->
             <TablePagination CurrentPage="@anniversariesPaginationHelper.CurrentPage"
                             PageSize="@anniversariesPaginationHelper.PageSize"
-                            TotalItems="@allAnniversaries.Count"
+                            TotalItems="@filteredAnniversaries.Count"
                             ItemLabel="membros"
                             PageSizeOptions="@(new[] { 10, 20, 30, 40, 50 })"
                             OnPageChanged="ChangeAnniversariesPage"
@@ -1023,7 +1023,10 @@ else
     // Anniversaries modal
     private bool anniversariesLoading = false;
     private List<ApplicationUser> allAnniversaries = new();
+    private List<ApplicationUser> filteredAnniversaries = new();
     private List<ApplicationUser> paginatedAnniversaries = new();
+    private string anniversariesSearchTerm = string.Empty;
+    private SearchHelper<ApplicationUser> anniversariesSearchHelper = new();
     private PaginationHelper<ApplicationUser> anniversariesPaginationHelper = new() { PageSize = 10 };
     
     // Birthday notification modal
@@ -1329,6 +1332,12 @@ else
         {
             UpdatePagination();
         }
+    }
+
+    private void OnMentorSearch(string term)
+    {
+        mentorSearchTerm = term;
+        FilterMentors();
     }
 
     private void FilterMentors()
@@ -2291,6 +2300,7 @@ else
     {
         showAnniversariesModal = true;
         anniversariesLoading = true;
+        anniversariesSearchTerm = string.Empty;
         StateHasChanged();
         
         try
@@ -2322,10 +2332,10 @@ else
                 .ThenBy(x => x.User.LastName)
                 .Select(x => x.User)
                 .ToList();
-            
-            // Reset pagination and update
+
+            // Reset pagination and apply search filter
             anniversariesPaginationHelper.CurrentPage = 1;
-            UpdateAnniversariesPagination();
+            ApplyAnniversariesSearch(anniversariesSearchTerm);
         }
         finally
         {
@@ -2341,7 +2351,9 @@ else
     {
         showAnniversariesModal = false;
         allAnniversaries.Clear();
+        filteredAnniversaries.Clear();
         paginatedAnniversaries.Clear();
+        anniversariesSearchTerm = string.Empty;
     }
     
     /// <summary>
@@ -2349,7 +2361,7 @@ else
     /// </summary>
     private void UpdateAnniversariesPagination()
     {
-        paginatedAnniversaries = anniversariesPaginationHelper.GetPageData(allAnniversaries);
+        paginatedAnniversaries = anniversariesPaginationHelper.GetPageData(filteredAnniversaries);
     }
     
     /// <summary>
@@ -2373,6 +2385,30 @@ else
         UpdateAnniversariesPagination();
         StateHasChanged();
         await Task.CompletedTask;
+    }
+
+    private void ApplyAnniversariesSearch(string term)
+    {
+        anniversariesSearchTerm = term ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(anniversariesSearchTerm))
+        {
+            filteredAnniversaries = allAnniversaries;
+        }
+        else
+        {
+            anniversariesSearchHelper.SearchTerm = anniversariesSearchTerm;
+            filteredAnniversaries = anniversariesSearchHelper.FilterMultiple(allAnniversaries, new List<Func<ApplicationUser, string>>
+            {
+                u => u.FirstName ?? string.Empty,
+                u => u.LastName ?? string.Empty,
+                u => $"{u.FirstName} {u.LastName}",
+                u => u.Nickname ?? string.Empty
+            }, caseSensitive: false, accentSensitive: false);
+        }
+
+        anniversariesPaginationHelper.CurrentPage = 1;
+        UpdateAnniversariesPagination();
     }
     
     // Birthday email methods

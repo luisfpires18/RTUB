@@ -22,7 +22,7 @@ This test project contains comprehensive tests for all shared UI components usin
 | SortableTableHeader | 13 | Table header with sorting |
 | TablePagination | 25 | Pagination controls |
 | Alert | 21 | Alert messages (success, error, warning, info) |
-| TableSearchBar | 17 | Search input with debounce |
+| SearchBar | 12 | Search input with debounce |
 | LoadingSpinner | 19 | Loading indicators |
 | EmptyTableState | 18 | Empty state displays |
 | RoleBadge | 10 | User role badges |

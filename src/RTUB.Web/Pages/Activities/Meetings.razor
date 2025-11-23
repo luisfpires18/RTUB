@@ -55,14 +55,14 @@ else
 </div>
 
 <!-- Search Box -->
-<div class="row mb-3">
-    <div class="col-md-6">
-        <TableSearchBar 
-            SearchTerm="@searchTerm"
-            OnSearchChanged="HandleSearchChanged"
-            Placeholder="Pesquisar por título ou declaração..." />
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <SearchBar
+                @bind-Value="searchTerm"
+                OnSearch="HandleSearchChanged"
+                Placeholder="Pesquisar por título ou declaração..." />
+        </div>
     </div>
-</div>
 
 @if (isLoading)
 {

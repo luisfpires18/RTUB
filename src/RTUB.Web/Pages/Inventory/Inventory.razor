@@ -67,20 +67,23 @@ else
     <!-- Filters -->
     <div class="row mb-3">
         <div class="col-md-4">
-            <FilterDropdown ShowIcon="false"
+            <FilterDropdown ShowIcon="true"
                           AllItemsLabel="Todos os tipos"
                           Items="@categories"
                           @bind-SelectedValue="filterCategory"
                           OnChange="ApplyFilters" />
         </div>
         <div class="col-md-4">
-            <select class="form-select" @bind="filterCondition" @bind:after="ApplyFilters">
-                <option value="">Todas as condições</option>
+            <FilterDropdown ShowIcon="true"
+                            SelectedValue="@filterCondition"
+                            SelectedValueChanged="@(value => filterCondition = value)"
+                            OnChange="@ApplyFilters"
+                            AllItemsLabel="Todas as condições">
                 @foreach (InstrumentCondition condition in Enum.GetValues(typeof(InstrumentCondition)))
                 {
                     <option value="@condition">@InstrumentConditionHelper.GetDisplayName(condition)</option>
                 }
-            </select>
+            </FilterDropdown>
         </div>
     </div>
 

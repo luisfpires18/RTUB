@@ -26,9 +26,9 @@
 }
 
 <!-- Search Bar -->
-<TableSearchBar SearchTerm="@SearchTerm" 
-                Placeholder="Pesquisar por nome, username, email ou nickname..." 
-                OnSearchChanged="UpdateSearch" />
+<SearchBar @bind-Value="SearchTerm"
+           Placeholder="Pesquisar por nome, username, email ou nickname..."
+           OnSearch="UpdateSearch" />
 
 @if (AllItems == null)
 {

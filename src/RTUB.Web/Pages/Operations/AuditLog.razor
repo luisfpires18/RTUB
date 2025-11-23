@@ -69,30 +69,34 @@
                     </div>
                     <div class="filter-group">
                         <label class="form-label">Entity Type</label>
-                        <select class="form-select" @bind="selectedEntityType" @bind:after="ApplyFilters">
-                            <option value="">All Entities</option>
+                        <FilterDropdown SelectedValue="@selectedEntityType"
+                                        SelectedValueChanged="@(value => selectedEntityType = value)"
+                                        OnChange="@ApplyFilters"
+                                        AllItemsLabel="All Entities">
                             @foreach (var entity in availableEntityTypes)
                             {
                                 <option value="@entity">@entity</option>
                             }
-                        </select>
+                        </FilterDropdown>
                     </div>
                     <div class="filter-group">
                         <label class="form-label">Action</label>
-                        <select class="form-select" @bind="selectedAction" @bind:after="ApplyFilters">
-                            <option value="">All Actions</option>
+                        <FilterDropdown SelectedValue="@selectedAction"
+                                        SelectedValueChanged="@(value => selectedAction = value)"
+                                        OnChange="@ApplyFilters"
+                                        AllItemsLabel="All Actions">
                             @foreach (var action in availableActions)
                             {
                                 <option value="@action">@action</option>
                             }
-                        </select>
+                        </FilterDropdown>
                     </div>
                 </div>
                 <div class="filters-bottom">
                     <div class="filter-group filter-search">
-                        <TableSearchBar 
-                            SearchTerm="@searchTerm"
-                            OnSearchChanged="UpdateSearch"
+                        <SearchBar
+                            @bind-Value="searchTerm"
+                            OnSearch="UpdateSearch"
                             Placeholder="Search in changes..." />
                     </div>
                     <div class="filter-group filter-checkbox">

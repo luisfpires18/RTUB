@@ -1,0 +1,128 @@
+@namespace RTUB.Shared
+@using System.Threading
+@implements IDisposable
+
+<div class="@(Compact ? "search-bar-container search-bar-container--compact" : "search-bar-container")">
+    <div class="search-bar">
+        <span class="search-bar__icon">
+            <i class="bi bi-search"></i>
+        </span>
+        <input type="text"
+               class="search-bar__input"
+               placeholder="@Placeholder"
+               value="@pendingValue"
+               @oninput="HandleInput"
+               @onkeyup="HandleKeyUp" />
+        @if (!string.IsNullOrEmpty(pendingValue))
+        {
+            <button class="search-bar__clear" type="button" @onclick="ClearSearch" title="Limpar pesquisa">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Current search value
+    /// </summary>
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Event callback for two-way binding
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Optional callback when a search is performed
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnSearch { get; set; }
+
+    /// <summary>
+    /// Optional callback to clear any associated selection when the search is cleared
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClear { get; set; }
+
+    /// <summary>
+    /// Placeholder text for the search input
+    /// </summary>
+    [Parameter]
+    public string Placeholder { get; set; } = "Pesquisar...";
+
+    /// <summary>
+    /// Debounce delay in milliseconds (default: 300ms)
+    /// </summary>
+    [Parameter]
+    public int DebounceDelay { get; set; } = 300;
+
+    /// <summary>
+    /// Whether to use a compact layout (reduced margins) for inline form usage
+    /// </summary>
+    [Parameter]
+    public bool Compact { get; set; }
+
+    private Timer? debounceTimer;
+    private string pendingValue = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        pendingValue = Value ?? string.Empty;
+    }
+
+    private void HandleInput(ChangeEventArgs e)
+    {
+        pendingValue = e.Value?.ToString() ?? string.Empty;
+
+        debounceTimer?.Dispose();
+        debounceTimer = new Timer(async _ => await InvokeAsync(async () =>
+        {
+            await TriggerSearch(pendingValue);
+            StateHasChanged();
+        }), null, DebounceDelay, Timeout.Infinite);
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            debounceTimer?.Dispose();
+            await TriggerSearch(pendingValue);
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        pendingValue = string.Empty;
+        debounceTimer?.Dispose();
+        await ValueChanged.InvokeAsync(pendingValue);
+
+        if (OnClear.HasDelegate)
+        {
+            await OnClear.InvokeAsync();
+        }
+
+        if (OnSearch.HasDelegate)
+        {
+            await OnSearch.InvokeAsync(pendingValue);
+        }
+    }
+
+    private async Task TriggerSearch(string term)
+    {
+        await ValueChanged.InvokeAsync(term);
+
+        if (OnSearch.HasDelegate)
+        {
+            await OnSearch.InvokeAsync(term);
+        }
+    }
+
+    public void Dispose()
+    {
+        debounceTimer?.Dispose();
+    }
+}
