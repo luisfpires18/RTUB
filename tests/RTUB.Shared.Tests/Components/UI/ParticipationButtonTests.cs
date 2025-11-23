@@ -45,8 +45,10 @@ public class EnrollmentStatisticsButtonTests : TestContext
     public void EnrollmentStatisticsButton_DoesNotRender_WhenNotMember()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentStatisticsButton>(parameters => parameters
-            .Add(p => p.IsMember, false));
+        var authContext = this.AddTestAuthorization();
+        authContext.SetNotAuthorized();
+
+        var cut = RenderComponent<EnrollmentStatisticsButton>();
 
         // Assert
         cut.Markup.Should().BeEmpty("button should not render for non-admin users");
@@ -56,8 +58,11 @@ public class EnrollmentStatisticsButtonTests : TestContext
     public void EnrollmentStatisticsButton_Renders_WhenIsMember()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentStatisticsButton>(parameters => parameters
-            .Add(p => p.IsMember, true));
+        var authContext = this.AddTestAuthorization();
+        authContext.SetAuthorized("TestUser");
+        authContext.SetRoles("Member");
+
+        var cut = RenderComponent<EnrollmentStatisticsButton>();
 
         // Assert
         cut.Markup.Should().Contain("btn-outline-primary", "button should render with correct styling");
@@ -69,8 +74,11 @@ public class EnrollmentStatisticsButtonTests : TestContext
     public void EnrollmentStatisticsButton_HasCorrectButtonProperties()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentStatisticsButton>(parameters => parameters
-            .Add(p => p.IsMember, true));
+        var authContext = this.AddTestAuthorization();
+        authContext.SetAuthorized("TestUser");
+        authContext.SetRoles("Member");
+
+        var cut = RenderComponent<EnrollmentStatisticsButton>();
 
         // Assert
         var button = cut.Find("button");
@@ -84,8 +92,11 @@ public class EnrollmentStatisticsButtonTests : TestContext
     public void EnrollmentStatisticsButton_OpensModalOnClick()
     {
         // Arrange & Act
-        var cut = RenderComponent<EnrollmentStatisticsButton>(parameters => parameters
-            .Add(p => p.IsMember, true));
+        var authContext = this.AddTestAuthorization();
+        authContext.SetAuthorized("TestUser");
+        authContext.SetRoles("Member");
+
+        var cut = RenderComponent<EnrollmentStatisticsButton>();
 
         // Click the button to open the modal
         cut.Find("button").Click();

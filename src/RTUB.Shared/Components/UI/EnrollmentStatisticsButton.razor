@@ -13,12 +13,13 @@
     Member-only component
 *@
 
-@if (IsMember)
-{
-    <button class="btn btn-outline-primary" @onclick="OpenStatsModal" title="Ver Estatísticas">
-        <i class="bi bi-bar-chart"></i> Estatísticas
-    </button>
-}
+<AuthorizeView>
+    <Authorized>
+        <button class="btn btn-outline-primary" @onclick="OpenStatsModal" title="Ver Estatísticas">
+            <i class="bi bi-bar-chart"></i> Estatísticas
+        </button>
+    </Authorized>
+</AuthorizeView>
 
 <!-- Statistics Modal -->
 @if (showStatsModal)
@@ -142,9 +143,6 @@
 }
 
 @code {
-    [Parameter]
-    public bool IsMember { get; set; }
-
     private bool showStatsModal = false;
     private DateTime statsStartDate = DateTime.Today.AddMonths(-1);
     private DateTime statsEndDate = DateTime.Today.AddMonths(1);
