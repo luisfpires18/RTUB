@@ -25,7 +25,7 @@
                     
                     <!-- Name and Badges -->
                     <div class="profile-header-info-centered">
-                        <h2 class="profile-display-name mb-1">@GetDisplayName()</h2>
+                        <h2 class="profile-display-name mb-1">@GetHeaderDisplayName()</h2>
                         @if (!string.IsNullOrEmpty(User.Nickname))
                         {
                             <p class="profile-full-name text-muted mb-3">
@@ -88,9 +88,14 @@
         return User.ProfilePictureSrc ?? "/images/default-avatar.webp";
     }
 
-    private string GetDisplayName()
+    private string GetHeaderDisplayName()
     {
         if (User == null) return "";
-        return User.GetDisplayName();
+        if (!string.IsNullOrWhiteSpace(User.Nickname))
+        {
+            return User.Nickname;
+        }
+
+        return $"{User.FirstName} {User.LastName}".Trim();
     }
 }
