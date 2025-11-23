@@ -79,6 +79,11 @@
   transition: opacity 0.2s ease;
 }
 
+/* Ensure the cancel/uncancel action in the header stays above the icon header */
+.rehearsal-cancel-desktop {
+  z-index: 5;
+}
+
 .rehearsal-cancel-badge {
   position: relative;
   z-index: 3;
