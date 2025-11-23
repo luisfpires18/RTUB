@@ -1,0 +1,249 @@
+@namespace RTUB.Shared
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Helpers
+@inject UserManager<ApplicationUser> UserManager
+
+<button class="btn btn-purple" @onclick="OpenLoginsModal" title="Ver logins">
+    <i class="bi bi-box-arrow-in-right"></i> Logins
+</button>
+
+@if (showLoginModal)
+{
+    <Modal Show="@showLoginModal"
+           ShowChanged="@((bool value) => showLoginModal = value)"
+           Title="Registos de Login"
+           Size="Modal.ModalSize.Large"
+           Centered="true">
+        <BodyContent>
+            <div class="mb-3">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Data Início</label>
+                        <input type="date" class="form-control" @bind="startDate" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Data Fim</label>
+                        <input type="date" class="form-control" @bind="endDate" />
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button class="btn btn-primary w-100" @onclick="LoadLoginData">Carregar</button>
+                    </div>
+                </div>
+            </div>
+
+            @if (loginRecords != null && loginRecords.Any())
+            {
+                <div class="mb-3">
+                    <SearchBar @bind-Value="searchTerm"
+                               Placeholder="Pesquisar por nome ou username..."
+                               OnSearch="@HandleSearchChanged" />
+                </div>
+
+                @if (!filteredRecords.Any())
+                {
+                    <EmptyState
+                        Title="Nenhum login encontrado para o período selecionado."
+                        Icon="bi-search" />
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th @onclick="() => SortBy(nameof(LoginRecord.DisplayNickname))" class="clickable-row">
+                                        Utilizador
+                                        @if (sortHelper.IsActiveSortColumn(nameof(LoginRecord.DisplayNickname)))
+                                        {
+                                            <i class="bi @sortHelper.GetSortIcon(nameof(LoginRecord.DisplayNickname))"></i>
+                                        }
+                                    </th>
+                                    <th @onclick="() => SortBy(nameof(LoginRecord.LastLoginDate))" class="clickable-row">
+                                        Último Login
+                                        @if (sortHelper.IsActiveSortColumn(nameof(LoginRecord.LastLoginDate)))
+                                        {
+                                            <i class="bi @sortHelper.GetSortIcon(nameof(LoginRecord.LastLoginDate))"></i>
+                                        }
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var record in paginatedRecords)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img src="@record.AvatarUrl" alt="@record.DisplayNickname" class="member-avatar-small" />
+                                                <div>
+                                                    <div>@record.DisplayNickname</div>
+                                                    <div class="text-muted small">@record.DisplayFullName</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark">
+                                                @record.LastLoginDate.ToString("dd/MM/yyyy HH:mm")
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <TablePagination CurrentPage="@paginationHelper.CurrentPage"
+                                    PageSize="@paginationHelper.PageSize"
+                                    TotalItems="@filteredRecords.Count"
+                                    ItemLabel="logins"
+                                    PageSizeOptions="@(new[] { 5, 10, 15, 20 })"
+                                    OnPageChanged="@HandlePageChange"
+                                    OnPageSizeChanged="@HandlePageSizeChange" />
+                }
+            }
+            else if (loginRecords != null)
+            {
+                <EmptyState
+                    Title="Sem dados para o período selecionado."
+                    Icon="bi-info-circle" />
+            }
+        </BodyContent>
+        <FooterContent>
+            <button type="button" class="btn btn-secondary" @onclick="CloseLoginsModal">Fechar</button>
+        </FooterContent>
+    </Modal>
+}
+
+@code {
+    private bool showLoginModal = false;
+    private DateTime startDate = DateTime.Today;
+    private DateTime endDate = DateTime.Today;
+    private List<LoginRecord>? loginRecords;
+    private List<LoginRecord> filteredRecords = new();
+    private List<LoginRecord> paginatedRecords = new();
+    private string searchTerm = string.Empty;
+    private SortableTableHelper<LoginRecord> sortHelper = new() { SortColumn = nameof(LoginRecord.LastLoginDate), SortAscending = false };
+    private PaginationHelper<LoginRecord> paginationHelper = new() { PageSize = 10 };
+
+    private async Task OpenLoginsModal()
+    {
+        showLoginModal = true;
+        await LoadLoginData();
+    }
+
+    private void CloseLoginsModal()
+    {
+        showLoginModal = false;
+    }
+
+    private async Task LoadLoginData()
+    {
+        var start = startDate.Date;
+        var end = endDate.Date.AddDays(1).AddTicks(-1);
+
+        var users = await UserManager.Users
+            .AsNoTracking()
+            .Where(u => u.LastLoginDate.HasValue && u.LastLoginDate.Value >= start && u.LastLoginDate.Value <= end)
+            .ToListAsync();
+
+        loginRecords = users
+            .Select(u => new LoginRecord
+            {
+                UserId = u.Id,
+                UserName = u.UserName ?? string.Empty,
+                Nickname = u.Nickname ?? string.Empty,
+                FirstName = u.FirstName ?? string.Empty,
+                LastName = u.LastName ?? string.Empty,
+                AvatarUrl = u.ProfilePictureSrc,
+                LastLoginDate = u.LastLoginDate!.Value
+            })
+            .OrderByDescending(r => r.LastLoginDate)
+            .ToList();
+
+        FilterAndPaginate();
+        await Task.CompletedTask;
+    }
+
+    private void FilterAndPaginate()
+    {
+        if (loginRecords == null)
+        {
+            filteredRecords = new List<LoginRecord>();
+            paginatedRecords = new List<LoginRecord>();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredRecords = loginRecords.ToList();
+        }
+        else
+        {
+            var search = searchTerm.ToLower();
+            filteredRecords = loginRecords
+                .Where(r => r.SearchText.Contains(search))
+                .ToList();
+        }
+
+        var columnSelectors = new Dictionary<string, Func<LoginRecord, IComparable>>
+        {
+            { nameof(LoginRecord.DisplayNickname), r => r.DisplayNickname },
+            { nameof(LoginRecord.LastLoginDate), r => r.LastLoginDate }
+        };
+
+        filteredRecords = sortHelper.ApplySort(filteredRecords, columnSelectors);
+        paginatedRecords = paginationHelper.GetPageData(filteredRecords);
+    }
+
+    private Task HandleSearchChanged(string value)
+    {
+        searchTerm = value;
+        FilterAndPaginate();
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePageChange(int newPage)
+    {
+        paginationHelper.GoToPage(newPage);
+        paginatedRecords = paginationHelper.GetPageData(filteredRecords);
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePageSizeChange(int newPageSize)
+    {
+        paginationHelper.PageSize = newPageSize;
+        paginationHelper.Reset();
+        paginatedRecords = paginationHelper.GetPageData(filteredRecords);
+        return Task.CompletedTask;
+    }
+
+    private void SortBy(string columnName)
+    {
+        sortHelper.ChangeSortColumn(columnName);
+        FilterAndPaginate();
+    }
+
+    private class LoginRecord
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public string Nickname { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string AvatarUrl { get; set; } = string.Empty;
+        public DateTime LastLoginDate { get; set; }
+
+        public string DisplayNickname => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : UserName;
+
+        public string DisplayFullName
+        {
+            get
+            {
+                var fullName = $"{FirstName} {LastName}".Trim();
+                return string.IsNullOrWhiteSpace(fullName) ? DisplayNickname : fullName;
+            }
+        }
+
+        public string SearchText => $"{DisplayNickname} {DisplayFullName} {UserName}".ToLower();
+    }
+}
