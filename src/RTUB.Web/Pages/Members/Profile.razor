@@ -443,22 +443,24 @@
                                OnDismiss="@(() => subscriptionMessage = null)" 
                                AdditionalClasses="mb-3" />
                     }
-                    <div class="profile-field">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" 
-                                   type="checkbox" 
-                                   id="emailNotificationSwitch" 
-                                   checked="@user.Subscribed"
-                                   @onchange="OnSubscribedChanged">
-                            <label class="form-check-label text-white-full" for="emailNotificationSwitch">
-                                <i class="bi bi-envelope@(user.Subscribed ? "-fill" : "")"></i>
-                                Email Notifications
-                            </label>
+                    <div class="notification-toggle-list">
+                        <div class="notification-toggle-row">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       id="emailNotificationSwitch"
+                                       checked="@user.Subscribed"
+                                       @onchange="OnSubscribedChanged">
+                                <label class="form-check-label text-white-full" for="emailNotificationSwitch">
+                                    <i class="bi bi-envelope@(user.Subscribed ? "-fill" : "")"></i>
+                                    Email Notifications
+                                </label>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="profile-field mt-2">
-                        <PushNotificationToggle />
+
+                        <div class="notification-toggle-row">
+                            <PushNotificationToggle />
+                        </div>
                     </div>
                 </ChildContent>
             </ProfileSection>
