@@ -7,60 +7,50 @@
 
 <div class="card rehearsal-card h-100@(Rehearsal.IsCanceled ? " rehearsal-card--cancelled" : string.Empty)">
     <div class="position-relative rehearsal-card__top">
-        @* Cancellation badge *@
-        @if (Rehearsal.IsCanceled)
-        {
-            <div class="position-absolute top-0 start-0 p-2">
-                <span class="badge bg-danger fs-6 rehearsal-cancel-badge">
-                    <i class="bi bi-x-circle-fill me-1"></i>CANCELADO
-                </span>
-            </div>
-        }
-        
         @if (IsAdmin)
         {
-            <div class="rehearsal-admin-overlay">
-                <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
-                    <i class="bi bi-pencil music-icon-edit"></i>
-                </button>
-                @if (ShowDeleteButton)
-                {
-                    <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
-                        <i class="bi bi-trash music-icon-delete"></i>
-                    </button>
-                }
-            </div>
-            
-            @* Notification and Cancellation buttons in bottom-right corner - desktop only (for future rehearsals only) *@
-            @if (!IsPastRehearsal)
-            {
-                <div class="position-absolute bottom-0 end-0 p-2 d-flex flex-row gap-2 rehearsal-cancel-desktop">
-                    @if (!Rehearsal.IsCanceled)
+            <div class="rehearsal-card__header-actions">
+                <div class="rehearsal-card__header-left">
+                    @if (!IsPastRehearsal)
                     {
-                        <button class="btn btn-sm btn-admin-notification" 
-                                @onclick="HandleSendPushNotification" 
-                                title="Notificar por push">
-                            <i class="bi bi-bell-fill"></i>
-                        </button>
-                        @if (ShowCancelButton)
+                        @if (Rehearsal.IsCanceled)
                         {
-                            <button class="btn btn-sm btn-danger music-btn-cancel" 
-                                    @onclick="HandleCancel" 
-                                    title="Cancelar ensaio">
-                                <i class="bi bi-x-circle-fill"></i>
+                            <button class="btn btn-sm btn-warning music-btn-uncancel rehearsal-card__header-button"
+                                    @onclick="HandleUncancel"
+                                    title="Reativar ensaio">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            @if (ShowCancelButton)
+                            {
+                                <button class="btn btn-sm btn-danger music-btn-cancel rehearsal-card__header-button"
+                                        @onclick="HandleCancel"
+                                        title="Cancelar ensaio">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            }
+                            <button class="btn btn-sm btn-admin-notification rehearsal-card__header-button"
+                                    @onclick="HandleSendPushNotification"
+                                    title="Notificar por push">
+                                <i class="bi bi-bell-fill"></i>
                             </button>
                         }
                     }
-                    else
+                </div>
+                <div class="rehearsal-admin-overlay">
+                    <button class="btn btn-sm music-btn-edit rehearsal-card__header-button" @onclick="HandleEdit" title="Editar">
+                        <i class="bi bi-pencil music-icon-edit"></i>
+                    </button>
+                    @if (ShowDeleteButton)
                     {
-                        <button class="btn btn-sm btn-warning music-btn-uncancel" 
-                                @onclick="HandleUncancel" 
-                                title="Reativar ensaio">
-                            <i class="bi bi-arrow-counterclockwise"></i>
+                        <button class="btn btn-sm music-btn-delete rehearsal-card__header-button" @onclick="HandleDelete" title="Eliminar">
+                            <i class="bi bi-trash music-icon-delete"></i>
                         </button>
                     }
                 </div>
-            }
+            </div>
         }
         <div class="rehearsal-icon-header">
             <div class="rehearsal-icon-circle">
@@ -82,7 +72,17 @@
             <div class="rehearsal-info-row">
                 <i class="bi bi-clock rehearsal-icon"></i>
                 <span class="rehearsal-text">@Rehearsal.StartTime.ToString(@"hh\:mm") - @Rehearsal.EndTime.ToString(@"hh\:mm")</span>
-                <DateBadge Date="@Rehearsal.Date" />
+                @if (Rehearsal.IsCanceled)
+                {
+                    <span class="badge bg-danger fs-6 rehearsal-cancel-badge d-inline-flex align-items-center gap-1">
+                        <i class="bi bi-x-circle-fill"></i>
+                        CANCELADO
+                    </span>
+                }
+                else
+                {
+                    <DateBadge Date="@Rehearsal.Date" />
+                }
             </div>
             
             @if (!string.IsNullOrEmpty(Rehearsal.Location))
@@ -167,33 +167,6 @@
                         }
                     </div>
                     
-                    @* Admin cancel button - mobile only, in action row *@
-                    @if (IsAdmin)
-                    {
-                        <div class="d-flex gap-2 align-items-center justify-content-center mt-2 rehearsal-cancel-mobile">
-                            @if (!Rehearsal.IsCanceled)
-                            {
-                                @if (ShowCancelButton)
-                                {
-                                    <button class="btn btn-sm btn-danger d-flex align-items-center gap-1" 
-                                            @onclick="HandleCancel" 
-                                            title="Cancelar ensaio">
-                                        <i class="bi bi-x-circle-fill icon-size-1rem"></i>
-                                        <span>Cancelar</span>
-                                    </button>
-                                }
-                            }
-                            else
-                            {
-                                <button class="btn btn-sm btn-warning d-flex align-items-center gap-1" 
-                                        @onclick="HandleUncancel" 
-                                        title="Reativar ensaio">
-                                    <i class="bi bi-arrow-counterclockwise icon-size-1rem"></i>
-                                    <span>Reativar</span>
-                                </button>
-                            }
-                        </div>
-                    }
                 }
             </div>
         }
