@@ -84,8 +84,10 @@ public class PushController : ControllerBase
         try
         {
             var userAgent = Request.Headers.UserAgent.ToString();
-            await _pushNotificationService.SubscribeAsync(userId, subscription, userAgent);
-            
+            var userName = User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.Name);
+
+            await _pushNotificationService.SubscribeAsync(userId, subscription, userAgent, userName);
+
             _logger.LogInformation("User {UserId} subscribed to push notifications", userId);
             return Ok(new { message = "Successfully subscribed to push notifications" });
         }

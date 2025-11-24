@@ -47,12 +47,14 @@ public class PushNotificationService : IPushNotificationService
         }
     }
 
-    public async Task SubscribeAsync(string userId, PushSubscriptionDto subscription, string? userAgent = null)
+    public async Task SubscribeAsync(string userId, PushSubscriptionDto subscription, string? userAgent = null, string? userName = null)
     {
         if (string.IsNullOrWhiteSpace(subscription.Endpoint))
         {
             throw new ArgumentException("Endpoint cannot be empty", nameof(subscription));
         }
+
+        var displayName = string.IsNullOrWhiteSpace(userName) ? userId : userName;
 
         // Check if subscription already exists
         var existingSubscription = await _subscriptionRepository.GetByEndpointAsync(subscription.Endpoint);
@@ -68,7 +70,7 @@ public class PushNotificationService : IPushNotificationService
             existingSubscription.UpdatedAt = DateTime.UtcNow;
             
             await _subscriptionRepository.UpdateAsync(existingSubscription);
-            _logger.LogInformation("Updated push subscription for user {UserId}", userId);
+            _logger.LogInformation("Updated push subscription for user {UserName}", displayName);
         }
         else
         {
@@ -84,7 +86,7 @@ public class PushNotificationService : IPushNotificationService
             };
 
             await _subscriptionRepository.AddAsync(newSubscription);
-            _logger.LogInformation("Created new push subscription for user {UserId}", userId);
+            _logger.LogInformation("Created new push subscription for user {UserName}", displayName);
         }
     }
 
