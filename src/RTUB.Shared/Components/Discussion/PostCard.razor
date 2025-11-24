@@ -63,58 +63,57 @@
         </div>
     </div>
     
-    <!-- Action buttons overlay - top left for author, top right for admin/owner -->
-    <div class="post-card-actions">
-        <!-- Author controls (top-left) -->
-        @if (ShowAuthorControls)
-        {
-            <div class="post-card-actions-left" @onclick:stopPropagation="true">
-                <button class="btn btn-sm btn-outline-light" 
+    <!-- Admin/Owner controls (top-right) -->
+    @if (ShowAdminControls || ShowOwnerControls)
+    {
+        <div class="post-card-admin-actions" @onclick:stopPropagation="true">
+            @if (ShowAdminControls)
+            {
+                <button class="btn btn-sm @(Post.IsPinned ? "btn-warning" : "btn-outline-warning")"
+                        @onclick="OnTogglePin"
+                        @onclick:stopPropagation="true"
+                        title="@(Post.IsPinned ? "Desafixar" : "Fixar")">
+                    <i class="bi bi-pin-fill"></i>
+                </button>
+                <button class="btn btn-sm @(Post.IsLocked ? "btn-danger" : "btn-outline-danger")"
+                        @onclick="OnToggleLock"
+                        @onclick:stopPropagation="true"
+                        title="@(Post.IsLocked ? "Desbloquear" : "Bloquear")">
+                    <i class="bi bi-lock-fill"></i>
+                </button>
+            }
+            @if (ShowOwnerControls)
+            {
+                <button class="btn btn-sm btn-danger"
+                        @onclick="OnDelete"
+                        @onclick:stopPropagation="true"
+                        title="Eliminar Post">
+                    <i class="bi bi-trash"></i>
+                </button>
+            }
+        </div>
+    }
+
+    <!-- Author controls (bottom-right) -->
+    @if (ShowAuthorControls)
+    {
+        <div class="post-card-actions post-card-author-actions" @onclick:stopPropagation="true">
+            <div class="post-card-actions-left">
+                <button class="btn btn-sm btn-outline-light"
                         @onclick="OnEdit"
                         @onclick:stopPropagation="true"
                         title="Editar">
                     <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-sm btn-danger" 
+                <button class="btn btn-sm btn-danger"
                         @onclick="OnDelete"
                         @onclick:stopPropagation="true"
                         title="Eliminar">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
-        }
-        
-        <!-- Admin/Owner controls (top-right) -->
-        @if (ShowAdminControls || ShowOwnerControls)
-        {
-            <div class="post-card-actions-right" @onclick:stopPropagation="true">
-                @if (ShowAdminControls)
-                {
-                    <button class="btn btn-sm @(Post.IsPinned ? "btn-warning" : "btn-outline-warning")" 
-                            @onclick="OnTogglePin"
-                            @onclick:stopPropagation="true"
-                            title="@(Post.IsPinned ? "Desafixar" : "Fixar")">
-                        <i class="bi bi-pin-fill"></i>
-                    </button>
-                    <button class="btn btn-sm @(Post.IsLocked ? "btn-danger" : "btn-outline-danger")" 
-                            @onclick="OnToggleLock"
-                            @onclick:stopPropagation="true"
-                            title="@(Post.IsLocked ? "Desbloquear" : "Bloquear")">
-                        <i class="bi bi-lock-fill"></i>
-                    </button>
-                }
-                @if (ShowOwnerControls)
-                {
-                    <button class="btn btn-sm btn-danger" 
-                            @onclick="OnDelete"
-                            @onclick:stopPropagation="true"
-                            title="Eliminar Post">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                }
-            </div>
-        }
-    </div>
+        </div>
+    }
 </div>
 
 @code {

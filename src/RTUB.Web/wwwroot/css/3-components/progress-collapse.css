@@ -8,37 +8,35 @@
     display: block;
 }
 
-.post-card-admin-overlay {
+/* Admin/Owner actions (top-right) */
+.post-card-admin-actions {
     position: absolute;
     top: 0.5rem;
     right: 0.5rem;
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    opacity: 0;
-    transition: opacity 0.2s ease;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    z-index: 10;
 }
 
-.post-card:hover .post-card-admin-overlay {
-    opacity: 1;
+.post-card-admin-actions .btn {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.95rem;
 }
 
-.post-card-admin-overlay .btn {
-    padding: 0.25rem 0.5rem;
-    backdrop-filter: blur(8px);
-    background: rgba(0, 0, 0, 0.5);
-}
-
+/* Author actions (bottom-right) */
 .post-card-actions {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    inset: auto 0.5rem 0.5rem auto;
     display: flex;
-    justify-content: space-between;
-    padding: 0.5rem;
+    justify-content: flex-end;
+    align-items: flex-end;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    max-width: calc(100% - 1rem);
     pointer-events: none;
-    z-index: 10;
+    z-index: 9;
 }
 
 .post-card-actions-left,
@@ -46,10 +44,7 @@
     display: flex;
     gap: 0.25rem;
     pointer-events: all;
-}
-
-.post-card-actions-right {
-    margin-left: auto;
+    justify-content: flex-end;
 }
 
 .post-card-actions .btn {
@@ -60,6 +55,7 @@
 
 .post-card {
     position: relative;
+    padding-bottom: 3rem;
 }
 
 .post-card-content {

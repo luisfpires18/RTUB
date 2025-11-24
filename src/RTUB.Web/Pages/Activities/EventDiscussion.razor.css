@@ -3,7 +3,52 @@
 /* Page wrapper */
 .discussion-page-wrapper {
     min-height: 100vh;
+    width: 100%;
+    max-width: 100%;
+    padding-inline: 0;
+    overflow-x: hidden;
     padding-bottom: 2rem;
+}
+
+.discussion-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    text-align: left;
+}
+
+.discussion-header-title {
+    flex: 1 1 200px;
+    min-width: 0;
+    text-align: center;
+}
+
+.discussion-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+@media (max-width: 576px) {
+    .discussion-page-wrapper {
+        padding-inline: 0.75rem;
+    }
+
+    .discussion-header {
+        justify-content: flex-start;
+    }
+
+    .discussion-header-title {
+        order: 3;
+        width: 100%;
+    }
+
+    .discussion-header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
 }
 
 /* Posts section */

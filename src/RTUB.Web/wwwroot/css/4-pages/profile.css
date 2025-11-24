@@ -5,11 +5,21 @@
 /* Profile Header Card */
 .profile-page {
   width: 100%;
+  max-width: 100%;
+  padding-inline: clamp(0.75rem, 2vw, 1.5rem);
+  min-width: 0;
   overflow-x: hidden;
+}
+
+.profile-page .row,
+.profile-page [class*="col-"] {
+  max-width: 100%;
 }
 
 .profile-page .row {
   --bs-gutter-x: 1.5rem;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 @media (max-width: 576px) {
@@ -18,8 +28,18 @@
   }
 
   .profile-page .row {
-    margin-left: 0;
-    margin-right: 0;
+    --bs-gutter-x: 1.25rem;
+  }
+
+  .profile-page [class*="col-"] {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .profile-page .card,
+  .profile-page section,
+  .profile-page .accordion {
+    width: 100%;
   }
 }
 

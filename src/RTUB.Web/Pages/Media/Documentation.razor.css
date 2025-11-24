@@ -1,0 +1,17 @@
+.documentation-page {
+    width: 100%;
+    max-width: 100%;
+    padding-inline: 0;
+    overflow-x: hidden;
+}
+
+@media (max-width: 576px) {
+    .documentation-page {
+        padding-inline: 0.75rem;
+    }
+
+    .documentation-page .row {
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
