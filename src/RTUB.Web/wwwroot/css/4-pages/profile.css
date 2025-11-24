@@ -3,6 +3,26 @@
    ================================================================= */
 
 /* Profile Header Card */
+.profile-page {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.profile-page .row {
+  --bs-gutter-x: 1.5rem;
+}
+
+@media (max-width: 576px) {
+  .profile-page {
+    padding-inline: 0.75rem;
+  }
+
+  .profile-page .row {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
 .profile-header-card {
   background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.1) 0%, rgba(0, 0, 0, 0.2) 100%);
   border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
