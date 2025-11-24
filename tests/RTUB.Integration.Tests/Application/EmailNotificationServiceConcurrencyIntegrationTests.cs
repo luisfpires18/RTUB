@@ -65,10 +65,10 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
                 $"<html><body>Cancelled: {title} for {nick} ({full})</body></html>");
         
         _mockTemplateRenderer.Setup(x => x.RenderEventReminderNotificationAsync(
-            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), 
-            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>(), It.IsAny<List<(string, string?, DateTime)>>()))
-            .ReturnsAsync((string title, DateTime start, DateTime? end, string loc, string link, 
-                int days, string nick, string full, string desc, List<(string, string, string, string?, bool)> participants, List<(string, string?, DateTime)> repertoire) => 
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>(), It.IsAny<List<(string, DateTime)>>()))
+            .ReturnsAsync((string title, DateTime start, DateTime? end, string loc, string link,
+                int days, string nick, string full, string desc, List<(string, string, string, string?, bool)> participants, List<(string, DateTime)> repertoire) =>
                 $"<html><body>Reminder: {title} in {days} days for {nick} ({full})</body></html>");
         
         _mockTemplateRenderer.Setup(x => x.RenderAnnouncementEmailAsync(
@@ -224,8 +224,8 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
         
         // Verify template renderer was called for each recipient
         _mockTemplateRenderer.Verify(x => x.RenderEventReminderNotificationAsync(
-            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), 
-            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>(), It.IsAny<List<(string, string?, DateTime)>>()), 
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>(), It.IsAny<List<(string, DateTime)>>()),
             Times.Exactly(9));
     }
 

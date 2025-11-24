@@ -6,6 +6,5 @@ namespace RTUB.Web.EmailTemplates.Models;
 public class EventRepertoireSongModel
 {
     public string Title { get; set; } = string.Empty;
-    public string? AlbumTitle { get; set; }
     public DateTime RepertoireDate { get; set; }
 }

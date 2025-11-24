@@ -52,7 +52,7 @@ public class EmailNotificationServiceTests : IDisposable
             .ReturnsAsync("Test event email");
         
         _mockTemplateRenderer.Setup(x => x.RenderEventReminderNotificationAsync(
-            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>(), It.IsAny<List<(string, string?, DateTime)>>()))
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>(), It.IsAny<List<(string, DateTime)>>()))
             .ReturnsAsync("Test reminder email");
         
         _mockTemplateRenderer.Setup(x => x.RenderEventCancellationNotificationAsync(

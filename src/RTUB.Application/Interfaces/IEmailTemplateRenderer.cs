@@ -81,7 +81,7 @@ public interface IEmailTemplateRenderer
         string fullName = "",
         string eventDescription = "",
         List<(string displayName, string category, string instrument, string? notes, bool isLeitao)>? participants = null,
-        List<(string title, string? albumTitle, DateTime repertoireDate)>? repertoireSongs = null);
+        List<(string title, DateTime repertoireDate)>? repertoireSongs = null);
     
     /// <summary>
     /// Renders the announcement email

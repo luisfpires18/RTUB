@@ -356,16 +356,15 @@ public class EmailNotificationService : IEmailNotificationService
             // Load repertoire songs for this event
             // For single-day events: get repertoire for that specific day
             // For date range events: get repertoire for all days in the range
-            var repertoireSongs = new List<(string title, string? albumTitle, DateTime repertoireDate)>();
+            var repertoireSongs = new List<(string title, DateTime repertoireDate)>();
             var repertoireItems = await _eventRepertoireService.GetRepertoireByEventIdAsync(eventId);
-            
+
             if (repertoireItems.Any())
             {
                 repertoireSongs = repertoireItems
                     .Where(r => r.Song != null)
                     .Select(r => (
                         title: r.Song!.Title,
-                        albumTitle: r.Song.Album?.Title,
                         repertoireDate: r.RepertoireDate
                     ))
                     .ToList();
