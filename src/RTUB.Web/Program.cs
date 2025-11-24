@@ -227,6 +227,9 @@ public class Program
         services.AddScoped<RTUB.Web.Services.IEmailTemplateService, RTUB.Web.Services.EmailTemplateService>();
         services.AddScoped<RTUB.Application.Interfaces.IEmailTemplateRenderer, RTUB.Web.Services.RazorEmailTemplateRenderer>();
 
+        // SQL Validation service for Database Viewer
+        services.AddScoped<RTUB.Web.Services.ISqlValidationService, RTUB.Web.Services.SqlValidationService>();
+
         // --------- Cloudflare R2 S3 Client (Singleton) ---------
         // Register a single shared AmazonS3Client with exact config that works with Cloudflare R2
         services.AddSingleton<Amazon.S3.IAmazonS3>(serviceProvider =>

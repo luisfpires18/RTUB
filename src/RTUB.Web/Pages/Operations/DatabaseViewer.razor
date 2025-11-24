@@ -1,0 +1,527 @@
+@page "/owner/db"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Data
+@using RTUB.Shared
+@using RTUB.Web.Services
+@using System.Data
+@using System.Text.RegularExpressions
+@attribute [Authorize(Roles = "Owner")]
+@inject ApplicationDbContext DbContext
+@inject IJSRuntime JSRuntime
+@inject ISqlValidationService SqlValidationService
+
+<PageTitle>Database Viewer</PageTitle>
+
+<div class="container-fluid database-viewer-page">
+    <div class="page-header">
+        <div class="page-header-content">
+            <div class="page-header-title">
+                <h1 class="page-title"><i class="bi bi-database"></i> Database Viewer</h1>
+                <p class="lead text-light-theme">Read-only view of database tables and entities</p>
+            </div>
+            <div class="page-header-actions">
+                <button class="btn btn-success" @onclick="RefreshData" disabled="@isLoading">
+                    <i class="bi bi-arrow-clockwise"></i> <span class="btn-text">Refresh</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <Alert Type="Alert.AlertType.Error" 
+               Message="@errorMessage" 
+               Dismissible="true"
+               OnDismiss="@(() => errorMessage = string.Empty)" />
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <Alert Type="Alert.AlertType.Success" 
+               Message="@successMessage" 
+               Dismissible="true"
+               OnDismiss="@(() => successMessage = string.Empty)" />
+    }
+
+    <div class="row">
+        <!-- Left Sidebar - Tables List -->
+        <div class="col-lg-3 col-md-4 sidebar-column">
+            <!-- Mobile Dropdown (visible on mobile) -->
+            <div class="d-md-none mb-3">
+                <label class="form-label text-white-full">Select Table</label>
+                <select class="form-select" @onchange="OnTableDropdownChange" value="@selectedTable">
+                    <option value="">-- Select a table --</option>
+                    @foreach (var table in tables)
+                    {
+                        <option value="@table">@table</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Desktop Sidebar (hidden on mobile) -->
+            <div class="card tables-card d-none d-md-block">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-table"></i> Tables (@tables.Count)</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-list">
+                        @foreach (var table in tables)
+                        {
+                            <button class="table-list-item @(selectedTable == table ? "active" : "")"
+                                    @onclick="() => SelectTable(table)">
+                                <i class="bi bi-table me-2"></i>
+                                @table
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Panel - Data Display -->
+        <div class="col-lg-9 col-md-8 main-panel-column">
+            <!-- Query Box -->
+            <div class="card query-card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-terminal"></i> Ad-hoc Query (SELECT only)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <textarea class="form-control query-textarea" 
+                                  @bind="customQuery" 
+                                  rows="3"
+                                  placeholder="Enter a SELECT query (e.g., SELECT * FROM Events WHERE Id > 10)"
+                                  style="font-family: 'Courier New', monospace;"></textarea>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-purple btn-sm" 
+                                @onclick="ExecuteCustomQuery"
+                                disabled="@(isLoading || string.IsNullOrWhiteSpace(customQuery))">
+                            @if (isExecutingQuery)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                <span>Executing...</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-play-fill"></i>
+                                <span> Execute</span>
+                            }
+                        </button>
+                        <button class="btn btn-secondary btn-sm" 
+                                @onclick="ClearQuery"
+                                disabled="@isLoading">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </button>
+                    </div>
+                    <small class="text-light-theme mt-2 d-block">
+                        <i class="bi bi-info-circle text-info me-1"></i>
+                        Only SELECT queries are allowed. No INSERT, UPDATE, DELETE, or other modification commands.
+                    </small>
+                </div>
+            </div>
+
+            <!-- Data Display Card -->
+            <div class="card data-card">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0">
+                        @if (isQueryMode)
+                        {
+                            <i class="bi bi-terminal"></i>
+                            <span> Query Results</span>
+                        }
+                        else if (!string.IsNullOrEmpty(selectedTable))
+                        {
+                            <i class="bi bi-table"></i>
+                            <span> @selectedTable</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-database"></i>
+                            <span> No table selected</span>
+                        }
+                    </h5>
+                    @if (!string.IsNullOrEmpty(selectedTable) || isQueryMode)
+                    {
+                        <span class="badge bg-info">@totalRecords records</span>
+                    }
+                </div>
+                <div class="card-body p-0">
+                    @if (isLoading)
+                    {
+                        <div class="p-4">
+                            <LoadingSpinner Message="Loading data..." />
+                        </div>
+                    }
+                    else if (string.IsNullOrEmpty(selectedTable) && !isQueryMode)
+                    {
+                        <div class="p-4">
+                            <EmptyState 
+                                Title="No table selected" 
+                                Message="Select a table from the sidebar to view its data, or execute a custom query."
+                                Icon="bi-database" />
+                        </div>
+                    }
+                    else if (columns.Count == 0)
+                    {
+                        <div class="p-4">
+                            <EmptyState 
+                                Title="No data available" 
+                                Message="The selected table or query returned no results."
+                                Icon="bi-inbox" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover data-table mb-0">
+                                <thead>
+                                    <tr>
+                                        @foreach (var column in columns)
+                                        {
+                                            <th>@column</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in rows)
+                                    {
+                                        <tr>
+                                            @foreach (var column in columns)
+                                            {
+                                                <td data-label="@column">
+                                                    @FormatCellValue(row.ContainsKey(column) ? row[column] : null)
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="card-footer">
+                            <TablePagination 
+                                CurrentPage="@currentPage"
+                                TotalItems="@totalRecords"
+                                PageSize="@pageSize"
+                                ItemLabel="records"
+                                PageSizeOptions="@pageSizeOptions"
+                                OnPageChanged="ChangePage"
+                                OnPageSizeChanged="ChangePageSize" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Table list
+    private List<string> tables = new();
+    private string selectedTable = string.Empty;
+
+    // Data display
+    private List<string> columns = new();
+    private List<Dictionary<string, object?>> rows = new();
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 50;
+    private int totalRecords = 0;
+    private int[] pageSizeOptions = new[] { 10, 25, 50, 100 };
+
+    // Query mode
+    private string customQuery = string.Empty;
+    private bool isQueryMode = false;
+
+    // State flags
+    private bool isLoading = false;
+    private bool isExecutingQuery = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        LoadTables();
+    }
+
+    private void LoadTables()
+    {
+        tables = DbContext.Model.GetEntityTypes()
+            .Select(e => e.GetTableName() ?? e.ClrType.Name)
+            .Where(name => !string.IsNullOrEmpty(name))
+            .Distinct()
+            .OrderBy(name => name)
+            .ToList();
+    }
+
+    private async Task SelectTable(string tableName)
+    {
+        selectedTable = tableName;
+        isQueryMode = false;
+        customQuery = string.Empty;
+        currentPage = 1;
+        await LoadTableData();
+    }
+
+    private async Task OnTableDropdownChange(ChangeEventArgs e)
+    {
+        var tableName = e.Value?.ToString() ?? string.Empty;
+        if (!string.IsNullOrEmpty(tableName))
+        {
+            await SelectTable(tableName);
+        }
+    }
+
+    private async Task LoadTableData()
+    {
+        if (string.IsNullOrEmpty(selectedTable))
+        {
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            // Get the entity type for the selected table
+            var entityType = DbContext.Model.GetEntityTypes()
+                .FirstOrDefault(e => (e.GetTableName() ?? e.ClrType.Name) == selectedTable);
+
+            if (entityType == null)
+            {
+                errorMessage = $"Table '{selectedTable}' not found.";
+                return;
+            }
+
+            var tableName = entityType.GetTableName() ?? selectedTable;
+            
+            // Validate table name contains only safe characters (alphanumeric, underscore)
+            // This prevents SQL injection even though table names come from EF metadata
+            if (!IsValidTableName(tableName))
+            {
+                errorMessage = "Invalid table name.";
+                return;
+            }
+
+            // Get total count
+            var countQuery = $"SELECT COUNT(*) FROM \"{tableName}\"";
+            using var countCommand = DbContext.Database.GetDbConnection().CreateCommand();
+            countCommand.CommandText = countQuery;
+            
+            if (countCommand.Connection?.State != ConnectionState.Open)
+            {
+                await countCommand.Connection!.OpenAsync();
+            }
+            
+            var countResult = await countCommand.ExecuteScalarAsync();
+            totalRecords = Convert.ToInt32(countResult);
+
+            // Get column names from entity properties
+            columns = entityType.GetProperties()
+                .Select(p => p.GetColumnName())
+                .Where(c => !string.IsNullOrEmpty(c))
+                .ToList();
+
+            // Get paginated data
+            var offset = (currentPage - 1) * pageSize;
+            var dataQuery = $"SELECT * FROM \"{tableName}\" LIMIT {pageSize} OFFSET {offset}";
+            
+            rows = await ExecuteQuery(dataQuery);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading table data: {ex.Message}";
+            rows = new();
+            columns = new();
+            totalRecords = 0;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExecuteCustomQuery()
+    {
+        if (string.IsNullOrWhiteSpace(customQuery))
+        {
+            return;
+        }
+
+        // Validate the query using the injected service
+        var validationResult = SqlValidationService.ValidateQuery(customQuery);
+        if (!validationResult.IsValid)
+        {
+            errorMessage = validationResult.ErrorMessage;
+            return;
+        }
+
+        isLoading = true;
+        isExecutingQuery = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            isQueryMode = true;
+            selectedTable = string.Empty;
+            currentPage = 1;
+
+            rows = await ExecuteQuery(customQuery);
+            
+            // Extract column names from results
+            if (rows.Count > 0)
+            {
+                columns = rows[0].Keys.ToList();
+            }
+            else
+            {
+                columns = new();
+            }
+
+            totalRecords = rows.Count;
+            successMessage = $"Query executed successfully. {totalRecords} record(s) returned.";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error executing query: {ex.Message}";
+            rows = new();
+            columns = new();
+            totalRecords = 0;
+        }
+        finally
+        {
+            isLoading = false;
+            isExecutingQuery = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<List<Dictionary<string, object?>>> ExecuteQuery(string query)
+    {
+        var results = new List<Dictionary<string, object?>>();
+
+        using var command = DbContext.Database.GetDbConnection().CreateCommand();
+        command.CommandText = query;
+
+        if (command.Connection?.State != ConnectionState.Open)
+        {
+            await command.Connection!.OpenAsync();
+        }
+
+        using var reader = await command.ExecuteReaderAsync();
+        
+        // Get column names from reader
+        var columnNames = new List<string>();
+        for (int i = 0; i < reader.FieldCount; i++)
+        {
+            columnNames.Add(reader.GetName(i));
+        }
+
+        while (await reader.ReadAsync())
+        {
+            var row = new Dictionary<string, object?>();
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                row[columnNames[i]] = value;
+            }
+            results.Add(row);
+        }
+
+        return results;
+    }
+
+    private void ClearQuery()
+    {
+        customQuery = string.Empty;
+        if (isQueryMode)
+        {
+            isQueryMode = false;
+            rows = new();
+            columns = new();
+            totalRecords = 0;
+        }
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+    }
+
+    private async Task RefreshData()
+    {
+        if (isQueryMode && !string.IsNullOrWhiteSpace(customQuery))
+        {
+            await ExecuteCustomQuery();
+        }
+        else if (!string.IsNullOrEmpty(selectedTable))
+        {
+            await LoadTableData();
+        }
+    }
+
+    private async Task ChangePage(int page)
+    {
+        currentPage = page;
+        if (!isQueryMode)
+        {
+            await LoadTableData();
+        }
+    }
+
+    private async Task ChangePageSize(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1;
+        if (!isQueryMode)
+        {
+            await LoadTableData();
+        }
+    }
+
+    private string FormatCellValue(object? value)
+    {
+        if (value == null)
+        {
+            return "[NULL]";
+        }
+
+        if (value is byte[] bytes)
+        {
+            return $"[Binary: {bytes.Length} bytes]";
+        }
+
+        if (value is DateTime dateTime)
+        {
+            return dateTime.ToString("yyyy-MM-dd HH:mm:ss");
+        }
+
+        var stringValue = value.ToString() ?? string.Empty;
+        
+        // Truncate long strings for display
+        if (stringValue.Length > 100)
+        {
+            return stringValue.Substring(0, 100) + "...";
+        }
+
+        return stringValue;
+    }
+
+    /// <summary>
+    /// Validates that a table name contains only safe characters to prevent SQL injection.
+    /// Allows alphanumeric characters and underscores only.
+    /// </summary>
+    private static readonly Regex SafeTableNamePattern = new(@"^\w+$", RegexOptions.Compiled);
+    
+    private static bool IsValidTableName(string tableName)
+    {
+        return !string.IsNullOrWhiteSpace(tableName) && SafeTableNamePattern.IsMatch(tableName);
+    }
+}
