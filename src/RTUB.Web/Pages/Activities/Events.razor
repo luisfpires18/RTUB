@@ -2858,7 +2858,6 @@ else
         addMemberToEnrollmentSearchTerm = string.Empty;
         addMemberToEnrollmentFeedbackMessage = string.Empty;
         addMemberToEnrollmentFeedbackIsError = false;
-        FilterAvailableMembersForEnrollment();
     }
 
     private void HideAddMemberToEnrollmentSearch()
@@ -2867,15 +2866,6 @@ else
         addMemberToEnrollmentSearchTerm = string.Empty;
         addMemberToEnrollmentFeedbackMessage = string.Empty;
         addMemberToEnrollmentFeedbackIsError = false;
-        FilterAvailableMembersForEnrollment();
-    }
-
-    private void ResetAddMemberToEnrollmentSearch()
-    {
-        addMemberToEnrollmentSearchTerm = string.Empty;
-        addMemberToEnrollmentFeedbackMessage = string.Empty;
-        addMemberToEnrollmentFeedbackIsError = false;
-        FilterAvailableMembersForEnrollment();
     }
     
     private async Task HandleMemberItemKeyDownForEnrollment(KeyboardEventArgs e, ApplicationUser member)

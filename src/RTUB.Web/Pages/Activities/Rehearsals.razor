@@ -1924,7 +1924,6 @@ else
         addMemberSearchTerm = string.Empty;
         addMemberFeedbackMessage = string.Empty;
         addMemberFeedbackIsError = false;
-        FilterAvailableMembers();
     }
 
     private void HideAddMemberSearch()
@@ -1933,15 +1932,6 @@ else
         addMemberSearchTerm = string.Empty;
         addMemberFeedbackMessage = string.Empty;
         addMemberFeedbackIsError = false;
-        FilterAvailableMembers();
-    }
-
-    private void ResetAddMemberSearch()
-    {
-        addMemberSearchTerm = string.Empty;
-        addMemberFeedbackMessage = string.Empty;
-        addMemberFeedbackIsError = false;
-        FilterAvailableMembers();
     }
     
     private async Task HandleMemberItemKeyDown(KeyboardEventArgs e, ApplicationUser member)
