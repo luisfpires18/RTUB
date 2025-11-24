@@ -279,10 +279,26 @@ else
                 @if (IsAccountLocked(selectedUserForDetails))
                 {
                     <div class="alert alert-danger mt-3 mb-0">
-                        <small>
-                            <i class="bi bi-info-circle"></i> 
-                            Conta bloqueada até @selectedUserForDetails.LockoutEnd?.DateTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
-                        </small>
+                        <div class="d-flex flex-column gap-2">
+                            <small>
+                                <i class="bi bi-info-circle"></i>
+                                Conta bloqueada até @selectedUserForDetails.LockoutEnd?.DateTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            </small>
+
+                            <div class="d-flex flex-column flex-sm-row gap-2">
+                                <small class="text-muted">Ao desbloquear será reiniciado o contador de tentativas falhadas.</small>
+                                <div class="d-flex gap-2">
+                                    <button type="button"
+                                            class="btn btn-sm btn-danger text-white"
+                                            disabled="@isUnlockingUser"
+                                            @onclick="UnlockSelectedUser">
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" hidden="@(!isUnlockingUser)"></span>
+                                        <i class="bi bi-unlock-fill" hidden="@isUnlockingUser"></i>
+                                        Desbloquear
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 }
             </div>
@@ -323,6 +339,7 @@ else
     private ApplicationUser? selectedUser = null;
     private string selectedRole = "";
     private string confirmMessage = "";
+    private bool isUnlockingUser = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -472,6 +489,53 @@ else
         showConfirmDialog = false;
         selectedUser = null;
         selectedRole = "";
+    }
+
+    private async Task UnlockSelectedUser()
+    {
+        if (selectedUserForDetails == null)
+        {
+            return;
+        }
+
+        isUnlockingUser = true;
+
+        try
+        {
+            var user = await UserManager.FindByIdAsync(selectedUserForDetails.Id);
+            if (user == null)
+            {
+                message = "Utilizador não encontrado.";
+                isError = true;
+                return;
+            }
+
+            var unlockResult = await UserManager.SetLockoutEndDateAsync(user, null);
+            if (!unlockResult.Succeeded)
+            {
+                message = $"Erro ao desbloquear conta: {string.Join(", ", unlockResult.Errors.Select(e => e.Description))}";
+                isError = true;
+                return;
+            }
+
+            var resetResult = await UserManager.ResetAccessFailedCountAsync(user);
+            if (!resetResult.Succeeded)
+            {
+                message = $"Erro ao reiniciar tentativas: {string.Join(", ", resetResult.Errors.Select(e => e.Description))}";
+                isError = true;
+                return;
+            }
+
+            message = $"Conta de {user.FirstName} {user.LastName} desbloqueada com sucesso.";
+            isError = false;
+
+            selectedUserForDetails = await UserManager.FindByIdAsync(user.Id);
+            await RefreshDataAsync();
+        }
+        finally
+        {
+            isUnlockingUser = false;
+        }
     }
 
     private void CancelRoleChange()
