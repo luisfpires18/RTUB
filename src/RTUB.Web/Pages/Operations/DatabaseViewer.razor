@@ -12,14 +12,14 @@
 @inject IJSRuntime JSRuntime
 @inject ISqlValidationService SqlValidationService
 
-<PageTitle>Database Viewer</PageTitle>
+<PageTitle>Database Manager</PageTitle>
 
 <div class="container-fluid database-viewer-page">
     <div class="page-header">
         <div class="page-header-content">
             <div class="page-header-title">
-                <h1 class="page-title"><i class="bi bi-database"></i> Database Viewer</h1>
-                <p class="lead text-light-theme">Read-only view of database tables and entities</p>
+                <h1 class="page-title"><i class="bi bi-database"></i> Database Manager</h1>
+                <p class="lead text-light-theme">View and manage database tables and entities</p>
             </div>
             <div class="page-header-actions">
                 <button class="btn btn-success" @onclick="RefreshData" disabled="@isLoading">
@@ -82,44 +82,103 @@
 
         <!-- Main Panel - Data Display -->
         <div class="col-lg-9 col-md-8 main-panel-column">
-            <!-- Query Box -->
+            <!-- Query Box with Tabs -->
             <div class="card query-card mb-3">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-terminal"></i> Ad-hoc Query (SELECT only)</h5>
+                    <div class="query-tabs" role="tablist" aria-label="Query type navigation">
+                        <button class="query-tab-btn @(selectedQueryTab == "select" ? "active" : "")" 
+                                role="tab"
+                                aria-selected="@(selectedQueryTab == "select")"
+                                @onclick='() => SelectQueryTab("select")'>
+                            <i class="bi bi-search"></i> SELECT
+                        </button>
+                        <button class="query-tab-btn @(selectedQueryTab == "modify" ? "active" : "")" 
+                                role="tab"
+                                aria-selected="@(selectedQueryTab == "modify")"
+                                @onclick='() => SelectQueryTab("modify")'>
+                            <i class="bi bi-pencil-square"></i> INSERT/UPDATE/DELETE
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="mb-2">
-                        <textarea class="form-control query-textarea" 
-                                  @bind="customQuery" 
-                                  rows="3"
-                                  placeholder="Enter a SELECT query (e.g., SELECT * FROM Events WHERE Id > 10)"
-                                  style="font-family: 'Courier New', monospace;"></textarea>
-                    </div>
-                    <div class="d-flex gap-2 flex-wrap">
-                        <button class="btn btn-purple btn-sm" 
-                                @onclick="ExecuteCustomQuery"
-                                disabled="@(isLoading || string.IsNullOrWhiteSpace(customQuery))">
-                            @if (isExecutingQuery)
-                            {
-                                <span class="spinner-border spinner-border-sm me-1"></span>
-                                <span>Executing...</span>
-                            }
-                            else
-                            {
-                                <i class="bi bi-play-fill"></i>
-                                <span> Execute</span>
-                            }
-                        </button>
-                        <button class="btn btn-secondary btn-sm" 
-                                @onclick="ClearQuery"
-                                disabled="@isLoading">
-                            <i class="bi bi-x-circle"></i> Clear
-                        </button>
-                    </div>
-                    <small class="text-light-theme mt-2 d-block">
-                        <i class="bi bi-info-circle text-info me-1"></i>
-                        Only SELECT queries are allowed. No INSERT, UPDATE, DELETE, or other modification commands.
-                    </small>
+                    @if (selectedQueryTab == "select")
+                    {
+                        <!-- SELECT Tab Content -->
+                        <div class="mb-2">
+                            <textarea class="form-control query-textarea" 
+                                      @bind="customQuery" 
+                                      rows="3"
+                                      placeholder="Enter a SELECT query (e.g., SELECT * FROM Events WHERE Id > 10)"
+                                      style="font-family: 'Courier New', monospace;"></textarea>
+                        </div>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-purple btn-sm" 
+                                    @onclick="ExecuteCustomQuery"
+                                    disabled="@(isLoading || string.IsNullOrWhiteSpace(customQuery))">
+                                @if (isExecutingQuery)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                    <span>Executing...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-play-fill"></i>
+                                    <span> Execute</span>
+                                }
+                            </button>
+                            <button class="btn btn-secondary btn-sm" 
+                                    @onclick="ClearQuery"
+                                    disabled="@isLoading">
+                                <i class="bi bi-x-circle"></i> Clear
+                            </button>
+                        </div>
+                        <small class="text-light-theme mt-2 d-block">
+                            <i class="bi bi-info-circle text-info me-1"></i>
+                            Only SELECT queries are allowed. Results will be displayed in the grid below.
+                        </small>
+                    }
+                    else
+                    {
+                        <!-- INSERT/UPDATE/DELETE Tab Content -->
+                        <div class="mb-3">
+                            <textarea class="form-control query-textarea" 
+                                      @bind="modifyQuery" 
+                                      rows="8"
+                                      placeholder="Enter your SQL query here (INSERT, UPDATE, DELETE)"
+                                      style="font-family: 'Courier New', monospace;"></textarea>
+                        </div>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-purple" 
+                                    @onclick="ExecuteModifyQuery"
+                                    disabled="@(isExecutingModifyQuery || string.IsNullOrWhiteSpace(modifyQuery))">
+                                @if (isExecutingModifyQuery)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                    <span>Executing...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-play-fill"></i>
+                                    <span> Execute</span>
+                                }
+                            </button>
+                            <button class="btn btn-secondary" 
+                                    @onclick="ClearModifyQuery"
+                                    disabled="@isExecutingModifyQuery">
+                                <i class="bi bi-x-circle"></i> Clear
+                            </button>
+                        </div>
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Warning:</strong> Be extremely careful when executing queries. There is no undo functionality.
+                            <ul class="mb-0 mt-2">
+                                <li>Only SQL commands that modify data are supported (INSERT, UPDATE, DELETE)</li>
+                                <li>SELECT queries are not supported in this tab</li>
+                                <li>Always test your queries in a development environment first</li>
+                                <li>Make sure to backup your database before running destructive queries</li>
+                            </ul>
+                        </div>
+                    }
                 </div>
             </div>
 
@@ -237,6 +296,13 @@
     // Query mode
     private string customQuery = string.Empty;
     private bool isQueryMode = false;
+
+    // Tab state
+    private string selectedQueryTab = "select";
+
+    // Modify query (INSERT/UPDATE/DELETE)
+    private string modifyQuery = string.Empty;
+    private bool isExecutingModifyQuery = false;
 
     // State flags
     private bool isLoading = false;
@@ -523,5 +589,53 @@
     private static bool IsValidTableName(string tableName)
     {
         return !string.IsNullOrWhiteSpace(tableName) && SafeTableNamePattern.IsMatch(tableName);
+    }
+
+    private void SelectQueryTab(string tab)
+    {
+        selectedQueryTab = tab;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+    }
+
+    private async Task ExecuteModifyQuery()
+    {
+        if (string.IsNullOrWhiteSpace(modifyQuery))
+        {
+            return;
+        }
+
+        // Clear previous messages
+        successMessage = string.Empty;
+        errorMessage = string.Empty;
+        isExecutingModifyQuery = true;
+        StateHasChanged();
+
+        try
+        {
+            // Execute the raw SQL query
+            var rowsAffected = await DbContext.Database.ExecuteSqlRawAsync(modifyQuery);
+
+            successMessage = $"Query executed successfully. {rowsAffected} row(s) affected.";
+            
+            // Clear the query after successful execution
+            modifyQuery = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error executing query: {ex.Message}";
+        }
+        finally
+        {
+            isExecutingModifyQuery = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearModifyQuery()
+    {
+        modifyQuery = string.Empty;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
     }
 }

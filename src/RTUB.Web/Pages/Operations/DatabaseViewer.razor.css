@@ -88,10 +88,44 @@
 }
 
 /* ========================================
-   Query Card
+   Query Card - Tabs
    ======================================== */
 .query-card .card-header {
     background-color: rgba(var(--bs-primary-rgb), 0.1);
+    padding: 0;
+}
+
+.query-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+}
+
+.query-tab-btn {
+    flex: 1;
+    min-width: 150px;
+    padding: 0.75rem 1rem;
+    border: none;
+    background: transparent;
+    color: var(--bs-body-color);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-bottom: 3px solid transparent;
+}
+
+.query-tab-btn:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
+}
+
+.query-tab-btn.active {
+    background-color: rgba(var(--bs-primary-rgb), 0.2);
+    color: var(--bs-primary);
+    border-bottom-color: var(--bs-primary);
 }
 
 .query-textarea {
@@ -178,6 +212,17 @@
     }
 
     .page-header-actions .btn .btn-text {
+        display: none;
+    }
+
+    /* Query tabs */
+    .query-tab-btn {
+        min-width: 0;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    .query-tab-btn i {
         display: none;
     }
 
