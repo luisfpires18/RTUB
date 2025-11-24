@@ -1,0 +1,20 @@
+.notification-toggle-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.notification-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-left: 0.5rem;
+}
+
+.notification-toggle-row:last-child {
+    margin-bottom: 0;
+}
+
+.notification-toggle-row .form-check {
+    margin-bottom: 0;
+}
