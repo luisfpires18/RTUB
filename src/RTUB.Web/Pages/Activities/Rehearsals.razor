@@ -464,41 +464,51 @@ else
                                                AdditionalClasses="mb-2" />
                                     }
 
-                                    <div class="mb-2">
-                                        <SearchBar @bind-Value="addMemberSearchTerm"
-                                                   Placeholder="Pesquisar membro por nome..."
-                                                   OnSearch="@HandleAddMemberSearchChanged" />
+                                    @if (!showAddMemberSearch)
+                                    {
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="ShowAddMemberSearch">
+                                            <i class="bi bi-plus-circle"></i>
+                                            Adicionar Membro
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <div class="mb-2">
+                                            <SearchBar @bind-Value="addMemberSearchTerm"
+                                                       Placeholder="Pesquisar membro por nome..."
+                                                       OnSearch="@HandleAddMemberSearchChanged" />
 
-                                        @if (!string.IsNullOrWhiteSpace(addMemberSearchTerm) && filteredAvailableMembers.Any())
-                                        {
-                                            <div class="member-list member-list-scrollable mt-2">
-                                                @foreach (var member in filteredAvailableMembers)
-                                                {
-                                                    <div class="member-item p-2 mb-2 border rounded clickable-row"
-                                                         @onclick="() => AddMemberToRehearsal(member)"
-                                                         tabindex="0"
-                                                         @onkeydown="@(async (e) => await HandleMemberItemKeyDown(e, member))">
-                                                        <div class="d-flex align-items-center">
-                                                            <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
-                                                                 class="member-avatar-small me-2" />
-                                                            <div>
-                                                                <strong>@member.GetDisplayName()</strong>
+                                            @if (!string.IsNullOrWhiteSpace(addMemberSearchTerm) && filteredAvailableMembers.Any())
+                                            {
+                                                <div class="member-list member-list-scrollable mt-2">
+                                                    @foreach (var member in filteredAvailableMembers)
+                                                    {
+                                                        <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                                             @onclick="() => AddMemberToRehearsal(member)"
+                                                             tabindex="0"
+                                                             @onkeydown="@(async (e) => await HandleMemberItemKeyDown(e, member))">
+                                                            <div class="d-flex align-items-center">
+                                                                <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                                     class="member-avatar-small me-2" />
+                                                                <div>
+                                                                    <strong>@member.GetDisplayName()</strong>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                }
-                                            </div>
-                                        }
-                                        else if (!string.IsNullOrWhiteSpace(addMemberSearchTerm))
-                                        {
-                                            <p class="text-muted mt-2">Nenhum membro encontrado.</p>
-                                        }
-                                    </div>
+                                                    }
+                                                </div>
+                                            }
+                                            else if (!string.IsNullOrWhiteSpace(addMemberSearchTerm))
+                                            {
+                                                <p class="text-muted mt-2">Nenhum membro encontrado.</p>
+                                            }
+                                        </div>
 
-                                    <button class="btn btn-sm btn-outline-primary" @onclick="ResetAddMemberSearch">
-                                        <i class="bi bi-plus-circle"></i>
-                                        Adicionar Membro
-                                    </button>
+                                        <button class="btn btn-sm btn-outline-secondary" @onclick="HideAddMemberSearch">
+                                            <i class="bi bi-x-circle"></i>
+                                            Cancelar
+                                        </button>
+                                    }
                                 </div>
                             }
                         </Authorized>
@@ -1231,6 +1241,7 @@ else
     private string addMemberSearchTerm = "";
     private string addMemberFeedbackMessage = "";
     private bool addMemberFeedbackIsError = false;
+    private bool showAddMemberSearch = false;
     private List<ApplicationUser> allMembers = new();
     private List<ApplicationUser> filteredAvailableMembers = new();
 
@@ -1603,6 +1614,7 @@ else
         notAttendingPagination = new PaginationHelper<RehearsalAttendance>() { PageSize = 8 };
         addMemberSearchTerm = "";
         addMemberFeedbackMessage = "";
+        showAddMemberSearch = false;
         StateHasChanged();
     }
 
@@ -1883,6 +1895,10 @@ else
             addMemberFeedbackMessage = $"Presença de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";
             addMemberFeedbackIsError = false;
             
+            // Hide the search after successful addition
+            showAddMemberSearch = false;
+            addMemberSearchTerm = string.Empty;
+            
             // Refresh attendance list
             await ViewAttendances(selectedRehearsal);
             
@@ -1902,12 +1918,20 @@ else
         addMemberFeedbackIsError = false;
     }
 
-    private void ResetAddMemberSearch()
+    private void ShowAddMemberSearch()
     {
+        showAddMemberSearch = true;
         addMemberSearchTerm = string.Empty;
         addMemberFeedbackMessage = string.Empty;
         addMemberFeedbackIsError = false;
-        FilterAvailableMembers();
+    }
+
+    private void HideAddMemberSearch()
+    {
+        showAddMemberSearch = false;
+        addMemberSearchTerm = string.Empty;
+        addMemberFeedbackMessage = string.Empty;
+        addMemberFeedbackIsError = false;
     }
     
     private async Task HandleMemberItemKeyDown(KeyboardEventArgs e, ApplicationUser member)
