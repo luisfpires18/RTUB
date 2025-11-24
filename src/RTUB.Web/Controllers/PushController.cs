@@ -72,7 +72,7 @@ public class PushController : ControllerBase
 
         if (!_pushNotificationService.IsConfigured())
         {
-            return BadRequest(new { error = "Web Push is not configured on the server" });
+            return BadRequest(new { error = "Web Push não está configurado no servidor" });
         }
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -88,8 +88,9 @@ public class PushController : ControllerBase
 
             await _pushNotificationService.SubscribeAsync(userId, subscription, userAgent, userName);
 
-            _logger.LogInformation("User {UserId} subscribed to push notifications", userId);
-            return Ok(new { message = "Successfully subscribed to push notifications" });
+            _logger.LogInformation("User {userName} subscribed to push notifications", userName);
+
+            return Ok(new { message = "Inscrito com sucesso para notificações push" });
         }
         catch (ArgumentException ex)
         {
@@ -124,10 +125,11 @@ public class PushController : ControllerBase
         {
             await _pushNotificationService.UnsubscribeAsync(request.Endpoint);
             
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            _logger.LogInformation("User {UserId} unsubscribed from push notifications", userId);
+            var userName = User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.Name);
+
+            _logger.LogInformation("User {userName} unsubscribed from push notifications", userName);
             
-            return Ok(new { message = "Successfully unsubscribed from push notifications" });
+            return Ok(new { message = "A inscrição de notificações push foi cancelada com sucesso." });
         }
         catch (Exception ex)
         {
@@ -191,8 +193,9 @@ public class PushController : ControllerBase
         {
             await _pushNotificationService.BroadcastAsync(notification);
             
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            _logger.LogInformation("User {UserId} broadcasted push notification to all subscribers", userId);
+            var userName = User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.Name);
+
+            _logger.LogInformation("User {userName} broadcasted push notification to all subscribers", userName);
             
             return Ok(new { message = "Notification broadcasted successfully" });
         }

@@ -54,7 +54,7 @@ public class PushNotificationService : IPushNotificationService
             throw new ArgumentException("Endpoint cannot be empty", nameof(subscription));
         }
 
-        var displayName = string.IsNullOrWhiteSpace(userName) ? userId : userName;
+        var displayName = string.IsNullOrWhiteSpace(userName) ? "Unknown user" : userName;
 
         // Check if subscription already exists
         var existingSubscription = await _subscriptionRepository.GetByEndpointAsync(subscription.Endpoint);
@@ -70,7 +70,6 @@ public class PushNotificationService : IPushNotificationService
             existingSubscription.UpdatedAt = DateTime.UtcNow;
             
             await _subscriptionRepository.UpdateAsync(existingSubscription);
-            _logger.LogInformation("Updated push subscription for user {UserName}", displayName);
         }
         else
         {
@@ -98,7 +97,6 @@ public class PushNotificationService : IPushNotificationService
         }
 
         await _subscriptionRepository.DeleteByEndpointAsync(endpoint);
-        _logger.LogInformation("Deleted push subscription with endpoint {Endpoint}", endpoint);
     }
 
     public async Task SendToUserAsync(string userId, SendPushNotificationDto notification)
@@ -172,8 +170,6 @@ public class PushNotificationService : IPushNotificationService
             });
 
             await _webPushClient.SendNotificationAsync(pushSubscription, payload);
-            
-            _logger.LogDebug("Sent push notification to subscription {SubscriptionId}", subscription.Id);
         }
         catch (WebPushException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Gone || 
                                            ex.StatusCode == System.Net.HttpStatusCode.NotFound)

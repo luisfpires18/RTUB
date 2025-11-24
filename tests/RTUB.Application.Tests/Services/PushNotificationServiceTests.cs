@@ -76,6 +76,7 @@ public class PushNotificationServiceTests
     {
         // Arrange
         var userId = "test-user-id";
+        var userName = "test-user-name";
         var subscriptionDto = new PushSubscriptionDto
         {
             Endpoint = "https://push.example.com/test",
@@ -91,7 +92,7 @@ public class PushNotificationServiceTests
             .ReturnsAsync((PushSubscription?)null);
 
         // Act
-        await _service.SubscribeAsync(userId, subscriptionDto);
+        await _service.SubscribeAsync(userId, subscriptionDto, null, userName);
 
         // Assert
         _mockRepository.Verify(r => r.AddAsync(It.Is<PushSubscription>(
@@ -100,6 +101,8 @@ public class PushNotificationServiceTests
                  s.P256dh == subscriptionDto.Keys.P256dh &&
                  s.Auth == subscriptionDto.Keys.Auth
         )), Times.Once);
+
+        VerifyLog(LogLevel.Information, $"Created new push subscription for user {userName}");
     }
 
     [Fact]
@@ -107,6 +110,7 @@ public class PushNotificationServiceTests
     {
         // Arrange
         var userId = "test-user-id";
+        var userName = "updated-user-name";
         var existingSubscription = new PushSubscription
         {
             Id = 1,
@@ -131,7 +135,7 @@ public class PushNotificationServiceTests
             .ReturnsAsync(existingSubscription);
 
         // Act
-        await _service.SubscribeAsync(userId, subscriptionDto);
+        await _service.SubscribeAsync(userId, subscriptionDto, null, userName);
 
         // Assert
         _mockRepository.Verify(r => r.UpdateAsync(It.Is<PushSubscription>(
@@ -176,5 +180,17 @@ public class PushNotificationServiceTests
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(
             () => _service.UnsubscribeAsync(""));
+    }
+
+    private void VerifyLog(LogLevel level, string expectedMessage)
+    {
+        _mockLogger.Verify(
+            x => x.Log(
+                level,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString() == expectedMessage),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 }
