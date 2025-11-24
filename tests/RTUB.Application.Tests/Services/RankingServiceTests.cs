@@ -1,9 +1,11 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Moq;
 using RTUB.Application.Configuration;
 using RTUB.Application.Data;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Repositories;
 using RTUB.Application.Tests.Fixtures;
@@ -57,10 +59,22 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             }
         };
         
+        // Create mocks for new dependencies
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        
         var configOptions = Options.Create(_config);
         var attendanceRepo = new RehearsalAttendanceRepository(_context);
         var enrollmentRepo = new EnrollmentRepository(_context);
-        _service = new RankingService(attendanceRepo, enrollmentRepo, _mockUserManager.Object, configOptions);
+        _service = new RankingService(
+            attendanceRepo, 
+            enrollmentRepo, 
+            _mockUserManager.Object, 
+            configOptions,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockHttpContextAccessor.Object);
     }
 
     [Fact]

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -11,10 +13,26 @@ namespace RTUB.Application.Services;
 public class PostService : IPostService
 {
     private readonly IPostRepository _postRepository;
+    private readonly IDiscussionRepository _discussionRepository;
+    private readonly IEnrollmentRepository _enrollmentRepository;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
+    private readonly IPushNotificationService _pushNotificationService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public PostService(IPostRepository postRepository)
+    public PostService(
+        IPostRepository postRepository,
+        IDiscussionRepository discussionRepository,
+        IEnrollmentRepository enrollmentRepository,
+        IPushNotificationFactory pushNotificationFactory,
+        IPushNotificationService pushNotificationService,
+        IHttpContextAccessor httpContextAccessor)
     {
         _postRepository = postRepository;
+        _discussionRepository = discussionRepository;
+        _enrollmentRepository = enrollmentRepository;
+        _pushNotificationFactory = pushNotificationFactory;
+        _pushNotificationService = pushNotificationService;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<Post?> GetByIdAsync(int id)
@@ -40,7 +58,51 @@ public class PostService : IPostService
             post.SetMentions(mentionsJson);
         }
 
-        return await _postRepository.AddAsync(post);
+        var createdPost = await _postRepository.AddAsync(post);
+        
+        // Send push notification to enrolled users
+        try
+        {
+            var discussion = await _discussionRepository.GetByIdWithEventAsync(discussionId);
+            if (discussion?.Event != null)
+            {
+                // Load author to get nickname (use Query to include navigation properties)
+                var authorUser = await _enrollmentRepository.Query()
+                    .Where(e => e.UserId == authorId)
+                    .Select(e => e.User)
+                    .FirstOrDefaultAsync();
+                
+                if (authorUser != null)
+                {
+                    var baseUrl = GetBaseUrl();
+                    var authorNickname = authorUser.Nickname ?? authorUser.FirstName ?? "Utilizador";
+                    var notification = _pushNotificationFactory.CreateDiscussionPostNotification(
+                        discussion.Event,
+                        authorNickname,
+                        title,
+                        baseUrl);
+                    
+                    // Get enrolled users (excluding the author)
+                    var enrolledUserIds = await _enrollmentRepository.Query()
+                        .Where(e => e.EventId == discussion.Event.Id && e.UserId != authorId)
+                        .Select(e => e.UserId)
+                        .ToListAsync();
+                    
+                    // Send to each enrolled user
+                    foreach (var userId in enrolledUserIds)
+                    {
+                        await _pushNotificationService.SendToUserAsync(userId, notification);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Log error but don't fail the operation
+            // Notification is secondary to the main operation
+        }
+
+        return createdPost;
     }
 
     public async Task UpdateAsync(int id, string title, string body, string? mentionsJson = null)
@@ -116,5 +178,15 @@ public class PostService : IPostService
 
         post.UpdateLastActivity();
         await _postRepository.UpdateAsync(post);
+    }
+    
+    private string GetBaseUrl()
+    {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+        return "https://rtub.pt"; // Fallback
     }
 }

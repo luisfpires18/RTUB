@@ -6,6 +6,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
 using RTUB.Application.Repositories;
+using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
@@ -32,7 +33,21 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _service = new PostService(new PostRepository(_context));
+        
+        // Create mocks for new dependencies
+        var mockDiscussionRepository = new Mock<IDiscussionRepository>();
+        var mockEnrollmentRepository = new Mock<IEnrollmentRepository>();
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        
+        _service = new PostService(
+            new PostRepository(_context),
+            mockDiscussionRepository.Object,
+            mockEnrollmentRepository.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockHttpContextAccessor.Object);
     }
 
     [Fact]

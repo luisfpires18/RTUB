@@ -4,6 +4,7 @@ using RTUB.Application.Extensions;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace RTUB.Application.Services;
@@ -18,11 +19,22 @@ public class MeetingService : IMeetingService
 {
     private readonly IMeetingRepository _meetingRepository;
     private readonly ApplicationDbContext _context;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
+    private readonly IPushNotificationService _pushNotificationService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public MeetingService(IMeetingRepository meetingRepository, ApplicationDbContext context)
+    public MeetingService(
+        IMeetingRepository meetingRepository, 
+        ApplicationDbContext context,
+        IPushNotificationFactory pushNotificationFactory,
+        IPushNotificationService pushNotificationService,
+        IHttpContextAccessor httpContextAccessor)
     {
         _meetingRepository = meetingRepository;
         _context = context;
+        _pushNotificationFactory = pushNotificationFactory;
+        _pushNotificationService = pushNotificationService;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<IEnumerable<Meeting>> GetAllMeetingsAsync(string? searchTerm, int pageNumber, int pageSize, string userId)
@@ -106,7 +118,30 @@ public class MeetingService : IMeetingService
 
     public async Task<Meeting> CreateMeetingAsync(Meeting meeting)
     {
-        return await _meetingRepository.AddAsync(meeting);
+        var createdMeeting = await _meetingRepository.AddAsync(meeting);
+        
+        // Send push notification to appropriate users based on meeting type
+        try
+        {
+            var baseUrl = GetBaseUrl();
+            var notification = _pushNotificationFactory.CreateMeetingNotification(createdMeeting, baseUrl);
+            
+            // Get users based on meeting type
+            var eligibleUserIds = await GetEligibleUsersForMeeting(createdMeeting.Type);
+            
+            // Send to each eligible user
+            foreach (var userId in eligibleUserIds)
+            {
+                await _pushNotificationService.SendToUserAsync(userId, notification);
+            }
+        }
+        catch
+        {
+            // Log error but don't fail the operation
+            // Notification is secondary to the main operation
+        }
+        
+        return createdMeeting;
     }
 
     public async Task UpdateMeetingAsync(Meeting meeting)
@@ -194,5 +229,56 @@ public class MeetingService : IMeetingService
         }
         
         return query;
+    }
+
+    /// <summary>
+    /// Gets list of user IDs eligible to receive notifications for a meeting based on type
+    /// </summary>
+    private async Task<List<string>> GetEligibleUsersForMeeting(MeetingType meetingType)
+    {
+        // Special case: ConselhoVeteranos uses client-side filtering
+        if (meetingType == MeetingType.ConselhoVeteranos)
+        {
+            // Load from DB asynchronously
+            var users = await _context.Users.ToListAsync();
+
+            // Now filter in memory (CurrentRole and Positions can be unmapped)
+            return users
+                .Where(u =>
+                    u.CurrentRole == "VETERANO" ||
+                    u.CurrentRole == "TUNOSSAURO" ||
+                    (u.Positions != null && u.Positions.Contains(Position.Magister)))
+                .Select(u => u.Id)
+                .ToList(); // sync, in-memory
+        }
+
+        // All other meeting types can stay as EF queries
+        IQueryable<ApplicationUser> query = _context.Users;
+
+        switch (meetingType)
+        {
+            case MeetingType.AssembleiaGeralOrdinaria:
+            case MeetingType.AssembleiaGeralExtraordinaria:
+                query = query.Where(u => !u.Categories.Contains(MemberCategory.Leitao));
+                break;
+
+            default:
+                // All users
+                break;
+        }
+
+        return await query
+            .Select(u => u.Id)
+            .ToListAsync();
+    }
+
+    private string GetBaseUrl()
+    {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+        return "https://rtub.pt"; // Fallback
     }
 }

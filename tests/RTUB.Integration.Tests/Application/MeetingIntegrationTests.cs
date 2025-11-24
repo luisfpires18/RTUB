@@ -30,7 +30,18 @@ public class MeetingIntegrationTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
-        _meetingService = new MeetingService(new MeetingRepository(_context), _context);
+        
+        // Create mocks for new dependencies
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        
+        _meetingService = new MeetingService(
+            new MeetingRepository(_context),
+            _context,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockHttpContextAccessor.Object);
     }
 
     #region Meeting Lifecycle Tests

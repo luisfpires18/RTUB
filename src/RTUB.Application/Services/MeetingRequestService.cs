@@ -4,6 +4,8 @@ using RTUB.Application.Extensions;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace RTUB.Application.Services;
@@ -15,10 +17,23 @@ namespace RTUB.Application.Services;
 public class MeetingRequestService : IMeetingRequestService
 {
     private readonly IMeetingRequestRepository _meetingRequestRepository;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
+    private readonly IPushNotificationService _pushNotificationService;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public MeetingRequestService(IMeetingRequestRepository meetingRequestRepository)
+    public MeetingRequestService(
+        IMeetingRequestRepository meetingRequestRepository,
+        IPushNotificationFactory pushNotificationFactory,
+        IPushNotificationService pushNotificationService,
+        UserManager<ApplicationUser> userManager,
+        IHttpContextAccessor httpContextAccessor)
     {
         _meetingRequestRepository = meetingRequestRepository;
+        _pushNotificationFactory = pushNotificationFactory;
+        _pushNotificationService = pushNotificationService;
+        _userManager = userManager;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<IEnumerable<MeetingRequest>> GetAllAsync(RequestStatus? status = null)
@@ -44,7 +59,73 @@ public class MeetingRequestService : IMeetingRequestService
 
     public async Task<MeetingRequest> CreateAsync(MeetingRequest request)
     {
-        return await _meetingRequestRepository.AddAsync(request);
+        var createdRequest = await _meetingRequestRepository.AddAsync(request);
+
+        try
+        {
+            var baseUrl = GetBaseUrl();
+
+            var tempMeeting = new Meeting
+            {
+                Id = 0,
+                Type = request.RequestedMeetingType,
+                Title = $"Pedido: {request.Title}",
+                Date = request.ProposedDateTime,
+                Location = request.Location,
+                Statement = request.Description,
+                OrganizerUserId = request.AuthorUserId
+            };
+
+            var notification = _pushNotificationFactory.CreateMeetingNotification(tempMeeting, baseUrl);
+
+            // 1) Owners (role)
+            var ownerUsers = await _userManager.GetUsersInRoleAsync("Owner");
+
+            // 2) Load all users once (EF async, SQL side)
+            var allUsers = await _userManager.Users.ToListAsync();
+
+            // 3) Pick extra recipients based on meeting type (in memory, can use Positions safely)
+            IEnumerable<ApplicationUser> positionRecipients = Enumerable.Empty<ApplicationUser>();
+
+            switch (request.RequestedMeetingType)
+            {
+                case MeetingType.ConselhoVeteranos:
+                    positionRecipients = allUsers
+                        .Where(u => u.Positions != null &&
+                                    u.Positions.Contains(Position.PresidenteConselhoVeteranos));
+                    break;
+
+                case MeetingType.AssembleiaGeralOrdinaria:
+                case MeetingType.AssembleiaGeralExtraordinaria:
+                    positionRecipients = allUsers
+                        .Where(u => u.Positions != null &&
+                                    u.Positions.Contains(Position.PresidenteMesaAssembleia));
+                    break;
+
+                default:
+                    // other meeting types: only Owners (no extra positions)
+                    break;
+            }
+
+            // 4) Union Owners + position-based recipients
+            var recipientUserIds = ownerUsers
+                .Concat(positionRecipients)
+                .Select(u => u.Id)
+                .Distinct()
+                .ToList();
+
+            // 5) Send notifications
+            foreach (var userId in recipientUserIds)
+            {
+                await _pushNotificationService.SendToUserAsync(userId, notification);
+            }
+        }
+        catch
+        {
+            // TODO: log error; notification failure must not break request creation
+        }
+
+        return createdRequest;
     }
 
     public async Task UpdateStatusAsync(int id, RequestStatus status)
@@ -64,5 +145,15 @@ public class MeetingRequestService : IMeetingRequestService
             throw new InvalidOperationException($"Meeting request with ID {id} not found");
         
         await _meetingRequestRepository.DeleteAsync(id);
+    }
+    
+    private string GetBaseUrl()
+    {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+        return "https://rtub.pt"; // Fallback
     }
 }

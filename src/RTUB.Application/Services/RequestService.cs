@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -16,11 +19,25 @@ public class RequestService : IRequestService
 {
     private readonly IRequestRepository _requestRepository;
     private readonly IEmailNotificationService _emailNotificationService;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
+    private readonly IPushNotificationService _pushNotificationService;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public RequestService(IRequestRepository requestRepository, IEmailNotificationService emailNotificationService)
+    public RequestService(
+        IRequestRepository requestRepository, 
+        IEmailNotificationService emailNotificationService,
+        IPushNotificationFactory pushNotificationFactory,
+        IPushNotificationService pushNotificationService,
+        UserManager<ApplicationUser> userManager,
+        IHttpContextAccessor httpContextAccessor)
     {
         _requestRepository = requestRepository;
         _emailNotificationService = emailNotificationService;
+        _pushNotificationFactory = pushNotificationFactory;
+        _pushNotificationService = pushNotificationService;
+        _userManager = userManager;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<Request?> GetRequestByIdAsync(int id)
@@ -43,8 +60,31 @@ public class RequestService : IRequestService
         var request = Request.Create(name, email, phone, eventType, preferredDate, location, message);
         var createdRequest = await _requestRepository.AddAsync(request);
 
-        // Send notification for new request
+        // Send email notification for new request
         await _emailNotificationService.SendNewRequestNotificationAsync(createdRequest.Id, name, email, eventType);
+        
+        // Send push notification to admins
+        try
+        {
+            var baseUrl = GetBaseUrl();
+            var notification = _pushNotificationFactory.CreateRequestNotification(createdRequest, baseUrl);
+            
+            // Get admin user IDs
+            var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
+            var ownerUsers = await _userManager.GetUsersInRoleAsync("Owner");
+            var adminUserIds = adminUsers.Union(ownerUsers).Select(u => u.Id).Distinct().ToList();
+            
+            // Send to each admin
+            foreach (var userId in adminUserIds)
+            {
+                await _pushNotificationService.SendToUserAsync(userId, notification);
+            }
+        }
+        catch
+        {
+            // Log error but don't fail the operation
+            // Notification is secondary to the main operation
+        }
 
         return createdRequest;
     }
@@ -84,5 +124,15 @@ public class RequestService : IRequestService
             throw new EntityNotFoundException(nameof(Request), id);
 
         await _requestRepository.DeleteAsync(request);
+    }
+    
+    private string GetBaseUrl()
+    {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+        return "https://rtub.pt"; // Fallback
     }
 }

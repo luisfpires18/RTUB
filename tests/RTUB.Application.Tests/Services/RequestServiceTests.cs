@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Moq;
 using MockQueryable.Moq;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
@@ -23,7 +25,21 @@ public class RequestServiceTests
     {
         _mockRequestRepository = new Mock<IRequestRepository>();
         _emailServiceMock = new Mock<IEmailNotificationService>();
-        _requestService = new RequestService(_mockRequestRepository.Object, _emailServiceMock.Object);
+        
+        // Create mocks for new dependencies
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockUserManager = new Mock<UserManager<ApplicationUser>>(
+            Mock.Of<IUserStore<ApplicationUser>>(), null, null, null, null, null, null, null, null);
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        
+        _requestService = new RequestService(
+            _mockRequestRepository.Object,
+            _emailServiceMock.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockUserManager.Object,
+            mockHttpContextAccessor.Object);
     }
 
     [Fact]

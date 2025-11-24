@@ -1,9 +1,11 @@
 using FluentAssertions;
 using Moq;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Application.Repositories;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -37,7 +39,18 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        _meetingService = new MeetingService(new MeetingRepository(_context), _context);
+        
+        // Create mocks for new dependencies
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        
+        _meetingService = new MeetingService(
+            new MeetingRepository(_context),
+            _context,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockHttpContextAccessor.Object);
 
         // Disable auditing for test setup
         _context.DisableAuditing();

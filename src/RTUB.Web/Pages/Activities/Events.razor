@@ -17,6 +17,7 @@
 @inject ITrophyService TrophyService
 @inject IEmailNotificationService EmailNotificationService
 @inject IPushNotificationService PushNotificationService
+@inject IPushNotificationFactory PushNotificationFactory
 @inject IImageStorageService ImageStorageService
 @inject IEventRepertoireService EventRepertoireService
 @inject IDiscussionService DiscussionService
@@ -2474,19 +2475,15 @@ else
 
         try
         {
-            // Get the event link (absolute URL)
+            // Get the base URL
             var baseUri = Navigation.BaseUri.TrimEnd('/');
-            var eventLink = $"{baseUri}/events";
 
-            // Format the date in Portuguese
-            var eventDateStr = selectedEventForPush.Date.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
+            // Determine if this is a reminder notification
+            var isReminder = selectedPushNotificationType == NotificationTypeReminder;
 
-            // Create the push notification based on type
-            SendPushNotificationDto notification;
-            
-            if (selectedPushNotificationType == NotificationTypeReminder)
+            // Validate event is in the future for reminders
+            if (isReminder)
             {
-                // Reminder notification - validate event is in the future
                 var daysText = GetDaysUntilEventText(selectedEventForPush.Date);
                 if (daysText == null)
                 {
@@ -2495,27 +2492,20 @@ else
                     StateHasChanged();
                     return;
                 }
-                
-                notification = new SendPushNotificationDto
-                {
-                    Title = $"Lembrete: {selectedEventForPush.Name}",
-                    Body = $"A atuação é em {daysText} ({eventDateStr}) no {selectedEventForPush.Location}. Não te esqueças de confirmar a tua presença!",
-                    Icon = "/icons/rtub-logo-192.png",
-                    Url = eventLink,
-                    Tag = $"event-reminder-{selectedEventForPush.Id}"
-                };
             }
-            else
+
+            // Create the push notification using the factory
+            SendPushNotificationDto notification;
+            try
             {
-                // New event notification
-                notification = new SendPushNotificationDto
-                {
-                    Title = selectedEventForPush.Name,
-                    Body = $"Nova atuação: {selectedEventForPush.Name} em {eventDateStr} no {selectedEventForPush.Location}",
-                    Icon = "/icons/rtub-logo-192.png",
-                    Url = eventLink,
-                    Tag = $"event-{selectedEventForPush.Id}"
-                };
+                notification = PushNotificationFactory.CreateEventNotification(selectedEventForPush, isReminder, baseUri);
+            }
+            catch (ArgumentException ex)
+            {
+                pushErrorMessage = ex.Message;
+                IsSendingPushNotifications = false;
+                StateHasChanged();
+                return;
             }
 
             // Broadcast to all subscribed users

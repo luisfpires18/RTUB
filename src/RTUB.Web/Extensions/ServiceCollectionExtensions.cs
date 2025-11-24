@@ -203,6 +203,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         services.AddScoped<IPushNotificationService, PushNotificationService>();
+        services.AddScoped<IPushNotificationFactory, RTUB.Application.Factories.PushNotificationFactory>();
 
         return services;
     }

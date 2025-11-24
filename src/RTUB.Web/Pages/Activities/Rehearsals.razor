@@ -10,6 +10,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
+@using RTUB.Application.DTOs
 @using RTUB.Shared
 @using RTUB.Core.Enums
 @attribute [Authorize]
@@ -17,6 +18,8 @@
 @inject IRehearsalAttendanceService AttendanceService
 @inject IFiscalYearService FiscalYearService
 @inject IMemberInstrumentService MemberInstrumentService
+@inject IPushNotificationService PushNotificationService
+@inject IPushNotificationFactory PushNotificationFactory
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
@@ -97,6 +100,7 @@ else
                                ShowCancelButton="@CanCancelRehearsal()"
                                OnEdit="@(() => OpenEditModal(rehearsal))"
                                OnDelete="@(() => OpenDeleteModal(rehearsal))"
+                               OnSendPushNotification="@(() => OpenPushNotificationModal(rehearsal))"
                                OnCancel="@(() => OpenCancelRehearsalModal(rehearsal))"
                                OnUncancel="@(() => UncancelRehearsal(rehearsal))"
                                OnMarkAttendance="@(() => MarkAttendance(rehearsal))"
@@ -1018,6 +1022,95 @@ else
     </Modal>
 }
 
+<!-- Push Notification Modal -->
+<Modal Show="@showPushNotificationModal"
+       ShowChanged="@((bool show) => showPushNotificationModal = show)"
+       Title="Enviar notificação push de ensaio"
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true">
+    <BodyContent>
+        @if (selectedRehearsalForPush != null)
+        {
+            <!-- Loading Overlay for Sending Push Notifications -->
+            @if (IsSendingPushNotifications)
+            {
+                <div class="position-relative" style="min-height: 200px;">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">A enviar...</span>
+                        </div>
+                        <h5 class="text-white mb-2">Enviando notificações push...</h5>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <h6 class="text-white-full">Detalhes do Ensaio:</h6>
+                    <div class="event-summary p-3 rounded bg-dark">
+                        <div><strong>Data:</strong> @FormatRehearsalDateWithDayOfWeek(selectedRehearsalForPush)</div>
+                        <div><strong>Horário:</strong> @selectedRehearsalForPush.StartTime.ToString(@"hh\:mm") - @selectedRehearsalForPush.EndTime.ToString(@"hh\:mm")</div>
+                        <div><strong>Local:</strong> @selectedRehearsalForPush.Location</div>
+                        @if (!string.IsNullOrEmpty(selectedRehearsalForPush.Theme))
+                        {
+                            <div><strong>Tema:</strong> @selectedRehearsalForPush.Theme</div>
+                        }
+                    </div>
+                </div>
+
+                @if (pushLoadingSubscribers)
+                {
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">A carregar...</span>
+                        </div>
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(pushErrorMessage))
+                {
+                    <Alert Message="@pushErrorMessage" 
+                           Type="Alert.AlertType.Error" 
+                           Dismissible="true"
+                           OnDismiss="@(() => pushErrorMessage = null)" />
+                }
+                else
+                {
+                    <!-- Custom Notification Message -->
+                    <div class="mb-3">
+                        <label class="form-label text-white-full">Mensagem da Notificação <span class="text-danger">*</span></label>
+                        <textarea class="form-control" 
+                                  rows="4" 
+                                  @bind="customNotificationBody" 
+                                  placeholder="Ex: Ensaio importante! Vamos preparar o repertório de Natal. Não faltem!"
+                                  maxlength="500"></textarea>
+                        <small class="text-muted">
+                            A notificação terá o título automático no formato "Ensaio - DD/MMM DayOfWeek". Máximo 500 caracteres.
+                        </small>
+                    </div>
+                    
+                    <EmailRecipientsPreview 
+                        SubscribedUsers="@(pushSubscribedUsers ?? new List<ApplicationUser>())"
+                        NonSubscribedUsers="@(pushNonSubscribedUsers ?? new List<ApplicationUser>())"
+                        SubscribedUsersTitle="Membros que irão receber:"
+                        NonSubscribedUsersTitle="Quem não irá receber:"
+                        ShowNonSubscribedUsers="true"
+                        MaxHeight="300px"
+                        InfoBadgeText="@($"{pushSubscribedUsersCount} / {pushTotalUsersCount} membros têm notificações push ativas e irão receber esta mensagem.")"
+                        ShowEmptySubscribedMessage="true"
+                        EmptySubscribedMessage="Nenhum membro subscrito às notificações push." />
+                }
+            }
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="ClosePushNotificationModal" disabled="@IsSendingPushNotifications">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendRehearsalPushNotification" disabled="@(IsSendingPushNotifications || pushSubscribedUsers == null || !pushSubscribedUsers.Any() || string.IsNullOrWhiteSpace(customNotificationBody))">
+            Enviar Notificação Push
+        </button>
+    </FooterContent>
+</Modal>
+
 @code {
     private bool loading = true;
     private bool isInitializing = true;
@@ -1083,6 +1176,7 @@ else
     private bool showDateRangeModal = false;
     private bool showMyAttendancesModal = false;
     private bool showRehearsalDetailsModal = false;
+    private bool showPushNotificationModal = false;
     
     private Rehearsal? selectedRehearsal;
     private bool isSelectedRehearsalPast = false;
@@ -1099,6 +1193,18 @@ else
     private string? editNotes;
     private string cancelRehearsalReason = string.Empty;
     private string? cancelRehearsalErrorMessage;
+    
+    // Push notification modal variables
+    private Rehearsal? selectedRehearsalForPush;
+    private string customNotificationBody = string.Empty;
+    private List<ApplicationUser>? pushSubscribedUsers;
+    private List<ApplicationUser>? pushNonSubscribedUsers;
+    private int pushSubscribedUsersCount = 0;
+    private int pushTotalUsersCount = 0;
+    private bool pushLoadingSubscribers = false;
+    private string? pushErrorMessage;
+    private bool IsSendingPushNotifications = false;
+    
     private List<RehearsalAttendance>? selectedRehearsalAttendances;
     private List<RehearsalAttendance> filteredAttendances = new();
     private List<RehearsalAttendance> paginatedAttendances = new();
@@ -2478,6 +2584,119 @@ else
     private void CloseRehearsalDetailsModal()
     {
         showRehearsalDetailsModal = false;
+    }
+
+    // Push Notification Modal methods
+    private async Task OpenPushNotificationModal(Rehearsal rehearsal)
+    {
+        selectedRehearsalForPush = rehearsal;
+        customNotificationBody = string.Empty;
+        pushLoadingSubscribers = true;
+        pushErrorMessage = null;
+        showPushNotificationModal = true;
+        StateHasChanged();
+
+        try
+        {
+            // Get all user IDs with active push subscriptions via service
+            var userIdsWithPushSubscriptions = (await PushNotificationService.GetSubscribedUserIdsAsync()).ToHashSet();
+
+            // Get all users
+            var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
+            
+            // Split users into subscribed (has push subscriptions) and non-subscribed
+            pushSubscribedUsers = allUsers
+                .Where(u => userIdsWithPushSubscriptions.Contains(u.Id))
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .ToList();
+            
+            pushNonSubscribedUsers = allUsers
+                .Where(u => !userIdsWithPushSubscriptions.Contains(u.Id))
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .ToList();
+            
+            pushSubscribedUsersCount = pushSubscribedUsers.Count;
+            pushTotalUsersCount = allUsers.Count;
+        }
+        catch (Exception ex)
+        {
+            pushErrorMessage = $"Erro ao carregar membros: {ex.Message}";
+        }
+        finally
+        {
+            pushLoadingSubscribers = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClosePushNotificationModal()
+    {
+        showPushNotificationModal = false;
+        selectedRehearsalForPush = null;
+        customNotificationBody = string.Empty;
+        pushSubscribedUsers = null;
+        pushNonSubscribedUsers = null;
+        pushSubscribedUsersCount = 0;
+        pushTotalUsersCount = 0;
+        pushErrorMessage = null;
+    }
+
+    private async Task SendRehearsalPushNotification()
+    {
+        if (selectedRehearsalForPush == null || pushSubscribedUsers == null || !pushSubscribedUsers.Any())
+        {
+            ClosePushNotificationModal();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(customNotificationBody))
+        {
+            pushErrorMessage = "A mensagem da notificação é obrigatória.";
+            return;
+        }
+
+        IsSendingPushNotifications = true;
+        pushErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            // Get the base URL
+            var baseUri = Navigation.BaseUri.TrimEnd('/');
+
+            // Create the push notification using the factory
+            SendPushNotificationDto notification;
+            try
+            {
+                notification = PushNotificationFactory.CreateRehearsalNotification(
+                    selectedRehearsalForPush, 
+                    customNotificationBody, 
+                    baseUri
+                );
+            }
+            catch (ArgumentException ex)
+            {
+                pushErrorMessage = ex.Message;
+                IsSendingPushNotifications = false;
+                StateHasChanged();
+                return;
+            }
+
+            // Broadcast to all subscribed users
+            await PushNotificationService.BroadcastAsync(notification);
+
+            // Success - close modal
+            ClosePushNotificationModal();
+        }
+        catch (Exception ex)
+        {
+            pushErrorMessage = $"Erro ao enviar notificação push: {ex.Message}";
+        }
+        finally
+        {
+            IsSendingPushNotifications = false;
+            StateHasChanged();
+        }
     }
 
     private class UserAttendanceStats

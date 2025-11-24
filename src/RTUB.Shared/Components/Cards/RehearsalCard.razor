@@ -31,12 +31,17 @@
                 }
             </div>
             
-            @* Cancellation button in bottom-right corner - desktop only (for future rehearsals only) *@
+            @* Notification and Cancellation buttons in bottom-right corner - desktop only (for future rehearsals only) *@
             @if (!IsPastRehearsal)
             {
-                <div class="position-absolute bottom-0 end-0 p-2 rehearsal-cancel-desktop">
+                <div class="position-absolute bottom-0 end-0 p-2 d-flex flex-row gap-2 rehearsal-cancel-desktop">
                     @if (!Rehearsal.IsCanceled)
                     {
+                        <button class="btn btn-sm btn-admin-notification" 
+                                @onclick="HandleSendPushNotification" 
+                                title="Notificar por push">
+                            <i class="bi bi-bell-fill"></i>
+                        </button>
                         @if (ShowCancelButton)
                         {
                             <button class="btn btn-sm btn-danger music-btn-cancel" 
@@ -284,6 +289,12 @@
     public EventCallback OnViewDetails { get; set; }
     
     /// <summary>
+    /// Callback when the send push notification button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSendPushNotification { get; set; }
+    
+    /// <summary>
     /// Callback when the cancel button is clicked
     /// </summary>
     [Parameter]
@@ -366,6 +377,14 @@
         }
     }
     
+    private async Task HandleSendPushNotification()
+    {
+        if (OnSendPushNotification.HasDelegate)
+        {
+            await OnSendPushNotification.InvokeAsync();
+        }
+    }
+    
     private async Task HandleCancel()
     {
         if (OnCancel.HasDelegate)
@@ -385,3 +404,24 @@
     // Helper method to get day of week in Portuguese
     private string GetDayOfWeek(DateTime date) => date.ToPortugueseWeekdayName();
 }
+
+<style>
+    .btn-admin-notification {
+        background: white;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        color: black;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.25rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-admin-notification:hover {
+        background: rgba(255, 255, 255, 0.9);
+        border-color: rgba(0, 0, 0, 0.3);
+        transform: scale(1.05);
+    }
+    
+    .btn-admin-notification i {
+        color: black;
+    }
+</style>

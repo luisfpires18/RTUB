@@ -1,4 +1,6 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Moq;
 using MockQueryable.Moq;
 using RTUB.Application.Interfaces;
@@ -14,12 +16,30 @@ namespace RTUB.Application.Tests.Services;
 public class MeetingRequestServiceTests
 {
     private readonly Mock<IMeetingRequestRepository> _repositoryMock;
+    private readonly Mock<IPushNotificationFactory> _mockPushNotificationFactory;
+    private readonly Mock<IPushNotificationService> _mockPushNotificationService;
+    private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
+    private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private readonly MeetingRequestService _service;
 
     public MeetingRequestServiceTests()
     {
         _repositoryMock = new Mock<IMeetingRequestRepository>();
-        _service = new MeetingRequestService(_repositoryMock.Object);
+        _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        _mockPushNotificationService = new Mock<IPushNotificationService>();
+        _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        
+        // Mock UserManager
+        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
+        _mockUserManager = new Mock<UserManager<ApplicationUser>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        
+        _service = new MeetingRequestService(
+            _repositoryMock.Object,
+            _mockPushNotificationFactory.Object,
+            _mockPushNotificationService.Object,
+            _mockUserManager.Object,
+            _mockHttpContextAccessor.Object);
     }
 
     [Fact]

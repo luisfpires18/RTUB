@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
@@ -10,10 +11,26 @@ namespace RTUB.Application.Services;
 public class EventRepertoireService : IEventRepertoireService
 {
     private readonly IEventRepertoireRepository _repertoireRepository;
+    private readonly IEventRepository _eventRepository;
+    private readonly IEnrollmentRepository _enrollmentRepository;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
+    private readonly IPushNotificationService _pushNotificationService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public EventRepertoireService(IEventRepertoireRepository repertoireRepository)
+    public EventRepertoireService(
+        IEventRepertoireRepository repertoireRepository,
+        IEventRepository eventRepository,
+        IEnrollmentRepository enrollmentRepository,
+        IPushNotificationFactory pushNotificationFactory,
+        IPushNotificationService pushNotificationService,
+        IHttpContextAccessor httpContextAccessor)
     {
         _repertoireRepository = repertoireRepository;
+        _eventRepository = eventRepository;
+        _enrollmentRepository = enrollmentRepository;
+        _pushNotificationFactory = pushNotificationFactory;
+        _pushNotificationService = pushNotificationService;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<IEnumerable<EventRepertoire>> GetRepertoireByEventIdAsync(int eventId, DateTime? date = null)
@@ -37,7 +54,46 @@ public class EventRepertoireService : IEventRepertoireService
         }
 
         var repertoireItem = EventRepertoire.Create(eventId, songId, displayOrder, repertoireDate);
-        return await _repertoireRepository.AddAsync(repertoireItem);
+        var addedItem = await _repertoireRepository.AddAsync(repertoireItem);
+        
+        // Send push notification to enrolled users
+        try
+        {
+            var eventEntity = await _eventRepository.GetByIdAsync(eventId);
+            if (eventEntity != null)
+            {
+                // Load the song to get its title
+                var loadedItem = await _repertoireRepository.GetRepertoireItemWithDetailsAsync(addedItem.Id);
+                if (loadedItem?.Song != null)
+                {
+                    var baseUrl = GetBaseUrl();
+                    var notification = _pushNotificationFactory.CreateEventRepertoireNotification(
+                        eventEntity, 
+                        loadedItem.Song.Title, 
+                        isAdded: true, 
+                        baseUrl);
+                    
+                    // Get enrolled users
+                    var enrolledUserIds = await _enrollmentRepository.Query()
+                        .Where(e => e.EventId == eventId)
+                        .Select(e => e.UserId)
+                        .ToListAsync();
+                    
+                    // Send to each enrolled user
+                    foreach (var userId in enrolledUserIds)
+                    {
+                        await _pushNotificationService.SendToUserAsync(userId, notification);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Log error but don't fail the operation
+            // Notification is secondary to the main operation
+        }
+        
+        return addedItem;
     }
 
     public async Task RemoveSongFromRepertoireAsync(int id)
@@ -76,5 +132,15 @@ public class EventRepertoireService : IEventRepertoireService
     public async Task<IEnumerable<DateTime>> GetRepertoireDatesAsync(int eventId)
     {
         return await _repertoireRepository.GetRepertoireDatesAsync(eventId);
+    }
+    
+    private string GetBaseUrl()
+    {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+        return "https://rtub.pt"; // Fallback
     }
 }

@@ -1,0 +1,381 @@
+@page "/notifications"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.DTOs
+@using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
+@using RTUB.Shared
+@attribute [Authorize(Roles = "Admin,Owner")]
+@inject UserManager<ApplicationUser> UserManager
+@inject IPushNotificationService PushNotificationService
+@inject NavigationManager Navigation
+
+<PageTitle>Enviar Notificação Push</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="page-title"><i class="bi bi-bell"></i> Enviar Notificação Push</h1>
+            <p class="lead mb-4 text-light-theme">Enviar notificações push para todos os utilizadores subscritos</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <Alert Type="@(isError ? Alert.AlertType.Error : Alert.AlertType.Success)" 
+               Message="@message" 
+               Dismissible="true"
+               OnDismiss="@(() => message = string.Empty)" />
+    }
+
+    @if (isLoadingSubscribers)
+    {
+        <LoadingSpinner Message="A carregar destinatários..." />
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pencil-square"></i> Compor Notificação</h5>
+            </div>
+            <div class="card-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="notificationTitle" class="form-label">
+                            Título <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" 
+                               class="form-control @(titleError ? "is-invalid" : "")" 
+                               id="notificationTitle" 
+                               @bind="title" 
+                               placeholder="Ex: Nova Atuação Agendada"
+                               maxlength="100"
+                               required />
+                        @if (titleError)
+                        {
+                            <div class="invalid-feedback">O título é obrigatório</div>
+                        }
+                        <small class="form-text text-muted">
+                            Título da notificação push (máximo 100 caracteres)
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notificationContent" class="form-label">
+                            Mensagem <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control @(contentError ? "is-invalid" : "")" 
+                                  id="notificationContent" 
+                                  @bind="content" 
+                                  rows="6"
+                                  placeholder="Escreva a mensagem da notificação aqui..."
+                                  maxlength="500"
+                                  required></textarea>
+                        @if (contentError)
+                        {
+                            <div class="invalid-feedback">A mensagem é obrigatória</div>
+                        }
+                        <small class="form-text text-muted">
+                            Esta notificação será enviada para @subscribedUsersCount utilizadores com push ativo (máximo 500 caracteres)
+                        </small>
+                    </div>
+
+                    <div class="alert alert-purple">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Informação:</strong> Esta notificação push será enviada para todos os utilizadores com notificações push ativas.
+                    </div>
+
+                    <!-- Progress Display -->
+                    @if (isSending)
+                    {
+                        <div class="alert alert-purple">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">A enviar...</span>
+                                </div>
+                                <strong>Enviando notificações...</strong>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="d-flex gap-2">
+                        <button type="button" 
+                                class="btn btn-purple" 
+                                @onclick="ShowPreview"
+                                disabled="@(isSending || string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))">
+                            <i class="bi bi-eye"></i> Pré-visualizar
+                        </button>
+                        <button type="button" 
+                                class="btn btn-purple" 
+                                @onclick="SendNotifications"
+                                disabled="@(isSending || string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))">
+                            @if (isSending)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                <span>A enviar...</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-send"></i>
+                                <span> Enviar</span>
+                            }
+                        </button>
+                        <button type="button" 
+                                class="btn btn-light" 
+                                @onclick="ClearForm"
+                                disabled="@isSending">
+                            <i class="bi bi-x-circle"></i> Limpar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        @if (subscribedUsers.Any() || nonSubscribedUsers.Any())
+        {
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-people"></i> Lista de Destinatários</h5>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(recipientsMessage))
+                    {
+                        <Alert Type="@(isRecipientsError || isRecipientsRemoval ? Alert.AlertType.Error : Alert.AlertType.Success)" 
+                               Message="@recipientsMessage" 
+                               Dismissible="true"
+                               OnDismiss="@(() => recipientsMessage = string.Empty)" />
+                    }
+                    <EmailRecipientsPreview 
+                        SubscribedUsers="@subscribedUsers"
+                        NonSubscribedUsers="@nonSubscribedUsers"
+                        SubscribedUsersTitle="@($"Destinatários ({subscribedUsersCount})")"
+                        NonSubscribedUsersTitle="@($"Quem não irá receber ({nonSubscribedUsersCount})")"
+                        ShowNonSubscribedUsers="true"
+                        ShowProfilePicture="true"
+                        ShowEmail="false"
+                        MaxHeight="400px"
+                        UsePagination="true"
+                        PageSize="25"
+                        PageSizeOptions="@(new[] { 10, 25, 50, 100 })"
+                        OnRemoveUser="@RemoveUser"
+                        OnAddUser="@AddUser"
+                        OnRemoveMultipleUsers="@RemoveMultipleUsers"
+                        OnAddMultipleUsers="@AddMultipleUsers"
+                        IsProcessingBulkRemove="@isProcessingBulkRemove"
+                        IsProcessingBulkAdd="@isProcessingBulkAdd" />
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- Preview Modal -->
+<Modal Show="@showPreviewModal" 
+       ShowChanged="@((show) => showPreviewModal = show)"
+       Title="Pré-visualização da Notificação"
+       Size="Modal.ModalSize.Large">
+    <BodyContent>
+        <div class="notification-preview" style="background-color: #F7F7FB; padding: 20px; border-radius: 8px;">
+            <div style="background-color: white; max-width: 600px; margin: 0 auto; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div class="d-flex align-items-start mb-3">
+                    <img src="/icons/rtub-logo-192.png" alt="RTUB Logo" style="width: 48px; height: 48px; margin-right: 16px; border-radius: 8px;" />
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0B0B0F;">
+                            @title
+                        </h4>
+                        <p style="margin: 0; font-size: 14px; color: #666666; white-space: pre-wrap;">@content</p>
+                    </div>
+                </div>
+                <div style="padding-top: 12px; border-top: 1px solid #E0E0E0;">
+                    <small style="color: #999999; font-size: 12px;">Notificação Push RTUB</small>
+                </div>
+            </div>
+        </div>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="() => showPreviewModal = false">Fechar</button>
+    </FooterContent>
+</Modal>
+
+@code {
+    private string title = "";
+    private string content = "";
+    private string message = "";
+    private string recipientsMessage = "";
+    private bool isError = false;
+    private bool isRecipientsError = false;
+    private bool isRecipientsRemoval = false;
+    private bool isSending = false;
+    private bool isLoadingSubscribers = true;
+    private bool showPreviewModal = false;
+    private bool titleError = false;
+    private bool contentError = false;
+    private bool isProcessingBulkRemove = false;
+    private bool isProcessingBulkAdd = false;
+
+    private List<ApplicationUser> subscribedUsers = new();
+    private List<ApplicationUser> nonSubscribedUsers = new();
+    private int subscribedUsersCount = 0;
+    private int nonSubscribedUsersCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSubscribedUsers();
+    }
+
+    private async Task LoadSubscribedUsers()
+    {
+        isLoadingSubscribers = true;
+        try
+        {
+            // Get all user IDs with active push subscriptions
+            var userIdsWithPushSubscriptions = (await PushNotificationService.GetSubscribedUserIdsAsync()).ToHashSet();
+
+            // Load all users with push subscriptions
+            subscribedUsers = await UserManager.Users
+                .Where(u => userIdsWithPushSubscriptions.Contains(u.Id))
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .AsNoTracking()
+                .ToListAsync();
+            
+            // Load all users without push subscriptions
+            nonSubscribedUsers = await UserManager.Users
+                .Where(u => !userIdsWithPushSubscriptions.Contains(u.Id))
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .AsNoTracking()
+                .ToListAsync();
+            
+            subscribedUsersCount = subscribedUsers.Count;
+            nonSubscribedUsersCount = nonSubscribedUsers.Count;
+        }
+        catch (Exception ex)
+        {
+            message = $"Erro ao carregar utilizadores subscritos: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoadingSubscribers = false;
+        }
+    }
+
+    private void ShowPreview()
+    {
+        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))
+        {
+            return;
+        }
+        showPreviewModal = true;
+    }
+
+    private async Task SendNotifications()
+    {
+        // Reset validation errors
+        titleError = false;
+        contentError = false;
+
+        // Validate inputs
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            titleError = true;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            contentError = true;
+            return;
+        }
+
+        if (!subscribedUsers.Any())
+        {
+            message = "Não há utilizadores subscritos para receber notificações push.";
+            isError = true;
+            return;
+        }
+
+        isSending = true;
+        message = "";
+        isError = false;
+
+        try
+        {
+            // Create the notification DTO
+            var notification = new SendPushNotificationDto
+            {
+                Title = title,
+                Body = content,
+                Icon = "/icons/rtub-logo-192.png",
+                Url = Navigation.BaseUri.TrimEnd('/'),
+                Tag = $"announcement-{DateTime.UtcNow.Ticks}"
+            };
+
+            // Send to all subscribed users
+            await PushNotificationService.BroadcastAsync(notification);
+
+            message = $"Notificação enviada com sucesso para {subscribedUsersCount} utilizadores!";
+            isError = false;
+
+            // Clear form
+            ClearForm();
+        }
+        catch (Exception ex)
+        {
+            message = $"Erro ao enviar notificações: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isSending = false;
+        }
+    }
+
+    private void ClearForm()
+    {
+        title = "";
+        content = "";
+        titleError = false;
+        contentError = false;
+    }
+
+    // Placeholder methods for recipient management
+    // These would need to be implemented to actually manage push subscription state
+    private async Task RemoveUser(ApplicationUser user)
+    {
+        recipientsMessage = "A funcionalidade de remover utilizadores individuais não está implementada para notificações push.";
+        isRecipientsRemoval = true;
+        isRecipientsError = false;
+        await Task.CompletedTask;
+    }
+
+    private async Task AddUser(ApplicationUser user)
+    {
+        recipientsMessage = "A funcionalidade de adicionar utilizadores individuais não está implementada para notificações push.";
+        isRecipientsRemoval = false;
+        isRecipientsError = false;
+        await Task.CompletedTask;
+    }
+
+    private async Task RemoveMultipleUsers(List<ApplicationUser> users)
+    {
+        isProcessingBulkRemove = true;
+        recipientsMessage = "A funcionalidade de remover múltiplos utilizadores não está implementada para notificações push.";
+        isRecipientsRemoval = true;
+        isRecipientsError = false;
+        isProcessingBulkRemove = false;
+        await Task.CompletedTask;
+    }
+
+    private async Task AddMultipleUsers(List<ApplicationUser> users)
+    {
+        isProcessingBulkAdd = true;
+        recipientsMessage = "A funcionalidade de adicionar múltiplos utilizadores não está implementada para notificações push.";
+        isRecipientsRemoval = false;
+        isRecipientsError = false;
+        isProcessingBulkAdd = false;
+        await Task.CompletedTask;
+    }
+}
