@@ -63,8 +63,8 @@
         </div>
     </div>
     
-    <!-- Admin/Owner controls (top-right) -->
-    @if (ShowAdminControls || ShowOwnerControls)
+    <!-- Admin/Owner/Author controls (top-right) -->
+    @if (ShowAdminControls || ShowOwnerControls || ShowAuthorControls)
     {
         <div class="post-card-admin-actions" @onclick:stopPropagation="true">
             @if (ShowAdminControls)
@@ -82,23 +82,9 @@
                     <i class="bi bi-lock-fill"></i>
                 </button>
             }
-            @if (ShowOwnerControls)
-            {
-                <button class="btn btn-sm btn-danger"
-                        @onclick="OnDelete"
-                        @onclick:stopPropagation="true"
-                        title="Eliminar Post">
-                    <i class="bi bi-trash"></i>
-                </button>
-            }
-        </div>
-    }
 
-    <!-- Author controls (bottom-right) -->
-    @if (ShowAuthorControls)
-    {
-        <div class="post-card-actions post-card-author-actions" @onclick:stopPropagation="true">
-            <div class="post-card-actions-left">
+            @if (ShowAuthorControls)
+            {
                 <button class="btn btn-sm btn-outline-light"
                         @onclick="OnEdit"
                         @onclick:stopPropagation="true"
@@ -111,7 +97,16 @@
                         title="Eliminar">
                     <i class="bi bi-trash"></i>
                 </button>
-            </div>
+            }
+            else if (ShowOwnerControls)
+            {
+                <button class="btn btn-sm btn-danger"
+                        @onclick="OnDelete"
+                        @onclick:stopPropagation="true"
+                        title="Eliminar Post">
+                    <i class="bi bi-trash"></i>
+                </button>
+            }
         </div>
     }
 </div>
