@@ -6,8 +6,8 @@
     Shows "Não definido" with tooltip for empty values
 *@
 
-<div class="profile-field row @AdditionalClasses">
-    <div class="col-12 col-md-4 profile-field-label">
+<div class="profile-field row w-100 @AdditionalClasses" style="min-width: 0;">
+    <div class="col-12 col-md-4 profile-field-label" style="min-width: 0;">
         <strong class="text-white-full">
             @if (!string.IsNullOrEmpty(Icon))
             {
@@ -16,7 +16,7 @@
             @Label:
         </strong>
     </div>
-    <div class="col-12 col-md-8 profile-field-value">
+    <div class="col-12 col-md-8 profile-field-value text-break" style="min-width: 0;">
         @if (ValueContent != null)
         {
             @ValueContent

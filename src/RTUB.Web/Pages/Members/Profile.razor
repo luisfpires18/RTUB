@@ -28,8 +28,14 @@
 @inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 @inject IOptions<RTUB.Application.Configuration.Toggles> Toggles
 
-<div class="profile-page container-fluid w-100">
-    <h1 class="text-center mb-4"><i class="bi bi-person-circle"></i> Meu Perfil</h1>
+<style>
+    :global(html, body) {
+        overflow-x: hidden;
+    }
+</style>
+
+<div class="profile-page container-fluid w-100 d-flex flex-column align-items-center overflow-hidden">
+    <h1 class="text-center mb-4 w-100"><i class="bi bi-person-circle"></i> Meu Perfil</h1>
 
     @if (user == null)
     {
@@ -55,21 +61,25 @@
         }
 
         <!-- Profile Header Card -->
-        <ProfileHeader User="@user"
-                       ImageRefreshTrigger="@imageRefreshTrigger"
-                       OnChangePassword="@OpenChangePasswordModal"
-                       OnUploadPhoto="@OpenUploadModal" />
+        <div class="w-100 d-flex flex-column align-items-stretch overflow-hidden" style="min-width: 0;">
+            <ProfileHeader User="@user"
+                           ImageRefreshTrigger="@imageRefreshTrigger"
+                           OnChangePassword="@OpenChangePasswordModal"
+                           OnUploadPhoto="@OpenUploadModal" />
+        </div>
 
         <!-- Profile Content -->
-        <div class="row w-100 g-0">
-            <div class="col-12">
+        <div class="d-flex flex-column w-100 align-items-stretch overflow-hidden" style="min-width: 0;">
+            <div class="w-100">
             
             @* Rank/Level Section *@
             @if (rankProgress != null)
             {
-                <RankCard RankProgress="@rankProgress" IsCollapsible="true" InitiallyCollapsed="true" />
+                <div class="w-100 overflow-hidden" style="min-width: 0;">
+                    <RankCard RankProgress="@rankProgress" IsCollapsible="true" InitiallyCollapsed="true" />
+                </div>
             }
-            
+
             <!-- Section 1: Pessoal (Personal Information) -->
             <ProfileSection Title="Informações Pessoais"
                           Icon="bi-person-fill"
@@ -79,7 +89,8 @@
                           ShowEditButton="true"
                           OnEdit="@(() => OpenEditSectionModal("personal"))"
                           OnSave="@SavePersonalSection"
-                          OnCancel="@CancelEdit">
+                          OnCancel="@CancelEdit"
+                          AdditionalClasses="w-100">
                 <ChildContent>
                     <ProfileField Label="Nome Completo" Value="@($"{user.FirstName} {user.LastName}")" Icon="bi bi-person" />
                     <ProfileField Label="Nome de Tuna" Value="@user.Nickname" Icon="bi bi-star" />
@@ -172,7 +183,8 @@
                           ShowEditButton="true"
                           OnEdit="@(() => OpenEditSectionModal("tuna"))"
                           OnSave="@SaveTunaSection"
-                          OnCancel="@CancelEdit">
+                          OnCancel="@CancelEdit"
+                          AdditionalClasses="w-100">
                 <ChildContent>
                     @* Display all instruments with primary indicator *@
                     @if (userInstrumentsForDisplay != null && userInstrumentsForDisplay.Any())
@@ -433,7 +445,8 @@
                           IsCollapsible="true"
                           IsExpanded="@sectionsExpanded["notifications"]"
                           IsEditing="false"
-                          ShowEditButton="false">
+                          ShowEditButton="false"
+                          AdditionalClasses="w-100">
                 <ChildContent>
                     @if (!string.IsNullOrEmpty(subscriptionMessage))
                     {

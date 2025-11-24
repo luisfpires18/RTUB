@@ -7,45 +7,47 @@
     Supports collapsible mode to show only header
 *@
 
-<div class="rank-gamified-card @(IsCollapsible ? "rank-collapsible" : "") @(isCollapsed ? "rank-collapsed" : "")">
-    <div class="rank-header-area @(IsCollapsible ? "rank-header-clickable" : "")" 
-         @onclick="ToggleCollapsed" 
+<div class="rank-gamified-card w-100 @(IsCollapsible ? "rank-collapsible" : "") @(isCollapsed ? "rank-collapsed" : "")" style="min-width: 0; overflow: hidden;">
+    <div class="rank-header-area @(IsCollapsible ? "rank-header-clickable" : "")"
+         @onclick="ToggleCollapsed"
          @onkeydown="HandleKeyDown"
          @onkeydown:preventDefault="@IsCollapsible"
          tabindex="@(IsCollapsible ? "0" : "-1")"
          role="@(IsCollapsible ? "button" : "")"
          aria-expanded="@(!isCollapsed)"
          aria-label="@(IsCollapsible ? (isCollapsed ? "Expandir informações de rank" : "Recolher informações de rank") : "")">
-        <!-- Left: Large Level Badge -->
-        <div class="rank-current-level-badge">
-            <div class="level-badge-inner">
-                <div class="level-badge-label">LV</div>
-                <div class="level-badge-number">@RankProgress.CurrentLevel</div>
+        <div class="rank-header-grid @(RankProgress.IsMaxLevel ? "no-next" : "")">
+            <!-- Left: Large Level Badge -->
+            <div class="rank-current-level-badge" style="min-width: 0;">
+                <div class="level-badge-inner">
+                    <div class="level-badge-label">LV</div>
+                    <div class="level-badge-number">@RankProgress.CurrentLevel</div>
+                </div>
             </div>
-        </div>
 
-        <!-- Center: Rank Name -->
-        <div class="rank-title-center">
-            <div class="rank-subtitle">Nível de alcoolismo</div>
-            <h2 class="rank-name-title">@RankProgress.CurrentRankName</h2>
-            @if (RankProgress.IsMaxLevel)
+            <!-- Center: Rank Name -->
+            <div class="rank-title-center" style="min-width: 0;">
+                <div class="rank-subtitle">Nível de alcoolismo</div>
+                <h2 class="rank-name-title">@RankProgress.CurrentRankName</h2>
+                @if (RankProgress.IsMaxLevel)
+                {
+                    <div class="max-level-badge">
+                        <i class="bi bi-star-fill"></i> Nível Máximo! <i class="bi bi-star-fill"></i>
+                    </div>
+                }
+            </div>
+
+            <!-- Right: Next Level Preview -->
+            @if (!RankProgress.IsMaxLevel)
             {
-                <div class="max-level-badge">
-                    <i class="bi bi-star-fill"></i> Nível Máximo! <i class="bi bi-star-fill"></i>
+                <div class="rank-next-level-preview" style="min-width: 0;">
+                    <div class="next-level-label">Próximo</div>
+                    <div class="next-level-name">Nível @(RankProgress.CurrentLevel + 1)</div>
+                    <div class="next-level-rank-name">@GetNextLevelName()</div>
                 </div>
             }
         </div>
 
-        <!-- Right: Next Level Preview -->
-        @if (!RankProgress.IsMaxLevel)
-        {
-            <div class="rank-next-level-preview">
-                <div class="next-level-label">Próximo</div>
-                <div class="next-level-name">Nível @(RankProgress.CurrentLevel + 1)</div>
-                <div class="next-level-rank-name">@GetNextLevelName()</div>
-            </div>
-        }
-        
         @if (IsCollapsible)
         {
             <div class="rank-collapse-icon">
