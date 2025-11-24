@@ -57,13 +57,13 @@ public class Program
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
                                ?? "Data Source=app.db";
-        
+
         // Ensure database directory exists for SQLite
         try
         {
             var connectionStringBuilder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(connectionString);
             var dbPath = connectionStringBuilder.DataSource;
-            
+
             if (!string.IsNullOrEmpty(dbPath) && !dbPath.Equals(":memory:", StringComparison.OrdinalIgnoreCase))
             {
                 var dbDirectory = Path.GetDirectoryName(dbPath);
@@ -117,8 +117,9 @@ public class Program
                     var logger = context.HttpContext?.RequestServices?.GetRequiredService<ILogger<Program>>();
                     var cache = context.HttpContext?.RequestServices?.GetService<IMemoryCache>();
                     var userManager = context.HttpContext?.RequestServices?.GetService<UserManager<ApplicationUser>>();
+                    var signInManager = context.HttpContext?.RequestServices?.GetService<SignInManager<ApplicationUser>>();
 
-                    if (logger == null || cache == null || userManager == null)
+                    if (logger == null || cache == null || userManager == null || signInManager == null)
                     {
                         return;
                     }
@@ -130,19 +131,40 @@ public class Program
                         return;
                     }
 
+                    // Validate security stamp to force sign-out when credentials or roles change
+                    var validatedUser = await signInManager.ValidateSecurityStampAsync(context.Principal);
+
+                    if (validatedUser == null)
+                    {
+                        await signInManager.SignOutAsync();
+                        context.RejectPrincipal();
+                        return;
+                    }
+
+                    var hasAdminClaim = context.Principal?.IsInRole("Admin") ?? false;
+                    var isAdminInDatabase = await userManager.IsInRoleAsync(validatedUser, "Admin");
+
+                    if (hasAdminClaim && !isAdminInDatabase)
+                    {
+                        // Roles were changed since the cookie was issued; force logout to refresh claims
+                        await signInManager.SignOutAsync();
+                        context.RejectPrincipal();
+                        return;
+                    }
+
                     var issuedUtc = context.Properties?.IssuedUtc?.UtcDateTime ?? DateTime.MinValue;
 
                     // Log user authentication once per session (cache for 1 hour to avoid duplicate logs)
                     // The cache key includes issuedUtc.Ticks to ensure each new login session is logged once
                     var logCacheKey = $"login-log:{userName}:{issuedUtc.Ticks}";
-                    
+
                     if (!cache.TryGetValue(logCacheKey, out _))
                     {
                         logger.LogInformation(
                             "User {UserName} authenticated via cookie validation at {LoginTime}",
                             userName,
                             DateTime.UtcNow);
-                        
+
                         // Cache for 1 hour to prevent duplicate logs from the same session
                         // This ensures the log appears only once per login session
                         cache.Set(logCacheKey, true, new MemoryCacheEntryOptions
@@ -191,10 +213,10 @@ public class Program
 
         // Email sender for Identity (forgot password, etc.)
         services.AddScoped<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, RTUB.Application.Services.EmailSender>();
-        
+
         // Add MVC services for Razor view engine (needed for email templates)
         services.AddControllersWithViews();
-        
+
         // Email template services
         services.AddScoped<RTUB.Web.Services.IEmailTemplateService, RTUB.Web.Services.EmailTemplateService>();
         services.AddScoped<RTUB.Application.Interfaces.IEmailTemplateRenderer, RTUB.Web.Services.RazorEmailTemplateRenderer>();
@@ -205,25 +227,25 @@ public class Program
         {
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
             var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-            
+
             var accessKey = configuration["Cloudflare:R2:AccessKeyId"];
             var secretKey = configuration["Cloudflare:R2:SecretAccessKey"];
             var accountId = configuration["Cloudflare:R2:AccountId"];
-            
+
             if (string.IsNullOrEmpty(accessKey) || string.IsNullOrEmpty(secretKey))
             {
                 var errorMsg = "Cloudflare R2 credentials not configured. Set Cloudflare:R2:AccessKeyId and Cloudflare:R2:SecretAccessKey.";
                 logger.LogError(errorMsg);
                 throw new InvalidOperationException(errorMsg);
             }
-            
+
             if (string.IsNullOrEmpty(accountId))
             {
                 var errorMsg = "Cloudflare R2 account ID not configured. Set Cloudflare:R2:AccountId.";
                 logger.LogError(errorMsg);
                 throw new InvalidOperationException(errorMsg);
             }
-            
+
             var credentials = new Amazon.Runtime.BasicAWSCredentials(accessKey, secretKey);
             var config = new Amazon.S3.AmazonS3Config
             {
@@ -231,7 +253,7 @@ public class Program
                 ForcePathStyle = true,
                 AuthenticationRegion = "auto" // Required for Cloudflare R2
             };
-            
+
             return new Amazon.S3.AmazonS3Client(credentials, config);
         });
 
@@ -249,10 +271,10 @@ public class Program
         services.AddEmailServices();
         services.AddStorageServices();
         services.AddMemberQueryServices();
-        
+
         // --------- Mention Service (Social feature) ---------
         services.AddScoped<IMentionService, MentionService>();
-        
+
         // --------- Geocoding Service ---------
         // Register HttpClient for Nominatim geocoding service
         services.AddHttpClient("Nominatim")
@@ -260,20 +282,20 @@ public class Program
             {
                 client.Timeout = TimeSpan.FromSeconds(10);
             });
-        
+
         // Geocoding queue (singleton - shared state across all requests)
         services.AddSingleton<IGeocodingQueue, InMemoryGeocodingQueue>();
-        
+
         // NominatimGeocodingService (scoped) - for background worker
         services.AddScoped<NominatimGeocodingService>();
-        
+
         // CachedGeocodingService - cache-only reads for UI (scoped to work with scoped DbContext)
         // This is the default IGeocodingService used by UI components
         services.AddScoped<IGeocodingService, CachedGeocodingService>();
-        
+
         // Background worker for geocoding cities from the queue
         services.AddHostedService<BackgroundGeocodingWorker>();
-        
+
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
 
@@ -347,7 +369,7 @@ public class Program
             {
                 var sp = scope.ServiceProvider;
                 var logger = sp.GetRequiredService<ILogger<Program>>();
-                
+
                 try
                 {
                     var db = sp.GetRequiredService<ApplicationDbContext>();
@@ -393,7 +415,7 @@ public class Program
         app.UseResponseCaching();
 
         app.UseRouting();
-        
+
         // Serve static files EXCEPT /images/* (handled by ImagesController for E-Tag support)
         // We'll serve /images through the controller, all other static content through middleware
         app.UseWhen(
@@ -403,14 +425,14 @@ public class Program
                 // Configure content type provider to serve .webmanifest with correct MIME type
                 var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
                 provider.Mappings[".webmanifest"] = "application/manifest+json";
-                
+
                 appBuilder.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
                 {
                     ContentTypeProvider = provider,
                     OnPrepareResponse = ctx =>
                     {
                         var path = ctx.Context.Request.Path.Value?.ToLowerInvariant() ?? "";
-                        
+
                         // PWA icons and manifest should have shorter cache to allow updates
                         if (path.Contains("/icons/") || path.EndsWith("manifest.json") || path.EndsWith("manifest.webmanifest") || path.StartsWith("/apple-touch-icon"))
                         {
@@ -463,13 +485,13 @@ public class Program
             var returnUrl = form["ReturnUrl"].ToString();
 
             var user = await userManager.FindByNameAsync(username);
-            
+
             // If not found by username, try to find by email (for users who might enter their email)
             if (user is null && username.Contains("@"))
             {
                 user = await userManager.FindByEmailAsync(username);
             }
-            
+
             if (user is null || !await userManager.IsEmailConfirmedAsync(user))
             {
                 return Results.Redirect("/login?error=Invalid");
@@ -502,12 +524,12 @@ public class Program
             {
                 // Set audit context so the audit log shows the correct user instead of "System"
                 auditContext.SetUser(user.UserName, user.Id);
-                
+
                 user.LastLoginDate = DateTime.UtcNow;
                 var updateResult = await userManager.UpdateAsync(user);
                 if (!updateResult.Succeeded)
                 {
-                    logger.LogWarning("Failed to update LastLoginDate for user {UserId}: {Errors}", 
+                    logger.LogWarning("Failed to update LastLoginDate for user {UserId}: {Errors}",
                         user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
                 }
             }
@@ -534,7 +556,7 @@ public class Program
                 logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
                     user.UserName,
                     DateTime.UtcNow);
-                
+
                 // Cache for 5 seconds to prevent duplicate logs from concurrent login requests
                 cache.Set(loginLogCacheKey, true, new MemoryCacheEntryOptions
                 {

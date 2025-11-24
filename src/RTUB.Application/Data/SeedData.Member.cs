@@ -65,7 +65,7 @@ public static partial class SeedData
             .CreateAsync();
 
         var nharro = await Member(userManager).Nickname("Nharro").Name("Alexandre", "Caldeira")
-            .Role("Admin").Instrument(InstrumentType.Guitarra)
+            .Role("Mod").Instrument(InstrumentType.Guitarra)
             .Position(Position.SegundoSecretarioMesaAssembleia)
             .Category(MemberCategory.Caloiro).YearCaloiro(2020)
             .CreateAsync();
@@ -123,7 +123,7 @@ public static partial class SeedData
             .CreateAsync();
 
         var nininho = await Member(userManager).Nickname("Nininho").Name("Luís", "Prôta")
-            .Role("Admin").Instrument(InstrumentType.Guitarra)
+            .Role("Mod").Instrument(InstrumentType.Guitarra)
             .Position(Position.Secretario)
             .Category(MemberCategory.Caloiro).YearCaloiro(2023)
             .CreateAsync();
@@ -306,7 +306,7 @@ public static partial class SeedData
             .CreateAsync();
 
         var rolhas = await Member(userManager).Nickname("Rolhas").Name("Afonso", "Martins")
-            .Role("Admin").Instrument(InstrumentType.Baixo)
+            .Role("Mod").Instrument(InstrumentType.Baixo)
             .Position(Position.SegundoTesoureiro)
             .Category(MemberCategory.Caloiro).YearCaloiro(2023)
             .CreateAsync();
@@ -353,7 +353,7 @@ public static partial class SeedData
             .CreateAsync();
 
         var bombeiro = await Member(userManager).Nickname("Bombeiro").Name("Alexandre", "Figueiredo")
-            .Role("Admin").Instrument(InstrumentType.Estandarte)
+            .Role("Mod").Instrument(InstrumentType.Estandarte)
             .Position(Position.PrimeiroRelatorConselhoFiscal)
             .Category(MemberCategory.Caloiro).YearCaloiro(2021)
             .CreateAsync();
@@ -375,7 +375,7 @@ public static partial class SeedData
             .CreateAsync();
 
         var casilhas = await Member(userManager).Nickname("Casilhas").Name("Gonçalo", "Borges")
-            .Role("Admin").Instrument(InstrumentType.Estandarte)
+            .Role("Mod").Instrument(InstrumentType.Estandarte)
             .Position(Position.SegundoRelatorConselhoFiscal)
             .Category(MemberCategory.Tuno).YearTuno(2020)
             .CreateAsync();
