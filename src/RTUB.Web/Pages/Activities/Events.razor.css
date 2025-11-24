@@ -1,7 +1,8 @@
 .events-page {
     width: 100%;
     max-width: 100%;
-    padding-inline: 0;
+    min-width: 0;
+    padding-inline: clamp(0.75rem, 2vw, 1.5rem);
     overflow-x: hidden;
 }
 

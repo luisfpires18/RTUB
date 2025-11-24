@@ -189,6 +189,9 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     margin-bottom: 1rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
 }
 
 /* Desktop: buttons in a single row */
@@ -202,8 +205,9 @@
 @media (max-width: 767px) {
     .page-header-actions {
         flex-direction: column;
+        align-items: stretch;
     }
-    
+
     .page-header-actions .btn {
         width: 100%;
     }

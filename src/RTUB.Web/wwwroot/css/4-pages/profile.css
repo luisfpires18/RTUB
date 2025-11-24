@@ -11,9 +11,11 @@
   overflow-x: hidden;
 }
 
+
 .profile-page .row,
 .profile-page [class*="col-"] {
   max-width: 100%;
+  min-width: 0;
 }
 
 .profile-page .row {
