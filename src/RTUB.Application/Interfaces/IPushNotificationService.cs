@@ -36,6 +36,13 @@ public interface IPushNotificationService
     Task BroadcastAsync(SendPushNotificationDto notification);
 
     /// <summary>
+    /// Sends a push notification to specific users by their user IDs
+    /// </summary>
+    /// <param name="userIds">The list of user IDs to send notifications to</param>
+    /// <param name="notification">The notification to send</param>
+    Task SendToSelectedUsersAsync(IEnumerable<string> userIds, SendPushNotificationDto notification);
+
+    /// <summary>
     /// Gets the VAPID public key for client-side subscription
     /// </summary>
     /// <returns>The VAPID public key</returns>

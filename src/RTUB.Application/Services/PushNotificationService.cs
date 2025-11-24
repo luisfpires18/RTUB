@@ -131,6 +131,30 @@ public class PushNotificationService : IPushNotificationService
         _logger.LogInformation("Broadcast push notification to {Count} subscriptions", subscriptions.Count());
     }
 
+    public async Task SendToSelectedUsersAsync(IEnumerable<string> userIds, SendPushNotificationDto notification)
+    {
+        if (!_options.IsConfigured())
+        {
+            _logger.LogWarning("Cannot send push notification to selected users: WebPush is not configured");
+            return;
+        }
+
+        if (userIds == null || !userIds.Any())
+        {
+            _logger.LogWarning("Cannot send push notification: No user IDs provided");
+            return;
+        }
+
+        var allSubscriptions = await _subscriptionRepository.GetAllActiveAsync();
+        var selectedSubscriptions = allSubscriptions.Where(s => userIds.Contains(s.UserId)).ToList();
+        
+        var tasks = selectedSubscriptions.Select(subscription => SendNotificationAsync(subscription, notification));
+        await Task.WhenAll(tasks);
+        
+        _logger.LogInformation("Sent push notification to {Count} subscriptions for {UserCount} users", 
+            selectedSubscriptions.Count, userIds.Count());
+    }
+
     public string GetVapidPublicKey()
     {
         return _options.VapidPublicKey;

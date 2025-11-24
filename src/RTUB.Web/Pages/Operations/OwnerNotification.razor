@@ -78,13 +78,13 @@
                             <div class="invalid-feedback">A mensagem é obrigatória</div>
                         }
                         <small class="form-text text-muted">
-                            Esta notificação será enviada para @subscribedUsersCount utilizadores com push ativo (máximo 500 caracteres)
+                            Esta notificação será enviada para os utilizadores selecionados (máximo 500 caracteres)
                         </small>
                     </div>
 
                     <div class="alert alert-purple">
                         <i class="bi bi-info-circle"></i>
-                        <strong>Informação:</strong> Esta notificação push será enviada para todos os utilizadores com notificações push ativas.
+                        <strong>Informação:</strong> Esta notificação push será enviada para os utilizadores selecionados. Use a lista abaixo para escolher os destinatários.
                     </div>
 
                     <!-- Progress Display -->
@@ -134,38 +134,77 @@
         </div>
 
 
-        @if (subscribedUsers.Any() || nonSubscribedUsers.Any())
+        @if (subscribedUsers.Any())
         {
             <div class="card mt-4">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-people"></i> Lista de Destinatários</h5>
+                    <h5 class="mb-0"><i class="bi bi-people"></i> Selecionar Destinatários</h5>
                 </div>
                 <div class="card-body">
                     @if (!string.IsNullOrEmpty(recipientsMessage))
                     {
-                        <Alert Type="@(isRecipientsError || isRecipientsRemoval ? Alert.AlertType.Error : Alert.AlertType.Success)" 
+                        <Alert Type="@(isRecipientsError ? Alert.AlertType.Error : Alert.AlertType.Success)" 
                                Message="@recipientsMessage" 
                                Dismissible="true"
                                OnDismiss="@(() => recipientsMessage = string.Empty)" />
                     }
-                    <EmailRecipientsPreview 
-                        SubscribedUsers="@subscribedUsers"
-                        NonSubscribedUsers="@nonSubscribedUsers"
-                        SubscribedUsersTitle="@($"Destinatários ({subscribedUsersCount})")"
-                        NonSubscribedUsersTitle="@($"Quem não irá receber ({nonSubscribedUsersCount})")"
-                        ShowNonSubscribedUsers="true"
-                        ShowProfilePicture="true"
-                        ShowEmail="false"
-                        MaxHeight="400px"
-                        UsePagination="true"
-                        PageSize="25"
-                        PageSizeOptions="@(new[] { 10, 25, 50, 100 })"
-                        OnRemoveUser="@RemoveUser"
-                        OnAddUser="@AddUser"
-                        OnRemoveMultipleUsers="@RemoveMultipleUsers"
-                        OnAddMultipleUsers="@AddMultipleUsers"
-                        IsProcessingBulkRemove="@isProcessingBulkRemove"
-                        IsProcessingBulkAdd="@isProcessingBulkAdd" />
+                    
+                    <div class="mb-3">
+                        <SearchBar @bind-Value="searchQuery"
+                                   Placeholder="Pesquisar utilizadores..."
+                                   OnSearch="@HandleSearchChanged"
+                                   DebounceDelay="300" />
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="text-white-full mb-0">
+                            Utilizadores Subscritos (@selectedUsers.Count/@subscribedUsersCount selecionados)
+                        </h6>
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="selectAll"
+                                   @onchange="ToggleSelectAll"
+                                   checked="@isAllSelected" />
+                            <label class="form-check-label text-white-full" for="selectAll">
+                                Selecionar todos
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="subscriber-list" style="max-height: 400px; overflow-y: auto;">
+                        @{
+                            var filteredUsers = GetFilteredUsers();
+                            var usersToShow = GetPagedUsers(filteredUsers);
+                        }
+                        @foreach (var user in usersToShow)
+                        {
+                            <div class="subscriber-item p-2 mb-1 rounded bg-dark text-white-full">
+                                <input class="form-check-input me-2" 
+                                       type="checkbox" 
+                                       @onchange="(e) => ToggleUserSelection(user, (bool)(e.Value ?? false))"
+                                       checked="@IsUserSelected(user)" />
+                                <img src="@user.ProfilePictureSrc" 
+                                     alt="@(user.Nickname ?? user.FirstName)"
+                                     class="member-avatar-small me-2" 
+                                     style="width: 32px; height: 32px; border-radius: 50%;" />
+                                <span class="flex-grow-1">@(user.Nickname ?? $"{user.FirstName} {user.LastName}")</span>
+                            </div>
+                        }
+                    </div>
+
+                    @if (filteredUsers.Count > pageSize)
+                    {
+                        <div class="mt-2">
+                            <TablePagination CurrentPage="@currentPage"
+                                           PageSize="@pageSize"
+                                           TotalItems="@filteredUsers.Count"
+                                           ItemLabel="utilizadores"
+                                           OnPageChanged="@OnPageChanged"
+                                           OnPageSizeChanged="@OnPageSizeChanged"
+                                           PageSizeOptions="@(new[] { 10, 25, 50, 100 })" />
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -207,19 +246,22 @@
     private string recipientsMessage = "";
     private bool isError = false;
     private bool isRecipientsError = false;
-    private bool isRecipientsRemoval = false;
     private bool isSending = false;
     private bool isLoadingSubscribers = true;
     private bool showPreviewModal = false;
     private bool titleError = false;
     private bool contentError = false;
-    private bool isProcessingBulkRemove = false;
-    private bool isProcessingBulkAdd = false;
 
     private List<ApplicationUser> subscribedUsers = new();
-    private List<ApplicationUser> nonSubscribedUsers = new();
+    private List<ApplicationUser> selectedUsers = new();
+    private HashSet<string> selectedUserIds = new();
     private int subscribedUsersCount = 0;
-    private int nonSubscribedUsersCount = 0;
+    private bool isAllSelected = false;
+
+    // Search and pagination state
+    private string searchQuery = string.Empty;
+    private int currentPage = 1;
+    private int pageSize = 25;
 
     protected override async Task OnInitializedAsync()
     {
@@ -241,15 +283,12 @@
                 .AsNoTracking()
                 .ToListAsync();
             
-            // Load all users without push subscriptions
-            nonSubscribedUsers = await UserManager.Users
-                .Where(u => !userIdsWithPushSubscriptions.Contains(u.Id))
-                .OrderBy(u => u.Nickname ?? u.FirstName)
-                .AsNoTracking()
-                .ToListAsync();
-            
             subscribedUsersCount = subscribedUsers.Count;
-            nonSubscribedUsersCount = nonSubscribedUsers.Count;
+            
+            // Initially, all subscribed users are selected
+            selectedUserIds = subscribedUsers.Select(u => u.Id).ToHashSet();
+            selectedUsers = new List<ApplicationUser>(subscribedUsers);
+            isAllSelected = subscribedUsers.Count > 0;
         }
         catch (Exception ex)
         {
@@ -260,6 +299,108 @@
         {
             isLoadingSubscribers = false;
         }
+    }
+
+    private List<ApplicationUser> GetFilteredUsers()
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery))
+        {
+            return subscribedUsers;
+        }
+
+        var query = searchQuery.ToLower();
+        return subscribedUsers.Where(u =>
+            (!string.IsNullOrEmpty(u.Nickname) && u.Nickname.ToLower().Contains(query)) ||
+            (!string.IsNullOrEmpty(u.FirstName) && u.FirstName.ToLower().Contains(query)) ||
+            (!string.IsNullOrEmpty(u.LastName) && u.LastName.ToLower().Contains(query)) ||
+            (!string.IsNullOrEmpty(u.Email) && u.Email.ToLower().Contains(query))
+        ).ToList();
+    }
+
+    private List<ApplicationUser> GetPagedUsers(List<ApplicationUser> users)
+    {
+        var skip = (currentPage - 1) * pageSize;
+        return users.Skip(skip).Take(pageSize).ToList();
+    }
+
+    private Task HandleSearchChanged(string newSearchQuery)
+    {
+        searchQuery = newSearchQuery;
+        currentPage = 1;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OnPageChanged(int newPage)
+    {
+        currentPage = newPage;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OnPageSizeChanged(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void ToggleUserSelection(ApplicationUser user, bool isSelected)
+    {
+        if (isSelected)
+        {
+            if (!selectedUserIds.Contains(user.Id))
+            {
+                selectedUserIds.Add(user.Id);
+                selectedUsers.Add(user);
+            }
+        }
+        else
+        {
+            selectedUserIds.Remove(user.Id);
+            selectedUsers.RemoveAll(u => u.Id == user.Id);
+        }
+
+        // Update "select all" state based on filtered users
+        var filteredUsers = GetFilteredUsers();
+        isAllSelected = filteredUsers.Count > 0 && 
+                       filteredUsers.All(u => selectedUserIds.Contains(u.Id));
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        var isChecked = (bool)(e.Value ?? false);
+        var filteredUsers = GetFilteredUsers();
+        
+        if (isChecked)
+        {
+            // Select all filtered users
+            foreach (var user in filteredUsers)
+            {
+                if (!selectedUserIds.Contains(user.Id))
+                {
+                    selectedUserIds.Add(user.Id);
+                    selectedUsers.Add(user);
+                }
+            }
+        }
+        else
+        {
+            // Deselect all filtered users
+            foreach (var user in filteredUsers)
+            {
+                selectedUserIds.Remove(user.Id);
+                selectedUsers.RemoveAll(u => u.Id == user.Id);
+            }
+        }
+
+        isAllSelected = isChecked && filteredUsers.Count > 0;
+    }
+
+    private bool IsUserSelected(ApplicationUser user)
+    {
+        return selectedUserIds.Contains(user.Id);
     }
 
     private void ShowPreview()
@@ -290,9 +431,9 @@
             return;
         }
 
-        if (!subscribedUsers.Any())
+        if (!selectedUsers.Any())
         {
-            message = "Não há utilizadores subscritos para receber notificações push.";
+            message = "Selecione pelo menos um utilizador para receber a notificação push.";
             isError = true;
             return;
         }
@@ -313,10 +454,11 @@
                 Tag = $"announcement-{DateTime.UtcNow.Ticks}"
             };
 
-            // Send to all subscribed users
-            await PushNotificationService.BroadcastAsync(notification);
+            // Send to selected users only
+            var userIdsToSend = selectedUsers.Select(u => u.Id).ToList();
+            await PushNotificationService.SendToSelectedUsersAsync(userIdsToSend, notification);
 
-            message = $"Notificação enviada com sucesso para {subscribedUsersCount} utilizadores!";
+            message = $"Notificação enviada com sucesso para {selectedUsers.Count} utilizadores!";
             isError = false;
 
             // Clear form
@@ -339,43 +481,10 @@
         content = "";
         titleError = false;
         contentError = false;
-    }
-
-    // Placeholder methods for recipient management
-    // These would need to be implemented to actually manage push subscription state
-    private async Task RemoveUser(ApplicationUser user)
-    {
-        recipientsMessage = "A funcionalidade de remover utilizadores individuais não está implementada para notificações push.";
-        isRecipientsRemoval = true;
-        isRecipientsError = false;
-        await Task.CompletedTask;
-    }
-
-    private async Task AddUser(ApplicationUser user)
-    {
-        recipientsMessage = "A funcionalidade de adicionar utilizadores individuais não está implementada para notificações push.";
-        isRecipientsRemoval = false;
-        isRecipientsError = false;
-        await Task.CompletedTask;
-    }
-
-    private async Task RemoveMultipleUsers(List<ApplicationUser> users)
-    {
-        isProcessingBulkRemove = true;
-        recipientsMessage = "A funcionalidade de remover múltiplos utilizadores não está implementada para notificações push.";
-        isRecipientsRemoval = true;
-        isRecipientsError = false;
-        isProcessingBulkRemove = false;
-        await Task.CompletedTask;
-    }
-
-    private async Task AddMultipleUsers(List<ApplicationUser> users)
-    {
-        isProcessingBulkAdd = true;
-        recipientsMessage = "A funcionalidade de adicionar múltiplos utilizadores não está implementada para notificações push.";
-        isRecipientsRemoval = false;
-        isRecipientsError = false;
-        isProcessingBulkAdd = false;
-        await Task.CompletedTask;
+        
+        // Reset selection to all users
+        selectedUserIds = subscribedUsers.Select(u => u.Id).ToHashSet();
+        selectedUsers = new List<ApplicationUser>(subscribedUsers);
+        isAllSelected = subscribedUsers.Count > 0;
     }
 }
