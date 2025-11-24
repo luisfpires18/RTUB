@@ -13,13 +13,13 @@
     else if (HasAccess)
     {
         <div class="form-check form-switch">
-            <input class="form-check-input" 
-                   type="checkbox" 
-                   id="pushNotificationSwitch" 
+            <input class="form-check-input"
+                   type="checkbox"
+                   id="pushNotificationSwitch"
                    checked="@IsSubscribed"
                    @onchange="HandleToggleChange"
                    disabled="@IsProcessing">
-            <label class="form-check-label" for="pushNotificationSwitch">
+            <label class="form-check-label text-white-full" for="pushNotificationSwitch">
                 @if (IsProcessing)
                 {
                     <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
