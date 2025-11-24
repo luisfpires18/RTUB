@@ -477,7 +477,7 @@ public class EventCardTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("bi-bell-fill", "should show push notification button icon");
-        cut.Markup.Should().Contain("music-btn-push", "push notification button should have correct style class");
+        cut.Markup.Should().Contain("btn-admin-notification", "push notification button should have correct style class");
         cut.Markup.Should().Contain("Notificar por push", "push notification button should have correct title");
     }
 

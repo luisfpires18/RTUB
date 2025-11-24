@@ -163,7 +163,8 @@ public class PushControllerTests
         _mockPushService.Verify(s => s.SubscribeAsync(
             It.Is<string>(id => id == "test-user"),
             It.IsAny<PushSubscriptionDto>(),
-            It.IsAny<string>()), Times.Once);
+            It.IsAny<string>(),
+            It.Is<string?>(name => name == "Test User")), Times.Once);
     }
 
     [Fact]
