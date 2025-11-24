@@ -1,0 +1,249 @@
+@using Microsoft.Extensions.Logging
+@inject IJSRuntime JSRuntime
+@inject ILogger<PushNotificationToggle> Logger
+
+<div class="push-notification-toggle">
+    @if (IsLoading)
+    {
+        <div class="text-muted">
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Checking permissions...
+        </div>
+    }
+    else if (HasAccess)
+    {
+        <div class="form-check form-switch">
+            <input class="form-check-input" 
+                   type="checkbox" 
+                   id="pushNotificationSwitch" 
+                   checked="@IsSubscribed"
+                   @onchange="HandleToggleChange"
+                   disabled="@IsProcessing">
+            <label class="form-check-label" for="pushNotificationSwitch">
+                @if (IsProcessing)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                }
+                <i class="bi bi-bell@(IsSubscribed ? "-fill" : "")"></i>
+                Push Notifications
+            </label>
+        </div>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger alert-sm mt-2 mb-0" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> @ErrorMessage
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(SuccessMessage))
+        {
+            <div class="alert alert-success alert-sm mt-2 mb-0" role="alert">
+                <i class="bi bi-check-circle"></i> @SuccessMessage
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private bool IsLoading { get; set; } = true;
+    private bool HasAccess { get; set; } = false;
+    private bool IsSubscribed { get; set; } = false;
+    private bool IsProcessing { get; set; } = false;
+    private string? ErrorMessage { get; set; }
+    private string? SuccessMessage { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Check if user has access via API using JavaScript fetch
+                var statusJson = await JSRuntime.InvokeAsync<string>("eval", @"
+                    (async function() {
+                        try {
+                            const response = await fetch('/api/push/status', { credentials: 'include' });
+                            if (!response.ok) return null;
+                            const data = await response.json();
+                            return JSON.stringify(data);
+                        } catch (e) {
+                            console.error('Error fetching push status:', e);
+                            return null;
+                        }
+                    })()
+                ");
+
+                if (!string.IsNullOrEmpty(statusJson))
+                {
+                    var status = System.Text.Json.JsonSerializer.Deserialize<PushStatusDto>(statusJson, 
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    
+                    if (status != null && status.IsEnabled && status.IsConfigured)
+                    {
+                        HasAccess = true;
+                        
+                        // Initialize push manager
+                        await InitializePushManager();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error checking push notification status");
+            }
+            finally
+            {
+                IsLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task InitializePushManager()
+    {
+        try
+        {
+            var initialized = await JSRuntime.InvokeAsync<bool>("eval", @"
+                (async function() {
+                    // Always create a fresh manager instance
+                    // Use rtubPushManager to avoid conflicts with native pushManager
+                    const manager = new PushNotificationsManager();
+                    const success = await manager.initialize();
+                    if (success) {
+                        window.rtubPushManager = manager;
+                        return true;
+                    }
+                    return false;
+                })()
+            ");
+
+            // Only check subscription status if initialization succeeded
+            if (initialized)
+            {
+                IsSubscribed = await JSRuntime.InvokeAsync<bool>("eval", @"
+                    (async () => {
+                        if (window.rtubPushManager && typeof window.rtubPushManager.isSubscribed === 'function') {
+                            return await window.rtubPushManager.isSubscribed();
+                        }
+                        return false;
+                    })()
+                ");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing push manager");
+        }
+    }
+
+    private class PushStatusDto
+    {
+        public bool IsEnabled { get; set; }
+        public bool IsConfigured { get; set; }
+        public string? VapidPublicKey { get; set; }
+    }
+
+    private async Task HandleToggleChange(ChangeEventArgs e)
+    {
+        var isChecked = (bool)(e.Value ?? false);
+        ClearMessages();
+
+        if (isChecked)
+        {
+            await Subscribe();
+        }
+        else
+        {
+            await Unsubscribe();
+        }
+    }
+
+    private async Task Subscribe()
+    {
+        IsProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            var success = await JSRuntime.InvokeAsync<bool>("eval", @"
+                (async () => {
+                    if (window.rtubPushManager && typeof window.rtubPushManager.subscribe === 'function') {
+                        return await window.rtubPushManager.subscribe();
+                    }
+                    throw new Error('RTUB Push manager not available or subscribe method missing');
+                })()
+            ");
+
+            if (success)
+            {
+                IsSubscribed = true;
+                SuccessMessage = "Successfully subscribed to push notifications!";
+                ClearMessageAfterDelay(() => SuccessMessage = null);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error subscribing to push notifications");
+            ErrorMessage = "Failed to subscribe to push notifications. Please try again.";
+            IsSubscribed = false;
+        }
+        finally
+        {
+            IsProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Unsubscribe()
+    {
+        IsProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            var success = await JSRuntime.InvokeAsync<bool>("eval", @"
+                (async () => {
+                    if (window.rtubPushManager && typeof window.rtubPushManager.unsubscribe === 'function') {
+                        return await window.rtubPushManager.unsubscribe();
+                    }
+                    throw new Error('RTUB Push manager not available or unsubscribe method missing');
+                })()
+            ");
+
+            if (success)
+            {
+                IsSubscribed = false;
+                SuccessMessage = "Successfully unsubscribed from push notifications.";
+                ClearMessageAfterDelay(() => SuccessMessage = null);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error unsubscribing from push notifications");
+            ErrorMessage = "Failed to unsubscribe from push notifications. Please try again.";
+            IsSubscribed = true;
+        }
+        finally
+        {
+            IsProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearMessages()
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+    }
+
+    private void ClearMessageAfterDelay(Action clearAction, int delayMs = 3000)
+    {
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(delayMs);
+            clearAction();
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+}

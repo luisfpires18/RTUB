@@ -461,4 +461,78 @@ public class EventCardTests : TestContext
         // Assert
         cut.Markup.Should().NotContain("Remover Inscrição", "should not show remove button when user will not attend");
     }
+
+    [Fact]
+    public void EventCard_ShowsPushNotificationButton_ForAdmin_OnNonPastNonCancelledEvents()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Future Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().Contain("bi-bell-fill", "should show push notification button icon");
+        cut.Markup.Should().Contain("music-btn-push", "push notification button should have correct style class");
+        cut.Markup.Should().Contain("Notificar por push", "push notification button should have correct title");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotShowPushNotificationButton_ForNonAdmin()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Future Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsAdmin, false)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("bi-bell-fill", "should not show push notification button for non-admin");
+        cut.Markup.Should().NotContain("Notificar por push", "should not show push notification button title for non-admin");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotShowPushNotificationButton_ForPastEvents()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Past Event", DateTime.Now.AddDays(-7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastEvent, true)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("bi-bell-fill", "should not show push notification button for past events");
+        cut.Markup.Should().NotContain("Notificar por push", "should not show push notification title for past events");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotShowPushNotificationButton_ForCancelledEvents()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Cancelled Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        eventEntity.Cancel("Event cancelled due to weather");
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain("bi-bell-fill", "should not show push notification button for cancelled events");
+        cut.Markup.Should().NotContain("Notificar por push", "should not show push notification title for cancelled events");
+    }
 }

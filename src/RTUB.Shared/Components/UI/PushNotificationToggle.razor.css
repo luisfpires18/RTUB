@@ -1,0 +1,22 @@
+.push-notification-toggle {
+    padding: 1rem;
+}
+
+.push-notification-toggle .form-check-label {
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.push-notification-toggle .form-check-input {
+    cursor: pointer;
+}
+
+.push-notification-toggle .form-check-input:disabled + .form-check-label {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.alert-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}

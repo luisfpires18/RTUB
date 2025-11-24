@@ -81,6 +81,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     
     // Geocoding Cache DbSet
     public DbSet<GeocodingCache> GeocodingCaches { get; set; }
+    
+    // Push Notifications DbSet
+    public DbSet<PushSubscription> PushSubscriptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

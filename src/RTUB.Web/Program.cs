@@ -54,6 +54,10 @@ public class Program
         services.Configure<RTUB.Application.Configuration.Toggles>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.Toggles.SectionName));
 
+        // Configure Web Push
+        services.Configure<RTUB.Application.Configuration.WebPushOptions>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.WebPushOptions.SectionName));
+
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
                                ?? "Data Source=app.db";
@@ -271,7 +275,8 @@ public class Program
         services.AddEmailServices();
         services.AddStorageServices();
         services.AddMemberQueryServices();
-
+        services.AddPushNotificationServices();
+        
         // --------- Mention Service (Social feature) ---------
         services.AddScoped<IMentionService, MentionService>();
 

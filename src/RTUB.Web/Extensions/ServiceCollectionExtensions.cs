@@ -195,4 +195,15 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Registers Web Push notification services
+    /// </summary>
+    public static IServiceCollection AddPushNotificationServices(this IServiceCollection services)
+    {
+        services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
+        services.AddScoped<IPushNotificationService, PushNotificationService>();
+
+        return services;
+    }
 }

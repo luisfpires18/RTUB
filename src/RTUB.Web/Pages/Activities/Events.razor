@@ -16,6 +16,7 @@
 @inject IMemberInstrumentService MemberInstrumentService
 @inject ITrophyService TrophyService
 @inject IEmailNotificationService EmailNotificationService
+@inject IPushNotificationService PushNotificationService
 @inject IImageStorageService ImageStorageService
 @inject IEventRepertoireService EventRepertoireService
 @inject IDiscussionService DiscussionService
@@ -83,6 +84,7 @@ else
                                    OnEdit="@(() => OpenEditModal(eventItem))"
                                    OnDelete="@(() => OpenDeleteModal(eventItem))"
                                    OnSendEmail="@(() => OpenEmailNotificationModal(eventItem))"
+                                   OnSendPushNotification="@(() => OpenPushNotificationModal(eventItem))"
                                    OnCancelEvent="@(() => OpenCancelEventModal(eventItem))"
                                    OnUncancelEvent="@(() => UncancelEvent(eventItem))"
                                    OnEnroll="@(() => OpenEnrollModal(eventItem))"
@@ -882,19 +884,25 @@ else
                     <div class="mb-3">
                         <label class="form-label text-white-full">Tipo de Notificação <span class="text-danger">*</span></label>
                         <select class="form-select" @bind="selectedNotificationType">
-                            <option value="new">Nova Atuação</option>
-                            <option value="reminder">Lembrete de Atuação</option>
+                            <option value="@NotificationTypeNew">Nova Atuação</option>
+                            <option value="@NotificationTypeReminder">Lembrete de Atuação</option>
                         </select>
                         <small class="text-muted">
-                            @if (selectedNotificationType == "new")
+                            @if (selectedNotificationType == NotificationTypeNew)
                             {
                                 <text>Notifica os membros sobre uma nova atuação criada.</text>
                             }
                             else
                             {
-                                var daysUntil = (int)Math.Ceiling((selectedEventForEmail.Date.Date - DateTime.UtcNow.Date).TotalDays);
-                                var daysText = daysUntil == 1 ? "1 dia" : $"{daysUntil} dias";
-                                <text>Lembra os membros que a atuação é em @daysText e de confirmarem a presença.</text>
+                                var daysText = GetDaysUntilEventText(selectedEventForEmail.Date);
+                                if (daysText != null)
+                                {
+                                    <text>Lembra os membros que a atuação é em @daysText e de confirmarem a presença.</text>
+                                }
+                                else
+                                {
+                                    <text>Não é possível enviar lembretes para eventos passados.</text>
+                                }
                             }
                         </small>
                     </div>
@@ -917,6 +925,105 @@ else
         <button type="button" class="btn btn-secondary" @onclick="CloseEmailNotificationModal" disabled="@IsSendingEmails">Cancelar</button>
         <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendEventNotification" disabled="@(IsSendingEmails || subscribedUsers == null || !subscribedUsers.Any())">
             Enviar Notificação
+        </button>
+    </FooterContent>
+</Modal>
+
+<!-- Push Notification Confirmation Modal -->
+<Modal Show="@showPushNotificationModal"
+       ShowChanged="@((bool show) => showPushNotificationModal = show)"
+       Title="Enviar notificação push desta atuação"
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true">
+    <BodyContent>
+        @if (selectedEventForPush != null)
+        {
+            <!-- Loading Overlay for Sending Push Notifications -->
+            @if (IsSendingPushNotifications)
+            {
+                <div class="position-relative" style="min-height: 200px;">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(0,0,0,0.7); z-index: 1000; border-radius: 8px;">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">A enviar...</span>
+                        </div>
+                        <h5 class="text-white mb-2">Enviando notificações push...</h5>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <h6 class="text-white-full">Detalhes do Evento:</h6>
+                    <div class="event-summary p-3 rounded bg-dark">
+                        <div><strong>Título:</strong> @selectedEventForPush.Name</div>
+                        <div><strong>Data:</strong> @selectedEventForPush.Date.ToString("dddd, dd 'de' MMMM 'de' yyyy • HH:mm", new System.Globalization.CultureInfo("pt-PT"))</div>
+                        <div><strong>Local:</strong> @selectedEventForPush.Location</div>
+                    </div>
+                </div>
+
+                @if (pushLoadingSubscribers)
+                {
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">A carregar...</span>
+                        </div>
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(pushErrorMessage))
+                {
+                    <Alert Message="@pushErrorMessage" 
+                           Type="Alert.AlertType.Error" 
+                           Dismissible="true"
+                           OnDismiss="@(() => pushErrorMessage = null)" />
+                }
+                else
+                {
+                    <!-- Notification Type Selection -->
+                    <div class="mb-3">
+                        <label class="form-label text-white-full">Tipo de Notificação <span class="text-danger">*</span></label>
+                        <select class="form-select" @bind="selectedPushNotificationType">
+                            <option value="@NotificationTypeNew">Nova Atuação</option>
+                            <option value="@NotificationTypeReminder">Lembrete de Atuação</option>
+                        </select>
+                        <small class="text-muted">
+                            @if (selectedPushNotificationType == NotificationTypeNew)
+                            {
+                                <text>Notifica os membros sobre uma nova atuação criada.</text>
+                            }
+                            else
+                            {
+                                var daysText = GetDaysUntilEventText(selectedEventForPush.Date);
+                                if (daysText != null)
+                                {
+                                    <text>Lembra os membros que a atuação é em @daysText e de confirmarem a presença.</text>
+                                }
+                                else
+                                {
+                                    <text>Não é possível enviar lembretes para eventos passados.</text>
+                                }
+                            }
+                        </small>
+                    </div>
+                    
+                    <EmailRecipientsPreview 
+                        SubscribedUsers="@(pushSubscribedUsers ?? new List<ApplicationUser>())"
+                        NonSubscribedUsers="@(pushNonSubscribedUsers ?? new List<ApplicationUser>())"
+                        SubscribedUsersTitle="Membros que irão receber:"
+                        NonSubscribedUsersTitle="Quem não irá receber:"
+                        ShowNonSubscribedUsers="true"
+                        MaxHeight="300px"
+                        InfoBadgeText="@($"{pushSubscribedUsersCount} / {pushTotalUsersCount} membros têm notificações push ativas e irão receber esta mensagem.")"
+                        ShowEmptySubscribedMessage="true"
+                        EmptySubscribedMessage="Nenhum membro subscrito às notificações push." />
+                }
+            }
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="ClosePushNotificationModal" disabled="@IsSendingPushNotifications">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendPushNotification" disabled="@(IsSendingPushNotifications || pushSubscribedUsers == null || !pushSubscribedUsers.Any())">
+            Enviar Notificação Push
         </button>
     </FooterContent>
 </Modal>
@@ -1032,6 +1139,7 @@ else
     private bool showTrophyDeleteModal = false;
     private bool showDeleteEnrollmentModal = false;
     private bool showEmailNotificationModal = false;
+    private bool showPushNotificationModal = false;
     private bool showCancelEventModal = false;
     private bool isCreateMode = false;
     private bool isEditingEnrollment = false;
@@ -1044,6 +1152,7 @@ else
     private Event? selectedEventForRepertoire;
     private Event? selectedEventForTrophies;
     private Event? selectedEventForEmail;
+    private Event? selectedEventForPush;
     private Event? selectedEventForCancellation;
     private Enrollment? enrollmentForm;
     private Enrollment? removingEnrollment;
@@ -1103,13 +1212,27 @@ else
     private int totalUsersCount = 0;
     private bool emailLoadingSubscribers = false;
     private string? emailErrorMessage;
-    private string selectedNotificationType = "new"; // "new" or "reminder"
+    private string selectedNotificationType = NotificationTypeNew;
     
     // Email sending progress variables
     private bool IsSendingEmails = false;
     private int EmailsTotal = 0;
     private int EmailsSent = 0;
     private string? LastRecipient = null;
+    
+    // Push notification modal variables
+    private List<ApplicationUser>? pushSubscribedUsers;
+    private List<ApplicationUser>? pushNonSubscribedUsers;
+    private int pushSubscribedUsersCount = 0;
+    private int pushTotalUsersCount = 0;
+    private bool pushLoadingSubscribers = false;
+    private string? pushErrorMessage;
+    private string selectedPushNotificationType = NotificationTypeNew;
+    private bool IsSendingPushNotifications = false;
+    
+    // Notification type constants
+    private const string NotificationTypeNew = "new";
+    private const string NotificationTypeReminder = "reminder";
     
     // Cancel event modal variables
     private bool notifySubscribersOnCancel = false;
@@ -2128,7 +2251,7 @@ else
         selectedEventForEmail = eventItem;
         emailLoadingSubscribers = true;
         emailErrorMessage = null;
-        selectedNotificationType = "new"; // Reset to default
+        selectedNotificationType = NotificationTypeNew; // Reset to default
         showEmailNotificationModal = true;
         StateHasChanged();
 
@@ -2223,7 +2346,7 @@ else
             // Send the appropriate notification based on selected type
             (bool success, int count, string? errorMessage) result;
             
-            if (selectedNotificationType == "reminder")
+            if (selectedNotificationType == NotificationTypeReminder)
             {
                 // Send reminder notification
                 result = await EmailNotificationService.SendEventReminderNotificationAsync(
@@ -2274,6 +2397,135 @@ else
         finally
         {
             IsSendingEmails = false;
+            StateHasChanged();
+        }
+    }
+
+    // Push notification methods
+    private async Task OpenPushNotificationModal(Event eventItem)
+    {
+        selectedEventForPush = eventItem;
+        pushLoadingSubscribers = true;
+        pushErrorMessage = null;
+        selectedPushNotificationType = NotificationTypeNew; // Reset to default
+        showPushNotificationModal = true;
+        StateHasChanged();
+
+        try
+        {
+            // Get all user IDs with active push subscriptions via service
+            var userIdsWithPushSubscriptions = (await PushNotificationService.GetSubscribedUserIdsAsync()).ToHashSet();
+
+            // Get all users
+            var allUsers = await UserManager.Users.AsNoTracking().ToListAsync();
+            
+            // Split users into subscribed (has push subscriptions) and non-subscribed
+            pushSubscribedUsers = allUsers
+                .Where(u => userIdsWithPushSubscriptions.Contains(u.Id))
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .ToList();
+            
+            pushNonSubscribedUsers = allUsers
+                .Where(u => !userIdsWithPushSubscriptions.Contains(u.Id))
+                .OrderBy(u => u.Nickname ?? u.FirstName)
+                .ToList();
+            
+            pushSubscribedUsersCount = pushSubscribedUsers.Count;
+            pushTotalUsersCount = allUsers.Count;
+        }
+        catch (Exception ex)
+        {
+            pushErrorMessage = $"Erro ao carregar membros: {ex.Message}";
+        }
+        finally
+        {
+            pushLoadingSubscribers = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClosePushNotificationModal()
+    {
+        showPushNotificationModal = false;
+        selectedEventForPush = null;
+        pushSubscribedUsers = null;
+        pushNonSubscribedUsers = null;
+        pushSubscribedUsersCount = 0;
+        pushTotalUsersCount = 0;
+        pushErrorMessage = null;
+    }
+
+    private async Task SendPushNotification()
+    {
+        if (selectedEventForPush == null || pushSubscribedUsers == null || !pushSubscribedUsers.Any())
+        {
+            ClosePushNotificationModal();
+            return;
+        }
+
+        IsSendingPushNotifications = true;
+        pushErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            // Get the event link (absolute URL)
+            var baseUri = Navigation.BaseUri.TrimEnd('/');
+            var eventLink = $"{baseUri}/events";
+
+            // Format the date in Portuguese
+            var eventDateStr = selectedEventForPush.Date.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-PT"));
+
+            // Create the push notification based on type
+            SendPushNotificationDto notification;
+            
+            if (selectedPushNotificationType == NotificationTypeReminder)
+            {
+                // Reminder notification - validate event is in the future
+                var daysText = GetDaysUntilEventText(selectedEventForPush.Date);
+                if (daysText == null)
+                {
+                    pushErrorMessage = "Não é possível enviar lembretes para eventos passados.";
+                    IsSendingPushNotifications = false;
+                    StateHasChanged();
+                    return;
+                }
+                
+                notification = new SendPushNotificationDto
+                {
+                    Title = $"Lembrete: {selectedEventForPush.Name}",
+                    Body = $"A atuação é em {daysText} ({eventDateStr}) no {selectedEventForPush.Location}. Não te esqueças de confirmar a tua presença!",
+                    Icon = "/icons/rtub-logo-192.png",
+                    Url = eventLink,
+                    Tag = $"event-reminder-{selectedEventForPush.Id}"
+                };
+            }
+            else
+            {
+                // New event notification
+                notification = new SendPushNotificationDto
+                {
+                    Title = selectedEventForPush.Name,
+                    Body = $"Nova atuação: {selectedEventForPush.Name} em {eventDateStr} no {selectedEventForPush.Location}",
+                    Icon = "/icons/rtub-logo-192.png",
+                    Url = eventLink,
+                    Tag = $"event-{selectedEventForPush.Id}"
+                };
+            }
+
+            // Broadcast to all subscribed users
+            await PushNotificationService.BroadcastAsync(notification);
+
+            // Success - close modal
+            ClosePushNotificationModal();
+        }
+        catch (Exception ex)
+        {
+            pushErrorMessage = $"Erro ao enviar notificação push: {ex.Message}";
+        }
+        finally
+        {
+            IsSendingPushNotifications = false;
             StateHasChanged();
         }
     }
@@ -2504,6 +2756,20 @@ else
     private bool CanDeleteEnrollment()
     {
         return isUserAdmin;
+    }
+    
+    /// <summary>
+    /// Gets the days until event formatted as text in Portuguese.
+    /// Returns null if the event is in the past.
+    /// </summary>
+    private string? GetDaysUntilEventText(DateTime eventDate)
+    {
+        var daysUntil = (int)Math.Ceiling((eventDate.Date - DateTime.UtcNow.Date).TotalDays);
+        if (daysUntil < 0)
+        {
+            return null; // Event is in the past
+        }
+        return daysUntil == 1 ? "1 dia" : $"{daysUntil} dias";
     }
     
     // Add Member to Enrollment Methods (for past events)

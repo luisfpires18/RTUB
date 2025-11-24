@@ -61,7 +61,12 @@
                 <div class="position-absolute bottom-0 end-0 p-2 d-flex flex-row gap-2">
                     @if (!Event.IsCancelled)
                     {
-                        <button class="btn btn-sm btn-primary music-btn-email" 
+                        <button class="btn btn-sm btn-admin-notification" 
+                                @onclick="OnSendPushNotification" 
+                                title="Notificar por push">
+                            <i class="bi bi-bell-fill"></i>
+                        </button>
+                        <button class="btn btn-sm btn-admin-notification" 
                                 @onclick="OnSendEmail" 
                                 title="Notificar por email">
                             <i class="bi bi-envelope-fill"></i>
@@ -382,6 +387,12 @@
     public EventCallback OnSendEmail { get; set; }
 
     /// <summary>
+    /// Callback when the send push notification button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnSendPushNotification { get; set; }
+
+    /// <summary>
     /// Callback when the enroll button is clicked
     /// </summary>
     [Parameter]
@@ -598,18 +609,23 @@
         }
     }
     
-    .music-btn-email {
-        background: rgba(106, 27, 154, 0.9);
-        border: none;
-        color: white;
+    .btn-admin-notification {
+        background: white;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        color: black;
         padding: 0.375rem 0.75rem;
         border-radius: 0.25rem;
         transition: all 0.3s ease;
     }
     
-    .music-btn-email:hover {
-        background: rgba(106, 27, 154, 1);
+    .btn-admin-notification:hover {
+        background: rgba(255, 255, 255, 0.9);
+        border-color: rgba(0, 0, 0, 0.3);
         transform: scale(1.05);
+    }
+    
+    .btn-admin-notification i {
+        color: black;
     }
     
     .music-btn-cancel {
