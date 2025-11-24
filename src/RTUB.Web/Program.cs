@@ -153,6 +153,8 @@ public class Program
                         // Roles were changed since the cookie was issued; force logout to refresh claims
                         await signInManager.SignOutAsync();
                         context.RejectPrincipal();
+                        Console.WriteLine($"User {userName} forced to logout due to role change.");
+
                         return;
                     }
 
