@@ -591,41 +591,51 @@ else
                                        AdditionalClasses="mb-2" />
                             }
 
-                            <div class="mb-2">
-                                <SearchBar @bind-Value="addMemberToEnrollmentSearchTerm"
-                                           Placeholder="Pesquisar membro por nome..."
-                                           OnSearch="@HandleAddMemberToEnrollmentSearchChanged" />
+                            @if (!showAddMemberToEnrollmentSearch)
+                            {
+                                <button class="btn btn-sm btn-outline-primary" @onclick="ShowAddMemberToEnrollmentSearch">
+                                    <i class="bi bi-plus-circle"></i>
+                                    Adicionar Membro
+                                </button>
+                            }
+                            else
+                            {
+                                <div class="mb-2">
+                                    <SearchBar @bind-Value="addMemberToEnrollmentSearchTerm"
+                                               Placeholder="Pesquisar membro por nome..."
+                                               OnSearch="@HandleAddMemberToEnrollmentSearchChanged" />
 
-                                @if (!string.IsNullOrWhiteSpace(addMemberToEnrollmentSearchTerm) && filteredAvailableMembersForEnrollment.Any())
-                                {
-                                    <div class="member-list member-list-scrollable mt-2">
-                                        @foreach (var member in filteredAvailableMembersForEnrollment)
-                                        {
-                                            <div class="member-item p-2 mb-2 border rounded clickable-row"
-                                                 @onclick="() => AddMemberToEvent(member)"
-                                                 tabindex="0"
-                                                 @onkeydown="@(async (e) => await HandleMemberItemKeyDownForEnrollment(e, member))">
-                                                <div class="d-flex align-items-center">
-                                                    <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
-                                                         class="member-avatar-small me-2" />
-                                                    <div>
-                                                        <strong>@member.GetDisplayName()</strong>
+                                    @if (!string.IsNullOrWhiteSpace(addMemberToEnrollmentSearchTerm) && filteredAvailableMembersForEnrollment.Any())
+                                    {
+                                        <div class="member-list member-list-scrollable mt-2">
+                                            @foreach (var member in filteredAvailableMembersForEnrollment)
+                                            {
+                                                <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                                     @onclick="() => AddMemberToEvent(member)"
+                                                     tabindex="0"
+                                                     @onkeydown="@(async (e) => await HandleMemberItemKeyDownForEnrollment(e, member))">
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                             class="member-avatar-small me-2" />
+                                                        <div>
+                                                            <strong>@member.GetDisplayName()</strong>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                                else if (!string.IsNullOrWhiteSpace(addMemberToEnrollmentSearchTerm))
-                                {
-                                    <p class="text-muted mt-2">Nenhum membro encontrado.</p>
-                                }
-                            </div>
+                                            }
+                                        </div>
+                                    }
+                                    else if (!string.IsNullOrWhiteSpace(addMemberToEnrollmentSearchTerm))
+                                    {
+                                        <p class="text-muted mt-2">Nenhum membro encontrado.</p>
+                                    }
+                                </div>
 
-                            <button class="btn btn-sm btn-outline-primary" @onclick="ResetAddMemberToEnrollmentSearch">
-                                <i class="bi bi-plus-circle"></i>
-                                Adicionar Membro
-                            </button>
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="HideAddMemberToEnrollmentSearch">
+                                    <i class="bi bi-x-circle"></i>
+                                    Cancelar
+                                </button>
+                            }
                         </div>
                     }
                 </Authorized>
@@ -1254,6 +1264,7 @@ else
     private string addMemberToEnrollmentSearchTerm = "";
     private string addMemberToEnrollmentFeedbackMessage = "";
     private bool addMemberToEnrollmentFeedbackIsError = false;
+    private bool showAddMemberToEnrollmentSearch = false;
     private List<ApplicationUser> allMembersForEnrollment = new();
     private List<ApplicationUser> filteredAvailableMembersForEnrollment = new();
 
@@ -1872,6 +1883,7 @@ else
         addMemberToEnrollmentSearchTerm = "";
         addMemberToEnrollmentFeedbackMessage = "";
         addMemberToEnrollmentFeedbackIsError = false;
+        showAddMemberToEnrollmentSearch = false;
     }
 
     private Task HandleEnrollmentSearch(string term)
@@ -2817,6 +2829,10 @@ else
             addMemberToEnrollmentFeedbackMessage = $"Inscrição de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";
             addMemberToEnrollmentFeedbackIsError = false;
             
+            // Hide the search after successful addition
+            showAddMemberToEnrollmentSearch = false;
+            addMemberToEnrollmentSearchTerm = string.Empty;
+            
             // Refresh enrollment list
             await OpenEnrollmentListModal(selectedEvent);
             
@@ -2834,6 +2850,24 @@ else
     {
         addMemberToEnrollmentFeedbackMessage = "";
         addMemberToEnrollmentFeedbackIsError = false;
+    }
+
+    private void ShowAddMemberToEnrollmentSearch()
+    {
+        showAddMemberToEnrollmentSearch = true;
+        addMemberToEnrollmentSearchTerm = string.Empty;
+        addMemberToEnrollmentFeedbackMessage = string.Empty;
+        addMemberToEnrollmentFeedbackIsError = false;
+        FilterAvailableMembersForEnrollment();
+    }
+
+    private void HideAddMemberToEnrollmentSearch()
+    {
+        showAddMemberToEnrollmentSearch = false;
+        addMemberToEnrollmentSearchTerm = string.Empty;
+        addMemberToEnrollmentFeedbackMessage = string.Empty;
+        addMemberToEnrollmentFeedbackIsError = false;
+        FilterAvailableMembersForEnrollment();
     }
 
     private void ResetAddMemberToEnrollmentSearch()
