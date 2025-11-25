@@ -4,6 +4,7 @@
     --navbar-height: 56px;
     --message-avatar-size: 32px;
     --message-avatar-margin: 0.5rem;
+    --primary-hover: #8b5cf6; /* Lighter purple for hover states */
     
     min-height: 600px;
     height: calc(100vh - 160px);
@@ -264,7 +265,7 @@
 }
 
 .header-action-btn:hover {
-    background-color: #8b5cf6;
+    background-color: var(--primary-hover);
     transform: scale(1.05);
 }
 
@@ -295,7 +296,7 @@
 }
 
 .header-actions .dropdown .btn-link:hover {
-    background-color: #8b5cf6;
+    background-color: var(--primary-hover);
     transform: scale(1.05);
 }
 
@@ -771,7 +772,7 @@
         box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
         background: #0f0f10;
         padding: 0.75rem;
-        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)); /* Add safe area padding for iPhone notch */
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)); /* Add safe area padding for iPhone home indicator */
     }
 
     /* Message styling for mobile */
