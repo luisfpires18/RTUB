@@ -619,7 +619,7 @@ public class MeetingCardTests : TestContext
         {
             Id = "test-user-1",
             Nickname = "Ambrósio",
-            PositionsJson = System.Text.Json.JsonSerializer.Serialize(new[] { Position.PresidenteMesaAssembleia })
+            Positions = new List<Position> { Position.PresidenteMesaAssembleia }
         };
 
         var meeting = new Meeting
@@ -677,7 +677,7 @@ public class MeetingCardTests : TestContext
         {
             Id = "test-user-1",
             Nickname = "Ambrósio",
-            PositionsJson = null
+            Positions = new List<Position>()
         };
 
         var meeting = new Meeting
@@ -713,7 +713,7 @@ public class MeetingCardTests : TestContext
         {
             Id = "test-user-1",
             Nickname = "TestUser",
-            PositionsJson = System.Text.Json.JsonSerializer.Serialize(new[] { position })
+            Positions = new List<Position> { position }
         };
 
         var meeting = new Meeting
@@ -744,11 +744,11 @@ public class MeetingCardTests : TestContext
         {
             Id = "test-user-1",
             Nickname = "TestUser",
-            PositionsJson = System.Text.Json.JsonSerializer.Serialize(new[] 
+            Positions = new List<Position> 
             { 
                 Position.PresidenteMesaAssembleia,
                 Position.Secretario
-            })
+            }
         };
 
         var meeting = new Meeting

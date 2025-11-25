@@ -2,7 +2,6 @@ using FluentAssertions;
 using RTUB.Application.Extensions;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using System.Text.Json;
 
 namespace RTUB.Application.Tests.Extensions;
 
@@ -28,7 +27,7 @@ public class ApplicationUserExtensionsTests
         
         if (categories.Any())
         {
-            user.CategoriesJson = JsonSerializer.Serialize(categories.ToList());
+            user.Categories = categories.ToList();
         }
         
         return user;

@@ -578,8 +578,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             "PasswordHash", "SecurityStamp", "ConcurrencyStamp", "NormalizedUserName",
             "NormalizedEmail", "LockoutEnd", "AccessFailedCount", "TwoFactorEnabled",
             "PhoneNumberConfirmed", "EmailConfirmed", "LockoutEnabled",
-            "LastLoginDate", // Exclude login tracking - already logged separately
-            "Categories", "Positions" // Legacy collection properties - using CategoriesJson/PositionsJson instead
+            "LastLoginDate" // Exclude login tracking - already logged separately
         };
 
         // Critical fields that should mark the action as critical (even if not logged)
@@ -710,7 +709,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     }
 
     /// <summary>
-    /// Compares two values for semantic equality, properly handling JSON strings and collections
+    /// Compares two values for semantic equality, properly handling collections
     /// </summary>
     private bool AreValuesEqual(object? oldValue, object? newValue)
     {
@@ -718,7 +717,23 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         if (ReferenceEquals(oldValue, newValue))
             return true;
         
-        // Special handling for strings that might be JSON (like CategoriesJson, PositionsJson)
+        // Handle collection comparisons (e.g., List<T> for primitive collections)
+        if (oldValue is System.Collections.IEnumerable oldEnumerable && 
+            newValue is System.Collections.IEnumerable newEnumerable &&
+            !(oldValue is string) && !(newValue is string))
+        {
+            var oldList = oldEnumerable.Cast<object>().ToList();
+            var newList = newEnumerable.Cast<object>().ToList();
+            
+            // Compare counts first
+            if (oldList.Count != newList.Count)
+                return false;
+            
+            // Compare elements
+            return oldList.SequenceEqual(newList);
+        }
+        
+        // Special handling for strings that might be JSON
         if (oldValue is string || newValue is string)
         {
             // Convert null to empty string for comparison

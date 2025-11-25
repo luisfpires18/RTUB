@@ -180,8 +180,8 @@ public class MemberListItemTests : TestContext
     {
         // Arrange
         var user = CreateTestUser();
-        user.PositionsJson = "[]";
-        user.CategoriesJson = "[]";
+        user.Positions = new List<Position>();
+        user.Categories = new List<MemberCategory>();
 
         // Act
         var cut = RenderComponent<MemberListItem>(parameters => parameters

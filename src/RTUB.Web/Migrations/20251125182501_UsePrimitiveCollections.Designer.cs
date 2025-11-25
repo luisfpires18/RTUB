@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251125182501_UsePrimitiveCollections")]
+    partial class UsePrimitiveCollections
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -504,9 +507,6 @@ namespace RTUB.Migrations
                     b.Property<string>("CreatedByUserId")
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsAnnouncementOnly")
-                        .HasColumnType("INTEGER");
-
                     b.Property<bool>("IsArchived")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
@@ -550,54 +550,6 @@ namespace RTUB.Migrations
                         .HasDatabaseName("IX_Conversation_LastMessageAt_IsArchived");
 
                     b.ToTable("Conversations");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.ConversationUserSettings", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ConversationId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsMuted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsPinned")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_ConversationUserSettings_UserId");
-
-                    b.HasIndex("ConversationId", "UserId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_ConversationUserSettings_ConversationId_UserId");
-
-                    b.ToTable("ConversationUserSettings");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Discussion", b =>
@@ -2206,25 +2158,6 @@ namespace RTUB.Migrations
                     b.Navigation("Author");
 
                     b.Navigation("Post");
-                });
-
-            modelBuilder.Entity("RTUB.Core.Entities.ConversationUserSettings", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.Conversation", "Conversation")
-                        .WithMany()
-                        .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Conversation");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("RTUB.Core.Entities.Discussion", b =>
