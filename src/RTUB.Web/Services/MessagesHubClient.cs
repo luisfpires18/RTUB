@@ -12,6 +12,8 @@ public class MessagesHubClient : IAsyncDisposable
 {
     /// <summary>
     /// Reconnection delay strategy: immediate, 2s, 5s, 10s
+    /// These values follow SignalR best practices for reconnection exponential backoff.
+    /// Hardcoded as they are standard for all SignalR connections and rarely need customization.
     /// </summary>
     private static readonly TimeSpan[] ReconnectionDelays = 
     { 

@@ -17,6 +17,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject ILogger<Inbox> Logger
 @inject RTUB.Web.Services.MessagesHubClient MessagesHubClient
 @implements IAsyncDisposable
 
@@ -1226,7 +1227,7 @@
         catch (Exception ex)
         {
             // Log but don't fail - app should work without SignalR
-            Console.WriteLine($"Failed to initialize SignalR: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to initialize SignalR connection");
         }
         
         // Original initialization code
