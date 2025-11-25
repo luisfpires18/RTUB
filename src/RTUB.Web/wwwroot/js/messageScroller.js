@@ -22,6 +22,8 @@ window.messageScroller = {
     setupInputFocusScroll: function (inputElement, containerElement) {
         if (!inputElement || !containerElement) return;
         
+        const KEYBOARD_ANIMATION_DELAY = 350; // ms - wait for mobile keyboard animation
+        
         inputElement.addEventListener('focus', () => {
             // On mobile, when keyboard opens, scroll to bottom after a delay
             if (window.innerWidth <= 767) {
@@ -29,7 +31,7 @@ window.messageScroller = {
                     window.requestAnimationFrame(() => {
                         containerElement.scrollTop = containerElement.scrollHeight;
                     });
-                }, 350); // Wait for keyboard animation
+                }, KEYBOARD_ANIMATION_DELAY);
             }
         });
     }

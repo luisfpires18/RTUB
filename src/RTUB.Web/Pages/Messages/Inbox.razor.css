@@ -5,6 +5,7 @@
     --message-avatar-size: 32px;
     --message-avatar-margin: 0.5rem;
     --primary-hover: #8b5cf6; /* Lighter purple for hover states */
+    --mobile-message-bottom-padding: 5rem; /* Large padding on mobile so last message is visible above sticky input */
     
     min-height: 600px;
     height: calc(100vh - 160px);
@@ -782,7 +783,7 @@
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         padding: 0.75rem;
-        padding-bottom: 5rem; /* Large padding so last message is always visible above sticky input */
+        padding-bottom: var(--mobile-message-bottom-padding);
         /* Note: We use margin-bottom on .message elements for spacing, not gap,
            because gap would override our grouped message spacing (0.1rem) */
     }
