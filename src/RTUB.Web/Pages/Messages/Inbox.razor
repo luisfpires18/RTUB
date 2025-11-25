@@ -25,7 +25,32 @@
         <div class="row g-0 h-100">
             @* Conversations List *@
             <div class="col-12 col-lg-4 conversations-panel @(selectedConversation != null ? "d-none d-lg-block" : "")">
-                <div class="conversations-header">
+                @* Mobile-only header with back button to home *@
+                <div class="conversations-header-mobile d-lg-none">
+                    <a href="/" class="btn btn-link">
+                        <i class="bi bi-arrow-left"></i>
+                    </a>
+                    <h3 class="mb-0">Mensagens</h3>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <button class="dropdown-item" @onclick="OpenNewMessageModal">
+                                    <i class="bi bi-person"></i> Nova mensagem
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" @onclick="OpenNewGroupModal">
+                                    <i class="bi bi-people"></i> Nova conversa de grupo
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                @* Desktop header *@
+                <div class="conversations-header d-none d-lg-flex">
                     <h3 class="mb-0"><i class="bi bi-chat-dots"></i> Mensagens</h3>
                     <div class="dropdown">
                         <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -227,25 +252,45 @@
                             }
                             else
                             {
-                                @foreach (var message in messages)
+                                @for (var i = 0; i < messages.Count; i++)
                                 {
-                                    <div class="message @(message.SenderId == currentUserId ? "message-sent" : "message-received") @(message.IsSystem ? "message-system" : string.Empty)">
+                                    var message = messages[i];
+                                    var groupPosition = GetMessageGroupPosition(i);
+                                    var showAvatar = groupPosition == MessageGroupPosition.First || groupPosition == MessageGroupPosition.Single;
+                                    var showTimestamp = groupPosition == MessageGroupPosition.Last || groupPosition == MessageGroupPosition.Single;
+                                    var showSenderName = showAvatar && selectedConversation.IsGroup && message.SenderId != currentUserId && !message.IsSystem;
+                                    
+                                    <div class="message @(message.SenderId == currentUserId ? "message-sent" : "message-received") @(message.IsSystem ? "message-system" : string.Empty) @GetMessageGroupClass(groupPosition)">
                                         @if (message.SenderId != currentUserId && !message.IsSystem)
                                         {
-                                            <div class="message-avatar">
-                                                <img src="@GetAvatarUrl(message.SenderAvatar)" 
-                                                     alt="@(message.SenderNickname ?? message.SenderName)" 
-                                                     onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
-                                            </div>
+                                            @if (showAvatar)
+                                            {
+                                                <div class="message-avatar">
+                                                    <img src="@GetAvatarUrl(message.SenderAvatar)" 
+                                                         alt="@(message.SenderNickname ?? message.SenderName)" 
+                                                         onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="message-avatar-placeholder"></div>
+                                            }
                                         }
                                         @if (message.IsSystem)
                                         {
-                                            <div class="message-avatar">
-                                                <img src="/icons/rtub-logo-192.png" alt="RTUB" />
-                                            </div>
+                                            @if (showAvatar)
+                                            {
+                                                <div class="message-avatar">
+                                                    <img src="/icons/rtub-logo-192.png" alt="RTUB" />
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="message-avatar-placeholder"></div>
+                                            }
                                         }
                                         <div class="message-content">
-                                            @if (selectedConversation.IsGroup && message.SenderId != currentUserId && !message.IsSystem)
+                                            @if (showSenderName)
                                             {
                                                 <div class="message-sender-name">
                                                     @(message.SenderNickname ?? message.SenderName)
@@ -264,9 +309,12 @@
                                                     </div>
                                                 }
                                             </div>
-                                            <div class="message-time">
-                                                @message.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                                            </div>
+                                            @if (showTimestamp)
+                                            {
+                                                <div class="message-time">
+                                                    @message.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                                </div>
+                                            }
                                         </div>
                                     </div>
                                 }
@@ -277,13 +325,13 @@
                         {
                             <div class="message-thread-footer">
                                 <div class="message-composer">
-                                    <input type="text"
-                                           class="message-composer__input"
+                                    <textarea class="message-composer__input"
                                            placeholder="Escreva uma mensagem..."
                                            @bind="newMessageText"
                                            @bind:event="oninput"
                                            @onkeypress="HandleKeyPress"
-                                           disabled="@isSending" />
+                                           rows="1"
+                                           disabled="@isSending"></textarea>
                                     <button class="message-composer__send"
                                             @onclick="SendMessage"
                                             disabled="@(string.IsNullOrWhiteSpace(newMessageText) || isSending)">
@@ -1067,6 +1115,68 @@
         {
             isCreatingGroup = false;
         }
+    }
+
+    /// <summary>
+    /// Enum representing the position of a message within a group of consecutive messages from the same sender.
+    /// </summary>
+    private enum MessageGroupPosition
+    {
+        Single,  // Only message in the group
+        First,   // First message in a group
+        Middle,  // Middle message in a group
+        Last     // Last message in a group
+    }
+
+    /// <summary>
+    /// Determines the position of a message within a group of consecutive messages from the same sender.
+    /// </summary>
+    private MessageGroupPosition GetMessageGroupPosition(int index)
+    {
+        if (index < 0 || index >= messages.Count)
+        {
+            return MessageGroupPosition.Single;
+        }
+
+        var currentMessage = messages[index];
+        var previousMessage = index > 0 ? messages[index - 1] : null;
+        var nextMessage = index < messages.Count - 1 ? messages[index + 1] : null;
+
+        var hasSamePreviousSender = previousMessage != null && previousMessage.SenderId == currentMessage.SenderId;
+        var hasSameNextSender = nextMessage != null && nextMessage.SenderId == currentMessage.SenderId;
+
+        if (!hasSamePreviousSender && !hasSameNextSender)
+        {
+            return MessageGroupPosition.Single;
+        }
+        
+        if (!hasSamePreviousSender && hasSameNextSender)
+        {
+            return MessageGroupPosition.First;
+        }
+        
+        if (hasSamePreviousSender && hasSameNextSender)
+        {
+            return MessageGroupPosition.Middle;
+        }
+        
+        // hasSamePreviousSender && !hasSameNextSender
+        return MessageGroupPosition.Last;
+    }
+
+    /// <summary>
+    /// Gets the CSS class for the message group position.
+    /// </summary>
+    private static string GetMessageGroupClass(MessageGroupPosition position)
+    {
+        return position switch
+        {
+            MessageGroupPosition.Single => "message-group-single",
+            MessageGroupPosition.First => "message-group-first",
+            MessageGroupPosition.Middle => "message-group-middle",
+            MessageGroupPosition.Last => "message-group-last",
+            _ => string.Empty
+        };
     }
 
     private string GetAvatarUrl(string? imageUrl)

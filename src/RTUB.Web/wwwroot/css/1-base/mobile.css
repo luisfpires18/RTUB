@@ -647,3 +647,23 @@ iframe {
     padding: 8px;
   }
 }
+
+/* ========================================
+   MESSAGES PAGE - FULL-SCREEN MOBILE
+   ======================================== */
+
+/* Hide navbar, footer, and prevent body scroll when Messages page is active on mobile (max-width: 767px) */
+@media (max-width: 767px) {
+  body:has(.messages-page) {
+    overflow: hidden !important;
+  }
+
+  body:has(.messages-page) .navbar-main,
+  body:has(.messages-page) .footer-main {
+    display: none !important;
+  }
+
+  body:has(.messages-page) .content-main .container-xxl {
+    padding: 0 !important;
+  }
+}
