@@ -232,7 +232,7 @@
                                         <i class="bi @(selectedConversation.IsMuted ? "bi-bell-slash-fill" : "bi-bell")"></i>
                                     </button>
                                     <button class="btn btn-link header-action-btn" @onclick="TogglePin" title="@(selectedConversation.IsPinned ? "Desafixar" : "Afixar")">
-                                        <i class="bi @(selectedConversation.IsPinned ? "bi-pin-fill text-primary" : "bi-pin")"></i>
+                                        <i class="bi @(selectedConversation.IsPinned ? "bi-pin-fill" : "bi-pin")"></i>
                                     </button>
                                     <div class="dropdown">
                                         <button class="btn btn-link" type="button" data-bs-toggle="dropdown">
