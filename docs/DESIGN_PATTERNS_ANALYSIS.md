@@ -377,49 +377,81 @@ return users.Where(u => u.CurrentRole == "VETERANO")  // Then filter in memory
 2. `MeetingService.GetEligibleUsersForMeeting()` loads all users then filters in memory for `ConselhoVeteranos`
 3. `GroupConversationSyncService` uses `CurrentRole` for filtering veterans/tunossauros
 
-**Potential Solutions (Not Strategy Pattern)**:
+---
 
-| Solution | Gain | Effort | Risk | Recommendation |
-|----------|------|--------|------|----------------|
-| **1. Normalize to junction tables** | HIGH | 24-40h | HIGH | Long-term best |
-| **2. EF Core 8+ JSON columns** | MEDIUM | 8-16h | MEDIUM | If upgrading EF |
-| **3. Keep current workarounds** | - | 0h | LOW | Current approach |
+### ✅ RECOMMENDED SOLUTION: EF Core 10 Primitive Collections
 
-**Solution 1: Normalize to Junction Tables** (Most Proper)
-```sql
--- Create proper relational tables
-CREATE TABLE UserCategories (
-    UserId VARCHAR(450),
-    Category INT,
-    PRIMARY KEY (UserId, Category),
-    FOREIGN KEY (UserId) REFERENCES AspNetUsers(Id)
-);
+**Why This Is The Best Approach**:
 
-CREATE TABLE UserPositions (
-    UserId VARCHAR(450),
-    Position INT,
-    PRIMARY KEY (UserId, Position),
-    FOREIGN KEY (UserId) REFERENCES AspNetUsers(Id)
-);
-```
+Since RTUB uses **EF Core 10**, you can leverage **Primitive Collections** (introduced in EF Core 8) to store enum lists directly WITHOUT junction tables AND with full IQueryable support.
 
-This would allow proper IQueryable filtering:
+**Key Facts About Your Data**:
+- `MemberCategory` enum: 7 fixed values (Tuno, Veterano, Tunossauro, TunoHonorario, Caloiro, Leitao, Fundador)
+- `Position` enum: 13 fixed values (Magister, ViceMagister, etc.)
+- These are **fixed enums** - they won't change, making this perfect for primitive collections
+- Junction tables are overkill for fixed enum values - they add complexity without benefit
+
+**The Solution - Remove Duplicate Properties**:
+
 ```csharp
-// With normalized tables, this would work in SQL
-query.Where(u => u.UserCategories.Any(c => c.Category == MemberCategory.Veterano))
+// ApplicationUser.cs - BEFORE (current - problematic)
+public string? PositionsJson { get; set; }  // ❌ Remove this
+public string? CategoriesJson { get; set; }  // ❌ Remove this
+public List<Position> Positions { get... set... }  // Manual JSON serialization
+public List<MemberCategory> Categories { get... set... }  // Manual JSON serialization
+
+// ApplicationUser.cs - AFTER (clean, EF Core 10)
+public List<Position> Positions { get; set; } = new();  // ✅ EF Core handles storage
+public List<MemberCategory> Categories { get; set; } = new();  // ✅ EF Core handles storage
 ```
 
-**Solution 2: EF Core 8+ JSON Column Support**
+**DbContext Configuration**:
 ```csharp
-// Configure in DbContext
-modelBuilder.Entity<ApplicationUser>()
-    .OwnsMany(u => u.Categories, b => b.ToJson());
+// ApplicationDbContext.cs - OnModelCreating
+modelBuilder.Entity<ApplicationUser>(entity =>
+{
+    // EF Core 10 handles List<enum> as primitive collections automatically
+    // No special configuration needed! Just remove the JSON properties.
+    
+    // Optional: If you want explicit control over column names
+    entity.Property(e => e.Categories)
+        .HasConversion(
+            v => string.Join(',', v.Select(c => (int)c)),
+            v => v.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                  .Select(s => (MemberCategory)int.Parse(s)).ToList()
+        );
+});
 ```
 
-**Recommendation**: The current workarounds are pragmatic and working. Database normalization would be the cleanest long-term solution but requires:
-- Database migration
-- Updating all code that reads/writes Categories and Positions
-- Extensive testing (100+ tests touch user data)
+**Benefits**:
+1. ✅ **IQueryable works**: `query.Where(u => u.Categories.Contains(MemberCategory.Veterano))` translates to SQL
+2. ✅ **No junction tables needed**: Fixed enums don't need separate tables
+3. ✅ **Cleaner entity**: Single property instead of Json + helper property
+4. ✅ **Type safety**: No manual JSON serialization/deserialization
+5. ✅ **Simpler code**: Remove all the try-catch JSON parsing
+
+**Migration Required**:
+```csharp
+// Migration to update column (preserve data)
+migrationBuilder.RenameColumn("CategoriesJson", "Categories", "AspNetUsers");
+migrationBuilder.RenameColumn("PositionsJson", "Positions", "AspNetUsers");
+```
+
+---
+
+### Alternative Solutions Comparison
+
+| Solution | Gain | Effort | Risk | Best For |
+|----------|------|--------|------|----------|
+| **✅ EF Core Primitive Collections** | HIGH | 4-8h | LOW | Fixed enums (YOUR CASE) |
+| Junction Tables | HIGH | 24-40h | HIGH | Dynamic/growing lists |
+| Keep Current Workarounds | - | 0h | LOW | No time to refactor |
+
+**Why NOT Junction Tables for Fixed Enums**:
+- Categories (7 values) and Positions (13 values) are **fixed enums**
+- Junction tables add unnecessary complexity for static enum values
+- Junction tables are best when the list of possible values can grow
+- EF Core 10 primitive collections give you SQL querying without the overhead
 
 **Strategy pattern would NOT solve this issue** - it's a data persistence problem, not a behavioral abstraction problem.
 
@@ -615,8 +647,9 @@ services.AddSingleton<IAudioStorageService, DriveAudioStorageService>();
 | Decorator | ✅ Partial | - | - | - | Maintain |
 | Background Worker | ✅ Implemented | - | - | - | Maintain |
 | Producer/Consumer | ✅ Implemented | - | - | - | Maintain |
+| **✅ EF Core Primitive Collections** | **Not implemented** | **HIGH** | **4-8h** | **LOW** | **RECOMMENDED** |
 | **Strategy (Categories)** | **Not needed** | **LOW** | **8-12h** | **MEDIUM** | **Defer** |
-| **JSON→Junction Tables** | **Not implemented** | **HIGH** | **24-40h** | **HIGH** | **Long-term** |
+| Junction Tables | Not needed | MEDIUM | 24-40h | HIGH | Overkill for fixed enums |
 | Strategy (Storage) | Not needed | MEDIUM | 8-12h | LOW-MED | Defer |
 | Specification | Not needed | MEDIUM | 16-24h | MEDIUM | Defer |
 | Builder | Not needed | MEDIUM | 8-12h | LOW | Defer |
