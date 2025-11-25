@@ -255,18 +255,19 @@
     color: var(--bs-primary);
 }
 
-.header-action-btn i,
-.header-action-btn .bi {
-    color: #fff;
+/* Ensure pin and mute icons stay white in all states */
+.header-actions .header-action-btn i,
+.header-actions .header-action-btn .bi {
+    color: white;
 }
 
-.header-action-btn:hover i,
-.header-action-btn:hover .bi,
-.header-action-btn:focus i,
-.header-action-btn:focus .bi,
-.header-action-btn:active i,
-.header-action-btn:active .bi {
-    color: #fff !important;
+.header-actions .header-action-btn:hover i,
+.header-actions .header-action-btn:hover .bi,
+.header-actions .header-action-btn:focus i,
+.header-actions .header-action-btn:focus .bi,
+.header-actions .header-action-btn:active i,
+.header-actions .header-action-btn:active .bi {
+    color: white;
 }
 
 .message-thread-body {
