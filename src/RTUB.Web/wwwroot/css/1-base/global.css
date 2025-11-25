@@ -38,6 +38,22 @@ body {
   -webkit-tap-highlight-color: rgba(var(--bs-primary-rgb), 0.2);
 }
 
+/* Keep headings with icons on a single line and aligned */
+h1,
+.h1,
+.page-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px; /* Match touch target guidance */
+}
+
+h1 i,
+.h1 i,
+.page-title i {
+  line-height: 1;
+}
+
 a {
   color: var(--bs-link-color);
   text-decoration: none;
