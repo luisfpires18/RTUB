@@ -186,10 +186,18 @@
                                 }
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="/profile"><i class="bi bi-person-circle"></i> Meu Perfil</a></li>
                                 <li>
-                                    <a class="dropdown-item d-flex align-items-center justify-content-between" href="/messages">
-                                        <span><i class="bi bi-chat-dots"></i> Mensagens</span>
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="/profile">
+                                        <i class="bi bi-person-circle"></i>
+                                        <span>Meu Perfil</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center justify-content-between gap-2" href="/messages">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-chat-dots"></i>
+                                            <span>Mensagens</span>
+                                        </span>
                                         <UnreadMessagesBadge CssClass="ms-2" />
                                     </a>
                                 </li>

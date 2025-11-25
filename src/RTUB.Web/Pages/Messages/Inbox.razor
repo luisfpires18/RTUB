@@ -356,7 +356,11 @@
                     }
                     else if (!string.IsNullOrEmpty(memberSearchTerm) && selectedMember == null)
                     {
-                        <div class="alert alert-info mt-2">Nenhum membro encontrado.</div>
+                        <div class="mt-2">
+                            <EmptyState Title="Nenhum membro encontrado"
+                                        Icon="bi-search"
+                                        Message="Tente ajustar os termos de pesquisa." />
+                        </div>
                     }
 
                     @if (selectedMember != null)
@@ -551,7 +555,9 @@
                     <div class="group-members-modal-list">
                         @if (!filteredParticipants.Any())
                         {
-                            <div class="alert alert-info mb-0">Nenhum membro encontrado.</div>
+                            <EmptyState Title="Nenhum membro encontrado"
+                                        Icon="bi-search"
+                                        Message="Tente ajustar os termos de pesquisa." />
                         }
                         else
                         {
