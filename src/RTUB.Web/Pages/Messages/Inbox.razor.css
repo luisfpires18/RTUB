@@ -255,6 +255,20 @@
     color: var(--bs-primary);
 }
 
+.header-action-btn i,
+.header-action-btn .bi {
+    color: #fff;
+}
+
+.header-action-btn:hover i,
+.header-action-btn:hover .bi,
+.header-action-btn:focus i,
+.header-action-btn:focus .bi,
+.header-action-btn:active i,
+.header-action-btn:active .bi {
+    color: #fff !important;
+}
+
 .message-thread-body {
     flex: 1;
     overflow-y: auto;

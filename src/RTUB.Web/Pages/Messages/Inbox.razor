@@ -885,9 +885,11 @@
                 conversationInList.LastMessagePreview = sentMessage.Body;
                 conversationInList.LastMessageSenderId = currentUserId;
                 
-                // Move to top
-                conversations.Remove(conversationInList);
-                conversations.Insert(0, conversationInList);
+                // Re-sort conversations (pinned first, then by LastMessageAt)
+                conversations = conversations
+                    .OrderByDescending(c => c.IsPinned)
+                    .ThenByDescending(c => c.LastMessageAt)
+                    .ToList();
             }
             
             StateHasChanged();
