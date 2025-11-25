@@ -14,25 +14,29 @@ namespace RTUB.Migrations
                 name: "IX_Transactions_ActivityId",
                 table: "Transactions");
 
-            // Rename CategoriesJson to Categories and preserve data
+            // Migrate data from CategoriesJson to Categories column
             // The existing JSON format is compatible with EF Core 10's primitive collections
-            migrationBuilder.RenameColumn(
-                name: "CategoriesJson",
-                table: "AspNetUsers",
-                newName: "Categories");
+            migrationBuilder.Sql(
+                "UPDATE AspNetUsers SET Categories = COALESCE(CategoriesJson, '[]') WHERE CategoriesJson IS NOT NULL");
             
-            // Rename PositionsJson to Positions and preserve data  
-            // The existing JSON format is compatible with EF Core 10's primitive collections
-            migrationBuilder.RenameColumn(
-                name: "PositionsJson",
-                table: "AspNetUsers",
-                newName: "Positions");
+            // Migrate data from PositionsJson to Positions column
+            migrationBuilder.Sql(
+                "UPDATE AspNetUsers SET Positions = COALESCE(PositionsJson, '[]') WHERE PositionsJson IS NOT NULL");
             
             // Update null values to empty JSON arrays to satisfy IsRequired constraint
             migrationBuilder.Sql(
-                "UPDATE AspNetUsers SET Categories = '[]' WHERE Categories IS NULL");
+                "UPDATE AspNetUsers SET Categories = '[]' WHERE Categories IS NULL OR Categories = ''");
             migrationBuilder.Sql(
-                "UPDATE AspNetUsers SET Positions = '[]' WHERE Positions IS NULL");
+                "UPDATE AspNetUsers SET Positions = '[]' WHERE Positions IS NULL OR Positions = ''");
+            
+            // Drop the old JSON columns - they're no longer needed
+            migrationBuilder.DropColumn(
+                name: "CategoriesJson",
+                table: "AspNetUsers");
+            
+            migrationBuilder.DropColumn(
+                name: "PositionsJson",
+                table: "AspNetUsers");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Transactions_ActivityId_Type",
@@ -102,16 +106,24 @@ namespace RTUB.Migrations
                 name: "IX_AuditLogs_UserName",
                 table: "AuditLogs");
 
-            // Rename back to original column names
-            migrationBuilder.RenameColumn(
-                name: "Categories",
+            // Recreate the JSON columns
+            migrationBuilder.AddColumn<string>(
+                name: "CategoriesJson",
                 table: "AspNetUsers",
-                newName: "CategoriesJson");
+                type: "TEXT",
+                nullable: true);
             
-            migrationBuilder.RenameColumn(
-                name: "Positions",
+            migrationBuilder.AddColumn<string>(
+                name: "PositionsJson",
                 table: "AspNetUsers",
-                newName: "PositionsJson");
+                type: "TEXT",
+                nullable: true);
+            
+            // Migrate data back to JSON columns
+            migrationBuilder.Sql(
+                "UPDATE AspNetUsers SET CategoriesJson = Categories WHERE Categories != '[]'");
+            migrationBuilder.Sql(
+                "UPDATE AspNetUsers SET PositionsJson = Positions WHERE Positions != '[]'");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Transactions_ActivityId",
