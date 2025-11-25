@@ -25,14 +25,3 @@ public class ConversationDto
     // For group conversations - participant info
     public List<GroupParticipantDto> GroupParticipants { get; set; } = new();
 }
-
-/// <summary>
-/// DTO for group participant information
-/// </summary>
-public class GroupParticipantDto
-{
-    public string UserId { get; set; } = string.Empty;
-    public string? Name { get; set; }
-    public string? Nickname { get; set; }
-    public string? Avatar { get; set; }
-}
