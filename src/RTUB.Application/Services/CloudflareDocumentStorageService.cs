@@ -93,7 +93,7 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error listing folders");
-            return new List<string>();
+            return [];
         }
     }
 
@@ -148,12 +148,12 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         catch (AmazonS3Exception ex)
         {
             _logger.LogError(ex, "Failed to list documents in {FolderPath}", folderPath);
-            return new List<DocumentMetadata>();
+            return [];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error listing documents in {FolderPath}", folderPath);
-            return new List<DocumentMetadata>();
+            return [];
         }
     }
 

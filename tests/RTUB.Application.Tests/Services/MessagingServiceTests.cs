@@ -32,7 +32,7 @@ public class MessagingServiceTests
         // Mock UserManager (requires store mock)
         var store = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            store.Object, null, null, null, null, null, null, null, null);
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _service = new MessagingService(
             _mockConversationRepository.Object,

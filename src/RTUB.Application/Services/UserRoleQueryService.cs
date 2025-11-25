@@ -27,7 +27,7 @@ public class UserRoleQueryService : IUserRoleQueryService
     {
         if (userIds == null || !userIds.Any())
         {
-            return new List<UserRoleDto>();
+            return [];
         }
 
         // Query: Join UserRoles and Roles tables, filter by user IDs, select user ID and role name

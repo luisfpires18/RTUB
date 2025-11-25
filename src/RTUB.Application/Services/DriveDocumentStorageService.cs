@@ -77,7 +77,7 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error listing folders with prefix: {Prefix}", prefix);
-            return new List<string>();
+            return [];
         }
     }
 
@@ -133,12 +133,12 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
         {
             _logger.LogError(ex, "S3 error listing documents in folder. Bucket: '{BucketName}', FolderPath: '{FolderPath}', ErrorCode: {ErrorCode}, Message: {Message}", 
                 _bucketName, folderPath, ex.ErrorCode, ex.Message);
-            return new List<DocumentMetadata>();
+            return [];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error listing documents in folder: {FolderPath}", folderPath);
-            return new List<DocumentMetadata>();
+            return [];
         }
     }
 
