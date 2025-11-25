@@ -111,6 +111,7 @@ public class AuditLogService : IAuditLogService
     public async Task<IEnumerable<AuditLog>> GetEntityHistoryAsync(string entityType, int entityId)
     {
         return await ExcludeHiddenEntities(_auditLogRepository.Query())
+            .AsNoTracking()
             .Where(a => a.EntityType == entityType && a.EntityId == entityId)
             .OrderByDescending(a => a.Timestamp)
             .ToListAsync();
@@ -132,6 +133,7 @@ public class AuditLogService : IAuditLogService
     public async Task<IEnumerable<string>> GetEntityTypesAsync()
     {
         return await ExcludeHiddenEntities(_auditLogRepository.Query())
+            .AsNoTracking()
             .Select(a => a.EntityType)
             .Distinct()
             .OrderBy(e => e)
@@ -141,6 +143,7 @@ public class AuditLogService : IAuditLogService
     public async Task<IEnumerable<string>> GetActionTypesAsync()
     {
         return await ExcludeHiddenEntities(_auditLogRepository.Query())
+            .AsNoTracking()
             .Select(a => a.Action)
             .Distinct()
             .OrderBy(a => a)
@@ -150,6 +153,7 @@ public class AuditLogService : IAuditLogService
     public async Task<IEnumerable<string>> GetUserNamesAsync()
     {
         return await ExcludeHiddenEntities(_auditLogRepository.Query())
+            .AsNoTracking()
             .Where(a => a.UserName != null)
             .Select(a => a.UserName!)
             .Distinct()
@@ -199,6 +203,7 @@ public class AuditLogService : IAuditLogService
             criticalOnly);
 
         return await query
+            .AsNoTracking()
             .OrderByDescending(a => a.Timestamp)
             .ToListAsync();
     }

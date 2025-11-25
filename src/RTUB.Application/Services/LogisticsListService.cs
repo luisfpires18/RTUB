@@ -29,6 +29,7 @@ public class LogisticsListService : ILogisticsListService
     public async Task<IEnumerable<LogisticsList>> GetAllListsAsync()
     {
         return await _listRepository.Query()
+            .AsNoTracking()
             .OrderBy(l => l.Position)
             .ToListAsync();
     }
@@ -36,6 +37,7 @@ public class LogisticsListService : ILogisticsListService
     public async Task<IEnumerable<LogisticsList>> GetListsWithCardsAsync()
     {
         return await _listRepository.Query()
+            .AsNoTracking()
             .Include(l => l.Cards.OrderBy(c => c.Position))
             .ThenInclude(c => c.Event)
             .Include(l => l.Cards)
@@ -52,6 +54,7 @@ public class LogisticsListService : ILogisticsListService
     public async Task<IEnumerable<LogisticsList>> GetListsWithCardsByBoardIdAsync(int boardId)
     {
         return await _listRepository.Query()
+            .AsNoTracking()
             .Include(l => l.Cards.OrderBy(c => c.Position))
             .ThenInclude(c => c.Event)
             .Include(l => l.Cards)

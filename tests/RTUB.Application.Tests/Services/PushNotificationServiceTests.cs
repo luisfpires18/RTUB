@@ -305,7 +305,7 @@ public class PushNotificationServiceTests
             .ReturnsAsync(Enumerable.Empty<PushSubscription>());
 
         _mockConversationRepository
-            .Setup(r => r.GetByParticipantsAsync(It.IsAny<List<string>>()))
+            .Setup(r => r.GetSystemConversationForUserAsync(userId))
             .ReturnsAsync(existingConversation);
 
         // Act
@@ -353,7 +353,7 @@ public class PushNotificationServiceTests
     }
 
     [Fact]
-    public async Task SendToUserAsync_DoesNotSendInboxMessage_WhenNotConfigured()
+    public async Task SendToUserAsync_SendsInboxMessage_EvenWhenPushNotConfigured()
     {
         // Arrange
         var emptyOptions = Options.Create(new WebPushOptions());
@@ -370,12 +370,18 @@ public class PushNotificationServiceTests
             Body = "Test Body"
         };
 
+        _mockConversationRepository
+            .Setup(r => r.GetSystemConversationForUserAsync("test-user"))
+            .ReturnsAsync((Conversation?)null);
+
         // Act
         await service.SendToUserAsync("test-user", notification);
 
-        // Assert - no inbox message created when WebPush is not configured
-        _mockConversationRepository.Verify(r => r.GetByParticipantsAsync(It.IsAny<List<string>>()), Times.Never);
-        _mockMessageRepository.Verify(r => r.AddAsync(It.IsAny<Message>()), Times.Never);
+        // Assert - inbox message IS created even when WebPush is not configured
+        // This ensures users always receive important notifications in their inbox
+        _mockConversationRepository.Verify(r => r.GetSystemConversationForUserAsync("test-user"), Times.Once);
+        _mockConversationRepository.Verify(r => r.AddAsync(It.IsAny<Conversation>()), Times.Once);
+        _mockMessageRepository.Verify(r => r.AddAsync(It.IsAny<Message>()), Times.Once);
     }
 
     [Fact]

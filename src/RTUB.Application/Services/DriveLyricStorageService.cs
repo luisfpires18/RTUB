@@ -2,6 +2,8 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services.Storage;
 using RTUB.Application.Utilities;
@@ -13,11 +15,15 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class DriveLyricStorageService : BaseDriveStorageService<DriveLyricStorageService>, ILyricStorageService
 {
-    private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
+    private readonly int _urlExpirationMinutes;
 
-    public DriveLyricStorageService(IConfiguration configuration, ILogger<DriveLyricStorageService> logger)
+    public DriveLyricStorageService(
+        IConfiguration configuration, 
+        ILogger<DriveLyricStorageService> logger,
+        IOptions<StorageOptions>? storageOptions = null)
         : base(configuration, logger)
     {
+        _urlExpirationMinutes = storageOptions?.Value.UrlExpirationMinutes ?? 60;
     }
 
     public async Task<string?> GetLyricPdfUrlAsync(string albumTitle, string songTitle)
