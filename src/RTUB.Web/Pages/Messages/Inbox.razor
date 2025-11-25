@@ -228,10 +228,10 @@
                             @if (!selectedConversation.IsSystemConversation)
                             {
                                 <div class="header-actions">
-                                    <button class="btn btn-link header-action-btn" @onclick="ToggleMute" title="@(selectedConversation.IsMuted ? "Ativar notificações" : "Silenciar")">
+                                    <button class="btn btn-link header-action-btn @(selectedConversation.IsMuted ? "active" : "")" @onclick="ToggleMute" title="@(selectedConversation.IsMuted ? "Ativar notificações" : "Silenciar")">
                                         <i class="bi @(selectedConversation.IsMuted ? "bi-bell-slash-fill" : "bi-bell")"></i>
                                     </button>
-                                    <button class="btn btn-link header-action-btn" @onclick="TogglePin" title="@(selectedConversation.IsPinned ? "Desafixar" : "Afixar")">
+                                    <button class="btn btn-link header-action-btn @(selectedConversation.IsPinned ? "active" : "")" @onclick="TogglePin" title="@(selectedConversation.IsPinned ? "Desafixar" : "Afixar")">
                                         <i class="bi @(selectedConversation.IsPinned ? "bi-pin-fill" : "bi-pin")"></i>
                                     </button>
                                     <div class="dropdown">
@@ -344,7 +344,7 @@
                         {
                             <div class="message-thread-footer">
                                 <div class="message-composer">
-                                    <textarea class="message-composer__input"
+                                    <textarea @ref="messageInput" class="message-composer__input"
                                            placeholder="Escreva uma mensagem..."
                                            @bind="newMessageText"
                                            @bind:event="oninput"
@@ -687,7 +687,9 @@
     private bool isLoadingMessages = false;
     private bool isSending = false;
     private ElementReference messageThreadBody;
+    private ElementReference messageInput;
     private bool shouldScrollToBottom;
+    private bool isInputFocusHandlerSetup = false;
 
     // Group members modal
     private bool showGroupMembersModal = false;
@@ -739,6 +741,13 @@
             shouldScrollToBottom = false;
             await ScrollToLatestMessageAsync();
         }
+        
+        // Setup input focus handler for mobile keyboard scrolling (only once)
+        if (selectedConversation != null && !isInputFocusHandlerSetup)
+        {
+            isInputFocusHandlerSetup = true;
+            await JSRuntime.InvokeVoidAsync("messageScroller.setupInputFocusScroll", messageInput, messageThreadBody);
+        }
     }
 
     private async Task LoadConversationsAsync()
@@ -758,6 +767,7 @@
     private async Task SelectConversation(int conversationId)
     {
         isLoadingMessages = true;
+        isInputFocusHandlerSetup = false; // Reset for new conversation
         
         try
         {
@@ -1276,5 +1286,10 @@
     private async Task ScrollToLatestMessageAsync()
     {
         await JSRuntime.InvokeVoidAsync("messageScroller.scrollToBottom", messageThreadBody);
+    }
+    
+    private async Task ScrollToLatestMessageDelayedAsync()
+    {
+        await JSRuntime.InvokeVoidAsync("messageScroller.scrollToBottomDelayed", messageThreadBody, 150);
     }
 }

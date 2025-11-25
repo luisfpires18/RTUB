@@ -239,9 +239,30 @@
     color: var(--bs-body-color);
 }
 
+/* Back button styling - purple square with white icon */
 .message-thread-header .btn-link {
-    color: var(--bs-body-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background-color: var(--bs-primary);
+    border-radius: 0.375rem;
     text-decoration: none;
+}
+
+.message-thread-header .btn-link i {
+    color: white !important;
+    font-size: 1.1rem;
+}
+
+/* Remove hover effect from back button */
+.message-thread-header .btn-link:hover,
+.message-thread-header .btn-link:focus,
+.message-thread-header .btn-link:active {
+    background-color: var(--bs-primary);
+    color: white;
 }
 
 /* Header action buttons (mute, pin, dropdown) */
@@ -260,17 +281,21 @@
     height: 36px;
     padding: 0;
     background-color: var(--bs-primary);
-    border-radius: 50%;
-    transition: background-color 0.2s, transform 0.2s;
+    border-radius: 0.375rem; /* Square with slight rounding */
+    transition: background-color 0.2s;
 }
 
 .header-action-btn:hover {
     background-color: var(--primary-hover);
-    transform: scale(1.05);
 }
 
 .header-action-btn:active {
-    transform: scale(0.95);
+    background-color: var(--bs-primary);
+}
+
+/* Highlight active state for pin and mute when ON */
+.header-action-btn.active {
+    background-color: var(--primary-hover);
 }
 
 /* Ensure all icons are white and same size */
@@ -291,17 +316,16 @@
     height: 36px;
     padding: 0;
     background-color: var(--bs-primary);
-    border-radius: 50%;
-    transition: background-color 0.2s, transform 0.2s;
+    border-radius: 0.375rem; /* Square with slight rounding */
+    transition: background-color 0.2s;
 }
 
 .header-actions .dropdown .btn-link:hover {
     background-color: var(--primary-hover);
-    transform: scale(1.05);
 }
 
 .header-actions .dropdown .btn-link:active {
-    transform: scale(0.95);
+    background-color: var(--bs-primary);
 }
 
 .message-thread-body {
@@ -681,9 +705,9 @@
         right: 0;
         bottom: 0;
         min-height: 0;
-        height: 100vh;
-        height: 100dvh; /* Dynamic viewport height for mobile browsers */
-        max-height: none;
+        height: 100%;
+        max-height: 100vh;
+        max-height: 100dvh; /* Dynamic viewport height for mobile browsers */
         overflow: hidden;
         z-index: 1050; /* Bootstrap modal z-index level, above navbar (1030) */
     }
@@ -758,7 +782,7 @@
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         padding: 0.75rem;
-        padding-bottom: 0.75rem;
+        padding-bottom: 1.5rem; /* Extra padding so last message is visible above input */
         /* Note: We use margin-bottom on .message elements for spacing, not gap,
            because gap would override our grouped message spacing (0.1rem) */
     }
@@ -863,7 +887,7 @@
         margin-right: 0.75rem;
     }
 
-    /* Header actions on mobile - smaller buttons */
+    /* Header actions on mobile - smaller square buttons */
     .header-actions {
         gap: 0.35rem;
     }
@@ -872,6 +896,13 @@
     .header-actions .dropdown .btn-link {
         width: 32px;
         height: 32px;
+        border-radius: 0.25rem; /* Smaller rounding for mobile */
+    }
+
+    .message-thread-header .btn-link {
+        width: 32px;
+        height: 32px;
+        border-radius: 0.25rem;
     }
 
     .header-actions .header-action-btn i,
