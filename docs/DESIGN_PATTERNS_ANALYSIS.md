@@ -275,7 +275,77 @@ After thorough analysis, **no high-gain design pattern opportunities were identi
 
 ## 3. Medium Gain Opportunities
 
-### 3.1 Strategy Pattern for Storage Provider Selection
+### 3.1 Strategy Pattern for Member Categories/Positions
+
+**Current State**: Member category logic (`IsCaloiro`, `IsTuno`, `IsVeterano`, `IsTunossauro`, etc.) is implemented using:
+- `MemberCategory` enum in `RTUB.Core.Enums`
+- Extension methods in `ApplicationUserExtensions` (e.g., `user.IsTuno()`, `user.IsVeterano()`)
+- Helper methods in `StatusHelper` for display text and badge classes
+
+**Files Involved**:
+```
+src/RTUB.Core/Enums/MemberCategory.cs
+src/RTUB.Application/Extensions/ApplicationUserExtensions.cs
+src/RTUB.Application/Helpers/StatusHelper.cs
+```
+
+**Analysis - Why Strategy Pattern Is NOT Recommended Here**:
+
+1. **Data-based, not behavior-based logic**:
+   - Category checks are simple predicate operations (`Categories.Contains(MemberCategory.Tuno)`)
+   - No complex algorithmic differences between categories
+   - Strategy pattern excels when you have multiple algorithms to swap - this is just data querying
+
+2. **Current implementation is already clean**:
+   ```csharp
+   // Clean, readable, testable extension methods
+   public static bool IsTuno(this ApplicationUser user)
+       => user.Categories.Contains(MemberCategory.Tuno);
+   
+   public static bool IsTunoOrHigher(this ApplicationUser user)
+       => user.IsTuno() || user.IsVeterano() || user.IsTunossauro();
+   ```
+
+3. **Strategy would add complexity without benefit**:
+   ```csharp
+   // What Strategy would look like - more code, same functionality
+   public interface IMemberCategoryStrategy
+   {
+       bool Matches(ApplicationUser user);
+       string GetDisplayName();
+       string GetBadgeClass();
+   }
+   
+   public class TunoStrategy : IMemberCategoryStrategy { /* ... */ }
+   public class VeteranoStrategy : IMemberCategoryStrategy { /* ... */ }
+   // ... more classes for each category
+   ```
+
+4. **The logic is hierarchical, not interchangeable**:
+   - A user can have multiple categories simultaneously (Tuno + Fundador)
+   - Categories follow a progression (Leitão → Caloiro → Tuno → Veterano → Tunossauro)
+   - Strategy pattern works best when behaviors are mutually exclusive and swappable
+
+5. **No conditional behavior explosion**:
+   - Only 6 places use category checks (verified via codebase search)
+   - Display formatting uses simple switch expressions (idiomatic C#)
+   - No "if-else chains" that would benefit from polymorphism
+
+**Gain**: LOW (adds abstraction without reducing complexity)  
+**Effort**: 8-12 hours  
+**Risk**: MEDIUM (requires touching many files, updating 100+ tests)
+
+**Recommendation**: ⚠️ **DEFER** - Current extension method approach is more appropriate for this use case. Strategy pattern would introduce unnecessary indirection.
+
+**Alternative Already in Place**: The extension methods (`IsTuno()`, `IsVeterano()`, etc.) already provide:
+- ✅ Clean API: `if (user.IsTunoOrHigher())`
+- ✅ Testability: Easy to mock/test
+- ✅ Reusability: Used across the codebase
+- ✅ Type safety: Compile-time checking
+
+---
+
+### 3.2 Strategy Pattern for Storage Provider Selection
 
 **Current State**: Multiple storage implementations exist (`CloudflareImageStorageService`, `DriveAudioStorageService`, etc.) but they're registered individually.
 
@@ -465,6 +535,7 @@ services.AddSingleton<IAudioStorageService, DriveAudioStorageService>();
 | Decorator | ✅ Partial | - | - | - | Maintain |
 | Background Worker | ✅ Implemented | - | - | - | Maintain |
 | Producer/Consumer | ✅ Implemented | - | - | - | Maintain |
+| **Strategy (Categories)** | **Not needed** | **LOW** | **8-12h** | **MEDIUM** | **Defer** |
 | Strategy (Storage) | Not needed | MEDIUM | 8-12h | LOW-MED | Defer |
 | Specification | Not needed | MEDIUM | 16-24h | MEDIUM | Defer |
 | Builder | Not needed | MEDIUM | 8-12h | LOW | Defer |
