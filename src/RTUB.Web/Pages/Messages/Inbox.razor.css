@@ -704,26 +704,30 @@
         left: 0;
         right: 0;
         bottom: 0;
-        min-height: 0;
-        height: calc(var(--vh, 1vh) * 100); /* Use visual viewport height for proper keyboard handling */
-        max-height: calc(var(--vh, 1vh) * 100);
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
         z-index: 1050; /* Bootstrap modal z-index level, above navbar (1030) */
     }
 
     .messages-page .container-fluid {
-        height: 100%;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
+        padding: 0;
     }
 
     .messages-page .row {
-        height: 100%;
+        flex: 1;
+        display: flex;
         overflow: hidden;
+        margin: 0;
     }
 
     /* Conversations panel - full height with internal scroll */
     .conversations-panel {
-        height: 100%;
+        flex: 1;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -749,7 +753,7 @@
 
     /* Message thread panel - full height chat experience */
     .message-thread-panel {
-        height: 100%;
+        flex: 1;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -757,7 +761,7 @@
     }
 
     .message-thread {
-        height: 100%;
+        flex: 1;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -766,9 +770,6 @@
     /* Fixed header */
     .message-thread-header {
         flex-shrink: 0;
-        position: relative;
-        top: 0;
-        z-index: 3;
         background: #0f0f10;
         border-bottom: 1px solid var(--bs-border-color);
         padding: 0.75rem;
@@ -781,22 +782,21 @@
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         padding: 0.75rem;
-        padding-bottom: 1.5rem; /* Extra padding so last message is visible above input */
-        min-height: 150px; /* Ensure some message area is always visible even with keyboard */
+        padding-bottom: 5rem; /* Large padding so last message is always visible above sticky input */
         /* Note: We use margin-bottom on .message elements for spacing, not gap,
            because gap would override our grouped message spacing (0.1rem) */
     }
 
-    /* Fixed footer */
+    /* Sticky footer - always visible above keyboard */
     .message-thread-footer {
         flex-shrink: 0;
-        position: relative;
+        position: sticky;
         bottom: 0;
-        z-index: 3;
-        box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
         background: #0f0f10;
+        box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
         padding: 0.75rem;
         padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)); /* Add safe area padding for iPhone home indicator */
+        z-index: 10;
     }
 
     /* Message styling for mobile */
