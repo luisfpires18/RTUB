@@ -34,7 +34,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Create mock UserManager
         var store = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            store.Object, null, null, null, null, null, null, null, null);
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
         
         _service = new MemberStatusService(_context, _mockUserManager.Object);
     }

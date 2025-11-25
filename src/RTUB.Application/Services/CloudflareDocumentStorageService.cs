@@ -3,6 +3,8 @@ using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
@@ -19,7 +21,7 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
 {
     private readonly ApplicationDbContext _context;
     private readonly AuditContext _auditContext;
-    private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
+    private readonly int _urlExpirationMinutes;
     private const int S3_MAX_DELETE_BATCH_SIZE = 1000; // S3 allows max 1000 objects per delete batch
 
     public CloudflareDocumentStorageService(
@@ -28,11 +30,13 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         IHostEnvironment hostEnvironment,
         ILogger<CloudflareDocumentStorageService> logger,
         ApplicationDbContext context,
-        AuditContext auditContext)
+        AuditContext auditContext,
+        IOptions<StorageOptions>? storageOptions = null)
         : base(s3Client, configuration, hostEnvironment, logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _auditContext = auditContext ?? throw new ArgumentNullException(nameof(auditContext));
+        _urlExpirationMinutes = storageOptions?.Value.UrlExpirationMinutes ?? 60;
     }
 
     public async Task<string?> GetDocumentUrlAsync(string documentPath, bool forceDownload = false)
@@ -89,7 +93,7 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error listing folders");
-            return new List<string>();
+            return [];
         }
     }
 
@@ -144,12 +148,12 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         catch (AmazonS3Exception ex)
         {
             _logger.LogError(ex, "Failed to list documents in {FolderPath}", folderPath);
-            return new List<DocumentMetadata>();
+            return [];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error listing documents in {FolderPath}", folderPath);
-            return new List<DocumentMetadata>();
+            return [];
         }
     }
 

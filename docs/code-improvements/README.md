@@ -4,6 +4,23 @@ This directory contains documentation of code improvements made to the RTUB code
 
 ## Timeline
 
+### 2025-11-25 - Prioritized Code Improvements Plan
+**Folder**: `2025-11-25-prioritized-improvements-plan/`
+
+**Summary**: Comprehensive prioritized plan for remaining code improvements, organized by impact and effort.
+
+**Priority Categories**:
+- 🔴 HIGH: AsNoTracking additions, test fixes, configuration constants (8-13 hours)
+- 🟡 MEDIUM: Query patterns, database indexes, storage consolidation (24-42 hours)
+- 🟢 LOW: Documentation, C# patterns, warning cleanup (14-28 hours)
+
+**Code Health**: A- (90/100)
+
+**Documentation**:
+- [PRIORITIZED_CODE_IMPROVEMENTS.md](2025-11-25-prioritized-improvements-plan/PRIORITIZED_CODE_IMPROVEMENTS.md) - Complete prioritized plan
+
+---
+
 ### 2025-11-17 - PR: Refactor Exception Handling & Code Cleanup
 **Folder**: `2025-11-17-pr-copilot-cleanup/`
 

@@ -30,6 +30,7 @@ public class LeaderboardCommentService : ILeaderboardCommentService
     public async Task<List<LeaderboardCommentDto>> GetCommentsForUserAsync(string targetUserId, string? currentUserId)
     {
         var comments = await _leaderboardCommentRepository.Query()
+            .AsNoTracking()
             .Include(c => c.Author)
             .Include(c => c.Likes)
                 .ThenInclude(l => l.User)

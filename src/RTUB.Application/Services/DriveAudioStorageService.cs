@@ -2,6 +2,8 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services.Storage;
 using RTUB.Application.Utilities;
@@ -13,11 +15,15 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class DriveAudioStorageService : BaseDriveStorageService<DriveAudioStorageService>, IAudioStorageService
 {
-    private readonly int _urlExpirationMinutes = 60; // URL expires after 1 hour
+    private readonly int _urlExpirationMinutes;
 
-    public DriveAudioStorageService(IConfiguration configuration, ILogger<DriveAudioStorageService> logger)
+    public DriveAudioStorageService(
+        IConfiguration configuration, 
+        ILogger<DriveAudioStorageService> logger,
+        IOptions<StorageOptions>? storageOptions = null)
         : base(configuration, logger)
     {
+        _urlExpirationMinutes = storageOptions?.Value.UrlExpirationMinutes ?? 60;
     }
 
     public async Task<string?> GetAudioUrlAsync(string albumTitle, int? trackNumber, string songTitle)

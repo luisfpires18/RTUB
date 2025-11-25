@@ -31,6 +31,7 @@ public class ActivityService : IActivityService
     {
         // Use query to include Transactions for computed properties
         return await _activityRepository.Query()
+            .AsNoTracking()
             .Include(a => a.Transactions)
             .ToListAsync();
     }
@@ -39,6 +40,7 @@ public class ActivityService : IActivityService
     {
         // Use query to filter and include Transactions for computed properties
         return await _activityRepository.Query()
+            .AsNoTracking()
             .Include(a => a.Transactions)
             .Where(a => a.ReportId == reportId)
             .OrderBy(a => a.Name)

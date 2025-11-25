@@ -40,6 +40,7 @@ public class LabelService : ILabelService
     public async Task<IEnumerable<Label>> GetActiveLabelsAsync()
     {
         return await _labelRepository.Query()
+            .AsNoTracking()
             .Where(l => l.IsActive)
             .ToListAsync();
     }
