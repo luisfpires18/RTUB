@@ -345,7 +345,87 @@ src/RTUB.Application/Helpers/StatusHelper.cs
 
 ---
 
-### 3.2 Strategy Pattern for Storage Provider Selection
+### 3.2 JSON Storage Issue with Categories/Positions (IQueryable Problem)
+
+⚠️ **Important Note**: The issues with `Categories` and `Positions` in `MeetingService` and other services are **NOT a design pattern problem** - they are a **data storage/mapping issue**.
+
+**The Real Problem**:
+
+Categories and Positions are stored as JSON strings in the database:
+```csharp
+// ApplicationUser.cs
+public string? PositionsJson { get; set; }  // Stored in DB
+public string? CategoriesJson { get; set; }  // Stored in DB
+
+// Helper properties that deserialize JSON
+public List<Position> Positions { get => Deserialize(PositionsJson); }
+public List<MemberCategory> Categories { get => Deserialize(CategoriesJson); }
+```
+
+**Why IQueryable Fails**:
+
+EF Core cannot translate these JSON helper properties to SQL. This leads to workarounds like:
+```csharp
+// MeetingService.cs - Line 245
+// Now filter in memory (CurrentRole and Positions can be unmapped)
+var users = await _context.Users.ToListAsync();  // Load ALL users first
+return users.Where(u => u.CurrentRole == "VETERANO")  // Then filter in memory
+```
+
+**Current Workarounds in Codebase**:
+1. `MeetingService` uses `CurrentRole` property (computed from `YearTuno`) instead of `Categories`
+2. `MeetingService.GetEligibleUsersForMeeting()` loads all users then filters in memory for `ConselhoVeteranos`
+3. `GroupConversationSyncService` uses `CurrentRole` for filtering veterans/tunossauros
+
+**Potential Solutions (Not Strategy Pattern)**:
+
+| Solution | Gain | Effort | Risk | Recommendation |
+|----------|------|--------|------|----------------|
+| **1. Normalize to junction tables** | HIGH | 24-40h | HIGH | Long-term best |
+| **2. EF Core 8+ JSON columns** | MEDIUM | 8-16h | MEDIUM | If upgrading EF |
+| **3. Keep current workarounds** | - | 0h | LOW | Current approach |
+
+**Solution 1: Normalize to Junction Tables** (Most Proper)
+```sql
+-- Create proper relational tables
+CREATE TABLE UserCategories (
+    UserId VARCHAR(450),
+    Category INT,
+    PRIMARY KEY (UserId, Category),
+    FOREIGN KEY (UserId) REFERENCES AspNetUsers(Id)
+);
+
+CREATE TABLE UserPositions (
+    UserId VARCHAR(450),
+    Position INT,
+    PRIMARY KEY (UserId, Position),
+    FOREIGN KEY (UserId) REFERENCES AspNetUsers(Id)
+);
+```
+
+This would allow proper IQueryable filtering:
+```csharp
+// With normalized tables, this would work in SQL
+query.Where(u => u.UserCategories.Any(c => c.Category == MemberCategory.Veterano))
+```
+
+**Solution 2: EF Core 8+ JSON Column Support**
+```csharp
+// Configure in DbContext
+modelBuilder.Entity<ApplicationUser>()
+    .OwnsMany(u => u.Categories, b => b.ToJson());
+```
+
+**Recommendation**: The current workarounds are pragmatic and working. Database normalization would be the cleanest long-term solution but requires:
+- Database migration
+- Updating all code that reads/writes Categories and Positions
+- Extensive testing (100+ tests touch user data)
+
+**Strategy pattern would NOT solve this issue** - it's a data persistence problem, not a behavioral abstraction problem.
+
+---
+
+### 3.3 Strategy Pattern for Storage Provider Selection
 
 **Current State**: Multiple storage implementations exist (`CloudflareImageStorageService`, `DriveAudioStorageService`, etc.) but they're registered individually.
 
@@ -524,7 +604,7 @@ services.AddSingleton<IAudioStorageService, DriveAudioStorageService>();
 
 ## 6. Implementation Priority Matrix
 
-| Pattern | Current Status | Gain | Effort | Risk | Recommendation |
+| Pattern/Issue | Current Status | Gain | Effort | Risk | Recommendation |
 |---------|---------------|------|--------|------|----------------|
 | Repository | ✅ Implemented | - | - | - | Maintain |
 | Factory | ✅ Implemented | - | - | - | Maintain |
@@ -536,6 +616,7 @@ services.AddSingleton<IAudioStorageService, DriveAudioStorageService>();
 | Background Worker | ✅ Implemented | - | - | - | Maintain |
 | Producer/Consumer | ✅ Implemented | - | - | - | Maintain |
 | **Strategy (Categories)** | **Not needed** | **LOW** | **8-12h** | **MEDIUM** | **Defer** |
+| **JSON→Junction Tables** | **Not implemented** | **HIGH** | **24-40h** | **HIGH** | **Long-term** |
 | Strategy (Storage) | Not needed | MEDIUM | 8-12h | LOW-MED | Defer |
 | Specification | Not needed | MEDIUM | 16-24h | MEDIUM | Defer |
 | Builder | Not needed | MEDIUM | 8-12h | LOW | Defer |
