@@ -795,8 +795,8 @@
         bottom: 0;
         background: #0f0f10;
         box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
-        padding: 0.5rem 0.75rem; /* Reduced top/bottom padding for mobile */
-        padding-bottom: calc(0.5rem + env(safe-area-inset-bottom)); /* Minimal padding plus safe area */
+        padding: 0.5rem 0.75rem; /* Top and side padding */
+        padding-bottom: max(0.25rem, env(safe-area-inset-bottom)); /* Minimal padding or safe area, whichever is larger */
         z-index: 10;
     }
 
