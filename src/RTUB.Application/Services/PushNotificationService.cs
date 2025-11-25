@@ -12,20 +12,27 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// Service for managing Web Push notifications
 /// Handles subscription management and sending push notifications using VAPID
+/// Also delivers notifications to user inboxes as system messages
 /// </summary>
 public class PushNotificationService : IPushNotificationService
 {
     private readonly IPushSubscriptionRepository _subscriptionRepository;
+    private readonly IConversationRepository _conversationRepository;
+    private readonly IMessageRepository _messageRepository;
     private readonly WebPushOptions _options;
     private readonly ILogger<PushNotificationService> _logger;
     private readonly WebPushClient _webPushClient;
 
     public PushNotificationService(
         IPushSubscriptionRepository subscriptionRepository,
+        IConversationRepository conversationRepository,
+        IMessageRepository messageRepository,
         IOptions<WebPushOptions> options,
         ILogger<PushNotificationService> logger)
     {
         _subscriptionRepository = subscriptionRepository;
+        _conversationRepository = conversationRepository;
+        _messageRepository = messageRepository;
         _options = options.Value;
         _logger = logger;
         _webPushClient = new WebPushClient();
@@ -101,9 +108,11 @@ public class PushNotificationService : IPushNotificationService
 
     public async Task SendToUserAsync(string userId, SendPushNotificationDto notification)
     {
+        // Always deliver to user's inbox as a system message, even if push is not configured
+        await SendInboxMessageAsync(userId, notification);
+        
         if (!_options.IsConfigured())
         {
-            _logger.LogWarning("Cannot send push notification: WebPush is not configured");
             return;
         }
 
@@ -115,11 +124,28 @@ public class PushNotificationService : IPushNotificationService
         }
     }
 
+    public async Task SendPushOnlyAsync(string userId, SendPushNotificationDto notification)
+    {
+        if (!_options.IsConfigured())
+        {
+            return;
+        }
+
+        var subscriptions = await _subscriptionRepository.GetByUserIdAsync(userId);
+        
+        foreach (var subscription in subscriptions)
+        {
+            await SendNotificationAsync(subscription, notification);
+        }
+        
+        // Note: No inbox message is created - this is intentional for direct message notifications
+        // since the actual message is already in the conversation
+    }
+
     public async Task BroadcastAsync(SendPushNotificationDto notification)
     {
         if (!_options.IsConfigured())
         {
-            _logger.LogWarning("Cannot broadcast push notification: WebPush is not configured");
             return;
         }
 
@@ -127,8 +153,13 @@ public class PushNotificationService : IPushNotificationService
         
         var tasks = subscriptions.Select(subscription => SendNotificationAsync(subscription, notification));
         await Task.WhenAll(tasks);
-        
-        _logger.LogInformation("Broadcast push notification to {Count} subscriptions", subscriptions.Count());
+
+        // Also deliver to each recipient's inbox as a system message
+        var userIds = subscriptions.Select(s => s.UserId).Distinct();
+        foreach (var userId in userIds)
+        {
+            await SendInboxMessageAsync(userId, notification);
+        }
     }
 
     public async Task SendToSelectedUsersAsync(IEnumerable<string> userIds, SendPushNotificationDto notification)
@@ -205,6 +236,59 @@ public class PushNotificationService : IPushNotificationService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error sending push notification to subscription {SubscriptionId}", subscription.Id);
+        }
+    }
+
+    /// <summary>
+    /// Sends a system message to a user's inbox
+    /// Creates or gets the system conversation and adds the message
+    /// </summary>
+    private async Task SendInboxMessageAsync(string userId, SendPushNotificationDto notification)
+    {
+        try
+        {
+            // Build message body from notification title and body
+            var messageBody = string.IsNullOrWhiteSpace(notification.Title)
+                ? notification.Body
+                : $"{notification.Title}\n\n{notification.Body}";
+
+            // Get or create system conversation for this user
+            var conversation = await _conversationRepository.GetSystemConversationForUserAsync(userId);
+
+            if (conversation == null)
+            {
+                conversation = new Conversation
+                {
+                    Participants = userId,
+                    LastMessageAt = DateTime.UtcNow,
+                    IsSystemConversation = true,
+                    Title = "Sistema RTUB",
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _conversationRepository.AddAsync(conversation);
+            }
+
+            // Create system message
+            var message = new Message
+            {
+                ConversationId = conversation.Id,
+                SenderId = null,
+                Body = messageBody,
+                IsSystem = true,
+                Link = notification.Url,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _messageRepository.AddAsync(message);
+
+            // Update conversation
+            conversation.LastMessageAt = message.CreatedAt;
+            conversation.LastMessageId = message.Id;
+            await _conversationRepository.UpdateAsync(conversation);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending inbox message to user {UserId}", userId);
         }
     }
 }

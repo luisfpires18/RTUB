@@ -84,6 +84,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     
     // Push Notifications DbSet
     public DbSet<PushSubscription> PushSubscriptions { get; set; }
+    
+    // Messaging DbSets
+    public DbSet<Conversation> Conversations { get; set; }
+    public DbSet<Message> Messages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

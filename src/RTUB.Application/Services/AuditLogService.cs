@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using System;
+using System.Collections.Generic;
 
 namespace RTUB.Application.Services;
 
@@ -11,10 +13,19 @@ namespace RTUB.Application.Services;
 public class AuditLogService : IAuditLogService
 {
     private readonly IAuditLogRepository _auditLogRepository;
+    private static readonly HashSet<string> HiddenEntityTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Message", "Conversation"
+    };
 
     public AuditLogService(IAuditLogRepository auditLogRepository)
     {
         _auditLogRepository = auditLogRepository;
+    }
+
+    private static IQueryable<AuditLog> ExcludeHiddenEntities(IQueryable<AuditLog> query)
+    {
+        return query.Where(a => a.EntityType == null || !HiddenEntityTypes.Contains(a.EntityType));
     }
 
     /// <summary>
@@ -30,12 +41,14 @@ public class AuditLogService : IAuditLogService
         DateTime? toDate = null,
         bool? criticalOnly = null)
     {
+        query = ExcludeHiddenEntities(query);
+
         return query
-            .WhereIf(!string.IsNullOrWhiteSpace(userName), 
+            .WhereIf(!string.IsNullOrWhiteSpace(userName),
                 a => a.UserName != null && a.UserName.Contains(userName!))
-            .WhereIf(!string.IsNullOrWhiteSpace(excludeUserName), 
+            .WhereIf(!string.IsNullOrWhiteSpace(excludeUserName),
                 a => a.UserName == null || a.UserName != excludeUserName)
-            .WhereIf(!string.IsNullOrWhiteSpace(entityType), 
+            .WhereIf(!string.IsNullOrWhiteSpace(entityType),
                 a => a.EntityType == entityType)
             .WhereIf(!string.IsNullOrWhiteSpace(action), 
                 a => a.Action == action)
@@ -97,7 +110,7 @@ public class AuditLogService : IAuditLogService
 
     public async Task<IEnumerable<AuditLog>> GetEntityHistoryAsync(string entityType, int entityId)
     {
-        return await _auditLogRepository.Query()
+        return await ExcludeHiddenEntities(_auditLogRepository.Query())
             .Where(a => a.EntityType == entityType && a.EntityId == entityId)
             .OrderByDescending(a => a.Timestamp)
             .ToListAsync();
@@ -110,7 +123,7 @@ public class AuditLogService : IAuditLogService
             return Enumerable.Empty<AuditLog>();
         }
 
-        return await _auditLogRepository.Query()
+        return await ExcludeHiddenEntities(_auditLogRepository.Query())
             .Where(a => a.Changes != null && a.Changes.Contains(searchTerm))
             .OrderByDescending(a => a.Timestamp)
             .PaginateAsync(page, pageSize);
@@ -118,7 +131,7 @@ public class AuditLogService : IAuditLogService
 
     public async Task<IEnumerable<string>> GetEntityTypesAsync()
     {
-        return await _auditLogRepository.Query()
+        return await ExcludeHiddenEntities(_auditLogRepository.Query())
             .Select(a => a.EntityType)
             .Distinct()
             .OrderBy(e => e)
@@ -127,7 +140,7 @@ public class AuditLogService : IAuditLogService
 
     public async Task<IEnumerable<string>> GetActionTypesAsync()
     {
-        return await _auditLogRepository.Query()
+        return await ExcludeHiddenEntities(_auditLogRepository.Query())
             .Select(a => a.Action)
             .Distinct()
             .OrderBy(a => a)
@@ -136,7 +149,7 @@ public class AuditLogService : IAuditLogService
 
     public async Task<IEnumerable<string>> GetUserNamesAsync()
     {
-        return await _auditLogRepository.Query()
+        return await ExcludeHiddenEntities(_auditLogRepository.Query())
             .Where(a => a.UserName != null)
             .Select(a => a.UserName!)
             .Distinct()

@@ -13,6 +13,8 @@ namespace RTUB.Application.Tests.Services;
 public class PushNotificationServiceTests
 {
     private readonly Mock<IPushSubscriptionRepository> _mockRepository;
+    private readonly Mock<IConversationRepository> _mockConversationRepository;
+    private readonly Mock<IMessageRepository> _mockMessageRepository;
     private readonly Mock<ILogger<PushNotificationService>> _mockLogger;
     private readonly WebPushOptions _options;
     private readonly PushNotificationService _service;
@@ -20,6 +22,8 @@ public class PushNotificationServiceTests
     public PushNotificationServiceTests()
     {
         _mockRepository = new Mock<IPushSubscriptionRepository>();
+        _mockConversationRepository = new Mock<IConversationRepository>();
+        _mockMessageRepository = new Mock<IMessageRepository>();
         _mockLogger = new Mock<ILogger<PushNotificationService>>();
         
         // Configure with minimal VAPID configuration for testing
@@ -34,7 +38,12 @@ public class PushNotificationServiceTests
         };
 
         var optionsWrapper = Options.Create(_options);
-        _service = new PushNotificationService(_mockRepository.Object, optionsWrapper, _mockLogger.Object);
+        _service = new PushNotificationService(
+            _mockRepository.Object, 
+            _mockConversationRepository.Object, 
+            _mockMessageRepository.Object, 
+            optionsWrapper, 
+            _mockLogger.Object);
     }
 
     [Fact]
@@ -52,7 +61,12 @@ public class PushNotificationServiceTests
     {
         // Arrange
         var emptyOptions = Options.Create(new WebPushOptions());
-        var service = new PushNotificationService(_mockRepository.Object, emptyOptions, _mockLogger.Object);
+        var service = new PushNotificationService(
+            _mockRepository.Object, 
+            _mockConversationRepository.Object, 
+            _mockMessageRepository.Object, 
+            emptyOptions, 
+            _mockLogger.Object);
 
         // Act
         var result = service.IsConfigured();
@@ -231,13 +245,125 @@ public class PushNotificationServiceTests
     }
 
     [Fact]
-    public async Task SendToSelectedUsersAsync_DoesNothing_WhenNotConfigured()
+    public async Task SendToUserAsync_SendsInboxMessage_WhenConfigured()
+    {
+        // Arrange
+        var userId = "test-user-id";
+        var notification = new SendPushNotificationDto
+        {
+            Title = "Test Title",
+            Body = "Test Body",
+            Url = "/test-url"
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByUserIdAsync(userId))
+            .ReturnsAsync(Enumerable.Empty<PushSubscription>());
+
+        _mockConversationRepository
+            .Setup(r => r.GetByParticipantsAsync(It.IsAny<List<string>>()))
+            .ReturnsAsync((Conversation?)null);
+
+        // Act
+        await _service.SendToUserAsync(userId, notification);
+
+        // Assert - verify inbox message was created
+        _mockConversationRepository.Verify(r => r.AddAsync(It.Is<Conversation>(
+            c => c.Participants == userId &&
+                 c.IsSystemConversation == true &&
+                 c.Title == "Sistema RTUB"
+        )), Times.Once);
+
+        _mockMessageRepository.Verify(r => r.AddAsync(It.Is<Message>(
+            m => m.Body.Contains("Test Title") &&
+                 m.Body.Contains("Test Body") &&
+                 m.IsSystem == true &&
+                 m.Link == "/test-url"
+        )), Times.Once);
+    }
+
+    [Fact]
+    public async Task SendToUserAsync_UsesExistingConversation_WhenExists()
+    {
+        // Arrange
+        var userId = "test-user-id";
+        var existingConversation = new Conversation
+        {
+            Id = 123,
+            Participants = userId,
+            IsSystemConversation = true,
+            Title = "Sistema RTUB"
+        };
+        var notification = new SendPushNotificationDto
+        {
+            Title = "Test Title",
+            Body = "Test Body"
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByUserIdAsync(userId))
+            .ReturnsAsync(Enumerable.Empty<PushSubscription>());
+
+        _mockConversationRepository
+            .Setup(r => r.GetByParticipantsAsync(It.IsAny<List<string>>()))
+            .ReturnsAsync(existingConversation);
+
+        // Act
+        await _service.SendToUserAsync(userId, notification);
+
+        // Assert - verify existing conversation was used, not created
+        _mockConversationRepository.Verify(r => r.AddAsync(It.IsAny<Conversation>()), Times.Never);
+        _mockMessageRepository.Verify(r => r.AddAsync(It.Is<Message>(
+            m => m.ConversationId == 123
+        )), Times.Once);
+    }
+
+    [Fact]
+    public async Task BroadcastAsync_SendsInboxMessageToAllUsers_WhenConfigured()
+    {
+        // Arrange
+        var subscriptions = new List<PushSubscription>
+        {
+            new PushSubscription { UserId = "user1", Endpoint = "endpoint1", P256dh = "key1", Auth = "auth1" },
+            new PushSubscription { UserId = "user2", Endpoint = "endpoint2", P256dh = "key2", Auth = "auth2" },
+            new PushSubscription { UserId = "user1", Endpoint = "endpoint3", P256dh = "key3", Auth = "auth3" } // Same user, different device
+        };
+
+        var notification = new SendPushNotificationDto
+        {
+            Title = "Broadcast Title",
+            Body = "Broadcast Body",
+            Url = "/broadcast-url"
+        };
+
+        _mockRepository
+            .Setup(r => r.GetAllActiveAsync())
+            .ReturnsAsync(subscriptions);
+
+        _mockConversationRepository
+            .Setup(r => r.GetByParticipantsAsync(It.IsAny<List<string>>()))
+            .ReturnsAsync((Conversation?)null);
+
+        // Act
+        await _service.BroadcastAsync(notification);
+
+        // Assert - verify inbox messages were sent to unique users only (2 users, not 3 subscriptions)
+        _mockConversationRepository.Verify(r => r.AddAsync(It.IsAny<Conversation>()), Times.Exactly(2));
+        _mockMessageRepository.Verify(r => r.AddAsync(It.IsAny<Message>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task SendToUserAsync_DoesNotSendInboxMessage_WhenNotConfigured()
     {
         // Arrange
         var emptyOptions = Options.Create(new WebPushOptions());
-        var service = new PushNotificationService(_mockRepository.Object, emptyOptions, _mockLogger.Object);
-        
-        var userIds = new[] { "user1" };
+        var service = new PushNotificationService(
+            _mockRepository.Object,
+            _mockConversationRepository.Object,
+            _mockMessageRepository.Object,
+            emptyOptions,
+            _mockLogger.Object);
+
         var notification = new SendPushNotificationDto
         {
             Title = "Test Title",
@@ -245,10 +371,67 @@ public class PushNotificationServiceTests
         };
 
         // Act
-        await service.SendToSelectedUsersAsync(userIds, notification);
+        await service.SendToUserAsync("test-user", notification);
+
+        // Assert - no inbox message created when WebPush is not configured
+        _mockConversationRepository.Verify(r => r.GetByParticipantsAsync(It.IsAny<List<string>>()), Times.Never);
+        _mockMessageRepository.Verify(r => r.AddAsync(It.IsAny<Message>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SendToUserAsync_InboxMessageCombinesTitleAndBody()
+    {
+        // Arrange
+        var userId = "test-user-id";
+        var notification = new SendPushNotificationDto
+        {
+            Title = "Important Notice",
+            Body = "This is the message content"
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByUserIdAsync(userId))
+            .ReturnsAsync(Enumerable.Empty<PushSubscription>());
+
+        _mockConversationRepository
+            .Setup(r => r.GetByParticipantsAsync(It.IsAny<List<string>>()))
+            .ReturnsAsync((Conversation?)null);
+
+        // Act
+        await _service.SendToUserAsync(userId, notification);
 
         // Assert
-        _mockRepository.Verify(r => r.GetAllActiveAsync(), Times.Never);
+        _mockMessageRepository.Verify(r => r.AddAsync(It.Is<Message>(
+            m => m.Body == "Important Notice\n\nThis is the message content"
+        )), Times.Once);
+    }
+
+    [Fact]
+    public async Task SendToUserAsync_InboxMessageUsesBodyOnly_WhenTitleEmpty()
+    {
+        // Arrange
+        var userId = "test-user-id";
+        var notification = new SendPushNotificationDto
+        {
+            Title = "",
+            Body = "Just the body content"
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByUserIdAsync(userId))
+            .ReturnsAsync(Enumerable.Empty<PushSubscription>());
+
+        _mockConversationRepository
+            .Setup(r => r.GetByParticipantsAsync(It.IsAny<List<string>>()))
+            .ReturnsAsync((Conversation?)null);
+
+        // Act
+        await _service.SendToUserAsync(userId, notification);
+
+        // Assert
+        _mockMessageRepository.Verify(r => r.AddAsync(It.Is<Message>(
+            m => m.Body == "Just the body content"
+        )), Times.Once);
     }
 
     private void VerifyLog(LogLevel level, string expectedMessage)

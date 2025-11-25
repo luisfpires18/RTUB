@@ -1,0 +1,125 @@
+@namespace RTUB.Components
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using RTUB.Application.Interfaces
+@inject IMessagingService MessagingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+@if (unreadCount > 0)
+{
+    <span class="badge bg-danger rounded-pill @CssClass">@unreadCount</span>
+}
+
+@code {
+    [Parameter]
+    public string CssClass { get; set; } = "";
+    
+    [Parameter]
+    public EventCallback OnCountChanged { get; set; }
+
+    private int unreadCount = 0;
+    private string? currentUserId;
+    private System.Threading.Timer? _refreshTimer;
+    private DotNetObjectReference<UnreadMessagesBadge>? _dotNetRef;
+    
+    // Static event to allow cross-component communication
+    private static event Action? OnBadgeRefreshRequested;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                await LoadUnreadCount();
+                
+                // Subscribe to refresh requests from other components
+                OnBadgeRefreshRequested += HandleRefreshRequest;
+                
+                // Fallback timer refresh every 60 seconds
+                _refreshTimer = new System.Threading.Timer(async _ =>
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        await LoadUnreadCount();
+                        StateHasChanged();
+                    });
+                }, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
+            }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(currentUserId))
+        {
+            // Register with service worker to receive push notifications
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("rtubUnreadMessages.register", _dotNetRef);
+        }
+    }
+
+    private async Task LoadUnreadCount()
+    {
+        if (!string.IsNullOrEmpty(currentUserId))
+        {
+            try
+            {
+                unreadCount = await MessagingService.GetUnreadCountAsync(currentUserId);
+            }
+            catch
+            {
+                // Ignore errors
+            }
+        }
+    }
+
+    private async void HandleRefreshRequest()
+    {
+        await InvokeAsync(async () =>
+        {
+            await LoadUnreadCount();
+            StateHasChanged();
+            if (OnCountChanged.HasDelegate)
+            {
+                await OnCountChanged.InvokeAsync();
+            }
+        });
+    }
+
+    /// <summary>
+    /// Called from service worker when a push notification is received
+    /// </summary>
+    [JSInvokable("RefreshUnreadMessages")]
+    public async Task RefreshUnreadMessages()
+    {
+        await LoadUnreadCount();
+        await InvokeAsync(StateHasChanged);
+        if (OnCountChanged.HasDelegate)
+        {
+            await OnCountChanged.InvokeAsync();
+        }
+    }
+
+    /// <summary>
+    /// Call this static method from other components to refresh all badge instances
+    /// </summary>
+    public static void RequestRefresh()
+    {
+        OnBadgeRefreshRequested?.Invoke();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        OnBadgeRefreshRequested -= HandleRefreshRequest;
+        _refreshTimer?.Dispose();
+        _dotNetRef?.Dispose();
+    }
+}

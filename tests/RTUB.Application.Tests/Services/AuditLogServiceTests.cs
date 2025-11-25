@@ -7,6 +7,7 @@ using RTUB.Application.Tests.Fixtures;
 using RTUB.Application.Services;
 using RTUB.Application.Repositories;
 using RTUB.Core.Entities;
+using System;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -264,6 +265,48 @@ public class AuditLogServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         result.Should().NotBeNull();
         result.Should().HaveCount(3); // Event, Album, Song
         result.Should().Contain(new[] { "Event", "Album", "Song" });
+    }
+
+    [Fact]
+    public async Task HiddenEntityTypes_AreExcludedFromResults()
+    {
+        // Arrange
+        await SeedAuditLogs();
+        _context.AuditLogs.Add(new AuditLog
+        {
+            EntityType = "Message",
+            EntityId = 99,
+            Action = "Created",
+            UserId = "user3-id",
+            UserName = "user3",
+            Timestamp = DateTime.UtcNow,
+            Changes = "{}",
+            IsCriticalAction = false
+        });
+
+        _context.AuditLogs.Add(new AuditLog
+        {
+            EntityType = "Conversation",
+            EntityId = 99,
+            Action = "Created",
+            UserId = "user3-id",
+            UserName = "user3",
+            Timestamp = DateTime.UtcNow,
+            Changes = "{}",
+            IsCriticalAction = false
+        });
+        await _context.SaveChangesAsync();
+
+        // Act
+        var (logs, totalCount) = await _auditLogService.GetPagedWithCountAsync(pageSize: 20);
+        var entityTypes = await _auditLogService.GetEntityTypesAsync();
+
+        // Assert
+        logs.Should().NotContain(l => string.Equals(l.EntityType, "Message", StringComparison.OrdinalIgnoreCase));
+        logs.Should().NotContain(l => string.Equals(l.EntityType, "Conversation", StringComparison.OrdinalIgnoreCase));
+        totalCount.Should().Be(5); // Hidden entities are not counted
+        entityTypes.Should().NotContain(type => string.Equals(type, "Message", StringComparison.OrdinalIgnoreCase));
+        entityTypes.Should().NotContain(type => string.Equals(type, "Conversation", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

@@ -54,6 +54,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISlideshowRepository, SlideshowRepository>();
         services.AddScoped<ILeaderboardCommentRepository, LeaderboardCommentRepository>();
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+        services.AddScoped<IConversationRepository, ConversationRepository>();
+        services.AddScoped<IMessageRepository, MessageRepository>();
         
         return services;
     }
@@ -204,6 +206,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         services.AddScoped<IPushNotificationService, PushNotificationService>();
         services.AddScoped<IPushNotificationFactory, RTUB.Application.Factories.PushNotificationFactory>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers internal messaging services
+    /// </summary>
+    public static IServiceCollection AddMessagingServices(this IServiceCollection services)
+    {
+        services.AddScoped<IMessagingService, MessagingService>();
+        services.AddScoped<IGroupConversationSyncService, GroupConversationSyncService>();
 
         return services;
     }

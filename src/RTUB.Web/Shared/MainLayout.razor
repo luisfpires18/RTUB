@@ -6,13 +6,12 @@
 @using RTUB.Application.Data
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
-@using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
+@using RTUB.Components
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
-@inject IJSRuntime JSRuntime
 @inject RTUB.Web.Services.ProfilePictureUpdateService ProfilePictureUpdateService
 @implements IDisposable
 
@@ -175,7 +174,7 @@
                             }
                         }
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 @if (currentUser != null)
                                 {
                                     <img src="@GetNavbarAvatarUrl()" 
@@ -183,10 +182,17 @@
                                          class="navbar-avatar me-2"
                                          onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
                                     <span>@currentUser.Nickname</span>
+                                    <UnreadMessagesBadge CssClass="navbar-message-badge" />
                                 }
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="/profile"><i class="bi bi-person-circle"></i> Meu Perfil</a></li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center justify-content-between" href="/messages">
+                                        <span><i class="bi bi-chat-dots"></i> Mensagens</span>
+                                        <UnreadMessagesBadge CssClass="ms-2" />
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider" /></li>
                                 <li>
                                     <form method="post" action="/auth/logout" @formname="LogoutForm" class="logout-form">
@@ -266,6 +272,8 @@
 <VersionedAsset Path="/js/roleBadge.js" Type="VersionedAsset.AssetType.Js" />
 <VersionedAsset Path="/js/scrollToTop.js" Type="VersionedAsset.AssetType.Js" />
 <VersionedAsset Path="/js/kanban.js" Type="VersionedAsset.AssetType.Js" />
+<VersionedAsset Path="/js/unreadMessages.js" Type="VersionedAsset.AssetType.Js" />
+<VersionedAsset Path="/js/messageScroller.js" Type="VersionedAsset.AssetType.Js" />
     @* Leaflet JS for Member Map *@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
@@ -354,7 +362,7 @@
                 if (!isHashChangeOnly && !_isFirstRender)
                 {
                     // Fire-and-forget is intentional here; we don't need to wait for scroll completion
-                    _ = JSRuntime.InvokeVoidAsync("scrollToTop.scrollInstant");
+                    // _ = JSRuntime.InvokeVoidAsync("scrollToTop.scrollInstant");
                 }
 
                 _lastLocation = newLocation;

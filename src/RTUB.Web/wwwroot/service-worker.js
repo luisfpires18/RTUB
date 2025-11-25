@@ -50,22 +50,29 @@ self.addEventListener('push', (event) => {
         }
     }
 
-    const promiseChain = self.registration.showNotification(
-        notificationData.title,
-        {
-            body: notificationData.body,
-            icon: notificationData.icon,
-            badge: notificationData.badge,
-            tag: notificationData.tag,
-            data: {
-                url: notificationData.url
-            },
-            requireInteraction: false,
-            vibrate: [200, 100, 200]
-        }
-    );
+    const notifyClients = async () => {
+        await self.registration.showNotification(
+            notificationData.title,
+            {
+                body: notificationData.body,
+                icon: notificationData.icon,
+                badge: notificationData.badge,
+                tag: notificationData.tag,
+                data: {
+                    url: notificationData.url
+                },
+                requireInteraction: false,
+                vibrate: [200, 100, 200]
+            }
+        );
 
-    event.waitUntil(promiseChain);
+        const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+        clientList.forEach((client) => {
+            client.postMessage({ type: 'rtub:push-received' });
+        });
+    };
+
+    event.waitUntil(notifyClients());
 });
 
 // Notification click event - handle user clicking on notification

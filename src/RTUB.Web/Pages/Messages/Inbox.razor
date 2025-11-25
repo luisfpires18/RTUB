@@ -1,0 +1,1089 @@
+@page "/messages"
+@page "/messages/{ConversationId:int?}"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.JSInterop
+@using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
+@using RTUB.Core.Entities
+@using RTUB.Shared
+@using RTUB.Components
+@attribute [Authorize]
+@inject IMessagingService MessagingService
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Mensagens - RTUB</PageTitle>
+
+<div class="messages-page">
+    <div class="container-fluid h-100">
+        <div class="row g-0 h-100">
+            @* Conversations List *@
+            <div class="col-12 col-lg-4 conversations-panel @(selectedConversation != null ? "d-none d-lg-block" : "")">
+                <div class="conversations-header">
+                    <h3 class="mb-0"><i class="bi bi-chat-dots"></i> Mensagens</h3>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-plus-lg"></i> Nova
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <button class="dropdown-item" @onclick="OpenNewMessageModal">
+                                    <i class="bi bi-person"></i> Nova mensagem
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" @onclick="OpenNewGroupModal">
+                                    <i class="bi bi-people"></i> Nova conversa de grupo
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                @if (isLoadingConversations)
+                {
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">A carregar...</span>
+                        </div>
+                    </div>
+                }
+                else if (!conversations.Any())
+                {
+                    <div class="empty-state text-center py-5">
+                        <i class="bi bi-chat-dots display-1 text-muted"></i>
+                        <p class="text-muted mt-3">Ainda não tem mensagens</p>
+                        <button class="btn btn-primary" @onclick="OpenNewMessageModal">
+                            <i class="bi bi-plus-lg"></i> Enviar primeira mensagem
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="conversations-list">
+                        @foreach (var conversation in conversations)
+                        {
+                            <div class="conversation-item @(selectedConversation?.Id == conversation.Id ? "active" : "")"
+                                 @onclick="() => SelectConversation(conversation.Id)">
+                                <div class="conversation-avatar">
+                                    @if (conversation.IsSystemConversation)
+                                    {
+                                        <img src="/icons/rtub-logo-192.png" alt="RTUB" />
+                                    }
+                                    else if (conversation.IsGroup)
+                                    {
+                                        <div class="group-avatar-icon">
+                                            <i class="bi bi-people-fill"></i>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <img src="@GetAvatarUrl(conversation.OtherParticipantAvatar)" 
+                                             alt="@(conversation.OtherParticipantNickname ?? conversation.OtherParticipantName)" 
+                                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                    }
+                                </div>
+                                <div class="conversation-content">
+                                    <div class="conversation-header">
+                                        <h5 class="conversation-name">
+                                            @if (conversation.IsSystemConversation)
+                                            {
+                                                <text>RTUB</text>
+                                            }
+                                            else if (conversation.IsGroup)
+                                            {
+                                                @conversation.Title
+                                            }
+                                            else
+                                            {
+                                                @(conversation.OtherParticipantNickname ?? conversation.OtherParticipantName)
+                                            }
+                                        </h5>
+                                        <span class="conversation-time">@GetRelativeTime(conversation.LastMessageAt)</span>
+                                    </div>
+                                    <div class="conversation-preview">
+                                        <span class="@(conversation.UnreadCount > 0 ? "fw-bold" : "")">
+                                            @if (conversation.IsGroup && !string.IsNullOrEmpty(conversation.LastMessageSenderId))
+                                            {
+                                                var senderInfo = conversation.GroupParticipants.FirstOrDefault(p => p.UserId == conversation.LastMessageSenderId);
+                                                var senderName = senderInfo?.Nickname ?? senderInfo?.Name?.Split(' ').FirstOrDefault() ?? "";
+                                                @($"{senderName}: {conversation.LastMessagePreview}")
+                                            }
+                                            else
+                                            {
+                                                @conversation.LastMessagePreview
+                                            }
+                                        </span>
+                                    </div>
+                                </div>
+                                @if (conversation.UnreadCount > 0)
+                                {
+                                    <span class="badge bg-danger conversation-badge">@conversation.UnreadCount</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            @* Message Thread *@
+            <div class="col-12 col-lg-8 message-thread-panel @(selectedConversation == null ? "d-none d-lg-flex" : "")">
+                @if (selectedConversation == null)
+                {
+                    <div class="empty-state text-center py-5 w-100">
+                        <i class="bi bi-chat-text display-1 text-muted"></i>
+                        <p class="text-muted mt-3">Selecione uma conversa para começar</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="message-thread">
+                        <div class="message-thread-header">
+                            <button class="btn btn-link d-lg-none me-2" @onclick="BackToConversations">
+                                <i class="bi bi-arrow-left"></i>
+                            </button>
+                            <div class="d-flex align-items-center flex-grow-1">
+                                <div class="conversation-avatar me-2">
+                                    @if (selectedConversation.IsSystemConversation)
+                                    {
+                                        <img src="/icons/rtub-logo-192.png" alt="RTUB" />
+                                    }
+                                    else if (selectedConversation.IsGroup)
+                                    {
+                                        <div class="group-avatar-icon">
+                                            <i class="bi bi-people-fill"></i>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <img src="@GetAvatarUrl(selectedConversation.OtherParticipantAvatar)" 
+                                             alt="@(selectedConversation.OtherParticipantNickname ?? selectedConversation.OtherParticipantName)" 
+                                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                    }
+                                </div>
+                                <div class="d-flex flex-column">
+                                    <h5 class="mb-0">
+                                        @if (selectedConversation.IsSystemConversation)
+                                        {
+                                            <text>RTUB</text>
+                                        }
+                                        else if (selectedConversation.IsGroup)
+                                        {
+                                            @selectedConversation.Title
+                                        }
+                                        else
+                                        {
+                                            @(selectedConversation.OtherParticipantNickname ?? selectedConversation.OtherParticipantName)
+                                        }
+                                    </h5>
+                                    @if (selectedConversation.IsGroup && selectedConversation.GroupParticipants?.Any() == true)
+                                    {
+                                        <small class="text-muted group-members-preview" @onclick="OpenGroupMembersModal" @onclick:stopPropagation="true" style="cursor: pointer;">
+                                            <i class="bi bi-people me-1"></i>
+                                            @selectedConversation.GroupParticipants.Count membros
+                                            <i class="bi bi-chevron-right ms-1"></i>
+                                        </small>
+                                    }
+                                </div>
+                            </div>
+                            @if (!selectedConversation.IsSystemConversation)
+                            {
+                                <div class="dropdown">
+                                    <button class="btn btn-link" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <button class="dropdown-item" @onclick="ToggleReadStatus">
+                                                <i class="bi bi-eye"></i> 
+                                                @(selectedConversation.UnreadCount > 0 ? "Marcar como lida" : "Marcar como não lida")
+                                            </button>
+                                        </li>
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li>
+                                            <button class="dropdown-item text-danger" @onclick="DeleteConversation">
+                                                <i class="bi bi-trash"></i> Eliminar conversa
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="message-thread-body" @ref="messageThreadBody">
+                            @if (isLoadingMessages)
+                            {
+                                <div class="text-center py-5">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">A carregar...</span>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                @foreach (var message in messages)
+                                {
+                                    <div class="message @(message.SenderId == currentUserId ? "message-sent" : "message-received") @(message.IsSystem ? "message-system" : string.Empty)">
+                                        @if (message.SenderId != currentUserId && !message.IsSystem)
+                                        {
+                                            <div class="message-avatar">
+                                                <img src="@GetAvatarUrl(message.SenderAvatar)" 
+                                                     alt="@(message.SenderNickname ?? message.SenderName)" 
+                                                     onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                            </div>
+                                        }
+                                        @if (message.IsSystem)
+                                        {
+                                            <div class="message-avatar">
+                                                <img src="/icons/rtub-logo-192.png" alt="RTUB" />
+                                            </div>
+                                        }
+                                        <div class="message-content">
+                                            @if (selectedConversation.IsGroup && message.SenderId != currentUserId && !message.IsSystem)
+                                            {
+                                                <div class="message-sender-name">
+                                                    @(message.SenderNickname ?? message.SenderName)
+                                                </div>
+                                            }
+                                            <div class="message-body @(message.IsSystem ? "system-message-body" : string.Empty)">
+                                                <p class="message-text">@message.Body</p>
+
+                                                @if (!string.IsNullOrEmpty(message.Link))
+                                                {
+                                                    <div class="message-actions">
+                                                        <a href="@message.Link" class="message-link-btn">
+                                                            <i class="bi bi-link-45deg"></i>
+                                                            <span>Ver mais</span>
+                                                        </a>
+                                                    </div>
+                                                }
+                                            </div>
+                                            <div class="message-time">
+                                                @message.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+
+                        @if (!selectedConversation.IsSystemConversation)
+                        {
+                            <div class="message-thread-footer">
+                                <div class="message-composer">
+                                    <input type="text"
+                                           class="message-composer__input"
+                                           placeholder="Escreva uma mensagem..."
+                                           @bind="newMessageText"
+                                           @bind:event="oninput"
+                                           @onkeypress="HandleKeyPress"
+                                           disabled="@isSending" />
+                                    <button class="message-composer__send"
+                                            @onclick="SendMessage"
+                                            disabled="@(string.IsNullOrWhiteSpace(newMessageText) || isSending)">
+                                        @if (isSending)
+                                        {
+                                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-send"></i>
+                                        }
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@* New Message Modal *@
+@if (showNewMessageModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-plus-lg"></i> Nova Mensagem</h5>
+                    <button type="button" class="btn-close" @onclick="CloseNewMessageModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Destinatário</label>
+                        <SearchBar @bind-Value="memberSearchTerm"
+                                   Placeholder="Pesquisar membro por nome ou alcunha..."
+                                   OnSearch="OnMemberSearch"
+                                   OnClear="ClearMemberSelection"
+                                   Compact="true" />
+                    </div>
+
+                    @if (filteredMembers.Any())
+                    {
+                        <div class="member-list member-list-scrollable mb-3">
+                            @foreach (var member in filteredMembers.Take(10))
+                            {
+                                <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                     @onclick="() => SelectMember(member)">
+                                    <div class="d-flex align-items-center">
+                                        <img src="@GetAvatarUrl(member.ImageUrl)" 
+                                             alt="@(member.Nickname ?? $"{member.FirstName} {member.LastName}")"
+                                             class="member-avatar-small me-2" 
+                                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                        <div>
+                                            @if (!string.IsNullOrEmpty(member.Nickname))
+                                            {
+                                                <div><strong>@member.Nickname</strong></div>
+                                                <div class="text-muted small">@member.FirstName @member.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div><strong>@member.FirstName @member.LastName</strong></div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(memberSearchTerm) && selectedMember == null)
+                    {
+                        <div class="alert alert-info mt-2">Nenhum membro encontrado.</div>
+                    }
+
+                    @if (selectedMember != null)
+                    {
+                        <div class="alert alert-success mb-3">
+                            <strong>Destinatário selecionado:</strong> 
+                            @(selectedMember.Nickname ?? $"{selectedMember.FirstName} {selectedMember.LastName}")
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Mensagem</label>
+                            <textarea class="form-control" 
+                                      rows="4" 
+                                      placeholder="Escreva a sua mensagem..."
+                                      @bind="newMessageText"
+                                      maxlength="2000"></textarea>
+                            <small class="text-muted">@newMessageText.Length / 2000 caracteres</small>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseNewMessageModal">Cancelar</button>
+                    <button type="button" 
+                            class="btn btn-primary" 
+                            @onclick="SendNewMessage"
+                            disabled="@(selectedMember == null || string.IsNullOrWhiteSpace(newMessageText) || isSending)">
+                        @if (isSending)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        }
+                        Enviar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* New Group Modal *@
+@if (showNewGroupModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-people"></i> Nova conversa de grupo</h5>
+                    <button type="button" class="btn-close" @onclick="CloseNewGroupModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (groupCreationStep == 1)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Nome do grupo</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   placeholder="Ex: Ensaios, Direção 2024..."
+                                   @bind="newGroupName"
+                                   maxlength="100" />
+                            <small class="text-muted">Escolha um nome descritivo para o grupo</small>
+                        </div>
+                    }
+                    else if (groupCreationStep == 2)
+                    {
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label mb-0">Adicionar membros</label>
+                                <span class="badge bg-primary">@selectedGroupMembers.Count selecionados</span>
+                            </div>
+                            <SearchBar @bind-Value="groupMemberSearchTerm"
+                                       Placeholder="Pesquisar membro por nome ou alcunha..."
+                                       OnSearch="OnGroupMemberSearch"
+                                       OnClear="ClearGroupMemberSearch"
+                                       Compact="true" />
+                        </div>
+
+                        @if (filteredGroupMembers.Any())
+                        {
+                            <div class="member-list member-list-scrollable mb-3">
+                                @foreach (var member in filteredGroupMembers.Take(10))
+                                {
+                                    var isSelected = selectedGroupMembers.Any(m => m.Id == member.Id);
+                                    <div class="member-item p-2 mb-2 border rounded clickable-row @(isSelected ? "selected" : "")"
+                                         @onclick="() => ToggleGroupMember(member)">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                <img src="@GetAvatarUrl(member.ImageUrl)" 
+                                                     alt="@(member.Nickname ?? $"{member.FirstName} {member.LastName}")"
+                                                     class="member-avatar-small me-2" 
+                                                     onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                                <div>
+                                                    @if (!string.IsNullOrEmpty(member.Nickname))
+                                                    {
+                                                        <div><strong>@member.Nickname</strong></div>
+                                                        <div class="text-muted small">@member.FirstName @member.LastName</div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div><strong>@member.FirstName @member.LastName</strong></div>
+                                                    }
+                                                </div>
+                                            </div>
+                                            @if (isSelected)
+                                            {
+                                                <i class="bi bi-check-circle-fill text-success"></i>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (selectedGroupMembers.Any())
+                        {
+                            <div class="selected-members mt-3">
+                                <label class="form-label">Membros selecionados:</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @foreach (var member in selectedGroupMembers)
+                                    {
+                                        <span class="badge bg-primary d-flex align-items-center gap-1">
+                                            @(member.Nickname ?? $"{member.FirstName} {member.LastName}")
+                                            <button type="button" class="btn-close btn-close-white btn-sm" 
+                                                    @onclick="() => RemoveGroupMember(member)"
+                                                    @onclick:stopPropagation="true"></button>
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="modal-footer">
+                    @if (groupCreationStep == 1)
+                    {
+                        <button type="button" class="btn btn-secondary" @onclick="CloseNewGroupModal">Cancelar</button>
+                        <button type="button" 
+                                class="btn btn-primary" 
+                                @onclick="GoToGroupStep2"
+                                disabled="@(string.IsNullOrWhiteSpace(newGroupName))">
+                            Próximo <i class="bi bi-arrow-right"></i>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-secondary" @onclick="GoToGroupStep1">
+                            <i class="bi bi-arrow-left"></i> Voltar
+                        </button>
+                        <button type="button" 
+                                class="btn btn-primary" 
+                                @onclick="CreateGroup"
+                                disabled="@(selectedGroupMembers.Count < MinimumGroupMembers || isCreatingGroup)">
+                            @if (isCreatingGroup)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            }
+                            Criar grupo
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Group Members Modal *@
+@if (showGroupMembersModal && selectedConversation?.IsGroup == true && selectedConversation.GroupParticipants?.Any() == true)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-people me-2"></i> Membros do grupo</h5>
+                    <button type="button" class="btn-close" @onclick="CloseGroupMembersModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">@selectedConversation.GroupParticipants.Count membros neste grupo</p>
+
+                    @if (selectedConversation.GroupParticipants.Count > 20)
+                    {
+                        <div class="mb-3">
+                            <SearchBar @bind-Value="groupMembersSearchTerm"
+                                       Placeholder="Pesquisar membros do grupo..."
+                                       OnSearch="OnGroupMembersSearch"
+                                       OnClear="ClearGroupMembersSearch"
+                                       Compact="true" />
+                        </div>
+                    }
+
+                    @{
+                        var filteredParticipants = GetFilteredGroupParticipants().ToList();
+                    }
+
+                    <div class="group-members-modal-list">
+                        @if (!filteredParticipants.Any())
+                        {
+                            <div class="alert alert-info mb-0">Nenhum membro encontrado.</div>
+                        }
+                        else
+                        {
+                            @foreach (var participant in filteredParticipants)
+                            {
+                                <div class="group-member-modal-item">
+                                    <img src="@GetAvatarUrl(participant.Avatar)"
+                                         alt="@(participant.Nickname ?? participant.Name)"
+                                         class="group-member-modal-avatar"
+                                         onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                    <div class="group-member-modal-info">
+                                        <div class="group-member-modal-name">@(participant.Nickname ?? participant.Name)</div>
+                                        @if (!string.IsNullOrEmpty(participant.Nickname) && !string.IsNullOrEmpty(participant.Name))
+                                        {
+                                            <div class="group-member-modal-fullname">@participant.Name</div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseGroupMembersModal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int? ConversationId { get; set; }
+    
+    /// <summary>
+    /// Minimum number of additional members required to create a group (excluding the creator)
+    /// </summary>
+    private const int MinimumGroupMembers = 1;
+    
+    /// <summary>
+    /// Minimum number of characters required before searching for members
+    /// </summary>
+    private const int MinSearchTermLength = 2;
+
+    private string currentUserId = string.Empty;
+    private List<ConversationDto> conversations = new();
+    private ConversationDto? selectedConversation;
+    private List<MessageDto> messages = new();
+    private string newMessageText = string.Empty;
+    private bool isLoadingConversations = true;
+    private bool isLoadingMessages = false;
+    private bool isSending = false;
+    private ElementReference messageThreadBody;
+    private bool shouldScrollToBottom;
+
+    // Group members modal
+    private bool showGroupMembersModal = false;
+    private string groupMembersSearchTerm = string.Empty;
+
+    // New message modal
+    private bool showNewMessageModal = false;
+    private string memberSearchTerm = string.Empty;
+    private List<ApplicationUser> filteredMembers = new();
+    private ApplicationUser? selectedMember;
+    
+    // New group modal
+    private bool showNewGroupModal = false;
+    private int groupCreationStep = 1;
+    private string newGroupName = string.Empty;
+    private string groupMemberSearchTerm = string.Empty;
+    private List<ApplicationUser> filteredGroupMembers = new();
+    private List<ApplicationUser> selectedGroupMembers = new();
+    private bool isCreatingGroup = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var currentUser = await UserManager.GetUserAsync(user);
+            if (currentUser != null)
+            {
+                currentUserId = currentUser.Id;
+                await LoadConversationsAsync();
+            }
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ConversationId.HasValue && ConversationId.Value > 0)
+        {
+            await SelectConversation(ConversationId.Value);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (shouldScrollToBottom)
+        {
+            shouldScrollToBottom = false;
+            await ScrollToLatestMessageAsync();
+        }
+    }
+
+    private async Task LoadConversationsAsync()
+    {
+        isLoadingConversations = true;
+        try
+        {
+            conversations = (await MessagingService.GetUserConversationsAsync(currentUserId)).ToList();
+        }
+        finally
+        {
+            isLoadingConversations = false;
+        }
+    }
+
+    private async Task SelectConversation(int conversationId)
+    {
+        isLoadingMessages = true;
+        
+        try
+        {
+                selectedConversation = await MessagingService.GetConversationAsync(conversationId, currentUserId);
+
+                if (selectedConversation != null)
+                {
+                    messages = (await MessagingService.GetConversationMessagesAsync(conversationId, currentUserId)).ToList();
+                    shouldScrollToBottom = true;
+
+                    // Get the unread count before marking as read
+                    var conversationInList = conversations.FirstOrDefault(c => c.Id == conversationId);
+                    var previousUnreadCount = conversationInList?.UnreadCount ?? selectedConversation.UnreadCount;
+                
+                // Mark as read
+                await MessagingService.MarkConversationAsReadAsync(conversationId, currentUserId);
+                
+                // Update conversation unread count
+                selectedConversation.UnreadCount = 0;
+                if (conversationInList != null)
+                {
+                    conversationInList.UnreadCount = 0;
+                }
+                
+                // Notify navbar badge to refresh unread count if messages were marked as read
+                if (previousUnreadCount > 0)
+                {
+                    UnreadMessagesBadge.RequestRefresh();
+                }
+            }
+        }
+        finally
+        {
+            isLoadingMessages = false;
+        }
+    }
+
+    private void BackToConversations()
+    {
+        selectedConversation = null;
+        messages.Clear();
+        showGroupMembersModal = false;
+    }
+
+    private void OpenGroupMembersModal()
+    {
+        showGroupMembersModal = true;
+        groupMembersSearchTerm = string.Empty;
+    }
+
+    private void CloseGroupMembersModal()
+    {
+        showGroupMembersModal = false;
+        groupMembersSearchTerm = string.Empty;
+    }
+
+    private IEnumerable<GroupParticipantDto> GetFilteredGroupParticipants()
+    {
+        if (selectedConversation?.GroupParticipants == null)
+        {
+            return Enumerable.Empty<GroupParticipantDto>();
+        }
+
+        if (string.IsNullOrWhiteSpace(groupMembersSearchTerm))
+        {
+            return selectedConversation.GroupParticipants;
+        }
+
+        var searchTerm = groupMembersSearchTerm.Trim().ToLowerInvariant();
+
+        return selectedConversation.GroupParticipants
+            .Where(p => (!string.IsNullOrEmpty(p.Nickname) && p.Nickname.ToLowerInvariant().Contains(searchTerm)) ||
+                        (!string.IsNullOrEmpty(p.Name) && p.Name.ToLowerInvariant().Contains(searchTerm)))
+            .ToList();
+    }
+
+    private Task OnGroupMembersSearch(string searchTerm)
+    {
+        groupMembersSearchTerm = searchTerm;
+        return Task.CompletedTask;
+    }
+
+    private Task ClearGroupMembersSearch()
+    {
+        groupMembersSearchTerm = string.Empty;
+        return Task.CompletedTask;
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(newMessageText) || selectedConversation == null || isSending)
+            return;
+
+        isSending = true;
+        
+        try
+        {
+            MessageDto sentMessage;
+            
+            if (selectedConversation.IsGroup)
+            {
+                // Send to group
+                sentMessage = await MessagingService.SendGroupMessageAsync(currentUserId, selectedConversation.Id, newMessageText.Trim());
+            }
+            else
+            {
+                // Send direct message
+                var messageDto = new SendMessageDto
+                {
+                    ReceiverId = selectedConversation.OtherParticipantId!,
+                    Body = newMessageText.Trim()
+                };
+                sentMessage = await MessagingService.SendDirectMessageAsync(currentUserId, messageDto);
+            }
+            
+            messages.Add(sentMessage);
+            newMessageText = string.Empty;
+            shouldScrollToBottom = true;
+
+            // Update conversation in list
+            var conversationInList = conversations.FirstOrDefault(c => c.Id == selectedConversation.Id);
+            if (conversationInList != null)
+            {
+                conversationInList.LastMessageAt = sentMessage.CreatedAt;
+                conversationInList.LastMessagePreview = sentMessage.Body;
+                conversationInList.LastMessageSenderId = currentUserId;
+                
+                // Move to top
+                conversations.Remove(conversationInList);
+                conversations.Insert(0, conversationInList);
+            }
+            
+            StateHasChanged();
+        }
+        finally
+        {
+            isSending = false;
+        }
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendMessage();
+        }
+    }
+
+    private async Task ToggleReadStatus()
+    {
+        if (selectedConversation == null) return;
+
+        var previousUnreadCount = selectedConversation.UnreadCount;
+        
+        if (previousUnreadCount > 0)
+        {
+            await MessagingService.MarkConversationAsReadAsync(selectedConversation.Id, currentUserId);
+            selectedConversation.UnreadCount = 0;
+        }
+        else
+        {
+            await MessagingService.MarkConversationAsUnreadAsync(selectedConversation.Id, currentUserId);
+            selectedConversation.UnreadCount = 1;
+        }
+        
+        var conversationInList = conversations.FirstOrDefault(c => c.Id == selectedConversation.Id);
+        if (conversationInList != null)
+        {
+            conversationInList.UnreadCount = selectedConversation.UnreadCount;
+        }
+        
+        // Notify navbar badge to refresh unread count
+        UnreadMessagesBadge.RequestRefresh();
+    }
+
+    private async Task DeleteConversation()
+    {
+        if (selectedConversation == null) return;
+
+        // Store the unread count before deleting
+        var unreadCountToRemove = selectedConversation.UnreadCount;
+        
+        await MessagingService.DeleteConversationAsync(selectedConversation.Id, currentUserId);
+        
+        var conversationToRemove = conversations.FirstOrDefault(c => c.Id == selectedConversation.Id);
+        if (conversationToRemove != null)
+        {
+            conversations.Remove(conversationToRemove);
+        }
+        
+        // Notify navbar badge to refresh unread count if the deleted conversation had unread messages
+        if (unreadCountToRemove > 0)
+        {
+            UnreadMessagesBadge.RequestRefresh();
+        }
+        
+        BackToConversations();
+    }
+
+    // New message modal methods
+    private void OpenNewMessageModal()
+    {
+        showNewMessageModal = true;
+        memberSearchTerm = string.Empty;
+        filteredMembers.Clear();
+        selectedMember = null;
+        newMessageText = string.Empty;
+    }
+
+    private void CloseNewMessageModal()
+    {
+        showNewMessageModal = false;
+        memberSearchTerm = string.Empty;
+        filteredMembers.Clear();
+        selectedMember = null;
+        newMessageText = string.Empty;
+    }
+
+    private async Task OnMemberSearch(string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm) || searchTerm.Length < MinSearchTermLength)
+        {
+            filteredMembers.Clear();
+            return;
+        }
+
+        var lowerSearch = searchTerm.ToLower();
+        
+        // Query database directly using EF.Functions.Like for better performance
+        filteredMembers = await UserManager.Users
+            .Where(m => m.Id != currentUserId && // Don't show current user
+                       (EF.Functions.Like(m.Nickname, $"%{searchTerm}%") ||
+                        EF.Functions.Like(m.FirstName, $"%{searchTerm}%") ||
+                        EF.Functions.Like(m.LastName, $"%{searchTerm}%")))
+            .OrderBy(m => m.Nickname ?? m.FirstName)
+            .Take(10)
+            .ToListAsync();
+    }
+
+    private void ClearMemberSelection()
+    {
+        selectedMember = null;
+        filteredMembers.Clear();
+    }
+
+    private void SelectMember(ApplicationUser member)
+    {
+        selectedMember = member;
+        memberSearchTerm = member.Nickname ?? $"{member.FirstName} {member.LastName}";
+        filteredMembers.Clear();
+    }
+
+    private async Task SendNewMessage()
+    {
+        if (selectedMember == null || string.IsNullOrWhiteSpace(newMessageText) || isSending)
+            return;
+
+        isSending = true;
+        
+        try
+        {
+            var messageDto = new SendMessageDto
+            {
+                ReceiverId = selectedMember.Id,
+                Body = newMessageText.Trim()
+            };
+
+            var sentMessage = await MessagingService.SendDirectMessageAsync(currentUserId, messageDto);
+            
+            // Get or create conversation
+            var conversation = await MessagingService.GetOrCreateConversationAsync(currentUserId, selectedMember.Id);
+            
+            CloseNewMessageModal();
+            
+            // Reload conversations and select the new one
+            await LoadConversationsAsync();
+            await SelectConversation(conversation.Id);
+        }
+        finally
+        {
+            isSending = false;
+        }
+    }
+    
+    // New group modal methods
+    private void OpenNewGroupModal()
+    {
+        showNewGroupModal = true;
+        groupCreationStep = 1;
+        newGroupName = string.Empty;
+        groupMemberSearchTerm = string.Empty;
+        filteredGroupMembers.Clear();
+        selectedGroupMembers.Clear();
+    }
+    
+    private void CloseNewGroupModal()
+    {
+        showNewGroupModal = false;
+        groupCreationStep = 1;
+        newGroupName = string.Empty;
+        groupMemberSearchTerm = string.Empty;
+        filteredGroupMembers.Clear();
+        selectedGroupMembers.Clear();
+    }
+    
+    private void GoToGroupStep2()
+    {
+        groupCreationStep = 2;
+    }
+    
+    private void GoToGroupStep1()
+    {
+        groupCreationStep = 1;
+    }
+    
+    private async Task OnGroupMemberSearch(string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm) || searchTerm.Length < MinSearchTermLength)
+        {
+            filteredGroupMembers.Clear();
+            return;
+        }
+        
+        // Query database directly using EF.Functions.Like for better performance
+        filteredGroupMembers = await UserManager.Users
+            .Where(m => m.Id != currentUserId && // Don't show current user
+                       (EF.Functions.Like(m.Nickname, $"%{searchTerm}%") ||
+                        EF.Functions.Like(m.FirstName, $"%{searchTerm}%") ||
+                        EF.Functions.Like(m.LastName, $"%{searchTerm}%")))
+            .OrderBy(m => m.Nickname ?? m.FirstName)
+            .Take(20)
+            .ToListAsync();
+    }
+    
+    private void ClearGroupMemberSearch()
+    {
+        filteredGroupMembers.Clear();
+        groupMemberSearchTerm = string.Empty;
+    }
+    
+    private void ToggleGroupMember(ApplicationUser member)
+    {
+        var existing = selectedGroupMembers.FirstOrDefault(m => m.Id == member.Id);
+        if (existing != null)
+        {
+            selectedGroupMembers.Remove(existing);
+        }
+        else
+        {
+            selectedGroupMembers.Add(member);
+        }
+    }
+    
+    private void RemoveGroupMember(ApplicationUser member)
+    {
+        selectedGroupMembers.Remove(member);
+    }
+    
+    private async Task CreateGroup()
+    {
+        if (selectedGroupMembers.Count < MinimumGroupMembers || string.IsNullOrWhiteSpace(newGroupName) || isCreatingGroup)
+            return;
+            
+        isCreatingGroup = true;
+        
+        try
+        {
+            var participantIds = selectedGroupMembers.Select(m => m.Id).ToList();
+            
+            var newConversation = await MessagingService.CreateGroupConversationAsync(
+                currentUserId, 
+                newGroupName.Trim(), 
+                participantIds);
+            
+            CloseNewGroupModal();
+            
+            // Reload conversations and select the new one
+            await LoadConversationsAsync();
+            await SelectConversation(newConversation.Id);
+        }
+        finally
+        {
+            isCreatingGroup = false;
+        }
+    }
+
+    private string GetAvatarUrl(string? imageUrl)
+    {
+        return string.IsNullOrEmpty(imageUrl) ? "/images/default-avatar.webp" : imageUrl;
+    }
+
+    private string GetRelativeTime(DateTime dateTime)
+    {
+        var timeSpan = DateTime.UtcNow - dateTime;
+
+        if (timeSpan.TotalMinutes < 1)
+            return "Agora";
+        if (timeSpan.TotalMinutes < 60)
+            return $"{(int)timeSpan.TotalMinutes}m";
+        if (timeSpan.TotalHours < 24)
+            return $"{(int)timeSpan.TotalHours}h";
+        if (timeSpan.TotalDays < 7)
+            return $"{(int)timeSpan.TotalDays}d";
+
+        return dateTime.ToString("dd/MM");
+    }
+
+    private async Task ScrollToLatestMessageAsync()
+    {
+        await JSRuntime.InvokeVoidAsync("messageScroller.scrollToBottom", messageThreadBody);
+    }
+}

@@ -281,6 +281,7 @@ public class Program
         services.AddStorageServices();
         services.AddMemberQueryServices();
         services.AddPushNotificationServices();
+        services.AddMessagingServices();
         
         // --------- Mention Service (Social feature) ---------
         services.AddScoped<IMentionService, MentionService>();
@@ -392,6 +393,10 @@ public class Program
                     }
 
                     await SeedData.InitializeAsync(sp, builder.Configuration);
+                    
+                    // Sync default group conversations after seeding
+                    var groupSyncService = sp.GetRequiredService<IGroupConversationSyncService>();
+                    await groupSyncService.SyncDefaultGroupsAsync();
                 }
                 catch (Exception ex)
                 {

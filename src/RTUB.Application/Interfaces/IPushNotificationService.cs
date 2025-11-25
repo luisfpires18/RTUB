@@ -23,11 +23,20 @@ public interface IPushNotificationService
     Task UnsubscribeAsync(string endpoint);
 
     /// <summary>
-    /// Sends a push notification to a specific user
+    /// Sends a push notification to a specific user and creates an inbox message
+    /// Use this for system notifications (events, rehearsals, etc.)
     /// </summary>
     /// <param name="userId">The user ID</param>
     /// <param name="notification">The notification to send</param>
     Task SendToUserAsync(string userId, SendPushNotificationDto notification);
+
+    /// <summary>
+    /// Sends only the push notification to a user without creating an inbox message
+    /// Use this for direct message notifications (the message itself is already in the inbox)
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="notification">The notification to send</param>
+    Task SendPushOnlyAsync(string userId, SendPushNotificationDto notification);
 
     /// <summary>
     /// Sends a push notification to all subscribed users
