@@ -10,6 +10,17 @@ namespace RTUB.Web.Services;
 /// </summary>
 public class MessagesHubClient : IAsyncDisposable
 {
+    /// <summary>
+    /// Reconnection delay strategy: immediate, 2s, 5s, 10s
+    /// </summary>
+    private static readonly TimeSpan[] ReconnectionDelays = 
+    { 
+        TimeSpan.Zero, 
+        TimeSpan.FromSeconds(2), 
+        TimeSpan.FromSeconds(5), 
+        TimeSpan.FromSeconds(10) 
+    };
+
     private readonly NavigationManager _navigationManager;
     private readonly ILogger<MessagesHubClient> _logger;
     private HubConnection? _hubConnection;
@@ -51,7 +62,7 @@ public class MessagesHubClient : IAsyncDisposable
             
             _hubConnection = new HubConnectionBuilder()
                 .WithUrl(hubUrl)
-                .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
+                .WithAutomaticReconnect(ReconnectionDelays)
                 .Build();
 
             // Register server-to-client handlers

@@ -1487,7 +1487,7 @@ public class MessagingServiceTests
         _mockConversationRepository.Setup(r => r.GetOrCreateOneToOneAsync(senderId, receiverId))
             .ReturnsAsync(conversation);
         _mockMessageRepository.Setup(r => r.AddAsync(It.IsAny<Message>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((Message m) => m);
         _mockConversationRepository.Setup(r => r.UpdateAsync(It.IsAny<Conversation>()))
             .Returns(Task.CompletedTask);
         _mockUserManager.Setup(um => um.FindByIdAsync(senderId))
@@ -1554,7 +1554,7 @@ public class MessagingServiceTests
         _mockConversationRepository.Setup(r => r.GetByIdAsync(conversationId))
             .ReturnsAsync(conversation);
         _mockMessageRepository.Setup(r => r.AddAsync(It.IsAny<Message>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((Message m) => m);
         _mockConversationRepository.Setup(r => r.UpdateAsync(It.IsAny<Conversation>()))
             .Returns(Task.CompletedTask);
         _mockUserManager.Setup(um => um.FindByIdAsync(senderId))
@@ -1634,7 +1634,7 @@ public class MessagingServiceTests
         _mockConversationRepository.Setup(r => r.GetOrCreateOneToOneAsync(senderId, receiverId))
             .ReturnsAsync(conversation);
         _mockMessageRepository.Setup(r => r.AddAsync(It.IsAny<Message>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((Message m) => m);
         _mockConversationRepository.Setup(r => r.UpdateAsync(It.IsAny<Conversation>()))
             .Returns(Task.CompletedTask);
         _mockUserManager.Setup(um => um.FindByIdAsync(senderId))

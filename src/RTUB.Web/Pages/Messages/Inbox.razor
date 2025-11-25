@@ -1256,14 +1256,10 @@
                 conversation.LastMessagePreview = message.Body;
                 conversation.LastMessageSenderId = message.SenderId;
                 
-                // Only increment unread count if this is not the current conversation or if it's not from the current user
-                if (selectedConversation?.Id != message.ConversationId || message.SenderId == currentUserId)
+                // Only increment unread count if this is not the current conversation AND it's not from the current user
+                if (selectedConversation?.Id != message.ConversationId && message.SenderId != currentUserId)
                 {
-                    // Don't increment for messages sent by current user
-                    if (message.SenderId != currentUserId)
-                    {
-                        conversation.UnreadCount++;
-                    }
+                    conversation.UnreadCount++;
                 }
                 
                 // Re-sort conversations
