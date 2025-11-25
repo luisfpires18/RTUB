@@ -705,9 +705,8 @@
         right: 0;
         bottom: 0;
         min-height: 0;
-        height: 100%;
-        max-height: 100vh;
-        max-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+        height: calc(var(--vh, 1vh) * 100); /* Use visual viewport height for proper keyboard handling */
+        max-height: calc(var(--vh, 1vh) * 100);
         overflow: hidden;
         z-index: 1050; /* Bootstrap modal z-index level, above navbar (1030) */
     }
@@ -783,6 +782,7 @@
         -webkit-overflow-scrolling: touch;
         padding: 0.75rem;
         padding-bottom: 1.5rem; /* Extra padding so last message is visible above input */
+        min-height: 150px; /* Ensure some message area is always visible even with keyboard */
         /* Note: We use margin-bottom on .message elements for spacing, not gap,
            because gap would override our grouped message spacing (0.1rem) */
     }
