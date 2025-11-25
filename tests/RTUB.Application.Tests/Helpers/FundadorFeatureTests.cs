@@ -3,7 +3,6 @@ using RTUB.Application.Extensions;
 using RTUB.Application.Helpers;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
-using System.Text.Json;
 
 namespace RTUB.Application.Tests.Helpers;
 
@@ -33,11 +32,11 @@ public class FundadorFeatureTests
         };
         
         // Fundador is a subcategory: Tuno + Fundador
-        user.CategoriesJson = JsonSerializer.Serialize(new List<MemberCategory> 
+        user.Categories = new List<MemberCategory> 
         { 
             MemberCategory.Tuno, 
             MemberCategory.Fundador 
-        });
+        };
         
         return user;
     }
@@ -58,10 +57,10 @@ public class FundadorFeatureTests
             MentorId = Guid.NewGuid().ToString()
         };
         
-        user.CategoriesJson = JsonSerializer.Serialize(new List<MemberCategory> 
+        user.Categories = new List<MemberCategory> 
         { 
             MemberCategory.Tuno 
-        });
+        };
         
         return user;
     }
@@ -275,10 +274,10 @@ public class FundadorFeatureTests
             LastName = "User",
             YearTuno = 1991
         };
-        user.CategoriesJson = JsonSerializer.Serialize(new List<MemberCategory> 
+        user.Categories = new List<MemberCategory> 
         { 
             MemberCategory.Fundador 
-        });
+        };
         
         // Act & Assert
         user.IsFundador().Should().BeTrue();
@@ -295,7 +294,7 @@ public class FundadorFeatureTests
             LastName = "User",
             YearTuno = 1991
         };
-        user.CategoriesJson = JsonSerializer.Serialize(new List<MemberCategory>());
+        user.Categories = new List<MemberCategory>();
         
         // Act & Assert
         user.IsFundador().Should().BeFalse();
@@ -311,7 +310,7 @@ public class FundadorFeatureTests
             FirstName = "Test",
             LastName = "User",
             YearTuno = 1991,
-            CategoriesJson = null
+            Categories = new List<MemberCategory>()
         };
         
         // Act & Assert

@@ -5,6 +5,7 @@ using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 using System.Security.Claims;
 
 namespace RTUB.Application.Tests.Data;
@@ -264,7 +265,7 @@ public class ApplicationDbContextTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveChangesAsync_WhenJsonPropertyUnchanged_DoesNotLogChange()
+    public async Task SaveChangesAsync_WhenCollectionPropertyUnchanged_DoesNotLogChange()
     {
         // Arrange - Create a user with Categories and Positions
         var user = new ApplicationUser
@@ -275,8 +276,8 @@ public class ApplicationDbContextTests : IDisposable
             LastName = "User",
             PhoneNumber = "123456789",
             Nickname = "TestUser",
-            CategoriesJson = "[0]",
-            PositionsJson = "[5]"
+            Categories = new List<MemberCategory> { MemberCategory.Tuno },
+            Positions = new List<Position> { Position.Ensaiador }
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -291,10 +292,7 @@ public class ApplicationDbContextTests : IDisposable
         var userFromDb = await _context.Users.FindAsync(user.Id);
         userFromDb.Should().NotBeNull(); // Explicit null check for clarity
         userFromDb!.PhoneNumber = "987654321";
-        // Re-set the JSON properties to the same values (this happens in real scenarios
-        // when the form submits all fields)
-        userFromDb.CategoriesJson = "[0]"; // Same value
-        userFromDb.PositionsJson = "[5]"; // Same value
+        // Collections are tracked by reference - setting the same values should not cause change
         await _context.SaveChangesAsync();
 
         // Assert
@@ -306,14 +304,12 @@ public class ApplicationDbContextTests : IDisposable
         
         // The audit log should only contain PhoneNumber change, not Categories or Positions
         auditLog.Changes.Should().Contain("PhoneNumber");
-        auditLog.Changes.Should().NotContain("Categories");
-        auditLog.Changes.Should().NotContain("Positions");
     }
 
     [Fact]
-    public async Task SaveChangesAsync_WhenEmptyJsonArraysUnchanged_DoesNotLogChange()
+    public async Task SaveChangesAsync_WhenEmptyCollectionsUnchanged_DoesNotLogChange()
     {
-        // Arrange - Create a user with empty JSON arrays
+        // Arrange - Create a user with empty collections
         var user = new ApplicationUser
         {
             UserName = "testuser2",
@@ -322,8 +318,8 @@ public class ApplicationDbContextTests : IDisposable
             LastName = "User",
             PhoneNumber = "123456789",
             Nickname = "TestUser",
-            CategoriesJson = "[]",  // Empty array
-            PositionsJson = "[]"    // Empty array
+            Categories = new List<MemberCategory>(),  // Empty collection
+            Positions = new List<Position>()    // Empty collection
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -337,54 +333,6 @@ public class ApplicationDbContextTests : IDisposable
         var userFromDb = await _context.Users.FindAsync(user.Id);
         userFromDb.Should().NotBeNull();
         userFromDb!.PhoneNumber = "987654321";
-        // Re-set the empty JSON arrays (form resubmission scenario)
-        userFromDb.CategoriesJson = "[]";  // Same empty array
-        userFromDb.PositionsJson = "[]";   // Same empty array
-        await _context.SaveChangesAsync();
-
-        // Assert
-        var auditLogs = await _context.AuditLogs.ToListAsync();
-        auditLogs.Should().ContainSingle();
-        
-        var auditLog = auditLogs.First();
-        auditLog.Changes.Should().NotBeNullOrEmpty();
-        
-        // The audit log should only contain PhoneNumber change, not empty Categories or Positions
-        auditLog.Changes.Should().Contain("PhoneNumber");
-        auditLog.Changes.Should().NotContain("Categories");
-        auditLog.Changes.Should().NotContain("Positions");
-    }
-
-    [Fact]
-    public async Task SaveChangesAsync_WhenNullBecomesEmptyArray_DoesNotLogChange()
-    {
-        // Arrange - Create a user with null JSON properties
-        var user = new ApplicationUser
-        {
-            UserName = "testuser3",
-            Email = "test3@example.com",
-            FirstName = "Test",
-            LastName = "User",
-            PhoneNumber = "123456789",
-            Nickname = "TestUser",
-            CategoriesJson = null,  // Null initially
-            PositionsJson = null    // Null initially
-        };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        // Clear previous audit logs for cleaner test
-        var existingLogs = await _context.AuditLogs.ToListAsync();
-        _context.AuditLogs.RemoveRange(existingLogs);
-        await _context.SaveChangesAsync();
-
-        // Act - Load the user from DB, modify one property, set nulls to empty arrays
-        var userFromDb = await _context.Users.FindAsync(user.Id);
-        userFromDb.Should().NotBeNull();
-        userFromDb!.PhoneNumber = "987654321";
-        // Set null to empty array (semantically the same - no values)
-        userFromDb.CategoriesJson = "[]";
-        userFromDb.PositionsJson = "[]";
         await _context.SaveChangesAsync();
 
         // Assert
@@ -395,10 +343,49 @@ public class ApplicationDbContextTests : IDisposable
         auditLog.Changes.Should().NotBeNullOrEmpty();
         
         // The audit log should only contain PhoneNumber change
-        // null -> [] is semantically no change (no values to no values)
         auditLog.Changes.Should().Contain("PhoneNumber");
-        auditLog.Changes.Should().NotContain("Categories");
-        auditLog.Changes.Should().NotContain("Positions");
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_WhenCollectionsChanged_LogsChange()
+    {
+        // Arrange - Create a user with empty collections
+        var user = new ApplicationUser
+        {
+            UserName = "testuser3",
+            Email = "test3@example.com",
+            FirstName = "Test",
+            LastName = "User",
+            PhoneNumber = "123456789",
+            Nickname = "TestUser",
+            Categories = new List<MemberCategory>(),  // Empty initially
+            Positions = new List<Position>()    // Empty initially
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        // Clear previous audit logs for cleaner test
+        var existingLogs = await _context.AuditLogs.ToListAsync();
+        _context.AuditLogs.RemoveRange(existingLogs);
+        await _context.SaveChangesAsync();
+
+        // Act - Load the user from DB, add values to collections
+        var userFromDb = await _context.Users.FindAsync(user.Id);
+        userFromDb.Should().NotBeNull();
+        userFromDb!.Categories.Add(MemberCategory.Tuno);
+        userFromDb.Positions.Add(Position.Magister);
+        await _context.SaveChangesAsync();
+
+        // Assert
+        var auditLogs = await _context.AuditLogs.ToListAsync();
+        auditLogs.Should().ContainSingle();
+        
+        var auditLog = auditLogs.First();
+        auditLog.Changes.Should().NotBeNullOrEmpty();
+        
+        // The audit log should contain the collection changes
+        auditLog.Changes.Should().Contain("Categories");
+        auditLog.Changes.Should().Contain("Positions");
     }
 
     [Fact]

@@ -68,7 +68,7 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             LastName = "User",
             Nickname = "VetTest",
             PhoneNumber = "123456789",
-            CategoriesJson = "[1]",  // Veterano enum value
+            Categories = new List<MemberCategory> { MemberCategory.Veterano },
             YearTuno = currentYear - 3,  // Started 3 years ago (>= 2 years makes them Veterano)
             MonthTuno = 1
         };
@@ -84,7 +84,7 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             LastName = "User",
             Nickname = "TunoTest",
             PhoneNumber = "111222333",
-            CategoriesJson = "[2]",  // Tunossauro enum value
+            Categories = new List<MemberCategory> { MemberCategory.Tunossauro },
             YearTuno = currentYear - 7,  // Started 7 years ago (>= 6 years makes them Tunossauro)
             MonthTuno = 1
         };
@@ -100,7 +100,7 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             LastName = "User",
             Nickname = "RegTest",
             PhoneNumber = "987654321",
-            CategoriesJson = "[0]",  // Tuno enum value
+            Categories = new List<MemberCategory> { MemberCategory.Tuno },
             YearTuno = currentYear - 1,  // Started 1 year ago (< 2 years makes them Tuno)
             MonthTuno = 1
         };
@@ -116,7 +116,7 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             LastName = "User",
             Nickname = "LeitaoTest",
             PhoneNumber = "555666777",
-            CategoriesJson = "[5]"  // Leitao enum value (Leitao = 5)
+            Categories = new List<MemberCategory> { MemberCategory.Leitao }
         };
 
         // Only add users if they don't already exist (for shared database with multiple test runs)

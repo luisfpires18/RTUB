@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using RTUB.Core.Enums;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 
 namespace RTUB.Core.Entities;
 
@@ -67,54 +66,9 @@ public class ApplicationUser : IdentityUser
     // Image handling
     public string? ImageUrl { get; set; }
     
-    // Positions and Categories (stored as JSON)
-    public string? PositionsJson { get; set; }
-    public string? CategoriesJson { get; set; }
-    
-    // Helper properties
-    public List<Position> Positions
-    {
-        get
-        {
-            if (string.IsNullOrEmpty(PositionsJson)) return new List<Position>();
-            try
-            {
-                return JsonSerializer.Deserialize<List<Position>>(PositionsJson) ?? new List<Position>();
-            }
-            catch
-            {
-                return new List<Position>();
-            }
-        }
-        set
-        {
-            PositionsJson = value != null && value.Any()
-                ? JsonSerializer.Serialize(value)
-                : null;
-        }
-    }
-    
-    public List<MemberCategory> Categories
-    {
-        get
-        {
-            if (string.IsNullOrEmpty(CategoriesJson)) return new List<MemberCategory>();
-            try
-            {
-                return JsonSerializer.Deserialize<List<MemberCategory>>(CategoriesJson) ?? new List<MemberCategory>();
-            }
-            catch
-            {
-                return new List<MemberCategory>();
-            }
-        }
-        set
-        {
-            CategoriesJson = value != null && value.Any()
-                ? JsonSerializer.Serialize(value)
-                : null;
-        }
-    }
+    // Positions and Categories - EF Core 10 handles storage as primitive collections
+    public List<Position> Positions { get; set; } = new();
+    public List<MemberCategory> Categories { get; set; } = new();
     
     public int? Age
     {
