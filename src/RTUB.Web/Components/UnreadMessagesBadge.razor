@@ -3,9 +3,11 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
 @using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
 @inject IMessagingService MessagingService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
+@inject RTUB.Web.Services.MessagesHubClient MessagesHubClient
 @implements IAsyncDisposable
 
 @if (unreadCount > 0)
@@ -42,6 +44,18 @@
                 
                 // Subscribe to refresh requests from other components
                 OnBadgeRefreshRequested += HandleRefreshRequest;
+                
+                // Initialize SignalR connection and subscribe to events
+                try
+                {
+                    await MessagesHubClient.InitializeAsync();
+                    MessagesHubClient.OnMessageReceived += HandleMessageReceived;
+                    MessagesHubClient.OnMessageSeen += HandleMessageSeen;
+                }
+                catch
+                {
+                    // Ignore SignalR errors - fallback timer will handle updates
+                }
                 
                 // Fallback timer refresh every 60 seconds
                 _refreshTimer = new System.Threading.Timer(async _ =>
@@ -116,9 +130,45 @@
         OnBadgeRefreshRequested?.Invoke();
     }
 
+    private async Task HandleMessageReceived(MessageDto message)
+    {
+        // Only update if the message is from someone else (not current user)
+        if (message.SenderId != currentUserId)
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadUnreadCount();
+                StateHasChanged();
+                if (OnCountChanged.HasDelegate)
+                {
+                    await OnCountChanged.InvokeAsync();
+                }
+            });
+        }
+    }
+
+    private async Task HandleMessageSeen(int conversationId, string userId, DateTime seenAt)
+    {
+        // Update unread count when messages are seen
+        await InvokeAsync(async () =>
+        {
+            await LoadUnreadCount();
+            StateHasChanged();
+            if (OnCountChanged.HasDelegate)
+            {
+                await OnCountChanged.InvokeAsync();
+            }
+        });
+    }
+
     public async ValueTask DisposeAsync()
     {
         OnBadgeRefreshRequested -= HandleRefreshRequest;
+        
+        // Unsubscribe from SignalR events
+        MessagesHubClient.OnMessageReceived -= HandleMessageReceived;
+        MessagesHubClient.OnMessageSeen -= HandleMessageSeen;
+        
         _refreshTimer?.Dispose();
         _dotNetRef?.Dispose();
     }

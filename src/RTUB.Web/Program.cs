@@ -309,6 +309,7 @@ public class Program
 
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
+        services.AddScoped<RTUB.Web.Services.MessagesHubClient>();
 
         // ---------- Blazor + Authentication ----------
         services.AddRazorComponents()
@@ -598,6 +599,9 @@ public class Program
 
         app.MapRazorComponents<RTUB.App>()
            .AddInteractiveServerRenderMode();
+
+        // Map SignalR hubs
+        app.MapHub<RTUB.Web.Hubs.MessagesHub>("/hubs/messages");
 
         // Map API controllers
         app.MapControllers();

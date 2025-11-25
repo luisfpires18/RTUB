@@ -17,6 +17,8 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject RTUB.Web.Services.MessagesHubClient MessagesHubClient
+@implements IAsyncDisposable
 
 <PageTitle>Mensagens - RTUB</PageTitle>
 
@@ -337,6 +339,23 @@
                                         </div>
                                     </div>
                                 }
+                                
+                                @* Typing indicator *@
+                                @if (typingUsers.Any())
+                                {
+                                    <div class="typing-indicator">
+                                        <div class="typing-indicator-content">
+                                            <span class="typing-indicator-dots">
+                                                <span></span>
+                                                <span></span>
+                                                <span></span>
+                                            </span>
+                                            <span class="typing-indicator-text">
+                                                @GetTypingUsersText()
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
                             }
                         </div>
 
@@ -346,9 +365,10 @@
                                 <div class="message-composer">
                                     <textarea @ref="messageInput" class="message-composer__input"
                                            placeholder="Escreva uma mensagem..."
-                                           @bind="newMessageText"
-                                           @bind:event="oninput"
+                                           value="@newMessageText"
+                                           @oninput="HandleTextInput"
                                            @onkeypress="HandleKeyPress"
+                                           @onblur="HandleInputBlur"
                                            rows="1"
                                            disabled="@isSending"></textarea>
                                     <button class="message-composer__send"
@@ -710,21 +730,7 @@
     private List<ApplicationUser> selectedGroupMembers = new();
     private bool isCreatingGroup = false;
 
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        
-        if (user.Identity?.IsAuthenticated == true)
-        {
-            var currentUser = await UserManager.GetUserAsync(user);
-            if (currentUser != null)
-            {
-                currentUserId = currentUser.Id;
-                await LoadConversationsAsync();
-            }
-        }
-    }
+
 
     protected override async Task OnParametersSetAsync()
     {
@@ -764,46 +770,7 @@
         }
     }
 
-    private async Task SelectConversation(int conversationId)
-    {
-        isLoadingMessages = true;
-        isInputFocusHandlerSetup = false; // Reset for new conversation
-        
-        try
-        {
-                selectedConversation = await MessagingService.GetConversationAsync(conversationId, currentUserId);
 
-                if (selectedConversation != null)
-                {
-                    messages = (await MessagingService.GetConversationMessagesAsync(conversationId, currentUserId)).ToList();
-                    shouldScrollToBottom = true;
-
-                    // Get the unread count before marking as read
-                    var conversationInList = conversations.FirstOrDefault(c => c.Id == conversationId);
-                    var previousUnreadCount = conversationInList?.UnreadCount ?? selectedConversation.UnreadCount;
-                
-                // Mark as read
-                await MessagingService.MarkConversationAsReadAsync(conversationId, currentUserId);
-                
-                // Update conversation unread count
-                selectedConversation.UnreadCount = 0;
-                if (conversationInList != null)
-                {
-                    conversationInList.UnreadCount = 0;
-                }
-                
-                // Notify navbar badge to refresh unread count if messages were marked as read
-                if (previousUnreadCount > 0)
-                {
-                    UnreadMessagesBadge.RequestRefresh();
-                }
-            }
-        }
-        finally
-        {
-            isLoadingMessages = false;
-        }
-    }
 
     private void BackToConversations()
     {
@@ -856,59 +823,7 @@
         return Task.CompletedTask;
     }
 
-    private async Task SendMessage()
-    {
-        if (string.IsNullOrWhiteSpace(newMessageText) || selectedConversation == null || isSending)
-            return;
 
-        isSending = true;
-        
-        try
-        {
-            MessageDto sentMessage;
-            
-            if (selectedConversation.IsGroup)
-            {
-                // Send to group
-                sentMessage = await MessagingService.SendGroupMessageAsync(currentUserId, selectedConversation.Id, newMessageText.Trim());
-            }
-            else
-            {
-                // Send direct message
-                var messageDto = new SendMessageDto
-                {
-                    ReceiverId = selectedConversation.OtherParticipantId!,
-                    Body = newMessageText.Trim()
-                };
-                sentMessage = await MessagingService.SendDirectMessageAsync(currentUserId, messageDto);
-            }
-            
-            messages.Add(sentMessage);
-            newMessageText = string.Empty;
-            shouldScrollToBottom = true;
-
-            // Update conversation in list
-            var conversationInList = conversations.FirstOrDefault(c => c.Id == selectedConversation.Id);
-            if (conversationInList != null)
-            {
-                conversationInList.LastMessageAt = sentMessage.CreatedAt;
-                conversationInList.LastMessagePreview = sentMessage.Body;
-                conversationInList.LastMessageSenderId = currentUserId;
-                
-                // Re-sort conversations (pinned first, then by LastMessageAt)
-                conversations = conversations
-                    .OrderByDescending(c => c.IsPinned)
-                    .ThenByDescending(c => c.LastMessageAt)
-                    .ToList();
-            }
-            
-            StateHasChanged();
-        }
-        finally
-        {
-            isSending = false;
-        }
-    }
 
     private async Task HandleKeyPress(KeyboardEventArgs e)
     {
@@ -1286,5 +1201,338 @@
     private async Task ScrollToLatestMessageAsync()
     {
         await JSRuntime.InvokeVoidAsync("messageScroller.scrollToBottom", messageThreadBody);
+    }
+
+    // ========== SignalR Integration ==========
+    
+    private Dictionary<string, string> typingUsers = new();
+    private System.Threading.Timer? typingTimer;
+    private bool isTyping = false;
+    private int? currentConversationId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize SignalR connection
+        try
+        {
+            await MessagesHubClient.InitializeAsync();
+            
+            // Subscribe to SignalR events
+            MessagesHubClient.OnMessageReceived += HandleMessageReceived;
+            MessagesHubClient.OnMessageSeen += HandleMessageSeen;
+            MessagesHubClient.OnTypingStarted += HandleTypingStarted;
+            MessagesHubClient.OnTypingStopped += HandleTypingStopped;
+        }
+        catch (Exception ex)
+        {
+            // Log but don't fail - app should work without SignalR
+            Console.WriteLine($"Failed to initialize SignalR: {ex.Message}");
+        }
+        
+        // Original initialization code
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var currentUser = await UserManager.GetUserAsync(user);
+            if (currentUser != null)
+            {
+                currentUserId = currentUser.Id;
+                await LoadConversationsAsync();
+            }
+        }
+    }
+
+    private async Task HandleMessageReceived(MessageDto message)
+    {
+        await InvokeAsync(async () =>
+        {
+            // Update conversation list
+            var conversation = conversations.FirstOrDefault(c => c.Id == message.ConversationId);
+            if (conversation != null)
+            {
+                conversation.LastMessageAt = message.CreatedAt;
+                conversation.LastMessagePreview = message.Body;
+                conversation.LastMessageSenderId = message.SenderId;
+                
+                // Only increment unread count if this is not the current conversation or if it's not from the current user
+                if (selectedConversation?.Id != message.ConversationId || message.SenderId == currentUserId)
+                {
+                    // Don't increment for messages sent by current user
+                    if (message.SenderId != currentUserId)
+                    {
+                        conversation.UnreadCount++;
+                    }
+                }
+                
+                // Re-sort conversations
+                conversations = conversations
+                    .OrderByDescending(c => c.IsPinned)
+                    .ThenByDescending(c => c.LastMessageAt)
+                    .ToList();
+            }
+            
+            // If this message is for the currently selected conversation, add it to the message list
+            if (selectedConversation?.Id == message.ConversationId)
+            {
+                // Only add if not already in the list (avoid duplicates from sender)
+                if (!messages.Any(m => m.Id == message.Id))
+                {
+                    messages.Add(message);
+                    shouldScrollToBottom = true;
+                }
+                
+                // If message is from another user, mark as read
+                if (message.SenderId != currentUserId)
+                {
+                    await MessagingService.MarkConversationAsReadAsync(message.ConversationId, currentUserId);
+                }
+            }
+            else
+            {
+                // Message is for a different conversation - notify badge
+                if (message.SenderId != currentUserId)
+                {
+                    UnreadMessagesBadge.RequestRefresh();
+                }
+            }
+            
+            StateHasChanged();
+        });
+    }
+
+    private async Task HandleMessageSeen(int conversationId, string userId, DateTime seenAt)
+    {
+        await InvokeAsync(() =>
+        {
+            // Update UI to show messages as seen (if needed for read receipts in the future)
+            StateHasChanged();
+            return Task.CompletedTask;
+        });
+    }
+
+    private async Task HandleTypingStarted(int conversationId, string userId)
+    {
+        await InvokeAsync(async () =>
+        {
+            if (selectedConversation?.Id == conversationId && userId != currentUserId)
+            {
+                // Get user name
+                var participant = selectedConversation.IsGroup 
+                    ? selectedConversation.GroupParticipants.FirstOrDefault(p => p.UserId == userId)
+                    : null;
+                    
+                var displayName = participant?.Nickname ?? participant?.Name ?? "Alguém";
+                
+                typingUsers[userId] = displayName;
+                StateHasChanged();
+            }
+        });
+    }
+
+    private async Task HandleTypingStopped(int conversationId, string userId)
+    {
+        await InvokeAsync(() =>
+        {
+            if (selectedConversation?.Id == conversationId)
+            {
+                typingUsers.Remove(userId);
+                StateHasChanged();
+            }
+            return Task.CompletedTask;
+        });
+    }
+
+    private string GetTypingUsersText()
+    {
+        var count = typingUsers.Count;
+        if (count == 0) return string.Empty;
+        if (count == 1) return $"{typingUsers.Values.First()} está a escrever...";
+        if (count == 2) return $"{string.Join(" e ", typingUsers.Values)} estão a escrever...";
+        return $"{count} pessoas estão a escrever...";
+    }
+
+    private async Task HandleTextInput(ChangeEventArgs e)
+    {
+        newMessageText = e.Value?.ToString() ?? string.Empty;
+        
+        if (selectedConversation == null || string.IsNullOrWhiteSpace(newMessageText))
+        {
+            await StopTyping();
+            return;
+        }
+        
+        await StartTyping();
+    }
+
+    private async Task StartTyping()
+    {
+        if (selectedConversation == null || isTyping)
+        {
+            return;
+        }
+        
+        isTyping = true;
+        await MessagesHubClient.SendTypingStartedAsync(selectedConversation.Id);
+        
+        // Reset the typing timer (stop typing after 3 seconds of inactivity)
+        typingTimer?.Dispose();
+        typingTimer = new System.Threading.Timer(async _ =>
+        {
+            await StopTyping();
+        }, null, TimeSpan.FromSeconds(3), Timeout.InfiniteTimeSpan);
+    }
+
+    private async Task StopTyping()
+    {
+        if (selectedConversation == null || !isTyping)
+        {
+            return;
+        }
+        
+        isTyping = false;
+        typingTimer?.Dispose();
+        await MessagesHubClient.SendTypingStoppedAsync(selectedConversation.Id);
+    }
+
+    private async Task HandleInputBlur()
+    {
+        await StopTyping();
+    }
+
+    private async Task SelectConversation(int conversationId)
+    {
+        // Leave previous conversation
+        if (currentConversationId.HasValue && MessagesHubClient.IsConnected)
+        {
+            await MessagesHubClient.LeaveConversationAsync(currentConversationId.Value);
+        }
+        
+        typingUsers.Clear();
+        isTyping = false;
+        typingTimer?.Dispose();
+        
+        isLoadingMessages = true;
+        isInputFocusHandlerSetup = false;
+        
+        try
+        {
+            selectedConversation = await MessagingService.GetConversationAsync(conversationId, currentUserId);
+
+            if (selectedConversation != null)
+            {
+                messages = (await MessagingService.GetConversationMessagesAsync(conversationId, currentUserId)).ToList();
+                shouldScrollToBottom = true;
+
+                // Get the unread count before marking as read
+                var conversationInList = conversations.FirstOrDefault(c => c.Id == conversationId);
+                var previousUnreadCount = conversationInList?.UnreadCount ?? selectedConversation.UnreadCount;
+            
+                // Mark as read
+                await MessagingService.MarkConversationAsReadAsync(conversationId, currentUserId);
+                
+                // Update conversation unread count
+                selectedConversation.UnreadCount = 0;
+                if (conversationInList != null)
+                {
+                    conversationInList.UnreadCount = 0;
+                }
+                
+                // Notify navbar badge to refresh unread count if messages were marked as read
+                if (previousUnreadCount > 0)
+                {
+                    UnreadMessagesBadge.RequestRefresh();
+                }
+                
+                // Join the conversation via SignalR
+                if (MessagesHubClient.IsConnected)
+                {
+                    await MessagesHubClient.JoinConversationAsync(conversationId);
+                    currentConversationId = conversationId;
+                }
+            }
+        }
+        finally
+        {
+            isLoadingMessages = false;
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(newMessageText) || selectedConversation == null || isSending)
+            return;
+
+        // Stop typing indicator
+        await StopTyping();
+
+        isSending = true;
+        
+        try
+        {
+            MessageDto sentMessage;
+            
+            if (selectedConversation.IsGroup)
+            {
+                sentMessage = await MessagingService.SendGroupMessageAsync(currentUserId, selectedConversation.Id, newMessageText.Trim());
+            }
+            else
+            {
+                var messageDto = new SendMessageDto
+                {
+                    ReceiverId = selectedConversation.OtherParticipantId!,
+                    Body = newMessageText.Trim()
+                };
+                sentMessage = await MessagingService.SendDirectMessageAsync(currentUserId, messageDto);
+            }
+            
+            // Add message if not already added by SignalR (avoid duplicates)
+            if (!messages.Any(m => m.Id == sentMessage.Id))
+            {
+                messages.Add(sentMessage);
+            }
+            
+            newMessageText = string.Empty;
+            shouldScrollToBottom = true;
+
+            // Update conversation in list
+            var conversationInList = conversations.FirstOrDefault(c => c.Id == selectedConversation.Id);
+            if (conversationInList != null)
+            {
+                conversationInList.LastMessageAt = sentMessage.CreatedAt;
+                conversationInList.LastMessagePreview = sentMessage.Body;
+                conversationInList.LastMessageSenderId = currentUserId;
+                
+                // Re-sort conversations
+                conversations = conversations
+                    .OrderByDescending(c => c.IsPinned)
+                    .ThenByDescending(c => c.LastMessageAt)
+                    .ToList();
+            }
+            
+            StateHasChanged();
+        }
+        finally
+        {
+            isSending = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Unsubscribe from SignalR events
+        MessagesHubClient.OnMessageReceived -= HandleMessageReceived;
+        MessagesHubClient.OnMessageSeen -= HandleMessageSeen;
+        MessagesHubClient.OnTypingStarted -= HandleTypingStarted;
+        MessagesHubClient.OnTypingStopped -= HandleTypingStopped;
+        
+        // Leave current conversation
+        if (currentConversationId.HasValue && MessagesHubClient.IsConnected)
+        {
+            await MessagesHubClient.LeaveConversationAsync(currentConversationId.Value);
+        }
+        
+        typingTimer?.Dispose();
     }
 }
