@@ -47,6 +47,11 @@ public class Conversation : BaseEntity
     /// The user ID of the group creator (null for direct chats, "system" for auto-created groups)
     /// </summary>
     public string? CreatedByUserId { get; set; }
+    
+    /// <summary>
+    /// Whether this is an announcement-only channel where only specific roles can send messages
+    /// </summary>
+    public bool IsAnnouncementOnly { get; set; }
 
     /// <summary>
     /// Navigation property for messages in this conversation

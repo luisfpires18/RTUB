@@ -16,6 +16,25 @@ public class ConversationDto
     public bool IsGroup { get; set; }
     public string? CreatedByUserId { get; set; }
     
+    /// <summary>
+    /// Whether this is an announcement-only channel where only specific roles can send messages
+    /// </summary>
+    public bool IsAnnouncementOnly { get; set; }
+    
+    /// <summary>
+    /// Whether the current user can send messages in this conversation
+    /// </summary>
+    public bool CanSendMessage { get; set; }
+    
+    /// <summary>
+    /// Whether the current user can delete this conversation
+    /// </summary>
+    public bool CanDelete { get; set; }
+    
+    // Per-user conversation settings
+    public bool IsMuted { get; set; }
+    public bool IsPinned { get; set; }
+    
     // For display purposes (1:1 conversations)
     public string? OtherParticipantId { get; set; }
     public string? OtherParticipantName { get; set; }

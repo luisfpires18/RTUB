@@ -88,6 +88,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Messaging DbSets
     public DbSet<Conversation> Conversations { get; set; }
     public DbSet<Message> Messages { get; set; }
+    public DbSet<ConversationUserSettings> ConversationUserSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

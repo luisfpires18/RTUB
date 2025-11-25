@@ -57,6 +57,9 @@ public class GroupConversationSyncService : IGroupConversationSyncService
             
             // 5. LEITÕES & CALOIROS - Users whose Categories contains Leitao or Caloiro
             await SyncCategoryBasedGroupAsync("LEITÕES & CALOIROS", new[] { MemberCategory.Leitao, MemberCategory.Caloiro });
+            
+            // 6. ANUNCIOS - All active (non-retired) members, announcement-only channel
+            await SyncAnunciosGroupAsync();
 
             _logger.LogInformation("Completed default group conversations sync");
         }
@@ -171,6 +174,58 @@ public class GroupConversationSyncService : IGroupConversationSyncService
             else
             {
                 _logger.LogDebug("System group {GroupTitle} is up to date with {ParticipantCount} participants", 
+                    groupTitle, participantIds.Count);
+            }
+        }
+    }
+    
+    private async Task SyncAnunciosGroupAsync()
+    {
+        const string groupTitle = "ANUNCIOS";
+        
+        // Get all non-retired users (active members)
+        var allUsers = await _userManager.Users.ToListAsync();
+        
+        var participantIds = allUsers
+            .Where(u => !u.IsRetired)
+            .Select(u => u.Id)
+            .ToList();
+
+        await CreateOrUpdateAnnouncementGroupAsync(groupTitle, participantIds);
+    }
+    
+    private async Task CreateOrUpdateAnnouncementGroupAsync(string groupTitle, List<string> participantIds)
+    {
+        if (participantIds.Count == 0)
+        {
+            _logger.LogInformation("No participants found for announcement group {GroupTitle}, skipping", groupTitle);
+            return;
+        }
+
+        var existingGroup = await _conversationRepository.GetGroupByTitleAsync(groupTitle);
+
+        if (existingGroup == null)
+        {
+            // Create new announcement group
+            await _messagingService.GetOrCreateAnnouncementGroupAsync(groupTitle, participantIds);
+            _logger.LogInformation("Created announcement group {GroupTitle} with {ParticipantCount} participants", 
+                groupTitle, participantIds.Count);
+        }
+        else
+        {
+            // Update participants if changed
+            var currentParticipants = existingGroup.GetParticipantIds();
+            var hasChanges = !currentParticipants.OrderBy(x => x).SequenceEqual(participantIds.OrderBy(x => x));
+
+            if (hasChanges)
+            {
+                await _messagingService.UpdateGroupParticipantsAsync(existingGroup.Id, participantIds);
+                _logger.LogInformation("Updated announcement group {GroupTitle}: {OldCount} -> {NewCount} participants", 
+                    groupTitle, currentParticipants.Count, participantIds.Count);
+            }
+            else
+            {
+                _logger.LogDebug("Announcement group {GroupTitle} is up to date with {ParticipantCount} participants", 
                     groupTitle, participantIds.Count);
             }
         }

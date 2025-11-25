@@ -97,7 +97,7 @@
                             <div class="conversation-item @(selectedConversation?.Id == conversation.Id ? "active" : "")"
                                  @onclick="() => SelectConversation(conversation.Id)">
                                 <div class="conversation-avatar">
-                                    @if (conversation.IsSystemConversation)
+                                    @if (conversation.IsSystemConversation || conversation.IsAnnouncementOnly)
                                     {
                                         <img src="/icons/rtub-logo-192.png" alt="RTUB" />
                                     }
@@ -117,6 +117,14 @@
                                 <div class="conversation-content">
                                     <div class="conversation-header">
                                         <h5 class="conversation-name">
+                                            @if (conversation.IsPinned)
+                                            {
+                                                <i class="bi bi-pin-fill conversation-status-icon text-primary me-1" title="Afixado"></i>
+                                            }
+                                            @if (conversation.IsMuted)
+                                            {
+                                                <i class="bi bi-bell-slash-fill conversation-status-icon text-muted me-1" title="Silenciado"></i>
+                                            }
                                             @if (conversation.IsSystemConversation)
                                             {
                                                 <text>RTUB</text>
@@ -175,7 +183,7 @@
                             </button>
                             <div class="d-flex align-items-center flex-grow-1">
                                 <div class="conversation-avatar me-2">
-                                    @if (selectedConversation.IsSystemConversation)
+                                    @if (selectedConversation.IsSystemConversation || selectedConversation.IsAnnouncementOnly)
                                     {
                                         <img src="/icons/rtub-logo-192.png" alt="RTUB" />
                                     }
@@ -219,24 +227,35 @@
                             </div>
                             @if (!selectedConversation.IsSystemConversation)
                             {
-                                <div class="dropdown">
-                                    <button class="btn btn-link" type="button" data-bs-toggle="dropdown">
-                                        <i class="bi bi-three-dots-vertical"></i>
+                                <div class="header-actions">
+                                    <button class="btn btn-link header-action-btn" @onclick="ToggleMute" title="@(selectedConversation.IsMuted ? "Ativar notificações" : "Silenciar")">
+                                        <i class="bi @(selectedConversation.IsMuted ? "bi-bell-slash-fill" : "bi-bell")"></i>
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li>
-                                            <button class="dropdown-item" @onclick="ToggleReadStatus">
-                                                <i class="bi bi-eye"></i> 
-                                                @(selectedConversation.UnreadCount > 0 ? "Marcar como lida" : "Marcar como não lida")
-                                            </button>
-                                        </li>
-                                        <li><hr class="dropdown-divider" /></li>
-                                        <li>
-                                            <button class="dropdown-item text-danger" @onclick="DeleteConversation">
-                                                <i class="bi bi-trash"></i> Eliminar conversa
-                                            </button>
-                                        </li>
-                                    </ul>
+                                    <button class="btn btn-link header-action-btn" @onclick="TogglePin" title="@(selectedConversation.IsPinned ? "Desafixar" : "Afixar")">
+                                        <i class="bi @(selectedConversation.IsPinned ? "bi-pin-fill text-primary" : "bi-pin")"></i>
+                                    </button>
+                                    <div class="dropdown">
+                                        <button class="btn btn-link" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <button class="dropdown-item" @onclick="ToggleReadStatus">
+                                                    <i class="bi bi-eye"></i> 
+                                                    @(selectedConversation.UnreadCount > 0 ? "Marcar como lida" : "Marcar como não lida")
+                                                </button>
+                                            </li>
+                                            @if (selectedConversation.CanDelete)
+                                            {
+                                                <li><hr class="dropdown-divider" /></li>
+                                                <li>
+                                                    <button class="dropdown-item text-danger" @onclick="DeleteConversation">
+                                                        <i class="bi bi-trash"></i> Eliminar conversa
+                                                    </button>
+                                                </li>
+                                            }
+                                        </ul>
+                                    </div>
                                 </div>
                             }
                         </div>
@@ -321,7 +340,7 @@
                             }
                         </div>
 
-                        @if (!selectedConversation.IsSystemConversation)
+                        @if (!selectedConversation.IsSystemConversation && selectedConversation.CanSendMessage)
                         {
                             <div class="message-thread-footer">
                                 <div class="message-composer">
@@ -344,6 +363,15 @@
                                             <i class="bi bi-send"></i>
                                         }
                                     </button>
+                                </div>
+                            </div>
+                        }
+                        else if (selectedConversation.IsAnnouncementOnly && !selectedConversation.CanSendMessage)
+                        {
+                            <div class="message-thread-footer read-only-footer">
+                                <div class="read-only-message">
+                                    <i class="bi bi-megaphone"></i>
+                                    <span>Canal apenas de anúncios</span>
                                 </div>
                             </div>
                         }
@@ -718,9 +746,8 @@
         isLoadingConversations = true;
         try
         {
-            conversations = (await MessagingService.GetUserConversationsAsync(currentUserId))
-                .OrderByDescending(c => c.LastMessageAt)
-                .ToList();
+            // MessagingService already sorts: pinned first, then by LastMessageAt
+            conversations = (await MessagingService.GetUserConversationsAsync(currentUserId)).ToList();
         }
         finally
         {
@@ -906,6 +933,44 @@
         UnreadMessagesBadge.RequestRefresh();
     }
 
+    private async Task ToggleMute()
+    {
+        if (selectedConversation == null) return;
+
+        var newMuteStatus = await MessagingService.ToggleMuteAsync(selectedConversation.Id, currentUserId);
+        selectedConversation.IsMuted = newMuteStatus;
+        
+        // Update conversation in list
+        var conversationInList = conversations.FirstOrDefault(c => c.Id == selectedConversation.Id);
+        if (conversationInList != null)
+        {
+            conversationInList.IsMuted = newMuteStatus;
+        }
+    }
+
+    private async Task TogglePin()
+    {
+        if (selectedConversation == null) return;
+
+        var newPinStatus = await MessagingService.TogglePinAsync(selectedConversation.Id, currentUserId);
+        selectedConversation.IsPinned = newPinStatus;
+        
+        // Update conversation in list
+        var conversationInList = conversations.FirstOrDefault(c => c.Id == selectedConversation.Id);
+        if (conversationInList != null)
+        {
+            conversationInList.IsPinned = newPinStatus;
+        }
+        
+        // Re-sort conversations (pinned first, then by LastMessageAt)
+        conversations = conversations
+            .OrderByDescending(c => c.IsPinned)
+            .ThenByDescending(c => c.LastMessageAt)
+            .ToList();
+        
+        StateHasChanged();
+    }
+
     private async Task DeleteConversation()
     {
         if (selectedConversation == null) return;
@@ -913,7 +978,13 @@
         // Store the unread count before deleting
         var unreadCountToRemove = selectedConversation.UnreadCount;
         
-        await MessagingService.DeleteConversationAsync(selectedConversation.Id, currentUserId);
+        var deleted = await MessagingService.DeleteConversationAsync(selectedConversation.Id, currentUserId);
+        
+        if (!deleted)
+        {
+            // Deletion was not allowed (should not happen if CanDelete is properly checked)
+            return;
+        }
         
         var conversationToRemove = conversations.FirstOrDefault(c => c.Id == selectedConversation.Id);
         if (conversationToRemove != null)
