@@ -432,6 +432,22 @@
     cursor: pointer;
 }
 
+.conversation-modal {
+    max-width: 640px;
+}
+
+.conversation-modal.conversation-modal--group {
+    max-width: 900px;
+}
+
+.conversation-modal .modal-content {
+    border-radius: 1rem;
+}
+
+.conversation-modal .modal-body {
+    padding: 1.25rem;
+}
+
 /* Mobile responsive */
 @media (max-width: 991px) {
     .conversations-panel.d-none {
@@ -550,6 +566,29 @@
 
     .group-member-modal-item {
         padding: 0.65rem;
+    }
+
+    .conversation-modal {
+        margin: 0.5rem;
+    }
+
+    .conversation-modal.modal-lg {
+        max-width: 100%;
+    }
+
+    .conversation-modal .modal-content {
+        min-height: 80vh;
+        border-radius: 0.85rem;
+    }
+
+    .conversation-modal .modal-header,
+    .conversation-modal .modal-body,
+    .conversation-modal .modal-footer {
+        padding: 0.9rem 1rem;
+    }
+
+    .conversation-modal .member-list-scrollable {
+        max-height: 240px;
     }
 }
 

@@ -310,7 +310,7 @@
 @if (showNewMessageModal)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down conversation-modal">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-plus-lg"></i> Nova Mensagem</h5>
@@ -399,7 +399,7 @@
 @if (showNewGroupModal)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg modal-fullscreen-sm-down conversation-modal conversation-modal--group">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-people"></i> Nova conversa de grupo</h5>
@@ -664,7 +664,9 @@
         isLoadingConversations = true;
         try
         {
-            conversations = (await MessagingService.GetUserConversationsAsync(currentUserId)).ToList();
+            conversations = (await MessagingService.GetUserConversationsAsync(currentUserId))
+                .OrderByDescending(c => c.LastMessageAt)
+                .ToList();
         }
         finally
         {
