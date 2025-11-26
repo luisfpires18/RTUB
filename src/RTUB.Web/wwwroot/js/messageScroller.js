@@ -39,6 +39,13 @@ window.messageScroller = {
     
     /**
      * Setup focus listener for mobile keyboard handling - scroll to bottom when keyboard opens
+     * This ensures messages stay visible when the virtual keyboard appears.
+     * 
+     * IMPORTANT: On iOS (both browser and PWA), when the keyboard opens:
+     * - The viewport shrinks or the page scrolls
+     * - Messages at the bottom may become hidden
+     * - This handler scrolls the message container to keep latest messages visible
+     * 
      * @param {HTMLElement} inputElement - The input/textarea element
      * @param {HTMLElement} containerElement - The scrollable container element
      */
@@ -47,6 +54,12 @@ window.messageScroller = {
         
         const KEYBOARD_ANIMATION_DELAY = 350; // ms - wait for mobile keyboard animation
         const KEYBOARD_RESIZE_DELAY = 500; // ms - wait for keyboard resize to complete
+        // PWA mode on iOS can have delayed viewport changes after keyboard opens
+        // 800ms covers the full animation cycle observed on iOS 15+ PWA standalone mode
+        const EXTRA_SCROLL_DELAY = 800;
+        
+        // Debounce timer to prevent excessive scroll calls
+        let scrollDebounceTimer = null;
         
         // Remove existing listener if any to prevent duplicates
         const existingHandler = this._focusHandlers.get(inputElement);
@@ -56,9 +69,12 @@ window.messageScroller = {
             if (existingHandler.resizeHandler) {
                 window.removeEventListener('resize', existingHandler.resizeHandler);
             }
+            if (existingHandler.visualViewportHandler) {
+                window.visualViewport?.removeEventListener('resize', existingHandler.visualViewportHandler);
+            }
         }
         
-        // Scroll to bottom helper
+        // Scroll to bottom helper - aggressively scrolls multiple times
         const scrollToBottom = () => {
             window.requestAnimationFrame(() => {
                 window.requestAnimationFrame(() => {
@@ -67,14 +83,34 @@ window.messageScroller = {
             });
         };
         
+        // Debounced scroll with multiple attempts at key intervals
+        // Uses a single timer chain instead of multiple parallel timers
+        const scrollMultipleTimes = () => {
+            // Clear any existing debounce timer
+            if (scrollDebounceTimer) {
+                clearTimeout(scrollDebounceTimer);
+            }
+            
+            // Immediate scroll
+            scrollToBottom();
+            
+            // Chain of delayed scrolls at key intervals:
+            // 0ms (immediate) -> 350ms -> 500ms -> 800ms
+            scrollDebounceTimer = setTimeout(() => {
+                scrollToBottom(); // 350ms
+                setTimeout(() => {
+                    scrollToBottom(); // 500ms (350 + 150)
+                    setTimeout(scrollToBottom, 300); // 800ms (500 + 300)
+                }, 150);
+            }, KEYBOARD_ANIMATION_DELAY);
+        };
+        
         // Create and store the handlers
         const focusHandler = () => {
-            // On mobile, when keyboard opens, scroll to bottom after a delay
+            // On mobile, when keyboard opens, scroll to bottom multiple times
+            // to ensure messages stay visible even with small chat histories
             if (window.innerWidth <= 767) {
-                // Immediate scroll
-                scrollToBottom();
-                // Delayed scroll to handle keyboard animation
-                setTimeout(scrollToBottom, KEYBOARD_ANIMATION_DELAY);
+                scrollMultipleTimes();
             }
         };
         
@@ -89,18 +125,32 @@ window.messageScroller = {
         // Handle viewport resize (keyboard opening/closing) to keep messages visible
         const resizeHandler = () => {
             if (window.innerWidth <= 767 && document.activeElement === inputElement) {
-                // Keyboard likely opened or closed - scroll to bottom after delay
-                setTimeout(scrollToBottom, KEYBOARD_RESIZE_DELAY);
+                // Keyboard likely opened or closed - scroll to bottom multiple times
+                scrollMultipleTimes();
+            }
+        };
+        
+        // Handle visualViewport changes (more reliable on iOS for keyboard detection)
+        const visualViewportHandler = () => {
+            if (window.innerWidth <= 767 && document.activeElement === inputElement) {
+                // Visual viewport changed - keyboard likely opened/closed
+                scrollMultipleTimes();
             }
         };
         
         // Store all handlers
         focusHandler.inputHandler = inputHandler;
         focusHandler.resizeHandler = resizeHandler;
+        focusHandler.visualViewportHandler = visualViewportHandler;
         this._focusHandlers.set(inputElement, focusHandler);
         
         inputElement.addEventListener('focus', focusHandler);
         inputElement.addEventListener('input', inputHandler);
         window.addEventListener('resize', resizeHandler);
+        
+        // Use visualViewport API if available (more reliable for keyboard detection on iOS)
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', visualViewportHandler);
+        }
     }
 };

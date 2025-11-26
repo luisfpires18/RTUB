@@ -664,13 +664,16 @@ iframe {
    * Note: position: fixed is required to prevent scroll-behind on iOS Safari
    * Note: !important is required to override Bootstrap's default body styles
    * and ensure the messages page works as a full-screen overlay
+   * 
+   * For PWA mode: -webkit-fill-available ensures proper height in standalone mode
    */
   body:has(.messages-page) {
     overflow: hidden !important;
     position: fixed !important;
     width: 100%;
-    height: 100vh; /* Fallback */
-    height: 100dvh; /* Dynamic viewport height */
+    height: 100vh; /* Fallback for older browsers */
+    height: -webkit-fill-available; /* iOS Safari/PWA standalone mode */
+    height: 100dvh; /* Dynamic viewport height - takes precedence when supported */
   }
 
   /* Hide navbar and footer when messages page is active */
