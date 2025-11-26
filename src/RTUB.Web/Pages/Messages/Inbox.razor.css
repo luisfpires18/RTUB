@@ -845,17 +845,17 @@
            because gap would override our grouped message spacing (0.1rem) */
     }
 
-    /* Sticky footer - always visible above keyboard with safe-area-inset for iOS */
+    /* Fixed footer - always visible at bottom of viewport */
     .message-thread-footer {
         flex-shrink: 0;
-        position: sticky;
-        bottom: 0;
         background: #0f0f10;
         box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
         padding: 0.5rem 0.75rem; /* Top and side padding */
         /* Use env(safe-area-inset-bottom) to handle iOS notch/home indicator - minimal padding */
-        padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
         z-index: 10;
+        /* Ensure footer stays at bottom and doesn't get pushed down */
+        position: relative;
     }
 
     /* Message styling for mobile */
