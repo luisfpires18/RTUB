@@ -63,7 +63,12 @@ public class MessagesHubClient : IAsyncDisposable
             var hubUrl = _navigationManager.ToAbsoluteUri("/hubs/messages");
             
             _hubConnection = new HubConnectionBuilder()
-                .WithUrl(hubUrl)
+                .WithUrl(hubUrl, options =>
+                {
+                    // In Blazor Server InteractiveServer mode, we need to configure the connection
+                    // to use default credentials (cookies) for authentication
+                    options.UseDefaultCredentials = true;
+                })
                 .WithAutomaticReconnect(ReconnectionDelays)
                 .Build();
 
