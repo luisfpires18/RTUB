@@ -341,7 +341,7 @@
                                                     {
                                                         @if (message.IsRead)
                                                         {
-                                                            <i class="bi bi-check-all ms-1 text-primary" title="Lida"></i>
+                                                            <i class="bi bi-check-all ms-1 text-primary" title="@GetReadReceiptTooltip(message)"></i>
                                                         }
                                                         else
                                                         {
@@ -1271,6 +1271,11 @@
                     .ThenByDescending(c => c.LastMessageAt)
                     .ToList();
             }
+            else
+            {
+                // New conversation - reload conversations to get it
+                await LoadConversationsAsync();
+            }
             
             // If this message is for the currently selected conversation, add it to the message list
             if (selectedConversation?.Id == message.ConversationId)
@@ -1309,9 +1314,23 @@
             if (selectedConversation?.Id == conversationId && userId != currentUserId)
             {
                 // The other user has read our messages - mark them as read in the UI
-                foreach (var message in messages.Where(m => m.SenderId == currentUserId && !m.IsRead))
+                foreach (var message in messages.Where(m => m.SenderId == currentUserId))
                 {
                     message.IsRead = true;
+                    
+                    // For group chats, update ReadBy list
+                    if (selectedConversation.IsGroup)
+                    {
+                        var readByIds = string.IsNullOrEmpty(message.ReadBy) 
+                            ? new List<string>() 
+                            : message.ReadBy.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+                        
+                        if (!readByIds.Contains(userId))
+                        {
+                            readByIds.Add(userId);
+                            message.ReadBy = string.Join(";", readByIds);
+                        }
+                    }
                 }
                 StateHasChanged();
             }
@@ -1366,6 +1385,52 @@
         return $"{count} pessoas estão a escrever...";
     }
 
+    private string GetReadReceiptTooltip(MessageDto message)
+    {
+        if (selectedConversation == null || !selectedConversation.IsGroup)
+        {
+            return "Lida";
+        }
+
+        // For group chats, show who has read the message
+        var readByIds = string.IsNullOrEmpty(message.ReadBy) 
+            ? new List<string>() 
+            : message.ReadBy.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+
+        if (!readByIds.Any())
+        {
+            return "Enviada";
+        }
+
+        // Get participant names
+        var readByNames = new List<string>();
+        foreach (var userId in readByIds)
+        {
+            if (userId == currentUserId) continue; // Skip current user
+            
+            var participant = selectedConversation.GroupParticipants.FirstOrDefault(p => p.UserId == userId);
+            if (participant != null)
+            {
+                var name = participant.Nickname ?? participant.Name ?? "Utilizador";
+                readByNames.Add(name);
+            }
+        }
+
+        if (!readByNames.Any())
+        {
+            return "Lida";
+        }
+
+        // Check if everyone has read it (excluding the sender)
+        var totalParticipants = selectedConversation.GroupParticipants.Count(p => p.UserId != currentUserId);
+        if (readByNames.Count == totalParticipants)
+        {
+            return "Lida por Todos";
+        }
+
+        return $"Lida por {string.Join(", ", readByNames)}";
+    }
+
     private async Task HandleTextInput(ChangeEventArgs e)
     {
         newMessageText = e.Value?.ToString() ?? string.Empty;
@@ -1386,13 +1451,17 @@
             return;
         }
         
-        isTyping = true;
-        // Send typing started event through hub context
-        var groupName = $"conversation-{selectedConversation.Id}";
-        await HubContext.Clients.Group(groupName).TypingStarted(selectedConversation.Id, currentUserId);
-        await NotificationService.NotifyTypingStartedAsync(selectedConversation.Id, currentUserId);
+        // Send typing started event only if not already typing
+        if (!isTyping)
+        {
+            isTyping = true;
+            var groupName = $"conversation-{selectedConversation.Id}";
+            await HubContext.Clients.Group(groupName).TypingStarted(selectedConversation.Id, currentUserId);
+            await NotificationService.NotifyTypingStartedAsync(selectedConversation.Id, currentUserId);
+        }
         
         // Reset the typing timer (stop typing after 3 seconds of inactivity)
+        // This gets reset on every keystroke, so typing indicator stays as long as user types
         typingTimer?.Dispose();
         typingTimer = new System.Threading.Timer(async _ =>
         {

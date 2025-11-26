@@ -565,7 +565,8 @@ public class MessagingService : IMessagingService
             IsSystem = message.IsSystem,
             CreatedAt = message.CreatedAt,
             IsRead = message.IsReadBy(currentUserId),
-            Link = message.Link
+            Link = message.Link,
+            ReadBy = message.ReadBy
         };
 
         if (message.Sender != null)
