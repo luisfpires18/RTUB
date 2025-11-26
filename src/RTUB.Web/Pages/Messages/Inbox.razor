@@ -337,6 +337,17 @@
                                             {
                                                 <div class="message-time">
                                                     @message.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                                    @if (message.SenderId == currentUserId && !message.IsSystem)
+                                                    {
+                                                        @if (message.IsRead)
+                                                        {
+                                                            <i class="bi bi-check-all ms-1 text-primary" title="Lida"></i>
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="bi bi-check ms-1" title="Enviada"></i>
+                                                        }
+                                                    }
                                                 </div>
                                             }
                                         </div>
@@ -1294,8 +1305,16 @@
     {
         await InvokeAsync(() =>
         {
-            // Update UI to show messages as seen (if needed for read receipts in the future)
-            StateHasChanged();
+            // Update messages to show as read if they were sent by current user
+            if (selectedConversation?.Id == conversationId && userId != currentUserId)
+            {
+                // The other user has read our messages - mark them as read in the UI
+                foreach (var message in messages.Where(m => m.SenderId == currentUserId && !m.IsRead))
+                {
+                    message.IsRead = true;
+                }
+                StateHasChanged();
+            }
             return Task.CompletedTask;
         });
     }
@@ -1307,11 +1326,17 @@
             if (selectedConversation?.Id == conversationId && userId != currentUserId)
             {
                 // Get user name
-                var participant = selectedConversation.IsGroup 
-                    ? selectedConversation.GroupParticipants.FirstOrDefault(p => p.UserId == userId)
-                    : null;
-                    
-                var displayName = participant?.Nickname ?? participant?.Name ?? "Alguém";
+                string displayName;
+                if (selectedConversation.IsGroup)
+                {
+                    var participant = selectedConversation.GroupParticipants.FirstOrDefault(p => p.UserId == userId);
+                    displayName = participant?.Nickname ?? participant?.Name ?? "Alguém";
+                }
+                else
+                {
+                    // For 1-on-1 conversations, use the other participant's info
+                    displayName = selectedConversation.OtherParticipantNickname ?? selectedConversation.OtherParticipantName ?? "Alguém";
+                }
                 
                 typingUsers[userId] = displayName;
                 StateHasChanged();
