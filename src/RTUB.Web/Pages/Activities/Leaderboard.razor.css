@@ -14,6 +14,16 @@
     align-items: center;
 }
 
+/* Grid positioning classes for desktop snake pattern */
+.row-1 { grid-row: 1; }
+.row-2 { grid-row: 2; }
+.row-3 { grid-row: 3; }
+.row-4 { grid-row: 4; }
+
+.col-1 { grid-column: 1; }
+.col-2 { grid-column: 2; }
+.col-3 { grid-column: 3; }
+
 /* Rank Card */
 .rank-card {
     display: flex;
@@ -135,6 +145,24 @@
         gap: 1.5rem;
     }
     
+    /* Override desktop grid positioning for 2-column layout */
+    .rank-grid-item {
+        grid-row: auto !important;
+        grid-column: auto !important;
+    }
+    
+    /* Use order property based on level for sequential display */
+    .level-1 { order: 1; }
+    .level-2 { order: 2; }
+    .level-3 { order: 3; }
+    .level-4 { order: 4; }
+    .level-5 { order: 5; }
+    .level-6 { order: 6; }
+    .level-7 { order: 7; }
+    .level-8 { order: 8; }
+    .level-9 { order: 9; }
+    .level-10 { order: 10; }
+    
     .rank-final {
         grid-column: span 2; /* Span both columns on smaller screens */
     }
@@ -146,8 +174,17 @@
         gap: 1rem;
     }
     
+    /* Reset grid positioning classes for single column on mobile */
+    .row-1, .row-2, .row-3, .row-4 {
+        grid-row: auto !important;
+    }
+    
+    .col-1, .col-2, .col-3 {
+        grid-column: 1 !important;
+    }
+    
     .rank-final {
-        grid-column: 1;
+        grid-column: 1 !important;
     }
     
     .rank-card {
