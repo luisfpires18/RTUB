@@ -1119,24 +1119,30 @@
         -webkit-overflow-scrolling: touch;
     }
     
-    /* Selected members badges - wrap properly on mobile with smaller size */
+    /* Selected members badges - compact inline style on mobile */
     .conversation-modal .selected-members {
-        padding: 0.5rem;
+        padding: 0.5rem 0;
         max-height: 150px;
         overflow-y: auto;
-        background: rgba(111, 66, 193, 0.08);
+        background: transparent;
     }
     
     .conversation-modal .selected-members .badge {
         font-size: 0.75rem;
-        padding: 0.35rem 0.5rem;
+        padding: 0.25rem 0.4rem;
         margin-bottom: 0;
+        margin-right: 0.35rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
     }
     
     .conversation-modal .selected-members .btn-close {
         font-size: 0.5rem;
         padding: 0;
-        margin-left: 0.25rem;
+        margin-left: 0.1rem;
+        width: 14px;
+        height: 14px;
     }
 }
 
@@ -1202,14 +1208,16 @@
 }
 
 .selected-members {
-    padding: 0.75rem;
-    background: rgba(111, 66, 193, 0.1);
-    border-radius: 0.5rem;
+    padding: 0.5rem 0;
+    background: transparent;
 }
 
 .selected-members .badge {
-    padding: 0.5rem 0.75rem;
+    padding: 0.35rem 0.5rem;
     font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 .selected-members .btn-close {

@@ -46,25 +46,35 @@ window.messageScroller = {
         if (!inputElement || !containerElement) return;
         
         const KEYBOARD_ANIMATION_DELAY = 350; // ms - wait for mobile keyboard animation
+        const KEYBOARD_RESIZE_DELAY = 500; // ms - wait for keyboard resize to complete
         
         // Remove existing listener if any to prevent duplicates
         const existingHandler = this._focusHandlers.get(inputElement);
         if (existingHandler) {
             inputElement.removeEventListener('focus', existingHandler);
             inputElement.removeEventListener('input', existingHandler.inputHandler);
+            if (existingHandler.resizeHandler) {
+                window.removeEventListener('resize', existingHandler.resizeHandler);
+            }
         }
+        
+        // Scroll to bottom helper
+        const scrollToBottom = () => {
+            window.requestAnimationFrame(() => {
+                window.requestAnimationFrame(() => {
+                    containerElement.scrollTop = containerElement.scrollHeight;
+                });
+            });
+        };
         
         // Create and store the handlers
         const focusHandler = () => {
             // On mobile, when keyboard opens, scroll to bottom after a delay
             if (window.innerWidth <= 767) {
-                setTimeout(() => {
-                    window.requestAnimationFrame(() => {
-                        window.requestAnimationFrame(() => {
-                            containerElement.scrollTop = containerElement.scrollHeight;
-                        });
-                    });
-                }, KEYBOARD_ANIMATION_DELAY);
+                // Immediate scroll
+                scrollToBottom();
+                // Delayed scroll to handle keyboard animation
+                setTimeout(scrollToBottom, KEYBOARD_ANIMATION_DELAY);
             }
         };
         
@@ -72,19 +82,25 @@ window.messageScroller = {
         const inputHandler = () => {
             if (window.innerWidth <= 767) {
                 // Small delay to allow textarea to resize first
-                setTimeout(() => {
-                    window.requestAnimationFrame(() => {
-                        containerElement.scrollTop = containerElement.scrollHeight;
-                    });
-                }, 50);
+                setTimeout(scrollToBottom, 50);
             }
         };
         
-        // Store both handlers
+        // Handle viewport resize (keyboard opening/closing) to keep messages visible
+        const resizeHandler = () => {
+            if (window.innerWidth <= 767 && document.activeElement === inputElement) {
+                // Keyboard likely opened or closed - scroll to bottom after delay
+                setTimeout(scrollToBottom, KEYBOARD_RESIZE_DELAY);
+            }
+        };
+        
+        // Store all handlers
         focusHandler.inputHandler = inputHandler;
+        focusHandler.resizeHandler = resizeHandler;
         this._focusHandlers.set(inputElement, focusHandler);
         
         inputElement.addEventListener('focus', focusHandler);
         inputElement.addEventListener('input', inputHandler);
+        window.addEventListener('resize', resizeHandler);
     }
 };

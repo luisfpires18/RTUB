@@ -1644,6 +1644,12 @@
             // JavaScript runtime is disconnected during disposal - expected during navigation
             // No action needed as body scroll will reset on page navigation anyway
         }
+        catch (InvalidOperationException)
+        {
+            // Component is being statically rendered or JS interop not available
+            // This is expected during server-side rendering or disposal
+            // Body scroll will reset on page navigation anyway
+        }
         catch (Exception ex)
         {
             // Log unexpected errors but don't throw during disposal
