@@ -110,13 +110,13 @@ public class ConversationRepository : Repository<Conversation>, IConversationRep
             await UpdateAsync(conversation);
         }
     }
-    
+
     public async Task<Conversation?> GetGroupByTitleAsync(string title)
     {
         return await _dbSet
             .FirstOrDefaultAsync(c => c.IsGroup && c.Title == title && !c.IsArchived);
     }
-    
+
     public async Task<IEnumerable<Conversation>> GetSystemGroupsAsync()
     {
         return await _dbSet

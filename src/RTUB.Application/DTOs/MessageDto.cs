@@ -16,7 +16,7 @@ public class MessageDto
     public DateTime CreatedAt { get; set; }
     public bool IsRead { get; set; }
     public string? Link { get; set; }
-    
+
     /// <summary>
     /// Semicolon-separated list of user IDs who have read this message
     /// Used for group chat read receipts

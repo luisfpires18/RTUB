@@ -10,7 +10,7 @@ namespace RTUB.Integration.Tests.Pages;
 /// </summary>
 public class OwnerPagesTests : IntegrationTestBase
 {
-    
+
     private readonly HttpClient _client;
 
     public OwnerPagesTests(TestWebApplicationFactory factory) : base(factory)

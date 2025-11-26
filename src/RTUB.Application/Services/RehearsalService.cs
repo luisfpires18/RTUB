@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -69,15 +70,21 @@ public class RehearsalService : IRehearsalService
 
         rehearsal.Cancel(reason);
         await _rehearsalRepository.UpdateAsync(rehearsal);
-        
-        // Delete all attendances for this rehearsal
-        var attendances = await _attendanceRepository.GetAttendancesByRehearsalIdAsync(id);
-        foreach (var attendance in attendances)
+
+        // Delete all attendances for this rehearsal using batch operation
+        var attendances = await _attendanceRepository.Query()
+            .Where(a => a.RehearsalId == id)
+            .ToListAsync();
+
+        if (attendances.Any())
         {
-            await _attendanceRepository.DeleteAsync(attendance.Id);
+            foreach (var attendance in attendances)
+            {
+                await _attendanceRepository.DeleteAsync(attendance);
+            }
         }
     }
-    
+
     public async Task UncancelRehearsalAsync(int id)
     {
         var rehearsal = await _rehearsalRepository.GetByIdAsync(id);

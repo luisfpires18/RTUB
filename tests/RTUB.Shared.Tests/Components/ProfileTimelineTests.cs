@@ -130,7 +130,7 @@ public class ProfileTimelineTests : TestContext
             .Add(p => p.User, user));
 
         // Assert
-        cut.Markup.Should().Contain("Nenhuma informação de entrada disponível", 
+        cut.Markup.Should().Contain("Nenhuma informação de entrada disponível",
             "should show no information message when no years are set");
     }
 

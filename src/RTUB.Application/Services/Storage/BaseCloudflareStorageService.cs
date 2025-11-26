@@ -28,7 +28,7 @@ public abstract class BaseCloudflareStorageService<TLogger> : BaseStorageService
         IAmazonS3 s3Client,
         IConfiguration configuration,
         IHostEnvironment hostEnvironment,
-        ILogger<TLogger> logger) 
+        ILogger<TLogger> logger)
         : base(s3Client, GetBucketName(configuration, logger), logger)
     {
         _environment = hostEnvironment.EnvironmentName;

@@ -21,52 +21,41 @@ public class MemberStatisticsService : IMemberStatisticsService
 
     /// <summary>
     /// Gets rehearsal attendance counts per user for attended rehearsals before a specific date
-    /// Extracts the query logic from Leaderboard.razor (lines 456-461)
+    /// Optimized to avoid unnecessary Include - navigation property not needed for aggregation
     /// </summary>
     public async Task<Dictionary<string, int>> GetRehearsalAttendanceCountsByUserAsync(DateTime beforeDate)
     {
-        // Query: Include rehearsal navigation property, filter by attendance and date, group by user
-        // Original query from Leaderboard.razor:
-        // var allRehearsalAttendances = await DbContext.RehearsalAttendances
-        //     .Include(ra => ra.Rehearsal)
-        //     .Where(a => a.Attended && a.Rehearsal!.Date < now)
-        //     .GroupBy(a => a.UserId)
-        //     .Select(g => new { UserId = g.Key, Count = g.Count() })
-        //     .ToDictionaryAsync(x => x.UserId, x => x.Count);
-        
-        var attendanceCounts = await _context.RehearsalAttendances
-            .Include(ra => ra.Rehearsal)
-            .Where(a => a.Attended && a.Rehearsal!.Date < beforeDate)
-            .GroupBy(a => a.UserId)
-            .Select(g => new { UserId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.UserId, x => x.Count);
+        // Optimized query: Use Join instead of Include for better performance
+        // Only fetch the data we need (Date and UserId) without loading entire Rehearsal entities
+        var attendanceCounts = await (
+            from attendance in _context.RehearsalAttendances
+            join rehearsal in _context.Rehearsals on attendance.RehearsalId equals rehearsal.Id
+            where attendance.Attended && rehearsal.Date < beforeDate
+            group attendance by attendance.UserId into g
+            select new { UserId = g.Key, Count = g.Count() }
+        ).ToDictionaryAsync(x => x.UserId, x => x.Count);
 
         return attendanceCounts;
     }
 
     /// <summary>
     /// Gets enrollments with event types for users who attended events before a specific date
-    /// Extracts the query logic from Leaderboard.razor (lines 464-468)
+    /// Optimized to use Join for better performance
     /// </summary>
     public async Task<List<UserEnrollmentWithEventType>> GetEnrollmentsByUserWithEventTypeAsync(DateTime beforeDate)
     {
-        // Query: Include event navigation property, filter by attendance and date, select user and event type
-        // Original query from Leaderboard.razor:
-        // var allEnrollmentsWithTypes = await DbContext.Enrollments
-        //     .Include(e => e.Event)
-        //     .Where(e => e.WillAttend && e.Event != null && e.Event!.Date < now)
-        //     .Select(e => new { e.UserId, EventType = e.Event!.Type })
-        //     .ToListAsync();
-        
-        var enrollmentsWithTypes = await _context.Enrollments
-            .Include(e => e.Event)
-            .Where(e => e.WillAttend && e.Event != null && e.Event!.Date < beforeDate)
-            .Select(e => new UserEnrollmentWithEventType
+        // Optimized query: Use Join instead of Include for better performance
+        // EF Core will optimize this to avoid loading full Event entities
+        var enrollmentsWithTypes = await (
+            from enrollment in _context.Enrollments
+            join evt in _context.Events on enrollment.EventId equals evt.Id
+            where enrollment.WillAttend && evt.Date < beforeDate
+            select new UserEnrollmentWithEventType
             {
-                UserId = e.UserId,
-                EventType = e.Event!.Type
-            })
-            .ToListAsync();
+                UserId = enrollment.UserId,
+                EventType = evt.Type
+            }
+        ).ToListAsync();
 
         return enrollmentsWithTypes;
     }

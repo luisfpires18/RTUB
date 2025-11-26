@@ -59,7 +59,7 @@ public class PostService : IPostService
         }
 
         var createdPost = await _postRepository.AddAsync(post);
-        
+
         // Send push notification to enrolled users
         try
         {
@@ -71,7 +71,7 @@ public class PostService : IPostService
                     .Where(e => e.UserId == authorId)
                     .Select(e => e.User)
                     .FirstOrDefaultAsync();
-                
+
                 if (authorUser != null)
                 {
                     var baseUrl = GetBaseUrl();
@@ -81,13 +81,13 @@ public class PostService : IPostService
                         authorNickname,
                         title,
                         baseUrl);
-                    
+
                     // Get enrolled users (excluding the author)
                     var enrolledUserIds = await _enrollmentRepository.Query()
                         .Where(e => e.EventId == discussion.Event.Id && e.UserId != authorId)
                         .Select(e => e.UserId)
                         .ToListAsync();
-                    
+
                     // Send to each enrolled user
                     foreach (var userId in enrolledUserIds)
                     {
@@ -179,7 +179,7 @@ public class PostService : IPostService
         post.UpdateLastActivity();
         await _postRepository.UpdateAsync(post);
     }
-    
+
     private string GetBaseUrl()
     {
         var request = _httpContextAccessor.HttpContext?.Request;

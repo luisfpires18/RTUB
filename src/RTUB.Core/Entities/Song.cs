@@ -10,33 +10,33 @@ public class Song : BaseEntity
     [Required(ErrorMessage = "O título da música é obrigatório")]
     [MaxLength(200, ErrorMessage = "O título da música não pode exceder 200 caracteres")]
     public string Title { get; set; } = string.Empty;
-    
+
     [Range(1, 999, ErrorMessage = "O número da faixa deve estar entre 1 e 999")]
     public int? TrackNumber { get; set; }
-    
+
     [MaxLength(200, ErrorMessage = "O autor da letra não pode exceder 200 caracteres")]
     public string? LyricAuthor { get; set; }
-    
+
     [MaxLength(200, ErrorMessage = "O autor da música não pode exceder 200 caracteres")]
     public string? MusicAuthor { get; set; }
-    
+
     [MaxLength(200, ErrorMessage = "A adaptação não pode exceder 200 caracteres")]
     public string? Adaptation { get; set; }
-    
+
     [MaxLength(10000, ErrorMessage = "A letra não pode exceder 10000 caracteres")]
     public string? Lyrics { get; set; }
-    
+
     [Range(1, 7200, ErrorMessage = "A duração deve estar entre 1 e 7200 segundos")]
     public int? Duration { get; set; } // Duration in seconds
-    
+
     [MaxLength(500, ErrorMessage = "O URL do Spotify não pode exceder 500 caracteres")]
     public string? SpotifyUrl { get; set; }
-    
+
     public bool HasMusic { get; set; } = false;
-    
+
     [Required(ErrorMessage = "O álbum é obrigatório")]
     public int AlbumId { get; set; }
-    
+
     // Navigation properties
     public virtual Album? Album { get; set; }
     public virtual ICollection<SongYouTubeUrl> YouTubeUrls { get; set; } = new List<SongYouTubeUrl>();

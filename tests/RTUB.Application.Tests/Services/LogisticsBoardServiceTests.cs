@@ -28,7 +28,7 @@ public class LogisticsBoardServiceTests : IClassFixture<DatabaseFixture>, IDispo
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _context = _fixture.CreateContext();
         var boardRepo = new LogisticsBoardRepository(_context);
         var listRepo = new LogisticsListRepository(_context);
@@ -164,7 +164,7 @@ public class LogisticsBoardServiceTests : IClassFixture<DatabaseFixture>, IDispo
         // Arrange
         var board = LogisticsBoard.Create("Test Board", "Description");
         _context.LogisticsBoards.Add(board);
-        
+
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", EventType.Festival);
         _context.Events.Add(eventEntity);
         await _context.SaveChangesAsync();

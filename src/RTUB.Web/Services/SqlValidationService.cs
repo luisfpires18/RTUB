@@ -30,7 +30,7 @@ public class SqlValidationService : ISqlValidationService
     /// </summary>
     private static readonly string[] DangerousKeywords = new[]
     {
-        "INSERT", "UPDATE", "DELETE", "MERGE", "DROP", "ALTER", 
+        "INSERT", "UPDATE", "DELETE", "MERGE", "DROP", "ALTER",
         "TRUNCATE", "EXEC", "EXECUTE", "CREATE", "GRANT", "REVOKE"
     };
 
@@ -57,7 +57,7 @@ public class SqlValidationService : ISqlValidationService
 
         // Normalize the query for checking
         var normalizedQuery = query.Trim();
-        
+
         // Check if query starts with SELECT (case-insensitive)
         if (!normalizedQuery.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
         {

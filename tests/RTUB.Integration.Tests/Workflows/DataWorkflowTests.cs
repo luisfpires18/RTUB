@@ -10,7 +10,7 @@ namespace RTUB.Integration.Tests.Workflows;
 /// </summary>
 public class DataWorkflowTests : IntegrationTestBase
 {
-    
+
     private readonly HttpClient _client;
 
     public DataWorkflowTests(TestWebApplicationFactory factory) : base(factory)
@@ -58,7 +58,7 @@ public class DataWorkflowTests : IntegrationTestBase
             for (int i = 0; i < 3; i++)
             {
                 var response = await _client.GetAsync(url);
-                
+
                 // Assert
                 response.StatusCode.Should().Be(HttpStatusCode.OK);
                 response.Dispose();
@@ -97,7 +97,7 @@ public class DataWorkflowTests : IntegrationTestBase
         // Arrange & Act
         var response1 = await _client.GetAsync(url);
         var content1 = await response1.Content.ReadAsStringAsync();
-        
+
         var response2 = await _client.GetAsync(url);
         var content2 = await response2.Content.ReadAsStringAsync();
 

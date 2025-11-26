@@ -48,7 +48,7 @@ public static partial class SeedData
         }
     }
 
-    private static Instrument CreateInstrument(string category, string name, string? brand, string? serialNumber, 
+    private static Instrument CreateInstrument(string category, string name, string? brand, string? serialNumber,
                                                Core.Enums.InstrumentCondition condition, string? location)
     {
         var instrument = Instrument.Create(category, name, condition);

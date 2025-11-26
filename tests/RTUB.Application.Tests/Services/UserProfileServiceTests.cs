@@ -21,9 +21,9 @@ public class UserProfileServiceTests
         var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        
+
         _mockImageStorageService = new Mock<IImageStorageService>();
-        
+
         _service = new UserProfileService(_mockUserManager.Object, _mockImageStorageService.Object);
     }
 

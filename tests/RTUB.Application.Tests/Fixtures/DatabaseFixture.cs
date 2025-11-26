@@ -86,7 +86,7 @@ public class DatabaseFixture : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        
+
         // Cleanup is handled by InMemoryDatabase disposal
         _disposed = true;
         GC.SuppressFinalize(this);

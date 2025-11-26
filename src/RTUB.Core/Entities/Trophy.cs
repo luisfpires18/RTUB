@@ -10,10 +10,10 @@ public class Trophy : BaseEntity
     [Required]
     [MaxLength(200)]
     public string Name { get; set; } = string.Empty;
-    
+
     [Required]
     public int EventId { get; set; }
-    
+
     // Navigation property
     public virtual Event? Event { get; set; }
 

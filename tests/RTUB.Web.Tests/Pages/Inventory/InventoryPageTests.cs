@@ -134,7 +134,7 @@ public class InventoryPageTests
     {
         // This test documents expected behavior
         var showViewButton = true;
-        
+
         showViewButton.Should().BeTrue("View button should be shown when ShowViewButton is true");
     }
 
@@ -144,7 +144,7 @@ public class InventoryPageTests
         // This test verifies the CSS requirements
         var buttonClass = "btn btn-sm btn-purple";
         var containerClass = "instrument-circle-actions";
-        
+
         buttonClass.Should().NotContain("w-100", "View button should be auto-width, not full width");
         containerClass.Should().Be("instrument-circle-actions", "Container should center the button");
     }
@@ -155,7 +155,7 @@ public class InventoryPageTests
         // This test documents the layout requirements
         var editButtonClass = "instrument-circle-edit-btn";
         var deleteButtonClass = "instrument-circle-delete-btn";
-        
+
         editButtonClass.Should().Contain("edit", "Edit button should have edit class");
         deleteButtonClass.Should().Contain("delete", "Delete button should have delete class");
     }
@@ -169,7 +169,7 @@ public class InventoryPageTests
     {
         // This test documents the authorization requirement
         var requiredRoles = "Admin,Owner";
-        
+
         requiredRoles.Should().Contain("Admin", "Admin should be able to create instruments");
         requiredRoles.Should().Contain("Owner", "Owner should be able to create instruments");
     }
@@ -180,7 +180,7 @@ public class InventoryPageTests
         // This test documents that view is available to all authenticated users
         var isViewPublic = false; // Requires authentication
         var requiresSpecificRole = false; // Any authenticated user
-        
+
         isViewPublic.Should().BeFalse("View requires authentication");
         requiresSpecificRole.Should().BeFalse("View doesn't require specific role");
     }
@@ -194,7 +194,7 @@ public class InventoryPageTests
     {
         // This test ensures LastMaintenanceDate is editable in the form
         var formFields = new[] { "Name", "Category", "Brand", "SerialNumber", "Condition", "Location", "LastMaintenanceDate", "MaintenanceNotes", "Image" };
-        
+
         formFields.Should().Contain("LastMaintenanceDate", "Form should include LastMaintenanceDate field for editing");
     }
 
@@ -203,7 +203,7 @@ public class InventoryPageTests
     {
         // This test documents which fields are required
         var requiredFields = new[] { "Name", "Category", "Condition" };
-        
+
         requiredFields.Should().HaveCount(3, "Form should have exactly 3 required fields");
         requiredFields.Should().Contain("Name", "Name is required");
         requiredFields.Should().Contain("Category", "Category is required");
@@ -219,7 +219,7 @@ public class InventoryPageTests
     {
         // This test documents what should be shown in the details modal
         var detailFields = new[] { "Category", "Brand", "SerialNumber", "Location", "Condition", "LastMaintenanceDate" };
-        
+
         detailFields.Should().Contain("Category", "Details should show category");
         detailFields.Should().Contain("Brand", "Details should show brand");
         detailFields.Should().Contain("SerialNumber", "Details should show serial number");
@@ -234,7 +234,7 @@ public class InventoryPageTests
         // This test documents conditional display of maintenance notes
         var hasMaintenanceNotes = true;
         var shouldShowNotesSection = hasMaintenanceNotes;
-        
+
         shouldShowNotesSection.Should().BeTrue("Maintenance notes section should be shown when notes exist");
     }
 

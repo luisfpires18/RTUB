@@ -15,7 +15,7 @@ public interface IUserProfileService
     Task UpdateProfilePictureAsync(string userId, Stream imageStream, string fileName, string contentType);
     Task UpdateUserInfoAsync(string userId, string firstName, string lastName, string? nickname, DateTime? dateOfBirth, string? phoneContact);
     Task<bool> IsUserActiveAsync(string userId);
-    
+
     // User Role Management methods
     Task<List<string>> GetUserRolesAsync(string userId);
     Task AddUserToRoleAsync(string userId, string roleName);

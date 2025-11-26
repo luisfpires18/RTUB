@@ -10,7 +10,7 @@ namespace RTUB.Integration.Tests.Api;
 /// </summary>
 public class ApiEndpointsTests : IntegrationTestBase
 {
-    
+
     private readonly HttpClient _client;
 
     public ApiEndpointsTests(TestWebApplicationFactory factory) : base(factory)
@@ -67,9 +67,9 @@ public class ApiEndpointsTests : IntegrationTestBase
         var secondResponse = await _client.SendAsync(request);
 
         // Assert
-        secondResponse.StatusCode.Should().Be(HttpStatusCode.NotModified, 
+        secondResponse.StatusCode.Should().Be(HttpStatusCode.NotModified,
             "Server should return 304 when E-Tag matches");
-        secondResponse.Content.Headers.ContentLength.Should().Be(0, 
+        secondResponse.Content.Headers.ContentLength.Should().Be(0,
             "304 response should have no content");
     }
 
@@ -88,7 +88,7 @@ public class ApiEndpointsTests : IntegrationTestBase
         foreach (var url in imageUrls)
         {
             var response = await _client.GetAsync(url);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 response.Headers.ETag.Should().NotBeNull($"E-Tag header should be present for {url}");

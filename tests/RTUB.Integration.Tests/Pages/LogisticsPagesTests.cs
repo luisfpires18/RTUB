@@ -42,7 +42,7 @@ public class LogisticsPagesTests : IntegrationTestBase
 
         // Assert
         response.Should().NotBeNull("Response should not be null");
-        response.StatusCode.Should().NotBe(HttpStatusCode.InternalServerError, 
+        response.StatusCode.Should().NotBe(HttpStatusCode.InternalServerError,
             "Page should not have server errors");
     }
 
@@ -53,7 +53,7 @@ public class LogisticsPagesTests : IntegrationTestBase
         var response = await _client.GetAsync("/logistics");
 
         // Assert
-        response.RequestMessage?.RequestUri?.AbsolutePath.Should().Be("/logistics", 
+        response.RequestMessage?.RequestUri?.AbsolutePath.Should().Be("/logistics",
             "Logistics URL should be lowercase");
     }
 
@@ -86,7 +86,7 @@ public class LogisticsPagesTests : IntegrationTestBase
 
         // Assert
         response.Should().NotBeNull("Response should not be null");
-        response.StatusCode.Should().NotBe(HttpStatusCode.InternalServerError, 
+        response.StatusCode.Should().NotBe(HttpStatusCode.InternalServerError,
             "Page should not have server errors");
     }
 
@@ -159,13 +159,13 @@ public class LogisticsPagesTests : IntegrationTestBase
     public void LogisticsUrls_ValidityChecks(string url, bool shouldBeValidFormat)
     {
         // Arrange & Act
-        var isValid = url == "/logistics" || 
-                     (url.StartsWith("/logistics/") && 
+        var isValid = url == "/logistics" ||
+                     (url.StartsWith("/logistics/") &&
                       url.Length > "/logistics/".Length &&
                       !url.EndsWith("/"));
 
         // Assert
-        isValid.Should().Be(shouldBeValidFormat, 
+        isValid.Should().Be(shouldBeValidFormat,
             $"URL {url} validity should match expected format");
     }
 
@@ -178,7 +178,7 @@ public class LogisticsPagesTests : IntegrationTestBase
     {
         // Arrange
         var expectedMainPageTitle = "Quadros de Logística - RTUB";
-        
+
         // Assert
         expectedMainPageTitle.Should().Contain("Logística", "Title should mention Logistics");
         expectedMainPageTitle.Should().EndWith("RTUB", "Title should end with site name");
@@ -190,7 +190,7 @@ public class LogisticsPagesTests : IntegrationTestBase
         // Arrange
         var boardName = "Test Board";
         var expectedPattern = $"{boardName} - RTUB";
-        
+
         // Assert
         expectedPattern.Should().Contain(boardName, "Title should contain board name");
         expectedPattern.Should().EndWith("RTUB", "Title should end with site name");
@@ -204,8 +204,8 @@ public class LogisticsPagesTests : IntegrationTestBase
     public async Task LogisticsPages_UseAuthorizationMechanism()
     {
         // Arrange
-        var logisticsPages = new[] 
-        { 
+        var logisticsPages = new[]
+        {
             "/logistics",
             "/logistics/1",
             "/logistics/5"

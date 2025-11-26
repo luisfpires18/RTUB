@@ -23,12 +23,26 @@
     public EventCallback OnCountChanged { get; set; }
 
     private int unreadCount = 0;
+    private int _previousUnreadCount = 0;
     private string? currentUserId;
     private System.Threading.Timer? _refreshTimer;
     private DotNetObjectReference<UnreadMessagesBadge>? _dotNetRef;
     
     // Static event to allow cross-component communication
     private static event Action? OnBadgeRefreshRequested;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render if unread count changes
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (unreadCount != _previousUnreadCount)
+        {
+            _previousUnreadCount = unreadCount;
+            return true;
+        }
+        return false;
+    }
     
     protected override async Task OnInitializedAsync()
     {

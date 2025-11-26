@@ -266,7 +266,7 @@ public class PushNotificationFactoryTests
     }
 
     // Rehearsal Notification Tests
-    
+
     [Fact]
     public void CreateRehearsalNotification_ReturnsCorrectNotification()
     {

@@ -10,17 +10,17 @@ public class EventRepertoire : BaseEntity
 {
     [Required(ErrorMessage = "O evento é obrigatório")]
     public int EventId { get; set; }
-    
+
     [Required(ErrorMessage = "A música é obrigatória")]
     public int SongId { get; set; }
-    
+
     [Required(ErrorMessage = "A ordem de exibição é obrigatória")]
     [Range(1, 1000, ErrorMessage = "A ordem de exibição deve estar entre 1 e 1000")]
     public int DisplayOrder { get; set; }
-    
+
     [Required(ErrorMessage = "A data do repertório é obrigatória")]
     public DateTime RepertoireDate { get; set; }
-    
+
     // Navigation properties
     public virtual Event? Event { get; set; }
     public virtual Song? Song { get; set; }
@@ -46,7 +46,7 @@ public class EventRepertoire : BaseEntity
     {
         if (newOrder < 1)
             throw new ArgumentException("Display order must be greater than 0", nameof(newOrder));
-        
+
         DisplayOrder = newOrder;
     }
 }

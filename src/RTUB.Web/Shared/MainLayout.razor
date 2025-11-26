@@ -304,11 +304,35 @@
     private ApplicationUser? currentUser;
     private string? _lastLocation;
     private System.Threading.Timer? _debounceTimer;
-    private bool _isFirstRender = true;
     private AuthenticationState? _cachedAuthState;
     private bool _shouldShowGestaoDropdown;
     private bool _showBeVisibleToAdminOnly;
     private bool _showBeVisibleToModAdminAndTunoOnly;
+    private string? _previousUserNickname;
+    private string? _previousAvatarUrl;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when user data or dropdowns change
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (currentUser == null)
+        {
+            return _previousUserNickname != null; // Render if we had a user before
+        }
+        
+        var currentNickname = currentUser.Nickname;
+        var currentAvatar = currentUser.ProfilePictureSrc;
+        
+        if (currentNickname != _previousUserNickname || currentAvatar != _previousAvatarUrl)
+        {
+            _previousUserNickname = currentNickname;
+            _previousAvatarUrl = currentAvatar;
+            return true;
+        }
+        
+        return false;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -322,14 +346,7 @@
         _lastLocation = NavigationManager.Uri;
     }
 
-    protected override Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            _isFirstRender = false;
-        }
-        return Task.CompletedTask;
-    }
+
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
     {
@@ -355,7 +372,8 @@
                 // Check if it's a hash change only (same path)
                 bool isHashChangeOnly = oldUri.GetLeftPart(UriPartial.Path) == newUri.GetLeftPart(UriPartial.Path);
 
-                // Reload user when navigating away from profile page (avatar may have changed)
+                // OPTIMIZATION: Only reload user when navigating away from profile page (avatar may have changed)
+                // This prevents unnecessary DB queries on every navigation
                 if (_lastLocation.Contains("/profile", StringComparison.OrdinalIgnoreCase) && 
                     !newLocation.Contains("/profile", StringComparison.OrdinalIgnoreCase))
                 {
@@ -364,13 +382,6 @@
                         await LoadCurrentUser();
                         StateHasChanged();
                     });
-                }
-
-                // Only scroll if it's not a hash-only change and not the first render
-                if (!isHashChangeOnly && !_isFirstRender)
-                {
-                    // Fire-and-forget is intentional here; we don't need to wait for scroll completion
-                    // _ = JSRuntime.InvokeVoidAsync("scrollToTop.scrollInstant");
                 }
 
                 _lastLocation = newLocation;

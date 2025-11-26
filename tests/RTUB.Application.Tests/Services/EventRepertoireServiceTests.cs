@@ -34,17 +34,17 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        
+
         // Create mocks for new dependencies
         var mockEventRepository = new Mock<IEventRepository>();
         var mockEnrollmentRepository = new Mock<IEnrollmentRepository>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        
+
         _repertoireService = new EventRepertoireService(
             new EventRepertoireRepository(_context),
             mockEventRepository.Object,
@@ -52,7 +52,7 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockHttpContextAccessor.Object);
-        
+
         _mockImageStorageService = new Mock<IImageStorageService>();
         _eventService = new EventService(new EventRepository(_context), _mockImageStorageService.Object, new EnrollmentRepository(_context));
         _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
@@ -233,7 +233,7 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var song1 = await _songService.CreateSongAsync("Song 1", album.Id);
         var song2 = await _songService.CreateSongAsync("Song 2", album.Id);
         var song3 = await _songService.CreateSongAsync("Song 3", album.Id);
-        
+
         // Add songs in order 1, 2, 3
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song1.Id, 1, _testEventDate);
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song2.Id, 2, _testEventDate);
@@ -347,7 +347,7 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
     {
         // Act - Service silently handles missing items (idempotent operation)
         await _repertoireService.RemoveSongFromRepertoireAsync(999);
-        
+
         // Assert - No exception thrown is the expected behavior
         true.Should().BeTrue();
     }
@@ -757,7 +757,7 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
         var song1 = await _songService.CreateSongAsync("Song 1", album.Id);
         var song2 = await _songService.CreateSongAsync("Song 2", album.Id);
-        
+
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song1.Id, 1, _testEventDate);
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song2.Id, 2, _testEventDate);
 
@@ -777,7 +777,7 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var event1 = await _eventService.CreateEventAsync("Multi Day Event", _testEventDate, "Test Location", EventType.Festival);
         var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
         var song = await _songService.CreateSongAsync("Popular Song", album.Id);
-        
+
         var day1 = _testEventDate;
         var day2 = _testEventDate.AddDays(1);
 
@@ -815,10 +815,10 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
         var song1 = await _songService.CreateSongAsync("Day 1 Song", album.Id);
         var song2 = await _songService.CreateSongAsync("Day 2 Song", album.Id);
-        
+
         var day1 = _testEventDate;
         var day2 = _testEventDate.AddDays(1);
-        
+
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song1.Id, 1, day1);
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song2.Id, 1, day2);
 
@@ -841,10 +841,10 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
         var song1 = await _songService.CreateSongAsync("Day 1 Song", album.Id);
         var song2 = await _songService.CreateSongAsync("Day 2 Song", album.Id);
-        
+
         var day1 = _testEventDate;
         var day2 = _testEventDate.AddDays(1);
-        
+
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song1.Id, 1, day1);
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song2.Id, 1, day2);
 
@@ -866,10 +866,10 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var song1 = await _songService.CreateSongAsync("Day 1 Song 1", album.Id);
         var song2 = await _songService.CreateSongAsync("Day 1 Song 2", album.Id);
         var song3 = await _songService.CreateSongAsync("Day 2 Song", album.Id);
-        
+
         var day1 = _testEventDate;
         var day2 = _testEventDate.AddDays(1);
-        
+
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song1.Id, 1, day1);
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song2.Id, 2, day1);
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song3.Id, 1, day2);
@@ -880,12 +880,12 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         // Assert
         var day1Result = (await _repertoireService.GetRepertoireByEventIdAsync(event1.Id, day1)).ToList();
         var day2Result = (await _repertoireService.GetRepertoireByEventIdAsync(event1.Id, day2)).ToList();
-        
+
         day1Result[0].Song!.Title.Should().Be("Day 1 Song 2");
         day1Result[0].DisplayOrder.Should().Be(1);
         day1Result[1].Song!.Title.Should().Be("Day 1 Song 1");
         day1Result[1].DisplayOrder.Should().Be(2);
-        
+
         // Day 2 should be unchanged
         day2Result[0].Song!.Title.Should().Be("Day 2 Song");
         day2Result[0].DisplayOrder.Should().Be(1);
@@ -899,10 +899,10 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
         var song1 = await _songService.CreateSongAsync("Day 1 Song", album.Id);
         var song2 = await _songService.CreateSongAsync("Day 2 Song", album.Id);
-        
+
         var day1 = _testEventDate;
         var day2 = _testEventDate.AddDays(1);
-        
+
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song1.Id, 1, day1);
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song2.Id, 1, day2);
 
@@ -912,7 +912,7 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         // Assert
         var day1Result = (await _repertoireService.GetRepertoireByEventIdAsync(event1.Id, day1)).ToList();
         var day2Result = (await _repertoireService.GetRepertoireByEventIdAsync(event1.Id, day2)).ToList();
-        
+
         day1Result.Should().BeEmpty();
         day2Result.Should().ContainSingle();
         day2Result[0].Song!.Title.Should().Be("Day 2 Song");
@@ -927,11 +927,11 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var song1 = await _songService.CreateSongAsync("Song 1", album.Id);
         var song2 = await _songService.CreateSongAsync("Song 2", album.Id);
         var song3 = await _songService.CreateSongAsync("Song 3", album.Id);
-        
+
         var day1 = _testEventDate;
         var day2 = _testEventDate.AddDays(1);
         var day3 = _testEventDate.AddDays(2);
-        
+
         // Add multiple songs to same days
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song1.Id, 1, day1);
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song2.Id, 2, day1);
@@ -967,10 +967,10 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var event1 = await _eventService.CreateEventAsync("Multi Day Event", _testEventDate, "Test Location", EventType.Festival);
         var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
         var song = await _songService.CreateSongAsync("Test Song", album.Id);
-        
+
         var day1 = _testEventDate;
         var day2 = _testEventDate.AddDays(1);
-        
+
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song.Id, 1, day1);
 
         // Act & Assert
@@ -987,9 +987,9 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var song1 = await _songService.CreateSongAsync("Song 1", album.Id);
         var song2 = await _songService.CreateSongAsync("Song 2", album.Id);
         var song3 = await _songService.CreateSongAsync("Song 3", album.Id);
-        
+
         var day1 = _testEventDate;
-        
+
         // Add multiple songs to the same day
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song1.Id, 1, day1);
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song2.Id, 2, day1);
@@ -1005,7 +1005,7 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         // Assert - All songs for that day should be removed
         var afterDelete = (await _repertoireService.GetRepertoireByEventIdAsync(event1.Id, day1)).ToList();
         afterDelete.Should().BeEmpty();
-        
+
         // Verify dates list is also empty
         var dates = (await _repertoireService.GetRepertoireDatesAsync(event1.Id)).ToList();
         dates.Should().BeEmpty();
@@ -1022,10 +1022,10 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var song3 = await _songService.CreateSongAsync("Day 1 Song C", album.Id);
         var song4 = await _songService.CreateSongAsync("Day 2 Song A", album.Id);
         var song5 = await _songService.CreateSongAsync("Day 2 Song B", album.Id);
-        
+
         var day1 = _testEventDate;
         var day2 = _testEventDate.AddDays(1);
-        
+
         // Add songs with specific display orders - Day 1 gets 1-3, Day 2 should also get 1-2
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song1.Id, 1, day1);
         await _repertoireService.AddSongToRepertoireAsync(event1.Id, song2.Id, 2, day1);
@@ -1046,23 +1046,23 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         day1Result[1].Song!.Title.Should().Be("Day 1 Song B");
         day1Result[2].DisplayOrder.Should().Be(3);
         day1Result[2].Song!.Title.Should().Be("Day 1 Song C");
-        
+
         // Day 2: 2 songs with DisplayOrder 1, 2 (UI would show them as 1, 2)
         day2Result.Should().HaveCount(2);
         day2Result[0].DisplayOrder.Should().Be(1);
         day2Result[0].Song!.Title.Should().Be("Day 2 Song A");
         day2Result[1].DisplayOrder.Should().Be(2);
         day2Result[1].Song!.Title.Should().Be("Day 2 Song B");
-        
+
         // Verify that when ordered, UI display index calculation works correctly
         // For day 1: orderedItems[0, 1, 2] => displayIndex = i + 1 => [1, 2, 3]
         for (int i = 0; i < day1Result.Count; i++)
         {
             var displayIndex = i + 1;
-            day1Result[i].DisplayOrder.Should().Be(displayIndex, 
+            day1Result[i].DisplayOrder.Should().Be(displayIndex,
                 $"Day 1 song at position {i} should have DisplayOrder {displayIndex}");
         }
-        
+
         // For day 2: orderedItems[0, 1] => displayIndex = i + 1 => [1, 2]
         for (int i = 0; i < day2Result.Count; i++)
         {

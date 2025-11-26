@@ -31,7 +31,7 @@ public class DriveLyricStorageServiceTests
         // Clear environment variables to ensure they don't interfere
         var originalAccessKey = Environment.GetEnvironmentVariable("IDRIVE_ACCESS_KEY");
         var originalSecretKey = Environment.GetEnvironmentVariable("IDRIVE_SECRET_KEY");
-        
+
         try
         {
             Environment.SetEnvironmentVariable("IDRIVE_ACCESS_KEY", null);

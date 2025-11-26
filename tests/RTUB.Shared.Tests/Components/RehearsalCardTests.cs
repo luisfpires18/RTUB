@@ -370,9 +370,9 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.AttendanceCount, 5));
 
         // Assert
-        var buttons = cut.FindAll("button").Where(b => 
+        var buttons = cut.FindAll("button").Where(b =>
             b.ClassList.Contains("btn-outline-primary") || b.ClassList.Contains("btn-outline-secondary")).ToList();
-        
+
         buttons.Should().HaveCount(2, "should have two view buttons");
         buttons.All(b => b.ClassList.Contains("gap-1")).Should().BeTrue("both buttons should have gap-1 class for consistent sizing");
     }
@@ -433,7 +433,7 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.OnEditAttendance, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
-        var editButton = cut.FindAll("button").First(b => 
+        var editButton = cut.FindAll("button").First(b =>
             b.ClassList.Contains("btn-light") && b.InnerHtml.Contains("bi-pencil-fill"));
         editButton.Click();
 
@@ -457,7 +457,7 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.OnRemoveAttendance, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
-        var removeButton = cut.FindAll("button").First(b => 
+        var removeButton = cut.FindAll("button").First(b =>
             b.ClassList.Contains("btn-danger") && b.InnerHtml.Contains("bi-x-circle-fill"));
         removeButton.Click();
 

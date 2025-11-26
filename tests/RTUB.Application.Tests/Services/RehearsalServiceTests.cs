@@ -28,7 +28,7 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _rehearsalService = new RehearsalService(new RehearsalRepository(_context), new RehearsalAttendanceRepository(_context));
@@ -133,7 +133,7 @@ public class RehearsalServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var upcoming2 = Rehearsal.Create(DateTime.Today.AddDays(10), "Future 2");
         var canceled = Rehearsal.Create(DateTime.Today.AddDays(7), "Canceled");
         canceled.Cancel("Test cancellation");
-        
+
         _context.Rehearsals.AddRange(upcoming1, upcoming2, canceled);
         await _context.SaveChangesAsync();
 

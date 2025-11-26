@@ -42,19 +42,19 @@ public class EmailNotificationServiceTests : IDisposable
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>()))
             .ReturnsAsync("Test email body");
-        
+
         _mockTemplateRenderer.Setup(x => x.RenderWelcomeEmailAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test welcome email");
-        
+
         _mockTemplateRenderer.Setup(x => x.RenderEventNotificationAsync(
             It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test event email");
-        
+
         _mockTemplateRenderer.Setup(x => x.RenderEventReminderNotificationAsync(
             It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>(), It.IsAny<List<(string, DateTime)>>()))
             .ReturnsAsync("Test reminder email");
-        
+
         _mockTemplateRenderer.Setup(x => x.RenderEventCancellationNotificationAsync(
             It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test cancellation email");
@@ -62,7 +62,7 @@ public class EmailNotificationServiceTests : IDisposable
         // Setup enrollment service to return empty list by default
         _mockEnrollmentService.Setup(x => x.GetEnrollmentsByEventIdAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<RTUB.Core.Entities.Enrollment>());
-        
+
         // Setup event repertoire service to return empty list by default
         _mockEventRepertoireService.Setup(x => x.GetRepertoireByEventIdAsync(It.IsAny<int>(), It.IsAny<DateTime?>()))
             .ReturnsAsync(new List<RTUB.Core.Entities.EventRepertoire>());
@@ -337,7 +337,7 @@ public class EmailNotificationServiceTests : IDisposable
         result2.success.Should().BeFalse();
         result2.errorMessage.Should().Contain("já enviado recentemente");
     }
-    
+
     [Fact]
     public async Task SendEventReminderNotificationAsync_DoesNotThrow_WhenSmtpNotConfigured()
     {
@@ -369,7 +369,7 @@ public class EmailNotificationServiceTests : IDisposable
         result.count.Should().Be(0);
         result.errorMessage.Should().NotBeNull();
     }
-    
+
     [Fact]
     public async Task SendEventReminderNotificationAsync_ReturnsError_WhenNoRecipients()
     {
@@ -401,7 +401,7 @@ public class EmailNotificationServiceTests : IDisposable
         result.count.Should().Be(0);
         result.errorMessage.Should().Contain("Nenhum destinatário");
     }
-    
+
     [Fact]
     public async Task SendEventReminderNotificationAsync_RateLimits_DuplicateRequests()
     {
@@ -440,7 +440,7 @@ public class EmailNotificationServiceTests : IDisposable
         result2.success.Should().BeFalse();
         result2.errorMessage.Should().Contain("já enviado recentemente");
     }
-    
+
     [Fact]
     public async Task SendUsernameChangedEmailAsync_CompletesSuccessfully_WhenSmtpNotConfigured()
     {
@@ -450,7 +450,7 @@ public class EmailNotificationServiceTests : IDisposable
         var nickname = "Jeans";
         var oldUsername = "joaosilva";
         var newUsername = "jeans";
-        
+
         // Setup template renderer for username changed email
         _mockTemplateRenderer.Setup(x => x.RenderUsernameChangedEmailAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -463,7 +463,7 @@ public class EmailNotificationServiceTests : IDisposable
         // Assert - Should not throw even when SMTP is not configured
         await act.Should().NotThrowAsync();
     }
-    
+
     [Fact]
     public async Task SendUsernameChangedEmailAsync_RateLimits_DuplicateRequests()
     {
@@ -473,12 +473,12 @@ public class EmailNotificationServiceTests : IDisposable
         var nickname = "Jeans";
         var oldUsername = "joaosilva";
         var newUsername = "jeans";
-        
+
         // Setup template renderer for username changed email
         _mockTemplateRenderer.Setup(x => x.RenderUsernameChangedEmailAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync("Test username changed email");
-        
+
         // Setup SMTP configuration
         _mockConfiguration.Setup(x => x["EmailSettings:SmtpServer"]).Returns("smtp.test.com");
         _mockConfiguration.Setup(x => x["EmailSettings:SmtpPassword"]).Returns("test-password");
@@ -486,7 +486,7 @@ public class EmailNotificationServiceTests : IDisposable
 
         // Act - First call
         await _service.SendUsernameChangedEmailAsync(email, fullName, nickname, oldUsername, newUsername);
-        
+
         // Act - Second call immediately after (should be rate limited - no effect visible in tests but cache is used)
         Func<Task> act = async () => await _service.SendUsernameChangedEmailAsync(
             email, fullName, nickname, oldUsername, newUsername);

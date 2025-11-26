@@ -30,14 +30,14 @@ public class RehearsalWorkflowTests : IDisposable
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
-        
+
         // Register required dependencies for ApplicationDbContext
         services.AddScoped<IHttpContextAccessor>(_ => Mock.Of<IHttpContextAccessor>());
         services.AddScoped<AuditContext>();
 
         _serviceProvider = services.BuildServiceProvider();
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
-        
+
         _mockRetirementStatusService = new Mock<IRetirementStatusService>();
 
         _rehearsalService = new RehearsalService(new RehearsalRepository(_context), new RehearsalAttendanceRepository(_context));
@@ -125,7 +125,7 @@ public class RehearsalWorkflowTests : IDisposable
 
         // Act - try to create same date again
         var existingCount = (await _rehearsalService.GetRehearsalsAsync(tuesday, tuesday)).Count();
-        
+
         // Creating duplicate should be prevented at application level
         var duplicate = await _rehearsalService.GetRehearsalByDateAsync(tuesday);
 

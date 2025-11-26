@@ -10,42 +10,42 @@ public class Post : BaseEntity
 {
     [Required]
     public int DiscussionId { get; set; }
-    
+
     [Required]
     public string AuthorId { get; set; } = string.Empty;
-    
+
     [Required]
     [MinLength(3, ErrorMessage = "O título deve ter pelo menos 3 caracteres")]
     [MaxLength(120, ErrorMessage = "O título não pode exceder 120 caracteres")]
     public string Title { get; set; } = string.Empty;
-    
+
     [Required]
     [MinLength(3, ErrorMessage = "O conteúdo deve ter pelo menos 3 caracteres")]
     public string Body { get; set; } = string.Empty;
-    
+
     public DateTime LastActivityAt { get; set; }
-    
+
     public bool IsEdited { get; set; }
-    
+
     public bool IsPinned { get; set; }
-    
+
     public bool IsLocked { get; set; }
-    
+
     public bool IsDeleted { get; set; }
-    
+
     public string? MentionsJson { get; set; }
-    
+
     [Timestamp]
     public byte[]? RowVersion { get; set; }
-    
+
     // Navigation properties
     public virtual Discussion Discussion { get; set; } = null!;
     public virtual ApplicationUser Author { get; set; } = null!;
     public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
-    
+
     // Private constructor for EF Core
     private Post() { }
-    
+
     // Factory method
     public static Post Create(int discussionId, string authorId, string title, string body)
     {
@@ -61,7 +61,7 @@ public class Post : BaseEntity
             throw new ArgumentException("Body is required", nameof(body));
         if (body.Length < 3)
             throw new ArgumentException("Body must be at least 3 characters", nameof(body));
-            
+
         var now = DateTime.UtcNow;
         return new Post
         {
@@ -73,7 +73,7 @@ public class Post : BaseEntity
             CreatedAt = now
         };
     }
-    
+
     public void Edit(string title, string body)
     {
         if (string.IsNullOrWhiteSpace(title))
@@ -84,48 +84,48 @@ public class Post : BaseEntity
             throw new ArgumentException("Body is required", nameof(body));
         if (body.Length < 3)
             throw new ArgumentException("Body must be at least 3 characters", nameof(body));
-            
+
         Title = title;
         Body = body;
         IsEdited = true;
         UpdatedAt = DateTime.UtcNow;
     }
-    
+
     public void Pin()
     {
         IsPinned = true;
         UpdatedAt = DateTime.UtcNow;
     }
-    
+
     public void Unpin()
     {
         IsPinned = false;
         UpdatedAt = DateTime.UtcNow;
     }
-    
+
     public void Lock()
     {
         IsLocked = true;
         UpdatedAt = DateTime.UtcNow;
     }
-    
+
     public void Unlock()
     {
         IsLocked = false;
         UpdatedAt = DateTime.UtcNow;
     }
-    
+
     public void SoftDelete()
     {
         IsDeleted = true;
         UpdatedAt = DateTime.UtcNow;
     }
-    
+
     public void UpdateLastActivity()
     {
         LastActivityAt = DateTime.UtcNow;
     }
-    
+
     public void SetMentions(string? mentionsJson)
     {
         MentionsJson = mentionsJson;

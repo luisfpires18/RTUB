@@ -46,40 +46,40 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
 
         // Setup template renderer to return dummy HTML
         _mockTemplateRenderer.Setup(x => x.RenderEventNotificationAsync(
-            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), 
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((string title, DateTime start, DateTime? end, string loc, string link, 
-                string nick, string full, string desc) => 
+            .ReturnsAsync((string title, DateTime start, DateTime? end, string loc, string link,
+                string nick, string full, string desc) =>
                 $"<html><body>Event: {title} for {nick} ({full})</body></html>");
-        
+
         _mockTemplateRenderer.Setup(x => x.RenderBirthdayNotificationAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((string bdayNick, string bdayFull, string recipNick, string recipFull) => 
+            .ReturnsAsync((string bdayNick, string bdayFull, string recipNick, string recipFull) =>
                 $"<html><body>Birthday: {bdayNick} to {recipNick} ({recipFull})</body></html>");
-        
+
         _mockTemplateRenderer.Setup(x => x.RenderEventCancellationNotificationAsync(
-            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), 
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((string title, DateTime startDate, DateTime? endDate, string loc, string reason, string link, 
-                string nick, string full) => 
+            .ReturnsAsync((string title, DateTime startDate, DateTime? endDate, string loc, string reason, string link,
+                string nick, string full) =>
                 $"<html><body>Cancelled: {title} for {nick} ({full})</body></html>");
-        
+
         _mockTemplateRenderer.Setup(x => x.RenderEventReminderNotificationAsync(
             It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
             It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<(string, string, string, string?, bool)>>(), It.IsAny<List<(string, DateTime)>>()))
             .ReturnsAsync((string title, DateTime start, DateTime? end, string loc, string link,
                 int days, string nick, string full, string desc, List<(string, string, string, string?, bool)> participants, List<(string, DateTime)> repertoire) =>
                 $"<html><body>Reminder: {title} in {days} days for {nick} ({full})</body></html>");
-        
+
         _mockTemplateRenderer.Setup(x => x.RenderAnnouncementEmailAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((string title, string content, string nick, string full) => 
+            .ReturnsAsync((string title, string content, string nick, string full) =>
                 $"<html><body>Announcement: {title} for {nick} ({full})</body></html>");
 
         // Setup enrollment service to return empty list by default
         _mockEnrollmentService.Setup(x => x.GetEnrollmentsByEventIdAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<RTUB.Core.Entities.Enrollment>());
-        
+
         // Setup event repertoire service to return empty list by default
         _mockEventRepertoireService.Setup(x => x.GetRepertoireByEventIdAsync(It.IsAny<int>(), It.IsAny<DateTime?>()))
             .ReturnsAsync(new List<RTUB.Core.Entities.EventRepertoire>());
@@ -106,7 +106,7 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
         var recipientEmails = Enumerable.Range(1, 10)
             .Select(i => $"user{i}@test.com")
             .ToList();
-        
+
         var recipientData = recipientEmails.ToDictionary(
             email => email,
             email => (nickname: $"User{email[4]}", fullName: $"Test User {email[4]}"));
@@ -119,16 +119,16 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
 
         // Act - this should not throw ObjectDisposedException with the fix
         Func<Task> act = async () => await _service.SendEventNotificationAsync(
-            eventId, eventTitle, eventDate, eventLocation, eventLink, 
+            eventId, eventTitle, eventDate, eventLocation, eventLink,
             recipientEmails, recipientData);
 
         // Assert - should complete without ObjectDisposedException
         await act.Should().NotThrowAsync<ObjectDisposedException>();
-        
+
         // Verify template renderer was called for each recipient
         _mockTemplateRenderer.Verify(x => x.RenderEventNotificationAsync(
-            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), 
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), 
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Exactly(10));
     }
 
@@ -139,7 +139,7 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
         var recipientEmails = Enumerable.Range(1, 8)
             .Select(i => $"user{i}@test.com")
             .ToList();
-        
+
         var recipientData = recipientEmails.ToDictionary(
             email => email,
             email => (nickname: $"User{email[4]}", fullName: $"Test User {email[4]}"));
@@ -150,15 +150,15 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
 
         // Act
         Func<Task> act = async () => await _service.SendBirthdayNotificationAsync(
-            birthdayPersonId, birthdayPersonNickname, birthdayPersonFullName, 
+            birthdayPersonId, birthdayPersonNickname, birthdayPersonFullName,
             recipientEmails, recipientData);
 
         // Assert
         await act.Should().NotThrowAsync<ObjectDisposedException>();
-        
+
         // Verify template renderer was called for each recipient
         _mockTemplateRenderer.Verify(x => x.RenderBirthdayNotificationAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), 
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Exactly(8));
     }
 
@@ -169,7 +169,7 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
         var recipientEmails = Enumerable.Range(1, 10)
             .Select(i => $"user{i}@test.com")
             .ToList();
-        
+
         var recipientData = recipientEmails.ToDictionary(
             email => email,
             email => (nickname: $"User{email[4]}", fullName: $"Test User {email[4]}"));
@@ -188,11 +188,11 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
 
         // Assert
         await act.Should().NotThrowAsync<ObjectDisposedException>();
-        
+
         // Verify template renderer was called for each recipient
         _mockTemplateRenderer.Verify(x => x.RenderEventCancellationNotificationAsync(
-            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), 
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), 
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Exactly(10));
     }
 
@@ -203,7 +203,7 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
         var recipientEmails = Enumerable.Range(1, 9)
             .Select(i => $"user{i}@test.com")
             .ToList();
-        
+
         var recipientData = recipientEmails.ToDictionary(
             email => email,
             email => (nickname: $"User{email[4]}", fullName: $"Test User {email[4]}"));
@@ -216,12 +216,12 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
 
         // Act
         Func<Task> act = async () => await _service.SendEventReminderNotificationAsync(
-            eventId, eventTitle, eventDate, eventLocation, eventLink, 
+            eventId, eventTitle, eventDate, eventLocation, eventLink,
             recipientEmails, recipientData);
 
         // Assert
         await act.Should().NotThrowAsync<ObjectDisposedException>();
-        
+
         // Verify template renderer was called for each recipient
         _mockTemplateRenderer.Verify(x => x.RenderEventReminderNotificationAsync(
             It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
@@ -236,7 +236,7 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
         var recipientEmails = Enumerable.Range(1, 10)
             .Select(i => $"user{i}@test.com")
             .ToList();
-        
+
         var recipientData = recipientEmails.ToDictionary(
             email => email,
             email => (nickname: $"User{email[4]}", fullName: $"Test User {email[4]}"));
@@ -250,10 +250,10 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
 
         // Assert
         await act.Should().NotThrowAsync<ObjectDisposedException>();
-        
+
         // Verify template renderer was called for each recipient
         _mockTemplateRenderer.Verify(x => x.RenderAnnouncementEmailAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), 
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Exactly(10));
     }
 
@@ -268,10 +268,10 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
 
         // Make the template renderer throw for user2 only
         _mockTemplateRenderer.Setup(x => x.RenderEventNotificationAsync(
-            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), 
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
             It.IsAny<string>(), "User2", It.IsAny<string>(), It.IsAny<string>()))
             .ThrowsAsync(new InvalidOperationException("Simulated error for user2"));
-        
+
         var eventId = 400;
         var eventTitle = "Test Event";
         var eventDate = DateTime.Now.AddDays(5);
@@ -280,14 +280,14 @@ public class EmailNotificationServiceConcurrencyIntegrationTests : IDisposable
 
         // Act
         var result = await _service.SendEventNotificationAsync(
-            eventId, eventTitle, eventDate, eventLocation, eventLink, 
+            eventId, eventTitle, eventDate, eventLocation, eventLink,
             recipientEmails, recipientData);
 
         // Assert - all recipients should be attempted despite individual failures
         // Verify that all recipients were attempted (template render called for all)
         _mockTemplateRenderer.Verify(x => x.RenderEventNotificationAsync(
-            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(), 
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), 
+            It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime?>(), It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Exactly(3), "All recipients should be attempted even if some fail");
     }
 

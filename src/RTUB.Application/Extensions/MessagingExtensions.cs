@@ -29,7 +29,7 @@ public static class MessagingExtensions
         {
             // Send push notification
             await pushService.SendToUserAsync(userId, notification);
-            
+
             // Send system message
             var body = messageBody ?? $"{notification.Title}\n{notification.Body}";
             await messagingService.SendSystemMessageAsync(userId, body, notification.Url);
@@ -57,9 +57,9 @@ public static class MessagingExtensions
         SendPushNotificationDto notification,
         string? messageBody = null)
     {
-        var tasks = userIds.Select(userId => 
+        var tasks = userIds.Select(userId =>
             SendNotificationWithMessageAsync(pushService, messagingService, userId, notification, messageBody));
-        
+
         await Task.WhenAll(tasks);
     }
 }

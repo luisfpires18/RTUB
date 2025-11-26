@@ -12,7 +12,7 @@ public interface ILeaderboardCommentRepository : IRepository<LeaderboardComment>
     /// Gets comments for a specific user with author and likes
     /// </summary>
     Task<IEnumerable<LeaderboardComment>> GetCommentsForUserAsync(string targetUserId);
-    
+
     /// <summary>
     /// Gets comment by ID with author and likes
     /// </summary>

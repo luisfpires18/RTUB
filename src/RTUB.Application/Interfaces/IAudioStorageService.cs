@@ -13,7 +13,7 @@ public interface IAudioStorageService
     /// <param name="songTitle">The song title</param>
     /// <returns>Pre-signed URL valid for a limited time</returns>
     Task<string?> GetAudioUrlAsync(string albumTitle, int? trackNumber, string songTitle);
-    
+
     /// <summary>
     /// Checks if an audio file exists in storage
     /// </summary>

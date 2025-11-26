@@ -30,12 +30,12 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         tempContext.Dispose();
 
         _context = _fixture.CreateContext();
-        
+
         // Create mock UserManager
         var store = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        
+
         _service = new MemberStatusService(_context, _mockUserManager.Object);
     }
 
@@ -47,7 +47,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var user = CreateTestUser(userId);
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
-        
+
         _mockUserManager.Setup(um => um.FindByIdAsync(userId))
             .ReturnsAsync(user);
 
@@ -71,7 +71,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var user = CreateTestUser(userId);
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
-        
+
         _mockUserManager.Setup(um => um.FindByIdAsync(userId))
             .ReturnsAsync(user);
 
@@ -86,7 +86,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
 
         var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
         attendance1.MarkAttendance(true);
-        
+
         var attendance2 = RehearsalAttendance.Create(rehearsal2.Id, userId);
         attendance2.MarkAttendance(true);
 
@@ -112,7 +112,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var user = CreateTestUser(userId);
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
-        
+
         _mockUserManager.Setup(um => um.FindByIdAsync(userId))
             .ReturnsAsync(user);
 

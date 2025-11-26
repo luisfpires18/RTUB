@@ -744,8 +744,8 @@ public class MeetingCardTests : TestContext
         {
             Id = "test-user-1",
             Nickname = "TestUser",
-            Positions = new List<Position> 
-            { 
+            Positions = new List<Position>
+            {
                 Position.PresidenteMesaAssembleia,
                 Position.Secretario
             }

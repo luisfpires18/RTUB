@@ -13,7 +13,7 @@ public interface IUserProfileRepository : IRepository<ApplicationUser>
     /// Gets user by username
     /// </summary>
     Task<ApplicationUser?> GetByUsernameAsync(string username);
-    
+
     /// <summary>
     /// Gets all users
     /// </summary>

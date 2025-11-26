@@ -134,7 +134,7 @@ public class ReportPdfServiceTests : IDisposable
 
         // Act - Generate first time
         var result1 = _service.GenerateReportPdf(report, activities, allTransactions);
-        
+
         // Act - Generate second time (should use cache)
         var result2 = _service.GenerateReportPdf(report, activities, allTransactions);
 
@@ -204,7 +204,7 @@ public class ReportPdfServiceTests : IDisposable
 
         // Simulate update by modifying the report
         report.UpdateSummary("New summary");
-        
+
         // Act - Generate after update
         var result2 = _service.GenerateReportPdf(report, activities, allTransactions);
 

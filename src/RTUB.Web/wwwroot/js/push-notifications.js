@@ -13,17 +13,24 @@ class PushNotificationsManager {
     /**
      * Initializes the push notifications manager
      * Checks feature status and registers service worker if enabled
+     * OPTIMIZATION: Early return for unsupported browsers to avoid unnecessary checks
      */
     async initialize() {
         try {
-            // Check if push notifications are supported
+            // OPTIMIZATION: Early return if push notifications are not supported
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
                 console.warn('Push notifications are not supported in this browser');
                 return false;
             }
 
-            // Check feature status from the server
-            const status = await this.checkFeatureStatus();
+            // Check feature status from the server with timeout to prevent hanging
+            const status = await Promise.race([
+                this.checkFeatureStatus(),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Feature status check timeout')), 5000)
+                )
+            ]);
+            
             if (!status.isEnabled || !status.isConfigured) {
                 console.log('Push notifications are not enabled or configured');
                 return false;

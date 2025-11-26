@@ -11,25 +11,25 @@ public class Rehearsal : BaseEntity
 {
     [Required(ErrorMessage = "A data é obrigatória")]
     public DateTime Date { get; set; }
-    
+
     [Required(ErrorMessage = "A localização é obrigatória")]
     [MaxLength(200, ErrorMessage = "A localização não pode exceder 200 caracteres")]
     public string Location { get; set; } = "Centro Académico";
-        
+
     [MaxLength(500, ErrorMessage = "O tema não pode exceder 500 caracteres")]
     public string? Theme { get; set; } // e.g., "Fado practice", "Christmas repertoire"
-    
+
     [MaxLength(1000, ErrorMessage = "As notas não podem exceder 1000 caracteres")]
     public string? Notes { get; set; }
-    
+
     public TimeSpan StartTime { get; set; } = new TimeSpan(21, 30, 0);
     public TimeSpan EndTime { get; set; } = new TimeSpan(0, 0, 0); // Midnight
-    
+
     public bool IsCanceled { get; set; } = false;
-    
+
     [MaxLength(1000, ErrorMessage = "O motivo de cancelamento não pode exceder 1000 caracteres")]
     public string? CancellationReason { get; set; }
-    
+
     // Navigation
     public virtual ICollection<RehearsalAttendance> Attendances { get; set; } = new List<RehearsalAttendance>();
 
@@ -65,7 +65,7 @@ public class Rehearsal : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(reason))
             throw new ArgumentException("O motivo de cancelamento é obrigatório", nameof(reason));
-        
+
         IsCanceled = true;
         CancellationReason = reason;
     }
@@ -85,15 +85,15 @@ public class Rehearsal : BaseEntity
     public Dictionary<InstrumentType, int> GetPrimaryInstrumentCounts(Dictionary<string, List<MemberInstrument>> memberInstruments)
     {
         var counts = new Dictionary<InstrumentType, int>();
-        
+
         foreach (var attendance in Attendances.Where(a => a.WillAttend && a.Instrument.HasValue && !string.IsNullOrEmpty(a.UserId)))
         {
             var instrument = attendance.Instrument!.Value;
-            
+
             // Count the selected instrument (what the member is playing)
             counts[instrument] = counts.GetValueOrDefault(instrument) + 1;
         }
-        
+
         return counts;
     }
 
@@ -105,7 +105,7 @@ public class Rehearsal : BaseEntity
     public Dictionary<InstrumentType, int> GetOtherInstrumentCounts(Dictionary<string, List<MemberInstrument>> memberInstruments)
     {
         var counts = new Dictionary<InstrumentType, int>();
-        
+
         foreach (var attendance in Attendances.Where(a => a.WillAttend && !string.IsNullOrEmpty(a.UserId)))
         {
             // Only parse and count instruments from the OtherInstruments field
@@ -113,7 +113,7 @@ public class Rehearsal : BaseEntity
             if (!string.IsNullOrWhiteSpace(attendance.OtherInstruments))
             {
                 var otherInstruments = attendance.OtherInstruments.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                
+
                 foreach (var instrumentName in otherInstruments)
                 {
                     // Convert display name back to enum using InstrumentTypeHelper
@@ -125,7 +125,7 @@ public class Rehearsal : BaseEntity
                 }
             }
         }
-        
+
         return counts;
     }
 }

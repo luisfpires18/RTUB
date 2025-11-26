@@ -83,7 +83,7 @@ public class AuthenticationTests : IntegrationTestBase
 
         // Assert login was successful
         loginResponse.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        
+
         // Get initial LastLoginDate
         DateTime? initialLastLoginDate;
         using (var scope2 = Factory.Services.CreateScope())

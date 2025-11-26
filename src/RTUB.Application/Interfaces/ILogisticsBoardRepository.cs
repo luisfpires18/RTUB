@@ -11,12 +11,12 @@ public interface ILogisticsBoardRepository : IRepository<LogisticsBoard>
     /// Get board with full nested lists and cards
     /// </summary>
     Task<LogisticsBoard?> GetBoardWithListsAndCardsAsync(int id);
-    
+
     /// <summary>
     /// Get board by event ID
     /// </summary>
     Task<LogisticsBoard?> GetBoardByEventIdAsync(int eventId);
-    
+
     /// <summary>
     /// Search boards with optional filter
     /// </summary>

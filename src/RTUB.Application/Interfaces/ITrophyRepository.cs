@@ -12,7 +12,7 @@ public interface ITrophyRepository : IRepository<Trophy>
     /// Gets trophies by event ID
     /// </summary>
     Task<IEnumerable<Trophy>> GetByEventIdAsync(int eventId);
-    
+
     /// <summary>
     /// Gets all trophies with event details
     /// </summary>

@@ -59,7 +59,7 @@ public class UserProfileService : IUserProfileService
 
         // Use username for the profile folder (avoids special characters)
         var profileIdentifier = user.UserName ?? userId;
-        
+
         // Upload new image to Cloudflare R2
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "profile", profileIdentifier);
         user.ImageUrl = imageUrl;
@@ -93,7 +93,7 @@ public class UserProfileService : IUserProfileService
     }
 
     // User Role Management methods
-    
+
     /// <summary>
     /// Gets all roles assigned to a user
     /// </summary>

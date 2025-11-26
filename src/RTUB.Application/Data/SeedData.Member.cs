@@ -401,7 +401,7 @@ public static partial class SeedData
             .Category(MemberCategory.Tuno).YearTuno(2021)
             .CreateAsync();
 
-        var machadi  = await Member(userManager).Nickname("Barbatov").Name("Luis", "Machado")
+        var machadi = await Member(userManager).Nickname("Barbatov").Name("Luis", "Machado")
             .Role("Member").Instrument(InstrumentType.Guitarra)
             .Category(MemberCategory.Tuno).YearTuno(2016)
             .CreateAsync();

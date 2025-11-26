@@ -12,7 +12,7 @@ namespace RTUB.Migrations
         {
             // SQLite requires manual table rebuild for adding self-referential foreign key
             // Using raw SQL to avoid EF Core's automatic PRAGMA generation within transactions
-            
+
             // Step 1: Create new table with MentorId column and foreign key
             migrationBuilder.Sql(@"
                 CREATE TABLE ""AspNetUsers_new"" (
@@ -88,7 +88,7 @@ namespace RTUB.Migrations
         {
             // SQLite requires manual table rebuild for removing self-referential foreign key
             // Using raw SQL to avoid EF Core's automatic PRAGMA generation within transactions
-            
+
             // Step 1: Create new table without MentorId column and foreign key
             migrationBuilder.Sql(@"
                 CREATE TABLE ""AspNetUsers_old"" (

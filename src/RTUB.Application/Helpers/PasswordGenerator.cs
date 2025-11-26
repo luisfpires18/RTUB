@@ -54,14 +54,14 @@ public static class PasswordGenerator
     {
         char[] array = str.ToCharArray();
         int n = array.Length;
-        
+
         for (int i = n - 1; i > 0; i--)
         {
             int j = RandomNumberGenerator.GetInt32(i + 1);
             // Swap
             (array[i], array[j]) = (array[j], array[i]);
         }
-        
+
         return new string(array);
     }
 }

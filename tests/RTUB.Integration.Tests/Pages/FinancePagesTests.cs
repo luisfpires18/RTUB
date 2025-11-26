@@ -11,7 +11,7 @@ namespace RTUB.Integration.Tests.Pages;
 /// </summary>
 public class FinancePagesTests : IntegrationTestBase
 {
-    
+
     private readonly HttpClient _client;
 
     public FinancePagesTests(TestWebApplicationFactory factory) : base(factory)

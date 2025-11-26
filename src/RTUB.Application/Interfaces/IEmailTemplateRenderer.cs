@@ -53,7 +53,7 @@ public interface IEmailTemplateRenderer
         string birthdayPersonFullName,
         string recipientNickname = "",
         string recipientFullName = "");
-    
+
     /// <summary>
     /// Renders the event cancellation notification email
     /// </summary>
@@ -66,7 +66,7 @@ public interface IEmailTemplateRenderer
         string eventLink,
         string nickname = "",
         string fullName = "");
-    
+
     /// <summary>
     /// Renders the event reminder notification email
     /// </summary>
@@ -82,7 +82,7 @@ public interface IEmailTemplateRenderer
         string eventDescription = "",
         List<(string displayName, string category, string instrument, string? notes, bool isLeitao)>? participants = null,
         List<(string title, DateTime repertoireDate)>? repertoireSongs = null);
-    
+
     /// <summary>
     /// Renders the announcement email
     /// </summary>
@@ -91,7 +91,7 @@ public interface IEmailTemplateRenderer
         string content,
         string nickname = "",
         string fullName = "");
-    
+
     /// <summary>
     /// Renders the meeting notification email
     /// </summary>
@@ -106,7 +106,7 @@ public interface IEmailTemplateRenderer
         string? senderPosition = null,
         string nickname = "",
         string fullName = "");
-    
+
     /// <summary>
     /// Renders the meeting cancellation notification email
     /// </summary>
@@ -121,7 +121,7 @@ public interface IEmailTemplateRenderer
         string? senderPosition = null,
         string nickname = "",
         string fullName = "");
-    
+
     /// <summary>
     /// Renders the username changed notification email
     /// </summary>

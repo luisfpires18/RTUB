@@ -58,8 +58,8 @@ public class RehearsalsPageToggleTests
     public void AttendanceRate_Calculation_ShouldBeCorrect(int attendanceCount, int totalRehearsals, double expectedPercentage)
     {
         // Act
-        var actualPercentage = totalRehearsals > 0 
-            ? Math.Round((double)attendanceCount / totalRehearsals * 100, 1) 
+        var actualPercentage = totalRehearsals > 0
+            ? Math.Round((double)attendanceCount / totalRehearsals * 100, 1)
             : 0;
 
         // Assert
@@ -74,8 +74,8 @@ public class RehearsalsPageToggleTests
         var totalRehearsals = 0;
 
         // Act
-        var percentage = totalRehearsals > 0 
-            ? Math.Round((double)attendanceCount / totalRehearsals * 100, 1) 
+        var percentage = totalRehearsals > 0
+            ? Math.Round((double)attendanceCount / totalRehearsals * 100, 1)
             : 0;
 
         // Assert
@@ -110,7 +110,7 @@ public class RehearsalsPageToggleTests
         var startDate = showAll ? today.AddYears(-10) : today.AddMonths(-6);
 
         // Assert
-        startDate.Should().BeCloseTo(expectedStartDate, TimeSpan.FromSeconds(1), 
+        startDate.Should().BeCloseTo(expectedStartDate, TimeSpan.FromSeconds(1),
             "Should load last 6 months when toggle is off");
     }
 
@@ -126,7 +126,7 @@ public class RehearsalsPageToggleTests
         var startDate = showAll ? today.AddYears(-10) : today.AddMonths(-6);
 
         // Assert
-        startDate.Should().BeCloseTo(expectedStartDate, TimeSpan.FromSeconds(1), 
+        startDate.Should().BeCloseTo(expectedStartDate, TimeSpan.FromSeconds(1),
             "Should load last 10 years when toggle is on");
     }
 

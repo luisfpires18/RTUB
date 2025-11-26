@@ -21,23 +21,23 @@ public static class PositionHelper
             Position.Secretario => "Secretário",
             Position.PrimeiroTesoureiro => "Primeiro Tesoureiro",
             Position.SegundoTesoureiro => "Segundo Tesoureiro",
-            
+
             // Mesa da Assembleia
             Position.PresidenteMesaAssembleia => "Presidente da Mesa de Assembleia",
             Position.PrimeiroSecretarioMesaAssembleia => "Primeiro Secretário da Mesa de Assembleia",
             Position.SegundoSecretarioMesaAssembleia => "Segundo Secretário da Mesa de Assembleia",
-            
+
             // Conselho Fiscal
             Position.PresidenteConselhoFiscal => "Presidente do Conselho Fiscal",
             Position.PrimeiroRelatorConselhoFiscal => "Primeiro Relator do Conselho Fiscal",
             Position.SegundoRelatorConselhoFiscal => "Segundo Relator do Conselho Fiscal",
-            
+
             // Conselho de Veteranos
             Position.PresidenteConselhoVeteranos => "Presidente do Conselho de Veteranos",
-            
+
             // Outros Cargos
             Position.Ensaiador => "Ensaiador",
-            
+
             // Fallback - should never happen if all positions are handled
             _ => position.ToString() // Return enum name as last resort
         };

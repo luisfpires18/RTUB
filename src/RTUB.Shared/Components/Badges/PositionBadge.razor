@@ -29,4 +29,21 @@
     /// </summary>
     [Parameter]
     public string AdditionalClasses { get; set; } = "";
+    
+    private Position _previousPosition;
+    private string _previousAdditionalClasses = "";
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when parameters change
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (Position != _previousPosition || AdditionalClasses != _previousAdditionalClasses)
+        {
+            _previousPosition = Position;
+            _previousAdditionalClasses = AdditionalClasses;
+            return true;
+        }
+        return false;
+    }
 }

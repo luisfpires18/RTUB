@@ -20,7 +20,7 @@ public class VersionedAssetTests : TestContext
     public VersionedAssetTests()
     {
         _mockFileVersionProvider = new Mock<IFileVersionProvider>();
-        
+
         // Register mock in DI container
         Services.AddSingleton(_mockFileVersionProvider.Object);
     }
@@ -233,7 +233,7 @@ public class VersionedAssetTests : TestContext
     private static string GetProjectRoot()
     {
         var currentDirectory = Directory.GetCurrentDirectory();
-        
+
         // Navigate up from test output directory to find src folder
         var directory = new DirectoryInfo(currentDirectory);
         while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))

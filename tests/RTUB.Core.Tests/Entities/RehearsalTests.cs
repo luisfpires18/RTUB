@@ -183,26 +183,26 @@ public class RehearsalTests
         var user3 = "user-3";
 
         // Add attendances using direct initialization since rehearsalId is not set
-        rehearsal.Attendances.Add(new RehearsalAttendance 
-        { 
-            RehearsalId = 1, 
-            UserId = user1, 
-            Instrument = RTUB.Core.Enums.InstrumentType.Guitarra, 
-            WillAttend = true 
+        rehearsal.Attendances.Add(new RehearsalAttendance
+        {
+            RehearsalId = 1,
+            UserId = user1,
+            Instrument = RTUB.Core.Enums.InstrumentType.Guitarra,
+            WillAttend = true
         });
-        rehearsal.Attendances.Add(new RehearsalAttendance 
-        { 
-            RehearsalId = 1, 
-            UserId = user2, 
-            Instrument = RTUB.Core.Enums.InstrumentType.Guitarra, 
-            WillAttend = true 
+        rehearsal.Attendances.Add(new RehearsalAttendance
+        {
+            RehearsalId = 1,
+            UserId = user2,
+            Instrument = RTUB.Core.Enums.InstrumentType.Guitarra,
+            WillAttend = true
         });
-        rehearsal.Attendances.Add(new RehearsalAttendance 
-        { 
-            RehearsalId = 1, 
-            UserId = user3, 
-            Instrument = RTUB.Core.Enums.InstrumentType.Bandolim, 
-            WillAttend = true 
+        rehearsal.Attendances.Add(new RehearsalAttendance
+        {
+            RehearsalId = 1,
+            UserId = user3,
+            Instrument = RTUB.Core.Enums.InstrumentType.Bandolim,
+            WillAttend = true
         });
 
         // Setup member instruments
@@ -232,28 +232,28 @@ public class RehearsalTests
         var user2 = "user-2";
 
         // Add attendances - selected instruments should NOT be counted in "other"
-        rehearsal.Attendances.Add(new RehearsalAttendance 
-        { 
-            RehearsalId = 1, 
-            UserId = user1, 
-            Instrument = RTUB.Core.Enums.InstrumentType.Bandolim, 
+        rehearsal.Attendances.Add(new RehearsalAttendance
+        {
+            RehearsalId = 1,
+            UserId = user1,
+            Instrument = RTUB.Core.Enums.InstrumentType.Bandolim,
             OtherInstruments = "Guitarra, Cavaquinho",
-            WillAttend = true 
+            WillAttend = true
         });
-        rehearsal.Attendances.Add(new RehearsalAttendance 
-        { 
-            RehearsalId = 1, 
-            UserId = user2, 
-            Instrument = RTUB.Core.Enums.InstrumentType.Cavaquinho, 
+        rehearsal.Attendances.Add(new RehearsalAttendance
+        {
+            RehearsalId = 1,
+            UserId = user2,
+            Instrument = RTUB.Core.Enums.InstrumentType.Cavaquinho,
             OtherInstruments = "Guitarra",
-            WillAttend = true 
+            WillAttend = true
         });
 
         // Setup member instruments
         var memberInstruments = new Dictionary<string, List<MemberInstrument>>
         {
-            [user1] = new List<MemberInstrument> 
-            { 
+            [user1] = new List<MemberInstrument>
+            {
                 MemberInstrument.Create(user1, RTUB.Core.Enums.InstrumentType.Guitarra, isPrimary: true),
                 MemberInstrument.Create(user1, RTUB.Core.Enums.InstrumentType.Bandolim, isPrimary: false)
             }
@@ -279,23 +279,23 @@ public class RehearsalTests
         var user2 = "user-2";
 
         // user1 is playing Bandolim (primary), has "Guitarra, Cavaquinho" in OtherInstruments
-        rehearsal.Attendances.Add(new RehearsalAttendance 
-        { 
-            RehearsalId = 1, 
-            UserId = user1, 
-            Instrument = RTUB.Core.Enums.InstrumentType.Bandolim, 
+        rehearsal.Attendances.Add(new RehearsalAttendance
+        {
+            RehearsalId = 1,
+            UserId = user1,
+            Instrument = RTUB.Core.Enums.InstrumentType.Bandolim,
             OtherInstruments = "Guitarra, Cavaquinho",
-            WillAttend = true 
+            WillAttend = true
         });
-        
+
         // user2 is playing Guitarra (not primary), has "Acordeão" in OtherInstruments
-        rehearsal.Attendances.Add(new RehearsalAttendance 
-        { 
-            RehearsalId = 1, 
-            UserId = user2, 
-            Instrument = RTUB.Core.Enums.InstrumentType.Guitarra, 
+        rehearsal.Attendances.Add(new RehearsalAttendance
+        {
+            RehearsalId = 1,
+            UserId = user2,
+            Instrument = RTUB.Core.Enums.InstrumentType.Guitarra,
             OtherInstruments = "Acordeão",
-            WillAttend = true 
+            WillAttend = true
         });
 
         // Setup member instruments
@@ -324,13 +324,13 @@ public class RehearsalTests
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Test Location");
         var user1 = "user-1";
 
-        rehearsal.Attendances.Add(new RehearsalAttendance 
-        { 
-            RehearsalId = 1, 
-            UserId = user1, 
-            Instrument = RTUB.Core.Enums.InstrumentType.Guitarra, 
+        rehearsal.Attendances.Add(new RehearsalAttendance
+        {
+            RehearsalId = 1,
+            UserId = user1,
+            Instrument = RTUB.Core.Enums.InstrumentType.Guitarra,
             OtherInstruments = "",
-            WillAttend = true 
+            WillAttend = true
         });
 
         var memberInstruments = new Dictionary<string, List<MemberInstrument>>

@@ -1,22 +1,150 @@
-// Service Worker for Web Push Notifications
-// Handles push events and notification clicks
+// Service Worker for Web Push Notifications and Asset Caching
+// Handles push events, notification clicks, and offline asset caching
 
 // Cache version - increment when updating service worker
-const CACHE_VERSION = 'rtub-v1';
+const CACHE_VERSION = 'rtub-v2';
+const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
+const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
+const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
 
-// Install event - perform any setup needed
+// Assets to cache on install for offline support
+const STATIC_ASSETS = [
+    '/',
+    '/icons/rtub-logo-192.png',
+    '/icons/rtub-logo-512.png',
+    '/images/default-avatar.webp',
+    '/manifest.webmanifest'
+];
+
+// Install event - cache critical static assets
 self.addEventListener('install', (event) => {
     console.log('[Service Worker] Installing...');
-    // Skip waiting to activate immediately
-    self.skipWaiting();
+    event.waitUntil(
+        caches.open(STATIC_CACHE)
+            .then((cache) => {
+                console.log('[Service Worker] Caching static assets');
+                return cache.addAll(STATIC_ASSETS);
+            })
+            .then(() => self.skipWaiting())
+            .catch((error) => {
+                console.error('[Service Worker] Failed to cache static assets:', error);
+                // Skip waiting even if caching fails
+                return self.skipWaiting();
+            })
+    );
 });
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
     console.log('[Service Worker] Activating...');
+    const currentCaches = [STATIC_CACHE, DYNAMIC_CACHE, IMAGE_CACHE];
+    
     event.waitUntil(
-        clients.claim()
+        caches.keys()
+            .then((cacheNames) => {
+                return Promise.all(
+                    cacheNames
+                        .filter((cacheName) => {
+                            // Delete old cache versions - improved maintainability
+                            return cacheName.startsWith('rtub-') && !currentCaches.includes(cacheName);
+                        })
+                        .map((cacheName) => {
+                            console.log('[Service Worker] Deleting old cache:', cacheName);
+                            return caches.delete(cacheName);
+                        })
+                );
+            })
+            .then(() => clients.claim())
     );
+});
+
+// Fetch event - implement caching strategies
+self.addEventListener('fetch', (event) => {
+    const { request } = event;
+    const url = new URL(request.url);
+    
+    // Skip non-GET requests and Blazor SignalR connections
+    if (request.method !== 'GET' || url.pathname.includes('/_blazor')) {
+        return;
+    }
+    
+    // Cache strategy for images: Cache First, Network Fallback
+    if (request.destination === 'image' || url.pathname.match(/\.(jpg|jpeg|png|gif|webp|svg|ico)$/i)) {
+        event.respondWith(
+            caches.match(request)
+                .then((cached) => {
+                    if (cached) {
+                        return cached;
+                    }
+                    return fetch(request)
+                        .then((response) => {
+                            // Only cache successful responses
+                            if (response && response.status === 200) {
+                                const responseClone = response.clone();
+                                caches.open(IMAGE_CACHE).then((cache) => {
+                                    cache.put(request, responseClone);
+                                });
+                            }
+                            return response;
+                        });
+                })
+                .catch(() => {
+                    // Return default avatar if offline
+                    if (url.pathname.includes('avatar') || url.pathname.includes('profile')) {
+                        return caches.match('/images/default-avatar.webp');
+                    }
+                })
+        );
+        return;
+    }
+    
+    // Cache strategy for static assets (CSS, JS): Stale While Revalidate
+    if (request.destination === 'style' || request.destination === 'script' ||
+        url.pathname.match(/\.(css|js)$/i)) {
+        event.respondWith(
+            caches.open(DYNAMIC_CACHE)
+                .then((cache) => {
+                    return cache.match(request)
+                        .then((cached) => {
+                            const fetchPromise = fetch(request)
+                                .then((response) => {
+                                    if (response && response.status === 200) {
+                                        cache.put(request, response.clone());
+                                    }
+                                    return response;
+                                })
+                                .catch(() => cached); // Fallback to cache on error
+                            
+                            return cached || fetchPromise;
+                        });
+                })
+        );
+        return;
+    }
+    
+    // Default: Network First, Cache Fallback for HTML pages
+    if (request.destination === 'document' || url.pathname === '/' || 
+        !url.pathname.includes('.')) {
+        event.respondWith(
+            fetch(request)
+                .then((response) => {
+                    if (response && response.status === 200) {
+                        const responseClone = response.clone();
+                        caches.open(DYNAMIC_CACHE).then((cache) => {
+                            cache.put(request, responseClone);
+                        });
+                    }
+                    return response;
+                })
+                .catch(() => {
+                    return caches.match(request)
+                        .then((cached) => {
+                            return cached || caches.match('/');
+                        });
+                })
+        );
+        return;
+    }
 });
 
 // Push event - handle incoming push notifications

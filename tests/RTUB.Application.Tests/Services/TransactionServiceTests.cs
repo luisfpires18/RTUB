@@ -29,7 +29,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _service = new TransactionService(new TransactionRepository(_context));
@@ -212,7 +212,7 @@ public class TransactionServiceTests : IClassFixture<DatabaseFixture>, IDisposab
         // Arrange
         var transaction = await _service.CreateTransactionAsync(
             DateTime.Now, "Original", "Cat1", 100m, "Income");
-        
+
         var newDate = DateTime.Now.AddDays(1);
         var newDescription = "Updated";
         var newCategory = "Cat2";

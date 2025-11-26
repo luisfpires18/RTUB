@@ -23,7 +23,7 @@ public class NominatimGeocodingServiceTests
     public NominatimGeocodingServiceTests()
     {
         _mockLogger = new Mock<ILogger<NominatimGeocodingService>>();
-        
+
         // Setup HttpClientFactory
         var services = new ServiceCollection();
         services.AddHttpClient("Nominatim")
@@ -31,15 +31,15 @@ public class NominatimGeocodingServiceTests
             {
                 client.Timeout = TimeSpan.FromSeconds(30);
             });
-        
+
         // Add required dependencies for ApplicationDbContext
         services.AddSingleton<Microsoft.AspNetCore.Http.IHttpContextAccessor>(new Mock<Microsoft.AspNetCore.Http.IHttpContextAccessor>().Object);
         services.AddScoped<RTUB.Application.Services.AuditContext>();
-        
+
         // Setup in-memory database for testing (scoped)
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase("TestGeocodingDb_" + Guid.NewGuid()));
-        
+
         _serviceProvider = services.BuildServiceProvider();
         _httpClientFactory = _serviceProvider.GetRequiredService<IHttpClientFactory>();
     }
@@ -54,7 +54,7 @@ public class NominatimGeocodingServiceTests
                 { "Geocoding:DisabledInTests", "true" }
             })
             .Build();
-        
+
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, dbContext, config);
@@ -79,7 +79,7 @@ public class NominatimGeocodingServiceTests
                 { "Geocoding:DisabledInTests", "false" }
             })
             .Build();
-        
+
         // Pre-populate cache
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -93,7 +93,7 @@ public class NominatimGeocodingServiceTests
             Source = "Test"
         });
         await dbContext.SaveChangesAsync();
-        
+
         var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, dbContext, config);
 
         // Act
@@ -166,7 +166,7 @@ public class NominatimGeocodingServiceTests
                 { "Geocoding:DisabledInTests", "false" }
             })
             .Build();
-        
+
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, dbContext, config);
@@ -190,7 +190,7 @@ public class NominatimGeocodingServiceTests
                 { "Geocoding:DisabledInTests", "false" }
             })
             .Build();
-        
+
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, dbContext, config);
@@ -214,7 +214,7 @@ public class NominatimGeocodingServiceTests
                 { "Geocoding:DisabledInTests", "false" }
             })
             .Build();
-        
+
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var service = new NominatimGeocodingService(_httpClientFactory, _mockLogger.Object, dbContext, config);
@@ -230,7 +230,7 @@ public class NominatimGeocodingServiceTests
         // Verify it was stored in cache
         var cached = await dbContext.GeocodingCaches
             .FirstOrDefaultAsync(g => g.CityName == "bragança" && g.CountryCode == "PT");
-        
+
         cached.Should().NotBeNull();
         cached!.Latitude.Should().Be(41.80582);
         cached.Longitude.Should().Be(-6.75719);

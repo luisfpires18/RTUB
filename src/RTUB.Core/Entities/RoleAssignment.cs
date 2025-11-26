@@ -13,7 +13,7 @@ public class RoleAssignment : BaseEntity
     public int StartYear { get; set; }
     public int EndYear { get; set; }
     public string? Notes { get; set; }
-    
+
     // Navigation property
     public virtual ApplicationUser? User { get; set; }
 
@@ -24,7 +24,7 @@ public class RoleAssignment : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID cannot be empty", nameof(userId));
-        
+
         if (startYear >= endYear)
             throw new ArgumentException("End year must be after start year");
 
@@ -54,7 +54,7 @@ public class RoleAssignment : BaseEntity
     {
         return $"{StartYear}-{EndYear}";
     }
-    
+
     // Property alias for backward compatibility
     public string FiscalYear => GetFiscalYear();
 }

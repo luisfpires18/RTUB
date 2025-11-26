@@ -9,12 +9,12 @@ public class EmailSendProgress
     /// Total number of emails to be sent
     /// </summary>
     public int Total { get; set; }
-    
+
     /// <summary>
     /// Number of emails successfully sent so far
     /// </summary>
     public int Sent { get; set; }
-    
+
     /// <summary>
     /// Email address of the last recipient to receive an email
     /// </summary>

@@ -25,7 +25,7 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
     {
         using var scope = Factory.Services.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        
+
         var existingUser = await userManager.FindByIdAsync(TestUserId);
         if (existingUser != null)
         {
@@ -73,10 +73,10 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.IRehearsalAttendanceService>();
             await attendanceService.MarkAttendanceAsync(
-                rehearsal.Id, 
-                TestUserId, 
-                willAttend: true, 
-                instrument: InstrumentType.Guitarra, 
+                rehearsal.Id,
+                TestUserId,
+                willAttend: true,
+                instrument: InstrumentType.Guitarra,
                 notes: notes);
         }
 
@@ -116,10 +116,10 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.IRehearsalAttendanceService>();
             var attendance = await attendanceService.MarkAttendanceAsync(
-                rehearsal.Id, 
-                TestUserId, 
-                willAttend: true, 
-                instrument: InstrumentType.Baixo, 
+                rehearsal.Id,
+                TestUserId,
+                willAttend: true,
+                instrument: InstrumentType.Baixo,
                 notes: initialNotes);
             attendanceId = attendance.Id;
         }
@@ -129,10 +129,10 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.IRehearsalAttendanceService>();
             await attendanceService.MarkAttendanceAsync(
-                rehearsal.Id, 
-                TestUserId, 
-                willAttend: true, 
-                instrument: InstrumentType.Baixo, 
+                rehearsal.Id,
+                TestUserId,
+                willAttend: true,
+                instrument: InstrumentType.Baixo,
                 notes: updatedNotes);
         }
 
@@ -170,10 +170,10 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.IRehearsalAttendanceService>();
             await attendanceService.MarkAttendanceAsync(
-                rehearsal.Id, 
-                TestUserId, 
-                willAttend: true, 
-                instrument: InstrumentType.Bandolim, 
+                rehearsal.Id,
+                TestUserId,
+                willAttend: true,
+                instrument: InstrumentType.Bandolim,
                 notes: initialNotes);
         }
 
@@ -182,10 +182,10 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.IRehearsalAttendanceService>();
             await attendanceService.MarkAttendanceAsync(
-                rehearsal.Id, 
-                TestUserId, 
-                willAttend: true, 
-                instrument: InstrumentType.Bandolim, 
+                rehearsal.Id,
+                TestUserId,
+                willAttend: true,
+                instrument: InstrumentType.Bandolim,
                 notes: null);
         }
 
@@ -222,10 +222,10 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.IRehearsalAttendanceService>();
             await attendanceService.MarkAttendanceAsync(
-                rehearsal.Id, 
-                TestUserId, 
-                willAttend: false, 
-                instrument: null, 
+                rehearsal.Id,
+                TestUserId,
+                willAttend: false,
+                instrument: null,
                 notes: notes);
         }
 
@@ -236,10 +236,10 @@ public class RehearsalAttendanceWorkflowTests : IntegrationTestBase
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<RTUB.Application.Interfaces.IRehearsalAttendanceService>();
             await attendanceService.MarkAttendanceAsync(
-                rehearsal.Id, 
-                TestUserId, 
-                willAttend: true, 
-                instrument: InstrumentType.Cavaquinho, 
+                rehearsal.Id,
+                TestUserId,
+                willAttend: true,
+                instrument: InstrumentType.Cavaquinho,
                 notes: updatedNotes);
         }
 

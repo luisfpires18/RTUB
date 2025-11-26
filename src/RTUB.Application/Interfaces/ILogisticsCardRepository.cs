@@ -11,12 +11,12 @@ public interface ILogisticsCardRepository : IRepository<LogisticsCard>
     /// Get all cards for a list
     /// </summary>
     Task<IEnumerable<LogisticsCard>> GetCardsByListIdAsync(int listId);
-    
+
     /// <summary>
     /// Get cards assigned to a user
     /// </summary>
     Task<IEnumerable<LogisticsCard>> GetCardsByUserIdAsync(string userId);
-    
+
     /// <summary>
     /// Search cards across all boards
     /// </summary>

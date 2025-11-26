@@ -9,17 +9,17 @@ public class LeaderboardCommentLike : BaseEntity
 {
     [Required]
     public int CommentId { get; set; }
-    
+
     [Required]
     public string UserId { get; set; } = string.Empty;
-    
+
     // Navigation properties
     public virtual LeaderboardComment Comment { get; set; } = null!;
     public virtual ApplicationUser User { get; set; } = null!;
-    
+
     // Private constructor for EF Core
     private LeaderboardCommentLike() { }
-    
+
     // Factory method
     public static LeaderboardCommentLike Create(int commentId, string userId)
     {
@@ -27,7 +27,7 @@ public class LeaderboardCommentLike : BaseEntity
             throw new ArgumentException("Comment ID must be positive", nameof(commentId));
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID is required", nameof(userId));
-            
+
         return new LeaderboardCommentLike
         {
             CommentId = commentId,

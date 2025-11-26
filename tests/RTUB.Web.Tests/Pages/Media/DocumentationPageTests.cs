@@ -27,13 +27,13 @@ public class DocumentationPageTests
     {
         // Arrange
         var allDocuments = GenerateDocuments(totalDocs);
-        
+
         // Act
         var skip = (page - 1) * pageSize;
         var paginatedDocs = allDocuments.Skip(skip).Take(pageSize).ToList();
-        
+
         // Assert
-        paginatedDocs.Count.Should().Be(expectedCount, 
+        paginatedDocs.Count.Should().Be(expectedCount,
             $"Page {page} with page size {pageSize} should show {expectedCount} documents out of {totalDocs} total");
     }
 
@@ -44,11 +44,11 @@ public class DocumentationPageTests
         var documents = GenerateDocuments(10);
         var pageSize = 3;
         var currentPage = 1;
-        
+
         // Act
         var skip = (currentPage - 1) * pageSize;
         var paginatedDocs = documents.Skip(skip).Take(pageSize).ToList();
-        
+
         // Assert
         paginatedDocs.Should().HaveCount(3);
         paginatedDocs[0].FileName.Should().Be("document-1.pdf");
@@ -63,11 +63,11 @@ public class DocumentationPageTests
         var documents = GenerateDocuments(10);
         var pageSize = 3;
         var currentPage = 4; // Last page
-        
+
         // Act
         var skip = (currentPage - 1) * pageSize;
         var paginatedDocs = documents.Skip(skip).Take(pageSize).ToList();
-        
+
         // Assert
         paginatedDocs.Should().HaveCount(1);
         paginatedDocs[0].FileName.Should().Be("document-10.pdf");
@@ -80,11 +80,11 @@ public class DocumentationPageTests
         var documents = new List<DocumentMetadata>();
         var pageSize = 3;
         var currentPage = 1;
-        
+
         // Act
         var skip = (currentPage - 1) * pageSize;
         var paginatedDocs = documents.Skip(skip).Take(pageSize).ToList();
-        
+
         // Assert
         paginatedDocs.Should().BeEmpty();
     }
@@ -101,7 +101,7 @@ public class DocumentationPageTests
     {
         // Arrange & Act
         var folderPath = $"docs/{environment}/{folderName}";
-        
+
         // Assert
         folderPath.Should().Be(expectedPath);
     }
@@ -118,7 +118,7 @@ public class DocumentationPageTests
             "Q1-Reports",
             "Team-Alpha"
         };
-        
+
         // Act & Assert
         foreach (var folderName in validFolderNames)
         {
@@ -139,7 +139,7 @@ public class DocumentationPageTests
             "Q1#Reports",
             "Team.Alpha"
         };
-        
+
         // Act & Assert
         foreach (var folderName in invalidFolderNames)
         {
@@ -173,10 +173,10 @@ public class DocumentationPageTests
             SizeBytes = 1024,
             LastModified = DateTime.UtcNow
         };
-        
+
         // Act
         var icon = GetFileIconHelper(document.Extension.ToLowerInvariant());
-        
+
         // Assert
         icon.Should().Be(expectedIcon, $"Extension {extension} should map to icon {expectedIcon}");
     }
@@ -186,10 +186,10 @@ public class DocumentationPageTests
     {
         // Arrange
         var extension = ".unknown";
-        
+
         // Act
         var icon = GetFileIconHelper(extension);
-        
+
         // Assert
         icon.Should().Be("bi-file-earmark", "Unknown extensions should return default file icon");
     }
@@ -204,7 +204,7 @@ public class DocumentationPageTests
     {
         // Arrange & Act
         var formattedSize = FormatFileSizeHelper(bytes);
-        
+
         // Assert
         formattedSize.Should().Be(expectedFormat);
     }

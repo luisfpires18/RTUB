@@ -31,7 +31,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _songRepository = new SongRepository(_context);
@@ -260,7 +260,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Act
         await _songService.AddYouTubeUrlAsync(song.Id, youtubeUrl);
-        
+
         // Simulate page refresh by fetching song again from database
         var reloaded = await _songService.GetSongByIdAsync(song.Id);
 
@@ -392,7 +392,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         var deleted = await _songService.GetSongByIdAsync(song.Id);
         deleted.Should().BeNull();
-        
+
         // Verify YouTube URLs are also deleted
         var orphanedUrls = await _context.SongYouTubeUrls
             .Where(u => u.SongId == song.Id)

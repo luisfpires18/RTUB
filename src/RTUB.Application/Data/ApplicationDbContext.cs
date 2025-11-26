@@ -48,43 +48,43 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<RoleAssignment> RoleAssignments { get; set; }
     public DbSet<Rehearsal> Rehearsals { get; set; }
     public DbSet<RehearsalAttendance> RehearsalAttendances { get; set; }
-    
+
     // Inventory & Shop DbSets
     public DbSet<Instrument> Instruments { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<ProductReservation> ProductReservations { get; set; }
     public DbSet<Trophy> Trophies { get; set; }
-    
+
     // Logistics Board DbSets
     public DbSet<LogisticsBoard> LogisticsBoards { get; set; }
     public DbSet<LogisticsList> LogisticsLists { get; set; }
     public DbSet<LogisticsCard> LogisticsCards { get; set; }
-    
+
     // Audit Log DbSet
     public DbSet<AuditLog> AuditLogs { get; set; }
-    
+
     // Discussion DbSets
     public DbSet<Discussion> Discussions { get; set; }
     public DbSet<Post> Posts { get; set; }
     public DbSet<Comment> Comments { get; set; }
-    
+
     // Meeting DbSet
     public DbSet<Meeting> Meetings { get; set; }
     public DbSet<MeetingRequest> MeetingRequests { get; set; }
-    
+
     // Leaderboard Comments DbSets
     public DbSet<LeaderboardComment> LeaderboardComments { get; set; }
     public DbSet<LeaderboardCommentLike> LeaderboardCommentLikes { get; set; }
-    
+
     // Member Instruments DbSet
     public DbSet<MemberInstrument> MemberInstruments { get; set; }
-    
+
     // Geocoding Cache DbSet
     public DbSet<GeocodingCache> GeocodingCaches { get; set; }
-    
+
     // Push Notifications DbSet
     public DbSet<PushSubscription> PushSubscriptions { get; set; }
-    
+
     // Messaging DbSets
     public DbSet<Conversation> Conversations { get; set; }
     public DbSet<Message> Messages { get; set; }
@@ -131,7 +131,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     {
                         entry.Entity.CreatedBy = username;
                     }
-                    
+
                     // Create audit log for new entity
                     auditEntries.Add(CreateAuditLog(entry, "Created", username, userId));
                     break;
@@ -142,14 +142,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     {
                         entry.Entity.UpdatedBy = username;
                     }
-                    
+
                     // Check if this is a soft delete (DeletedAt field changed from null to a value)
                     var deletedAtProperty = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "DeletedAt");
-                    var isSoftDelete = deletedAtProperty != null 
-                        && deletedAtProperty.IsModified 
-                        && deletedAtProperty.OriginalValue == null 
+                    var isSoftDelete = deletedAtProperty != null
+                        && deletedAtProperty.IsModified
+                        && deletedAtProperty.OriginalValue == null
                         && deletedAtProperty.CurrentValue != null;
-                    
+
                     // Create audit log - use "Deleted" action for soft deletes, "Modified" otherwise
                     var action = isSoftDelete ? "Deleted" : "Modified";
                     auditEntries.Add(CreateAuditLog(entry, action, username, userId));
@@ -181,17 +181,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Track role changes (critical action)
         // Collect IDs during change tracking, then resolve names asynchronously after save
         var pendingRoleAudits = new List<(string Action, string TargetUserId, string RoleId, string? CachedUsername, string? CachedRoleName)>();
-        
+
         foreach (var entry in ChangeTracker.Entries<IdentityUserRole<string>>())
         {
             if (entry.State == EntityState.Added || entry.State == EntityState.Deleted)
             {
                 var action = entry.State == EntityState.Added ? "Role Added" : "Role Removed";
-                
+
                 // Try to resolve from Local cache only (no database queries)
                 var targetUser = Users.Local.FirstOrDefault(u => u.Id == entry.Entity.UserId);
                 var role = Roles.Local.FirstOrDefault(r => r.Id == entry.Entity.RoleId);
-                
+
                 // Store IDs and any cached values for async resolution after save
                 pendingRoleAudits.Add((
                     action,
@@ -214,37 +214,37 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .Select(p => p.TargetUserId)
                 .Distinct()
                 .ToList();
-            
+
             var roleIdsToResolve = pendingRoleAudits
                 .Where(p => p.CachedRoleName == null)
                 .Select(p => p.RoleId)
                 .Distinct()
                 .ToList();
-            
+
             // Asynchronously fetch missing users and roles in batch
             var resolvedUsers = userIdsToResolve.Any()
                 ? await Users.Where(u => userIdsToResolve.Contains(u.Id))
                     .Select(u => new { u.Id, u.UserName })
                     .ToDictionaryAsync(u => u.Id, u => u.UserName, cancellationToken)
                 : new Dictionary<string, string?>();
-            
+
             var resolvedRoles = roleIdsToResolve.Any()
                 ? await Roles.Where(r => roleIdsToResolve.Contains(r.Id))
                     .Select(r => new { r.Id, r.Name })
                     .ToDictionaryAsync(r => r.Id, r => r.Name, cancellationToken)
                 : new Dictionary<string, string?>();
-            
+
             // Create audit logs with resolved names
             foreach (var pending in pendingRoleAudits)
             {
                 var targetUsername = pending.CachedUsername
                     ?? (resolvedUsers.TryGetValue(pending.TargetUserId, out var resolvedUser) ? resolvedUser : null)
                     ?? pending.TargetUserId;
-                
+
                 var roleName = pending.CachedRoleName
                     ?? (resolvedRoles.TryGetValue(pending.RoleId, out var resolvedRole) ? resolvedRole : null)
                     ?? pending.RoleId;
-                
+
                 auditEntries.Add(new AuditLog
                 {
                     EntityType = "UserRole",
@@ -290,11 +290,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         var changes = new Dictionary<string, object?>();
 
         // Fields to exclude from logging (metadata fields)
-        var excludedFields = new HashSet<string> 
-        { 
-            "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "Id" 
+        var excludedFields = new HashSet<string>
+        {
+            "CreatedAt", "CreatedBy", "UpdatedAt", "UpdatedBy", "Id"
         };
-        
+
         // For soft deletes (action = "Deleted" but state = Modified), also exclude DeletedAt field
         if (action == "Deleted" && entry.State == EntityState.Modified)
         {
@@ -310,18 +310,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 {
                     var oldValue = property.OriginalValue;
                     var newValue = property.CurrentValue;
-                    
+
                     // Only include if values are actually different
                     if (!AreValuesEqual(oldValue, newValue))
                     {
                         // Handle all binary data generically (not just large ones)
                         if (newValue is byte[] newBytes)
                         {
-                            var oldDescription = oldValue is byte[] oldBytes && oldBytes.Length > 0 
-                                ? GetBinaryDataDescription(property.Metadata.Name, oldBytes.Length) 
+                            var oldDescription = oldValue is byte[] oldBytes && oldBytes.Length > 0
+                                ? GetBinaryDataDescription(property.Metadata.Name, oldBytes.Length)
                                 : null;
                             var newDescription = GetBinaryDataDescription(property.Metadata.Name, newBytes.Length);
-                            
+
                             changes[property.Metadata.Name] = new
                             {
                                 Old = oldDescription,
@@ -365,13 +365,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 if (!excludedFields.Contains(property.Metadata.Name))
                 {
                     var value = property.CurrentValue;
-                    
+
                     // Skip empty strings and null values
                     if (value != null)
                     {
                         if (value is string str && string.IsNullOrWhiteSpace(str))
                             continue;
-                        
+
                         // Truncate binary data with descriptive message
                         if (value is byte[] bytes && bytes.Length > 0)
                         {
@@ -391,16 +391,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         var isCritical = IsCriticalAction(entityType, action);
         var displayName = GetEntityDisplayName(entry);
-        
+
         // Determine target member for Enrollment and RehearsalAttendance
         string? targetMemberId = null;
         string? targetMemberName = null;
-        
+
         if (entityType == "Enrollment" && entry.Entity is Enrollment enrollment)
         {
             targetMemberId = enrollment.UserId;
             // Try to get the user's name from navigation property or Local cache
-            var targetUser = enrollment.User 
+            var targetUser = enrollment.User
                 ?? Users.Local.FirstOrDefault(u => u.Id == enrollment.UserId);
             targetMemberName = targetUser?.Nickname ?? targetUser?.UserName;
         }
@@ -408,7 +408,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             targetMemberId = attendance.UserId;
             // Try to get the user's name from navigation property or Local cache
-            var targetUser = attendance.User 
+            var targetUser = attendance.User
                 ?? Users.Local.FirstOrDefault(u => u.Id == attendance.UserId);
             targetMemberName = targetUser?.Nickname ?? targetUser?.UserName;
         }
@@ -458,7 +458,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 continue;
 
             var changeValue = changes[fieldName];
-            
+
             if (action == "Modified")
             {
                 // For modified entities, changeValue is an object with Old and New properties
@@ -466,10 +466,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 {
                     var oldUserId = jsonElement.GetProperty("Old").GetString();
                     var newUserId = jsonElement.GetProperty("New").GetString();
-                    
+
                     var oldNickname = ResolveUserIdToNickname(oldUserId);
                     var newNickname = ResolveUserIdToNickname(newUserId);
-                    
+
                     changes[fieldName] = new
                     {
                         Old = oldNickname ?? oldUserId,
@@ -483,15 +483,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     {
                         var oldProp = changeValue?.GetType().GetProperty("Old");
                         var newProp = changeValue?.GetType().GetProperty("New");
-                        
+
                         if (oldProp != null && newProp != null)
                         {
                             var oldUserId = oldProp.GetValue(changeValue)?.ToString();
                             var newUserId = newProp.GetValue(changeValue)?.ToString();
-                            
+
                             var oldNickname = ResolveUserIdToNickname(oldUserId);
                             var newNickname = ResolveUserIdToNickname(newUserId);
-                            
+
                             changes[fieldName] = new
                             {
                                 Old = oldNickname ?? oldUserId,
@@ -532,7 +532,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         // Provide user-friendly descriptions for common binary field types
         var lowerFieldName = fieldName.ToLowerInvariant();
-        
+
         if (lowerFieldName.Contains("picture") || lowerFieldName.Contains("photo") || lowerFieldName.Contains("avatar"))
         {
             return $"[Picture uploaded: {FormatBytes(byteCount)}]";
@@ -626,18 +626,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 {
                     var oldValue = property.OriginalValue;
                     var newValue = property.CurrentValue;
-                    
+
                     // Only include if values are actually different
                     if (!AreValuesEqual(oldValue, newValue))
                     {
                         // Handle binary data (e.g., ProfilePictureData)
                         if (newValue is byte[] newBytes)
                         {
-                            var oldDescription = oldValue is byte[] oldBytes && oldBytes.Length > 0 
-                                ? GetBinaryDataDescription(property.Metadata.Name, oldBytes.Length) 
+                            var oldDescription = oldValue is byte[] oldBytes && oldBytes.Length > 0
+                                ? GetBinaryDataDescription(property.Metadata.Name, oldBytes.Length)
                                 : null;
                             var newDescription = GetBinaryDataDescription(property.Metadata.Name, newBytes.Length);
-                            
+
                             changes[property.Metadata.Name] = new
                             {
                                 Old = oldDescription,
@@ -716,47 +716,47 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Both null or same reference
         if (ReferenceEquals(oldValue, newValue))
             return true;
-        
+
         // Handle collection comparisons (e.g., List<T> for primitive collections)
-        if (oldValue is System.Collections.IEnumerable oldEnumerable && 
+        if (oldValue is System.Collections.IEnumerable oldEnumerable &&
             newValue is System.Collections.IEnumerable newEnumerable &&
             !(oldValue is string) && !(newValue is string))
         {
             var oldList = oldEnumerable.Cast<object>().ToList();
             var newList = newEnumerable.Cast<object>().ToList();
-            
+
             // Compare counts first
             if (oldList.Count != newList.Count)
                 return false;
-            
+
             // Compare elements
             return oldList.SequenceEqual(newList);
         }
-        
+
         // Special handling for strings that might be JSON
         if (oldValue is string || newValue is string)
         {
             // Convert null to empty string for comparison
             var oldStr = oldValue as string ?? string.Empty;
             var newStr = newValue as string ?? string.Empty;
-            
+
             // Standard string equality first
             if (oldStr == newStr)
                 return true;
-            
+
             // Try to parse as JSON and compare the deserialized objects
             try
             {
                 // Handle the case where one is null/empty and the other is an empty JSON array/object
                 var oldIsEmpty = string.IsNullOrEmpty(oldStr);
                 var newIsEmpty = string.IsNullOrEmpty(newStr);
-                
+
                 // If one is empty/null, check if the other is an empty JSON collection
                 if (oldIsEmpty || newIsEmpty)
                 {
                     var nonEmptyStr = oldIsEmpty ? newStr : oldStr;
                     var trimmed = nonEmptyStr.TrimStart();
-                    
+
                     if (trimmed.StartsWith("[") || trimmed.StartsWith("{"))
                     {
                         var json = JsonSerializer.Deserialize<JsonElement>(nonEmptyStr);
@@ -764,23 +764,23 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                             return true; // null/empty and empty JSON collection are semantically equal
                     }
                 }
-                
+
                 // Both are non-empty strings, check if they're JSON
                 if (!oldIsEmpty && !newIsEmpty)
                 {
                     var oldTrimmed = oldStr.TrimStart();
                     var newTrimmed = newStr.TrimStart();
-                    
-                    if ((oldTrimmed.StartsWith("[") || oldTrimmed.StartsWith("{")) && 
+
+                    if ((oldTrimmed.StartsWith("[") || oldTrimmed.StartsWith("{")) &&
                         (newTrimmed.StartsWith("[") || newTrimmed.StartsWith("{")))
                     {
                         var oldJson = JsonSerializer.Deserialize<JsonElement>(oldStr);
                         var newJson = JsonSerializer.Deserialize<JsonElement>(newStr);
-                        
+
                         // Check if both are empty arrays or objects
                         if (IsEmptyJsonCollection(oldJson) && IsEmptyJsonCollection(newJson))
                             return true;
-                        
+
                         // Use JsonElement's equality which properly compares structure
                         return oldJson.Equals(newJson);
                     }
@@ -790,18 +790,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             {
                 // Not valid JSON, fall back to string comparison
             }
-            
+
             return false;
         }
-        
+
         // One is null, the other isn't (and neither is a string)
         if (oldValue == null || newValue == null)
             return false;
-        
+
         // Use standard Equals for most types
         return Equals(oldValue, newValue);
     }
-    
+
     /// <summary>
     /// Checks if a JsonElement represents an empty collection (empty array or empty object)
     /// </summary>
@@ -842,7 +842,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     private string? GetEntityDisplayName(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
     {
         var entityType = entry.Entity.GetType().Name;
-        
+
         try
         {
             switch (entityType)
@@ -851,53 +851,53 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     if (entry.Entity is Song song)
                         return song.Title;
                     break;
-                
+
                 case "Event":
                     if (entry.Entity is Event evt)
                         return evt.Name;
                     break;
-                
+
                 case "Enrollment":
                     if (entry.Entity is Enrollment enrollment)
                     {
                         // Try navigation properties first (if loaded), then fall back to Local cache
-                        var userName = enrollment.User?.Nickname 
+                        var userName = enrollment.User?.Nickname
                             ?? enrollment.User?.UserName
                             ?? ResolveUserIdToNickname(enrollment.UserId);
-                        var eventName = enrollment.Event?.Name 
+                        var eventName = enrollment.Event?.Name
                             ?? Events.Local.FirstOrDefault(e => e.Id == enrollment.EventId)?.Name;
-                        
+
                         if (userName != null && eventName != null)
                             return $"{userName} - {eventName}";
                         return eventName ?? userName; // Return partial if one is missing
                     }
                     break;
-                
+
                 case "EventRepertoire":
                     if (entry.Entity is EventRepertoire repertoire)
                     {
                         // Try navigation properties first (if loaded), then fall back to Local cache
-                        var eventName = repertoire.Event?.Name 
+                        var eventName = repertoire.Event?.Name
                             ?? Events.Local.FirstOrDefault(e => e.Id == repertoire.EventId)?.Name;
-                        var songTitle = repertoire.Song?.Title 
+                        var songTitle = repertoire.Song?.Title
                             ?? Songs.Local.FirstOrDefault(s => s.Id == repertoire.SongId)?.Title;
-                        
+
                         if (eventName != null && songTitle != null)
                             return $"{eventName} - {songTitle}";
                         return eventName ?? songTitle; // Return partial if one is missing
                     }
                     break;
-                
+
                 case "RehearsalAttendance":
                     if (entry.Entity is RehearsalAttendance attendance)
                     {
                         // Try navigation properties first (if loaded), then fall back to Local cache
-                        var userName = attendance.User?.Nickname 
+                        var userName = attendance.User?.Nickname
                             ?? attendance.User?.UserName
                             ?? ResolveUserIdToNickname(attendance.UserId);
-                        var rehearsal = attendance.Rehearsal 
+                        var rehearsal = attendance.Rehearsal
                             ?? Rehearsals.Local.FirstOrDefault(r => r.Id == attendance.RehearsalId);
-                        
+
                         if (userName != null && rehearsal != null)
                             return $"{userName} - {rehearsal.Date:yyyy-MM-dd}";
                         if (userName != null)
@@ -907,163 +907,163 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                         return null; // Neither user name nor rehearsal found - will fall back to entity ID display
                     }
                     break;
-                
+
                 case "RoleAssignment":
                     if (entry.Entity is RoleAssignment roleAssignment)
                     {
                         // Try navigation property first (if loaded), then fall back to Local cache
-                        var userName = roleAssignment.User?.Nickname 
+                        var userName = roleAssignment.User?.Nickname
                             ?? roleAssignment.User?.UserName
-                            ?? ResolveUserIdToNickname(roleAssignment.UserId) 
+                            ?? ResolveUserIdToNickname(roleAssignment.UserId)
                             ?? roleAssignment.UserId;
                         return $"{userName} - {roleAssignment.Position}";
                     }
                     break;
-                
+
                 case "SongYouTubeUrl":
                     if (entry.Entity is SongYouTubeUrl youtubeUrl)
                     {
                         // Try navigation property first (if loaded), then fall back to Local cache
-                        var songTitle = youtubeUrl.Song?.Title 
+                        var songTitle = youtubeUrl.Song?.Title
                             ?? Songs.Local.FirstOrDefault(s => s.Id == youtubeUrl.SongId)?.Title;
                         return songTitle;
                     }
                     break;
-                
+
                 case "Transaction":
                     if (entry.Entity is Transaction transaction && transaction.ActivityId.HasValue)
                     {
                         // Try navigation property first (if loaded), then fall back to Local cache
-                        var activityName = transaction.Activity?.Name 
+                        var activityName = transaction.Activity?.Name
                             ?? Activities.Local.FirstOrDefault(a => a.Id == transaction.ActivityId.Value)?.Name;
                         return activityName;
                     }
                     break;
-                
+
                 case "Activity":
                     if (entry.Entity is Activity activity2)
                         return activity2.Name;
                     break;
-                
+
                 case "Album":
                     if (entry.Entity is Album album)
                         return album.Title;
                     break;
-                
+
                 case "Instrument":
                     if (entry.Entity is Instrument instrument)
                         return $"{instrument.Category} - {instrument.Name}";
                     break;
-                
+
                 case "Label":
                     if (entry.Entity is Label label && !string.IsNullOrEmpty(label.Content))
                     {
-                        return label.Content.Length > 100 
-                            ? label.Content[..100] + "..." 
+                        return label.Content.Length > 100
+                            ? label.Content[..100] + "..."
                             : label.Content;
                     }
                     break;
-                
+
                 case "Product":
                     if (entry.Entity is Product product)
                         return product.Name;
                     break;
-                
+
                 case "Rehearsal":
                     if (entry.Entity is Rehearsal rehearsal2)
                         return rehearsal2.Date.ToString("yyyy-MM-dd");
                     break;
-                
+
                 case "Report":
                     if (entry.Entity is Report report)
                         return report.Title;
                     break;
-                
+
                 case "Request":
                     // Request doesn't have a specific name field, use ID
                     return null;
-                
+
                 case "Slideshow":
                     // Slideshow can use Title
                     if (entry.Entity is Slideshow slideshow)
                         return slideshow.Title;
                     break;
-                
+
                 case "LogisticsBoard":
                     if (entry.Entity is LogisticsBoard logisticsBoard)
                         return logisticsBoard.Name;
                     break;
-                
+
                 case "LogisticsList":
                     if (entry.Entity is LogisticsList logisticsList)
                         return logisticsList.Name;
                     break;
-                
+
                 case "LogisticsCard":
                     if (entry.Entity is LogisticsCard logisticsCard)
                         return logisticsCard.Title;
                     break;
-                
+
                 case "Meeting":
                     if (entry.Entity is Meeting meeting)
                         return meeting.Title;
                     break;
-                
+
                 case "MeetingRequest":
                     if (entry.Entity is MeetingRequest meetingRequest)
                         return meetingRequest.Title;
                     break;
-                
+
                 case "LeaderboardComment":
                     if (entry.Entity is LeaderboardComment leaderboardComment)
                     {
                         // Try navigation properties first (if loaded), then fall back to Local cache
-                        var targetName = leaderboardComment.TargetUser?.Nickname 
+                        var targetName = leaderboardComment.TargetUser?.Nickname
                             ?? leaderboardComment.TargetUser?.UserName
-                            ?? ResolveUserIdToNickname(leaderboardComment.TargetUserId) 
+                            ?? ResolveUserIdToNickname(leaderboardComment.TargetUserId)
                             ?? leaderboardComment.TargetUserId;
-                        var authorName = leaderboardComment.Author?.Nickname 
+                        var authorName = leaderboardComment.Author?.Nickname
                             ?? leaderboardComment.Author?.UserName
-                            ?? ResolveUserIdToNickname(leaderboardComment.AuthorId) 
+                            ?? ResolveUserIdToNickname(leaderboardComment.AuthorId)
                             ?? leaderboardComment.AuthorId;
                         return $"{authorName} → {targetName}";
                     }
                     break;
-                
+
                 case "LeaderboardCommentLike":
                     if (entry.Entity is LeaderboardCommentLike commentLike)
                     {
                         // Try navigation properties first (if loaded), then fall back to Local cache
-                        var userName = commentLike.User?.Nickname 
+                        var userName = commentLike.User?.Nickname
                             ?? commentLike.User?.UserName
-                            ?? ResolveUserIdToNickname(commentLike.UserId) 
+                            ?? ResolveUserIdToNickname(commentLike.UserId)
                             ?? commentLike.UserId;
-                        var likedComment = commentLike.Comment 
+                        var likedComment = commentLike.Comment
                             ?? LeaderboardComments.Local.FirstOrDefault(c => c.Id == commentLike.CommentId);
                         if (likedComment != null)
                         {
-                            var targetName = likedComment.TargetUser?.Nickname 
+                            var targetName = likedComment.TargetUser?.Nickname
                                 ?? likedComment.TargetUser?.UserName
-                                ?? ResolveUserIdToNickname(likedComment.TargetUserId) 
+                                ?? ResolveUserIdToNickname(likedComment.TargetUserId)
                                 ?? likedComment.TargetUserId;
-                            var commentPreview = likedComment.Text.Length > 30 
-                                ? likedComment.Text[..30] + "..." 
+                            var commentPreview = likedComment.Text.Length > 30
+                                ? likedComment.Text[..30] + "..."
                                 : likedComment.Text;
                             return $"{userName} liked {targetName}'s comment: {commentPreview}";
                         }
                         return $"{userName} liked comment";
                     }
                     break;
-                
+
                 case "Post":
                     if (entry.Entity is Post post)
                     {
                         // Try navigation properties first (if loaded), then fall back to Local cache
-                        var postDiscussion = post.Discussion 
+                        var postDiscussion = post.Discussion
                             ?? Discussions.Local.FirstOrDefault(d => d.Id == post.DiscussionId);
                         if (postDiscussion != null)
                         {
-                            var postEvent = postDiscussion.Event 
+                            var postEvent = postDiscussion.Event
                                 ?? Events.Local.FirstOrDefault(e => e.Id == postDiscussion.EventId);
                             if (postEvent != null)
                                 return $"{postEvent.Name} - {post.Title}";
@@ -1071,46 +1071,46 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                         return post.Title;
                     }
                     break;
-                
+
                 case "Comment":
                     if (entry.Entity is Comment comment)
                     {
                         // Try navigation properties first (if loaded), then fall back to Local cache
-                        var authorName = comment.Author?.Nickname 
+                        var authorName = comment.Author?.Nickname
                             ?? comment.Author?.UserName
-                            ?? ResolveUserIdToNickname(comment.AuthorId) 
+                            ?? ResolveUserIdToNickname(comment.AuthorId)
                             ?? comment.AuthorId;
-                        var bodyPreview = comment.Body.Length > 50 
-                            ? comment.Body[..50] + "..." 
+                        var bodyPreview = comment.Body.Length > 50
+                            ? comment.Body[..50] + "..."
                             : comment.Body;
-                        
+
                         // Try to get event name through Post -> Discussion -> Event
-                        var commentPost = comment.Post 
+                        var commentPost = comment.Post
                             ?? Posts.Local.FirstOrDefault(p => p.Id == comment.PostId);
                         if (commentPost != null)
                         {
-                            var commentDiscussion = commentPost.Discussion 
+                            var commentDiscussion = commentPost.Discussion
                                 ?? Discussions.Local.FirstOrDefault(d => d.Id == commentPost.DiscussionId);
                             if (commentDiscussion != null)
                             {
-                                var commentEvent = commentDiscussion.Event 
+                                var commentEvent = commentDiscussion.Event
                                     ?? Events.Local.FirstOrDefault(e => e.Id == commentDiscussion.EventId);
                                 if (commentEvent != null)
                                     return $"{commentEvent.Name} - {authorName}: {bodyPreview}";
                             }
                         }
-                        
+
                         return $"{authorName}: {bodyPreview}";
                     }
                     break;
-                
+
                 case "MemberInstrument":
                     if (entry.Entity is MemberInstrument memberInstrument)
                     {
                         // Try navigation property first (if loaded), then fall back to Local cache
-                        var userName = memberInstrument.Member?.Nickname 
+                        var userName = memberInstrument.Member?.Nickname
                             ?? memberInstrument.Member?.UserName
-                            ?? ResolveUserIdToNickname(memberInstrument.MemberId) 
+                            ?? ResolveUserIdToNickname(memberInstrument.MemberId)
                             ?? memberInstrument.MemberId;
                         var instrumentName = RTUB.Core.Helpers.InstrumentTypeHelper.GetDisplayName(memberInstrument.InstrumentType);
                         return $"{userName} - {instrumentName}";
@@ -1123,7 +1123,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             // If resolution fails due to database query issues, return null (will fall back to ID display)
             return null;
         }
-        
+
         return null;
     }
 

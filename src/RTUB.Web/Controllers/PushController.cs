@@ -72,7 +72,7 @@ public class PushController : ControllerBase
 
         if (!_pushNotificationService.IsConfigured())
         {
-            return BadRequest(new { error = "Web Push não está configurado no servidor" });
+            return BadRequest(new { error = "Web Push nï¿½o estï¿½ configurado no servidor" });
         }
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -90,7 +90,7 @@ public class PushController : ControllerBase
 
             _logger.LogInformation("User {userName} subscribed to push notifications", userName);
 
-            return Ok(new { message = "Inscrito com sucesso para notificações push" });
+            return Ok(new { message = "Inscrito com sucesso para notificaï¿½ï¿½es push" });
         }
         catch (ArgumentException ex)
         {
@@ -124,12 +124,12 @@ public class PushController : ControllerBase
         try
         {
             await _pushNotificationService.UnsubscribeAsync(request.Endpoint);
-            
+
             var userName = User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.Name);
 
             _logger.LogInformation("User {userName} unsubscribed from push notifications", userName);
-            
-            return Ok(new { message = "A inscrição de notificações push foi cancelada com sucesso." });
+
+            return Ok(new { message = "A inscriï¿½ï¿½o de notificaï¿½ï¿½es push foi cancelada com sucesso." });
         }
         catch (Exception ex)
         {
@@ -155,11 +155,11 @@ public class PushController : ControllerBase
         try
         {
             await _pushNotificationService.BroadcastAsync(notification);
-            
+
             var userName = User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.Name);
 
             _logger.LogInformation("User {userName} broadcasted push notification to all subscribers", userName);
-            
+
             return Ok(new { message = "Notification broadcasted successfully" });
         }
         catch (Exception ex)

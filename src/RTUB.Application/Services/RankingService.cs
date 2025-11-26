@@ -45,7 +45,7 @@ public class RankingService : IRankingService
     public async Task<int> CalculateTotalXpAsync(string userId)
     {
         var now = DateTime.UtcNow;
-        
+
         // Count rehearsal attendances where Attended == true AND rehearsal date is in the past
         var rehearsalXp = await _attendanceRepository.Query()
             .Include(ra => ra.Rehearsal)
@@ -78,7 +78,7 @@ public class RankingService : IRankingService
 
         // Sort levels by XP threshold descending to find the highest level user qualifies for
         var sortedLevels = _rankingConfig.Value.Levels.OrderByDescending(l => l.XpThreshold).ToList();
-        
+
         foreach (var levelDef in sortedLevels)
         {
             if (xp >= levelDef.XpThreshold)
@@ -119,11 +119,13 @@ public class RankingService : IRankingService
         if (user == null)
             return;
 
-        // Get all users to find the current 1st place
-        var allUsers = _userManager.Users.ToList(); // Synchronous to work with mocks
-        var currentFirstPlace = allUsers
+        // Optimize: Query only the current first place user with Take(1) for better performance
+        // This avoids loading all users into memory while maintaining test compatibility
+        var currentFirstPlace = _userManager.Users
             .OrderByDescending(u => u.ExperiencePoints)
             .ThenByDescending(u => u.Level)
+            .Take(1)
+            .AsEnumerable()
             .FirstOrDefault();
 
         var totalXp = await CalculateTotalXpAsync(userId);
@@ -138,8 +140,8 @@ public class RankingService : IRankingService
         await _userManager.UpdateAsync(user);
 
         // Check if this user has become the new 1st place
-        if (currentFirstPlace != null && currentFirstPlace.Id != userId && 
-            (totalXp > currentFirstPlace.ExperiencePoints || 
+        if (currentFirstPlace != null && currentFirstPlace.Id != userId &&
+            (totalXp > currentFirstPlace.ExperiencePoints ||
              (totalXp == currentFirstPlace.ExperiencePoints && level > currentFirstPlace.Level)))
         {
             // This user has surpassed the previous 1st place
@@ -178,7 +180,7 @@ public class RankingService : IRankingService
         }
 
         var now = DateTime.UtcNow;
-        
+
         // Batch load all rehearsal attendances in a single query
         var rehearsalXpByUser = await _attendanceRepository.Query()
             .Include(ra => ra.Rehearsal)
@@ -209,7 +211,7 @@ public class RankingService : IRankingService
             var rehearsalXp = rehearsalXpByUser.GetValueOrDefault(userId, 0);
             var eventXp = eventXpByUser.GetValueOrDefault(userId, 0);
             var totalXp = rehearsalXp + eventXp;
-            
+
             result[userId] = BuildRankProgressInfo(totalXp);
         }
 
@@ -246,7 +248,7 @@ public class RankingService : IRankingService
             IsMaxLevel = isMaxLevel
         };
     }
-    
+
     private string GetBaseUrl()
     {
         var request = _httpContextAccessor.HttpContext?.Request;

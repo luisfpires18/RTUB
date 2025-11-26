@@ -95,7 +95,7 @@ public class LogisticsListService : ILogisticsListService
         var list = await _listRepository.Query()
             .Include(l => l.Cards)
             .FirstOrDefaultAsync(l => l.Id == id);
-            
+
         if (list == null)
             throw new InvalidOperationException($"Lista com ID {id} não encontrada");
 
@@ -106,7 +106,7 @@ public class LogisticsListService : ILogisticsListService
         {
             await _cardRepository.DeleteAsync(card);
         }
-        
+
         await _listRepository.DeleteAsync(list);
     }
 }

@@ -118,7 +118,7 @@ public class ActivityTests
             Transaction.Create(date, "Expense 1", "Category3", 30.00m, "Expense", 1),
             Transaction.Create(date, "Expense 2", "Category4", 20.00m, "Expense", 1)
         };
-        
+
         foreach (var transaction in transactions)
         {
             activity.Transactions.Add(transaction);

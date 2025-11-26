@@ -52,7 +52,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     {
         // Check if attendance already exists
         var existing = await _attendanceRepository.GetAttendanceByRehearsalAndUserAsync(rehearsalId, userId);
-        
+
         if (existing != null)
         {
             // Update existing attendance
@@ -63,7 +63,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             existing.Notes = notes;
             // Update other instruments
             existing.OtherInstruments = otherInstruments;
-            
+
             await _attendanceRepository.UpdateAsync(existing);
             return existing;
         }
@@ -75,7 +75,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         attendance.Notes = notes;
         // Set other instruments
         attendance.OtherInstruments = otherInstruments;
-        
+
         return await _attendanceRepository.AddAsync(attendance);
     }
 
@@ -83,7 +83,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     {
         // Check if attendance already exists
         var existing = await _attendanceRepository.GetAttendanceByRehearsalAndUserAsync(rehearsalId, userId);
-        
+
         if (existing != null)
         {
             // Update existing attendance to approved
@@ -93,7 +93,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
                 existing.UpdateInstrument(instrument);
             existing.Notes = notes;
             existing.OtherInstruments = otherInstruments;
-            
+
             await _attendanceRepository.UpdateAsync(existing);
             return existing;
         }
@@ -104,7 +104,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         attendance.MarkAttendance(true); // Set Attended = true immediately
         attendance.Notes = notes;
         attendance.OtherInstruments = otherInstruments;
-        
+
         return await _attendanceRepository.AddAsync(attendance);
     }
 
@@ -117,16 +117,16 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         attendance.MarkAttendance(attended);
         if (instrument.HasValue)
             attendance.UpdateInstrument(instrument);
-        
+
         await _attendanceRepository.UpdateAsync(attendance);
-        
+
         // Update retirement status if attendance was marked as true
         if (attended)
         {
             await _retirementStatusService.UpdateUserRetirementStatusAsync(attendance.UserId);
         }
     }
-    
+
     public async Task CancelAttendanceAsync(int id)
     {
         var attendance = await _attendanceRepository.GetByIdAsync(id);
@@ -135,7 +135,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
 
         // Set WillAttend to false to cancel the attendance
         attendance.WillAttend = false;
-        
+
         await _attendanceRepository.UpdateAsync(attendance);
     }
 
@@ -144,7 +144,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         var attendance = await _attendanceRepository.GetByIdAsync(id);
         if (attendance == null)
             throw new EntityNotFoundException(nameof(RehearsalAttendance), id);
-        
+
         await _attendanceRepository.DeleteAsync(id);
     }
 
@@ -152,9 +152,9 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     {
         return await _attendanceRepository.Query()
             .Include(a => a.Rehearsal)
-            .Where(a => a.UserId == userId && 
-                       a.Attended && 
-                       a.Rehearsal!.Date >= startDate.Date && 
+            .Where(a => a.UserId == userId &&
+                       a.Attended &&
+                       a.Rehearsal!.Date >= startDate.Date &&
                        a.Rehearsal.Date <= endDate.Date)
             .CountAsync();
     }
@@ -164,8 +164,8 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         var attendances = await _attendanceRepository.Query()
             .Include(a => a.Rehearsal)
             .Include(a => a.User)
-            .Where(a => a.Attended && 
-                       a.Rehearsal!.Date >= startDate.Date && 
+            .Where(a => a.Attended &&
+                       a.Rehearsal!.Date >= startDate.Date &&
                        a.Rehearsal.Date <= endDate.Date)
             .GroupBy(a => a.UserId)
             .Select(g => new { UserId = g.Key, Count = g.Count() })

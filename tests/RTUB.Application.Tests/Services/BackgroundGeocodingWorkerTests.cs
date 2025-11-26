@@ -24,25 +24,25 @@ public class BackgroundGeocodingWorkerTests
     public BackgroundGeocodingWorkerTests()
     {
         _mockLogger = new Mock<ILogger<BackgroundGeocodingWorker>>();
-        
+
         // Setup required services
         var services = new ServiceCollection();
-        
+
         // Add HttpClientFactory for NominatimGeocodingService
         services.AddHttpClient("Nominatim")
             .ConfigureHttpClient(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(10);
             });
-        
+
         // Add required dependencies for ApplicationDbContext
         services.AddSingleton<Microsoft.AspNetCore.Http.IHttpContextAccessor>(new Mock<Microsoft.AspNetCore.Http.IHttpContextAccessor>().Object);
         services.AddScoped<AuditContext>();
-        
+
         // Setup in-memory database for testing
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase("TestBackgroundWorkerDb_" + Guid.NewGuid()));
-        
+
         // Configuration with DisabledInTests flag
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -51,10 +51,10 @@ public class BackgroundGeocodingWorkerTests
             })
             .Build();
         services.AddSingleton<IConfiguration>(config);
-        
+
         // Register NominatimGeocodingService
         services.AddScoped<NominatimGeocodingService>();
-        
+
         _serviceProvider = services.BuildServiceProvider();
     }
 
@@ -79,17 +79,17 @@ public class BackgroundGeocodingWorkerTests
         var mockQueue = new Mock<IGeocodingQueue>();
         mockQueue.Setup(q => q.GetPendingCitiesAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<(string CityName, string CountryCode)>());
-        
+
         var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
         var worker = new BackgroundGeocodingWorker(_mockLogger.Object, scopeFactory, mockQueue.Object);
 
         // Act
         var cts = new CancellationTokenSource();
         await worker.StartAsync(cts.Token);
-        
+
         // Give it a moment to start
         await Task.Delay(100);
-        
+
         // Stop the worker
         await worker.StopAsync(CancellationToken.None);
 

@@ -37,7 +37,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         _userProfileRepository = new UserProfileRepository(_context);
         _attendanceRepository = new RehearsalAttendanceRepository(_context);
         _enrollmentRepository = new EnrollmentRepository(_context);
-        
+
         _retirementStatusService = new RetirementStatusService(
             _attendanceRepository,
             _enrollmentRepository,
@@ -103,19 +103,19 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
     {
         // Arrange
         var user = await CreateTestUser(MemberCategory.Tuno);
-        
+
         // Old activity (7 months ago) - causes retirement
         var oldRehearsal = await CreateTestRehearsal(DateTime.UtcNow.AddMonths(-7));
         await CreateAttendedRehearsal(user.Id, oldRehearsal.Id, DateTime.UtcNow.AddMonths(-7));
-        
+
         // Recent activity in 3 consecutive months - should return to active
         var now = DateTime.UtcNow;
         var rehearsal1 = await CreateTestRehearsal(now.AddMonths(-2));
         await CreateAttendedRehearsal(user.Id, rehearsal1.Id, now.AddMonths(-2));
-        
+
         var rehearsal2 = await CreateTestRehearsal(now.AddMonths(-1));
         await CreateAttendedRehearsal(user.Id, rehearsal2.Id, now.AddMonths(-1));
-        
+
         var rehearsal3 = await CreateTestRehearsal(now.AddDays(-5));
         await CreateAttendedRehearsal(user.Id, rehearsal3.Id, now.AddDays(-5));
 
@@ -185,11 +185,11 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
     {
         // Arrange
         var user = await CreateTestUser(MemberCategory.Tuno);
-        
+
         // Rehearsal 7 months ago
         var rehearsal = await CreateTestRehearsal(DateTime.UtcNow.AddMonths(-7));
         await CreateAttendedRehearsal(user.Id, rehearsal.Id, DateTime.UtcNow.AddMonths(-7));
-        
+
         // Event enrollment 2 months ago
         var eventEntity = await CreateTestEvent(DateTime.UtcNow.AddMonths(-2));
         await CreateConfirmedEnrollment(user.Id, eventEntity.Id, DateTime.UtcNow.AddMonths(-2));
@@ -211,10 +211,10 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         var user = await CreateTestUser(MemberCategory.Tuno);
         user.IsRetired = false;
         await _userProfileRepository.UpdateAsync(user);
-        
+
         // Detach the user to avoid tracking issues
         _context.Entry(user).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
-        
+
         // Create old activity to trigger retirement
         var rehearsal = await CreateTestRehearsal(DateTime.UtcNow.AddMonths(-7));
         await CreateAttendedRehearsal(user.Id, rehearsal.Id, DateTime.UtcNow.AddMonths(-7));
@@ -224,7 +224,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
 
         // Assert
         updated.Should().BeTrue();
-        
+
         var updatedUser = await _userProfileRepository.FirstOrDefaultAsync(u => u.Id == user.Id);
         updatedUser!.IsRetired.Should().BeTrue();
     }
@@ -236,7 +236,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         var user = await CreateTestUser(MemberCategory.Tuno);
         user.IsRetired = false;
         await _userProfileRepository.UpdateAsync(user);
-        
+
         // Create recent activity
         var rehearsal = await CreateTestRehearsal(DateTime.UtcNow.AddDays(-30));
         await CreateAttendedRehearsal(user.Id, rehearsal.Id, DateTime.UtcNow.AddDays(-30));
@@ -246,7 +246,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
 
         // Assert
         updated.Should().BeFalse();
-        
+
         var updatedUser = await _userProfileRepository.FirstOrDefaultAsync(u => u.Id == user.Id);
         updatedUser!.IsRetired.Should().BeFalse();
     }
@@ -258,7 +258,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         var user = await CreateTestUser(MemberCategory.Tuno);
         var event1 = await CreateTestEvent(DateTime.UtcNow.AddMonths(-2));
         var event2 = await CreateTestEvent(DateTime.UtcNow.AddMonths(-1));
-        
+
         // Create one confirmed and one declined enrollment
         await CreateConfirmedEnrollment(user.Id, event1.Id, DateTime.UtcNow.AddMonths(-2));
         await CreateDeclinedEnrollment(user.Id, event2.Id, DateTime.UtcNow.AddMonths(-1));
@@ -280,7 +280,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         var user = await CreateTestUser(MemberCategory.Tuno);
         var rehearsal1 = await CreateTestRehearsal(DateTime.UtcNow.AddMonths(-2));
         var rehearsal2 = await CreateTestRehearsal(DateTime.UtcNow.AddMonths(-1));
-        
+
         // Create one attended and one not attended rehearsal
         await CreateAttendedRehearsal(user.Id, rehearsal1.Id, DateTime.UtcNow.AddMonths(-2));
         await CreateNotAttendedRehearsal(user.Id, rehearsal2.Id, DateTime.UtcNow.AddMonths(-1));
@@ -310,7 +310,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
             EmailConfirmed = true,
             Categories = new List<MemberCategory> { category }
         };
-        
+
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
         return user;
@@ -325,7 +325,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
             Theme = $"Test Theme {Guid.NewGuid()}",
             Notes = "Test Notes"
         };
-        
+
         await _context.Rehearsals.AddAsync(rehearsal);
         await _context.SaveChangesAsync();
         return rehearsal;
@@ -341,7 +341,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
             Type = EventType.Festival,
             Description = "Test Description"
         };
-        
+
         await _context.Events.AddAsync(eventEntity);
         await _context.SaveChangesAsync();
         return eventEntity;
@@ -352,7 +352,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         var attendance = RehearsalAttendance.Create(rehearsalId, userId);
         attendance.Attended = true;
         attendance.CheckedInAt = checkedInAt;
-        
+
         await _context.RehearsalAttendances.AddAsync(attendance);
         await _context.SaveChangesAsync();
         return attendance;
@@ -363,7 +363,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         var attendance = RehearsalAttendance.Create(rehearsalId, userId);
         attendance.Attended = false;
         attendance.CheckedInAt = checkedInAt;
-        
+
         await _context.RehearsalAttendances.AddAsync(attendance);
         await _context.SaveChangesAsync();
         return attendance;
@@ -374,7 +374,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         var enrollment = Enrollment.Create(userId, eventId);
         enrollment.WillAttend = true;
         enrollment.EnrolledAt = enrolledAt;
-        
+
         await _context.Enrollments.AddAsync(enrollment);
         await _context.SaveChangesAsync();
         return enrollment;
@@ -385,7 +385,7 @@ public class RetirementStatusServiceTests : IClassFixture<DatabaseFixture>, IDis
         var enrollment = Enrollment.Create(userId, eventId);
         enrollment.WillAttend = false;
         enrollment.EnrolledAt = enrolledAt;
-        
+
         await _context.Enrollments.AddAsync(enrollment);
         await _context.SaveChangesAsync();
         return enrollment;

@@ -43,7 +43,7 @@ public class EmailNotificationService : IEmailNotificationService
     }
 
     /// <inheritdoc/>
-    public async Task SendRequestStatusChangedAsync(int requestId, string requestName, string requestEmail, 
+    public async Task SendRequestStatusChangedAsync(int requestId, string requestName, string requestEmail,
         RequestStatus oldStatus, RequestStatus newStatus)
     {
         // Note: This method is deprecated and kept for backward compatibility only.
@@ -338,18 +338,18 @@ public class EmailNotificationService : IEmailNotificationService
             // Load confirmed enrollments for this event
             var enrollments = await _enrollmentService.GetEnrollmentsByEventIdAsync(eventId);
             var confirmedEnrollments = enrollments.Where(e => e.WillAttend && e.User != null).ToList();
-            
+
             // Build participants list with display name, category, instrument, and notes
             var participants = confirmedEnrollments.Select(e =>
             {
                 var user = e.User!;
                 var displayName = user.GetDisplayName();
                 var category = user.GetPrimaryCategoryName();
-                var instrument = e.Instrument.HasValue 
-                    ? InstrumentTypeHelper.GetDisplayName(e.Instrument.Value) 
+                var instrument = e.Instrument.HasValue
+                    ? InstrumentTypeHelper.GetDisplayName(e.Instrument.Value)
                     : "Não especificado";
                 var isLeitao = user.IsLeitao();
-                
+
                 return (displayName, category, instrument, e.Notes, isLeitao);
             }).ToList();
 
@@ -464,7 +464,7 @@ public class EmailNotificationService : IEmailNotificationService
 
             int successCount = 0;
             int totalCount = recipientEmails.Count;
-            
+
             // Report initial progress
             progress?.Report(new EmailSendProgress
             {
@@ -472,7 +472,7 @@ public class EmailNotificationService : IEmailNotificationService
                 Sent = 0,
                 LastRecipient = null
             });
-            
+
             // Performance consideration: Reuse SMTP client for all sends
             // This avoids the overhead of creating a new connection for each email
             using var smtpClient = _smtpFactory.CreateClient(config);
@@ -494,7 +494,7 @@ public class EmailNotificationService : IEmailNotificationService
                     successCount++;
                     _logger.LogInformation("Meeting notification email sent to {Email} for meeting {MeetingId}",
                         recipientEmail, meetingId);
-                    
+
                     // Report progress after each successful send
                     progress?.Report(new EmailSendProgress
                     {
@@ -614,7 +614,7 @@ public class EmailNotificationService : IEmailNotificationService
         int successCount = 0;
         int totalCount = recipientEmails.Count;
         var successCountLock = new object();
-        
+
         // Report initial progress
         progress?.Report(new EmailSendProgress
         {
@@ -622,14 +622,14 @@ public class EmailNotificationService : IEmailNotificationService
             Sent = 0,
             LastRecipient = null
         });
-        
+
         // BOUNDED CONCURRENCY: SemaphoreSlim limits concurrent operations to prevent resource exhaustion
         using var semaphore = new SemaphoreSlim(MaxConcurrentSends, MaxConcurrentSends);
-        
+
         // SMTP REUSE: Create one SMTP client with extended timeout for batch operations
         // This significantly improves performance by reusing the same connection
         using var smtpClient = _smtpFactory.CreateClient(config, SmtpClientFactory.BatchEmailTimeout);
-        
+
         // THREAD SAFETY: SMTP operations need to be synchronized as SmtpClient is not thread-safe
         using var smtpSemaphore = new SemaphoreSlim(1, 1);
 
@@ -642,7 +642,7 @@ public class EmailNotificationService : IEmailNotificationService
             try
             {
                 var (nickname, fullName) = recipientData.TryGetValue(email, out var data) ? data : ("", "");
-                
+
                 // Render template - this will create its own scope internally in EmailTemplateService
                 var body = await bodyRenderer(nickname, fullName);
 
@@ -667,7 +667,7 @@ public class EmailNotificationService : IEmailNotificationService
                 {
                     smtpSemaphore.Release();
                 }
-                
+
                 // Update success count and report progress (thread-safe)
                 int currentCount;
                 lock (successCountLock)
@@ -675,7 +675,7 @@ public class EmailNotificationService : IEmailNotificationService
                     successCount++;
                     currentCount = successCount;
                 }
-                
+
                 // Report progress after each successful send
                 progress?.Report(new EmailSendProgress
                 {

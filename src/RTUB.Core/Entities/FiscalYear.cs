@@ -27,7 +27,7 @@ public class FiscalYear : BaseEntity
     {
         return $"{StartYear}-{EndYear}";
     }
-    
+
     // Property alias for backward compatibility
     public string FiscalYearString => GetFiscalYearString();
 }

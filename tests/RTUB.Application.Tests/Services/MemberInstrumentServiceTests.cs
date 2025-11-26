@@ -65,7 +65,7 @@ public class MemberInstrumentServiceTests
         // Arrange
         var existingPrimary = MemberInstrument.Create(_testMemberId, InstrumentType.Guitarra, true);
         var instruments = new List<MemberInstrument> { existingPrimary };
-        
+
         _mockRepository.Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<MemberInstrument, bool>>>()))
             .ReturnsAsync(false);
         var mockQueryable = instruments.BuildMockDbSet().Object;
@@ -270,7 +270,7 @@ public class MemberInstrumentServiceTests
         var user1 = "user-1";
         var user2 = "user-2";
         var user3 = "user-3";
-        
+
         var allInstruments = new List<MemberInstrument>
         {
             MemberInstrument.Create(user1, InstrumentType.Guitarra, true),

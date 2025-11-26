@@ -42,9 +42,9 @@ public class MemberStatusService : IMemberStatusService
         // Uses same predicate as MemberStatisticsService for XP calculation
         var lastRehearsalDate = await _context.RehearsalAttendances
             .Include(ra => ra.Rehearsal)
-            .Where(ra => ra.UserId == userId 
-                && ra.Attended 
-                && ra.Rehearsal != null 
+            .Where(ra => ra.UserId == userId
+                && ra.Attended
+                && ra.Rehearsal != null
                 && !ra.Rehearsal.IsCanceled
                 && ra.Rehearsal.Date < now) // BUG FIX: Exclude future rehearsals
             .OrderByDescending(ra => ra.Rehearsal!.Date)
@@ -56,9 +56,9 @@ public class MemberStatusService : IMemberStatusService
         // Uses same predicate as MemberStatisticsService for XP calculation
         var lastEventDate = await _context.Enrollments
             .Include(e => e.Event)
-            .Where(e => e.UserId == userId 
-                && e.WillAttend 
-                && e.Event != null 
+            .Where(e => e.UserId == userId
+                && e.WillAttend
+                && e.Event != null
                 && !e.Event.IsCancelled
                 && e.Event.Date < now) // BUG FIX: Exclude future events
             .OrderByDescending(e => e.Event!.Date)
@@ -69,11 +69,11 @@ public class MemberStatusService : IMemberStatusService
         DateTime? lastActivityDate = null;
         bool hasLastRehearsal = lastRehearsalDate != default(DateTime);
         bool hasLastEvent = lastEventDate != default(DateTime);
-        
+
         if (hasLastRehearsal && hasLastEvent)
         {
-            lastActivityDate = lastRehearsalDate > lastEventDate 
-                ? lastRehearsalDate 
+            lastActivityDate = lastRehearsalDate > lastEventDate
+                ? lastRehearsalDate
                 : lastEventDate;
         }
         else if (hasLastRehearsal)
@@ -112,7 +112,7 @@ public class MemberStatusService : IMemberStatusService
                 // Check if user has activity in last 3 consecutive months
                 var threeMonthsAgo = now.AddMonths(-3);
                 var hasConsecutiveActivity = await HasConsecutiveMonthlyActivityAsync(userId, threeMonthsAgo, now);
-                
+
                 if (hasConsecutiveActivity)
                 {
                     isRetired = false;
@@ -146,9 +146,9 @@ public class MemberStatusService : IMemberStatusService
         // Get all activities in the period
         var rehearsalDates = await _context.RehearsalAttendances
             .Include(ra => ra.Rehearsal)
-            .Where(ra => ra.UserId == userId 
-                && ra.Attended 
-                && ra.Rehearsal != null 
+            .Where(ra => ra.UserId == userId
+                && ra.Attended
+                && ra.Rehearsal != null
                 && !ra.Rehearsal.IsCanceled
                 && ra.Rehearsal.Date >= startDate
                 && ra.Rehearsal.Date < endDate)
@@ -157,9 +157,9 @@ public class MemberStatusService : IMemberStatusService
 
         var eventDates = await _context.Enrollments
             .Include(e => e.Event)
-            .Where(e => e.UserId == userId 
-                && e.WillAttend 
-                && e.Event != null 
+            .Where(e => e.UserId == userId
+                && e.WillAttend
+                && e.Event != null
                 && !e.Event.IsCancelled
                 && e.Event.Date >= startDate
                 && e.Event.Date < endDate)

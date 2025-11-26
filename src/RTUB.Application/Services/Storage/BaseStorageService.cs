@@ -16,12 +16,12 @@ public abstract class BaseStorageService<TLogger>
     /// S3 client for performing storage operations
     /// </summary>
     protected readonly IAmazonS3 _s3Client;
-    
+
     /// <summary>
     /// Logger for the storage service
     /// </summary>
     protected readonly ILogger<TLogger> _logger;
-    
+
     /// <summary>
     /// Bucket name for storage operations
     /// </summary>
@@ -34,8 +34,8 @@ public abstract class BaseStorageService<TLogger>
     /// <param name="bucketName">Bucket name for storage operations</param>
     /// <param name="logger">Logger instance</param>
     protected BaseStorageService(
-        IAmazonS3 s3Client, 
-        string bucketName, 
+        IAmazonS3 s3Client,
+        string bucketName,
         ILogger<TLogger> logger)
     {
         _s3Client = s3Client ?? throw new ArgumentNullException(nameof(s3Client));
@@ -89,7 +89,7 @@ public abstract class BaseStorageService<TLogger>
     /// <param name="responseHeaderOverrides">Optional response header overrides</param>
     /// <returns>The pre-signed URL, or null if the object doesn't exist or an error occurs</returns>
     protected async Task<string?> GeneratePreSignedUrlAsync(
-        string objectKey, 
+        string objectKey,
         int expirationMinutes,
         ResponseHeaderOverrides? responseHeaderOverrides = null)
     {
@@ -295,7 +295,7 @@ public abstract class BaseStorageService<TLogger>
         do
         {
             response = await _s3Client.ListObjectsV2Async(request);
-            
+
             if (response.CommonPrefixes != null)
             {
                 foreach (var commonPrefix in response.CommonPrefixes)
@@ -326,7 +326,7 @@ public abstract class BaseStorageService<TLogger>
             for (int i = 0; i < objectKeys.Count; i += maxBatchSize)
             {
                 var batch = objectKeys.Skip(i).Take(maxBatchSize).ToList();
-                
+
                 var deleteRequest = new DeleteObjectsRequest
                 {
                     BucketName = _bucketName,

@@ -294,22 +294,22 @@ public class ApplicationUserTests
     }
 
     #endregion
-    
+
     #region CurrentRole Tests
-    
+
     [Fact]
     public void CurrentRole_WithNoYearTuno_ReturnsNA()
     {
         // Arrange
         var user = new ApplicationUser { YearTuno = null };
-        
+
         // Act
         var role = user.CurrentRole;
-        
+
         // Assert
         role.Should().Be("N/A");
     }
-    
+
     [Fact]
     public void CurrentRole_WithYearAndMonthFor2Years_ReturnsVETERANO()
     {
@@ -321,14 +321,14 @@ public class ApplicationUserTests
             YearTuno = twoYearsAgo.Year,
             MonthTuno = twoYearsAgo.Month
         };
-        
+
         // Act
         var role = user.CurrentRole;
-        
+
         // Assert
         role.Should().Be("VETERANO");
     }
-    
+
     [Fact]
     public void CurrentRole_WithYearAndMonthFor6Years_ReturnsTUNOSSAURO()
     {
@@ -340,14 +340,14 @@ public class ApplicationUserTests
             YearTuno = sixYearsAgo.Year,
             MonthTuno = sixYearsAgo.Month
         };
-        
+
         // Act
         var role = user.CurrentRole;
-        
+
         // Assert
         role.Should().Be("TUNOSSAURO");
     }
-    
+
     [Fact]
     public void CurrentRole_WithLessThan2Years_ReturnsTUNO()
     {
@@ -359,14 +359,14 @@ public class ApplicationUserTests
             YearTuno = oneYearAgo.Year,
             MonthTuno = oneYearAgo.Month
         };
-        
+
         // Act
         var role = user.CurrentRole;
-        
+
         // Assert
         role.Should().Be("TUNO");
     }
-    
+
     [Fact]
     public void CurrentRole_WithOnlyYearNoMonth_DefaultsToJanuary()
     {
@@ -377,14 +377,14 @@ public class ApplicationUserTests
             YearTuno = currentYear - 3,
             MonthTuno = null
         };
-        
+
         // Act
         var role = user.CurrentRole;
-        
+
         // Assert - Should be VETERANO or TUNOSSAURO depending on months
         role.Should().BeOneOf("VETERANO", "TUNOSSAURO");
     }
-    
+
     [Fact]
     public void CurrentRole_WithAlmost2Years_ReturnsTUNO()
     {
@@ -396,13 +396,13 @@ public class ApplicationUserTests
             YearTuno = almostTwoYears.Year,
             MonthTuno = almostTwoYears.Month
         };
-        
+
         // Act
         var role = user.CurrentRole;
-        
+
         // Assert
         role.Should().Be("TUNO");
     }
-    
+
     #endregion
 }

@@ -56,7 +56,7 @@ public class RequestTests
     public void SetDateRange_WithValidEndDate_SetsDateRange()
     {
         // Arrange
-        var request = Request.Create("John", "john@test.com", "123456", "Wedding", 
+        var request = Request.Create("John", "john@test.com", "123456", "Wedding",
             DateTime.Now.AddDays(30), "Venue", "Message");
         var endDate = DateTime.Now.AddDays(32);
 
@@ -73,7 +73,7 @@ public class RequestTests
     {
         // Arrange
         var startDate = DateTime.Now.AddDays(30);
-        var request = Request.Create("John", "john@test.com", "123456", "Wedding", 
+        var request = Request.Create("John", "john@test.com", "123456", "Wedding",
             startDate, "Venue", "Message");
         var endDate = startDate.AddDays(-1);
 
@@ -87,7 +87,7 @@ public class RequestTests
     public void UpdateStatus_ChangesStatus()
     {
         // Arrange
-        var request = Request.Create("John", "john@test.com", "123456", "Wedding", 
+        var request = Request.Create("John", "john@test.com", "123456", "Wedding",
             DateTime.Now.AddDays(30), "Venue", "Message");
 
         // Act
@@ -101,7 +101,7 @@ public class RequestTests
     public void UpdateStatus_CanSetToConfirmed()
     {
         // Arrange
-        var request = Request.Create("John", "john@test.com", "123456", "Wedding", 
+        var request = Request.Create("John", "john@test.com", "123456", "Wedding",
             DateTime.Now.AddDays(30), "Venue", "Message");
 
         // Act
@@ -115,7 +115,7 @@ public class RequestTests
     public void UpdateStatus_CanSetToRejected()
     {
         // Arrange
-        var request = Request.Create("John", "john@test.com", "123456", "Wedding", 
+        var request = Request.Create("John", "john@test.com", "123456", "Wedding",
             DateTime.Now.AddDays(30), "Venue", "Message");
 
         // Act

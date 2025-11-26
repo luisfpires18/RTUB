@@ -42,7 +42,7 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
     public async Task<string?> GetDocumentUrlAsync(string documentPath, bool forceDownload = false)
     {
         ResponseHeaderOverrides? headerOverrides;
-        
+
         if (forceDownload)
         {
             var fileName = Path.GetFileName(documentPath);
@@ -73,9 +73,9 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         {
             // Add environment to prefix (e.g., "docs/" becomes "docs/Production/" or "docs/Development/")
             var environmentPrefix = $"{prefix}{_environment}/";
-            
+
             var commonPrefixes = await ListCommonPrefixesAsync(environmentPrefix);
-            
+
             // Extract folder names from prefixes
             var folders = new List<string>();
             foreach (var commonPrefix in commonPrefixes)
@@ -102,7 +102,7 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
         try
         {
             var documents = new List<DocumentMetadata>();
-            
+
             // Ensure folder path ends with /
             if (!folderPath.EndsWith("/"))
             {
@@ -120,7 +120,7 @@ public class CloudflareDocumentStorageService : BaseCloudflareStorageService<Clo
             do
             {
                 response = await _s3Client.ListObjectsV2Async(request);
-                
+
                 foreach (var obj in response.S3Objects)
                 {
                     // Skip the folder marker itself

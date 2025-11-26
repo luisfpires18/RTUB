@@ -16,11 +16,11 @@ public class MessagingService : IMessagingService
     /// Maximum length of message preview text before truncation
     /// </summary>
     private const int MessagePreviewMaxLength = 100;
-    
+
     /// <summary>
     /// Positions that are allowed to send messages in announcement-only channels
     /// </summary>
-    private static readonly Position[] AnnouncementSenderPositions = 
+    private static readonly Position[] AnnouncementSenderPositions =
     {
         Position.Magister,
         Position.ViceMagister,
@@ -29,7 +29,7 @@ public class MessagingService : IMessagingService
         Position.PresidenteConselhoVeteranos,
         Position.Ensaiador
     };
-    
+
     private readonly IConversationRepository _conversationRepository;
     private readonly IMessageRepository _messageRepository;
     private readonly IConversationUserSettingsRepository _settingsRepository;
@@ -80,31 +80,31 @@ public class MessagingService : IMessagingService
     public async Task<ConversationDto?> GetConversationAsync(int conversationId, string currentUserId)
     {
         var conversation = await _conversationRepository.GetByIdAsync(conversationId);
-        
+
         if (conversation == null || !conversation.HasParticipant(currentUserId))
         {
             return null;
         }
 
         var settings = await _settingsRepository.GetByUserAndConversationAsync(currentUserId, conversationId);
-        var settingsDict = settings != null 
-            ? new Dictionary<int, ConversationUserSettings> { { conversationId, settings } } 
+        var settingsDict = settings != null
+            ? new Dictionary<int, ConversationUserSettings> { { conversationId, settings } }
             : new Dictionary<int, ConversationUserSettings>();
-        
+
         return await MapConversationToDtoAsync(conversation, currentUserId, settingsDict);
     }
 
     public async Task<IEnumerable<MessageDto>> GetConversationMessagesAsync(int conversationId, string currentUserId, int? limit = null)
     {
         var conversation = await _conversationRepository.GetByIdAsync(conversationId);
-        
+
         if (conversation == null || !conversation.HasParticipant(currentUserId))
         {
             return Enumerable.Empty<MessageDto>();
         }
 
         var messages = await _messageRepository.GetConversationMessagesAsync(conversationId, limit);
-        
+
         return messages.Select(m => MapMessageToDto(m, currentUserId)).Reverse();
     }
 
@@ -148,7 +148,7 @@ public class MessagingService : IMessagingService
         if (sender != null && !string.IsNullOrEmpty(messageDto.Body))
         {
             var isReceiverMuted = await _settingsRepository.IsConversationMutedAsync(messageDto.ReceiverId, conversation.Id);
-            
+
             if (!isReceiverMuted)
             {
                 var senderName = !string.IsNullOrEmpty(sender.Nickname) ? sender.Nickname : $"{sender.FirstName} {sender.LastName}";
@@ -210,7 +210,7 @@ public class MessagingService : IMessagingService
     public async Task MarkConversationAsReadAsync(int conversationId, string userId)
     {
         await _messageRepository.MarkConversationAsReadAsync(conversationId, userId);
-        
+
         // Notify other participants that messages were seen
         if (_messagesHubService != null)
         {
@@ -221,7 +221,7 @@ public class MessagingService : IMessagingService
     public async Task MarkConversationAsUnreadAsync(int conversationId, string userId)
     {
         var latestMessage = await _messageRepository.GetLatestMessageAsync(conversationId);
-        
+
         if (latestMessage != null && latestMessage.SenderId != userId)
         {
             latestMessage.MarkAsUnreadBy(userId);
@@ -232,18 +232,18 @@ public class MessagingService : IMessagingService
     public async Task<bool> DeleteConversationAsync(int conversationId, string userId)
     {
         var conversation = await _conversationRepository.GetByIdAsync(conversationId);
-        
+
         if (conversation == null || !conversation.HasParticipant(userId))
         {
             return false;
         }
-        
+
         // Check if user can delete this conversation using the shared helper
         if (!CanUserDeleteConversation(conversation, userId))
         {
             return false;
         }
-        
+
         await _conversationRepository.ArchiveConversationAsync(conversationId);
         return true;
     }
@@ -257,12 +257,12 @@ public class MessagingService : IMessagingService
     {
         var conversation = await _conversationRepository.GetOrCreateOneToOneAsync(userId1, userId2);
         var settings = await _settingsRepository.GetByUserAndConversationAsync(userId1, conversation.Id);
-        var settingsDict = settings != null 
-            ? new Dictionary<int, ConversationUserSettings> { { conversation.Id, settings } } 
+        var settingsDict = settings != null
+            ? new Dictionary<int, ConversationUserSettings> { { conversation.Id, settings } }
             : new Dictionary<int, ConversationUserSettings>();
         return await MapConversationToDtoAsync(conversation, userId1, settingsDict);
     }
-    
+
     public async Task<ConversationDto> CreateGroupConversationAsync(string creatorUserId, string groupName, List<string> participantIds)
     {
         // Ensure creator is in the participants list
@@ -270,7 +270,7 @@ public class MessagingService : IMessagingService
         {
             participantIds.Add(creatorUserId);
         }
-        
+
         var conversation = new Conversation
         {
             Participants = string.Join(";", participantIds),
@@ -280,13 +280,13 @@ public class MessagingService : IMessagingService
             LastMessageAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
-        
+
         await _conversationRepository.AddAsync(conversation);
-        
+
         // Send system message announcing group creation
         var creator = await _userManager.FindByIdAsync(creatorUserId);
         var creatorName = creator?.Nickname ?? $"{creator?.FirstName} {creator?.LastName}";
-        
+
         var systemMessage = new Message
         {
             ConversationId = conversation.Id,
@@ -295,34 +295,34 @@ public class MessagingService : IMessagingService
             IsSystem = true,
             CreatedAt = DateTime.UtcNow
         };
-        
+
         await _messageRepository.AddAsync(systemMessage);
-        
+
         conversation.LastMessageId = systemMessage.Id;
         await _conversationRepository.UpdateAsync(conversation);
-        
+
         return await MapConversationToDtoAsync(conversation, creatorUserId, new Dictionary<int, ConversationUserSettings>());
     }
-    
+
     public async Task<MessageDto> SendGroupMessageAsync(string senderId, int conversationId, string body)
     {
         var conversation = await _conversationRepository.GetByIdAsync(conversationId);
-        
+
         if (conversation == null)
         {
             throw new InvalidOperationException("Conversation not found");
         }
-        
+
         if (!conversation.IsGroup)
         {
             throw new InvalidOperationException("Conversation is not a group conversation");
         }
-        
+
         if (!conversation.HasParticipant(senderId))
         {
             throw new InvalidOperationException("User is not a participant in this group");
         }
-        
+
         // Check if user can send messages in announcement-only channels
         if (conversation.IsAnnouncementOnly)
         {
@@ -332,7 +332,7 @@ public class MessagingService : IMessagingService
                 throw new InvalidOperationException("User does not have permission to send messages in this announcement channel");
             }
         }
-        
+
         // Create message
         var message = new Message
         {
@@ -342,17 +342,17 @@ public class MessagingService : IMessagingService
             IsSystem = false,
             CreatedAt = DateTime.UtcNow
         };
-        
+
         await _messageRepository.AddAsync(message);
-        
+
         // Update conversation
         conversation.LastMessageAt = message.CreatedAt;
         conversation.LastMessageId = message.Id;
         await _conversationRepository.UpdateAsync(conversation);
-        
+
         // Load sender for DTO mapping
         message.Sender = await _userManager.FindByIdAsync(senderId);
-        
+
         // Create DTO for broadcasting
         var messageDto = MapMessageToDto(message, senderId);
 
@@ -361,7 +361,7 @@ public class MessagingService : IMessagingService
         {
             await _messagesHubService.BroadcastMessageAsync(conversationId, messageDto);
         }
-        
+
         // Send push notifications to all other participants (unless they have muted)
         var sender = message.Sender;
         if (sender != null && !string.IsNullOrEmpty(body))
@@ -369,14 +369,14 @@ public class MessagingService : IMessagingService
             var senderName = !string.IsNullOrEmpty(sender.Nickname) ? sender.Nickname : $"{sender.FirstName} {sender.LastName}";
             var messagePreview = body.Length > MessagePreviewMaxLength ? body.Substring(0, MessagePreviewMaxLength) + "..." : body;
             var groupName = conversation.Title ?? "Grupo";
-            
+
             var otherParticipants = conversation.GetParticipantIds().Where(id => id != senderId);
-            
+
             foreach (var participantId in otherParticipants)
             {
                 // Check if participant has muted this conversation
                 var isMuted = await _settingsRepository.IsConversationMutedAsync(participantId, conversationId);
-                
+
                 if (!isMuted)
                 {
                     // Use SendPushOnlyAsync to avoid creating system messages - the group message itself is already in the conversation
@@ -391,14 +391,14 @@ public class MessagingService : IMessagingService
                 }
             }
         }
-        
+
         return messageDto;
     }
-    
+
     public async Task<ConversationDto> GetOrCreateSystemGroupAsync(string groupTitle, List<string> participantIds)
     {
         var conversation = await _conversationRepository.GetGroupByTitleAsync(groupTitle);
-        
+
         if (conversation == null)
         {
             conversation = new Conversation
@@ -410,28 +410,28 @@ public class MessagingService : IMessagingService
                 LastMessageAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow
             };
-            
+
             await _conversationRepository.AddAsync(conversation);
         }
-        
+
         return await MapConversationToDtoAsync(conversation, participantIds.FirstOrDefault() ?? string.Empty, new Dictionary<int, ConversationUserSettings>());
     }
-    
+
     public async Task UpdateGroupParticipantsAsync(int conversationId, List<string> participantIds)
     {
         var conversation = await _conversationRepository.GetByIdAsync(conversationId);
-        
+
         if (conversation == null || !conversation.IsGroup)
         {
             throw new InvalidOperationException("Conversation not found or not a group");
         }
-        
+
         conversation.SetParticipants(participantIds);
         conversation.UpdatedAt = DateTime.UtcNow;
-        
+
         await _conversationRepository.UpdateAsync(conversation);
     }
-    
+
     public async Task<bool> ToggleMuteAsync(int conversationId, string userId)
     {
         var settings = await _settingsRepository.GetOrCreateAsync(userId, conversationId);
@@ -440,7 +440,7 @@ public class MessagingService : IMessagingService
         await _settingsRepository.UpdateAsync(settings);
         return settings.IsMuted;
     }
-    
+
     public async Task<bool> TogglePinAsync(int conversationId, string userId)
     {
         var settings = await _settingsRepository.GetOrCreateAsync(userId, conversationId);
@@ -449,7 +449,7 @@ public class MessagingService : IMessagingService
         await _settingsRepository.UpdateAsync(settings);
         return settings.IsPinned;
     }
-    
+
     public async Task<bool> IsConversationMutedAsync(int conversationId, string userId)
     {
         return await _settingsRepository.IsConversationMutedAsync(userId, conversationId);
@@ -459,7 +459,7 @@ public class MessagingService : IMessagingService
     {
         // Get settings for this conversation from the provided dictionary
         userSettings.TryGetValue(conversation.Id, out var settings);
-        
+
         // Determine if user can send messages
         var canSendMessage = true;
         if (conversation.IsSystemConversation)
@@ -470,10 +470,10 @@ public class MessagingService : IMessagingService
         {
             canSendMessage = await CanUserSendMessageInAnnouncementChannelAsync(currentUserId);
         }
-        
+
         // Determine if user can delete this conversation
         var canDelete = CanUserDeleteConversation(conversation, currentUserId);
-        
+
         var dto = new ConversationDto
         {
             Id = conversation.Id,
@@ -502,8 +502,8 @@ public class MessagingService : IMessagingService
 
             if (lastMessage != null)
             {
-                dto.LastMessagePreview = lastMessage.Body.Length > MessagePreviewMaxLength 
-                    ? lastMessage.Body.Substring(0, MessagePreviewMaxLength) + "..." 
+                dto.LastMessagePreview = lastMessage.Body.Length > MessagePreviewMaxLength
+                    ? lastMessage.Body.Substring(0, MessagePreviewMaxLength) + "..."
                     : lastMessage.Body;
                 dto.LastMessageSenderId = lastMessage.SenderId;
             }
@@ -572,41 +572,41 @@ public class MessagingService : IMessagingService
 
         return dto;
     }
-    
+
     public async Task<bool> CanUserSendMessageAsync(int conversationId, string userId)
     {
         var conversation = await _conversationRepository.GetByIdAsync(conversationId);
-        
+
         if (conversation == null)
         {
             return false;
         }
-        
+
         // System conversations are read-only
         if (conversation.IsSystemConversation)
         {
             return false;
         }
-        
+
         // User must be a participant
         if (!conversation.HasParticipant(userId))
         {
             return false;
         }
-        
+
         // Announcement-only channels require specific positions
         if (conversation.IsAnnouncementOnly)
         {
             return await CanUserSendMessageInAnnouncementChannelAsync(userId);
         }
-        
+
         return true;
     }
-    
+
     public async Task<ConversationDto> GetOrCreateAnnouncementGroupAsync(string groupTitle, List<string> participantIds)
     {
         var conversation = await _conversationRepository.GetGroupByTitleAsync(groupTitle);
-        
+
         if (conversation == null)
         {
             conversation = new Conversation
@@ -619,13 +619,13 @@ public class MessagingService : IMessagingService
                 LastMessageAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow
             };
-            
+
             await _conversationRepository.AddAsync(conversation);
         }
-        
+
         return await MapConversationToDtoAsync(conversation, participantIds.FirstOrDefault() ?? string.Empty, new Dictionary<int, ConversationUserSettings>());
     }
-    
+
     /// <summary>
     /// Checks if a user has one of the positions required to send messages in announcement channels
     /// </summary>
@@ -635,17 +635,17 @@ public class MessagingService : IMessagingService
         var now = DateTime.UtcNow;
         var startYear = now.Month >= 9 ? now.Year : now.Year - 1;
         var endYear = startYear + 1;
-        
+
         // Get user's current role assignments
         var roleAssignments = await _roleAssignmentRepository.GetByUserIdAsync(userId);
-        
+
         // Check if user has any of the allowed positions in the current fiscal year
-        return roleAssignments.Any(ra => 
-            ra.StartYear == startYear && 
-            ra.EndYear == endYear && 
+        return roleAssignments.Any(ra =>
+            ra.StartYear == startYear &&
+            ra.EndYear == endYear &&
             AnnouncementSenderPositions.Contains(ra.Position));
     }
-    
+
     /// <summary>
     /// Checks if a user can delete a conversation based on the deletion rules
     /// </summary>
@@ -656,19 +656,19 @@ public class MessagingService : IMessagingService
         {
             return false;
         }
-        
+
         // System groups (CreatedByUserId = "system") cannot be deleted by anyone
         if (conversation.IsGroup && conversation.CreatedByUserId == "system")
         {
             return false;
         }
-        
+
         // Group conversations can only be deleted by their creator
         if (conversation.IsGroup && conversation.CreatedByUserId != userId)
         {
             return false;
         }
-        
+
         // Regular 1:1 conversations can be deleted by any participant
         return true;
     }

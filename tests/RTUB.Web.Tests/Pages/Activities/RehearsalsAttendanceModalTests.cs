@@ -20,7 +20,7 @@ public class RehearsalsAttendanceModalTests
         var categoryBadgeOrder = 2;
 
         // Assert
-        statusBadgeOrder.Should().BeLessThan(categoryBadgeOrder, 
+        statusBadgeOrder.Should().BeLessThan(categoryBadgeOrder,
             "Status badge (PENDENTE/APROVADO) should appear before category badge (TUNO/CALOIRO)");
     }
 
@@ -32,7 +32,7 @@ public class RehearsalsAttendanceModalTests
         var leitaoBadgeOrder = 2;
 
         // Assert
-        statusBadgeOrder.Should().BeLessThan(leitaoBadgeOrder, 
+        statusBadgeOrder.Should().BeLessThan(leitaoBadgeOrder,
             "Status badge should appear before Leitão category badge");
     }
 
@@ -134,7 +134,7 @@ public class RehearsalsAttendanceModalTests
         var mainParticipantsCount = totalAttendances - leitoesCount;
 
         // Assert
-        (mainParticipantsCount + leitoesCount).Should().Be(totalAttendances, 
+        (mainParticipantsCount + leitoesCount).Should().Be(totalAttendances,
             "Main participants and Leitões should sum to total attendances");
         mainParticipantsCount.Should().Be(7, "Non-Leitão members should be in main participants");
         leitoesCount.Should().Be(3, "Leitão members should be in separate section");
@@ -162,7 +162,7 @@ public class RehearsalsAttendanceModalTests
         var leitoesPage = 2;
 
         // Assert
-        mainParticipantsPage.Should().NotBe(leitoesPage, 
+        mainParticipantsPage.Should().NotBe(leitoesPage,
             "Main participants and Leitões should have independent pagination");
     }
 

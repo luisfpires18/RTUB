@@ -94,7 +94,7 @@ public class LogisticsBoardService : ILogisticsBoardService
             .Include(b => b.Lists)
             .ThenInclude(l => l.Cards)
             .FirstOrDefaultAsync(b => b.Id == id);
-            
+
         if (board == null)
             throw new InvalidOperationException($"Quadro com ID {id} não encontrado");
 
@@ -107,7 +107,7 @@ public class LogisticsBoardService : ILogisticsBoardService
             }
             await _listRepository.DeleteAsync(list);
         }
-        
+
         await _boardRepository.DeleteAsync(board);
     }
 }

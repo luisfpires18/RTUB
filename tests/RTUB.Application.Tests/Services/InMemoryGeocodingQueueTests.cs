@@ -64,7 +64,7 @@ public class InMemoryGeocodingQueueTests
     {
         // Arrange
         var queue = new InMemoryGeocodingQueue();
-        
+
         // Enqueue 5 cities
         for (int i = 0; i < 5; i++)
         {

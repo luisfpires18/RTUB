@@ -34,7 +34,7 @@ public class EventTypeTests
     }
 
     [Theory]
-    [InlineData("Festival", EventType.Festival)]    
+    [InlineData("Festival", EventType.Festival)]
     [InlineData("Atuacao", EventType.Atuacao)]
     [InlineData("Casamento", EventType.Casamento)]
     [InlineData("Serenata", EventType.Serenata)]

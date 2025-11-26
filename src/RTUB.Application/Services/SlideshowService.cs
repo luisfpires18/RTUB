@@ -56,7 +56,7 @@ public class SlideshowService : ISlideshowService
             throw new EntityNotFoundException(nameof(Slideshow), id);
 
         slideshow.UpdateDetails(title, description, order, intervalMs);
-        
+
         // Update active state
         if (isActive && !slideshow.IsActive)
         {
@@ -66,7 +66,7 @@ public class SlideshowService : ISlideshowService
         {
             slideshow.Deactivate();
         }
-        
+
         await _slideshowRepository.UpdateAsync(slideshow);
     }
 
@@ -78,7 +78,7 @@ public class SlideshowService : ISlideshowService
 
         // Update slideshow details
         slideshow.UpdateDetails(title, description, order, intervalMs);
-        
+
         // Update active state
         if (isActive && !slideshow.IsActive)
         {
@@ -99,7 +99,7 @@ public class SlideshowService : ISlideshowService
         var normalizedName = S3KeyNormalizer.NormalizeForS3Key(title);
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", normalizedName);
         slideshow.SetImage(imageUrl);
-        
+
         await _slideshowRepository.UpdateAsync(slideshow);
     }
 
@@ -119,7 +119,7 @@ public class SlideshowService : ISlideshowService
         var normalizedName = S3KeyNormalizer.NormalizeForS3Key(slideshow.Title);
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "slideshows", normalizedName);
         slideshow.SetImage(imageUrl);
-        
+
         await _slideshowRepository.UpdateAsync(slideshow);
     }
 

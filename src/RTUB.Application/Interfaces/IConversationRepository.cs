@@ -36,12 +36,12 @@ public interface IConversationRepository : IRepository<Conversation>
     /// Archives a conversation for a user (soft delete)
     /// </summary>
     Task ArchiveConversationAsync(int conversationId);
-    
+
     /// <summary>
     /// Gets a group conversation by its title (for system groups)
     /// </summary>
     Task<Conversation?> GetGroupByTitleAsync(string title);
-    
+
     /// <summary>
     /// Gets all group conversations created by system
     /// </summary>

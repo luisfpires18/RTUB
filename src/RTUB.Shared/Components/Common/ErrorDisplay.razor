@@ -71,6 +71,22 @@
             return false;
         }
     }
+    
+    private bool _previousHasErrors = false;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when error state changes
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        var currentHasErrors = HasErrors;
+        if (currentHasErrors != _previousHasErrors)
+        {
+            _previousHasErrors = currentHasErrors;
+            return true;
+        }
+        return currentHasErrors; // Always render if there are errors (content may have changed)
+    }
 
     protected override void OnInitialized()
     {
@@ -78,6 +94,7 @@
         {
             EditContext.OnValidationStateChanged += OnValidationStateChanged;
         }
+        _previousHasErrors = HasErrors;
     }
 
     private void OnValidationStateChanged(object? sender, ValidationStateChangedEventArgs e)

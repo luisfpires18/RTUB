@@ -24,7 +24,7 @@ public class MentionServiceTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
-        
+
         // Mock UserManager
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(

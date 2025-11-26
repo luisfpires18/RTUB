@@ -105,7 +105,7 @@ public class RolesPageTests
     {
         // This test verifies the business rule that Leitão members
         // should not appear in the assignment list
-        
+
         // Arrange
         var categories = new[] { MemberCategory.Leitao };
 

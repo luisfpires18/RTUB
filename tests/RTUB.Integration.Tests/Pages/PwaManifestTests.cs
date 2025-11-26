@@ -37,7 +37,7 @@ public class PwaManifestTests : IntegrationTestBase
         var response = await _client.GetAsync("/manifest.webmanifest");
 
         // Assert
-        response.Content.Headers.ContentType?.MediaType.Should().Be("application/manifest+json", 
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/manifest+json",
             "manifest.webmanifest must use application/manifest+json MIME type for Chrome/Android detection");
     }
 
@@ -77,7 +77,7 @@ public class PwaManifestTests : IntegrationTestBase
 
         // Assert
         response.IsSuccessStatusCode.Should().BeTrue();
-        content.Should().Contain("<link rel=\"manifest\" href=\"/manifest.webmanifest\"", 
+        content.Should().Contain("<link rel=\"manifest\" href=\"/manifest.webmanifest\"",
             "home page should contain manifest link in head for Chrome/Android detection");
     }
 
@@ -123,7 +123,7 @@ public class PwaManifestTests : IntegrationTestBase
 
         // Assert
         response.IsSuccessStatusCode.Should().BeTrue();
-        content.Should().Contain("apple-touch-icon", 
+        content.Should().Contain("apple-touch-icon",
             "home page should still contain Apple touch icon link (iOS compatibility maintained)");
     }
 }

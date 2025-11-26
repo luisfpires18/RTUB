@@ -50,13 +50,13 @@ public class AuditLogService : IAuditLogService
                 a => a.UserName == null || a.UserName != excludeUserName)
             .WhereIf(!string.IsNullOrWhiteSpace(entityType),
                 a => a.EntityType == entityType)
-            .WhereIf(!string.IsNullOrWhiteSpace(action), 
+            .WhereIf(!string.IsNullOrWhiteSpace(action),
                 a => a.Action == action)
-            .WhereIf(fromDate.HasValue, 
+            .WhereIf(fromDate.HasValue,
                 a => a.Timestamp >= fromDate!.Value)
-            .WhereIf(toDate.HasValue, 
+            .WhereIf(toDate.HasValue,
                 a => a.Timestamp <= toDate!.Value)
-            .WhereIf(criticalOnly.HasValue && criticalOnly.Value, 
+            .WhereIf(criticalOnly.HasValue && criticalOnly.Value,
                 a => a.IsCriticalAction);
     }
 
@@ -207,7 +207,7 @@ public class AuditLogService : IAuditLogService
             .OrderByDescending(a => a.Timestamp)
             .ToListAsync();
     }
-    
+
     public async Task<(IEnumerable<AuditLog> logs, int totalCount)> GetPagedWithCountAsync(
         string? userName = null,
         string? excludeUserName = null,
@@ -231,12 +231,12 @@ public class AuditLogService : IAuditLogService
 
         // Get total count
         var totalCount = await query.CountAsync();
-        
+
         // Get paged data
         var logs = await query
             .OrderByDescending(a => a.Timestamp)
             .PaginateAsync(page, pageSize);
-        
+
         return (logs, totalCount);
     }
 }

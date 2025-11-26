@@ -11,7 +11,7 @@ namespace RTUB.Integration.Tests.Workflows;
 /// </summary>
 public class NavigationWorkflowTests : IntegrationTestBase
 {
-    
+
     private readonly HttpClient _client;
 
     public NavigationWorkflowTests(TestWebApplicationFactory factory) : base(factory)

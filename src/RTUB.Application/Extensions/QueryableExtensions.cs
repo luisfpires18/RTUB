@@ -20,7 +20,7 @@ public static class QueryableExtensions
     {
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
-        
+
         return query
             .Skip((page - 1) * pageSize)
             .Take(pageSize);

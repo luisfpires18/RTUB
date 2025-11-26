@@ -93,6 +93,8 @@
     [Parameter]
     public EventCallback OnClose { get; set; }
 
+    private bool _previousShowState = false;
+    
     private string SizeClass => Size switch
     {
         ModalSize.Small => "modal-sm",
@@ -100,6 +102,20 @@
         ModalSize.ExtraLarge => "modal-xl",
         _ => ""
     };
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when Show state changes
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (Show != _previousShowState)
+        {
+            _previousShowState = Show;
+            return true;
+        }
+        // Only render if modal is visible (Show == true)
+        return Show;
+    }
 
     private async Task Close()
     {

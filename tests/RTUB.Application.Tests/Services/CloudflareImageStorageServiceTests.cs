@@ -25,7 +25,7 @@ public class CloudflareImageStorageServiceTests
         _mockConfiguration = new Mock<IConfiguration>();
         _mockS3Client = new Mock<IAmazonS3>();
         _mockHostEnvironment = new Mock<IHostEnvironment>();
-        
+
         // Setup default environment name
         _mockHostEnvironment.Setup(e => e.EnvironmentName).Returns("Development");
     }

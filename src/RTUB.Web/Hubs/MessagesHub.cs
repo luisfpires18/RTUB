@@ -52,21 +52,21 @@ public class MessagesHub : Hub<IMessagesHubClient>
         var conversation = await _conversationRepository.GetByIdAsync(conversationId);
         if (conversation == null)
         {
-            _logger.LogWarning("User {UserId} attempted to join non-existent conversation {ConversationId}", 
+            _logger.LogWarning("User {UserId} attempted to join non-existent conversation {ConversationId}",
                 userId, conversationId);
             return;
         }
 
         if (!conversation.HasParticipant(userId))
         {
-            _logger.LogWarning("User {UserId} attempted to join conversation {ConversationId} without being a participant", 
+            _logger.LogWarning("User {UserId} attempted to join conversation {ConversationId} without being a participant",
                 userId, conversationId);
             return;
         }
 
         var groupName = $"conversation-{conversationId}";
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-        
+
         _logger.LogDebug("User {UserId} joined conversation {ConversationId}", userId, conversationId);
     }
 
@@ -79,7 +79,7 @@ public class MessagesHub : Hub<IMessagesHubClient>
         var userId = GetCurrentUserId();
         var groupName = $"conversation-{conversationId}";
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
-        
+
         _logger.LogDebug("User {UserId} left conversation {ConversationId}", userId, conversationId);
     }
 
@@ -105,7 +105,7 @@ public class MessagesHub : Hub<IMessagesHubClient>
         var groupName = $"conversation-{conversationId}";
         // Send to all in group except the sender
         await Clients.OthersInGroup(groupName).TypingStarted(conversationId, userId);
-        
+
         // Also notify server-side Blazor components
         await _notificationService.NotifyTypingStartedAsync(conversationId, userId);
     }
@@ -125,7 +125,7 @@ public class MessagesHub : Hub<IMessagesHubClient>
         var groupName = $"conversation-{conversationId}";
         // Send to all in group except the sender
         await Clients.OthersInGroup(groupName).TypingStopped(conversationId, userId);
-        
+
         // Also notify server-side Blazor components
         await _notificationService.NotifyTypingStoppedAsync(conversationId, userId);
     }
@@ -133,7 +133,7 @@ public class MessagesHub : Hub<IMessagesHubClient>
     public override async Task OnConnectedAsync()
     {
         var userId = GetCurrentUserId();
-        _logger.LogDebug("User {UserId} connected to MessagesHub with ConnectionId {ConnectionId}", 
+        _logger.LogDebug("User {UserId} connected to MessagesHub with ConnectionId {ConnectionId}",
             userId, Context.ConnectionId);
         await base.OnConnectedAsync();
     }

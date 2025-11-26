@@ -41,9 +41,9 @@ namespace RTUB.Migrations
             ");
 
             migrationBuilder.Sql(@"DROP TABLE ""Transactions"";");
-            
+
             migrationBuilder.Sql(@"ALTER TABLE ""Transactions_new"" RENAME TO ""Transactions"";");
-            
+
             migrationBuilder.Sql(@"CREATE INDEX ""IX_Transactions_ActivityId"" ON ""Transactions"" (""ActivityId"");");
 
             // Manually rebuild Instruments table to remove PurchaseDate and PurchasePrice
@@ -80,7 +80,7 @@ namespace RTUB.Migrations
             ");
 
             migrationBuilder.Sql(@"DROP TABLE ""Instruments"";");
-            
+
             migrationBuilder.Sql(@"ALTER TABLE ""Instruments_new"" RENAME TO ""Instruments"";");
 
             // Manually rebuild Enrollments table to remove Attended
@@ -107,9 +107,9 @@ namespace RTUB.Migrations
             ");
 
             migrationBuilder.Sql(@"DROP TABLE ""Enrollments"";");
-            
+
             migrationBuilder.Sql(@"ALTER TABLE ""Enrollments_new"" RENAME TO ""Enrollments"";");
-            
+
             migrationBuilder.Sql(@"CREATE INDEX ""IX_Enrollments_EventId"" ON ""Enrollments"" (""EventId"");");
             migrationBuilder.Sql(@"CREATE INDEX ""IX_Enrollments_UserId"" ON ""Enrollments"" (""UserId"");");
         }
@@ -148,9 +148,9 @@ namespace RTUB.Migrations
             ");
 
             migrationBuilder.Sql(@"DROP TABLE ""Transactions"";");
-            
+
             migrationBuilder.Sql(@"ALTER TABLE ""Transactions_old"" RENAME TO ""Transactions"";");
-            
+
             migrationBuilder.Sql(@"CREATE INDEX ""IX_Transactions_ActivityId"" ON ""Transactions"" (""ActivityId"");");
 
             // Manually rebuild Instruments table to add PurchaseDate and PurchasePrice back
@@ -189,7 +189,7 @@ namespace RTUB.Migrations
             ");
 
             migrationBuilder.Sql(@"DROP TABLE ""Instruments"";");
-            
+
             migrationBuilder.Sql(@"ALTER TABLE ""Instruments_old"" RENAME TO ""Instruments"";");
 
             // Manually rebuild Enrollments table to add Attended back
@@ -217,9 +217,9 @@ namespace RTUB.Migrations
             ");
 
             migrationBuilder.Sql(@"DROP TABLE ""Enrollments"";");
-            
+
             migrationBuilder.Sql(@"ALTER TABLE ""Enrollments_old"" RENAME TO ""Enrollments"";");
-            
+
             migrationBuilder.Sql(@"CREATE INDEX ""IX_Enrollments_EventId"" ON ""Enrollments"" (""EventId"");");
             migrationBuilder.Sql(@"CREATE INDEX ""IX_Enrollments_UserId"" ON ""Enrollments"" (""UserId"");");
         }

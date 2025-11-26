@@ -23,4 +23,21 @@
     /// </summary>
     [Parameter]
     public string AdditionalClasses { get; set; } = "";
+    
+    private MemberCategory _previousCategory;
+    private string _previousAdditionalClasses = "";
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when parameters change
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (Category != _previousCategory || AdditionalClasses != _previousAdditionalClasses)
+        {
+            _previousCategory = Category;
+            _previousAdditionalClasses = AdditionalClasses;
+            return true;
+        }
+        return false;
+    }
 }

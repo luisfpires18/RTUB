@@ -40,7 +40,7 @@ public interface IEmailNotificationService
     /// <param name="location">The location</param>
     /// <param name="message">Additional information</param>
     /// <param name="createdAt">When the request was created</param>
-    Task SendNewRequestNotificationAsync(int requestId, string requestName, string requestEmail, string phone, 
+    Task SendNewRequestNotificationAsync(int requestId, string requestName, string requestEmail, string phone,
         string eventType, DateTime preferredDate, DateTime? preferredEndDate, string location, string message, DateTime createdAt);
 
     /// <summary>
@@ -68,11 +68,11 @@ public interface IEmailNotificationService
     /// <param name="progress">Optional progress reporter for tracking email send progress</param>
     /// <returns>Tuple with success flag and count of emails sent</returns>
     Task<(bool success, int count, string? errorMessage)> SendEventNotificationAsync(
-        int eventId, 
-        string eventTitle, 
-        DateTime eventDate, 
-        string eventLocation, 
-        string eventLink, 
+        int eventId,
+        string eventTitle,
+        DateTime eventDate,
+        string eventLocation,
+        string eventLink,
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null,
         string eventDescription = "",
@@ -96,7 +96,7 @@ public interface IEmailNotificationService
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)> recipientData,
         IProgress<EmailSendProgress>? progress = null);
-    
+
     /// <summary>
     /// Sends event cancellation notification emails to subscribed members
     /// </summary>
@@ -122,7 +122,7 @@ public interface IEmailNotificationService
         Dictionary<string, (string nickname, string fullName)>? recipientData = null,
         DateTime? endDate = null,
         IProgress<EmailSendProgress>? progress = null);
-    
+
     /// <summary>
     /// Sends event reminder notification emails to subscribed members
     /// </summary>
@@ -148,7 +148,7 @@ public interface IEmailNotificationService
         string eventDescription = "",
         DateTime? endDate = null,
         IProgress<EmailSendProgress>? progress = null);
-    
+
     /// <summary>
     /// Sends announcement emails to all subscribed members
     /// </summary>
@@ -182,7 +182,7 @@ public interface IEmailNotificationService
         List<string> recipientEmails,
         Dictionary<string, (string nickname, string fullName)>? recipientData = null,
         IProgress<EmailSendProgress>? progress = null);
-    
+
     /// <summary>
     /// Sends a notification email when a user's username has been changed
     /// </summary>

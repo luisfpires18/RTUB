@@ -24,7 +24,7 @@ public class MeetingService : IMeetingService
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public MeetingService(
-        IMeetingRepository meetingRepository, 
+        IMeetingRepository meetingRepository,
         ApplicationDbContext context,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
@@ -42,21 +42,21 @@ public class MeetingService : IMeetingService
         var query = _context.Meetings
             .AsNoTracking()
             .AsQueryable();
-        
+
         // Apply visibility filtering for Veterano meetings
         query = await ApplyVeteranoFilterAsync(query, userId);
-        
+
         // Apply search filter using WhereIf extension
         query = query.WhereIf(!string.IsNullOrWhiteSpace(searchTerm),
-            m => m.Title.Contains(searchTerm!, StringComparison.OrdinalIgnoreCase) || 
+            m => m.Title.Contains(searchTerm!, StringComparison.OrdinalIgnoreCase) ||
                  m.Statement.Contains(searchTerm!, StringComparison.OrdinalIgnoreCase));
-        
+
         // Order by date - upcoming first, then past
         var today = DateTime.UtcNow.Date;
         query = query.OrderBy(m => m.Date >= today ? 0 : 1)
                      .ThenBy(m => m.Date >= today ? m.Date : DateTime.MaxValue)
                      .ThenByDescending(m => m.Date < today ? m.Date : DateTime.MinValue);
-        
+
         // Apply pagination using extension method
         return await query
             .Include(m => m.Organizer)
@@ -69,13 +69,13 @@ public class MeetingService : IMeetingService
             .AsNoTracking()
             .Include(m => m.Organizer)
             .FirstOrDefaultAsync(m => m.Id == id);
-        
+
         if (meeting == null)
             return null;
-        
+
         // Load user once and cache for visibility checks
         ApplicationUser? user = null;
-        
+
         // Check if user has permission to view this meeting
         if (meeting.Type == MeetingType.ConselhoVeteranos)
         {
@@ -83,21 +83,21 @@ public class MeetingService : IMeetingService
                 .AsNoTracking()
                 .Where(u => u.Id == userId)
                 .FirstOrDefaultAsync();
-            
+
             if (user == null)
                 return null;
-                
+
             // Use CurrentRole property instead of Categories to avoid JSON deserialization issues
             var role = user.CurrentRole;
             var hasMagisterPosition = user.Positions != null && user.Positions.Contains(Position.Magister);
-            
+
             // Allow CV meetings for Veterans, Tunossauros, and Magister position holders
             if (role != "VETERANO" && role != "TUNOSSAURO" && !hasMagisterPosition)
                 return null;
         }
-        
+
         // Check if user is Leitão trying to access Assembleia Geral meetings
-        if (meeting.Type == MeetingType.AssembleiaGeralOrdinaria || 
+        if (meeting.Type == MeetingType.AssembleiaGeralOrdinaria ||
             meeting.Type == MeetingType.AssembleiaGeralExtraordinaria)
         {
             // Reuse cached user if already loaded
@@ -108,27 +108,27 @@ public class MeetingService : IMeetingService
                     .Where(u => u.Id == userId)
                     .FirstOrDefaultAsync();
             }
-            
+
             if (user != null && user.IsLeitao())
                 return null;
         }
-        
+
         return meeting;
     }
 
     public async Task<Meeting> CreateMeetingAsync(Meeting meeting)
     {
         var createdMeeting = await _meetingRepository.AddAsync(meeting);
-        
+
         // Send push notification to appropriate users based on meeting type
         try
         {
             var baseUrl = GetBaseUrl();
             var notification = _pushNotificationFactory.CreateMeetingNotification(createdMeeting, baseUrl);
-            
+
             // Get users based on meeting type
             var eligibleUserIds = await GetEligibleUsersForMeeting(createdMeeting.Type);
-            
+
             // Send to each eligible user
             foreach (var userId in eligibleUserIds)
             {
@@ -140,7 +140,7 @@ public class MeetingService : IMeetingService
             // Log error but don't fail the operation
             // Notification is secondary to the main operation
         }
-        
+
         return createdMeeting;
     }
 
@@ -149,7 +149,7 @@ public class MeetingService : IMeetingService
         var existingMeeting = await _meetingRepository.GetByIdAsync(meeting.Id);
         if (existingMeeting == null)
             throw new EntityNotFoundException(nameof(Meeting), meeting.Id);
-        
+
         existingMeeting.Type = meeting.Type;
         existingMeeting.Title = meeting.Title;
         existingMeeting.Date = meeting.Date;
@@ -158,7 +158,7 @@ public class MeetingService : IMeetingService
         existingMeeting.OrganizerUserId = meeting.OrganizerUserId;
         existingMeeting.IsCancelled = meeting.IsCancelled;
         existingMeeting.CancellationReason = meeting.CancellationReason;
-        
+
         await _meetingRepository.UpdateAsync(existingMeeting);
     }
 
@@ -167,7 +167,7 @@ public class MeetingService : IMeetingService
         var meeting = await _meetingRepository.GetByIdAsync(id);
         if (meeting == null)
             throw new EntityNotFoundException(nameof(Meeting), id);
-        
+
         await _meetingRepository.DeleteAsync(meeting);
     }
 
@@ -176,18 +176,18 @@ public class MeetingService : IMeetingService
         var query = _context.Meetings
             .AsNoTracking()
             .AsQueryable();
-        
+
         // Apply visibility filtering for Veterano meetings
         query = await ApplyVeteranoFilterAsync(query, userId);
-        
+
         // Apply search filter
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            query = query.Where(m => 
-                m.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
+            query = query.Where(m =>
+                m.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                 m.Statement.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
         }
-        
+
         return await query.CountAsync();
     }
 
@@ -201,7 +201,7 @@ public class MeetingService : IMeetingService
         var user = await _context.Users
             .Where(u => u.Id == userId)
             .FirstOrDefaultAsync();
-        
+
         // If user is not found, filter out CV meetings
         // If user is Veterano/Tunossauro OR has Magister position, they can see CV meetings
         if (user == null)
@@ -212,22 +212,22 @@ public class MeetingService : IMeetingService
         {
             var role = user.CurrentRole;
             var hasMagisterPosition = user.Positions != null && user.Positions.Contains(Position.Magister);
-            
+
             // Allow CV meetings for Veterans, Tunossauros, and Magister position holders
             if (role != "VETERANO" && role != "TUNOSSAURO" && !hasMagisterPosition)
             {
                 query = query.Where(m => m.Type != MeetingType.ConselhoVeteranos);
             }
-            
+
             // Filter out Assembleia Geral meetings if user is Leitão (not an associated member)
             if (user.IsLeitao())
             {
-                query = query.Where(m => 
-                    m.Type != MeetingType.AssembleiaGeralOrdinaria && 
+                query = query.Where(m =>
+                    m.Type != MeetingType.AssembleiaGeralOrdinaria &&
                     m.Type != MeetingType.AssembleiaGeralExtraordinaria);
             }
         }
-        
+
         return query;
     }
 

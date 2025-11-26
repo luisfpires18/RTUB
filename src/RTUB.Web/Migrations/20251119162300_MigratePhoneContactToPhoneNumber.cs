@@ -17,7 +17,7 @@ namespace RTUB.Migrations
                   WHERE (PhoneNumber IS NULL OR PhoneNumber = '') 
                     AND PhoneContact IS NOT NULL 
                     AND PhoneContact != ''");
-            
+
             // Drop the PhoneContact column
             migrationBuilder.DropColumn(
                 name: "PhoneContact",
@@ -34,7 +34,7 @@ namespace RTUB.Migrations
                 type: "TEXT",
                 maxLength: 80,
                 nullable: true);
-            
+
             // Copy data back from PhoneNumber to PhoneContact
             migrationBuilder.Sql(
                 @"UPDATE AspNetUsers 

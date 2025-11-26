@@ -8,7 +8,7 @@ public class SongYouTubeUrl : BaseEntity
     public int SongId { get; set; }
     public string Url { get; set; } = string.Empty;
     public string? Description { get; set; }
-    
+
     // Navigation property
     public virtual Song? Song { get; set; }
 

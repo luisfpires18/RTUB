@@ -21,9 +21,9 @@ public class MembersPageGridTests
         // Desktop: 4-6 columns (auto-fill, minmax(200px, 1fr))
         // Tablet: 3 columns
         // Mobile: 1-2 columns (auto-fill, minmax(150px, 1fr))
-        
+
         var expectedGridClass = "avatar-card-grid";
-        expectedGridClass.Should().Be("avatar-card-grid", 
+        expectedGridClass.Should().Be("avatar-card-grid",
             "Members and Leitões grids should use avatar-card-grid class for responsive layout");
     }
 
@@ -34,10 +34,10 @@ public class MembersPageGridTests
         // Desktop (>= 1024px): grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))
         // Desktop large (>= 1400px): grid-template-columns: repeat(auto-fill, minmax(220px, 1fr))
         // This gives 4-6 columns depending on screen width
-        
+
         var minColumns = 4;
         var maxColumns = 6;
-        
+
         minColumns.Should().Be(4, "Desktop should display at least 4 columns");
         maxColumns.Should().Be(6, "Desktop should display at most 6 columns on very wide screens");
     }
@@ -55,10 +55,10 @@ public class MembersPageGridTests
     {
         // Mobile (< 768px): grid-template-columns: repeat(auto-fill, minmax(150px, 1fr))
         // This gives 1-2 columns depending on screen width
-        
+
         var minColumns = 1;
         var maxColumns = 2;
-        
+
         minColumns.Should().Be(1, "Mobile should display at least 1 column");
         maxColumns.Should().Be(2, "Mobile should display at most 2 columns");
     }
@@ -77,7 +77,7 @@ public class MembersPageGridTests
         // - Email
         // - PhoneNumber
         // - City
-        
+
         var searchableFields = new[] { "FirstName", "LastName", "Nickname", "Email", "PhoneNumber", "City" };
         searchableFields.Should().HaveCount(6, "Search should filter both Members and Leitões grids across 6 fields including City");
     }
@@ -90,10 +90,10 @@ public class MembersPageGridTests
         // - When Caloiro or Tuno is selected: Show only Members grid (filtered by that category)
         // - When no category is selected: Show both grids
         // Instrument filter includes all InstrumentType enum values (applies to both grids)
-        
+
         var categoryOptions = new[] { "Leitao", "Caloiro", "Tuno" };
         categoryOptions.Should().HaveCount(3, "Category filter should support Leitão, Caloiro, and Tuno categories");
-        
+
         // Instrument filter includes all InstrumentType values and applies to both grids
         // This is verified by the actual enum
     }
@@ -103,7 +103,7 @@ public class MembersPageGridTests
     {
         // Leitões grid should only show users with IsLeitao() == true
         // It has its own independent filter/search/sort/pagination
-        
+
         var leitoesCategory = "Leitão";
         leitoesCategory.Should().Be("Leitão", "Leitões grid should only display Leitão category");
     }
@@ -115,7 +115,7 @@ public class MembersPageGridTests
         // BOTH the Members grid AND the Leitões grid should be filtered
         // to show only users with that instrument
         // Note: Category filter now applies to both grids and controls which grids are visible
-        
+
         var instrumentFilterAppliedToBothGrids = true;
         instrumentFilterAppliedToBothGrids.Should().BeTrue(
             "Instrument filter should apply to both Members and Leitões grids");
@@ -127,7 +127,7 @@ public class MembersPageGridTests
         // When "Leitão" is selected in the category filter:
         // - Only the Leitões grid should be displayed
         // - The Members grid should be empty/hidden
-        
+
         var selectedCategory = "Leitao";
         selectedCategory.Should().Be("Leitao", "Selecting Leitão category should show only Leitões grid");
     }
@@ -138,10 +138,10 @@ public class MembersPageGridTests
         // When "Caloiro" or "Tuno" is selected in the category filter:
         // - Only the Members grid should be displayed (filtered by that category)
         // - The Leitões grid should be empty/hidden
-        
+
         var caloiroCategory = "Caloiro";
         var tunoCategory = "Tuno";
-        
+
         caloiroCategory.Should().Be("Caloiro", "Selecting Caloiro should show only Members grid with Caloiros");
         tunoCategory.Should().Be("Tuno", "Selecting Tuno should show only Members grid with Tunos");
     }
@@ -152,7 +152,7 @@ public class MembersPageGridTests
         // When no category is selected (empty string):
         // - Both Members and Leitões grids should be displayed
         // - All members should be visible (subject to other filters like search and instrument)
-        
+
         var noCategory = "";
         noCategory.Should().BeEmpty("No category selection should display both grids");
     }
@@ -165,7 +165,7 @@ public class MembersPageGridTests
         // - Nickname
         // - Category
         // - Instrument
-        
+
         var sortableColumns = new[] { "FirstName", "Nickname", "Category", "Instrument" };
         sortableColumns.Should().HaveCount(4, "Members grid should support sorting by 4 columns");
     }
@@ -175,7 +175,7 @@ public class MembersPageGridTests
     {
         // Leitões grid has its own independent sort state
         // Sorting members should not affect Leitões sort and vice versa
-        
+
         var hasIndependentSort = true;
         hasIndependentSort.Should().BeTrue("Leitões grid should have independent sort from Members grid");
     }
@@ -197,7 +197,7 @@ public class MembersPageGridTests
     {
         // Leitões grid has its own pagination helper
         // Changing Members page should not affect Leitões page
-        
+
         var hasIndependentPagination = true;
         hasIndependentPagination.Should().BeTrue("Leitões grid should have independent pagination from Members grid");
     }
@@ -216,7 +216,7 @@ public class MembersPageGridTests
         // Pagination counts should reflect filtered results, not total
         // Members grid count should only count non-Leitão members after filters
         // Leitões grid count should only count Leitão members after filters
-        
+
         var countsMatchFiltered = true;
         countsMatchFiltered.Should().BeTrue("Pagination counts should match filtered results");
     }
@@ -283,7 +283,7 @@ public class MembersPageGridTests
         // Admin users with Tuno category should see Edit button on Members grid
         var isAdmin = true;
         var currentUserIsCaloiro = false;
-        
+
         var showEditButton = isAdmin && !currentUserIsCaloiro;
         showEditButton.Should().BeTrue("Admin with Tuno category should see Edit button on Members grid");
     }
@@ -294,7 +294,7 @@ public class MembersPageGridTests
         // Admin users with Caloiro category should NOT see Edit button on Members grid
         var isAdmin = true;
         var currentUserIsCaloiro = true;
-        
+
         var showEditButton = isAdmin && !currentUserIsCaloiro;
         showEditButton.Should().BeFalse("Admin with Caloiro category should NOT see Edit button on Members grid");
     }
@@ -305,7 +305,7 @@ public class MembersPageGridTests
         // Non-admin users should NOT see Edit button regardless of category
         var isAdmin = false;
         var currentUserIsCaloiro = false;
-        
+
         var showEditButton = isAdmin && !currentUserIsCaloiro;
         showEditButton.Should().BeFalse("Non-admin users should NOT see Edit button on Members grid");
     }
@@ -316,7 +316,7 @@ public class MembersPageGridTests
         // Admin users with Tuno category should see Edit button on Leitões grid
         var isAdmin = true;
         var currentUserIsCaloiro = false;
-        
+
         var showEditButton = isAdmin && !currentUserIsCaloiro;
         showEditButton.Should().BeTrue("Admin with Tuno category should see Edit button on Leitões grid");
     }
@@ -327,7 +327,7 @@ public class MembersPageGridTests
         // Admin users with Caloiro category should NOT see Edit button on Leitões grid
         var isAdmin = true;
         var currentUserIsCaloiro = true;
-        
+
         var showEditButton = isAdmin && !currentUserIsCaloiro;
         showEditButton.Should().BeFalse("Admin with Caloiro category should NOT see Edit button on Leitões grid");
     }
@@ -338,7 +338,7 @@ public class MembersPageGridTests
         // Admin users with Tuno category should see Delete button on Leitões grid
         var isAdmin = true;
         var currentUserIsCaloiro = false;
-        
+
         var showDeleteButton = isAdmin && !currentUserIsCaloiro;
         showDeleteButton.Should().BeTrue("Admin with Tuno category should see Delete button on Leitões grid");
     }
@@ -349,7 +349,7 @@ public class MembersPageGridTests
         // Admin users with Caloiro category should NOT see Delete button on Leitões grid
         var isAdmin = true;
         var currentUserIsCaloiro = true;
-        
+
         var showDeleteButton = isAdmin && !currentUserIsCaloiro;
         showDeleteButton.Should().BeFalse("Admin with Caloiro category should NOT see Delete button on Leitões grid");
     }
@@ -359,7 +359,7 @@ public class MembersPageGridTests
     {
         // Owner role should see Delete button on Members grid (independent of category)
         var isOwner = true;
-        
+
         var showDeleteButton = isOwner;
         showDeleteButton.Should().BeTrue("Owner should see Delete button on Members grid");
     }
@@ -369,7 +369,7 @@ public class MembersPageGridTests
     {
         // Non-owner users should NOT see Delete button on Members grid
         var isOwner = false;
-        
+
         var showDeleteButton = isOwner;
         showDeleteButton.Should().BeFalse("Non-owner should NOT see Delete button on Members grid");
     }
@@ -379,10 +379,10 @@ public class MembersPageGridTests
     {
         // When an admin user has Caloiro in their categories, currentUserIsCaloiro should be true
         // This tests the logic: currentUser.Categories.Contains(MemberCategory.Caloiro)
-        
+
         var userHasCaloiroCategory = true;
         var isAdmin = true;
-        
+
         var currentUserIsCaloiro = isAdmin && userHasCaloiroCategory;
         currentUserIsCaloiro.Should().BeTrue("Should detect Caloiro category for admin user");
     }
@@ -391,10 +391,10 @@ public class MembersPageGridTests
     public void CheckUserRoles_ShouldNotDetectCaloiroCategory_ForNonCaloiroAdmin()
     {
         // When an admin user does NOT have Caloiro in their categories, currentUserIsCaloiro should be false
-        
+
         var userHasCaloiroCategory = false;
         var isAdmin = true;
-        
+
         var currentUserIsCaloiro = isAdmin && userHasCaloiroCategory;
         currentUserIsCaloiro.Should().BeFalse("Should NOT detect Caloiro category for non-Caloiro admin user");
     }
@@ -403,9 +403,9 @@ public class MembersPageGridTests
     public void CheckUserRoles_ShouldNotCheckCategory_ForNonAdmin()
     {
         // When user is not admin, category check should not be performed
-        
+
         var currentUserIsCaloiro = false;
-        
+
         // Logic: if (isAdmin) { check category } else { currentUserIsCaloiro remains false }
         currentUserIsCaloiro.Should().BeFalse("Should not check category for non-admin users");
     }
@@ -416,10 +416,10 @@ public class MembersPageGridTests
         // Edit button permission logic should be the same for both grids
         var isAdmin = true;
         var currentUserIsCaloiro = false;
-        
+
         var membersGridEditPermission = isAdmin && !currentUserIsCaloiro;
         var leitoesGridEditPermission = isAdmin && !currentUserIsCaloiro;
-        
+
         membersGridEditPermission.Should().Be(leitoesGridEditPermission,
             "Edit button permission logic should be consistent across both grids");
     }
@@ -430,14 +430,14 @@ public class MembersPageGridTests
         // Delete button permission differs between grids
         // Members grid: Owner only
         // Leitões grid: Admin (non-Caloiro)
-        
+
         var isOwner = false;
         var isAdmin = true;
         var currentUserIsCaloiro = false;
-        
+
         var membersGridDeletePermission = isOwner;
         var leitoesGridDeletePermission = isAdmin && !currentUserIsCaloiro;
-        
+
         membersGridDeletePermission.Should().NotBe(leitoesGridDeletePermission,
             "Delete button permission logic should differ between grids");
     }
@@ -475,7 +475,7 @@ public class MembersPageGridTests
     {
         // Each card should fire handlers with its specific member data
         // Not a different member's data
-        
+
         var handlersArePerMember = true;
         handlersArePerMember.Should().BeTrue("Action handlers should be specific to each member");
     }
@@ -484,7 +484,7 @@ public class MembersPageGridTests
     public void AvatarCard_Actions_ShouldFireCorrectHandlers_PerLeitao()
     {
         // Each Leitão card should fire handlers with its specific Leitão data
-        
+
         var handlersArePerLeitao = true;
         handlersArePerLeitao.Should().BeTrue("Action handlers should be specific to each Leitão");
     }
@@ -582,7 +582,7 @@ public class MembersPageGridTests
     {
         // All member data should be loaded in advance
         // No additional queries per card render
-        
+
         var avoidsNPlus1 = true;
         avoidsNPlus1.Should().BeTrue("Should avoid N+1 database lookups");
     }
@@ -592,7 +592,7 @@ public class MembersPageGridTests
     {
         // Grid should use same data source as original table
         // No additional requests or transformations needed
-        
+
         var reusesDataSource = true;
         reusesDataSource.Should().BeTrue("Should reuse existing data source");
     }
@@ -636,14 +636,14 @@ public class MembersPageGridTests
         // Anniversaries modal should only show birthdays where:
         // - nextBirthday >= Today
         // - nextBirthday is in current year
-        
+
         var today = DateTime.Now.Date;
         var currentYear = today.Year;
-        
+
         // Example: If today is 19/11/2025, show birthdays from 19/11/2025 to 31/12/2025
         var shouldShowFutureBirthdays = true;
         shouldShowFutureBirthdays.Should().BeTrue("Should show future birthdays in current year");
-        
+
         var shouldNotShowPastBirthdays = false;
         shouldNotShowPastBirthdays.Should().BeFalse("Should not show past birthdays from earlier in the year");
     }
@@ -653,11 +653,11 @@ public class MembersPageGridTests
     {
         // On January 1st of a new year, the modal should show the full year automatically
         // without extra configuration
-        
+
         var january1st = new DateTime(2026, 1, 1);
         var currentYear = january1st.Year;
         var endOfYear = new DateTime(currentYear, 12, 31);
-        
+
         // All birthdays from 01/01/2026 to 31/12/2026 should be shown
         var showsFullYear = true;
         showsFullYear.Should().BeTrue("On January 1st, should show full year of birthdays");
@@ -694,7 +694,7 @@ public class MembersPageGridTests
         var isAdmin = true;
         var emailButtonVisible = isAdmin;
         emailButtonVisible.Should().BeTrue("Email button should be visible to Admin");
-        
+
         var isNonAdmin = false;
         var emailButtonHidden = !isNonAdmin;
         emailButtonHidden.Should().BeTrue("Email button should be hidden for non-Admin");
