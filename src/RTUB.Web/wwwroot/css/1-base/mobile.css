@@ -654,16 +654,35 @@ iframe {
 
 /* Hide navbar, footer, and prevent body scroll when Messages page is active on mobile (max-width: 767px) */
 @media (max-width: 767px) {
+  /* 
+   * Lock body scroll - critical for preventing double-scroll on mobile
+   * Note: position: fixed is required to prevent scroll-behind on iOS Safari
+   * Note: !important is required to override Bootstrap's default body styles
+   * and ensure the messages page works as a full-screen overlay
+   */
   body:has(.messages-page) {
     overflow: hidden !important;
+    position: fixed !important;
+    width: 100%;
+    height: 100vh; /* Fallback */
+    height: 100dvh; /* Dynamic viewport height */
   }
 
+  /* Hide navbar and footer when messages page is active */
   body:has(.messages-page) .navbar-main,
   body:has(.messages-page) .footer-main {
-    display: none !important;
+    display: none;
+  }
+
+  /* Remove padding from content container */
+  body:has(.messages-page) .content-main {
+    padding: 0;
+    margin: 0;
   }
 
   body:has(.messages-page) .content-main .container-xxl {
-    padding: 0 !important;
+    padding: 0;
+    margin: 0;
+    max-width: 100%;
   }
 }
