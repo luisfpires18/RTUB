@@ -633,6 +633,9 @@
 .member-list-scrollable {
     max-height: 300px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
 }
 
 .member-item {
@@ -791,6 +794,9 @@
         /* Use minimal safe-area padding for iOS notch/home indicator */
         /* Only add padding-bottom if absolutely necessary for safe area */
         padding-bottom: env(safe-area-inset-bottom, 0px);
+        /* Prevent elastic scroll bounce - only allow vertical panning */
+        touch-action: pan-y;
+        overscroll-behavior: contain;
     }
 
     /* Message thread panel - full height chat experience */
@@ -824,9 +830,14 @@
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         padding: 0.75rem;
+        /* Padding for sticky footer - footer handles its own safe-area
+           Uses CSS variable defined in .messages-page (line 8): --mobile-message-bottom-padding: 1rem */
         padding-bottom: var(--mobile-message-bottom-padding);
         /* Note: We use margin-bottom on .message elements for spacing, not gap,
            because gap would override our grouped message spacing (0.1rem) */
+        /* Prevent elastic scroll bounce - only allow vertical panning */
+        touch-action: pan-y;
+        overscroll-behavior: contain;
     }
 
     /* Footer with message composer - sticky to bottom */
@@ -837,9 +848,16 @@
         background: #0f0f10;
         box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
         padding: 0.5rem 0.75rem; /* Top and side padding */
-        /* Use env(safe-area-inset-bottom) to handle iOS notch/home indicator - minimal padding */
-        padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
+        /* Safe-area support: Changed from max(0.25rem, env(...)) to calc(0.5rem + env(...))
+           to ensure consistent base padding plus safe-area, rather than choosing the larger value.
+           This provides better predictability and accounts for devices with large safe-areas. */
+        padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
         z-index: 10;
+    }
+
+    /* Read-only footer mobile override - matches message-thread-footer safe-area pattern */
+    .read-only-footer {
+        padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
     }
 
     /* Message styling for mobile */
@@ -1066,6 +1084,9 @@
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
+        /* Prevent elastic scroll bounce */
+        touch-action: pan-y;
+        overscroll-behavior: contain;
     }
     
     /* Reduce spacing for form groups in modals on mobile */
@@ -1148,6 +1169,9 @@
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         margin-bottom: 0.5rem;
+        /* Prevent elastic scroll bounce */
+        touch-action: pan-y;
+        overscroll-behavior: contain;
     }
     
     /* Member search results section */
@@ -1176,6 +1200,9 @@
         max-height: calc(100dvh - 300px);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        /* Prevent elastic scroll bounce */
+        touch-action: pan-y;
+        overscroll-behavior: contain;
     }
     
     /* Member item cards - compact spacing */
@@ -1208,6 +1235,9 @@
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
+        /* Prevent elastic scroll bounce */
+        touch-action: pan-y;
+        overscroll-behavior: contain;
     }
     
     /* Label for selected members */
@@ -1334,6 +1364,9 @@
 .group-members-modal-list {
     max-height: 400px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
 }
 
 .group-member-modal-item {
