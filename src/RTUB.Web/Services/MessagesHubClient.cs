@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR.Client;
 using RTUB.Application.DTOs;
 using System.Collections.Concurrent;
@@ -24,6 +25,7 @@ public class MessagesHubClient : IAsyncDisposable
     };
 
     private readonly NavigationManager _navigationManager;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<MessagesHubClient> _logger;
     private HubConnection? _hubConnection;
     private readonly ConcurrentDictionary<int, bool> _joinedConversations = new();
@@ -37,9 +39,11 @@ public class MessagesHubClient : IAsyncDisposable
 
     public MessagesHubClient(
         NavigationManager navigationManager,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<MessagesHubClient> logger)
     {
         _navigationManager = navigationManager;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -65,8 +69,18 @@ public class MessagesHubClient : IAsyncDisposable
             _hubConnection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>
                 {
-                    // In Blazor Server InteractiveServer mode, we need to configure the connection
-                    // to use default credentials (cookies) for authentication
+                    // In Blazor Server InteractiveServer mode, configure the connection to pass cookies
+                    var httpContext = _httpContextAccessor.HttpContext;
+                    if (httpContext != null)
+                    {
+                        // Get the authentication cookie from the current HTTP context
+                        var cookies = httpContext.Request.Headers.Cookie.ToString();
+                        if (!string.IsNullOrEmpty(cookies))
+                        {
+                            options.Headers["Cookie"] = cookies;
+                        }
+                    }
+                    
                     options.UseDefaultCredentials = true;
                 })
                 .WithAutomaticReconnect(ReconnectionDelays)
