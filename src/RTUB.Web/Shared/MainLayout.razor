@@ -236,8 +236,7 @@
 </footer>
 
 <HeadContent>
-    @* Mobile-first viewport configuration *@
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    @* Note: Viewport meta tag is defined in App.razor to prevent duplicate tags *@
     
     @* Standard favicons for desktop browsers *@
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/rtub-logo-32.png" />
@@ -282,6 +281,7 @@
 <VersionedAsset Path="/js/kanban.js" Type="VersionedAsset.AssetType.Js" />
 <VersionedAsset Path="/js/unreadMessages.js" Type="VersionedAsset.AssetType.Js" />
 <VersionedAsset Path="/js/messageScroller.js" Type="VersionedAsset.AssetType.Js" />
+<VersionedAsset Path="/js/modalHelper.js" Type="VersionedAsset.AssetType.Js" />
     @* Leaflet JS for Member Map *@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="

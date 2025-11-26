@@ -377,7 +377,7 @@
                         {
                             <div class="message-thread-footer">
                                 <div class="message-composer">
-                                    <textarea @ref="messageInput" class="message-composer__input"
+                                    <textarea @ref="messageInput" class="message-composer__input messaging-input"
                                            placeholder="Escreva uma mensagem..."
                                            value="@newMessageText"
                                            @oninput="HandleTextInput"
@@ -482,7 +482,7 @@
 
                         <div class="mb-3">
                             <label class="form-label">Mensagem</label>
-                            <textarea class="form-control" 
+                            <textarea class="form-control messaging-input" 
                                       rows="4" 
                                       placeholder="Escreva a sua mensagem..."
                                       @bind="newMessageText"
@@ -524,7 +524,7 @@
                     <div class="mb-3">
                         <label class="form-label">Nome do grupo</label>
                         <input type="text" 
-                               class="form-control" 
+                               class="form-control messaging-input" 
                                placeholder="Inserir nome para o grupo..."
                                @bind="newGroupName"
                                maxlength="100" />
@@ -737,6 +737,13 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            // Lock body scroll on mobile when messages page loads
+            // This prevents double-scroll issues on mobile devices
+            await JSRuntime.InvokeVoidAsync("modalHelper.lockBodyScroll");
+        }
+        
         if (shouldScrollToBottom)
         {
             shouldScrollToBottom = false;
@@ -774,16 +781,22 @@
         showGroupMembersModal = false;
     }
 
-    private void OpenGroupMembersModal()
+    private async Task OpenGroupMembersModal()
     {
         showGroupMembersModal = true;
         groupMembersSearchTerm = string.Empty;
+        
+        // Lock body scroll on mobile when modal opens
+        await JSRuntime.InvokeVoidAsync("modalHelper.lockBodyScroll");
     }
 
-    private void CloseGroupMembersModal()
+    private async Task CloseGroupMembersModal()
     {
         showGroupMembersModal = false;
         groupMembersSearchTerm = string.Empty;
+        
+        // Unlock body scroll when modal closes
+        await JSRuntime.InvokeVoidAsync("modalHelper.unlockBodyScroll");
     }
 
     private IEnumerable<GroupParticipantDto> GetFilteredGroupParticipants()
@@ -924,22 +937,28 @@
     }
 
     // New message modal methods
-    private void OpenNewMessageModal()
+    private async Task OpenNewMessageModal()
     {
         showNewMessageModal = true;
         memberSearchTerm = string.Empty;
         filteredMembers.Clear();
         selectedMember = null;
         newMessageText = string.Empty;
+        
+        // Lock body scroll on mobile when modal opens
+        await JSRuntime.InvokeVoidAsync("modalHelper.lockBodyScroll");
     }
 
-    private void CloseNewMessageModal()
+    private async Task CloseNewMessageModal()
     {
         showNewMessageModal = false;
         memberSearchTerm = string.Empty;
         filteredMembers.Clear();
         selectedMember = null;
         newMessageText = string.Empty;
+        
+        // Unlock body scroll when modal closes
+        await JSRuntime.InvokeVoidAsync("modalHelper.unlockBodyScroll");
     }
 
     private async Task OnMemberSearch(string searchTerm)
@@ -996,7 +1015,7 @@
             // Get or create conversation
             var conversation = await MessagingService.GetOrCreateConversationAsync(currentUserId, selectedMember.Id);
             
-            CloseNewMessageModal();
+            await CloseNewMessageModal();
             
             // Reload conversations and select the new one
             await LoadConversationsAsync();
@@ -1009,22 +1028,28 @@
     }
     
     // New group modal methods
-    private void OpenNewGroupModal()
+    private async Task OpenNewGroupModal()
     {
         showNewGroupModal = true;
         newGroupName = string.Empty;
         groupMemberSearchTerm = string.Empty;
         filteredGroupMembers.Clear();
         selectedGroupMembers.Clear();
+        
+        // Lock body scroll on mobile when modal opens
+        await JSRuntime.InvokeVoidAsync("modalHelper.lockBodyScroll");
     }
     
-    private void CloseNewGroupModal()
+    private async Task CloseNewGroupModal()
     {
         showNewGroupModal = false;
         newGroupName = string.Empty;
         groupMemberSearchTerm = string.Empty;
         filteredGroupMembers.Clear();
         selectedGroupMembers.Clear();
+        
+        // Unlock body scroll when modal closes
+        await JSRuntime.InvokeVoidAsync("modalHelper.unlockBodyScroll");
     }
     
     private async Task OnGroupMemberSearch(string searchTerm)
@@ -1086,7 +1111,7 @@
                 newGroupName.Trim(), 
                 participantIds);
             
-            CloseNewGroupModal();
+            await CloseNewGroupModal();
             
             // Reload conversations and select the new one
             await LoadConversationsAsync();
@@ -1606,6 +1631,30 @@
         NotificationService.OnTypingStopped -= HandleTypingStopped;
         
         typingTimer?.Dispose();
+        
+        // Ensure body scroll is unlocked when component is disposed
+        // This handles edge cases where modals might be open during navigation
+        // and ensures body scroll is restored when leaving the messages page
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("modalHelper.unlockBodyScroll");
+        }
+        catch (JSDisconnectedException)
+        {
+            // JavaScript runtime is disconnected during disposal - expected during navigation
+            // No action needed as body scroll will reset on page navigation anyway
+        }
+        catch (InvalidOperationException)
+        {
+            // Component is being statically rendered or JS interop not available
+            // This is expected during server-side rendering or disposal
+            // Body scroll will reset on page navigation anyway
+        }
+        catch (Exception ex)
+        {
+            // Log unexpected errors but don't throw during disposal
+            Logger.LogWarning(ex, "Error unlocking body scroll during Inbox component disposal for user {UserId}", currentUserId);
+        }
         
         await Task.CompletedTask;
     }
