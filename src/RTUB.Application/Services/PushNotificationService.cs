@@ -92,7 +92,6 @@ public class PushNotificationService : IPushNotificationService
             };
 
             await _subscriptionRepository.AddAsync(newSubscription);
-            _logger.LogInformation("Created new push subscription for user {UserName}", displayName);
         }
     }
 
@@ -181,9 +180,6 @@ public class PushNotificationService : IPushNotificationService
         
         var tasks = selectedSubscriptions.Select(subscription => SendNotificationAsync(subscription, notification));
         await Task.WhenAll(tasks);
-        
-        _logger.LogInformation("Sent push notification to {Count} subscriptions for {UserCount} users", 
-            selectedSubscriptions.Count, userIds.Count());
     }
 
     public string GetVapidPublicKey()
