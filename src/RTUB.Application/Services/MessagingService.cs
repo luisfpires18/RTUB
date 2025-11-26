@@ -35,6 +35,7 @@ public class MessagingService : IMessagingService
     private readonly IConversationUserSettingsRepository _settingsRepository;
     private readonly IRoleAssignmentRepository _roleAssignmentRepository;
     private readonly IPushNotificationService _pushNotificationService;
+    private readonly IMessagesHubService? _messagesHubService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<MessagingService> _logger;
 
@@ -45,7 +46,8 @@ public class MessagingService : IMessagingService
         IRoleAssignmentRepository roleAssignmentRepository,
         IPushNotificationService pushNotificationService,
         UserManager<ApplicationUser> userManager,
-        ILogger<MessagingService> logger)
+        ILogger<MessagingService> logger,
+        IMessagesHubService? messagesHubService = null)
     {
         _conversationRepository = conversationRepository;
         _messageRepository = messageRepository;
@@ -54,6 +56,7 @@ public class MessagingService : IMessagingService
         _pushNotificationService = pushNotificationService;
         _userManager = userManager;
         _logger = logger;
+        _messagesHubService = messagesHubService;
     }
 
     public async Task<IEnumerable<ConversationDto>> GetUserConversationsAsync(string userId)
@@ -130,6 +133,15 @@ public class MessagingService : IMessagingService
         // Load sender for DTO mapping
         message.Sender = await _userManager.FindByIdAsync(senderId);
 
+        // Create DTO for broadcasting
+        var messageDto2 = MapMessageToDto(message, senderId);
+
+        // Broadcast message via SignalR to all participants in the conversation
+        if (_messagesHubService != null)
+        {
+            await _messagesHubService.BroadcastMessageAsync(conversation.Id, messageDto2);
+        }
+
         // Send push notification (without creating inbox message - the direct message itself is already there)
         // Only send if the receiver has not muted this conversation
         var sender = await _userManager.FindByIdAsync(senderId);
@@ -153,7 +165,7 @@ public class MessagingService : IMessagingService
             }
         }
 
-        return MapMessageToDto(message, senderId);
+        return messageDto2;
     }
 
     public async Task<MessageDto> SendSystemMessageAsync(string receiverId, string body, string? link = null)
@@ -198,6 +210,12 @@ public class MessagingService : IMessagingService
     public async Task MarkConversationAsReadAsync(int conversationId, string userId)
     {
         await _messageRepository.MarkConversationAsReadAsync(conversationId, userId);
+        
+        // Notify other participants that messages were seen
+        if (_messagesHubService != null)
+        {
+            await _messagesHubService.NotifyMessageSeenAsync(conversationId, userId, DateTime.UtcNow);
+        }
     }
 
     public async Task MarkConversationAsUnreadAsync(int conversationId, string userId)
@@ -335,6 +353,15 @@ public class MessagingService : IMessagingService
         // Load sender for DTO mapping
         message.Sender = await _userManager.FindByIdAsync(senderId);
         
+        // Create DTO for broadcasting
+        var messageDto = MapMessageToDto(message, senderId);
+
+        // Broadcast message via SignalR to all participants in the conversation
+        if (_messagesHubService != null)
+        {
+            await _messagesHubService.BroadcastMessageAsync(conversationId, messageDto);
+        }
+        
         // Send push notifications to all other participants (unless they have muted)
         var sender = message.Sender;
         if (sender != null && !string.IsNullOrEmpty(body))
@@ -365,7 +392,7 @@ public class MessagingService : IMessagingService
             }
         }
         
-        return MapMessageToDto(message, senderId);
+        return messageDto;
     }
     
     public async Task<ConversationDto> GetOrCreateSystemGroupAsync(string groupTitle, List<string> participantIds)
@@ -538,7 +565,8 @@ public class MessagingService : IMessagingService
             IsSystem = message.IsSystem,
             CreatedAt = message.CreatedAt,
             IsRead = message.IsReadBy(currentUserId),
-            Link = message.Link
+            Link = message.Link,
+            ReadBy = message.ReadBy
         };
 
         if (message.Sender != null)

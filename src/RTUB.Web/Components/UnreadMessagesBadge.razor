@@ -3,9 +3,11 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
 @using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
 @inject IMessagingService MessagingService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
+@inject RTUB.Web.Services.MessagesNotificationService NotificationService
 @implements IAsyncDisposable
 
 @if (unreadCount > 0)
@@ -42,6 +44,10 @@
                 
                 // Subscribe to refresh requests from other components
                 OnBadgeRefreshRequested += HandleRefreshRequest;
+                
+                // Subscribe to notification service events for real-time updates
+                NotificationService.OnMessageReceived += HandleMessageReceived;
+                NotificationService.OnMessageSeen += HandleMessageSeen;
                 
                 // Fallback timer refresh every 60 seconds
                 _refreshTimer = new System.Threading.Timer(async _ =>
@@ -116,10 +122,48 @@
         OnBadgeRefreshRequested?.Invoke();
     }
 
+    private async Task HandleMessageReceived(MessageDto message)
+    {
+        // Only update if the message is from someone else (not current user)
+        if (message.SenderId != currentUserId)
+        {
+            await InvokeAsync(async () =>
+            {
+                await LoadUnreadCount();
+                StateHasChanged();
+                if (OnCountChanged.HasDelegate)
+                {
+                    await OnCountChanged.InvokeAsync();
+                }
+            });
+        }
+    }
+
+    private async Task HandleMessageSeen(int conversationId, string userId, DateTime seenAt)
+    {
+        // Update unread count when messages are seen
+        await InvokeAsync(async () =>
+        {
+            await LoadUnreadCount();
+            StateHasChanged();
+            if (OnCountChanged.HasDelegate)
+            {
+                await OnCountChanged.InvokeAsync();
+            }
+        });
+    }
+
     public async ValueTask DisposeAsync()
     {
         OnBadgeRefreshRequested -= HandleRefreshRequest;
+        
+        // Unsubscribe from notification service events
+        NotificationService.OnMessageReceived -= HandleMessageReceived;
+        NotificationService.OnMessageSeen -= HandleMessageSeen;
+        
         _refreshTimer?.Dispose();
         _dotNetRef?.Dispose();
+        
+        await Task.CompletedTask;
     }
 }

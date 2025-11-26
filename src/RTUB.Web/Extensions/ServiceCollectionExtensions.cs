@@ -218,6 +218,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IMessagingService, MessagingService>();
         services.AddScoped<IGroupConversationSyncService, GroupConversationSyncService>();
+        services.AddScoped<IMessagesHubService, RTUB.Web.Services.MessagesHubService>();
 
         return services;
     }

@@ -1444,4 +1444,218 @@ public class MessagingServiceTests
         result.Should().NotBeNull();
         result!.CanDelete.Should().BeFalse();
     }
+
+    #region SignalR Hub Integration Tests
+
+    [Fact]
+    public async Task SendDirectMessageAsync_WithHubService_BroadcastsMessage()
+    {
+        // Arrange
+        var senderId = "sender123";
+        var receiverId = "receiver456";
+        var messageText = "Test message";
+        var conversationId = 1;
+        
+        var mockHubService = new Mock<IMessagesHubService>();
+        var serviceWithHub = new MessagingService(
+            _mockConversationRepository.Object,
+            _mockMessageRepository.Object,
+            _mockSettingsRepository.Object,
+            _mockRoleAssignmentRepository.Object,
+            _mockPushService.Object,
+            _mockUserManager.Object,
+            _mockLogger.Object,
+            mockHubService.Object);
+
+        var conversation = new Conversation
+        {
+            Id = conversationId,
+            Participants = $"{senderId};{receiverId}",
+            LastMessageAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var sender = new ApplicationUser
+        {
+            Id = senderId,
+            FirstName = "Test",
+            LastName = "Sender",
+            Email = "sender@test.com",
+            UserName = "sender@test.com"
+        };
+
+        _mockConversationRepository.Setup(r => r.GetOrCreateOneToOneAsync(senderId, receiverId))
+            .ReturnsAsync(conversation);
+        _mockMessageRepository.Setup(r => r.AddAsync(It.IsAny<Message>()))
+            .ReturnsAsync((Message m) => m);
+        _mockConversationRepository.Setup(r => r.UpdateAsync(It.IsAny<Conversation>()))
+            .Returns(Task.CompletedTask);
+        _mockUserManager.Setup(um => um.FindByIdAsync(senderId))
+            .ReturnsAsync(sender);
+        _mockSettingsRepository.Setup(r => r.IsConversationMutedAsync(receiverId, conversationId))
+            .ReturnsAsync(false);
+
+        var messageDto = new SendMessageDto
+        {
+            ReceiverId = receiverId,
+            Body = messageText
+        };
+
+        // Act
+        var result = await serviceWithHub.SendDirectMessageAsync(senderId, messageDto);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Body.Should().Be(messageText);
+        mockHubService.Verify(
+            h => h.BroadcastMessageAsync(conversationId, It.Is<MessageDto>(m => m.Body == messageText)),
+            Times.Once,
+            "Hub service should broadcast the message to conversation participants");
+    }
+
+    [Fact]
+    public async Task SendGroupMessageAsync_WithHubService_BroadcastsMessage()
+    {
+        // Arrange
+        var senderId = "sender123";
+        var conversationId = 1;
+        var messageText = "Group message";
+        
+        var mockHubService = new Mock<IMessagesHubService>();
+        var serviceWithHub = new MessagingService(
+            _mockConversationRepository.Object,
+            _mockMessageRepository.Object,
+            _mockSettingsRepository.Object,
+            _mockRoleAssignmentRepository.Object,
+            _mockPushService.Object,
+            _mockUserManager.Object,
+            _mockLogger.Object,
+            mockHubService.Object);
+
+        var conversation = new Conversation
+        {
+            Id = conversationId,
+            Participants = $"{senderId};user2;user3",
+            IsGroup = true,
+            Title = "Test Group",
+            LastMessageAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var sender = new ApplicationUser
+        {
+            Id = senderId,
+            FirstName = "Test",
+            LastName = "Sender",
+            Email = "sender@test.com",
+            UserName = "sender@test.com"
+        };
+
+        _mockConversationRepository.Setup(r => r.GetByIdAsync(conversationId))
+            .ReturnsAsync(conversation);
+        _mockMessageRepository.Setup(r => r.AddAsync(It.IsAny<Message>()))
+            .ReturnsAsync((Message m) => m);
+        _mockConversationRepository.Setup(r => r.UpdateAsync(It.IsAny<Conversation>()))
+            .Returns(Task.CompletedTask);
+        _mockUserManager.Setup(um => um.FindByIdAsync(senderId))
+            .ReturnsAsync(sender);
+        _mockSettingsRepository.Setup(r => r.IsConversationMutedAsync(It.IsAny<string>(), conversationId))
+            .ReturnsAsync(false);
+
+        // Act
+        var result = await serviceWithHub.SendGroupMessageAsync(senderId, conversationId, messageText);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Body.Should().Be(messageText);
+        mockHubService.Verify(
+            h => h.BroadcastMessageAsync(conversationId, It.Is<MessageDto>(m => m.Body == messageText)),
+            Times.Once,
+            "Hub service should broadcast the message to group participants");
+    }
+
+    [Fact]
+    public async Task MarkConversationAsReadAsync_WithHubService_NotifiesMessageSeen()
+    {
+        // Arrange
+        var userId = "user123";
+        var conversationId = 1;
+        
+        var mockHubService = new Mock<IMessagesHubService>();
+        var serviceWithHub = new MessagingService(
+            _mockConversationRepository.Object,
+            _mockMessageRepository.Object,
+            _mockSettingsRepository.Object,
+            _mockRoleAssignmentRepository.Object,
+            _mockPushService.Object,
+            _mockUserManager.Object,
+            _mockLogger.Object,
+            mockHubService.Object);
+
+        _mockMessageRepository.Setup(r => r.MarkConversationAsReadAsync(conversationId, userId))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await serviceWithHub.MarkConversationAsReadAsync(conversationId, userId);
+
+        // Assert
+        mockHubService.Verify(
+            h => h.NotifyMessageSeenAsync(conversationId, userId, It.IsAny<DateTime>()),
+            Times.Once,
+            "Hub service should notify that messages were seen");
+    }
+
+    [Fact]
+    public async Task SendDirectMessageAsync_WithoutHubService_StillWorksCorrectly()
+    {
+        // Arrange - service without hub (null)
+        var senderId = "sender123";
+        var receiverId = "receiver456";
+        var messageText = "Test message";
+        var conversationId = 1;
+
+        var conversation = new Conversation
+        {
+            Id = conversationId,
+            Participants = $"{senderId};{receiverId}",
+            LastMessageAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var sender = new ApplicationUser
+        {
+            Id = senderId,
+            FirstName = "Test",
+            LastName = "Sender",
+            Email = "sender@test.com",
+            UserName = "sender@test.com"
+        };
+
+        _mockConversationRepository.Setup(r => r.GetOrCreateOneToOneAsync(senderId, receiverId))
+            .ReturnsAsync(conversation);
+        _mockMessageRepository.Setup(r => r.AddAsync(It.IsAny<Message>()))
+            .ReturnsAsync((Message m) => m);
+        _mockConversationRepository.Setup(r => r.UpdateAsync(It.IsAny<Conversation>()))
+            .Returns(Task.CompletedTask);
+        _mockUserManager.Setup(um => um.FindByIdAsync(senderId))
+            .ReturnsAsync(sender);
+        _mockSettingsRepository.Setup(r => r.IsConversationMutedAsync(receiverId, conversationId))
+            .ReturnsAsync(false);
+
+        var messageDto = new SendMessageDto
+        {
+            ReceiverId = receiverId,
+            Body = messageText
+        };
+
+        // Act
+        var result = await _service.SendDirectMessageAsync(senderId, messageDto);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Body.Should().Be(messageText);
+        // No exception should be thrown even without hub service
+    }
+
+    #endregion
 }
