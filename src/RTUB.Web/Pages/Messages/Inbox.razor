@@ -486,114 +486,96 @@
                     <button type="button" class="btn-close" @onclick="CloseNewGroupModal"></button>
                 </div>
                 <div class="modal-body">
-                    @if (groupCreationStep == 1)
+                    @* Group name input *@
+                    <div class="mb-3">
+                        <label class="form-label">Nome do grupo</label>
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Inserir nome para o grupo..."
+                               @bind="newGroupName"
+                               maxlength="100" />
+                        <small class="text-muted">Escolha um nome descritivo para o grupo</small>
+                    </div>
+
+                    @* Member selection *@
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0">Adicionar membros</label>
+                            <span class="badge bg-primary">@selectedGroupMembers.Count selecionados</span>
+                        </div>
+                        <SearchBar @bind-Value="groupMemberSearchTerm"
+                                   Placeholder="Pesquisar membro por nome ou alcunha..."
+                                   OnSearch="OnGroupMemberSearch"
+                                   OnClear="ClearGroupMemberSearch"
+                                   Compact="true" />
+                    </div>
+
+                    @if (filteredGroupMembers.Any())
                     {
-                        <div class="mb-3">
-                            <label class="form-label">Nome do grupo</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   placeholder="Inserir nome para o grupo..."
-                                   @bind="newGroupName"
-                                   maxlength="100" />
-                            <small class="text-muted">Escolha um nome descritivo para o grupo</small>
+                        <div class="member-list member-list-scrollable mb-3">
+                            @foreach (var member in filteredGroupMembers.Take(10))
+                            {
+                                var isSelected = selectedGroupMembers.Any(m => m.Id == member.Id);
+                                <div class="member-item p-2 mb-2 border rounded clickable-row @(isSelected ? "selected" : "")"
+                                     @onclick="() => ToggleGroupMember(member)">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center">
+                                            <img src="@GetAvatarUrl(member.ImageUrl)" 
+                                                 alt="@(member.Nickname ?? $"{member.FirstName} {member.LastName}")"
+                                                 class="member-avatar-small me-2" 
+                                                 onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                            <div>
+                                                @if (!string.IsNullOrEmpty(member.Nickname))
+                                                {
+                                                    <div><strong>@member.Nickname</strong></div>
+                                                    <div class="text-muted small">@member.FirstName @member.LastName</div>
+                                                }
+                                                else
+                                                {
+                                                    <div><strong>@member.FirstName @member.LastName</strong></div>
+                                                }
+                                            </div>
+                                        </div>
+                                        @if (isSelected)
+                                        {
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                        }
+                                    </div>
+                                </div>
+                            }
                         </div>
                     }
-                    else if (groupCreationStep == 2)
-                    {
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label class="form-label mb-0">Adicionar membros</label>
-                                <span class="badge bg-primary">@selectedGroupMembers.Count selecionados</span>
-                            </div>
-                            <SearchBar @bind-Value="groupMemberSearchTerm"
-                                       Placeholder="Pesquisar membro por nome ou alcunha..."
-                                       OnSearch="OnGroupMemberSearch"
-                                       OnClear="ClearGroupMemberSearch"
-                                       Compact="true" />
-                        </div>
 
-                        @if (filteredGroupMembers.Any())
-                        {
-                            <div class="member-list member-list-scrollable mb-3">
-                                @foreach (var member in filteredGroupMembers.Take(10))
+                    @if (selectedGroupMembers.Any())
+                    {
+                        <div class="selected-members mt-3">
+                            <label class="form-label">Membros selecionados:</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var member in selectedGroupMembers)
                                 {
-                                    var isSelected = selectedGroupMembers.Any(m => m.Id == member.Id);
-                                    <div class="member-item p-2 mb-2 border rounded clickable-row @(isSelected ? "selected" : "")"
-                                         @onclick="() => ToggleGroupMember(member)">
-                                        <div class="d-flex align-items-center justify-content-between">
-                                            <div class="d-flex align-items-center">
-                                                <img src="@GetAvatarUrl(member.ImageUrl)" 
-                                                     alt="@(member.Nickname ?? $"{member.FirstName} {member.LastName}")"
-                                                     class="member-avatar-small me-2" 
-                                                     onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
-                                                <div>
-                                                    @if (!string.IsNullOrEmpty(member.Nickname))
-                                                    {
-                                                        <div><strong>@member.Nickname</strong></div>
-                                                        <div class="text-muted small">@member.FirstName @member.LastName</div>
-                                                    }
-                                                    else
-                                                    {
-                                                        <div><strong>@member.FirstName @member.LastName</strong></div>
-                                                    }
-                                                </div>
-                                            </div>
-                                            @if (isSelected)
-                                            {
-                                                <i class="bi bi-check-circle-fill text-success"></i>
-                                            }
-                                        </div>
-                                    </div>
+                                    <span class="badge bg-primary d-flex align-items-center gap-1">
+                                        @(member.Nickname ?? $"{member.FirstName} {member.LastName}")
+                                        <button type="button" class="btn-close btn-close-white btn-sm" 
+                                                @onclick="() => RemoveGroupMember(member)"
+                                                @onclick:stopPropagation="true"></button>
+                                    </span>
                                 }
                             </div>
-                        }
-
-                        @if (selectedGroupMembers.Any())
-                        {
-                            <div class="selected-members mt-3">
-                                <label class="form-label">Membros selecionados:</label>
-                                <div class="d-flex flex-wrap gap-2">
-                                    @foreach (var member in selectedGroupMembers)
-                                    {
-                                        <span class="badge bg-primary d-flex align-items-center gap-1">
-                                            @(member.Nickname ?? $"{member.FirstName} {member.LastName}")
-                                            <button type="button" class="btn-close btn-close-white btn-sm" 
-                                                    @onclick="() => RemoveGroupMember(member)"
-                                                    @onclick:stopPropagation="true"></button>
-                                        </span>
-                                    }
-                                </div>
-                            </div>
-                        }
+                        </div>
                     }
                 </div>
                 <div class="modal-footer">
-                    @if (groupCreationStep == 1)
-                    {
-                        <button type="button" class="btn btn-secondary" @onclick="CloseNewGroupModal">Cancelar</button>
-                        <button type="button" 
-                                class="btn btn-primary" 
-                                @onclick="GoToGroupStep2"
-                                disabled="@(string.IsNullOrWhiteSpace(newGroupName))">
-                            Próximo <i class="bi bi-arrow-right"></i>
-                        </button>
-                    }
-                    else
-                    {
-                        <button type="button" class="btn btn-secondary" @onclick="GoToGroupStep1">
-                            <i class="bi bi-arrow-left"></i> Voltar
-                        </button>
-                        <button type="button" 
-                                class="btn btn-primary" 
-                                @onclick="CreateGroup"
-                                disabled="@(selectedGroupMembers.Count < MinimumGroupMembers || isCreatingGroup)">
-                            @if (isCreatingGroup)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                            }
-                            Criar grupo
-                        </button>
-                    }
+                    <button type="button" class="btn btn-secondary" @onclick="CloseNewGroupModal">Cancelar</button>
+                    <button type="button" 
+                            class="btn btn-primary" 
+                            @onclick="CreateGroup"
+                            disabled="@(string.IsNullOrWhiteSpace(newGroupName) || selectedGroupMembers.Count < MinimumGroupMembers || isCreatingGroup)">
+                        @if (isCreatingGroup)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        }
+                        Criar grupo
+                    </button>
                 </div>
             </div>
         </div>
@@ -703,7 +685,6 @@
     
     // New group modal
     private bool showNewGroupModal = false;
-    private int groupCreationStep = 1;
     private string newGroupName = string.Empty;
     private string groupMemberSearchTerm = string.Empty;
     private List<ApplicationUser> filteredGroupMembers = new();
@@ -1102,7 +1083,6 @@
     private void OpenNewGroupModal()
     {
         showNewGroupModal = true;
-        groupCreationStep = 1;
         newGroupName = string.Empty;
         groupMemberSearchTerm = string.Empty;
         filteredGroupMembers.Clear();
@@ -1112,21 +1092,10 @@
     private void CloseNewGroupModal()
     {
         showNewGroupModal = false;
-        groupCreationStep = 1;
         newGroupName = string.Empty;
         groupMemberSearchTerm = string.Empty;
         filteredGroupMembers.Clear();
         selectedGroupMembers.Clear();
-    }
-    
-    private void GoToGroupStep2()
-    {
-        groupCreationStep = 2;
-    }
-    
-    private void GoToGroupStep1()
-    {
-        groupCreationStep = 1;
     }
     
     private async Task OnGroupMemberSearch(string searchTerm)

@@ -51,9 +51,10 @@ window.messageScroller = {
         const existingHandler = this._focusHandlers.get(inputElement);
         if (existingHandler) {
             inputElement.removeEventListener('focus', existingHandler);
+            inputElement.removeEventListener('input', existingHandler.inputHandler);
         }
         
-        // Create and store the handler
+        // Create and store the handlers
         const focusHandler = () => {
             // On mobile, when keyboard opens, scroll to bottom after a delay
             if (window.innerWidth <= 767) {
@@ -67,7 +68,23 @@ window.messageScroller = {
             }
         };
         
+        // Also handle input events to keep scroll at bottom while typing
+        const inputHandler = () => {
+            if (window.innerWidth <= 767) {
+                // Small delay to allow textarea to resize first
+                setTimeout(() => {
+                    window.requestAnimationFrame(() => {
+                        containerElement.scrollTop = containerElement.scrollHeight;
+                    });
+                }, 50);
+            }
+        };
+        
+        // Store both handlers
+        focusHandler.inputHandler = inputHandler;
         this._focusHandlers.set(inputElement, focusHandler);
+        
         inputElement.addEventListener('focus', focusHandler);
+        inputElement.addEventListener('input', inputHandler);
     }
 };

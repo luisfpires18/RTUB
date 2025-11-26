@@ -799,8 +799,8 @@
         background: #0f0f10;
         box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
         padding: 0.5rem 0.75rem; /* Top and side padding */
-        /* Use env(safe-area-inset-bottom) to handle iOS notch/home indicator */
-        padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+        /* Use env(safe-area-inset-bottom) to handle iOS notch/home indicator - minimal padding */
+        padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
         z-index: 10;
     }
 
@@ -937,12 +937,20 @@
     .conversation-modal .modal-content {
         min-height: 80vh;
         border-radius: 0.85rem;
+        /* Prevent horizontal scroll on mobile */
+        overflow-x: hidden;
     }
 
     .conversation-modal .modal-header,
     .conversation-modal .modal-body,
     .conversation-modal .modal-footer {
         padding: 0.9rem 1rem;
+    }
+
+    .conversation-modal .modal-body {
+        /* Ensure modal body can scroll vertically but not horizontally */
+        overflow-x: hidden;
+        overflow-y: auto;
     }
 
     .conversation-modal .member-list-scrollable {

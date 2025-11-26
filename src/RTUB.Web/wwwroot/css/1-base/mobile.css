@@ -291,6 +291,11 @@ iframe {
   .modal-content {
     max-height: calc(100vh - 1rem);
     overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+  }
+
+  .modal-body {
+    overflow-x: hidden; /* Ensure modal body never scrolls horizontally */
   }
 
   /* Avatar sizing for mobile */
