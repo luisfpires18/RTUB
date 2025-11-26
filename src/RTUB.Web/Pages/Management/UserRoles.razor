@@ -21,7 +21,10 @@
         </div>
 
         <div class="page-header-actions justify-content-lg-end">
-            <SyncChatGroupsButton />
+            @if (isCurrentUserOwner)
+            {
+                <SyncChatGroupsButton OnSyncCompleted="HandleSyncCompleted" />
+            }
             <LoginStatisticsButton />
         </div>
     </div>
@@ -368,6 +371,13 @@ else
         
         await LoadItemsAsync();
         ApplyFiltersAndPagination();
+    }
+
+    private void HandleSyncCompleted((bool Success, string Message) result)
+    {
+        message = result.Message;
+        isError = !result.Success;
+        StateHasChanged();
     }
 
     protected override async Task LoadItemsAsync()

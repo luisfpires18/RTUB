@@ -17,39 +17,27 @@
     }
 </button>
 
-@if (!string.IsNullOrEmpty(message))
-{
-    <div class="mt-2">
-        <Alert Type="@(isError ? Alert.AlertType.Error : Alert.AlertType.Success)"
-               Message="@message"
-               Dismissible="true"
-               OnDismiss="@(() => message = string.Empty)" />
-    </div>
-}
-
 @code {
+    [Parameter]
+    public EventCallback<(bool Success, string Message)> OnSyncCompleted { get; set; }
+
     private bool isSyncing = false;
-    private string message = string.Empty;
-    private bool isError = false;
 
     private async Task SyncGroups()
     {
         if (isSyncing) return;
 
         isSyncing = true;
-        message = string.Empty;
 
         try
         {
             await GroupSyncService.SyncDefaultGroupsAsync();
-            message = "Grupos sincronizados com sucesso!";
-            isError = false;
+            await OnSyncCompleted.InvokeAsync((true, "Grupos sincronizados com sucesso!"));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error syncing default chat groups");
-            message = "Erro ao sincronizar grupos. Por favor, tente novamente.";
-            isError = true;
+            await OnSyncCompleted.InvokeAsync((false, "Erro ao sincronizar grupos. Por favor, tente novamente."));
         }
         finally
         {
