@@ -1,6 +1,8 @@
 @namespace RTUB.Shared
 @using RTUB.Application.Interfaces
+@using Microsoft.Extensions.Logging
 @inject IGroupConversationSyncService GroupSyncService
+@inject ILogger<SyncChatGroupsButton> Logger
 
 <button class="btn btn-purple" @onclick="SyncGroups" disabled="@isSyncing" title="Sincronizar grupos de chat">
     @if (isSyncing)
@@ -11,7 +13,7 @@
     else
     {
         <i class="bi bi-arrow-repeat"></i>
-        <span> Sync Grupos</span>
+        <span> Sincronizar Grupos</span>
     }
 </button>
 
@@ -43,8 +45,9 @@
             message = "Grupos sincronizados com sucesso!";
             isError = false;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Error syncing default chat groups");
             message = "Erro ao sincronizar grupos. Por favor, tente novamente.";
             isError = true;
         }
