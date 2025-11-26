@@ -751,7 +751,11 @@
         }
         
         // Setup input focus handler for mobile keyboard scrolling (only once)
-        if (selectedConversation != null && !isInputFocusHandlerSetup)
+        // Only setup when the textarea exists (not for system conversations or announcement-only)
+        if (selectedConversation != null && 
+            !selectedConversation.IsSystemConversation && 
+            selectedConversation.CanSendMessage &&
+            !isInputFocusHandlerSetup)
         {
             isInputFocusHandlerSetup = true;
             await JSRuntime.InvokeVoidAsync("messageScroller.setupInputFocusScroll", messageInput, messageThreadBody);

@@ -53,7 +53,8 @@ window.messageScroller = {
         // Validate that both parameters are actual DOM elements
         // Blazor's ElementReference may pass objects that aren't valid DOM elements
         if (!inputElement || !containerElement) return;
-        if (!(inputElement instanceof Element) || !(containerElement instanceof Element)) return;
+        if (!(inputElement instanceof HTMLElement) || !(containerElement instanceof HTMLElement)) return;
+        if (typeof inputElement.addEventListener !== 'function') return;
         
         const KEYBOARD_ANIMATION_DELAY = 350; // ms - wait for mobile keyboard animation
         const KEYBOARD_RESIZE_DELAY = 500; // ms - wait for keyboard resize to complete
