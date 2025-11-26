@@ -115,4 +115,17 @@ public class RehearsalAttendanceRepository : Repository<RehearsalAttendance>, IR
 
         return (totalRehearsals, attended);
     }
+
+    public async Task DeleteByRehearsalIdAsync(int rehearsalId)
+    {
+        var attendances = await _dbSet
+            .Where(a => a.RehearsalId == rehearsalId)
+            .ToListAsync();
+
+        if (attendances.Count > 0)
+        {
+            _dbSet.RemoveRange(attendances);
+            await _context.SaveChangesAsync();
+        }
+    }
 }

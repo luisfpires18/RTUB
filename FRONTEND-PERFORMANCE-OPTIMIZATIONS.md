@@ -44,6 +44,18 @@ protected override bool ShouldRender()
 - ✅ `PositionBadge.razor` - Only re-renders when position or CSS classes change
 - ✅ `DateBadge.razor` - Only re-renders when date changes or day changes
 - ✅ `ErrorDisplay.razor` - Only re-renders when error state changes
+- ✅ `EventCard.razor` - Only re-renders when event data, enrollment, or admin status changes
+- ✅ `AvatarCard.razor` - Only re-renders when member info or button states change
+- ✅ `EnrollmentCard.razor` - Only re-renders when enrollment data changes
+- ✅ `EmptyState.razor` - Only re-renders when title, message, or icon changes
+- ✅ `StatusBadge.razor` - Only re-renders when status changes
+- ✅ `RoleBadge.razor` - Only re-renders when role or CSS classes change
+- ✅ `LockStatusBadge.razor` - Only re-renders when lockout status changes
+- ✅ `LoginStatusBadge.razor` - Only re-renders when login date changes
+- ✅ `MemberListItem.razor` - Only re-renders when user data or permissions change
+- ✅ `TablePagination.razor` - Only re-renders when pagination state changes
+- ✅ `RehearsalCard.razor` - Only re-renders when rehearsal data or attendance changes
+- ✅ `SongCard.razor` - Only re-renders when song data or permissions change
 
 **Impact:** Reduces CPU usage and improves UI responsiveness, especially on pages with multiple badge instances or frequent state updates.
 
@@ -58,6 +70,7 @@ protected override bool ShouldRender()
 **Files Created:**
 - ✅ `src/RTUB.Shared/Components/Cards/EventCard.razor.css` (removed 500+ lines from .razor file)
 - ✅ `src/RTUB.Web/Components/ReconnectModal.razor.css` (improved maintainability)
+- ✅ `src/RTUB.Shared/Components/Cards/RehearsalCard.razor.css` (migrated inline styles)
 
 **Benefits:**
 - Browser can cache CSS files separately

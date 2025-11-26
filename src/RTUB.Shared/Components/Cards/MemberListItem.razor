@@ -86,4 +86,30 @@
     /// </summary>
     [Parameter]
     public EventCallback OnDelete { get; set; }
+    
+    // Track previous state for ShouldRender optimization
+    private string? _previousUserId;
+    private Position? _previousPosition;
+    private bool _previousIsAdmin;
+    private bool _previousIsOwner;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when key parameters change.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        var userId = User?.Id;
+        if (userId != _previousUserId ||
+            CurrentFiscalYearPosition != _previousPosition ||
+            IsAdmin != _previousIsAdmin ||
+            IsOwner != _previousIsOwner)
+        {
+            _previousUserId = userId;
+            _previousPosition = CurrentFiscalYearPosition;
+            _previousIsAdmin = IsAdmin;
+            _previousIsOwner = IsOwner;
+            return true;
+        }
+        return false;
+    }
 }

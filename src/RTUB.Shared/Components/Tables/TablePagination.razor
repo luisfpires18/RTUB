@@ -136,6 +136,31 @@
     /// </summary>
     [Parameter]
     public int[] PageSizeOptions { get; set; } = new[] { 10, 20, 30, 40, 50 };
+    
+    // Track previous state for ShouldRender optimization
+    private int _previousCurrentPage;
+    private int _previousPageSize;
+    private int _previousTotalItems;
+    private string _previousItemLabel = "itens";
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when pagination state changes.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (CurrentPage != _previousCurrentPage ||
+            PageSize != _previousPageSize ||
+            TotalItems != _previousTotalItems ||
+            ItemLabel != _previousItemLabel)
+        {
+            _previousCurrentPage = CurrentPage;
+            _previousPageSize = PageSize;
+            _previousTotalItems = TotalItems;
+            _previousItemLabel = ItemLabel;
+            return true;
+        }
+        return false;
+    }
 
     private int TotalPages => TotalItems > 0 ? (int)Math.Ceiling((double)TotalItems / PageSize) : 1;
     private bool HasPreviousPage => CurrentPage > 1;

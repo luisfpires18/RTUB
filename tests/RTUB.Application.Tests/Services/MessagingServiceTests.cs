@@ -551,6 +551,10 @@ public class MessagingServiceTests
         _mockUserManager.Setup(um => um.FindByIdAsync(senderId))
             .ReturnsAsync(sender);
 
+        // Setup GetMutedUserIdsAsync to return empty set (no one muted)
+        _mockSettingsRepository.Setup(r => r.GetMutedUserIdsAsync(conversationId, It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(new HashSet<string>());
+
         // Act
         var result = await _service.SendGroupMessageAsync(senderId, conversationId, messageBody);
 
@@ -978,11 +982,9 @@ public class MessagingServiceTests
         _mockUserManager.Setup(um => um.FindByIdAsync(senderId))
             .ReturnsAsync(sender);
 
-        // user1 has muted, user2 has not
-        _mockSettingsRepository.Setup(r => r.IsConversationMutedAsync("user1", conversationId))
-            .ReturnsAsync(true);
-        _mockSettingsRepository.Setup(r => r.IsConversationMutedAsync("user2", conversationId))
-            .ReturnsAsync(false);
+        // user1 has muted (returned in the muted set), user2 has not (not in the set)
+        _mockSettingsRepository.Setup(r => r.GetMutedUserIdsAsync(conversationId, It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(new HashSet<string> { "user1" });
 
         // Act
         var result = await _service.SendGroupMessageAsync(senderId, conversationId, messageBody);
@@ -1208,6 +1210,10 @@ public class MessagingServiceTests
 
         _mockUserManager.Setup(um => um.FindByIdAsync(senderId))
             .ReturnsAsync(sender);
+
+        // Setup GetMutedUserIdsAsync to return empty set (no one muted)
+        _mockSettingsRepository.Setup(r => r.GetMutedUserIdsAsync(conversationId, It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(new HashSet<string>());
 
         // Act
         var result = await _service.SendGroupMessageAsync(senderId, conversationId, messageBody);
@@ -1556,8 +1562,9 @@ public class MessagingServiceTests
             .Returns(Task.CompletedTask);
         _mockUserManager.Setup(um => um.FindByIdAsync(senderId))
             .ReturnsAsync(sender);
-        _mockSettingsRepository.Setup(r => r.IsConversationMutedAsync(It.IsAny<string>(), conversationId))
-            .ReturnsAsync(false);
+        // Setup GetMutedUserIdsAsync to return empty set (no one muted)
+        _mockSettingsRepository.Setup(r => r.GetMutedUserIdsAsync(conversationId, It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(new HashSet<string>());
 
         // Act
         var result = await serviceWithHub.SendGroupMessageAsync(senderId, conversationId, messageText);

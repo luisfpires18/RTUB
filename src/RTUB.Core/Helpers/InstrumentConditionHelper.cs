@@ -9,9 +9,52 @@ namespace RTUB.Core.Helpers;
 public static class InstrumentConditionHelper
 {
     /// <summary>
-    /// Gets the Portuguese display name for an instrument condition
+    /// Cached mapping from display name (lowercase) to InstrumentCondition for O(1) lookup
     /// </summary>
-    public static string GetDisplayName(InstrumentCondition condition)
+    private static readonly Dictionary<string, InstrumentCondition> DisplayNameToCondition = BuildDisplayNameLookup();
+
+    /// <summary>
+    /// Cached mapping from InstrumentCondition to display name for O(1) lookup
+    /// </summary>
+    private static readonly Dictionary<InstrumentCondition, string> ConditionToDisplayName = BuildConditionDisplayLookup();
+
+    /// <summary>
+    /// Cached mapping from InstrumentCondition to badge class for O(1) lookup
+    /// </summary>
+    private static readonly Dictionary<InstrumentCondition, string> ConditionToBadgeClass = BuildConditionBadgeLookup();
+
+    private static Dictionary<string, InstrumentCondition> BuildDisplayNameLookup()
+    {
+        var lookup = new Dictionary<string, InstrumentCondition>(StringComparer.OrdinalIgnoreCase);
+        foreach (InstrumentCondition condition in Enum.GetValues<InstrumentCondition>())
+        {
+            var displayName = GetDisplayNameInternal(condition);
+            lookup[displayName] = condition;
+        }
+        return lookup;
+    }
+
+    private static Dictionary<InstrumentCondition, string> BuildConditionDisplayLookup()
+    {
+        var lookup = new Dictionary<InstrumentCondition, string>();
+        foreach (InstrumentCondition condition in Enum.GetValues<InstrumentCondition>())
+        {
+            lookup[condition] = GetDisplayNameInternal(condition);
+        }
+        return lookup;
+    }
+
+    private static Dictionary<InstrumentCondition, string> BuildConditionBadgeLookup()
+    {
+        var lookup = new Dictionary<InstrumentCondition, string>();
+        foreach (InstrumentCondition condition in Enum.GetValues<InstrumentCondition>())
+        {
+            lookup[condition] = GetBadgeClassInternal(condition);
+        }
+        return lookup;
+    }
+
+    private static string GetDisplayNameInternal(InstrumentCondition condition)
     {
         return condition switch
         {
@@ -24,10 +67,7 @@ public static class InstrumentConditionHelper
         };
     }
 
-    /// <summary>
-    /// Gets the Bootstrap badge CSS class for an instrument condition
-    /// </summary>
-    public static string GetBadgeClass(InstrumentCondition condition)
+    private static string GetBadgeClassInternal(InstrumentCondition condition)
     {
         return condition switch
         {
@@ -38,5 +78,40 @@ public static class InstrumentConditionHelper
             InstrumentCondition.Lost => "bg-danger",            // Red
             _ => "bg-secondary"
         };
+    }
+
+    /// <summary>
+    /// Gets the Portuguese display name for an instrument condition
+    /// Uses cached dictionary for O(1) lookup performance
+    /// </summary>
+    public static string GetDisplayName(InstrumentCondition condition)
+    {
+        return ConditionToDisplayName.TryGetValue(condition, out var displayName)
+            ? displayName
+            : condition.ToString();
+    }
+
+    /// <summary>
+    /// Gets the Bootstrap badge CSS class for an instrument condition
+    /// Uses cached dictionary for O(1) lookup performance
+    /// </summary>
+    public static string GetBadgeClass(InstrumentCondition condition)
+    {
+        return ConditionToBadgeClass.TryGetValue(condition, out var badgeClass)
+            ? badgeClass
+            : "bg-secondary";
+    }
+
+    /// <summary>
+    /// Gets the InstrumentCondition enum value from a localized display name.
+    /// Returns null if the display name is not recognized.
+    /// Uses cached dictionary for O(1) lookup performance.
+    /// </summary>
+    public static InstrumentCondition? ParseDisplayName(string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(displayName))
+            return null;
+
+        return DisplayNameToCondition.TryGetValue(displayName, out var condition) ? condition : null;
     }
 }

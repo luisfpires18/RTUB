@@ -173,6 +173,44 @@
     public string SetNicknameTooltip { get; set; } = "Definir Alcunha";
 
     private bool imageLoaded = false;
+    
+    // Track previous state for ShouldRender optimization
+    private string? _previousAvatarUrl;
+    private string? _previousTunaName;
+    private string? _previousFullName;
+    private string? _previousInstrumentText;
+    private DateTime? _previousLastLoginDate;
+    private bool _previousShowEditButton;
+    private bool _previousShowDeleteButton;
+    private bool _previousShowSetNicknameButton;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when key parameters change.
+    /// This is especially important for AvatarCard as it's used in grids with many instances.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (AvatarUrl != _previousAvatarUrl ||
+            TunaName != _previousTunaName ||
+            FullName != _previousFullName ||
+            InstrumentText != _previousInstrumentText ||
+            LastLoginDate != _previousLastLoginDate ||
+            ShowEditButton != _previousShowEditButton ||
+            ShowDeleteButton != _previousShowDeleteButton ||
+            ShowSetNicknameButton != _previousShowSetNicknameButton)
+        {
+            _previousAvatarUrl = AvatarUrl;
+            _previousTunaName = TunaName;
+            _previousFullName = FullName;
+            _previousInstrumentText = InstrumentText;
+            _previousLastLoginDate = LastLoginDate;
+            _previousShowEditButton = ShowEditButton;
+            _previousShowDeleteButton = ShowDeleteButton;
+            _previousShowSetNicknameButton = ShowSetNicknameButton;
+            return true;
+        }
+        return false;
+    }
 
     private void HandleImageLoad()
     {

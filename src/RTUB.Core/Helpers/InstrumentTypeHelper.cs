@@ -9,6 +9,22 @@ namespace RTUB.Core.Helpers;
 public static class InstrumentTypeHelper
 {
     /// <summary>
+    /// Cached mapping from display name (lowercase) to InstrumentType for O(1) lookup
+    /// </summary>
+    private static readonly Dictionary<string, InstrumentType> DisplayNameToType = BuildDisplayNameLookup();
+
+    private static Dictionary<string, InstrumentType> BuildDisplayNameLookup()
+    {
+        var lookup = new Dictionary<string, InstrumentType>(StringComparer.OrdinalIgnoreCase);
+        foreach (InstrumentType type in Enum.GetValues(typeof(InstrumentType)))
+        {
+            var displayName = GetDisplayName(type);
+            lookup[displayName] = type;
+        }
+        return lookup;
+    }
+
+    /// <summary>
     /// Gets a localized display name for an instrument type.
     /// </summary>
     public static string GetDisplayName(InstrumentType instrument)
@@ -34,21 +50,13 @@ public static class InstrumentTypeHelper
     /// <summary>
     /// Gets the InstrumentType enum value from a localized display name.
     /// Returns null if the display name is not recognized.
+    /// Uses cached dictionary for O(1) lookup performance.
     /// </summary>
     public static InstrumentType? ParseDisplayName(string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))
             return null;
 
-        // Try each enum value and compare with its display name
-        foreach (InstrumentType type in Enum.GetValues(typeof(InstrumentType)))
-        {
-            if (GetDisplayName(type).Equals(displayName, StringComparison.OrdinalIgnoreCase))
-            {
-                return type;
-            }
-        }
-
-        return null;
+        return DisplayNameToType.TryGetValue(displayName, out var type) ? type : null;
     }
 }

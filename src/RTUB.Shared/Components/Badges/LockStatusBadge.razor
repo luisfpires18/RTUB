@@ -16,6 +16,21 @@
     public DateTimeOffset? LockoutEnd { get; set; }
 
     private bool IsLocked => LockoutEnd.HasValue && LockoutEnd.Value > DateTimeOffset.UtcNow;
+    
+    private DateTimeOffset? _previousLockoutEnd;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when lockout status changes.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (LockoutEnd != _previousLockoutEnd)
+        {
+            _previousLockoutEnd = LockoutEnd;
+            return true;
+        }
+        return false;
+    }
 
     private string GetLockStatusBadgeClass()
     {

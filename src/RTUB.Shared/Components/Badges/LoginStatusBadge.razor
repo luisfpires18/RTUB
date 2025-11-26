@@ -19,6 +19,21 @@
     /// </summary>
     [Parameter]
     public DateTime? LastLoginDate { get; set; }
+    
+    private DateTime? _previousLastLoginDate;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when login date changes.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (LastLoginDate != _previousLastLoginDate)
+        {
+            _previousLastLoginDate = LastLoginDate;
+            return true;
+        }
+        return false;
+    }
 
     private string GetLoginStatusBadgeClass()
     {

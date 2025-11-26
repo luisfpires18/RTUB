@@ -26,4 +26,9 @@ public interface IRehearsalAttendanceRepository : IRepository<RehearsalAttendanc
     /// Get attendance statistics for a user
     /// </summary>
     Task<(int TotalRehearsals, int Attended)> GetAttendanceStatsAsync(string userId);
+
+    /// <summary>
+    /// Delete all attendance records for a specific rehearsal (batch operation)
+    /// </summary>
+    Task DeleteByRehearsalIdAsync(int rehearsalId);
 }

@@ -182,4 +182,42 @@
 
     [Parameter]
     public string CancelTooltip { get; set; } = "Cancelar";
+    
+    // Track previous state for ShouldRender optimization
+    private string? _previousTunaName;
+    private string? _previousFullName;
+    private string? _previousInstrumentText;
+    private string? _previousNotes;
+    private string? _previousStatusText;
+    private string? _previousOtherInstruments;
+    private bool _previousShowEditButton;
+    private bool _previousShowDeleteButton;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when key parameters change.
+    /// This is especially important for EnrollmentCard as it's used in lists with many instances.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (TunaName != _previousTunaName ||
+            FullName != _previousFullName ||
+            InstrumentText != _previousInstrumentText ||
+            Notes != _previousNotes ||
+            StatusText != _previousStatusText ||
+            OtherInstruments != _previousOtherInstruments ||
+            ShowEditButton != _previousShowEditButton ||
+            ShowDeleteButton != _previousShowDeleteButton)
+        {
+            _previousTunaName = TunaName;
+            _previousFullName = FullName;
+            _previousInstrumentText = InstrumentText;
+            _previousNotes = Notes;
+            _previousStatusText = StatusText;
+            _previousOtherInstruments = OtherInstruments;
+            _previousShowEditButton = ShowEditButton;
+            _previousShowDeleteButton = ShowDeleteButton;
+            return true;
+        }
+        return false;
+    }
 }

@@ -495,4 +495,47 @@
     /// </summary>
     [Parameter]
     public bool ShowCancelButton { get; set; } = true;
+    
+    // Track previous state for ShouldRender optimization
+    private int _previousEventId;
+    private bool _previousIsCancelled;
+    private int _previousEnrollmentCount;
+    private int _previousRepertoireCount;
+    private int _previousDiscussionCount;
+    private bool _previousWillAttend;
+    private bool _previousIsAdmin;
+    private bool _previousIsPastEvent;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when key parameters change.
+    /// This is especially important for EventCard as it's used in lists with many instances.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        // Check key parameters that would require a visual update
+        var eventId = Event?.Id ?? 0;
+        var isCancelled = Event?.IsCancelled ?? false;
+        var willAttend = UserEnrollment?.WillAttend ?? false;
+        
+        if (eventId != _previousEventId ||
+            isCancelled != _previousIsCancelled ||
+            EnrollmentCount != _previousEnrollmentCount ||
+            RepertoireCount != _previousRepertoireCount ||
+            DiscussionCount != _previousDiscussionCount ||
+            willAttend != _previousWillAttend ||
+            IsAdmin != _previousIsAdmin ||
+            IsPastEvent != _previousIsPastEvent)
+        {
+            _previousEventId = eventId;
+            _previousIsCancelled = isCancelled;
+            _previousEnrollmentCount = EnrollmentCount;
+            _previousRepertoireCount = RepertoireCount;
+            _previousDiscussionCount = DiscussionCount;
+            _previousWillAttend = willAttend;
+            _previousIsAdmin = IsAdmin;
+            _previousIsPastEvent = IsPastEvent;
+            return true;
+        }
+        return false;
+    }
 }
