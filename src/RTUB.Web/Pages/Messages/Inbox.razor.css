@@ -718,11 +718,8 @@
     
     /* Full-screen messages page on mobile - override desktop height and use full viewport */
     .messages-page {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        /* Mobile browser: use relative positioning to work with dynamic browser UI */
+        position: relative;
         /* Use 100dvh with fallback to 100vh for proper mobile viewport handling */
         /* Important: Override desktop calc() to use full viewport */
         min-height: 100vh !important;
@@ -733,11 +730,25 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        z-index: 1050; /* Bootstrap modal z-index level, above navbar (1030) */
         /* Remove any potential bottom padding/margin */
         padding-bottom: 0;
         margin-bottom: 0;
     }
+}
+
+/* PWA-specific styles - use position:fixed only in standalone mode */
+@media (max-width: 767px) and (display-mode: standalone) {
+    .messages-page {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1050; /* Bootstrap modal z-index level, above navbar (1030) */
+    }
+}
+
+@media (max-width: 767px) {
 
     .messages-page .container-fluid {
         flex: 1;
