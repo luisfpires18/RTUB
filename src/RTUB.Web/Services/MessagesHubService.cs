@@ -33,9 +33,6 @@ public class MessagesHubService : IMessagesHubService
             
             // Also notify server-side Blazor components
             await _notificationService.NotifyMessageReceivedAsync(message);
-            
-            _logger.LogDebug("Broadcasted message {MessageId} to conversation {ConversationId}", 
-                message.Id, conversationId);
         }
         catch (Exception ex)
         {
@@ -53,9 +50,6 @@ public class MessagesHubService : IMessagesHubService
             
             // Also notify server-side Blazor components
             await _notificationService.NotifyMessageSeenAsync(conversationId, userId, seenAt);
-            
-            _logger.LogDebug("Notified conversation {ConversationId} that user {UserId} marked messages as seen", 
-                conversationId, userId);
         }
         catch (Exception ex)
         {
