@@ -1514,6 +1514,12 @@
 
         // Store conversation reference to prevent race conditions
         var conversation = selectedConversation;
+        if (conversation == null)
+        {
+            Logger.LogWarning("selectedConversation became null after initial check for user {UserId}", currentUserId);
+            return;
+        }
+        
         var conversationId = conversation.Id;
 
         // Stop typing indicator
