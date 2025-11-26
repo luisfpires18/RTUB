@@ -412,9 +412,6 @@ public class MessagingService : IMessagingService
             };
             
             await _conversationRepository.AddAsync(conversation);
-            
-            _logger.LogInformation("Created system group: {GroupTitle} with {ParticipantCount} participants", 
-                groupTitle, participantIds.Count);
         }
         
         return await MapConversationToDtoAsync(conversation, participantIds.FirstOrDefault() ?? string.Empty, new Dictionary<int, ConversationUserSettings>());
@@ -433,9 +430,6 @@ public class MessagingService : IMessagingService
         conversation.UpdatedAt = DateTime.UtcNow;
         
         await _conversationRepository.UpdateAsync(conversation);
-        
-        _logger.LogInformation("Updated participants for group {GroupTitle} (ID: {ConversationId})", 
-            conversation.Title, conversationId);
     }
     
     public async Task<bool> ToggleMuteAsync(int conversationId, string userId)
@@ -627,9 +621,6 @@ public class MessagingService : IMessagingService
             };
             
             await _conversationRepository.AddAsync(conversation);
-            
-            _logger.LogInformation("Created announcement group: {GroupTitle} with {ParticipantCount} participants", 
-                groupTitle, participantIds.Count);
         }
         
         return await MapConversationToDtoAsync(conversation, participantIds.FirstOrDefault() ?? string.Empty, new Dictionary<int, ConversationUserSettings>());

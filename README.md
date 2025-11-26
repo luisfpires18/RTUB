@@ -48,9 +48,9 @@ RTUB/
 
 ### Core Framework
 - **Blazor Web App (Interactive Server)** - Modern web UI framework with C#
-- **.NET 8+** - Latest .NET platform
-- **ASP.NET Core** - Web framework foundation
-- **Entity Framework Core** - ORM for database operations
+- **.NET 10** - Latest .NET platform with C# 14
+- **ASP.NET Core 10** - Web framework foundation with enhanced Blazor features
+- **Entity Framework Core 10** - ORM for database operations
 - **SQLite** - Lightweight database for data persistence
 
 ### Language Composition
@@ -162,6 +162,17 @@ RTUB/
 - **Visitor**: Public access to general information, events, and media gallery
 
 For detailed information about roles, categories (Tuno, Caloiro, Veterano, etc.), and positions (Magister, Secretário, etc.), see [Authentication & Business Rules](docs/auth-and-rules.md).
+
+### .NET 10 Blazor Enhancements
+
+This application leverages the latest .NET 10 and Blazor features:
+
+- **C# 14**: Explicit language version for consistency and access to latest language features
+- **ReconnectModal**: Enhanced user experience during SignalR circuit disconnections with Portuguese branding
+- **Blazor Metrics**: Production-ready telemetry for circuit health and navigation performance monitoring
+- **Optimized Static Assets**: Content-based versioning with granular cache control for maximum performance
+
+For complete details on the .NET 10 upgrade, see [BLAZOR-NET10-CHANGELOG.md](BLAZOR-NET10-CHANGELOG.md).
 
 ## 📁 Project Structure
 

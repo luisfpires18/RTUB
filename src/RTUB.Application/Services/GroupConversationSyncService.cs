@@ -36,8 +36,6 @@ public class GroupConversationSyncService : IGroupConversationSyncService
 
     public async Task SyncDefaultGroupsAsync()
     {
-        _logger.LogInformation("Starting default group conversations sync");
-
         try
         {
             // Get current fiscal year to determine the right group name
@@ -60,8 +58,6 @@ public class GroupConversationSyncService : IGroupConversationSyncService
             
             // 6. ANUNCIOS - All active (non-retired) members, announcement-only channel
             await SyncAnunciosGroupAsync();
-
-            _logger.LogInformation("Completed default group conversations sync");
         }
         catch (Exception ex)
         {

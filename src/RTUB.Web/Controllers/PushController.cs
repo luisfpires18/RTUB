@@ -139,43 +139,6 @@ public class PushController : ControllerBase
     }
 
     /// <summary>
-    /// Sends a test push notification to the current user
-    /// </summary>
-    /// <param name="notification">The notification to send</param>
-    [HttpPost("send-test")]
-    public async Task<IActionResult> SendTest([FromBody] SendPushNotificationDto notification)
-    {
-        if (!HasWebPushAccess())
-        {
-            return Forbid();
-        }
-
-        if (!_pushNotificationService.IsConfigured())
-        {
-            return BadRequest(new { error = "Web Push is not configured on the server" });
-        }
-
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-
-        try
-        {
-            await _pushNotificationService.SendToUserAsync(userId, notification);
-            
-            _logger.LogInformation("Sent test push notification to user {UserId}", userId);
-            return Ok(new { message = "Test notification sent successfully" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error sending test push notification to user {UserId}", userId);
-            return StatusCode(500, new { error = "Failed to send test notification" });
-        }
-    }
-
-    /// <summary>
     /// Broadcasts a push notification to all subscribed users
     /// Only Owner role can broadcast
     /// </summary>

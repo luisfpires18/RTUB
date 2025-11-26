@@ -370,6 +370,11 @@ public class Program
         // Add memory cache for server-side caching (reduces database queries)
         services.AddMemoryCache();
 
+        // --------- .NET 10 Blazor Metrics & Diagnostics ---------
+        // Enable Blazor Server metrics for monitoring circuit health and navigation performance
+        // These metrics are production-ready and integrate with standard .NET monitoring tools
+        services.AddMetrics();
+
         // Add controller support for API endpoints
         services.AddControllers();
 
