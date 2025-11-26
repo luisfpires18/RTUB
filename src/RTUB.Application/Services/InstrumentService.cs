@@ -61,8 +61,6 @@ public class InstrumentService : IInstrumentService
         existingInstrument.UpdateMaintenance(instrument.MaintenanceNotes, instrument.LastMaintenanceDate);
 
         await _instrumentRepository.UpdateAsync(existingInstrument);
-
-        // Invalidate the cached instrument image so the new image is served immediately
     }
 
     public async Task DeleteAsync(int id)
