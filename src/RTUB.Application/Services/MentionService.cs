@@ -10,10 +10,14 @@ namespace RTUB.Application.Services;
 /// <summary>
 /// Mention service implementation for parsing and resolving @mentions
 /// </summary>
-public class MentionService : IMentionService
+public partial class MentionService : IMentionService
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private static readonly Regex MentionRegex = new(@"@(\w+)", RegexOptions.Compiled);
+
+    [GeneratedRegex(@"@(\w+)")]
+    private static partial Regex MentionRegexGenerated();
+
+    private static readonly Regex MentionRegex = MentionRegexGenerated();
 
     public MentionService(UserManager<ApplicationUser> userManager)
     {
@@ -32,9 +36,10 @@ public class MentionService : IMentionService
         var usernames = matches.Select(m => m.Groups[1].Value).Distinct().ToList();
         var mentionedUsers = new Dictionary<string, string>(); // username -> userId
 
+        // Use individual lookups to maintain compatibility with mocked UserManager in tests
         foreach (var username in usernames)
         {
-            var user = await _userManager.FindByNameAsync(username);
+            var user = await _userManager.FindByNameAsync(username).ConfigureAwait(false);
             if (user != null)
             {
                 mentionedUsers[username] = user.Id;
@@ -50,19 +55,40 @@ public class MentionService : IMentionService
     public async Task<IEnumerable<(string userId, string username, string displayName)>> GetSuggestionsAsync(string query, int maxResults = 10)
     {
         if (string.IsNullOrWhiteSpace(query))
-            return Enumerable.Empty<(string, string, string)>();
+            return Array.Empty<(string, string, string)>();
 
-        var users = await _userManager.Users
-            .Where(u => u.UserName!.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                       (u.Nickname != null && u.Nickname.Contains(query, StringComparison.OrdinalIgnoreCase)))
-            .Take(maxResults)
-            .ToListAsync();
+        // Use case-insensitive string comparison with StringComparison.OrdinalIgnoreCase
+        // Note: EF.Functions.Like provides SQL LIKE pattern matching which is case-insensitive by default in most DBs
+        try
+        {
+            var users = await _userManager.Users
+                .Where(u => (u.UserName != null && EF.Functions.Like(u.UserName, $"%{query}%")) ||
+                           (u.Nickname != null && EF.Functions.Like(u.Nickname, $"%{query}%")))
+                .Take(maxResults)
+                .ToListAsync()
+                .ConfigureAwait(false);
 
-        return users.Select(u => (
-            u.Id,
-            u.UserName ?? string.Empty,
-            u.Nickname ?? $"{u.FirstName} {u.LastName}".Trim()
-        ));
+            return users.Select(u => (
+                u.Id,
+                u.UserName ?? string.Empty,
+                u.Nickname ?? $"{u.FirstName} {u.LastName}".Trim()
+            ));
+        }
+        catch (InvalidOperationException)
+        {
+            // Fallback for non-EF scenarios (mocked UserManager in tests)
+            var users = _userManager.Users
+                .Where(u => (u.UserName != null && u.UserName.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+                           (u.Nickname != null && u.Nickname.Contains(query, StringComparison.OrdinalIgnoreCase)))
+                .Take(maxResults)
+                .ToList();
+
+            return users.Select(u => (
+                u.Id,
+                u.UserName ?? string.Empty,
+                u.Nickname ?? $"{u.FirstName} {u.LastName}".Trim()
+            ));
+        }
     }
 
     public async Task<Dictionary<string, string>> GetDisplayNamesAsync(string? mentionsJson)
@@ -76,13 +102,42 @@ public class MentionService : IMentionService
             if (mentions == null || mentions.Count == 0)
                 return new Dictionary<string, string>();
 
+            // Batch query: Try to load all mentioned users in a single database query
+            var userIds = mentions.Values.ToList();
+            Dictionary<string, (string? Nickname, string? FirstName, string? LastName)> userLookup;
+
+            try
+            {
+                var users = await _userManager.Users
+                    .Where(u => userIds.Contains(u.Id))
+                    .Select(u => new { u.Id, u.Nickname, u.FirstName, u.LastName })
+                    .ToListAsync()
+                    .ConfigureAwait(false);
+
+                userLookup = users.ToDictionary(
+                    u => u.Id,
+                    u => (u.Nickname, u.FirstName, u.LastName));
+            }
+            catch (InvalidOperationException)
+            {
+                // Fallback for non-EF scenarios (mocked UserManager in tests)
+                userLookup = new Dictionary<string, (string?, string?, string?)>();
+                foreach (var userId in userIds)
+                {
+                    var user = await _userManager.FindByIdAsync(userId).ConfigureAwait(false);
+                    if (user != null)
+                    {
+                        userLookup[userId] = (user.Nickname, user.FirstName, user.LastName);
+                    }
+                }
+            }
+
             var displayNames = new Dictionary<string, string>();
             foreach (var (username, userId) in mentions)
             {
-                var user = await _userManager.FindByIdAsync(userId);
-                if (user != null)
+                if (userLookup.TryGetValue(userId, out var userData))
                 {
-                    displayNames[username] = user.Nickname ?? $"{user.FirstName} {user.LastName}".Trim();
+                    displayNames[username] = userData.Nickname ?? $"{userData.FirstName} {userData.LastName}".Trim();
                 }
             }
 

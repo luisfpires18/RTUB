@@ -12,6 +12,12 @@ public class SearchHelper<T>
     /// </summary>
     public string SearchTerm { get; set; } = string.Empty;
 
+    // Cache normalized search terms to avoid repeated allocations
+    private string[]? _normalizedSearchTerms;
+    private string? _lastSearchTerm;
+    private bool _lastCaseSensitive;
+    private bool _lastAccentSensitive;
+
     /// <summary>
     /// Filters a list of items based on the current search term
     /// </summary>
@@ -21,7 +27,7 @@ public class SearchHelper<T>
     /// <returns>Filtered list of items</returns>
     public List<T> Filter(List<T> items, Func<T, string> selector, bool caseSensitive = false)
     {
-        if (items == null || !items.Any())
+        if (items == null || items.Count == 0)
         {
             return new List<T>();
         }
@@ -31,15 +37,14 @@ public class SearchHelper<T>
             return items;
         }
 
-        var searchTerm = caseSensitive ? SearchTerm : SearchTerm.ToLower();
+        var comparison = caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 
         return items.Where(item =>
         {
             var value = selector(item);
             if (string.IsNullOrEmpty(value)) return false;
 
-            var compareValue = caseSensitive ? value : value.ToLower();
-            return compareValue.Contains(searchTerm);
+            return value.Contains(SearchTerm, comparison);
         }).ToList();
     }
 
@@ -55,7 +60,7 @@ public class SearchHelper<T>
     /// <returns>Filtered list of items</returns>
     public List<T> FilterMultiple(List<T> items, List<Func<T, string>> selectors, bool caseSensitive = false, bool accentSensitive = false)
     {
-        if (items == null || !items.Any())
+        if (items == null || items.Count == 0)
         {
             return new List<T>();
         }
@@ -65,21 +70,14 @@ public class SearchHelper<T>
             return items;
         }
 
-        if (selectors == null || !selectors.Any())
+        if (selectors == null || selectors.Count == 0)
         {
             return items;
         }
 
-        // Split search term into individual words
-        var searchTerms = SearchTerm.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        if (!caseSensitive)
-        {
-            searchTerms = searchTerms.Select(t => t.ToLower()).ToArray();
-        }
-        if (!accentSensitive)
-        {
-            searchTerms = searchTerms.Select(t => RTUB.Application.Helpers.UsernameHelper.RemoveDiacritics(t)).ToArray();
-        }
+        // Cache normalized search terms to avoid repeated allocations
+        var searchTerms = GetNormalizedSearchTerms(caseSensitive, accentSensitive);
+        var comparison = caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 
         return items.Where(item =>
         {
@@ -91,12 +89,12 @@ public class SearchHelper<T>
                     var value = selector(item);
                     if (string.IsNullOrEmpty(value)) return false;
 
-                    var compareValue = caseSensitive ? value : value.ToLower();
+                    var compareValue = value;
                     if (!accentSensitive)
                     {
                         compareValue = RTUB.Application.Helpers.UsernameHelper.RemoveDiacritics(compareValue);
                     }
-                    return compareValue.Contains(searchTerm);
+                    return compareValue.Contains(searchTerm, comparison);
                 });
             });
         }).ToList();
@@ -105,6 +103,7 @@ public class SearchHelper<T>
     /// <summary>
     /// Filters a list of items where ALL search terms must match
     /// Search term is split by spaces and all parts must be found
+    /// Note: This method does not normalize accents/diacritics (preserves original behavior)
     /// </summary>
     /// <param name="items">List of items to filter</param>
     /// <param name="selector">Function to extract the searchable string from each item</param>
@@ -112,7 +111,7 @@ public class SearchHelper<T>
     /// <returns>Filtered list of items</returns>
     public List<T> FilterAllTerms(List<T> items, Func<T, string> selector, bool caseSensitive = false)
     {
-        if (items == null || !items.Any())
+        if (items == null || items.Count == 0)
         {
             return new List<T>();
         }
@@ -122,28 +121,72 @@ public class SearchHelper<T>
             return items;
         }
 
-        var searchTerms = SearchTerm.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        if (!caseSensitive)
-        {
-            searchTerms = searchTerms.Select(t => t.ToLower()).ToArray();
-        }
+        // Cache normalized search terms to avoid repeated allocations
+        // accentSensitive: true means don't remove diacritics (preserves original behavior)
+        var searchTerms = GetNormalizedSearchTerms(caseSensitive, accentSensitive: true);
+        var comparison = caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 
         return items.Where(item =>
         {
             var value = selector(item);
             if (string.IsNullOrEmpty(value)) return false;
 
-            var compareValue = caseSensitive ? value : value.ToLower();
-            return searchTerms.All(term => compareValue.Contains(term));
+            return searchTerms.All(term => value.Contains(term, comparison));
         }).ToList();
     }
 
     /// <summary>
-    /// Clears the current search term
+    /// Gets normalized search terms with caching to avoid repeated allocations
+    /// </summary>
+    private string[] GetNormalizedSearchTerms(bool caseSensitive, bool accentSensitive)
+    {
+        // Return cached result if parameters match
+        if (_normalizedSearchTerms != null &&
+            _lastSearchTerm == SearchTerm &&
+            _lastCaseSensitive == caseSensitive &&
+            _lastAccentSensitive == accentSensitive)
+        {
+            return _normalizedSearchTerms;
+        }
+
+        // Split and normalize search terms
+        var terms = SearchTerm.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        if (!caseSensitive)
+        {
+            for (int i = 0; i < terms.Length; i++)
+            {
+                terms[i] = terms[i].ToLowerInvariant();
+            }
+        }
+
+        if (!accentSensitive)
+        {
+            for (int i = 0; i < terms.Length; i++)
+            {
+                terms[i] = RTUB.Application.Helpers.UsernameHelper.RemoveDiacritics(terms[i]);
+            }
+        }
+
+        // Cache the result
+        _normalizedSearchTerms = terms;
+        _lastSearchTerm = SearchTerm;
+        _lastCaseSensitive = caseSensitive;
+        _lastAccentSensitive = accentSensitive;
+
+        return terms;
+    }
+
+    /// <summary>
+    /// Clears the current search term and resets cache
     /// </summary>
     public void Clear()
     {
         SearchTerm = string.Empty;
+        _normalizedSearchTerms = null;
+        _lastSearchTerm = null;
+        _lastCaseSensitive = false;
+        _lastAccentSensitive = false;
     }
 
     /// <summary>
