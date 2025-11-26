@@ -69,15 +69,28 @@
 }
 
 .conversations-header-mobile .btn-link {
-    color: var(--bs-body-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background-color: var(--bs-primary);
+    border-radius: 0.375rem;
     text-decoration: none;
-    padding: 0.5rem;
-    margin-left: -0.5rem;
-    line-height: 1;
 }
 
-.conversations-header-mobile .btn-link:hover {
-    color: var(--bs-primary);
+.conversations-header-mobile .btn-link i {
+    color: white !important;
+    font-size: 1.1rem;
+}
+
+/* Remove hover effect from back button */
+.conversations-header-mobile .btn-link:hover,
+.conversations-header-mobile .btn-link:focus,
+.conversations-header-mobile .btn-link:active {
+    background-color: var(--bs-primary);
+    color: white;
 }
 
 .conversations-header-mobile h3 {
@@ -904,7 +917,8 @@
         border-radius: 0.25rem; /* Smaller rounding for mobile */
     }
 
-    .message-thread-header .btn-link {
+    .message-thread-header .btn-link,
+    .conversations-header-mobile .btn-link {
         width: 32px;
         height: 32px;
         border-radius: 0.25rem;
@@ -913,7 +927,8 @@
     .header-actions .header-action-btn i,
     .header-actions .header-action-btn .bi,
     .header-actions .btn-link i,
-    .header-actions .btn-link .bi {
+    .header-actions .btn-link .bi,
+    .conversations-header-mobile .btn-link i {
         font-size: 1rem;
     }
 

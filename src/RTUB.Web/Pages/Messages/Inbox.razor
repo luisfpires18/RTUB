@@ -1512,6 +1512,16 @@
         if (string.IsNullOrWhiteSpace(newMessageText) || selectedConversation == null || isSending)
             return;
 
+        // Store conversation reference to prevent race conditions
+        var conversation = selectedConversation;
+        if (conversation == null)
+        {
+            Logger.LogWarning("selectedConversation became null after initial check for user {UserId}", currentUserId);
+            return;
+        }
+        
+        var conversationId = conversation.Id;
+
         // Stop typing indicator
         await StopTyping();
 
@@ -1521,15 +1531,15 @@
         {
             MessageDto sentMessage;
             
-            if (selectedConversation.IsGroup)
+            if (conversation.IsGroup)
             {
-                sentMessage = await MessagingService.SendGroupMessageAsync(currentUserId, selectedConversation.Id, newMessageText.Trim());
+                sentMessage = await MessagingService.SendGroupMessageAsync(currentUserId, conversationId, newMessageText.Trim());
             }
             else
             {
                 var messageDto = new SendMessageDto
                 {
-                    ReceiverId = selectedConversation.OtherParticipantId!,
+                    ReceiverId = conversation.OtherParticipantId!,
                     Body = newMessageText.Trim()
                 };
                 sentMessage = await MessagingService.SendDirectMessageAsync(currentUserId, messageDto);
@@ -1544,22 +1554,42 @@
             newMessageText = string.Empty;
             shouldScrollToBottom = true;
 
-            // Update conversation in list
-            var conversationInList = conversations.FirstOrDefault(c => c.Id == selectedConversation.Id);
-            if (conversationInList != null)
+            // Update conversation in list - defensive check to prevent NullReferenceException
+            // Guard against null conversations collection or null selectedConversation (race condition)
+            if (conversations != null && conversations.Any())
             {
-                conversationInList.LastMessageAt = sentMessage.CreatedAt;
-                conversationInList.LastMessagePreview = sentMessage.Body;
-                conversationInList.LastMessageSenderId = currentUserId;
-                
-                // Re-sort conversations
-                conversations = conversations
-                    .OrderByDescending(c => c.IsPinned)
-                    .ThenByDescending(c => c.LastMessageAt)
-                    .ToList();
+                var conversationInList = conversations.FirstOrDefault(c => c.Id == conversationId);
+                if (conversationInList != null)
+                {
+                    conversationInList.LastMessageAt = sentMessage.CreatedAt;
+                    conversationInList.LastMessagePreview = sentMessage.Body;
+                    conversationInList.LastMessageSenderId = currentUserId;
+                    
+                    // Re-sort conversations
+                    conversations = conversations
+                        .OrderByDescending(c => c.IsPinned)
+                        .ThenByDescending(c => c.LastMessageAt)
+                        .ToList();
+                }
+                else
+                {
+                    Logger.LogWarning("Conversation {ConversationId} not found in conversations list after sending message for user {UserId}",
+                        conversationId, currentUserId);
+                }
+            }
+            else
+            {
+                Logger.LogWarning("Conversations collection is null or empty when trying to update conversation {ConversationId} for user {UserId}",
+                    conversationId, currentUserId);
             }
             
             StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error sending message in conversation {ConversationId} for user {UserId}",
+                conversationId, currentUserId);
+            // Don't rethrow - fail gracefully
         }
         finally
         {
