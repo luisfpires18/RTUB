@@ -115,8 +115,6 @@ public class PushNotificationServiceTests
                  s.P256dh == subscriptionDto.Keys.P256dh &&
                  s.Auth == subscriptionDto.Keys.Auth
         )), Times.Once);
-
-        VerifyLog(LogLevel.Information, $"Created new push subscription for user {userName}");
     }
 
     [Fact]

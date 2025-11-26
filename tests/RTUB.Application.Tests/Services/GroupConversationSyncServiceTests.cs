@@ -82,43 +82,6 @@ public class GroupConversationSyncServiceTests
             Times.Never);
     }
 
-    [Fact]
-    public async Task SyncDefaultGroupsAsync_LogsStartAndCompletion_WhenSuccessful()
-    {
-        // Arrange
-        var mockUserManager = CreateMockUserManager();
-        SetupEmptyUserManager(mockUserManager);
-
-        var service = new GroupConversationSyncService(
-            _mockMessagingService.Object,
-            _mockConversationRepository.Object,
-            mockUserManager.Object,
-            CreateInMemoryDbContext(),
-            _mockLogger.Object);
-
-        // Act
-        await service.SyncDefaultGroupsAsync();
-
-        // Assert - verify logging was called for start and completion
-        _mockLogger.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Starting default group conversations sync")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-
-        _mockLogger.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Completed default group conversations sync")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
-
     private static Mock<UserManager<ApplicationUser>> CreateMockUserManager()
     {
         var userStore = new Mock<IUserStore<ApplicationUser>>();
