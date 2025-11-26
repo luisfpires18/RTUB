@@ -737,6 +737,13 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            // Lock body scroll on mobile when messages page loads
+            // This prevents double-scroll issues on mobile devices
+            await JSRuntime.InvokeVoidAsync("modalHelper.lockBodyScroll");
+        }
+        
         if (shouldScrollToBottom)
         {
             shouldScrollToBottom = false;
