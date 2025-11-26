@@ -705,6 +705,9 @@
         left: 0;
         right: 0;
         bottom: 0;
+        /* Use 100dvh with fallback to 100vh for proper mobile viewport handling */
+        height: 100vh; /* Fallback for browsers that don't support dvh */
+        height: 100dvh; /* Dynamic viewport height - adjusts for mobile browser UI */
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -788,7 +791,7 @@
            because gap would override our grouped message spacing (0.1rem) */
     }
 
-    /* Sticky footer - always visible above keyboard */
+    /* Sticky footer - always visible above keyboard with safe-area-inset for iOS */
     .message-thread-footer {
         flex-shrink: 0;
         position: sticky;
@@ -796,7 +799,8 @@
         background: #0f0f10;
         box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
         padding: 0.5rem 0.75rem; /* Top and side padding */
-        padding-bottom: max(0.25rem, env(safe-area-inset-bottom)); /* Minimal padding or safe area, whichever is larger */
+        /* Use env(safe-area-inset-bottom) to handle iOS notch/home indicator - minimal padding */
+        padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
         z-index: 10;
     }
 
@@ -933,12 +937,20 @@
     .conversation-modal .modal-content {
         min-height: 80vh;
         border-radius: 0.85rem;
+        /* Prevent horizontal scroll on mobile */
+        overflow-x: hidden;
     }
 
     .conversation-modal .modal-header,
     .conversation-modal .modal-body,
     .conversation-modal .modal-footer {
         padding: 0.9rem 1rem;
+    }
+
+    .conversation-modal .modal-body {
+        /* Ensure modal body can scroll vertically but not horizontally */
+        overflow-x: hidden;
+        overflow-y: auto;
     }
 
     .conversation-modal .member-list-scrollable {
