@@ -716,17 +716,18 @@
        AREA A: FULL-SCREEN INBOX ON MOBILE
        ============================================= */
     
-    /* Mobile browser: natural flow without fixed heights - let browser UI work naturally */
+    /* Mobile browser: use min-height 100vh to enable flex layout while allowing overflow */
     .messages-page {
         position: relative;
-        /* Don't force height in mobile browser - let content flow naturally */
-        /* This allows the browser UI to resize without cutting off content */
-        min-height: auto !important;
+        /* Use min-height to enable flex children to work properly, but allow content to grow */
+        min-height: 100vh !important;
+        min-height: 100dvh !important;
+        /* Don't force max-height - allow content to grow beyond viewport if needed */
         height: auto !important;
         max-height: none !important;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
+        overflow: visible; /* Allow overflow in browser to prevent cutting off content */
         padding-bottom: 0;
         margin-bottom: 0;
     }
@@ -746,6 +747,7 @@
         height: 100dvh !important;
         max-height: 100vh !important;
         max-height: 100dvh !important;
+        overflow: hidden; /* PWA should not overflow - fixed full screen */
         z-index: 1050; /* Bootstrap modal z-index level, above navbar (1030) */
     }
 }
