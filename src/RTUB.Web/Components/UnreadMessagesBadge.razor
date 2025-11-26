@@ -7,7 +7,7 @@
 @inject IMessagingService MessagingService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
-@inject RTUB.Web.Services.MessagesHubClient MessagesHubClient
+@inject RTUB.Web.Services.MessagesNotificationService NotificationService
 @implements IAsyncDisposable
 
 @if (unreadCount > 0)
@@ -45,17 +45,9 @@
                 // Subscribe to refresh requests from other components
                 OnBadgeRefreshRequested += HandleRefreshRequest;
                 
-                // Initialize SignalR connection and subscribe to events
-                try
-                {
-                    await MessagesHubClient.InitializeAsync();
-                    MessagesHubClient.OnMessageReceived += HandleMessageReceived;
-                    MessagesHubClient.OnMessageSeen += HandleMessageSeen;
-                }
-                catch
-                {
-                    // Ignore SignalR errors - fallback timer will handle updates
-                }
+                // Subscribe to notification service events for real-time updates
+                NotificationService.OnMessageReceived += HandleMessageReceived;
+                NotificationService.OnMessageSeen += HandleMessageSeen;
                 
                 // Fallback timer refresh every 60 seconds
                 _refreshTimer = new System.Threading.Timer(async _ =>
@@ -165,11 +157,13 @@
     {
         OnBadgeRefreshRequested -= HandleRefreshRequest;
         
-        // Unsubscribe from SignalR events
-        MessagesHubClient.OnMessageReceived -= HandleMessageReceived;
-        MessagesHubClient.OnMessageSeen -= HandleMessageSeen;
+        // Unsubscribe from notification service events
+        NotificationService.OnMessageReceived -= HandleMessageReceived;
+        NotificationService.OnMessageSeen -= HandleMessageSeen;
         
         _refreshTimer?.Dispose();
         _dotNetRef?.Dispose();
+        
+        await Task.CompletedTask;
     }
 }

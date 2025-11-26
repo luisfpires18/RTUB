@@ -309,7 +309,9 @@ public class Program
 
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
-        services.AddScoped<RTUB.Web.Services.MessagesHubClient>();
+        
+        // Messaging notification service for server-side Blazor real-time updates
+        services.AddSingleton<RTUB.Web.Services.MessagesNotificationService>();
 
         // ---------- Blazor + Authentication ----------
         services.AddRazorComponents()

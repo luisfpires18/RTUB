@@ -11,13 +11,16 @@ namespace RTUB.Web.Services;
 public class MessagesHubService : IMessagesHubService
 {
     private readonly IHubContext<MessagesHub, IMessagesHubClient> _hubContext;
+    private readonly MessagesNotificationService _notificationService;
     private readonly ILogger<MessagesHubService> _logger;
 
     public MessagesHubService(
         IHubContext<MessagesHub, IMessagesHubClient> hubContext,
+        MessagesNotificationService notificationService,
         ILogger<MessagesHubService> logger)
     {
         _hubContext = hubContext;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -27,6 +30,9 @@ public class MessagesHubService : IMessagesHubService
         {
             var groupName = $"conversation-{conversationId}";
             await _hubContext.Clients.Group(groupName).ReceiveMessage(message);
+            
+            // Also notify server-side Blazor components
+            await _notificationService.NotifyMessageReceivedAsync(message);
             
             _logger.LogDebug("Broadcasted message {MessageId} to conversation {ConversationId}", 
                 message.Id, conversationId);
@@ -44,6 +50,9 @@ public class MessagesHubService : IMessagesHubService
         {
             var groupName = $"conversation-{conversationId}";
             await _hubContext.Clients.Group(groupName).MessageSeen(conversationId, userId, seenAt);
+            
+            // Also notify server-side Blazor components
+            await _notificationService.NotifyMessageSeenAsync(conversationId, userId, seenAt);
             
             _logger.LogDebug("Notified conversation {ConversationId} that user {UserId} marked messages as seen", 
                 conversationId, userId);

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using RTUB.Application.Interfaces;
 using RTUB.Application.DTOs;
+using RTUB.Web.Services;
 using System.Security.Claims;
 
 namespace RTUB.Web.Hubs;
@@ -13,13 +14,16 @@ namespace RTUB.Web.Hubs;
 public class MessagesHub : Hub<IMessagesHubClient>
 {
     private readonly IConversationRepository _conversationRepository;
+    private readonly MessagesNotificationService _notificationService;
     private readonly ILogger<MessagesHub> _logger;
 
     public MessagesHub(
         IConversationRepository conversationRepository,
+        MessagesNotificationService notificationService,
         ILogger<MessagesHub> logger)
     {
         _conversationRepository = conversationRepository;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -101,6 +105,9 @@ public class MessagesHub : Hub<IMessagesHubClient>
         var groupName = $"conversation-{conversationId}";
         // Send to all in group except the sender
         await Clients.OthersInGroup(groupName).TypingStarted(conversationId, userId);
+        
+        // Also notify server-side Blazor components
+        await _notificationService.NotifyTypingStartedAsync(conversationId, userId);
     }
 
     /// <summary>
@@ -118,6 +125,9 @@ public class MessagesHub : Hub<IMessagesHubClient>
         var groupName = $"conversation-{conversationId}";
         // Send to all in group except the sender
         await Clients.OthersInGroup(groupName).TypingStopped(conversationId, userId);
+        
+        // Also notify server-side Blazor components
+        await _notificationService.NotifyTypingStoppedAsync(conversationId, userId);
     }
 
     public override async Task OnConnectedAsync()

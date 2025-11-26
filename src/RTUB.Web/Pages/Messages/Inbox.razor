@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.SignalR
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.JSInterop
 @using RTUB.Application.Interfaces
@@ -18,7 +19,8 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject ILogger<Inbox> Logger
-@inject RTUB.Web.Services.MessagesHubClient MessagesHubClient
+@inject RTUB.Web.Services.MessagesNotificationService NotificationService
+@inject IHubContext<RTUB.Web.Hubs.MessagesHub, RTUB.Web.Hubs.IMessagesHubClient> HubContext
 @implements IAsyncDisposable
 
 <PageTitle>Mensagens - RTUB</PageTitle>
@@ -1213,22 +1215,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Initialize SignalR connection
-        try
-        {
-            await MessagesHubClient.InitializeAsync();
-            
-            // Subscribe to SignalR events
-            MessagesHubClient.OnMessageReceived += HandleMessageReceived;
-            MessagesHubClient.OnMessageSeen += HandleMessageSeen;
-            MessagesHubClient.OnTypingStarted += HandleTypingStarted;
-            MessagesHubClient.OnTypingStopped += HandleTypingStopped;
-        }
-        catch (Exception ex)
-        {
-            // Log but don't fail - app should work without SignalR
-            Logger.LogWarning(ex, "Failed to initialize SignalR connection");
-        }
+        // Subscribe to notification service events (server-side real-time updates)
+        NotificationService.OnMessageReceived += HandleMessageReceived;
+        NotificationService.OnMessageSeen += HandleMessageSeen;
+        NotificationService.OnTypingStarted += HandleTypingStarted;
+        NotificationService.OnTypingStopped += HandleTypingStopped;
         
         // Original initialization code
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -1371,7 +1362,10 @@
         }
         
         isTyping = true;
-        await MessagesHubClient.SendTypingStartedAsync(selectedConversation.Id);
+        // Send typing started event through hub context
+        var groupName = $"conversation-{selectedConversation.Id}";
+        await HubContext.Clients.Group(groupName).TypingStarted(selectedConversation.Id, currentUserId);
+        await NotificationService.NotifyTypingStartedAsync(selectedConversation.Id, currentUserId);
         
         // Reset the typing timer (stop typing after 3 seconds of inactivity)
         typingTimer?.Dispose();
@@ -1390,7 +1384,10 @@
         
         isTyping = false;
         typingTimer?.Dispose();
-        await MessagesHubClient.SendTypingStoppedAsync(selectedConversation.Id);
+        // Send typing stopped event through hub context
+        var groupName = $"conversation-{selectedConversation.Id}";
+        await HubContext.Clients.Group(groupName).TypingStopped(selectedConversation.Id, currentUserId);
+        await NotificationService.NotifyTypingStoppedAsync(selectedConversation.Id, currentUserId);
     }
 
     private async Task HandleInputBlur()
@@ -1400,12 +1397,7 @@
 
     private async Task SelectConversation(int conversationId)
     {
-        // Leave previous conversation
-        if (currentConversationId.HasValue && MessagesHubClient.IsConnected)
-        {
-            await MessagesHubClient.LeaveConversationAsync(currentConversationId.Value);
-        }
-        
+        // Clear typing state when switching conversations
         typingUsers.Clear();
         isTyping = false;
         typingTimer?.Dispose();
@@ -1442,12 +1434,8 @@
                     UnreadMessagesBadge.RequestRefresh();
                 }
                 
-                // Join the conversation via SignalR
-                if (MessagesHubClient.IsConnected)
-                {
-                    await MessagesHubClient.JoinConversationAsync(conversationId);
-                    currentConversationId = conversationId;
-                }
+                // Track current conversation
+                currentConversationId = conversationId;
             }
         }
         finally
@@ -1518,18 +1506,14 @@
 
     public async ValueTask DisposeAsync()
     {
-        // Unsubscribe from SignalR events
-        MessagesHubClient.OnMessageReceived -= HandleMessageReceived;
-        MessagesHubClient.OnMessageSeen -= HandleMessageSeen;
-        MessagesHubClient.OnTypingStarted -= HandleTypingStarted;
-        MessagesHubClient.OnTypingStopped -= HandleTypingStopped;
-        
-        // Leave current conversation
-        if (currentConversationId.HasValue && MessagesHubClient.IsConnected)
-        {
-            await MessagesHubClient.LeaveConversationAsync(currentConversationId.Value);
-        }
+        // Unsubscribe from notification service events
+        NotificationService.OnMessageReceived -= HandleMessageReceived;
+        NotificationService.OnMessageSeen -= HandleMessageSeen;
+        NotificationService.OnTypingStarted -= HandleTypingStarted;
+        NotificationService.OnTypingStopped -= HandleTypingStopped;
         
         typingTimer?.Dispose();
+        
+        await Task.CompletedTask;
     }
 }
