@@ -519,6 +519,71 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         result.Should().Be(105);
     }
 
+    [Fact]
+    public void GetLevelFromXp_WithExactThreshold_ReturnsCorrectLevel()
+    {
+        // Arrange - Test exact threshold values
+        // Level thresholds: 1=0, 2=100, 3=250, 4=500, 5=1000
+
+        // Act & Assert - Test each exact threshold
+        _service.GetLevelFromXp(0).Should().Be(1);     // Exact threshold for level 1
+        _service.GetLevelFromXp(100).Should().Be(2);   // Exact threshold for level 2
+        _service.GetLevelFromXp(250).Should().Be(3);   // Exact threshold for level 3
+        _service.GetLevelFromXp(500).Should().Be(4);   // Exact threshold for level 4
+        _service.GetLevelFromXp(1000).Should().Be(5);  // Exact threshold for level 5
+    }
+
+    [Fact]
+    public void GetLevelFromXp_WithOneXpBelowThreshold_ReturnsLowerLevel()
+    {
+        // Arrange - Test values one below threshold
+        // Level thresholds: 1=0, 2=100, 3=250, 4=500, 5=1000
+
+        // Act & Assert
+        _service.GetLevelFromXp(99).Should().Be(1);    // Just below level 2 threshold
+        _service.GetLevelFromXp(249).Should().Be(2);   // Just below level 3 threshold
+        _service.GetLevelFromXp(499).Should().Be(3);   // Just below level 4 threshold
+        _service.GetLevelFromXp(999).Should().Be(4);   // Just below level 5 threshold
+    }
+
+    [Fact]
+    public void GetLevelFromXp_WithOneXpAboveThreshold_ReturnsCorrectLevel()
+    {
+        // Arrange - Test values one above threshold
+        // Level thresholds: 1=0, 2=100, 3=250, 4=500, 5=1000
+
+        // Act & Assert
+        _service.GetLevelFromXp(1).Should().Be(1);     // Just above level 1 threshold
+        _service.GetLevelFromXp(101).Should().Be(2);   // Just above level 2 threshold
+        _service.GetLevelFromXp(251).Should().Be(3);   // Just above level 3 threshold
+        _service.GetLevelFromXp(501).Should().Be(4);   // Just above level 4 threshold
+        _service.GetLevelFromXp(1001).Should().Be(5);  // Just above level 5 threshold
+    }
+
+    [Fact]
+    public void GetLevelFromXp_WithNegativeXp_ReturnsLowestLevel()
+    {
+        // Arrange - Edge case with negative XP
+
+        // Act
+        var result = _service.GetLevelFromXp(-100);
+
+        // Assert - Should return lowest level (1)
+        result.Should().Be(1);
+    }
+
+    [Fact]
+    public void GetLevelFromXp_WithVeryLargeXp_ReturnsMaxLevel()
+    {
+        // Arrange - Test very large XP values
+
+        // Act
+        var result = _service.GetLevelFromXp(int.MaxValue - 1);
+
+        // Assert - Should return max level (5)
+        result.Should().Be(5);
+    }
+
     public void Dispose()
     {
         _fixture.CleanDatabase(_context).GetAwaiter().GetResult();
