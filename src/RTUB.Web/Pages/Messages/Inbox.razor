@@ -1634,13 +1634,20 @@
         
         // Ensure body scroll is unlocked when component is disposed
         // This handles edge cases where modals might be open during navigation
+        // and ensures body scroll is restored when leaving the messages page
         try
         {
             await JSRuntime.InvokeVoidAsync("modalHelper.unlockBodyScroll");
         }
-        catch
+        catch (JSDisconnectedException)
         {
-            // Ignore JS interop errors during disposal
+            // JavaScript runtime is disconnected during disposal - expected during navigation
+            // No action needed as body scroll will reset on page navigation anyway
+        }
+        catch (Exception ex)
+        {
+            // Log unexpected errors but don't throw during disposal
+            Logger.LogWarning(ex, "Error unlocking body scroll during Inbox component disposal for user {UserId}", currentUserId);
         }
         
         await Task.CompletedTask;

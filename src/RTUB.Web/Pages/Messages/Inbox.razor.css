@@ -875,7 +875,11 @@
     }
 
     .message-composer__input {
-        font-size: 16px !important; /* 16px minimum to prevent iOS zoom on focus */
+        /* !important is intentional here: iOS Safari auto-zooms inputs with font-size < 16px
+           This is a critical mobile UX requirement to prevent jarring zoom behavior
+           when users tap the message input field. The 16px minimum is a documented
+           iOS Safari requirement that cannot be achieved through cascade alone. */
+        font-size: 16px !important;
         resize: none;
         max-height: 100px; /* Smaller max height for mobile screens */
         overflow-y: auto;
@@ -1051,6 +1055,8 @@
     /* 
      * Prevent iOS zoom on input focus
      * All text inputs and textareas in modals MUST have 16px font-size minimum
+     * !important is required: iOS Safari auto-zooms inputs with font-size < 16px
+     * This is a documented iOS Safari behavior that affects mobile PWA usability
      */
     .conversation-modal input[type="text"],
     .conversation-modal textarea,
@@ -1059,7 +1065,7 @@
         font-size: 16px !important;
     }
     
-    /* Group name input */
+    /* Group name input - minimum touch target for accessibility */
     .conversation-modal input[type="text"].form-control {
         min-height: 44px;
         padding: 0.625rem 0.875rem;
