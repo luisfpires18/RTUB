@@ -108,10 +108,11 @@
 /* Mobile adjustments */
 @media (max-width: 768px) {
     .event-buttons-container {
-        justify-content: flex-start;
+        justify-content: center;
         padding-left: 0.25rem;
         padding-right: 0.25rem;
         flex-wrap: wrap;
+        gap: 0.375rem;
     }
 
     .event-icon-btn {
@@ -119,6 +120,52 @@
         height: 44px;
         min-width: 44px;
         min-height: 44px;
+        touch-action: manipulation;
+    }
+
+    .event-icon-btn i {
+        font-size: 1.1rem;
+    }
+
+    .event-icon-btn .enrollment-count-centered {
+        font-size: 1.1rem;
+    }
+}
+
+/* Tablet adjustments (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .event-buttons-container {
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .event-icon-btn {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
+    }
+}
+
+/* Very small screens - further compact mode */
+@media (max-width: 375px) {
+    .event-buttons-container {
+        gap: 0.25rem;
+    }
+
+    .event-icon-btn {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+    }
+
+    .event-icon-btn i {
+        font-size: 1rem;
+    }
+
+    .event-icon-btn .enrollment-count-centered {
+        font-size: 1rem;
     }
 }
 
