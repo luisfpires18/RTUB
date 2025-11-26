@@ -2,6 +2,8 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Configuration;
@@ -16,13 +18,25 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
 {
     private readonly IRehearsalAttendanceRepository _attendanceRepository;
     private readonly IRetirementStatusService _retirementStatusService;
+    private readonly IPushNotificationService _pushNotificationService;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly UserManager<ApplicationUser> _userManager;
 
     public RehearsalAttendanceService(
         IRehearsalAttendanceRepository attendanceRepository,
-        IRetirementStatusService retirementStatusService)
+        IRetirementStatusService retirementStatusService,
+        IPushNotificationService pushNotificationService,
+        IPushNotificationFactory pushNotificationFactory,
+        IHttpContextAccessor httpContextAccessor,
+        UserManager<ApplicationUser> userManager)
     {
         _attendanceRepository = attendanceRepository;
         _retirementStatusService = retirementStatusService;
+        _pushNotificationService = pushNotificationService;
+        _pushNotificationFactory = pushNotificationFactory;
+        _httpContextAccessor = httpContextAccessor;
+        _userManager = userManager;
     }
 
     public async Task<RehearsalAttendance?> GetAttendanceByIdAsync(int id)
@@ -108,7 +122,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         return await _attendanceRepository.AddAsync(attendance);
     }
 
-    public async Task UpdateAttendanceAsync(int id, bool attended, InstrumentType? instrument = null)
+    public async Task UpdateAttendanceAsync(int id, bool attended, InstrumentType? instrument = null, string? approverUserId = null)
     {
         var attendance = await _attendanceRepository.GetByIdAsync(id);
         if (attendance == null)
@@ -124,10 +138,16 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         if (attended)
         {
             await _retirementStatusService.UpdateUserRetirementStatusAsync(attendance.UserId);
+
+            // Send approval notification if approverUserId is provided
+            if (!string.IsNullOrEmpty(approverUserId))
+            {
+                await SendApprovalNotificationAsync(attendance, approverUserId);
+            }
         }
     }
 
-    public async Task CancelAttendanceAsync(int id)
+    public async Task CancelAttendanceAsync(int id, string? rejectorUserId = null)
     {
         var attendance = await _attendanceRepository.GetByIdAsync(id);
         if (attendance == null)
@@ -137,6 +157,12 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         attendance.WillAttend = false;
 
         await _attendanceRepository.UpdateAsync(attendance);
+
+        // Send rejection notification if rejectorUserId is provided
+        if (!string.IsNullOrEmpty(rejectorUserId))
+        {
+            await SendRejectionNotificationAsync(attendance, rejectorUserId);
+        }
     }
 
     public async Task DeleteAttendanceAsync(int id)
@@ -172,5 +198,79 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             .ToListAsync();
 
         return attendances.ToDictionary(a => a.UserId, a => a.Count);
+    }
+
+    private async Task SendApprovalNotificationAsync(RehearsalAttendance attendance, string approverUserId)
+    {
+        try
+        {
+            // Load the rehearsal if not already loaded
+            var rehearsal = attendance.Rehearsal ?? await _attendanceRepository.Query()
+                .Include(a => a.Rehearsal)
+                .Where(a => a.Id == attendance.Id)
+                .Select(a => a.Rehearsal)
+                .FirstOrDefaultAsync();
+
+            if (rehearsal == null)
+                return;
+
+            // Get the approver's name
+            var approver = await _userManager.FindByIdAsync(approverUserId);
+            if (approver == null)
+                return;
+
+            var approverName = approver.Nickname ?? approver.UserName ?? "Admin";
+            var baseUrl = GetBaseUrl();
+            var notification = _pushNotificationFactory.CreateRehearsalAttendanceApprovalNotification(rehearsal, approverName, baseUrl);
+
+            await _pushNotificationService.SendToUserAsync(attendance.UserId, notification);
+        }
+        catch
+        {
+            // Log error but don't fail the operation
+            // Notification is secondary to the main operation
+        }
+    }
+
+    private async Task SendRejectionNotificationAsync(RehearsalAttendance attendance, string rejectorUserId)
+    {
+        try
+        {
+            // Load the rehearsal if not already loaded
+            var rehearsal = attendance.Rehearsal ?? await _attendanceRepository.Query()
+                .Include(a => a.Rehearsal)
+                .Where(a => a.Id == attendance.Id)
+                .Select(a => a.Rehearsal)
+                .FirstOrDefaultAsync();
+
+            if (rehearsal == null)
+                return;
+
+            // Get the rejector's name
+            var rejector = await _userManager.FindByIdAsync(rejectorUserId);
+            if (rejector == null)
+                return;
+
+            var rejectorName = rejector.Nickname ?? rejector.UserName ?? "Admin";
+            var baseUrl = GetBaseUrl();
+            var notification = _pushNotificationFactory.CreateRehearsalAttendanceRejectionNotification(rehearsal, rejectorName, baseUrl);
+
+            await _pushNotificationService.SendToUserAsync(attendance.UserId, notification);
+        }
+        catch
+        {
+            // Log error but don't fail the operation
+            // Notification is secondary to the main operation
+        }
+    }
+
+    private string GetBaseUrl()
+    {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+        return "https://rtub.pt"; // Fallback
     }
 }

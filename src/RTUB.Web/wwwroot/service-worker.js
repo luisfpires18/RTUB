@@ -2,7 +2,7 @@
 // Handles push events, notification clicks, and offline asset caching
 
 // Cache version - increment when updating service worker
-const CACHE_VERSION = 'rtub-v2';
+const CACHE_VERSION = 'rtub-v3';
 const STATIC_CACHE = `rtub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `rtub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `rtub-images-${CACHE_VERSION}`;
@@ -62,6 +62,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
+    
+    // Skip non-HTTP(S) requests (e.g., chrome-extension://, moz-extension://)
+    // Cache API only supports http and https schemes
+    if (!url.protocol.startsWith('http')) {
+        return;
+    }
     
     // Skip non-GET requests and Blazor SignalR connections
     if (request.method !== 'GET' || url.pathname.includes('/_blazor')) {

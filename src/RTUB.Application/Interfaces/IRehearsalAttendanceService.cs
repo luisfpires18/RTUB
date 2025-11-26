@@ -24,12 +24,21 @@ public interface IRehearsalAttendanceService
     /// </summary>
     Task<RehearsalAttendance> CreateAttendanceWithApprovalAsync(int rehearsalId, string userId, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null);
 
-    Task UpdateAttendanceAsync(int id, bool attended, InstrumentType? instrument = null);
+    /// <summary>
+    /// Updates attendance approval status.
+    /// </summary>
+    /// <param name="id">Attendance ID</param>
+    /// <param name="attended">Whether user attended</param>
+    /// <param name="instrument">Optional instrument type</param>
+    /// <param name="approverUserId">Optional ID of the user performing the approval (for notifications)</param>
+    Task UpdateAttendanceAsync(int id, bool attended, InstrumentType? instrument = null, string? approverUserId = null);
 
     /// <summary>
     /// Cancels an attendance by setting WillAttend to false. Used for past rehearsals.
     /// </summary>
-    Task CancelAttendanceAsync(int id);
+    /// <param name="id">Attendance ID</param>
+    /// <param name="rejectorUserId">Optional ID of the user performing the rejection (for notifications)</param>
+    Task CancelAttendanceAsync(int id, string? rejectorUserId = null);
 
     Task DeleteAttendanceAsync(int id);
 

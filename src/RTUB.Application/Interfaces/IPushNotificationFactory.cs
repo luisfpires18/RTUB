@@ -77,4 +77,39 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateRequestNotification(Request request, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification when admin approves a user's rehearsal attendance.
+    /// </summary>
+    /// <param name="rehearsal">The rehearsal</param>
+    /// <param name="approverName">The name of the admin who approved</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateRehearsalAttendanceApprovalNotification(Rehearsal rehearsal, string approverName, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification when admin rejects a user's rehearsal attendance.
+    /// </summary>
+    /// <param name="rehearsal">The rehearsal</param>
+    /// <param name="rejectorName">The name of the admin who rejected</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateRehearsalAttendanceRejectionNotification(Rehearsal rehearsal, string rejectorName, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification when someone comments on a user's leaderboard profile.
+    /// </summary>
+    /// <param name="authorName">The name of the comment author</param>
+    /// <param name="targetUserName">The name of the user being commented on</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateLeaderboardCommentNotification(string authorName, string targetUserName, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification when someone likes a user's comment.
+    /// </summary>
+    /// <param name="likerName">The name of the user who liked the comment</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateLeaderboardCommentLikeNotification(string likerName, string baseUrl);
 }

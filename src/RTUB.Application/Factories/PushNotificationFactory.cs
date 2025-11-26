@@ -270,4 +270,89 @@ public class PushNotificationFactory : IPushNotificationFactory
             _ => "Reunião"
         };
     }
+
+    /// <summary>
+    /// Creates a push notification when admin approves a user's rehearsal attendance.
+    /// </summary>
+    public SendPushNotificationDto CreateRehearsalAttendanceApprovalNotification(Rehearsal rehearsal, string approverName, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(rehearsal);
+        ArgumentException.ThrowIfNullOrWhiteSpace(approverName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var rehearsalUrl = BuildRehearsalUrl(baseUrl);
+        var title = FormatRehearsalTitle(rehearsal.Date);
+
+        return new SendPushNotificationDto
+        {
+            Title = title,
+            Body = $"{approverName} aprovou a tua presença",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = rehearsalUrl,
+            Tag = $"rehearsal-attendance-approval-{rehearsal.Id}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification when admin rejects a user's rehearsal attendance.
+    /// </summary>
+    public SendPushNotificationDto CreateRehearsalAttendanceRejectionNotification(Rehearsal rehearsal, string rejectorName, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(rehearsal);
+        ArgumentException.ThrowIfNullOrWhiteSpace(rejectorName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var rehearsalUrl = BuildRehearsalUrl(baseUrl);
+        var title = FormatRehearsalTitle(rehearsal.Date);
+
+        return new SendPushNotificationDto
+        {
+            Title = title,
+            Body = $"{rejectorName} recusou a tua presença",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = rehearsalUrl,
+            Tag = $"rehearsal-attendance-rejection-{rehearsal.Id}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification when someone comments on a user's leaderboard profile.
+    /// </summary>
+    public SendPushNotificationDto CreateLeaderboardCommentNotification(string authorName, string targetUserName, string baseUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(authorName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetUserName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var leaderboardUrl = $"{baseUrl.TrimEnd('/')}/leaderboard";
+
+        return new SendPushNotificationDto
+        {
+            Title = "Novo comentário no teu perfil",
+            Body = $"{authorName} comentou no teu perfil",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = leaderboardUrl,
+            Tag = "leaderboard-comment"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification when someone likes a user's comment.
+    /// </summary>
+    public SendPushNotificationDto CreateLeaderboardCommentLikeNotification(string likerName, string baseUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(likerName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var leaderboardUrl = $"{baseUrl.TrimEnd('/')}/leaderboard";
+
+        return new SendPushNotificationDto
+        {
+            Title = "Novo like no teu comentário",
+            Body = $"{likerName} gostou do teu comentário",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = leaderboardUrl,
+            Tag = "leaderboard-comment-like"
+        };
+    }
 }
