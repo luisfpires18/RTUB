@@ -5,9 +5,9 @@
     --message-avatar-size: 32px;
     --message-avatar-margin: 0.5rem;
     --primary-hover: #8b5cf6; /* Lighter purple for hover states */
-    /* Padding for message body on mobile - accounts for fixed footer height (~60px) + safe-area */
+    /* Mobile chat layout dimensions */
+    --mobile-header-height: 60px;
     --mobile-footer-height: 60px;
-    --mobile-message-bottom-padding: calc(var(--mobile-footer-height) + env(safe-area-inset-bottom, 0px) + 0.5rem);
     
     /* Desktop: account for navbar and footer */
     min-height: 600px;
@@ -355,6 +355,15 @@
     min-height: 0; /* Allow scrolling when content exceeds container height */
     align-items: stretch;
     scrollbar-gutter: stable both-edges;
+}
+
+/* Inner wrapper for bottom-aligning messages (WhatsApp/Telegram style) */
+.messages-inner-wrapper {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    width: 100%;
 }
 
 .message {
@@ -831,62 +840,72 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        /* Position relative for fixed children to reference */
+        position: relative;
     }
 
-    /* Fixed header */
+    /* FIXED header - stays visible even when keyboard opens (like WhatsApp) */
     .message-thread-header {
-        flex-shrink: 0;
+        position: fixed;
+        top: env(safe-area-inset-top, 0px);
+        left: 0;
+        right: 0;
+        height: var(--mobile-header-height);
         background: #0f0f10;
         border-bottom: 1px solid var(--bs-border-color);
         padding: 0.75rem;
+        z-index: 1001;
+        display: flex;
+        align-items: center;
     }
 
-    /* Scrollable message body */
+    /* Scrollable message body - sits between fixed header and footer */
     .message-thread-body {
-        flex: 1;
+        position: fixed;
+        top: calc(env(safe-area-inset-top, 0px) + var(--mobile-header-height));
+        left: 0;
+        right: 0;
+        bottom: calc(var(--mobile-footer-height) + env(safe-area-inset-bottom, 0px));
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
-        padding: 0.75rem;
-        /* Padding for sticky footer - footer handles its own safe-area
-           Uses CSS variable defined in .messages-page: --mobile-message-bottom-padding: 1rem */
-        padding-bottom: var(--mobile-message-bottom-padding);
-        /* Note: We use margin-bottom on .message elements for spacing, not gap,
-           because gap would override our grouped message spacing (0.1rem) */
-        /* Prevent elastic scroll bounce - only allow vertical panning */
+        padding: 0.5rem 0.75rem;
+        /* Prevent elastic scroll bounce */
         touch-action: pan-y;
         overscroll-behavior: contain;
     }
 
-    /* Footer with message composer - FIXED to bottom of screen
-       Using position: fixed instead of sticky to prevent iOS keyboard
-       from pushing the input field up and causing layout shifts.
-       The input stays at the true bottom of the viewport. */
+    /* FIXED footer - message composer at bottom (like WhatsApp) */
     .message-thread-footer {
-        flex-shrink: 0;
         position: fixed;
         left: 0;
         right: 0;
         bottom: 0;
+        height: calc(var(--mobile-footer-height) + env(safe-area-inset-bottom, 0px));
         background: #0f0f10;
-        box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
-        padding: 0.5rem 0.75rem; /* Top and side padding */
-        /* Safe-area support for iPhone notch/home indicator */
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+        padding: 0.5rem 0.75rem;
         padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
-        z-index: 1000; /* High z-index to stay above everything */
+        z-index: 1000;
+        display: flex;
+        align-items: center;
     }
 
-    /* Read-only footer mobile override - matches message-thread-footer fixed positioning */
+    /* Read-only footer mobile override */
     .read-only-footer {
         position: fixed;
         left: 0;
         right: 0;
         bottom: 0;
+        height: calc(var(--mobile-footer-height) + env(safe-area-inset-bottom, 0px));
         background: #0f0f10;
-        box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
         padding: 0.5rem 0.75rem;
         padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
         z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     /* Message styling for mobile */

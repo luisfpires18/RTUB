@@ -15,6 +15,30 @@ window.messageScroller = {
     },
     
     /**
+     * Scroll to bottom only if user is near the end of the conversation.
+     * This prevents jarring scroll jumps when user is reading older messages.
+     * @param {HTMLElement} element - The scrollable container element
+     * @param {number} threshold - Distance from bottom (in pixels) to consider "near end" (default: 100)
+     */
+    scrollToBottomIfNearEnd: function (element, threshold) {
+        if (!element) return;
+        
+        // Default threshold to 100px if not provided
+        var pixelThreshold = threshold || 100;
+        
+        // Check if user is near the bottom (within threshold)
+        var isNearBottom = (element.scrollHeight - (element.scrollTop + element.clientHeight)) <= pixelThreshold;
+        
+        if (isNearBottom) {
+            window.requestAnimationFrame(() => {
+                window.requestAnimationFrame(() => {
+                    element.scrollTop = element.scrollHeight;
+                });
+            });
+        }
+    },
+    
+    /**
      * Scroll to bottom with delay to ensure DOM is updated
      * @param {HTMLElement} element - The scrollable container element
      * @param {number} delayMs - Delay in milliseconds before scrolling
