@@ -1032,24 +1032,55 @@
         background: #0f0f10;
     }
     
-    /* Modal body - scrollable flex content */
+    /* Modal body - scrollable flex content with compact spacing */
     .conversation-modal .modal-body {
         flex: 1;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
-        padding: 1rem;
+        padding: 0.75rem 1rem;
         /* Prevent horizontal overflow */
         max-width: 100vw;
+        /* Compact spacing between sections */
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    /* Reduce spacing for form groups in modals on mobile */
+    .conversation-modal .modal-body .mb-3 {
+        margin-bottom: 0 !important;
+    }
+    
+    /* Reduce label spacing */
+    .conversation-modal .modal-body .form-label {
+        margin-bottom: 0.375rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    
+    /* Small helper text */
+    .conversation-modal .modal-body small {
+        font-size: 0.75rem;
+        display: block;
+        margin-top: 0.25rem;
     }
     
     /* Modal footer - fixed at bottom with iOS safe area */
     .conversation-modal .modal-footer {
         flex-shrink: 0;
-        padding: 1rem;
-        padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)); /* iOS notch support */
+        padding: 0.75rem 1rem;
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)); /* iOS notch support */
         border-top: 1px solid var(--bs-border-color);
         background: #0f0f10;
+        display: flex;
+        gap: 0.5rem;
+        justify-content: stretch;
+    }
+    
+    /* Make footer buttons equal width on mobile */
+    .conversation-modal .modal-footer .btn {
+        flex: 1;
     }
     
     /* 
@@ -1090,12 +1121,19 @@
         font-size: 16px !important;
     }
     
-    /* Member list scrollable area - limit height for better UX */
+    /* Member list scrollable area - compact height for better space usage */
     .conversation-modal .member-list-scrollable {
-        max-height: calc(100dvh - 400px); /* Leave room for header, footer, other elements */
-        min-height: 200px;
+        max-height: 35vh; /* Use viewport height for responsive sizing */
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Member search results section */
+    .conversation-modal .member-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
     }
     
     /* Modal close button - larger touch target */
@@ -1119,30 +1157,75 @@
         -webkit-overflow-scrolling: touch;
     }
     
-    /* Selected members badges - compact inline style on mobile */
+    /* Member item cards - compact spacing */
+    .conversation-modal .member-item {
+        padding: 0.625rem;
+        margin-bottom: 0;
+    }
+    
+    /* Member avatar in search results */
+    .conversation-modal .member-avatar-small {
+        width: 36px;
+        height: 36px;
+    }
+    
+    /* Badge counter for selected count */
+    .conversation-modal .badge.bg-primary {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    /* Selected members section - card-style block with internal scroll */
     .conversation-modal .selected-members {
-        padding: 0.5rem 0;
-        max-height: 150px;
+        padding: 0.75rem;
+        max-height: 40vh; /* Use viewport height - takes up to 40% of screen */
         overflow-y: auto;
-        background: transparent;
+        -webkit-overflow-scrolling: touch;
+        background: rgba(111, 66, 193, 0.08);
+        border-radius: 0.5rem;
+        border: 1px solid rgba(111, 66, 193, 0.15);
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    /* Label for selected members */
+    .conversation-modal .selected-members .form-label {
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+    
+    /* Container for badge chips - wraps and scrolls if needed */
+    .conversation-modal .selected-members > div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        flex: 1;
+        align-content: flex-start;
     }
     
     .conversation-modal .selected-members .badge {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.4rem;
+        font-size: 0.8rem;
+        padding: 0.35rem 0.5rem;
         margin-bottom: 0;
-        margin-right: 0.35rem;
         display: inline-flex;
         align-items: center;
-        gap: 0.25rem;
+        gap: 0.3rem;
+        white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     .conversation-modal .selected-members .btn-close {
-        font-size: 0.5rem;
+        font-size: 0.55rem;
         padding: 0;
-        margin-left: 0.1rem;
-        width: 14px;
-        height: 14px;
+        margin-left: 0.15rem;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
     }
 }
 
