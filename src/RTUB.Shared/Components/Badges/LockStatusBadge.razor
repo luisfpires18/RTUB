@@ -1,0 +1,43 @@
+@namespace RTUB.Shared
+@*
+    LockStatusBadge Component
+    Displays a Bootstrap badge indicating whether a user account is locked or unlocked
+*@
+
+<span class="badge @GetLockStatusBadgeClass()" title="@GetLockStatusTitle()">
+    <i class="bi @GetLockStatusIcon()"></i> @GetLockStatusText()
+</span>
+
+@code {
+    /// <summary>
+    /// The lockout end date of the user account
+    /// </summary>
+    [Parameter]
+    public DateTimeOffset? LockoutEnd { get; set; }
+
+    private bool IsLocked => LockoutEnd.HasValue && LockoutEnd.Value > DateTimeOffset.UtcNow;
+
+    private string GetLockStatusBadgeClass()
+    {
+        return IsLocked ? "bg-danger" : "bg-success";
+    }
+
+    private string GetLockStatusIcon()
+    {
+        return IsLocked ? "bi-lock-fill" : "bi-unlock-fill";
+    }
+
+    private string GetLockStatusText()
+    {
+        return IsLocked ? "Bloqueado" : "Ativo";
+    }
+
+    private string GetLockStatusTitle()
+    {
+        if (IsLocked && LockoutEnd.HasValue)
+        {
+            return $"Conta bloqueada até {LockoutEnd.Value.LocalDateTime:dd/MM/yyyy HH:mm}";
+        }
+        return "Conta ativa";
+    }
+}

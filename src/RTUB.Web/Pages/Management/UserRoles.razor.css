@@ -1,17 +1,38 @@
 /* User Roles Page - Responsive Table */
 
 .user-roles-table {
-    min-width: 720px;
+    min-width: 100%;
 }
 
 .user-roles-table .member-avatar-small {
     width: 36px;
     height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
-@media (max-width: 768px) {
+/* Desktop view - hide certain columns on smaller screens */
+@media (max-width: 1199px) {
+    .user-roles-table .d-xl-table-cell {
+        display: none !important;
+    }
+}
+
+@media (max-width: 991px) {
+    .user-roles-table .d-lg-table-cell {
+        display: none !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .user-roles-table .d-md-table-cell {
+        display: none !important;
+    }
+}
+
+/* Mobile card-based layout */
+@media (max-width: 576px) {
     .user-roles-table {
-        min-width: 100%;
         font-size: 0.9rem;
     }
 
@@ -35,12 +56,12 @@
     }
 
     .user-roles-table td {
-        display: grid;
-        grid-template-columns: 1fr 1.5fr;
+        display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 0.35rem 0.75rem;
+        gap: 0.5rem;
         border-bottom: 1px dashed rgba(var(--bs-primary-rgb), 0.1);
-        padding: 0.4rem 0;
+        padding: 0.5rem 0;
     }
 
     .user-roles-table td:last-child {
@@ -53,6 +74,12 @@
         font-weight: 600;
         color: var(--bs-gray-400);
         letter-spacing: 0.01em;
+        flex-shrink: 0;
+    }
+
+    /* Show all columns on mobile in card view */
+    .user-roles-table td.d-none {
+        display: flex !important;
     }
 
     .user-roles-table .member-avatar-small {
@@ -64,4 +91,37 @@
         min-width: 36px;
         min-height: 36px;
     }
+
+    /* User column - special handling */
+    .user-roles-table td[data-label="Utilizador"] {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .user-roles-table td[data-label="Utilizador"]::before {
+        margin-bottom: 0.25rem;
+    }
+
+    /* Actions column - align buttons */
+    .user-roles-table td[data-label="Ações"] {
+        justify-content: flex-end;
+        gap: 0.25rem;
+    }
 }
+
+/* Ensure badges wrap properly */
+.user-roles-table .badge {
+    white-space: nowrap;
+}
+
+/* Touch-friendly action buttons */
+@media (hover: none) and (pointer: coarse) {
+    .user-roles-table .btn-sm {
+        min-width: 44px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+

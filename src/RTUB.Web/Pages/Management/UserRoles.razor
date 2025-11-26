@@ -68,22 +68,30 @@ else
                                         SortColumn="UserName"
                                         CurrentSortColumn="@SortHelper.SortColumn"
                                         IsSortAscending="@SortHelper.SortAscending"
-                                        OnSortChanged="SortBy" />
+                                        OnSortChanged="SortBy"
+                                        class="d-none d-lg-table-cell" />
                     <SortableTableHeader HeaderText="Email" 
                                         SortColumn="Email"
                                         CurrentSortColumn="@SortHelper.SortColumn"
                                         IsSortAscending="@SortHelper.SortAscending"
-                                        OnSortChanged="SortBy" />
-                    <SortableTableHeader HeaderText="Função Atual" 
+                                        OnSortChanged="SortBy"
+                                        class="d-none d-xl-table-cell" />
+                    <SortableTableHeader HeaderText="Função" 
                                         SortColumn="Role"
                                         CurrentSortColumn="@SortHelper.SortColumn"
                                         IsSortAscending="@SortHelper.SortAscending"
                                         OnSortChanged="SortBy" />
-                    <SortableTableHeader HeaderText="Estado de Login" 
-                                        SortColumn="LastLogin"
+                    <SortableTableHeader HeaderText="Estado" 
+                                        SortColumn="LockStatus"
                                         CurrentSortColumn="@SortHelper.SortColumn"
                                         IsSortAscending="@SortHelper.SortAscending"
                                         OnSortChanged="SortBy" />
+                    <SortableTableHeader HeaderText="Login" 
+                                        SortColumn="LastLogin"
+                                        CurrentSortColumn="@SortHelper.SortColumn"
+                                        IsSortAscending="@SortHelper.SortAscending"
+                                        OnSortChanged="SortBy"
+                                        class="d-none d-md-table-cell" />
                     <th>Ações</th>
                 </tr>
             </thead>
@@ -104,12 +112,15 @@ else
                                 </div>
                             </div>
                         </td>
-                        <td data-label="Username"><code>@user.UserName</code></td>
-                        <td data-label="Email">@user.Email</td>
-                        <td data-label="Função Atual">
+                        <td data-label="Username" class="d-none d-lg-table-cell"><code>@user.UserName</code></td>
+                        <td data-label="Email" class="d-none d-xl-table-cell">@user.Email</td>
+                        <td data-label="Função">
                             <RoleBadge Role="@currentRole" />
                         </td>
-                        <td data-label="Estado de Login">
+                        <td data-label="Estado">
+                            <LockStatusBadge LockoutEnd="@user.LockoutEnd" />
+                        </td>
+                        <td data-label="Login" class="d-none d-md-table-cell">
                             <LoginStatusBadge LastLoginDate="@user.LastLoginDate" />
                         </td>
                         <td data-label="Ações">
@@ -403,6 +414,7 @@ else
             ["Email"] = u => u.Email ?? "",
             ["Birthday"] = u => u.DateOfBirth ?? DateTime.MinValue,
             ["Role"] = u => GetRolePriority(userRolesDict.ContainsKey(u.Id) ? userRolesDict[u.Id] : new List<string>()),
+            ["LockStatus"] = u => IsAccountLocked(u) ? 0 : 1, // Locked users first when ascending
             ["LastLogin"] = u => u.LastLoginDate ?? DateTime.MinValue
         };
     }
