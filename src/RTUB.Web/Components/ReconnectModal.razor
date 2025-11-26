@@ -77,36 +77,27 @@
         justify-content: center;
     }
     
-    /* Failed state */
-    body.components-reconnect-failed .reconnect-icon {
-        color: #dc3545;
-    }
-    
-    body.components-reconnect-failed .reconnect-title::after {
-        content: " - Falha";
-    }
-    
-    body.components-reconnect-failed .reconnect-message::after {
+    /* Failed and rejected states - common styles */
+    body.components-reconnect-failed .reconnect-message::after,
+    body.components-reconnect-rejected .reconnect-message::after {
         content: " Por favor, recarregue a página.";
         display: block;
         margin-top: 0.5rem;
         font-weight: 600;
     }
     
-    /* Rejected state */
+    /* Failed state - specific styles */
+    body.components-reconnect-failed .reconnect-title::after {
+        content: " - Falha";
+    }
+    
+    /* Rejected state - specific styles */
     body.components-reconnect-rejected .reconnect-icon {
         color: #ffc107;
     }
     
     body.components-reconnect-rejected .reconnect-title::after {
         content: " - Rejeitada";
-    }
-    
-    body.components-reconnect-rejected .reconnect-message::after {
-        content: " Por favor, recarregue a página.";
-        display: block;
-        margin-top: 0.5rem;
-        font-weight: 600;
     }
 </style>
 
