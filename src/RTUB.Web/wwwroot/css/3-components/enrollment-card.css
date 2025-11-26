@@ -254,17 +254,70 @@
     .enrollment-card-delete-btn,
     .enrollment-card-approve-btn,
     .enrollment-card-cancel-btn {
-        width: 26px;
-        height: 26px;
-        font-size: 0.8rem;
+        width: 32px;
+        height: 32px;
+        font-size: 0.85rem;
+        touch-action: manipulation;
     }
 
     .enrollment-card-edit-btn {
-        right: 2.25rem;
+        right: 2.5rem;
     }
 
     .enrollment-card-approve-btn {
-        right: 2.75rem;
+        right: 3rem;
+    }
+}
+
+/* Tablet adjustments (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .enrollment-card-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.875rem;
+    }
+
+    .enrollment-card-content {
+        padding: 0.75rem;
+    }
+}
+
+/* Very small screens - extra compact mode */
+@media (max-width: 374px) {
+    .enrollment-card-grid {
+        gap: 0.75rem;
+    }
+
+    .enrollment-card-image-wrapper {
+        max-width: 40px;
+    }
+
+    .enrollment-card-content {
+        padding: 0.5rem;
+    }
+
+    .enrollment-card-tuna-name {
+        font-size: 0.8rem;
+    }
+
+    .enrollment-card-full-name {
+        font-size: 0.7rem;
+    }
+
+    .enrollment-card-edit-btn,
+    .enrollment-card-delete-btn,
+    .enrollment-card-approve-btn,
+    .enrollment-card-cancel-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.75rem;
+    }
+
+    .enrollment-card-edit-btn {
+        right: 2rem;
+    }
+
+    .enrollment-card-approve-btn {
+        right: 2.25rem;
     }
 }
 

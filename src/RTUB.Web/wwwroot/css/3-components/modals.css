@@ -20,6 +20,8 @@
 .btn-close {
     filter: invert(1) grayscale(100%) brightness(200%);
     opacity: 0.8;
+    min-width: 44px;
+    min-height: 44px;
 }
 
 .btn-close:hover {
@@ -57,3 +59,97 @@
     color: #e2e2e2;
 }
 
+/* ========================================
+   MODAL MOBILE & PWA IMPROVEMENTS
+   ======================================== */
+
+/* Mobile modal improvements */
+@media (max-width: 767px) {
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+
+    .modal-content {
+        max-height: calc(100vh - 1rem);
+        max-height: calc(100dvh - 1rem); /* Use dynamic viewport height */
+        border-radius: 1rem;
+    }
+
+    .modal-header {
+        padding: 0.875rem 1rem;
+        border-bottom: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+    }
+
+    .modal-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+
+    .modal-body {
+        padding: 1rem;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    .modal-footer {
+        padding: 0.875rem 1rem;
+        border-top: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .modal-footer .btn {
+        flex: 1 1 100%;
+        margin: 0;
+    }
+
+    /* Large modals should be near full screen on mobile */
+    .modal-lg,
+    .modal-xl {
+        max-width: calc(100% - 1rem);
+        margin: 0.5rem;
+    }
+
+    /* Better close button touch target */
+    .btn-close {
+        padding: 0.75rem;
+    }
+}
+
+/* Tablet modal improvements (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .modal-dialog {
+        max-width: 90%;
+        margin: 1rem auto;
+    }
+
+    .modal-lg {
+        max-width: 85%;
+    }
+
+    .modal-footer {
+        flex-direction: row;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    .modal-footer .btn {
+        flex: 0 0 auto;
+        min-width: 120px;
+    }
+}
+
+/* PWA safe area support for modals */
+@supports (padding: env(safe-area-inset-bottom)) {
+    @media (max-width: 767px) {
+        .modal-content {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .modal-footer {
+            padding-bottom: calc(0.875rem + env(safe-area-inset-bottom));
+        }
+    }
+}

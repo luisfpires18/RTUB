@@ -288,6 +288,7 @@
   .rehearsal-actions-section .btn {
     flex-wrap: wrap;
     justify-content: center;
+    touch-action: manipulation;
   }
   
   /* Icon alignment within buttons */
@@ -296,6 +297,54 @@
     align-items: center;
   }
   
+  /* Header button touch targets */
+  .rehearsal-card__header-button {
+    min-width: 32px;
+    min-height: 32px;
+    touch-action: manipulation;
+  }
+}
+
+/* Tablet optimizations (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .rehearsal-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .rehearsal-card .card-body {
+    padding: 1rem;
+  }
+}
+
+/* Very small screens - further compact mode */
+@media (max-width: 374px) {
+  .rehearsal-icon-header {
+    height: 70px;
+  }
+
+  .rehearsal-icon-circle {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .rehearsal-icon-circle i {
+    font-size: 1.25rem;
+  }
+
+  .rehearsal-card__header-button {
+    --bs-btn-padding-y: 0.1rem;
+    --bs-btn-padding-x: 0.25rem;
+    --bs-btn-font-size: 0.7rem;
+  }
+  
+  .rehearsal-info-row {
+    font-size: 0.8rem;
+  }
+  
+  .rehearsal-actions-section .btn {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.5rem;
+  }
 }
 
 /* CSS Grid layout for rehearsal cards with responsive breakpoints */
