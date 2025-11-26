@@ -9,6 +9,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Repositories;
 using RTUB.Application.Tests.Fixtures;
+using RTUB.Application.Tests.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -33,11 +34,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         _fixture = fixture;
         _context = _fixture.CreateContext();
-
-        // Mock UserManager
-        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
-        _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        _mockUserManager = MockHelpers.CreateMockUserManager();
 
         // Setup test configuration
         _config = new RankingConfiguration

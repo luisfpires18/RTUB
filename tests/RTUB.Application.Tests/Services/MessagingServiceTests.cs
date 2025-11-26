@@ -5,6 +5,7 @@ using Moq;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Tests.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -33,11 +34,7 @@ public class MessagingServiceTests
         _mockRoleAssignmentRepository = new Mock<IRoleAssignmentRepository>();
         _mockPushService = new Mock<IPushNotificationService>();
         _mockLogger = new Mock<ILogger<MessagingService>>();
-
-        // Mock UserManager (requires store mock)
-        var store = new Mock<IUserStore<ApplicationUser>>();
-        _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        _mockUserManager = MockHelpers.CreateMockUserManager();
 
         _service = new MessagingService(
             _mockConversationRepository.Object,

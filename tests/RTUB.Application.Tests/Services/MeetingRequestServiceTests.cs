@@ -5,6 +5,7 @@ using Moq;
 using MockQueryable.Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Tests.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -28,11 +29,7 @@ public class MeetingRequestServiceTests
         _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         _mockPushNotificationService = new Mock<IPushNotificationService>();
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-
-        // Mock UserManager
-        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
-        _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        _mockUserManager = MockHelpers.CreateMockUserManager();
 
         _service = new MeetingRequestService(
             _repositoryMock.Object,

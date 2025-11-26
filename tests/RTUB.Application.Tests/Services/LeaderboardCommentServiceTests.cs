@@ -4,6 +4,7 @@ using MockQueryable.Moq;
 using Microsoft.AspNetCore.Identity;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Tests.Utilities;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
@@ -24,12 +25,7 @@ public class LeaderboardCommentServiceTests
     public LeaderboardCommentServiceTests()
     {
         _mockCommentRepository = new Mock<ILeaderboardCommentRepository>();
-
-        // Mock UserManager
-        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
-        _userManagerMock = new Mock<UserManager<ApplicationUser>>(
-            userStoreMock.Object,
-            null!, null!, null!, null!, null!, null!, null!, null!);
+        _userManagerMock = MockHelpers.CreateMockUserManager();
 
         _service = new LeaderboardCommentService(_mockCommentRepository.Object, _userManagerMock.Object);
 
