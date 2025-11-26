@@ -27,7 +27,7 @@ public class OwnerPagesTests : IntegrationTestBase
     public async Task UserRolesPage_WithoutAuth_RedirectsToLogin()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/owner/user-roles");
+        var response = await _client.GetAsync("/users");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
@@ -38,7 +38,7 @@ public class OwnerPagesTests : IntegrationTestBase
     public async Task UserRolesPage_RedirectsWithReturnUrl()
     {
         // Arrange & Act
-        var response = await _client.GetAsync("/owner/user-roles");
+        var response = await _client.GetAsync("/users");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Redirect);
@@ -108,7 +108,7 @@ public class OwnerPagesTests : IntegrationTestBase
     #region Authorization Tests
 
     [Theory]
-    [InlineData("/owner/user-roles")]
+    [InlineData("/users")]
     [InlineData("/owner/tracing")]
     [InlineData("/labels")]
     public async Task OwnerPages_RequireAuthentication(string url)
@@ -127,7 +127,7 @@ public class OwnerPagesTests : IntegrationTestBase
     public async Task OwnerPages_AllRequireAuthenticationInSequence()
     {
         // Arrange
-        var ownerUrls = new[] { "/owner/user-roles", "/owner/tracing", "/labels" };
+        var ownerUrls = new[] { "/users", "/owner/tracing", "/labels" };
 
         // Act & Assert
         foreach (var url in ownerUrls)
@@ -142,7 +142,7 @@ public class OwnerPagesTests : IntegrationTestBase
     public async Task OwnerNavigation_BetweenOwnerPages_Works()
     {
         // Arrange & Act - Navigate between owner pages
-        var userRolesResponse = await _client.GetAsync("/owner/user-roles");
+        var userRolesResponse = await _client.GetAsync("/users");
         var tracingResponse = await _client.GetAsync("/owner/tracing");
         var labelsResponse = await _client.GetAsync("/labels");
 

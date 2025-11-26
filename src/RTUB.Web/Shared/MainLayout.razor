@@ -126,9 +126,9 @@
                                 <li><NavLink class="dropdown-item" href="/labels"><i class="bi bi-tag"></i> Conteúdo</NavLink></li>
                                 <li><hr class="dropdown-divider" /></li>
                 
+                                <li><NavLink class="dropdown-item" href="/users"><i class="bi bi-people"></i> Funções</NavLink></li>
                                 <AuthorizeView Roles="Owner">
                                     <Authorized Context="ownerAuth">
-                                        <li><NavLink class="dropdown-item" href="/owner/user-roles"><i class="bi bi-people"></i> Funções</NavLink></li>
                                         <li><NavLink class="dropdown-item" href="/owner/tracing"><i class="bi bi-shield-check"></i> Tracing</NavLink></li>
                                         <li><NavLink class="dropdown-item" href="/owner/db"><i class="bi bi-database"></i> Database</NavLink></li>
                                     </Authorized>

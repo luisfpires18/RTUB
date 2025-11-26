@@ -1,4 +1,4 @@
-@page "/owner/user-roles"
+@page "/users"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -10,7 +10,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@attribute [Authorize(Roles = "Owner")]
+@attribute [Authorize(Roles = "Admin")]
 @inherits CrudTablePageBase<ApplicationUser>
 
 <div class="d-flex flex-column gap-3 mb-4">
@@ -118,11 +118,14 @@ else
                                     title="Ver Detalhes">
                                 <i class="bi bi-eye"></i>
                             </button>
-                            <button class="btn btn-sm btn-light me-1" 
-                                    @onclick="@(() => OpenEditRoleModal(user, currentRole))"
-                                    title="Editar Função">
-                                <i class="bi bi-pencil"></i>
-                            </button>
+                            @if (isCurrentUserOwner)
+                            {
+                                <button class="btn btn-sm btn-light me-1" 
+                                        @onclick="@(() => OpenEditRoleModal(user, currentRole))"
+                                        title="Editar Função">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            }
                         </td>
                     </tr>
                 }
@@ -324,6 +327,7 @@ else
     private Dictionary<string, List<string>> userRolesDict = new();
     private string message = "";
     private bool isError = false;
+    private bool isCurrentUserOwner = false;
     
     // Edit role modal
     private bool showEditRoleModal = false;
@@ -345,6 +349,11 @@ else
     {
         SortHelper.SortColumn = "Role"; // Sort by role priority by default
         SortHelper.SortAscending = true; // Ascending (Owner=1, Admin=2, Member=3)
+        
+        // Check if current user is Owner
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isCurrentUserOwner = authState.User.IsInRole("Owner");
+        
         await LoadItemsAsync();
         ApplyFiltersAndPagination();
     }
