@@ -5,7 +5,9 @@
     --message-avatar-size: 32px;
     --message-avatar-margin: 0.5rem;
     --primary-hover: #8b5cf6; /* Lighter purple for hover states */
-    --mobile-message-bottom-padding: 1rem; /* Padding on mobile so last message is visible above sticky input */
+    /* Padding for message body on mobile - accounts for fixed footer height (~60px) + safe-area */
+    --mobile-footer-height: 60px;
+    --mobile-message-bottom-padding: calc(var(--mobile-footer-height) + env(safe-area-inset-bottom, 0px) + 0.5rem);
     
     /* Desktop: account for navbar and footer */
     min-height: 600px;
@@ -633,6 +635,9 @@
 .member-list-scrollable {
     max-height: 300px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
 }
 
 .member-item {
@@ -717,16 +722,32 @@
        ============================================= */
     
     /* Mobile (browser and PWA): position fixed creates proper containing block 
-       for flex children and allows sticky footer to work correctly */
+       for flex children and allows sticky footer to work correctly.
+       
+       IMPORTANT: Multiple height values are provided for compatibility:
+       - 100vh: Standard fallback for older browsers
+       - 100dvh: Dynamic viewport height for modern mobile browsers (adjusts for browser UI)
+       - -webkit-fill-available: iOS Safari/PWA specific - fills available space correctly
+       
+       For PWA standalone mode on iOS, -webkit-fill-available is crucial as
+       100vh/100dvh don't account for the safe area properly in standalone mode.
+    */
     .messages-page {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        /* Use 100dvh with fallback to 100vh for proper mobile viewport handling */
-        height: 100vh; /* Fallback for browsers that don't support dvh */
-        height: 100dvh; /* Dynamic viewport height - adjusts for mobile browser UI */
+        /* Height fallback chain for maximum compatibility:
+           1. 100vh - Standard fallback for older browsers
+           2. -webkit-fill-available - iOS Safari/PWA specific (WebKit)
+           3. 100dvh - Modern standard that takes precedence when supported
+        */
+        height: 100vh; /* Fallback for older browsers */
+        height: -webkit-fill-available; /* iOS Safari/PWA - fills available space */
+        height: 100dvh; /* Dynamic viewport height for modern browsers */
+        /* Safe area handling for iPhone notch/home indicator in PWA mode */
+        padding-top: env(safe-area-inset-top, 0px);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -791,6 +812,9 @@
         /* Use minimal safe-area padding for iOS notch/home indicator */
         /* Only add padding-bottom if absolutely necessary for safe area */
         padding-bottom: env(safe-area-inset-bottom, 0px);
+        /* Prevent elastic scroll bounce - only allow vertical panning */
+        touch-action: pan-y;
+        overscroll-behavior: contain;
     }
 
     /* Message thread panel - full height chat experience */
@@ -824,22 +848,45 @@
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         padding: 0.75rem;
+        /* Padding for sticky footer - footer handles its own safe-area
+           Uses CSS variable defined in .messages-page: --mobile-message-bottom-padding: 1rem */
         padding-bottom: var(--mobile-message-bottom-padding);
         /* Note: We use margin-bottom on .message elements for spacing, not gap,
            because gap would override our grouped message spacing (0.1rem) */
+        /* Prevent elastic scroll bounce - only allow vertical panning */
+        touch-action: pan-y;
+        overscroll-behavior: contain;
     }
 
-    /* Footer with message composer - sticky to bottom */
+    /* Footer with message composer - FIXED to bottom of screen
+       Using position: fixed instead of sticky to prevent iOS keyboard
+       from pushing the input field up and causing layout shifts.
+       The input stays at the true bottom of the viewport. */
     .message-thread-footer {
         flex-shrink: 0;
-        position: sticky;
+        position: fixed;
+        left: 0;
+        right: 0;
         bottom: 0;
         background: #0f0f10;
         box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
         padding: 0.5rem 0.75rem; /* Top and side padding */
-        /* Use env(safe-area-inset-bottom) to handle iOS notch/home indicator - minimal padding */
-        padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
-        z-index: 10;
+        /* Safe-area support for iPhone notch/home indicator */
+        padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+        z-index: 1000; /* High z-index to stay above everything */
+    }
+
+    /* Read-only footer mobile override - matches message-thread-footer fixed positioning */
+    .read-only-footer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #0f0f10;
+        box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
+        padding: 0.5rem 0.75rem;
+        padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+        z-index: 1000;
     }
 
     /* Message styling for mobile */
@@ -1066,6 +1113,9 @@
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
+        /* Prevent elastic scroll bounce */
+        touch-action: pan-y;
+        overscroll-behavior: contain;
     }
     
     /* Reduce spacing for form groups in modals on mobile */
@@ -1148,6 +1198,9 @@
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         margin-bottom: 0.5rem;
+        /* Prevent elastic scroll bounce */
+        touch-action: pan-y;
+        overscroll-behavior: contain;
     }
     
     /* Member search results section */
@@ -1176,6 +1229,9 @@
         max-height: calc(100dvh - 300px);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        /* Prevent elastic scroll bounce */
+        touch-action: pan-y;
+        overscroll-behavior: contain;
     }
     
     /* Member item cards - compact spacing */
@@ -1208,6 +1264,9 @@
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
+        /* Prevent elastic scroll bounce */
+        touch-action: pan-y;
+        overscroll-behavior: contain;
     }
     
     /* Label for selected members */
@@ -1334,6 +1393,9 @@
 .group-members-modal-list {
     max-height: 400px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
 }
 
 .group-member-modal-item {
