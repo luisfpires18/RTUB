@@ -50,7 +50,10 @@ window.messageScroller = {
      * @param {HTMLElement} containerElement - The scrollable container element
      */
     setupInputFocusScroll: function (inputElement, containerElement) {
+        // Validate that both parameters are actual DOM elements
+        // Blazor's ElementReference may pass objects that aren't valid DOM elements
         if (!inputElement || !containerElement) return;
+        if (!(inputElement instanceof Element) || !(containerElement instanceof Element)) return;
         
         const KEYBOARD_ANIMATION_DELAY = 350; // ms - wait for mobile keyboard animation
         const KEYBOARD_RESIZE_DELAY = 500; // ms - wait for keyboard resize to complete
