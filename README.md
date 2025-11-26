@@ -441,13 +441,29 @@ For detailed guidelines on coding style, adding components, creating pages, test
 
 ## 📚 Documentation
 
-Comprehensive documentation is available in the `/docs` folder:
+Comprehensive documentation is available in the `/docs` folder and root directory:
 
-- **[Documentation Index](docs/index.md)** - Overview and quick links
-- **[Components Guide](docs/components.md)** - All reusable components in RTUB.Shared
-- **[Pages Reference](docs/pages.md)** - All Razor pages with routes and permissions
-- **[Authentication & Business Rules](docs/auth-and-rules.md)** - Roles, categories, positions, and business logic
-- **[Contributing Guide](docs/contributing.md)** - Guidelines for developers and agents
+### Core Documentation
+- **[README](README.md)** - This file: Project overview, setup, and getting started
+- **[Changelog](docs/changelog.md)** - Version history and notable changes
+- **[Work Log](docs/work-log.md)** - Detailed chronological development log
+
+### Technical Documentation
+- **[Frontend Performance Optimizations](FRONTEND-PERFORMANCE-OPTIMIZATIONS.md)** - Performance improvements and optimizations
+- **[.NET 10 Upgrade Changelog](BLAZOR-NET10-CHANGELOG.md)** - Complete .NET 10 upgrade details
+- **[Static Assets Decision](STATIC-ASSETS-DECISION.md)** - Asset management strategy
+- **[Upgrade Summary](UPGRADE-SUMMARY.md)** - Migration and upgrade notes
+
+### Architecture & Decisions
+- **[Architectural Decision Records (ADRs)](docs/decisions/)** - Technical decisions and rationale
+  - [ADR 001: ShouldRender Optimization](docs/decisions/001-shouldrender-optimization.md)
+
+### Developer Guides
+- **[Documentation Index](docs/index.md)** - Overview and quick links _(if exists)_
+- **[Components Guide](docs/components.md)** - All reusable components in RTUB.Shared _(if exists)_
+- **[Pages Reference](docs/pages.md)** - All Razor pages with routes and permissions _(if exists)_
+- **[Authentication & Business Rules](docs/auth-and-rules.md)** - Roles, categories, positions _(if exists)_
+- **[Contributing Guide](docs/contributing.md)** - Guidelines for developers and agents _(if exists)_
 
 ## 📝 License
 

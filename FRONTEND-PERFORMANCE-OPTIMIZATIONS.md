@@ -3,6 +3,12 @@
 ## Overview
 This document summarizes the HIGH PRIORITY frontend performance optimizations applied to the RTUB .NET 10 Blazor Server application. These optimizations focus on reducing unnecessary re-renders, improving component efficiency, and enhancing PWA capabilities.
 
+**Date Applied:** 2025-11-26  
+**Related Documentation:**
+- [Work Log](docs/work-log.md) - Chronological development history
+- [ADR 001: ShouldRender Optimization](docs/decisions/001-shouldrender-optimization.md) - Architectural decision record
+- [Changelog](docs/changelog.md) - Version history
+
 ## Optimization Summary
 
 ### 1. Component Render Optimization (ShouldRender Implementation)
@@ -10,6 +16,25 @@ This document summarizes the HIGH PRIORITY frontend performance optimizations ap
 **Problem:** Components were re-rendering unnecessarily on every state change, causing performance degradation especially for frequently updated components like badges and navigation.
 
 **Solution:** Implemented `ShouldRender()` lifecycle method in critical components to prevent unnecessary re-renders by tracking parameter changes.
+
+**Technical Details:** The `ShouldRender()` method is a Blazor lifecycle hook that controls when a component re-renders. By tracking previous parameter values and comparing them with current values, components can skip re-rendering when nothing has changed. This is particularly effective for components with simple parameters (enums, strings, dates) that are used frequently across the application.
+
+**Example Implementation:**
+```csharp
+private MemberCategory _previousCategory;
+
+protected override bool ShouldRender()
+{
+    if (Category != _previousCategory)
+    {
+        _previousCategory = Category;
+        return true;  // Re-render because category changed
+    }
+    return false;  // Skip re-render
+}
+```
+
+**Important Note:** This optimization should only be applied to components where the performance benefit outweighs the added complexity. Components with complex RenderFragment parameters or those that render infrequently may not benefit from this pattern. See [ADR 001](docs/decisions/001-shouldrender-optimization.md) for detailed guidelines.
 
 **Components Optimized:**
 - ✅ `UnreadMessagesBadge.razor` - Only re-renders when unread count changes
