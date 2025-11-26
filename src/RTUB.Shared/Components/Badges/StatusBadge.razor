@@ -17,4 +17,19 @@
     /// </summary>
     [Parameter]
     public RequestStatus Status { get; set; }
+    
+    private RequestStatus _previousStatus;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when status changes.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (Status != _previousStatus)
+        {
+            _previousStatus = Status;
+            return true;
+        }
+        return false;
+    }
 }

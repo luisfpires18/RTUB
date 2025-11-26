@@ -376,25 +376,41 @@
 
     // Helper method to get day of week in Portuguese
     private string GetDayOfWeek(DateTime date) => date.ToPortugueseWeekdayName();
+    
+    // Track previous state for ShouldRender optimization
+    private int _previousRehearsalId;
+    private bool _previousIsCanceled;
+    private int _previousAttendanceCount;
+    private bool _previousWillAttend;
+    private bool _previousIsAdmin;
+    private bool _previousIsPastRehearsal;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when key parameters change.
+    /// This is especially important for RehearsalCard as it's used in lists.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        var rehearsalId = Rehearsal?.Id ?? 0;
+        var isCanceled = Rehearsal?.IsCanceled ?? false;
+        var willAttend = UserAttendance?.WillAttend ?? false;
+        
+        if (rehearsalId != _previousRehearsalId ||
+            isCanceled != _previousIsCanceled ||
+            AttendanceCount != _previousAttendanceCount ||
+            willAttend != _previousWillAttend ||
+            IsAdmin != _previousIsAdmin ||
+            IsPastRehearsal != _previousIsPastRehearsal)
+        {
+            _previousRehearsalId = rehearsalId;
+            _previousIsCanceled = isCanceled;
+            _previousAttendanceCount = AttendanceCount;
+            _previousWillAttend = willAttend;
+            _previousIsAdmin = IsAdmin;
+            _previousIsPastRehearsal = IsPastRehearsal;
+            return true;
+        }
+        return false;
+    }
 }
 
-<style>
-    .btn-admin-notification {
-        background: white;
-        border: 1px solid rgba(0, 0, 0, 0.2);
-        color: black;
-        padding: 0.375rem 0.75rem;
-        border-radius: 0.25rem;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-admin-notification:hover {
-        background: rgba(255, 255, 255, 0.9);
-        border-color: rgba(0, 0, 0, 0.3);
-        transform: scale(1.05);
-    }
-    
-    .btn-admin-notification i {
-        color: black;
-    }
-</style>

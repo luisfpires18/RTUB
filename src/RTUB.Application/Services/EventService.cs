@@ -2,7 +2,6 @@ using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
-using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Utilities;
 
 
@@ -166,17 +165,7 @@ public class EventService : IEventService
         await _eventRepository.UpdateAsync(eventEntity);
 
         // Delete all enrollments for this event using batch operation
-        var enrollments = await _enrollmentRepository.Query()
-            .Where(e => e.EventId == id)
-            .ToListAsync();
-
-        if (enrollments.Any())
-        {
-            foreach (var enrollment in enrollments)
-            {
-                await _enrollmentRepository.DeleteAsync(enrollment);
-            }
-        }
+        await _enrollmentRepository.DeleteByEventIdAsync(id);
     }
 
     public async Task UncancelEventAsync(int id)

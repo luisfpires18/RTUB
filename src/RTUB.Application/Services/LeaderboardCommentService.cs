@@ -131,43 +131,35 @@ public class LeaderboardCommentService : ILeaderboardCommentService
 
     /// <summary>
     /// Toggle a like on a comment (add if doesn't exist, remove if exists)
+    /// Optimized to use single query to check existing like and load comment together
     /// </summary>
     public async Task<bool> ToggleLikeAsync(int commentId, string userId)
     {
-        // Need to use Query() to access LeaderboardCommentLikes through the repository pattern
-        // Since we don't have a dedicated repository for likes, we'll use the comment repository's query
-        var existingLike = await _leaderboardCommentRepository.Query()
-            .Where(c => c.Id == commentId)
-            .SelectMany(c => c.Likes)
-            .FirstOrDefaultAsync(l => l.UserId == userId);
+        // Load comment with likes in a single query
+        var comment = await _leaderboardCommentRepository.Query()
+            .Include(c => c.Likes)
+            .FirstOrDefaultAsync(c => c.Id == commentId);
+
+        if (comment == null)
+        {
+            return false;
+        }
+
+        var existingLike = comment.Likes.FirstOrDefault(l => l.UserId == userId);
 
         if (existingLike != null)
         {
-            // Unlike - we need to get the comment and remove the like
-            var comment = await _leaderboardCommentRepository.Query()
-                .Include(c => c.Likes)
-                .FirstOrDefaultAsync(c => c.Id == commentId);
-
-            if (comment != null)
-            {
-                comment.Likes.Remove(existingLike);
-                await _leaderboardCommentRepository.UpdateAsync(comment);
-            }
+            // Unlike - remove the like
+            comment.Likes.Remove(existingLike);
+            await _leaderboardCommentRepository.UpdateAsync(comment);
             return false; // Unliked
         }
         else
         {
             // Like - add a new like
-            var comment = await _leaderboardCommentRepository.Query()
-                .Include(c => c.Likes)
-                .FirstOrDefaultAsync(c => c.Id == commentId);
-
-            if (comment != null)
-            {
-                var like = LeaderboardCommentLike.Create(commentId, userId);
-                comment.Likes.Add(like);
-                await _leaderboardCommentRepository.UpdateAsync(comment);
-            }
+            var like = LeaderboardCommentLike.Create(commentId, userId);
+            comment.Likes.Add(like);
+            await _leaderboardCommentRepository.UpdateAsync(comment);
             return true; // Liked
         }
     }

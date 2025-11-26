@@ -31,4 +31,9 @@ public interface IConversationUserSettingsRepository : IRepository<ConversationU
     /// Checks if a conversation is pinned for a specific user
     /// </summary>
     Task<bool> IsConversationPinnedAsync(string userId, int conversationId);
+
+    /// <summary>
+    /// Gets muted user IDs for a conversation from a list of user IDs (batch operation)
+    /// </summary>
+    Task<HashSet<string>> GetMutedUserIdsAsync(int conversationId, IEnumerable<string> userIds);
 }

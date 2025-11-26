@@ -221,4 +221,30 @@
         var formatted = authors.Replace(", ", ",\u00A0");
         return new MarkupString(formatted);
     }
+    
+    // Track previous state for ShouldRender optimization
+    private int _previousSongId;
+    private bool _previousHasMusic;
+    private bool _previousIsOwner;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when key parameters change.
+    /// This is especially important for SongCard as it's used in grids with many songs.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        var songId = Song?.Id ?? 0;
+        var hasMusic = Song?.HasMusic ?? false;
+        
+        if (songId != _previousSongId ||
+            hasMusic != _previousHasMusic ||
+            IsOwner != _previousIsOwner)
+        {
+            _previousSongId = songId;
+            _previousHasMusic = hasMusic;
+            _previousIsOwner = IsOwner;
+            return true;
+        }
+        return false;
+    }
 }

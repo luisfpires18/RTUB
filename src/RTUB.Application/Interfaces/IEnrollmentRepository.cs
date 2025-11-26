@@ -26,4 +26,9 @@ public interface IEnrollmentRepository : IRepository<Enrollment>
     /// Get enrollments by attendance status
     /// </summary>
     Task<IEnumerable<Enrollment>> GetByAttendanceAsync(bool willAttend);
+
+    /// <summary>
+    /// Delete all enrollments for a specific event (batch operation)
+    /// </summary>
+    Task DeleteByEventIdAsync(int eventId);
 }

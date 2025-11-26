@@ -106,4 +106,33 @@
             await HandleClick();
         }
     }
+    
+    // Track previous state for ShouldRender optimization
+    private string? _previousTitle;
+    private string? _previousMessage;
+    private string? _previousIcon;
+    private string? _previousActionText;
+    private string? _previousActionUrl;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when key parameters change.
+    /// EmptyState is typically static once rendered, so this provides good performance gains.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (Title != _previousTitle ||
+            Message != _previousMessage ||
+            Icon != _previousIcon ||
+            ActionText != _previousActionText ||
+            ActionUrl != _previousActionUrl)
+        {
+            _previousTitle = Title;
+            _previousMessage = Message;
+            _previousIcon = Icon;
+            _previousActionText = ActionText;
+            _previousActionUrl = ActionUrl;
+            return true;
+        }
+        return false;
+    }
 }

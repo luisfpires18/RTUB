@@ -120,4 +120,17 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
             .Include(e => e.Event)
             .ToListAsync();
     }
+
+    public async Task DeleteByEventIdAsync(int eventId)
+    {
+        var enrollments = await _dbSet
+            .Where(e => e.EventId == eventId)
+            .ToListAsync();
+
+        if (enrollments.Count > 0)
+        {
+            _dbSet.RemoveRange(enrollments);
+            await _context.SaveChangesAsync();
+        }
+    }
 }

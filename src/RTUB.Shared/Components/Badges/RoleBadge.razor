@@ -26,6 +26,23 @@
     /// </summary>
     [Parameter]
     public string AdditionalClasses { get; set; } = "";
+    
+    private string _previousRole = string.Empty;
+    private string _previousAdditionalClasses = "";
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when role or classes change.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        if (Role != _previousRole || AdditionalClasses != _previousAdditionalClasses)
+        {
+            _previousRole = Role;
+            _previousAdditionalClasses = AdditionalClasses;
+            return true;
+        }
+        return false;
+    }
 
     /// <summary>
     /// Returns the appropriate CSS class for the role badge

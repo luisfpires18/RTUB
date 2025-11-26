@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -39,10 +40,17 @@ public class UserProfileService : IUserProfileService
 
     public async Task<IEnumerable<ApplicationUser>> GetAllUsersAsync()
     {
-        // Note: Cannot use ToListAsync() here because UserManager.Users may not always be
-        // an EF Core queryable (e.g., in tests with mocked UserManager).
-        // Using Task.FromResult with synchronous ToList() ensures compatibility.
-        return await Task.FromResult(_userManager.Users.ToList());
+        // Note: Using ToListAsync when the underlying provider supports it (EF Core),
+        // with fallback to synchronous ToList() for mocked UserManager in tests
+        try
+        {
+            return await _userManager.Users.ToListAsync();
+        }
+        catch (InvalidOperationException)
+        {
+            // Fallback for test scenarios where UserManager.Users may not support async
+            return _userManager.Users.ToList();
+        }
     }
 
     public async Task UpdateProfilePictureAsync(string userId, Stream imageStream, string fileName, string contentType)

@@ -73,22 +73,30 @@ public class RankingService : IRankingService
 
     public int GetLevelFromXp(int xp)
     {
-        if (!_rankingConfig.Value.Levels.Any())
+        var levels = _rankingConfig.Value.Levels;
+        if (levels == null || levels.Count == 0)
             return 1;
 
-        // Sort levels by XP threshold descending to find the highest level user qualifies for
-        var sortedLevels = _rankingConfig.Value.Levels.OrderByDescending(l => l.XpThreshold).ToList();
+        // Find the highest level user qualifies for without creating intermediate list
+        int? highestQualifiedLevel = null;
+        int highestThreshold = int.MinValue;
+        int lowestLevel = int.MaxValue;
 
-        foreach (var levelDef in sortedLevels)
+        foreach (var levelDef in levels)
         {
-            if (xp >= levelDef.XpThreshold)
+            // Track lowest level for fallback
+            if (levelDef.Level < lowestLevel)
+                lowestLevel = levelDef.Level;
+
+            // Find highest threshold the user qualifies for
+            if (xp >= levelDef.XpThreshold && levelDef.XpThreshold > highestThreshold)
             {
-                return levelDef.Level;
+                highestThreshold = levelDef.XpThreshold;
+                highestQualifiedLevel = levelDef.Level;
             }
         }
 
-        // Return the lowest level if somehow none match
-        return _rankingConfig.Value.Levels.OrderBy(l => l.Level).First().Level;
+        return highestQualifiedLevel ?? lowestLevel;
     }
 
     public string GetRankName(int level)

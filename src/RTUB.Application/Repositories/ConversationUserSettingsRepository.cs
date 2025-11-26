@@ -59,4 +59,19 @@ public class ConversationUserSettingsRepository : Repository<ConversationUserSet
         var settings = await GetByUserAndConversationAsync(userId, conversationId);
         return settings?.IsPinned ?? false;
     }
+
+    public async Task<HashSet<string>> GetMutedUserIdsAsync(int conversationId, IEnumerable<string> userIds)
+    {
+        var userIdList = userIds.ToList();
+        if (userIdList.Count == 0)
+            return [];
+
+        var mutedUserIds = await _dbSet
+            .AsNoTracking()
+            .Where(s => s.ConversationId == conversationId && userIdList.Contains(s.UserId) && s.IsMuted)
+            .Select(s => s.UserId)
+            .ToListAsync();
+
+        return [.. mutedUserIds];
+    }
 }

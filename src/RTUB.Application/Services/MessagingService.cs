@@ -368,26 +368,26 @@ public class MessagingService : IMessagingService
             var messagePreview = body.Length > MessagePreviewMaxLength ? $"{body[..MessagePreviewMaxLength]}..." : body;
             var groupName = conversation.Title ?? "Grupo";
 
-            var otherParticipants = conversation.GetParticipantIds().Where(id => id != senderId);
+            var otherParticipants = conversation.GetParticipantIds().Where(id => id != senderId).ToList();
 
-            foreach (var participantId in otherParticipants)
+            // Batch fetch muted status for all participants in one query
+            var mutedUserIds = await _settingsRepository.GetMutedUserIdsAsync(conversationId, otherParticipants);
+
+            // Send push notifications in parallel to non-muted participants
+            var notification = new SendPushNotificationDto
             {
-                // Check if participant has muted this conversation
-                var isMuted = await _settingsRepository.IsConversationMutedAsync(participantId, conversationId);
+                Title = $"Nova mensagem no grupo {groupName}",
+                Body = $"{senderName}: {messagePreview}",
+                Icon = "/icons/rtub-logo-192.png",
+                Url = "/messages",
+                Tag = $"message-{conversationId}"
+            };
 
-                if (!isMuted)
-                {
-                    // Use SendPushOnlyAsync to avoid creating system messages - the group message itself is already in the conversation
-                    await _pushNotificationService.SendPushOnlyAsync(participantId, new SendPushNotificationDto
-                    {
-                        Title = $"Nova mensagem no grupo {groupName}",
-                        Body = $"{senderName}: {messagePreview}",
-                        Icon = "/icons/rtub-logo-192.png",
-                        Url = "/messages",
-                        Tag = $"message-{conversationId}"
-                    });
-                }
-            }
+            var pushTasks = otherParticipants
+                .Where(participantId => !mutedUserIds.Contains(participantId))
+                .Select(participantId => _pushNotificationService.SendPushOnlyAsync(participantId, notification));
+
+            await Task.WhenAll(pushTasks);
         }
 
         return messageDto;
