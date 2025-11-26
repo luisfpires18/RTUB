@@ -80,6 +80,17 @@ public static class DefaultValues
     }
 
     /// <summary>
+    /// Default messaging configuration values
+    /// </summary>
+    public static class Messaging
+    {
+        /// <summary>
+        /// Maximum length of message preview text before truncation
+        /// </summary>
+        public const int MessagePreviewMaxLength = 100;
+    }
+
+    /// <summary>
     /// Default S3/Storage configuration values
     /// </summary>
     public static class S3

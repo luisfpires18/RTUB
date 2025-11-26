@@ -60,8 +60,6 @@ public class ProductService : IProductService
         existingProduct.SetPublicVisibility(product.IsPublic);
 
         await _productRepository.UpdateAsync(existingProduct);
-
-        // Invalidate the cached product image so the new image is served immediately
     }
 
     public async Task DeleteAsync(int id)

@@ -171,8 +171,11 @@ public static class StatusHelper
     /// </summary>
     public static List<MemberCategory> GetDisplayCategories(List<MemberCategory> categories, int? yearTuno)
     {
-        var user = new ApplicationUser { YearTuno = yearTuno };
-        user.Categories = categories;
+        var user = new ApplicationUser
+        {
+            YearTuno = yearTuno,
+            Categories = categories
+        };
         return GetDisplayCategories(user);
     }
 

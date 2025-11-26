@@ -30,7 +30,7 @@ public class EntityConfigurationTests : IClassFixture<DatabaseFixture>, IDisposa
 
         // Act
         var index = songEntity?.GetIndexes()
-            .FirstOrDefault(i => i.Properties.Count == 1 && 
+            .FirstOrDefault(i => i.Properties.Count == 1 &&
                                 i.Properties[0].Name == nameof(Song.AlbumId));
 
         // Assert
@@ -80,7 +80,7 @@ public class EntityConfigurationTests : IClassFixture<DatabaseFixture>, IDisposa
 
         // Act
         var index = entity?.GetIndexes()
-            .FirstOrDefault(i => i.Properties.Count == 1 && 
+            .FirstOrDefault(i => i.Properties.Count == 1 &&
                                 i.Properties[0].Name == nameof(EventRepertoire.SongId));
 
         // Assert
@@ -114,7 +114,7 @@ public class EntityConfigurationTests : IClassFixture<DatabaseFixture>, IDisposa
 
         // Act
         var index = entity?.GetIndexes()
-            .FirstOrDefault(i => i.Properties.Count == 1 && 
+            .FirstOrDefault(i => i.Properties.Count == 1 &&
                                 i.Properties[0].Name == nameof(RoleAssignment.UserId));
 
         // Assert
@@ -130,7 +130,7 @@ public class EntityConfigurationTests : IClassFixture<DatabaseFixture>, IDisposa
 
         // Act
         var index = entity?.GetIndexes()
-            .FirstOrDefault(i => i.Properties.Count == 1 && 
+            .FirstOrDefault(i => i.Properties.Count == 1 &&
                                 i.Properties[0].Name == nameof(RoleAssignment.Position));
 
         // Assert
@@ -183,7 +183,7 @@ public class EntityConfigurationTests : IClassFixture<DatabaseFixture>, IDisposa
 
         // Act
         var index = entity?.GetIndexes()
-            .FirstOrDefault(i => i.Properties.Count == 1 && 
+            .FirstOrDefault(i => i.Properties.Count == 1 &&
                                 i.Properties[0].Name == nameof(Activity.ReportId));
 
         // Assert

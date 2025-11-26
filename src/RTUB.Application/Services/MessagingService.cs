@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
+using RTUB.Core.Constants;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -12,10 +13,7 @@ namespace RTUB.Application.Services;
 /// </summary>
 public class MessagingService : IMessagingService
 {
-    /// <summary>
-    /// Maximum length of message preview text before truncation
-    /// </summary>
-    private const int MessagePreviewMaxLength = 100;
+    private const int MessagePreviewMaxLength = DefaultValues.Messaging.MessagePreviewMaxLength;
 
     /// <summary>
     /// Positions that are allowed to send messages in announcement-only channels
@@ -152,7 +150,7 @@ public class MessagingService : IMessagingService
             if (!isReceiverMuted)
             {
                 var senderName = !string.IsNullOrEmpty(sender.Nickname) ? sender.Nickname : $"{sender.FirstName} {sender.LastName}";
-                var messagePreview = messageDto.Body.Length > MessagePreviewMaxLength ? messageDto.Body.Substring(0, MessagePreviewMaxLength) + "..." : messageDto.Body;
+                var messagePreview = messageDto.Body.Length > MessagePreviewMaxLength ? $"{messageDto.Body[..MessagePreviewMaxLength]}..." : messageDto.Body;
 
                 await _pushNotificationService.SendPushOnlyAsync(messageDto.ReceiverId, new SendPushNotificationDto
                 {
@@ -367,7 +365,7 @@ public class MessagingService : IMessagingService
         if (sender != null && !string.IsNullOrEmpty(body))
         {
             var senderName = !string.IsNullOrEmpty(sender.Nickname) ? sender.Nickname : $"{sender.FirstName} {sender.LastName}";
-            var messagePreview = body.Length > MessagePreviewMaxLength ? body.Substring(0, MessagePreviewMaxLength) + "..." : body;
+            var messagePreview = body.Length > MessagePreviewMaxLength ? $"{body[..MessagePreviewMaxLength]}..." : body;
             var groupName = conversation.Title ?? "Grupo";
 
             var otherParticipants = conversation.GetParticipantIds().Where(id => id != senderId);
@@ -503,7 +501,7 @@ public class MessagingService : IMessagingService
             if (lastMessage != null)
             {
                 dto.LastMessagePreview = lastMessage.Body.Length > MessagePreviewMaxLength
-                    ? lastMessage.Body.Substring(0, MessagePreviewMaxLength) + "..."
+                    ? $"{lastMessage.Body[..MessagePreviewMaxLength]}..."
                     : lastMessage.Body;
                 dto.LastMessageSenderId = lastMessage.SenderId;
             }

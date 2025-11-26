@@ -43,18 +43,18 @@ public class EmailNotificationService : IEmailNotificationService
     }
 
     /// <inheritdoc/>
-    public async Task SendRequestStatusChangedAsync(int requestId, string requestName, string requestEmail,
+    public Task SendRequestStatusChangedAsync(int requestId, string requestName, string requestEmail,
         RequestStatus oldStatus, RequestStatus newStatus)
     {
         // Note: This method is deprecated and kept for backward compatibility only.
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
-    public async Task SendNewRequestNotificationAsync(int requestId, string requestName, string requestEmail, string eventType)
+    public Task SendNewRequestNotificationAsync(int requestId, string requestName, string requestEmail, string eventType)
     {
         // Simple overload - kept for backward compatibility
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>

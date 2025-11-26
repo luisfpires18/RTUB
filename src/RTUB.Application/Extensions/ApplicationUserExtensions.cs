@@ -214,11 +214,9 @@ public static class ApplicationUserExtensions
     /// </summary>
     public static string GetDisplayName(this ApplicationUser user)
     {
-        if (string.IsNullOrEmpty(user.Nickname))
-        {
-            return $"{user.FirstName} {user.LastName}".Trim();
-        }
-        return $"{user.Nickname} ({user.FirstName} {user.LastName})".Trim();
+        return string.IsNullOrEmpty(user.Nickname)
+            ? $"{user.FirstName} {user.LastName}".Trim()
+            : $"{user.Nickname} ({user.FirstName} {user.LastName})".Trim();
     }
 
     /// <summary>

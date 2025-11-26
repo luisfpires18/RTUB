@@ -33,10 +33,6 @@ public class DiscussionService : IDiscussionService
 
     public async Task<Discussion> GetOrCreateForEventAsync(int eventId)
     {
-        var discussion = await GetByEventIdAsync(eventId);
-        if (discussion != null)
-            return discussion;
-
-        return await CreateForEventAsync(eventId);
+        return await GetByEventIdAsync(eventId) ?? await CreateForEventAsync(eventId);
     }
 }
