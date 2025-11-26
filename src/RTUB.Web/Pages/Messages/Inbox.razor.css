@@ -357,6 +357,15 @@
     scrollbar-gutter: stable both-edges;
 }
 
+/* Inner wrapper for bottom-aligning messages (WhatsApp/Telegram style) */
+.messages-inner-wrapper {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    width: 100%;
+}
+
 .message {
     display: flex;
     margin-bottom: 1rem;

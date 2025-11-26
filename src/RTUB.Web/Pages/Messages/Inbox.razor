@@ -266,111 +266,113 @@
                         </div>
 
                         <div class="message-thread-body" @ref="messageThreadBody">
-                            @if (isLoadingMessages)
-                            {
-                                <div class="text-center py-5">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">A carregar...</span>
-                                    </div>
-                                </div>
-                            }
-                            else
-                            {
-                                @for (var i = 0; i < messages.Count; i++)
+                            <div class="messages-inner-wrapper">
+                                @if (isLoadingMessages)
                                 {
-                                    var message = messages[i];
-                                    var groupPosition = GetMessageGroupPosition(i);
-                                    var showAvatar = groupPosition == MessageGroupPosition.First || groupPosition == MessageGroupPosition.Single;
-                                    var showTimestamp = groupPosition == MessageGroupPosition.Last || groupPosition == MessageGroupPosition.Single;
-                                    var showSenderName = showAvatar && selectedConversation.IsGroup && message.SenderId != currentUserId && !message.IsSystem;
-                                    
-                                    <div class="message @(message.SenderId == currentUserId ? "message-sent" : "message-received") @(message.IsSystem ? "message-system" : string.Empty) @GetMessageGroupClass(groupPosition)">
-                                        @if (message.SenderId != currentUserId && !message.IsSystem)
-                                        {
-                                            @if (showAvatar)
+                                    <div class="text-center py-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">A carregar...</span>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    @for (var i = 0; i < messages.Count; i++)
+                                    {
+                                        var message = messages[i];
+                                        var groupPosition = GetMessageGroupPosition(i);
+                                        var showAvatar = groupPosition == MessageGroupPosition.First || groupPosition == MessageGroupPosition.Single;
+                                        var showTimestamp = groupPosition == MessageGroupPosition.Last || groupPosition == MessageGroupPosition.Single;
+                                        var showSenderName = showAvatar && selectedConversation.IsGroup && message.SenderId != currentUserId && !message.IsSystem;
+                                        
+                                        <div class="message @(message.SenderId == currentUserId ? "message-sent" : "message-received") @(message.IsSystem ? "message-system" : string.Empty) @GetMessageGroupClass(groupPosition)">
+                                            @if (message.SenderId != currentUserId && !message.IsSystem)
                                             {
-                                                <div class="message-avatar">
-                                                    <img src="@GetAvatarUrl(message.SenderAvatar)" 
-                                                         alt="@(message.SenderNickname ?? message.SenderName)" 
-                                                         onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <div class="message-avatar-placeholder"></div>
-                                            }
-                                        }
-                                        @if (message.IsSystem)
-                                        {
-                                            @if (showAvatar)
-                                            {
-                                                <div class="message-avatar">
-                                                    <img src="/icons/rtub-logo-192.png" alt="RTUB" />
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <div class="message-avatar-placeholder"></div>
-                                            }
-                                        }
-                                        <div class="message-content">
-                                            @if (showSenderName)
-                                            {
-                                                <div class="message-sender-name">
-                                                    @(message.SenderNickname ?? message.SenderName)
-                                                </div>
-                                            }
-                                            <div class="message-body @(message.IsSystem ? "system-message-body" : string.Empty)">
-                                                <p class="message-text">@message.Body</p>
-
-                                                @if (!string.IsNullOrEmpty(message.Link))
+                                                @if (showAvatar)
                                                 {
-                                                    <div class="message-actions">
-                                                        <a href="@message.Link" class="message-link-btn">
-                                                            <i class="bi bi-link-45deg"></i>
-                                                            <span>Ver mais</span>
-                                                        </a>
+                                                    <div class="message-avatar">
+                                                        <img src="@GetAvatarUrl(message.SenderAvatar)" 
+                                                             alt="@(message.SenderNickname ?? message.SenderName)" 
+                                                             onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="message-avatar-placeholder"></div>
+                                                }
+                                            }
+                                            @if (message.IsSystem)
+                                            {
+                                                @if (showAvatar)
+                                                {
+                                                    <div class="message-avatar">
+                                                        <img src="/icons/rtub-logo-192.png" alt="RTUB" />
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="message-avatar-placeholder"></div>
+                                                }
+                                            }
+                                            <div class="message-content">
+                                                @if (showSenderName)
+                                                {
+                                                    <div class="message-sender-name">
+                                                        @(message.SenderNickname ?? message.SenderName)
+                                                    </div>
+                                                }
+                                                <div class="message-body @(message.IsSystem ? "system-message-body" : string.Empty)">
+                                                    <p class="message-text">@message.Body</p>
+
+                                                    @if (!string.IsNullOrEmpty(message.Link))
+                                                    {
+                                                        <div class="message-actions">
+                                                            <a href="@message.Link" class="message-link-btn">
+                                                                <i class="bi bi-link-45deg"></i>
+                                                                <span>Ver mais</span>
+                                                            </a>
+                                                        </div>
+                                                    }
+                                                </div>
+                                                @if (showTimestamp)
+                                                {
+                                                    <div class="message-time">
+                                                        @message.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                                        @if (message.SenderId == currentUserId && !message.IsSystem)
+                                                        {
+                                                            @if (message.IsRead)
+                                                            {
+                                                                <i class="bi bi-check-all ms-1 text-primary" title="@GetReadReceiptTooltip(message)"></i>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="bi bi-check ms-1" title="Enviada"></i>
+                                                            }
+                                                        }
                                                     </div>
                                                 }
                                             </div>
-                                            @if (showTimestamp)
-                                            {
-                                                <div class="message-time">
-                                                    @message.CreatedAt.ToString("dd/MM/yyyy HH:mm")
-                                                    @if (message.SenderId == currentUserId && !message.IsSystem)
-                                                    {
-                                                        @if (message.IsRead)
-                                                        {
-                                                            <i class="bi bi-check-all ms-1 text-primary" title="@GetReadReceiptTooltip(message)"></i>
-                                                        }
-                                                        else
-                                                        {
-                                                            <i class="bi bi-check ms-1" title="Enviada"></i>
-                                                        }
-                                                    }
-                                                </div>
-                                            }
                                         </div>
-                                    </div>
-                                }
-                                
-                                @* Typing indicator *@
-                                @if (typingUsers.Any())
-                                {
-                                    <div class="typing-indicator">
-                                        <div class="typing-indicator-content">
-                                            <span class="typing-indicator-dots">
-                                                <span></span>
-                                                <span></span>
-                                                <span></span>
-                                            </span>
-                                            <span class="typing-indicator-text">
-                                                @GetTypingUsersText()
-                                            </span>
+                                    }
+                                    
+                                    @* Typing indicator *@
+                                    @if (typingUsers.Any())
+                                    {
+                                        <div class="typing-indicator">
+                                            <div class="typing-indicator-content">
+                                                <span class="typing-indicator-dots">
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                </span>
+                                                <span class="typing-indicator-text">
+                                                    @GetTypingUsersText()
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
+                                    }
                                 }
-                            }
+                            </div>
                         </div>
 
                         @if (!selectedConversation.IsSystemConversation && selectedConversation.CanSendMessage)
