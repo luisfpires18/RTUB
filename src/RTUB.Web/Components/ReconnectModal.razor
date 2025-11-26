@@ -1,0 +1,120 @@
+@*
+    ReconnectModal Component
+    
+    Provides enhanced UX during Blazor Server circuit reconnection attempts.
+    Uses .NET 10 Blazor reconnection lifecycle to show user-friendly messages
+    during connection loss and recovery.
+    
+    This component follows the official .NET 10 Blazor template pattern for
+    reconnection UI with RTUB-specific branding and styling.
+*@
+
+<div id="reconnect-modal" class="reconnect-modal">
+    <div class="reconnect-content">
+        <div class="reconnect-icon">
+            <i class="bi bi-wifi-off"></i>
+        </div>
+        <h3 class="reconnect-title">Ligação Perdida</h3>
+        <p class="reconnect-message">A tentar restabelecer a ligação ao servidor...</p>
+        <div class="reconnect-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">A restabelecer ligação...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .reconnect-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+    
+    /* Show modal during reconnection states */
+    body.components-reconnect-show .reconnect-modal,
+    body.components-reconnect-failed .reconnect-modal,
+    body.components-reconnect-rejected .reconnect-modal {
+        display: flex;
+    }
+    
+    .reconnect-content {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        max-width: 400px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .reconnect-icon {
+        font-size: 3rem;
+        color: #dc3545;
+        margin-bottom: 1rem;
+    }
+    
+    .reconnect-title {
+        color: #212529;
+        margin-bottom: 0.5rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    
+    .reconnect-message {
+        color: #6c757d;
+        margin-bottom: 1.5rem;
+    }
+    
+    .reconnect-spinner {
+        display: flex;
+        justify-content: center;
+    }
+    
+    /* Failed state */
+    body.components-reconnect-failed .reconnect-icon {
+        color: #dc3545;
+    }
+    
+    body.components-reconnect-failed .reconnect-title::after {
+        content: " - Falha";
+    }
+    
+    body.components-reconnect-failed .reconnect-message::after {
+        content: " Por favor, recarregue a página.";
+        display: block;
+        margin-top: 0.5rem;
+        font-weight: 600;
+    }
+    
+    /* Rejected state */
+    body.components-reconnect-rejected .reconnect-icon {
+        color: #ffc107;
+    }
+    
+    body.components-reconnect-rejected .reconnect-title::after {
+        content: " - Rejeitada";
+    }
+    
+    body.components-reconnect-rejected .reconnect-message::after {
+        content: " Por favor, recarregue a página.";
+        display: block;
+        margin-top: 0.5rem;
+        font-weight: 600;
+    }
+</style>
+
+@code {
+    // This component is purely declarative and relies on Blazor's automatic
+    // CSS class management for reconnection states:
+    // - components-reconnect-show: Attempting to reconnect
+    // - components-reconnect-failed: Reconnection failed
+    // - components-reconnect-rejected: Reconnection rejected by server
+    // - components-reconnect-hide: Connected (default, modal hidden)
+}
