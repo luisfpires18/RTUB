@@ -7,6 +7,7 @@
     --primary-hover: #8b5cf6; /* Lighter purple for hover states */
     --mobile-message-bottom-padding: 1rem; /* Padding on mobile so last message is visible above sticky input */
     
+    /* Desktop: account for navbar and footer */
     min-height: 600px;
     height: calc(100vh - 160px);
     background: var(--bs-dark);
@@ -715,7 +716,7 @@
        AREA A: FULL-SCREEN INBOX ON MOBILE
        ============================================= */
     
-    /* Full-screen messages page on mobile - hide navbar and prevent body scroll */
+    /* Full-screen messages page on mobile - override desktop height and use full viewport */
     .messages-page {
         position: fixed;
         top: 0;
@@ -723,12 +724,19 @@
         right: 0;
         bottom: 0;
         /* Use 100dvh with fallback to 100vh for proper mobile viewport handling */
-        height: 100vh; /* Fallback for browsers that don't support dvh */
-        height: 100dvh; /* Dynamic viewport height - adjusts for mobile browser UI */
+        /* Important: Override desktop calc() to use full viewport */
+        min-height: 100vh !important;
+        height: 100vh !important; /* Fallback for browsers that don't support dvh */
+        height: 100dvh !important; /* Dynamic viewport height - adjusts for mobile browser UI */
+        max-height: 100vh !important; /* Override desktop max-height */
+        max-height: 100dvh !important;
         display: flex;
         flex-direction: column;
         overflow: hidden;
         z-index: 1050; /* Bootstrap modal z-index level, above navbar (1030) */
+        /* Remove any potential bottom padding/margin */
+        padding-bottom: 0;
+        margin-bottom: 0;
     }
 
     .messages-page .container-fluid {
@@ -737,6 +745,10 @@
         flex-direction: column;
         overflow: hidden;
         padding: 0;
+        margin: 0;
+        /* Ensure no extra spacing */
+        padding-bottom: 0;
+        margin-bottom: 0;
     }
 
     .messages-page .row {
@@ -744,6 +756,9 @@
         display: flex;
         overflow: hidden;
         margin: 0;
+        /* Ensure no extra spacing */
+        padding-bottom: 0;
+        margin-bottom: 0;
     }
 
     /* Conversations panel - full height with internal scroll */
@@ -753,6 +768,9 @@
         flex-direction: column;
         overflow: hidden;
         border-radius: 0;
+        /* Ensure no extra spacing at bottom */
+        padding-bottom: 0;
+        margin-bottom: 0;
     }
 
     /* Mobile header adjustments */
@@ -765,11 +783,15 @@
         padding: 0.75rem;
     }
 
+    /* Conversations list - reaches bottom with minimal safe-area padding */
     .conversations-list {
         flex: 1;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
+        /* Use minimal safe-area padding for iOS notch/home indicator */
+        /* Only add padding-bottom if absolutely necessary for safe area */
+        padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     /* Message thread panel - full height chat experience */
