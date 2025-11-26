@@ -5,7 +5,9 @@
     --message-avatar-size: 32px;
     --message-avatar-margin: 0.5rem;
     --primary-hover: #8b5cf6; /* Lighter purple for hover states */
-    --mobile-message-bottom-padding: 1rem; /* Padding on mobile so last message is visible above sticky input */
+    /* Padding for message body on mobile - accounts for fixed footer height (~60px) + safe-area */
+    --mobile-footer-height: 60px;
+    --mobile-message-bottom-padding: calc(var(--mobile-footer-height) + env(safe-area-inset-bottom, 0px) + 0.5rem);
     
     /* Desktop: account for navbar and footer */
     min-height: 600px;
@@ -840,25 +842,35 @@
         overscroll-behavior: contain;
     }
 
-    /* Footer with message composer - sticky to bottom */
+    /* Footer with message composer - FIXED to bottom of screen
+       Using position: fixed instead of sticky to prevent iOS keyboard
+       from pushing the input field up and causing layout shifts.
+       The input stays at the true bottom of the viewport. */
     .message-thread-footer {
         flex-shrink: 0;
-        position: sticky;
+        position: fixed;
+        left: 0;
+        right: 0;
         bottom: 0;
         background: #0f0f10;
         box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
         padding: 0.5rem 0.75rem; /* Top and side padding */
-        /* Safe-area support: Changed calculation method from max() to calc() and increased
-           base padding from 0.25rem to 0.5rem. Now uses calc(0.5rem + env(...)) to ensure
-           consistent base padding plus safe-area, providing better predictability and proper
-           spacing on devices with large safe-areas (iPhone X and newer). */
+        /* Safe-area support for iPhone notch/home indicator */
         padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
-        z-index: 10;
+        z-index: 1000; /* High z-index to stay above everything */
     }
 
-    /* Read-only footer mobile override - matches message-thread-footer safe-area pattern */
+    /* Read-only footer mobile override - matches message-thread-footer fixed positioning */
     .read-only-footer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #0f0f10;
+        box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
+        padding: 0.5rem 0.75rem;
         padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+        z-index: 1000;
     }
 
     /* Message styling for mobile */
