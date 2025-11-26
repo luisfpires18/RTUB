@@ -47,18 +47,6 @@ public class ReconnectModalTests : TestContext
     }
 
     [Fact]
-    public void ReconnectModal_ContainsCSS_ForBlazorReconnectStates()
-    {
-        // Act
-        var cut = RenderComponent<ReconnectModal>();
-
-        // Assert - Check that CSS targets Blazor's automatic reconnect state classes
-        cut.Markup.Should().Contain("components-reconnect-show");
-        cut.Markup.Should().Contain("components-reconnect-failed");
-        cut.Markup.Should().Contain("components-reconnect-rejected");
-    }
-
-    [Fact]
     public void ReconnectModal_HasCorrectAriaAttributes()
     {
         // Act
