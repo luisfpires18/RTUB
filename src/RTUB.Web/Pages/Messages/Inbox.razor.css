@@ -7,9 +7,7 @@
     --primary-hover: #8b5cf6; /* Lighter purple for hover states */
     /* Padding for message body on mobile - accounts for fixed footer height (~60px) + safe-area */
     --mobile-footer-height: 60px;
-    --mobile-message-bottom-padding: calc(var(--mobile-footer-height) + env(safe-area-inset-bottom, 0px));
-    /* Height of the fixed header on mobile */
-    --mobile-header-height: 60px;
+    --mobile-message-bottom-padding: calc(var(--mobile-footer-height) + env(safe-area-inset-bottom, 0px) + 0.5rem);
     
     /* Desktop: account for navbar and footer */
     min-height: 600px;
@@ -844,32 +842,23 @@
         overflow: hidden;
     }
 
-    /* Fixed header - MUST stay visible when keyboard opens on mobile
-       position: fixed ensures header remains at top even when iOS keyboard appears */
+    /* Fixed header */
     .message-thread-header {
         flex-shrink: 0;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
         background: #0f0f10;
         border-bottom: 1px solid var(--bs-border-color);
         padding: 0.75rem;
-        /* Safe area for iPhone notch */
-        padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
-        z-index: 1001; /* Above footer (1000) */
     }
 
-    /* Scrollable message body - needs top padding to account for fixed header */
+    /* Scrollable message body */
     .message-thread-body {
         flex: 1;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         padding: 0.75rem;
-        /* Top padding to account for fixed header (header already includes safe-area-inset-top) */
-        padding-top: calc(var(--mobile-header-height) + 0.5rem);
-        /* Bottom padding for fixed footer */
+        /* Padding for sticky footer - footer handles its own safe-area
+           Uses CSS variable defined in .messages-page: --mobile-message-bottom-padding: 1rem */
         padding-bottom: var(--mobile-message-bottom-padding);
         /* Note: We use margin-bottom on .message elements for spacing, not gap,
            because gap would override our grouped message spacing (0.1rem) */
