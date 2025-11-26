@@ -13,7 +13,7 @@ namespace RTUB.Application.Factories;
 public class PushNotificationFactory : IPushNotificationFactory
 {
     private static readonly CultureInfo PortugueseCulture = new("pt-PT");
-    
+
     /// <summary>
     /// Creates a push notification for an event (new event or reminder).
     /// </summary>
@@ -25,18 +25,18 @@ public class PushNotificationFactory : IPushNotificationFactory
     {
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-        
+
         // Build the event URL
         var eventUrl = BuildEventUrl(baseUrl);
-        
+
         // Format the date in Portuguese
         var eventDateStr = FormatEventDate(@event.Date);
-        
+
         if (isReminder)
         {
             // Create reminder notification
             var daysText = GetDaysUntilEventText(@event.Date);
-            
+
             return new SendPushNotificationDto
             {
                 Title = $"Lembrete: {@event.Name}",
@@ -59,7 +59,7 @@ public class PushNotificationFactory : IPushNotificationFactory
             };
         }
     }
-    
+
     /// <summary>
     /// Creates a custom push notification for a rehearsal.
     /// Title format: "Ensaio - DD/MMM DayOfWeek"
@@ -73,13 +73,13 @@ public class PushNotificationFactory : IPushNotificationFactory
         ArgumentNullException.ThrowIfNull(rehearsal);
         ArgumentException.ThrowIfNullOrWhiteSpace(customBody);
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-        
+
         // Build the rehearsal URL
         var rehearsalUrl = BuildRehearsalUrl(baseUrl);
-        
+
         // Format the title: "Ensaio - 24/Nov Terça Feira"
         var title = FormatRehearsalTitle(rehearsal.Date);
-        
+
         return new SendPushNotificationDto
         {
             Title = title,
@@ -89,7 +89,7 @@ public class PushNotificationFactory : IPushNotificationFactory
             Tag = $"rehearsal-{rehearsal.Id}"
         };
     }
-    
+
     /// <summary>
     /// Builds the event URL from the base URL.
     /// </summary>
@@ -98,7 +98,7 @@ public class PushNotificationFactory : IPushNotificationFactory
         var trimmedBaseUrl = baseUrl.TrimEnd('/');
         return $"{trimmedBaseUrl}/events";
     }
-    
+
     /// <summary>
     /// Builds the rehearsal URL from the base URL.
     /// </summary>
@@ -107,7 +107,7 @@ public class PushNotificationFactory : IPushNotificationFactory
         var trimmedBaseUrl = baseUrl.TrimEnd('/');
         return $"{trimmedBaseUrl}/rehearsals";
     }
-    
+
     /// <summary>
     /// Formats the rehearsal title in the format "Ensaio - DD/MMM DayOfWeek"
     /// Example: "Ensaio - 24/Nov Terça Feira"
@@ -118,13 +118,13 @@ public class PushNotificationFactory : IPushNotificationFactory
         var day = date.ToString("dd", PortugueseCulture);
         var month = date.ToString("MMM", PortugueseCulture);
         var dayOfWeek = date.ToString("dddd", PortugueseCulture);
-        
+
         // Capitalize first letter of day of week
         dayOfWeek = char.ToUpper(dayOfWeek[0]) + dayOfWeek.Substring(1);
-        
+
         return $"Ensaio - {day}/{month} {dayOfWeek}";
     }
-    
+
     /// <summary>
     /// Formats the event date in Portuguese format (dd 'de' MMMM 'de' yyyy).
     /// </summary>
@@ -132,7 +132,7 @@ public class PushNotificationFactory : IPushNotificationFactory
     {
         return eventDate.ToString("dd 'de' MMMM 'de' yyyy", PortugueseCulture);
     }
-    
+
     /// <summary>
     /// Gets the days until event formatted as text in Portuguese.
     /// Returns appropriate text like "1 dia" or "3 dias".
@@ -141,15 +141,15 @@ public class PushNotificationFactory : IPushNotificationFactory
     private static string GetDaysUntilEventText(DateTime eventDate)
     {
         var daysUntil = (int)Math.Ceiling((eventDate.Date - DateTime.UtcNow.Date).TotalDays);
-        
+
         if (daysUntil < 0)
         {
             throw new ArgumentException("Cannot create reminder for past events", nameof(eventDate));
         }
-        
+
         return daysUntil == 1 ? "1 dia" : $"{daysUntil} dias";
     }
-    
+
     /// <summary>
     /// Creates a push notification for event repertoire changes.
     /// </summary>
@@ -158,10 +158,10 @@ public class PushNotificationFactory : IPushNotificationFactory
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentException.ThrowIfNullOrWhiteSpace(songTitle);
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-        
+
         var eventUrl = BuildEventUrl(baseUrl);
         var action = isAdded ? "adicionada" : "alterada";
-        
+
         return new SendPushNotificationDto
         {
             Title = $"Repertório {action} - {@event.Name}",
@@ -171,7 +171,7 @@ public class PushNotificationFactory : IPushNotificationFactory
             Tag = $"event-repertoire-{@event.Id}"
         };
     }
-    
+
     /// <summary>
     /// Creates a push notification for new discussion posts.
     /// </summary>
@@ -181,9 +181,9 @@ public class PushNotificationFactory : IPushNotificationFactory
         ArgumentException.ThrowIfNullOrWhiteSpace(authorNickname);
         ArgumentException.ThrowIfNullOrWhiteSpace(postTitle);
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-        
+
         var eventUrl = BuildEventUrl(baseUrl);
-        
+
         return new SendPushNotificationDto
         {
             Title = $"Novo post de {authorNickname}",
@@ -193,7 +193,7 @@ public class PushNotificationFactory : IPushNotificationFactory
             Tag = $"event-discussion-{@event.Id}"
         };
     }
-    
+
     /// <summary>
     /// Creates a push notification for new 1st place in leaderboard.
     /// </summary>
@@ -201,9 +201,9 @@ public class PushNotificationFactory : IPushNotificationFactory
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userNickname);
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-        
+
         var leaderboardUrl = $"{baseUrl.TrimEnd('/')}/leaderboard";
-        
+
         return new SendPushNotificationDto
         {
             Title = "Novo 1º Lugar no Ranking!",
@@ -213,7 +213,7 @@ public class PushNotificationFactory : IPushNotificationFactory
             Tag = "leaderboard-first-place"
         };
     }
-    
+
     /// <summary>
     /// Creates a push notification for new meetings.
     /// </summary>
@@ -221,11 +221,11 @@ public class PushNotificationFactory : IPushNotificationFactory
     {
         ArgumentNullException.ThrowIfNull(meeting);
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-        
+
         var meetingUrl = $"{baseUrl.TrimEnd('/')}/meetings";
         var meetingTypeName = FormatMeetingType(meeting.Type);
         var dateStr = meeting.Date.ToString("dd 'de' MMMM 'de' yyyy", PortugueseCulture);
-        
+
         return new SendPushNotificationDto
         {
             Title = $"Nova {meetingTypeName}",
@@ -235,7 +235,7 @@ public class PushNotificationFactory : IPushNotificationFactory
             Tag = $"meeting-{meeting.Id}"
         };
     }
-    
+
     /// <summary>
     /// Creates a push notification for new performance requests.
     /// </summary>
@@ -243,10 +243,10 @@ public class PushNotificationFactory : IPushNotificationFactory
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-        
+
         var requestUrl = $"{baseUrl.TrimEnd('/')}/requests";
         var dateStr = request.PreferredDate.ToString("dd/MM/yyyy");
-        
+
         return new SendPushNotificationDto
         {
             Title = "Novo Pedido de Atuação",
@@ -256,7 +256,7 @@ public class PushNotificationFactory : IPushNotificationFactory
             Tag = $"request-{request.Id}"
         };
     }
-    
+
     /// <summary>
     /// Formats meeting type for display.
     /// </summary>

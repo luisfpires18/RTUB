@@ -76,7 +76,7 @@ public class EnrollmentService : IEnrollmentService
         enrollment.OtherInstruments = otherInstruments;
 
         await _enrollmentRepository.UpdateAsync(enrollment);
-        
+
         // Update retirement status if enrollment was confirmed
         if (willAttend)
         {

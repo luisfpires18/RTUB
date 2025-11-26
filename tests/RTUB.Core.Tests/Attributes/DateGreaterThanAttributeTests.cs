@@ -104,7 +104,7 @@ public class DateGreaterThanAttributeTests
     {
         // Arrange
         var eventEntity = Event.Create("Test Event", DateTime.Now, "Location", Core.Enums.EventType.Festival);
-        
+
         // Act
         eventEntity.SetEndDate(DateTime.Now.AddDays(2));
 

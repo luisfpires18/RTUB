@@ -18,11 +18,11 @@ public static class S3KeyNormalizer
     {
         if (string.IsNullOrEmpty(input))
             return string.Empty;
-        
+
         // Remove accents/diacritics
         var normalizedString = input.Normalize(NormalizationForm.FormD);
         var stringBuilder = new StringBuilder();
-        
+
         foreach (var c in normalizedString)
         {
             var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
@@ -31,18 +31,18 @@ public static class S3KeyNormalizer
                 stringBuilder.Append(c);
             }
         }
-        
+
         var result = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
-        
+
         // Convert to lowercase
         result = result.ToLowerInvariant();
-        
+
         // Replace spaces and special characters with underscores
         result = System.Text.RegularExpressions.Regex.Replace(result, @"[^a-z0-9]+", "_");
-        
+
         // Remove leading/trailing underscores
         result = result.Trim('_');
-        
+
         return result;
     }
 }

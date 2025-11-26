@@ -10,19 +10,19 @@ public class Album : BaseEntity
     [Required(ErrorMessage = "O título do álbum é obrigatório")]
     [MaxLength(200, ErrorMessage = "O título do álbum não pode exceder 200 caracteres")]
     public string Title { get; set; } = string.Empty;
-    
+
     [MaxLength(1000, ErrorMessage = "A descrição não pode exceder 1000 caracteres")]
     public string? Description { get; set; }
-    
+
     [Range(1900, 2100, ErrorMessage = "O ano deve estar entre 1900 e 2100")]
     public int? Year { get; set; }
-    
+
     // Privacy setting
     public bool IsPrivate { get; set; } = false;
-    
+
     // Image handling
     public string? ImageUrl { get; set; }
-    
+
     // Navigation property
     public virtual ICollection<Song> Songs { get; set; } = new List<Song>();
 
@@ -33,7 +33,7 @@ public class Album : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título do álbum não pode estar vazio", nameof(title));
-        
+
         if (year.HasValue && (year < 1900 || year > DateTime.Now.Year))
             throw new ArgumentException("Ano inválido", nameof(year));
 
@@ -50,7 +50,7 @@ public class Album : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título do álbum não pode estar vazio", nameof(title));
-        
+
         if (year.HasValue && (year < 1900 || year > DateTime.Now.Year))
             throw new ArgumentException("Ano inválido", nameof(year));
 
@@ -69,7 +69,7 @@ public class Album : BaseEntity
     {
         return !string.IsNullOrEmpty(ImageUrl) ? ImageUrl : "";
     }
-    
+
     // Property alias for backward compatibility
     public string CoverImageSrc => GetCoverImageSource();
 }

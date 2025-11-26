@@ -33,7 +33,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _mockImageStorageService = new Mock<IImageStorageService>();
@@ -170,7 +170,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         result.Should().HaveCount(1);
         result.Should().Contain(e => e.Name == "Multi-day Event");
     }
-    
+
     [Fact]
     public async Task CancelEventAsync_WithValidReason_CancelsEvent()
     {
@@ -190,7 +190,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         cancelledEvent!.IsCancelled.Should().BeTrue();
         cancelledEvent.CancellationReason.Should().Be(cancellationReason);
     }
-    
+
     [Fact]
     public async Task CancelEventAsync_WithNonExistentEvent_ThrowsException()
     {
@@ -203,7 +203,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage($"Event with ID {nonExistentEventId} not found");
     }
-    
+
     [Fact]
     public async Task UncancelEventAsync_WithCancelledEvent_UncancelsEvent()
     {
@@ -223,7 +223,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         uncancelledEvent!.IsCancelled.Should().BeFalse();
         uncancelledEvent.CancellationReason.Should().BeNull();
     }
-    
+
     [Fact]
     public async Task UncancelEventAsync_WithNonExistentEvent_ThrowsException()
     {
@@ -247,7 +247,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var newDescription = "Updated description";
         var newEndDate = DateTime.Now.AddDays(8);
         var imageUrl = "https://example.com/test-image.webp";
-        
+
         _mockImageStorageService
             .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(imageUrl);
@@ -264,7 +264,7 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         updated.Description.Should().Be(newDescription);
         updated.EndDate.Should().Be(newEndDate);
         updated.ImageUrl.Should().Be(imageUrl);
-        
+
         // Verify image was uploaded with normalized name (not ID)
         _mockImageStorageService.Verify(
             x => x.UploadImageAsync(It.IsAny<Stream>(), "test.webp", "image/webp", "events", "updated_name"),
@@ -278,12 +278,12 @@ public class EventServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var eventEntity = await _eventService.CreateEventAsync("Test Event", DateTime.Now, "Test Location", EventType.Festival);
         var oldImageUrl = "https://example.com/old-image.webp";
         var newImageUrl = "https://example.com/new-image.webp";
-        
+
         // Set initial image
         eventEntity.SetImage(oldImageUrl);
         _context.Events.Update(eventEntity);
         await _context.SaveChangesAsync();
-        
+
         _mockImageStorageService
             .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(newImageUrl);

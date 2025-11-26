@@ -23,4 +23,27 @@
     /// </summary>
     [Parameter]
     public string AdditionalClasses { get; set; } = "";
+    
+    private MemberCategory _previousCategory;
+    private string _previousAdditionalClasses = "";
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when parameters change.
+    /// Performance optimization: Prevents unnecessary re-renders by tracking parameter changes.
+    /// This is especially effective for badge components that are used frequently across the application.
+    /// See ADR 001: docs/decisions/001-shouldrender-optimization.md for implementation guidelines.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        // Compare current parameter values with previous values
+        if (Category != _previousCategory || AdditionalClasses != _previousAdditionalClasses)
+        {
+            // Parameters changed - update tracked values and allow re-render
+            _previousCategory = Category;
+            _previousAdditionalClasses = AdditionalClasses;
+            return true;
+        }
+        // Parameters unchanged - skip re-render for better performance
+        return false;
+    }
 }

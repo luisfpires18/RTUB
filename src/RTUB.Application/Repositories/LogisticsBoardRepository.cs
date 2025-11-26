@@ -39,8 +39,8 @@ public class LogisticsBoardRepository : Repository<LogisticsBoard>, ILogisticsBo
     {
         return await Query()
             .Include(b => b.Event)
-            .WhereIf(!string.IsNullOrWhiteSpace(searchTerm), 
-                b => b.Name.Contains(searchTerm!) || 
+            .WhereIf(!string.IsNullOrWhiteSpace(searchTerm),
+                b => b.Name.Contains(searchTerm!) ||
                      (b.Description != null && b.Description.Contains(searchTerm!)))
             .OrderByDescending(b => b.CreatedAt)
             .PaginateAsync(page, pageSize);

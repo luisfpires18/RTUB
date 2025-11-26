@@ -11,7 +11,7 @@ namespace RTUB.Integration.Tests.Pages;
 /// </summary>
 public class MusicPagesTests : IntegrationTestBase
 {
-    
+
     private readonly HttpClient _client;
 
     public MusicPagesTests(TestWebApplicationFactory factory) : base(factory)
@@ -65,7 +65,7 @@ public class MusicPagesTests : IntegrationTestBase
     {
         // Arrange - Load home page first
         var homeResponse = await _client.GetAsync("/");
-        
+
         // Act - Navigate to music
         var musicResponse = await _client.GetAsync("/music");
 
@@ -106,7 +106,7 @@ public class MusicPagesTests : IntegrationTestBase
     {
         // Arrange & Act
         var response = await _client.GetAsync("/music/songs/1");
-        
+
         if (response.StatusCode == HttpStatusCode.OK)
         {
             var content = await response.Content.ReadAsStringAsync();

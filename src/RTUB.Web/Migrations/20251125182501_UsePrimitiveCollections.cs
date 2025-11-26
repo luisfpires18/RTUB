@@ -14,22 +14,22 @@ namespace RTUB.Migrations
             // The existing JSON format is compatible with EF Core 10's primitive collections
             migrationBuilder.Sql(
                 "UPDATE AspNetUsers SET Categories = COALESCE(CategoriesJson, '[]') WHERE CategoriesJson IS NOT NULL");
-            
+
             // Migrate data from PositionsJson to Positions column
             migrationBuilder.Sql(
                 "UPDATE AspNetUsers SET Positions = COALESCE(PositionsJson, '[]') WHERE PositionsJson IS NOT NULL");
-            
+
             // Update null values to empty JSON arrays to satisfy IsRequired constraint
             migrationBuilder.Sql(
                 "UPDATE AspNetUsers SET Categories = '[]' WHERE Categories IS NULL OR Categories = ''");
             migrationBuilder.Sql(
                 "UPDATE AspNetUsers SET Positions = '[]' WHERE Positions IS NULL OR Positions = ''");
-            
+
             // Drop the old JSON columns - they're no longer needed
             migrationBuilder.DropColumn(
                 name: "CategoriesJson",
                 table: "AspNetUsers");
-            
+
             migrationBuilder.DropColumn(
                 name: "PositionsJson",
                 table: "AspNetUsers");
@@ -44,13 +44,13 @@ namespace RTUB.Migrations
                 table: "AspNetUsers",
                 type: "TEXT",
                 nullable: true);
-            
+
             migrationBuilder.AddColumn<string>(
                 name: "PositionsJson",
                 table: "AspNetUsers",
                 type: "TEXT",
                 nullable: true);
-            
+
             // Migrate data back to JSON columns
             migrationBuilder.Sql(
                 "UPDATE AspNetUsers SET CategoriesJson = Categories WHERE Categories != '[]'");

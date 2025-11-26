@@ -20,7 +20,7 @@ public class FolderCardTests : TestContext
     public FolderCardTests()
     {
         _fixture = new Fixture();
-        
+
         // Add authorization services
         this.AddTestAuthorization();
     }

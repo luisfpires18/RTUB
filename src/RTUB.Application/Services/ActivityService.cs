@@ -66,7 +66,7 @@ public class ActivityService : IActivityService
     public async Task DeleteActivityAsync(int id)
     {
         var activity = await _activityRepository.GetWithTransactionsAsync(id);
-            
+
         if (activity == null)
             throw new EntityNotFoundException(nameof(Activity), id);
 

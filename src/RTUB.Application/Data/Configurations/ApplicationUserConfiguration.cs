@@ -19,18 +19,18 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
             .WithMany()
             .HasForeignKey(u => u.MentorId)
             .OnDelete(DeleteBehavior.SetNull);
-        
+
         // Explicitly configure PhoneNumber as nullable to override the [Required] attribute
         // The [Required] attribute is for model validation, not database constraints
         builder.Property(u => u.PhoneNumber)
             .IsRequired(false);
-        
+
         // Configure Positions as a primitive collection stored in a single column
         // EF Core 10 handles the conversion to/from comma-separated integers
         builder.PrimitiveCollection(u => u.Positions)
             .ElementType()
             .HasConversion<int>();
-        
+
         // Configure Categories as a primitive collection stored in a single column
         // EF Core 10 handles the conversion to/from comma-separated integers
         builder.PrimitiveCollection(u => u.Categories)

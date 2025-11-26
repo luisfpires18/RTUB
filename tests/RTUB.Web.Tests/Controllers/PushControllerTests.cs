@@ -23,7 +23,7 @@ public class PushControllerTests
     {
         _mockPushService = new Mock<IPushNotificationService>();
         _mockLogger = new Mock<ILogger<PushController>>();
-        
+
         _options = new WebPushOptions
         {
             Enabled = true,
@@ -144,7 +144,7 @@ public class PushControllerTests
         _options.Enabled = false; // Even when disabled
         SetupUserContext("test-user", isOwner: true);
         _mockPushService.Setup(s => s.IsConfigured()).Returns(true);
-        
+
         var subscriptionDto = new PushSubscriptionDto
         {
             Endpoint = "https://push.example.com/test",
@@ -173,7 +173,7 @@ public class PushControllerTests
         // Arrange
         SetupUserContext("test-user", isOwner: true);
         _mockPushService.Setup(s => s.IsConfigured()).Returns(false);
-        
+
         var subscriptionDto = new PushSubscriptionDto();
 
         // Act
@@ -203,11 +203,11 @@ public class PushControllerTests
     {
         // This test verifies that the [Authorize(Roles = "Owner")] attribute is present
         // Actual authorization testing would require integration tests
-        
+
         // Arrange
         SetupUserContext("test-user", isOwner: true);
         _mockPushService.Setup(s => s.IsConfigured()).Returns(true);
-        
+
         var notification = new SendPushNotificationDto
         {
             Title = "Broadcast",

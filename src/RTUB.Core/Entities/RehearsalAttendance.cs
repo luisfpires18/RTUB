@@ -11,24 +11,24 @@ public class RehearsalAttendance : BaseEntity
 {
     [Required]
     public int RehearsalId { get; set; }
-    
+
     [Required]
     public string UserId { get; set; } = string.Empty;
-    
+
     public bool WillAttend { get; set; } = true; // Whether the member will attend (true by default)
-    
+
     public bool Attended { get; set; } = false; // Defaults to false (pending approval) when created
-    
+
     public InstrumentType? Instrument { get; set; }
-    
+
     [MaxLength(200)]
     public string? OtherInstruments { get; set; }
-    
+
     [MaxLength(500)]
     public string? Notes { get; set; }
-    
+
     public DateTime CheckedInAt { get; set; } = DateTime.UtcNow;
-    
+
     // Navigation
     public virtual Rehearsal? Rehearsal { get; set; }
     public virtual ApplicationUser? User { get; set; }
@@ -41,7 +41,7 @@ public class RehearsalAttendance : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("O ID do utilizador não pode estar vazio", nameof(userId));
-        
+
         if (rehearsalId <= 0)
             throw new ArgumentException("O ID do ensaio deve ser maior que 0", nameof(rehearsalId));
 

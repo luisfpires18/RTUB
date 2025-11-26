@@ -9,22 +9,22 @@ public class DocumentMetadata
     /// Name of the file
     /// </summary>
     public string FileName { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Full path to the file in storage
     /// </summary>
     public string FilePath { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Size of the file in bytes
     /// </summary>
     public long SizeBytes { get; set; }
-    
+
     /// <summary>
     /// Last modified date of the file
     /// </summary>
     public DateTime LastModified { get; set; }
-    
+
     /// <summary>
     /// File extension (e.g., ".pdf", ".docx")
     /// </summary>

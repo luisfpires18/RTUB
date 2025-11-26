@@ -37,17 +37,17 @@ public class Conversation : BaseEntity
     /// Whether this conversation is archived/deleted
     /// </summary>
     public bool IsArchived { get; set; }
-    
+
     /// <summary>
     /// Whether this is a group conversation (multiple participants)
     /// </summary>
     public bool IsGroup { get; set; }
-    
+
     /// <summary>
     /// The user ID of the group creator (null for direct chats, "system" for auto-created groups)
     /// </summary>
     public string? CreatedByUserId { get; set; }
-    
+
     /// <summary>
     /// Whether this is an announcement-only channel where only specific roles can send messages
     /// </summary>
@@ -84,7 +84,7 @@ public class Conversation : BaseEntity
     {
         return GetParticipantIds().Contains(userId);
     }
-    
+
     /// <summary>
     /// Adds a participant to the conversation
     /// </summary>
@@ -92,12 +92,12 @@ public class Conversation : BaseEntity
     {
         if (string.IsNullOrEmpty(userId) || HasParticipant(userId))
             return;
-            
-        Participants = string.IsNullOrEmpty(Participants) 
-            ? userId 
+
+        Participants = string.IsNullOrEmpty(Participants)
+            ? userId
             : $"{Participants};{userId}";
     }
-    
+
     /// <summary>
     /// Removes a participant from the conversation
     /// </summary>
@@ -105,12 +105,12 @@ public class Conversation : BaseEntity
     {
         if (string.IsNullOrEmpty(userId))
             return;
-            
+
         var participants = GetParticipantIds();
         participants.Remove(userId);
         Participants = string.Join(";", participants);
     }
-    
+
     /// <summary>
     /// Updates participants list (replaces all participants)
     /// </summary>

@@ -56,13 +56,11 @@ public class InstrumentService : IInstrumentService
         if (existingInstrument == null)
             throw new EntityNotFoundException(nameof(Instrument), instrument.Id);
 
-        existingInstrument.Update(instrument.Name, instrument.Condition, instrument.SerialNumber, 
+        existingInstrument.Update(instrument.Name, instrument.Condition, instrument.SerialNumber,
                                   instrument.Brand, instrument.Location);
         existingInstrument.UpdateMaintenance(instrument.MaintenanceNotes, instrument.LastMaintenanceDate);
-        
+
         await _instrumentRepository.UpdateAsync(existingInstrument);
-        
-        // Invalidate the cached instrument image so the new image is served immediately
     }
 
     public async Task DeleteAsync(int id)

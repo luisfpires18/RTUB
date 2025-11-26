@@ -21,7 +21,7 @@ public static class ServiceCollectionExtensions
     {
         // Register generic repository
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-        
+
         // Register specific repositories with domain logic
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<ISongRepository, SongRepository>();
@@ -57,7 +57,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IConversationRepository, ConversationRepository>();
         services.AddScoped<IMessageRepository, MessageRepository>();
         services.AddScoped<IConversationUserSettingsRepository, ConversationUserSettingsRepository>();
-        
+
         return services;
     }
 

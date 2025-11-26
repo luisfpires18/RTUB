@@ -30,7 +30,7 @@ public class CommentServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _postServiceMock = new Mock<IPostService>();

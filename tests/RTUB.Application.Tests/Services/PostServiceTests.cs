@@ -30,17 +30,17 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        
+
         // Create mocks for new dependencies
         var mockDiscussionRepository = new Mock<IDiscussionRepository>();
         var mockEnrollmentRepository = new Mock<IEnrollmentRepository>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        
+
         _service = new PostService(
             new PostRepository(_context),
             mockDiscussionRepository.Object,
@@ -111,7 +111,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var post2 = Post.Create(discussion.Id, user.Id, "Post 2", "Body 2");
         post2.Pin();
         var post3 = Post.Create(discussion.Id, user.Id, "Post 3", "Body 3");
-        
+
         _context.Posts.AddRange(post1, post2, post3);
         await _context.SaveChangesAsync();
 
@@ -144,7 +144,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var post1 = Post.Create(discussion.Id, user.Id, "Important Post", "Body 1");
         var post2 = Post.Create(discussion.Id, user.Id, "Regular Post", "Body 2");
         var post3 = Post.Create(discussion.Id, user.Id, "Another Post", "Important content");
-        
+
         _context.Posts.AddRange(post1, post2, post3);
         await _context.SaveChangesAsync();
 
@@ -208,7 +208,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var post1 = Post.Create(discussion.Id, user.Id, "Post 1", "Body 1");
         var post2 = Post.Create(discussion.Id, user.Id, "Post 2", "Body 2");
         post2.SoftDelete();
-        
+
         _context.Posts.AddRange(post1, post2);
         await _context.SaveChangesAsync();
 
@@ -238,7 +238,7 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         var post1 = Post.Create(discussion.Id, user.Id, "Post 1", "Body 1");
         var post2 = Post.Create(discussion.Id, user.Id, "Post 2", "Body 2");
-        
+
         _context.Posts.AddRange(post1, post2);
         await _context.SaveChangesAsync();
 

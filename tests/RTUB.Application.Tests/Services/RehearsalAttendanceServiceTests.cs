@@ -32,11 +32,11 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _mockRetirementStatusService = new Mock<IRetirementStatusService>();
-        
+
         _attendanceService = new RehearsalAttendanceService(
             new RehearsalAttendanceRepository(_context),
             _mockRetirementStatusService.Object);
@@ -361,7 +361,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         // Assert
         result.Should().NotBeNull();
         result.Notes.Should().Be(notes);
-        
+
         // Verify in database
         var fromDb = await _context.RehearsalAttendances.FirstOrDefaultAsync(a => a.Id == result.Id);
         fromDb.Should().NotBeNull();
@@ -391,7 +391,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         // Assert
         updated.Id.Should().Be(initial.Id); // Same attendance record
         updated.Notes.Should().Be(updatedNotes);
-        
+
         // Verify in database
         var fromDb = await _context.RehearsalAttendances.FirstOrDefaultAsync(a => a.Id == initial.Id);
         fromDb.Should().NotBeNull();
@@ -420,7 +420,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         // Assert
         updated.Id.Should().Be(initial.Id); // Same attendance record
         updated.Notes.Should().BeNull();
-        
+
         // Verify in database
         var fromDb = await _context.RehearsalAttendances.FirstOrDefaultAsync(a => a.Id == initial.Id);
         fromDb.Should().NotBeNull();
@@ -449,7 +449,7 @@ public class RehearsalAttendanceServiceTests : IClassFixture<DatabaseFixture>, I
         // Assert
         updated.Id.Should().Be(initial.Id); // Same attendance record
         updated.Notes.Should().Be("");
-        
+
         // Verify in database
         var fromDb = await _context.RehearsalAttendances.FirstOrDefaultAsync(a => a.Id == initial.Id);
         fromDb.Should().NotBeNull();

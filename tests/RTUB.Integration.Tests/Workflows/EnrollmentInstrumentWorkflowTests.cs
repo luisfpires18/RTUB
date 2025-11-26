@@ -24,8 +24,8 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
     public async Task Enrollment_WithPrimaryInstrument_CountsCorrectly()
     {
         // Arrange
-        var user = await CreateUserWithInstrumentsAsync("user1", 
-            (InstrumentType.Guitarra, true), 
+        var user = await CreateUserWithInstrumentsAsync("user1",
+            (InstrumentType.Guitarra, true),
             (InstrumentType.Bandolim, false));
         var eventEntity = await CreateEventAsync();
 
@@ -33,9 +33,9 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var enrollmentService = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
-            await enrollmentService.CreateEnrollmentAsync(user.Id, eventEntity.Id, 
-                instrument: InstrumentType.Guitarra, 
-                otherInstruments: "Bandolim", 
+            await enrollmentService.CreateEnrollmentAsync(user.Id, eventEntity.Id,
+                instrument: InstrumentType.Guitarra,
+                otherInstruments: "Bandolim",
                 willAttend: true);
         }
 
@@ -44,11 +44,11 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             var updatedEvent = await context.Events
                 .Include(e => e.Enrollments)
                 .FirstAsync(e => e.Id == eventEntity.Id);
-                
+
             var memberInstruments = await memberInstrumentService.GetMemberInstrumentsByUserIdsAsync(
                 new[] { user.Id });
 
@@ -68,8 +68,8 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
     public async Task Enrollment_WithNonPrimaryInstrument_CountsInPrimaryCategoryNotOther()
     {
         // Arrange
-        var user = await CreateUserWithInstrumentsAsync("user2", 
-            (InstrumentType.Guitarra, true), 
+        var user = await CreateUserWithInstrumentsAsync("user2",
+            (InstrumentType.Guitarra, true),
             (InstrumentType.Bandolim, false),
             (InstrumentType.Cavaquinho, false));
         var eventEntity = await CreateEventAsync();
@@ -78,9 +78,9 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var enrollmentService = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
-            await enrollmentService.CreateEnrollmentAsync(user.Id, eventEntity.Id, 
-                instrument: InstrumentType.Bandolim, 
-                otherInstruments: "Guitarra, Cavaquinho", 
+            await enrollmentService.CreateEnrollmentAsync(user.Id, eventEntity.Id,
+                instrument: InstrumentType.Bandolim,
+                otherInstruments: "Guitarra, Cavaquinho",
                 willAttend: true);
         }
 
@@ -89,11 +89,11 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             var updatedEvent = await context.Events
                 .Include(e => e.Enrollments)
                 .FirstAsync(e => e.Id == eventEntity.Id);
-                
+
             var memberInstruments = await memberInstrumentService.GetMemberInstrumentsByUserIdsAsync(
                 new[] { user.Id });
 
@@ -116,7 +116,7 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
     public async Task Enrollment_WantToPlayFalse_DoesNotCountInstruments()
     {
         // Arrange
-        var user = await CreateUserWithInstrumentsAsync("user3", 
+        var user = await CreateUserWithInstrumentsAsync("user3",
             (InstrumentType.Guitarra, true));
         var eventEntity = await CreateEventAsync();
 
@@ -124,9 +124,9 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var enrollmentService = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
-            await enrollmentService.CreateEnrollmentAsync(user.Id, eventEntity.Id, 
-                instrument: null, 
-                otherInstruments: null, 
+            await enrollmentService.CreateEnrollmentAsync(user.Id, eventEntity.Id,
+                instrument: null,
+                otherInstruments: null,
                 willAttend: false);
         }
 
@@ -135,11 +135,11 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             var updatedEvent = await context.Events
                 .Include(e => e.Enrollments)
                 .FirstAsync(e => e.Id == eventEntity.Id);
-                
+
             var memberInstruments = await memberInstrumentService.GetMemberInstrumentsByUserIdsAsync(
                 new[] { user.Id });
 
@@ -155,11 +155,11 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
     public async Task Enrollment_MultipleUsersWithDifferentInstruments_CountsAllCorrectly()
     {
         // Arrange
-        var user1 = await CreateUserWithInstrumentsAsync("user4", 
+        var user1 = await CreateUserWithInstrumentsAsync("user4",
             (InstrumentType.Guitarra, true), (InstrumentType.Bandolim, false));
-        var user2 = await CreateUserWithInstrumentsAsync("user5", 
+        var user2 = await CreateUserWithInstrumentsAsync("user5",
             (InstrumentType.Cavaquinho, true), (InstrumentType.Guitarra, false));
-        var user3 = await CreateUserWithInstrumentsAsync("user6", 
+        var user3 = await CreateUserWithInstrumentsAsync("user6",
             (InstrumentType.Bandolim, true), (InstrumentType.Flauta, false));
         var eventEntity = await CreateEventAsync();
 
@@ -167,17 +167,17 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var enrollmentService = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
-            
+
             // User1 plays Guitarra (primary)
-            await enrollmentService.CreateEnrollmentAsync(user1.Id, eventEntity.Id, 
+            await enrollmentService.CreateEnrollmentAsync(user1.Id, eventEntity.Id,
                 InstrumentType.Guitarra, notes: null, willAttend: true, otherInstruments: "Bandolim");
-            
+
             // User2 plays Guitarra (non-primary)
-            await enrollmentService.CreateEnrollmentAsync(user2.Id, eventEntity.Id, 
+            await enrollmentService.CreateEnrollmentAsync(user2.Id, eventEntity.Id,
                 InstrumentType.Guitarra, notes: null, willAttend: true, otherInstruments: "Cavaquinho");
-            
+
             // User3 plays Bandolim (primary)
-            await enrollmentService.CreateEnrollmentAsync(user3.Id, eventEntity.Id, 
+            await enrollmentService.CreateEnrollmentAsync(user3.Id, eventEntity.Id,
                 InstrumentType.Bandolim, notes: null, willAttend: true, otherInstruments: "Flauta");
         }
 
@@ -186,11 +186,11 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             var updatedEvent = await context.Events
                 .Include(e => e.Enrollments)
                 .FirstAsync(e => e.Id == eventEntity.Id);
-                
+
             var memberInstruments = await memberInstrumentService.GetMemberInstrumentsByUserIdsAsync(
                 new[] { user1.Id, user2.Id, user3.Id });
 
@@ -218,9 +218,9 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var enrollmentService = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
-            await enrollmentService.CreateEnrollmentAsync(user.Id, eventEntity.Id, 
-                instrument: null, 
-                otherInstruments: null, 
+            await enrollmentService.CreateEnrollmentAsync(user.Id, eventEntity.Id,
+                instrument: null,
+                otherInstruments: null,
                 willAttend: false);
         }
 
@@ -228,7 +228,7 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            
+
             var enrollment = await context.Enrollments
                 .FirstOrDefaultAsync(e => e.EventId == eventEntity.Id && e.UserId == user.Id);
 
@@ -262,7 +262,7 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
     }
 
     private async Task<ApplicationUser> CreateUserWithInstrumentsAsync(
-        string userId, 
+        string userId,
         params (InstrumentType instrument, bool isPrimary)[] instruments)
     {
         var user = await CreateUserAsync(userId);
@@ -284,10 +284,10 @@ public class EnrollmentInstrumentWorkflowTests : IntegrationTestBase
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         var eventEntity = Event.Create(
-            $"Test Event {Guid.NewGuid()}", 
-            DateTime.Now.AddDays(7), 
-            "Test Location", 
-            EventType.Festival, 
+            $"Test Event {Guid.NewGuid()}",
+            DateTime.Now.AddDays(7),
+            "Test Location",
+            EventType.Festival,
             "Test Description");
 
         context.Events.Add(eventEntity);

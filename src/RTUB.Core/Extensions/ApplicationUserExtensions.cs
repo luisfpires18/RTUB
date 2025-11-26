@@ -16,7 +16,7 @@ public static class ApplicationUserExtensions
     {
         if (user == null)
             return string.Empty;
-        
+
         return $"{user.FirstName} {user.LastName}";
     }
 }

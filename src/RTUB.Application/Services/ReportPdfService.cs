@@ -22,7 +22,7 @@ public class ReportPdfService
     public ReportPdfService(IMemoryCache cache)
     {
         _cache = cache;
-        
+
         // Cache generated PDFs for 1 hour (they don't change frequently)
         _cacheOptions = new MemoryCacheEntryOptions
         {
@@ -37,7 +37,7 @@ public class ReportPdfService
         // Generate cache key based on report content (use current time if UpdatedAt is null)
         var timestamp = report.UpdatedAt?.ToString("yyyyMMddHHmmss") ?? DateTime.UtcNow.ToString("yyyyMMddHHmmss");
         var cacheKey = $"report-pdf-{report.Id}-{timestamp}";
-        
+
         if (_cache.TryGetValue<byte[]>(cacheKey, out var cachedPdf) && cachedPdf != null)
         {
             return cachedPdf;
@@ -258,10 +258,10 @@ public class ReportPdfService
         });
 
         var pdfBytes = document.GeneratePdf();
-        
+
         // Cache the generated PDF
         _cache.Set(cacheKey, pdfBytes, _cacheOptions);
-        
+
         return pdfBytes;
     }
 }

@@ -34,19 +34,19 @@ public class EmailTemplateService : IEmailTemplateService
         // Create a new scope for this rendering operation to avoid ObjectDisposedException
         using var scope = _serviceScopeFactory.CreateScope();
         var serviceProvider = scope.ServiceProvider;
-        
+
         var actionContext = GetActionContext(serviceProvider);
         var viewPath = $"~/EmailTemplates/{viewName}.cshtml";
-        
+
         var viewEngineResult = _razorViewEngine.GetView(executingFilePath: null, viewPath: viewPath, isMainPage: false);
-        
+
         if (!viewEngineResult.Success)
         {
             throw new InvalidOperationException($"Could not find view '{viewPath}'");
         }
 
         var view = viewEngineResult.View;
-        
+
         using var sw = new StringWriter();
         var viewContext = new ViewContext(
             actionContext,

@@ -13,7 +13,7 @@ public class AuditContext
     /// Gets the username of the current user performing the operation.
     /// </summary>
     public string? UserName => _userName;
-    
+
     /// <summary>
     /// Gets the user ID of the current user performing the operation.
     /// </summary>

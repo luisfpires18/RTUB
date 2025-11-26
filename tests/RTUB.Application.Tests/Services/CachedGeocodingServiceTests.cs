@@ -23,16 +23,16 @@ public class CachedGeocodingServiceTests
     {
         _mockLogger = new Mock<ILogger<CachedGeocodingService>>();
         _mockQueue = new Mock<IGeocodingQueue>();
-        
+
         // Setup required dependencies for ApplicationDbContext
         var services = new ServiceCollection();
         services.AddSingleton<Microsoft.AspNetCore.Http.IHttpContextAccessor>(new Mock<Microsoft.AspNetCore.Http.IHttpContextAccessor>().Object);
         services.AddScoped<AuditContext>();
-        
+
         // Setup in-memory database for testing (scoped)
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseInMemoryDatabase("TestCachedGeocodingDb_" + Guid.NewGuid()));
-        
+
         _serviceProvider = services.BuildServiceProvider();
     }
 
@@ -42,7 +42,7 @@ public class CachedGeocodingServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        
+
         // Pre-populate cache
         dbContext.GeocodingCaches.Add(new GeocodingCache
         {
@@ -54,7 +54,7 @@ public class CachedGeocodingServiceTests
             Source = "Test"
         });
         await dbContext.SaveChangesAsync();
-        
+
         var service = new CachedGeocodingService(dbContext, _mockQueue.Object, _mockLogger.Object);
 
         // Act
@@ -64,7 +64,7 @@ public class CachedGeocodingServiceTests
         result.Should().NotBeNull();
         result.Value.Latitude.Should().Be(38.7223);
         result.Value.Longitude.Should().Be(-9.1393);
-        
+
         // Verify queue was NOT called
         _mockQueue.Verify(q => q.EnqueueCityAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
@@ -82,7 +82,7 @@ public class CachedGeocodingServiceTests
 
         // Assert
         result.Should().BeNull();
-        
+
         // Verify city was enqueued
         _mockQueue.Verify(q => q.EnqueueCityAsync("porto", "PT"), Times.Once);
     }
@@ -100,7 +100,7 @@ public class CachedGeocodingServiceTests
 
         // Assert
         result.Should().BeNull();
-        
+
         // Verify queue was NOT called
         _mockQueue.Verify(q => q.EnqueueCityAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
@@ -118,7 +118,7 @@ public class CachedGeocodingServiceTests
 
         // Assert
         result.Should().BeNull();
-        
+
         // Verify queue was NOT called
         _mockQueue.Verify(q => q.EnqueueCityAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
@@ -129,7 +129,7 @@ public class CachedGeocodingServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        
+
         // Add cache with lowercase name
         dbContext.GeocodingCaches.Add(new GeocodingCache
         {
@@ -141,7 +141,7 @@ public class CachedGeocodingServiceTests
             Source = "Test"
         });
         await dbContext.SaveChangesAsync();
-        
+
         var service = new CachedGeocodingService(dbContext, _mockQueue.Object, _mockLogger.Object);
 
         // Act - Query with uppercase
@@ -158,7 +158,7 @@ public class CachedGeocodingServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        
+
         // Add cache with uppercase country code
         dbContext.GeocodingCaches.Add(new GeocodingCache
         {
@@ -170,7 +170,7 @@ public class CachedGeocodingServiceTests
             Source = "Test"
         });
         await dbContext.SaveChangesAsync();
-        
+
         var service = new CachedGeocodingService(dbContext, _mockQueue.Object, _mockLogger.Object);
 
         // Act - Query with lowercase country code
@@ -194,7 +194,7 @@ public class CachedGeocodingServiceTests
 
         // Assert
         result.Should().BeNull();
-        
+
         // Verify city was enqueued with PT as country code
         _mockQueue.Verify(q => q.EnqueueCityAsync("braga", "PT"), Times.Once);
     }
@@ -205,7 +205,7 @@ public class CachedGeocodingServiceTests
         // Arrange
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        
+
         // Add cache for Braga, PT
         dbContext.GeocodingCaches.Add(new GeocodingCache
         {
@@ -217,7 +217,7 @@ public class CachedGeocodingServiceTests
             Source = "Test"
         });
         await dbContext.SaveChangesAsync();
-        
+
         var service = new CachedGeocodingService(dbContext, _mockQueue.Object, _mockLogger.Object);
 
         // Act - Query with same city name but different country
@@ -227,7 +227,7 @@ public class CachedGeocodingServiceTests
         // Assert
         resultPT.Should().NotBeNull();
         resultES.Should().BeNull(); // Not in cache for ES
-        
+
         // Verify Braga, ES was enqueued
         _mockQueue.Verify(q => q.EnqueueCityAsync("braga", "ES"), Times.Once);
     }

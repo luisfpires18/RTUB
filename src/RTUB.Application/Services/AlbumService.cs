@@ -101,7 +101,7 @@ public class AlbumService : IAlbumService
         var normalizedName = S3KeyNormalizer.NormalizeForS3Key(title);
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", normalizedName);
         album.SetCoverImage(imageUrl);
-        
+
         await _albumRepository.UpdateAsync(album);
     }
 
@@ -121,7 +121,7 @@ public class AlbumService : IAlbumService
         var normalizedName = S3KeyNormalizer.NormalizeForS3Key(album.Title);
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "albums", normalizedName);
         album.SetCoverImage(imageUrl);
-        
+
         await _albumRepository.UpdateAsync(album);
     }
 }

@@ -12,7 +12,7 @@ public interface IFiscalYearRepository : IRepository<FiscalYear>
     /// Gets fiscal year by start year
     /// </summary>
     Task<FiscalYear?> GetByStartYearAsync(int startYear);
-    
+
     /// <summary>
     /// Gets all fiscal years ordered by start year descending
     /// </summary>

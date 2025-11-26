@@ -81,7 +81,7 @@ public class PositionBadgeAvatarCardTests : TestContext
             .Add(p => p.Position, Position.PresidenteConselhoVeteranos));
 
         // Assert
-        cut.Markup.Should().Contain("avatar-card-role-badge", 
+        cut.Markup.Should().Contain("avatar-card-role-badge",
             "long role names should use role badge class with ellipsis styling");
     }
 
@@ -135,7 +135,7 @@ public class PositionBadgeAvatarCardTests : TestContext
         // white-space: nowrap;
         // overflow: hidden;
         // for desktop, allowing long role names to truncate
-        
+
         var cssProperty = "text-overflow: ellipsis";
         cssProperty.Should().NotBeNullOrEmpty("CSS should define ellipsis for overflow");
     }
@@ -146,7 +146,7 @@ public class PositionBadgeAvatarCardTests : TestContext
         // This test documents that the CSS includes:
         // @media (max-width: 767px) with white-space: normal
         // allowing two-line wrap on mobile devices
-        
+
         var mobileBreakpoint = 767;
         mobileBreakpoint.Should().Be(767, "Mobile breakpoint should allow two-line wrap");
     }
@@ -157,7 +157,7 @@ public class PositionBadgeAvatarCardTests : TestContext
         // This test documents that the CSS includes:
         // background-color: #6f42c1 (purple theme)
         // with readable white text color
-        
+
         var purpleColor = "#6f42c1";
         purpleColor.Should().Be("#6f42c1", "Role badges should have purple background");
     }
@@ -168,7 +168,7 @@ public class PositionBadgeAvatarCardTests : TestContext
         // This test documents that the CSS includes:
         // padding: 0.25rem 0.5rem
         // for consistent height across all badges
-        
+
         var padding = "0.25rem 0.5rem";
         padding.Should().NotBeNullOrEmpty("Role badges should have consistent padding");
     }
@@ -179,7 +179,7 @@ public class PositionBadgeAvatarCardTests : TestContext
         // This test documents that:
         // Purple background (#6f42c1) with white text
         // meets WCAG AA accessibility standards (4.5:1 ratio)
-        
+
         // Purple #6f42c1 with white has approximately 7:1 contrast ratio
         // which exceeds WCAG AA (4.5:1) and even AAA (7:1) standards
         var meetsWCAG_AA = true;

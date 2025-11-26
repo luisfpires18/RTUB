@@ -133,7 +133,7 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
 
         return await _templateService.RenderTemplateAsync("EventCancellationNotification", model);
     }
-    
+
     public async Task<string> RenderEventReminderNotificationAsync(
         string eventTitle,
         DateTime startDate,
@@ -173,7 +173,7 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
 
         return await _templateService.RenderTemplateAsync("EventReminderNotification", model);
     }
-    
+
     public async Task<string> RenderAnnouncementEmailAsync(
         string title,
         string content,
@@ -190,7 +190,7 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
 
         return await _templateService.RenderTemplateAsync("AnnouncementEmail", model);
     }
-    
+
     public async Task<string> RenderMeetingNotificationAsync(
         string meetingType,
         string meetingTitle,
@@ -219,7 +219,7 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
 
         return await _templateService.RenderTemplateAsync("MeetingNotification", model);
     }
-    
+
     public async Task<string> RenderMeetingCancellationAsync(
         string meetingType,
         string meetingTitle,
@@ -248,7 +248,7 @@ public class RazorEmailTemplateRenderer : IEmailTemplateRenderer
 
         return await _templateService.RenderTemplateAsync("MeetingCancellation", model);
     }
-    
+
     public async Task<string> RenderUsernameChangedEmailAsync(
         string fullName,
         string nickname,

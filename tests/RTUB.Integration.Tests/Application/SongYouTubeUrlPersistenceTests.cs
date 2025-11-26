@@ -98,7 +98,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
         var song1 = await _songService.CreateSongAsync("Song 1", album.Id, 1);
         var song2 = await _songService.CreateSongAsync("Song 2", album.Id, 2);
-        
+
         await _songService.AddYouTubeUrlAsync(song1.Id, "https://www.youtube.com/watch?v=song1");
         await _songService.AddYouTubeUrlAsync(song2.Id, "https://www.youtube.com/watch?v=song2a");
         await _songService.AddYouTubeUrlAsync(song2.Id, "https://www.youtube.com/watch?v=song2b");
@@ -122,7 +122,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
         var song1 = await _songService.CreateSongAsync("Song 1", album.Id, 1);
         var song2 = await _songService.CreateSongAsync("Song 2", album.Id, 2);
-        
+
         await _songService.AddYouTubeUrlAsync(song1.Id, "https://www.youtube.com/watch?v=song1");
         await _songService.AddYouTubeUrlAsync(song2.Id, "https://www.youtube.com/watch?v=song2");
 

@@ -25,7 +25,7 @@ public class PushNotificationServiceTests
         _mockConversationRepository = new Mock<IConversationRepository>();
         _mockMessageRepository = new Mock<IMessageRepository>();
         _mockLogger = new Mock<ILogger<PushNotificationService>>();
-        
+
         // Configure with minimal VAPID configuration for testing
         // Note: Keys don't need to be cryptographically valid or functional with actual push services
         // since we're testing business logic, not the actual push notification sending
@@ -39,10 +39,10 @@ public class PushNotificationServiceTests
 
         var optionsWrapper = Options.Create(_options);
         _service = new PushNotificationService(
-            _mockRepository.Object, 
-            _mockConversationRepository.Object, 
-            _mockMessageRepository.Object, 
-            optionsWrapper, 
+            _mockRepository.Object,
+            _mockConversationRepository.Object,
+            _mockMessageRepository.Object,
+            optionsWrapper,
             _mockLogger.Object);
     }
 
@@ -62,10 +62,10 @@ public class PushNotificationServiceTests
         // Arrange
         var emptyOptions = Options.Create(new WebPushOptions());
         var service = new PushNotificationService(
-            _mockRepository.Object, 
-            _mockConversationRepository.Object, 
-            _mockMessageRepository.Object, 
-            emptyOptions, 
+            _mockRepository.Object,
+            _mockConversationRepository.Object,
+            _mockMessageRepository.Object,
+            emptyOptions,
             _mockLogger.Object);
 
         // Act

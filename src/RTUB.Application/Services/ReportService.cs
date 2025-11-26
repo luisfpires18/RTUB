@@ -79,7 +79,7 @@ public class ReportService : IReportService
     public async Task<byte[]> GenerateReportPdfAsync(int reportId)
     {
         var report = await _reportRepository.GetByIdWithActivitiesAsync(reportId);
-            
+
         if (report == null)
             throw new EntityNotFoundException(nameof(Report), reportId);
 
@@ -94,7 +94,7 @@ public class ReportService : IReportService
 
         // Generate PDF using business logic
         var pdfData = GeneratePdf(report, activities, allTransactions);
-        
+
         report.SetPdfData(pdfData);
         await _reportRepository.UpdateAsync(report);
 
@@ -104,7 +104,7 @@ public class ReportService : IReportService
     public async Task DeleteReportAsync(int reportId)
     {
         var report = await _reportRepository.GetByIdWithActivitiesAsync(reportId);
-            
+
         if (report == null)
             throw new EntityNotFoundException(nameof(Report), reportId);
 
@@ -130,12 +130,12 @@ public class ReportService : IReportService
                 {
                     column.Item().Text(report.Title).FontSize(24).Bold().FontColor("#6f42c1");
                     column.Item().PaddingTop(5).Text($"Ano Letivo: {report.Year}").FontSize(12).FontColor(Colors.Grey.Darken2);
-                    
+
                     if (!string.IsNullOrEmpty(report.Summary))
                     {
                         column.Item().PaddingTop(10).Text(report.Summary).FontSize(11).Italic().FontColor(Colors.Grey.Darken1);
                     }
-                    
+
                     if (report.PublishedAt.HasValue)
                     {
                         column.Item().PaddingTop(5).Text($"Publicado em: {report.PublishedAt.Value:dd/MM/yyyy HH:mm}")

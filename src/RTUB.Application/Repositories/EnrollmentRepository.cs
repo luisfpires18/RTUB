@@ -13,7 +13,7 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
     public EnrollmentRepository(ApplicationDbContext context) : base(context)
     {
     }
-    
+
     public override async Task<Enrollment> AddAsync(Enrollment entity)
     {
         // Ensure the User is loaded into Local cache for audit log display name resolution
@@ -25,7 +25,7 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
                 // User is now in Local cache and can be accessed by GetEntityDisplayName
             }
         }
-        
+
         // Ensure the Event is loaded into Local cache for audit log display name resolution
         if (entity.EventId > 0)
         {
@@ -35,10 +35,10 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
                 // Event is now in Local cache
             }
         }
-        
+
         return await base.AddAsync(entity);
     }
-    
+
     public override async Task UpdateAsync(Enrollment entity)
     {
         // Ensure the User is loaded into Local cache for audit log display name resolution
@@ -46,16 +46,16 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
         {
             var user = await _context.Users.FindAsync(entity.UserId);
         }
-        
+
         // Ensure the Event is loaded into Local cache for audit log display name resolution
         if (entity.EventId > 0)
         {
             var evt = await _context.Events.FindAsync(entity.EventId);
         }
-        
+
         await base.UpdateAsync(entity);
     }
-    
+
     public override async Task DeleteAsync(int id)
     {
         var entity = await _dbSet.FindAsync(id);
@@ -66,14 +66,14 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
             {
                 var user = await _context.Users.FindAsync(entity.UserId);
             }
-            
+
             // Ensure the Event is loaded into Local cache for audit log display name resolution
             if (entity.EventId > 0)
             {
                 var evt = await _context.Events.FindAsync(entity.EventId);
             }
         }
-        
+
         await base.DeleteAsync(id);
     }
 

@@ -48,7 +48,7 @@ public static class InstrumentTypeHelper
                 return type;
             }
         }
-        
+
         return null;
     }
 }

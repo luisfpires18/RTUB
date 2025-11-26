@@ -49,7 +49,7 @@ public class AuditLogRepository : Repository<AuditLog>, IAuditLogRepository
             .OrderByDescending(a => a.Timestamp)
             .PaginateAsync(page, pageSize);
     }
-    
+
     public async Task DeleteAllAsync()
     {
         // Fetch all audit logs and remove them in bulk
@@ -59,7 +59,7 @@ public class AuditLogRepository : Repository<AuditLog>, IAuditLogRepository
         _dbSet.RemoveRange(allLogs);
         await _context.SaveChangesAsync();
     }
-    
+
     public async Task DeleteByUserAsync(string userName)
     {
         // Fetch all audit logs for the specified user and remove them in bulk

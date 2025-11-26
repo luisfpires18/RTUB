@@ -9,12 +9,12 @@ public enum MeetingType
     /// Assembleia Geral Ordinária - Regular General Assembly
     /// </summary>
     AssembleiaGeralOrdinaria,
-    
+
     /// <summary>
     /// Assembleia Geral Extraordinária - Extraordinary General Assembly
     /// </summary>
     AssembleiaGeralExtraordinaria,
-    
+
     /// <summary>
     /// Conselho de Veteranos - Veterans Council (restricted to Veteranos)
     /// </summary>

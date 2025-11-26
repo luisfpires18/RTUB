@@ -33,7 +33,7 @@ public class PushSubscriptionRepository : Repository<PushSubscription>, IPushSub
     {
         var subscription = await _dbSet
             .FirstOrDefaultAsync(s => s.Endpoint == endpoint);
-        
+
         if (subscription != null)
         {
             _dbSet.Remove(subscription);

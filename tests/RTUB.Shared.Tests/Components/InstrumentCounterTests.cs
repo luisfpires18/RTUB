@@ -154,7 +154,7 @@ public class InstrumentCounterTests : TestContext
         // Assert
         var boxes = cut.FindAll(".instrument-counter-box");
         boxes.Count.Should().Be(3, "should display all three non-zero instruments");
-        
+
         // First box should have count 5 (highest)
         boxes[0].InnerHtml.Should().Contain(">5<", "highest count should be first");
     }

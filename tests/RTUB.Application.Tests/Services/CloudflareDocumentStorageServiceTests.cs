@@ -34,11 +34,11 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         _mockS3Client = new Mock<IAmazonS3>();
         _mockHostEnvironment = new Mock<IHostEnvironment>();
         _mockHostEnvironment.Setup(e => e.EnvironmentName).Returns("Development");
-        
+
         // Create real AuditContext and set user
         _auditContext = new AuditContext();
         _auditContext.SetUser("TestUser", "test-user-id");
-        
+
         // Use in-memory database for testing
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
@@ -116,12 +116,12 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
         var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
-        
+
         var deleteResponse = new DeleteObjectResponse
         {
             HttpStatusCode = System.Net.HttpStatusCode.NoContent
         };
-        
+
         _mockS3Client.Setup(s => s.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), default))
             .ReturnsAsync(deleteResponse);
 
@@ -130,9 +130,9 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
 
         // Assert
         _mockS3Client.Verify(s => s.DeleteObjectAsync(
-            It.Is<DeleteObjectRequest>(r => 
-                r.BucketName == "test-bucket" && 
-                r.Key == "docs/test/document.pdf"), 
+            It.Is<DeleteObjectRequest>(r =>
+                r.BucketName == "test-bucket" &&
+                r.Key == "docs/test/document.pdf"),
             default), Times.Once);
     }
 
@@ -142,7 +142,7 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
         var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
-        
+
         _mockS3Client.Setup(s => s.DeleteObjectAsync(It.IsAny<DeleteObjectRequest>(), default))
             .ThrowsAsync(new AmazonS3Exception("Access denied"));
 
@@ -160,7 +160,7 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
         var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
-        
+
         _mockS3Client.Setup(s => s.GetObjectMetadataAsync(It.IsAny<GetObjectMetadataRequest>(), default))
             .ReturnsAsync(new GetObjectMetadataResponse());
 
@@ -177,12 +177,12 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
         var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
-        
+
         var notFoundException = new AmazonS3Exception("Not found")
         {
             StatusCode = System.Net.HttpStatusCode.NotFound
         };
-        
+
         _mockS3Client.Setup(s => s.GetObjectMetadataAsync(It.IsAny<GetObjectMetadataRequest>(), default))
             .ThrowsAsync(notFoundException);
 
@@ -199,12 +199,12 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
         var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
-        
+
         var metadataResponse = new GetObjectMetadataResponse
         {
             ContentLength = 2048
         };
-        
+
         _mockS3Client.Setup(s => s.GetObjectMetadataAsync(It.IsAny<GetObjectMetadataRequest>(), default))
             .ReturnsAsync(metadataResponse);
 
@@ -221,12 +221,12 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
         var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
-        
+
         var notFoundException = new AmazonS3Exception("Not found")
         {
             StatusCode = System.Net.HttpStatusCode.NotFound
         };
-        
+
         _mockS3Client.Setup(s => s.GetObjectMetadataAsync(It.IsAny<GetObjectMetadataRequest>(), default))
             .ThrowsAsync(notFoundException);
 
@@ -243,7 +243,7 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
         var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
-        
+
         var listResponse = new ListObjectsV2Response
         {
             S3Objects = new List<S3Object>
@@ -254,10 +254,10 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
             },
             IsTruncated = false
         };
-        
+
         _mockS3Client.Setup(s => s.ListObjectsV2Async(It.IsAny<ListObjectsV2Request>(), default))
             .ReturnsAsync(listResponse);
-        
+
         var deleteResponse = new DeleteObjectsResponse
         {
             DeletedObjects = new List<DeletedObject>
@@ -267,7 +267,7 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
                 new DeletedObject { Key = "docs/Development/TestFolder/document2.pdf" }
             }
         };
-        
+
         _mockS3Client.Setup(s => s.DeleteObjectsAsync(It.IsAny<DeleteObjectsRequest>(), default))
             .ReturnsAsync(deleteResponse);
 
@@ -276,15 +276,15 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
 
         // Assert
         _mockS3Client.Verify(s => s.ListObjectsV2Async(
-            It.Is<ListObjectsV2Request>(r => 
-                r.BucketName == "test-bucket" && 
-                r.Prefix == "docs/Development/TestFolder/"), 
+            It.Is<ListObjectsV2Request>(r =>
+                r.BucketName == "test-bucket" &&
+                r.Prefix == "docs/Development/TestFolder/"),
             default), Times.Once);
-        
+
         _mockS3Client.Verify(s => s.DeleteObjectsAsync(
-            It.Is<DeleteObjectsRequest>(r => 
-                r.BucketName == "test-bucket" && 
-                r.Objects.Count == 3), 
+            It.Is<DeleteObjectsRequest>(r =>
+                r.BucketName == "test-bucket" &&
+                r.Objects.Count == 3),
             default), Times.Once);
     }
 
@@ -294,21 +294,21 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
         var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
-        
+
         var listResponse = new ListObjectsV2Response
         {
             S3Objects = new List<S3Object> { new S3Object { Key = "docs/Development/TestFolder/" } },
             IsTruncated = false
         };
-        
+
         _mockS3Client.Setup(s => s.ListObjectsV2Async(It.IsAny<ListObjectsV2Request>(), default))
             .ReturnsAsync(listResponse);
-        
+
         var deleteResponse = new DeleteObjectsResponse
         {
             DeletedObjects = new List<DeletedObject> { new DeletedObject { Key = "docs/Development/TestFolder/" } }
         };
-        
+
         _mockS3Client.Setup(s => s.DeleteObjectsAsync(It.IsAny<DeleteObjectsRequest>(), default))
             .ReturnsAsync(deleteResponse);
 
@@ -317,7 +317,7 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
 
         // Assert
         _mockS3Client.Verify(s => s.ListObjectsV2Async(
-            It.Is<ListObjectsV2Request>(r => r.Prefix == "docs/Development/TestFolder/"), 
+            It.Is<ListObjectsV2Request>(r => r.Prefix == "docs/Development/TestFolder/"),
             default), Times.Once);
     }
 
@@ -327,21 +327,21 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
         var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
-        
+
         var listResponse = new ListObjectsV2Response
         {
             S3Objects = new List<S3Object> { new S3Object { Key = "docs/Development/EmptyFolder/" } },
             IsTruncated = false
         };
-        
+
         _mockS3Client.Setup(s => s.ListObjectsV2Async(It.IsAny<ListObjectsV2Request>(), default))
             .ReturnsAsync(listResponse);
-        
+
         var deleteResponse = new DeleteObjectsResponse
         {
             DeletedObjects = new List<DeletedObject> { new DeletedObject { Key = "docs/Development/EmptyFolder/" } }
         };
-        
+
         _mockS3Client.Setup(s => s.DeleteObjectsAsync(It.IsAny<DeleteObjectsRequest>(), default))
             .ReturnsAsync(deleteResponse);
 
@@ -350,7 +350,7 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
 
         // Assert
         _mockS3Client.Verify(s => s.DeleteObjectsAsync(
-            It.Is<DeleteObjectsRequest>(r => r.Objects.Count == 1), 
+            It.Is<DeleteObjectsRequest>(r => r.Objects.Count == 1),
             default), Times.Once);
     }
 
@@ -360,7 +360,7 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
         var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
-        
+
         _mockS3Client.Setup(s => s.ListObjectsV2Async(It.IsAny<ListObjectsV2Request>(), default))
             .ThrowsAsync(new AmazonS3Exception("Access denied"));
 
@@ -378,13 +378,13 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
         var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
-        
+
         var response = new ListObjectsV2Response
         {
             IsTruncated = false,
             CommonPrefixes = null // This can be null when there are no folders
         };
-        
+
         _mockS3Client.Setup(s => s.ListObjectsV2Async(It.IsAny<ListObjectsV2Request>(), default))
             .ReturnsAsync(response);
 
@@ -402,13 +402,13 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
         var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
-        
+
         var response = new ListObjectsV2Response
         {
             IsTruncated = false,
             CommonPrefixes = new List<string>()
         };
-        
+
         _mockS3Client.Setup(s => s.ListObjectsV2Async(It.IsAny<ListObjectsV2Request>(), default))
             .ReturnsAsync(response);
 
@@ -426,7 +426,7 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
         // Arrange
         _mockConfiguration.Setup(c => c["Cloudflare:R2:Bucket"]).Returns("test-bucket");
         var service = new CloudflareDocumentStorageService(_mockS3Client.Object, _mockConfiguration.Object, _mockHostEnvironment.Object, _mockLogger.Object, _context, _auditContext);
-        
+
         var response = new ListObjectsV2Response
         {
             IsTruncated = false,
@@ -437,7 +437,7 @@ public class CloudflareDocumentStorageServiceTests : IClassFixture<DatabaseFixtu
                 "docs/Development/Folder3/"
             }
         };
-        
+
         _mockS3Client.Setup(s => s.ListObjectsV2Async(It.IsAny<ListObjectsV2Request>(), default))
             .ReturnsAsync(response);
 

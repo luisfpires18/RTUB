@@ -6,7 +6,7 @@ namespace RTUB.Application.Configuration;
 public class Toggles
 {
     public const string SectionName = "Toggles";
-    
+
     /// <summary>
     /// Determines whether the member map feature is enabled
     /// </summary>

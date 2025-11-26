@@ -12,7 +12,7 @@ public interface ILabelRepository : IRepository<Label>
     /// Gets label by reference
     /// </summary>
     Task<Label?> GetByReferenceAsync(string reference);
-    
+
     /// <summary>
     /// Gets all active labels
     /// </summary>

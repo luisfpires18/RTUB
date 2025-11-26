@@ -11,7 +11,7 @@ namespace RTUB.Integration.Tests.Pages;
 /// </summary>
 public class ShopPageTests : IntegrationTestBase
 {
-    
+
     private readonly HttpClient _client;
 
     public ShopPageTests(TestWebApplicationFactory factory) : base(factory)

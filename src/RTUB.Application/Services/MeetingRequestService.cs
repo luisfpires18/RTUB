@@ -133,7 +133,7 @@ public class MeetingRequestService : IMeetingRequestService
         var request = await _meetingRequestRepository.GetByIdAsync(id);
         if (request == null)
             throw new InvalidOperationException($"Meeting request with ID {id} not found");
-        
+
         request.Status = status;
         await _meetingRequestRepository.UpdateAsync(request);
     }
@@ -143,10 +143,10 @@ public class MeetingRequestService : IMeetingRequestService
         var request = await _meetingRequestRepository.GetByIdAsync(id);
         if (request == null)
             throw new InvalidOperationException($"Meeting request with ID {id} not found");
-        
+
         await _meetingRequestRepository.DeleteAsync(id);
     }
-    
+
     private string GetBaseUrl()
     {
         var request = _httpContextAccessor.HttpContext?.Request;

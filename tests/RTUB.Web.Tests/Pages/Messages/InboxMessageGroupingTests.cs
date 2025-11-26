@@ -43,17 +43,17 @@ public class InboxMessageGroupingTests
         {
             return MessageGroupPosition.Single;
         }
-        
+
         if (!hasSamePreviousSender && hasSameNextSender)
         {
             return MessageGroupPosition.First;
         }
-        
+
         if (hasSamePreviousSender && hasSameNextSender)
         {
             return MessageGroupPosition.Middle;
         }
-        
+
         // hasSamePreviousSender && !hasSameNextSender
         return MessageGroupPosition.Last;
     }

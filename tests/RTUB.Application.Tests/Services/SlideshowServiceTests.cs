@@ -179,7 +179,7 @@ public class SlideshowServiceTests
         // Arrange
         var slideshow = Slideshow.Create("Original", 1, "Old desc", 3000);
         var imageUrl = "https://example.com/test-image.webp";
-        
+
         _mockSlideshowRepository.Setup(r => r.GetByIdAsync(slideshow.Id))
             .ReturnsAsync(slideshow);
         _imageStorageServiceMock
@@ -196,7 +196,7 @@ public class SlideshowServiceTests
         slideshow.Order.Should().Be(2);
         slideshow.IntervalMs.Should().Be(4000);
         slideshow.ImageUrl.Should().Be(imageUrl);
-        
+
         // Verify image was uploaded with normalized title (not ID)
         _imageStorageServiceMock.Verify(
             x => x.UploadImageAsync(It.IsAny<Stream>(), "test.webp", "image/webp", "slideshows", "updated"),
@@ -210,10 +210,10 @@ public class SlideshowServiceTests
         var slideshow = Slideshow.Create("Test", 1);
         var oldImageUrl = "https://example.com/old-image.webp";
         var newImageUrl = "https://example.com/new-image.webp";
-        
+
         // Set initial image
         slideshow.SetImage(oldImageUrl);
-        
+
         _mockSlideshowRepository.Setup(r => r.GetByIdAsync(slideshow.Id))
             .ReturnsAsync(slideshow);
         _imageStorageServiceMock

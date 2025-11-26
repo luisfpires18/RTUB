@@ -28,7 +28,7 @@ public class DiscussionServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _service = new DiscussionService(new DiscussionRepository(_context));
@@ -134,7 +134,7 @@ public class DiscussionServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         // Assert
         result.Should().NotBeNull();
         result.Id.Should().Be(discussion.Id);
-        
+
         // Verify no new discussion was created
         var allDiscussions = await _context.Discussions.ToListAsync();
         allDiscussions.Should().HaveCount(1);
@@ -154,7 +154,7 @@ public class DiscussionServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         // Assert
         result.Should().NotBeNull();
         result.EventId.Should().Be(eventEntity.Id);
-        
+
         // Verify discussion was created
         var allDiscussions = await _context.Discussions.ToListAsync();
         allDiscussions.Should().HaveCount(1);

@@ -32,8 +32,8 @@ public class ImagesController : ControllerBase
         try
         {
             // Security: Only allow specific safe paths to prevent directory traversal
-            if (string.IsNullOrWhiteSpace(imagePath) || 
-                imagePath.Contains("..") || 
+            if (string.IsNullOrWhiteSpace(imagePath) ||
+                imagePath.Contains("..") ||
                 imagePath.Contains("\\"))
             {
                 return BadRequest("Invalid image path");
@@ -41,7 +41,7 @@ public class ImagesController : ControllerBase
 
             // Normalize path separators
             var normalizedPath = imagePath.Replace("/", Path.DirectorySeparatorChar.ToString());
-            
+
             // Get the file path
             var fullImagePath = Path.Combine(_environment.WebRootPath, "images", normalizedPath);
 
@@ -104,7 +104,7 @@ public class ImagesController : ControllerBase
 
             // Set E-Tag header
             Response.GetTypedHeaders().ETag = etag;
-            
+
             // Stream the file directly from disk instead of loading into memory
             return PhysicalFile(fullImagePath, contentType);
         }

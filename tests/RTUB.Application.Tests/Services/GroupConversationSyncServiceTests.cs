@@ -31,7 +31,7 @@ public class GroupConversationSyncServiceTests
         _mockConversationRepository
             .Setup(r => r.GetGroupByTitleAsync(It.IsAny<string>()))
             .ReturnsAsync((Conversation?)null);
-        
+
         // Default setup - messaging service creates groups
         _mockMessagingService
             .Setup(m => m.GetOrCreateSystemGroupAsync(It.IsAny<string>(), It.IsAny<List<string>>()))
@@ -44,7 +44,7 @@ public class GroupConversationSyncServiceTests
         // Arrange
         var mockUserManager = CreateMockUserManager();
         mockUserManager.Setup(m => m.Users).Throws(new Exception("Test error"));
-        
+
         var service = new GroupConversationSyncService(
             _mockMessagingService.Object,
             _mockConversationRepository.Object,
@@ -130,7 +130,7 @@ public class GroupConversationSyncServiceTests
     {
         var users = new List<ApplicationUser>().AsQueryable();
         var mockDbSet = new Mock<DbSet<ApplicationUser>>();
-        
+
         mockDbSet.As<IQueryable<ApplicationUser>>()
             .Setup(m => m.Provider)
             .Returns(new TestAsyncQueryProvider<ApplicationUser>(users.Provider));

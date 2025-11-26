@@ -261,11 +261,11 @@ public class ReportCardTests : TestContext
             .Add(p => p.CanPublish, false));
 
         // Assert
-        cut.Markup.Should().Contain("aria-label=\"Receitas: €5,000.00\"", 
+        cut.Markup.Should().Contain("aria-label=\"Receitas: €5,000.00\"",
             "income tile should have aria-label");
-        cut.Markup.Should().Contain("aria-label=\"Despesas: €3,000.00\"", 
+        cut.Markup.Should().Contain("aria-label=\"Despesas: €3,000.00\"",
             "expenses tile should have aria-label");
-        cut.Markup.Should().Contain("aria-label=\"Saldo: €2,000.00\"", 
+        cut.Markup.Should().Contain("aria-label=\"Saldo: €2,000.00\"",
             "balance tile should have aria-label");
     }
 }

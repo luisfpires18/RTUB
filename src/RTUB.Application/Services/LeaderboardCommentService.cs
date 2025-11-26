@@ -60,9 +60,9 @@ public class LeaderboardCommentService : ILeaderboardCommentService
             Text = c.Text,
             CreatedAt = c.CreatedAt,
             LikesCount = c.Likes.Count,
-            IsLikedByCurrentUser = !string.IsNullOrEmpty(currentUserId) && 
+            IsLikedByCurrentUser = !string.IsNullOrEmpty(currentUserId) &&
                                    c.Likes.Any(l => l.UserId == currentUserId),
-            CanDelete = !string.IsNullOrEmpty(currentUserId) && 
+            CanDelete = !string.IsNullOrEmpty(currentUserId) &&
                        (c.AuthorId == currentUserId || isAdmin),
             LikedByNames = c.Likes
                 .Where(l => l.User != null)
@@ -77,7 +77,7 @@ public class LeaderboardCommentService : ILeaderboardCommentService
     public async Task<LeaderboardCommentDto> AddCommentAsync(string targetUserId, string authorId, string text)
     {
         var comment = LeaderboardComment.Create(targetUserId, authorId, text);
-        
+
         var createdComment = await _leaderboardCommentRepository.AddAsync(comment);
 
         // Load author information
@@ -124,7 +124,7 @@ public class LeaderboardCommentService : ILeaderboardCommentService
 
         // Soft delete the comment
         comment.SoftDelete();
-        
+
         // Note: Likes will be handled by the repository through cascading delete
         await _leaderboardCommentRepository.UpdateAsync(comment);
     }
@@ -147,7 +147,7 @@ public class LeaderboardCommentService : ILeaderboardCommentService
             var comment = await _leaderboardCommentRepository.Query()
                 .Include(c => c.Likes)
                 .FirstOrDefaultAsync(c => c.Id == commentId);
-            
+
             if (comment != null)
             {
                 comment.Likes.Remove(existingLike);
@@ -161,7 +161,7 @@ public class LeaderboardCommentService : ILeaderboardCommentService
             var comment = await _leaderboardCommentRepository.Query()
                 .Include(c => c.Likes)
                 .FirstOrDefaultAsync(c => c.Id == commentId);
-            
+
             if (comment != null)
             {
                 var like = LeaderboardCommentLike.Create(commentId, userId);

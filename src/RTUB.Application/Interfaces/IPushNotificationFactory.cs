@@ -18,7 +18,7 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application (e.g., "https://rtub.example.com")</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateEventNotification(Event @event, bool isReminder, string baseUrl);
-    
+
     /// <summary>
     /// Creates a custom push notification for a rehearsal.
     /// </summary>
@@ -27,7 +27,7 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application (e.g., "https://rtub.example.com")</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateRehearsalNotification(Rehearsal rehearsal, string customBody, string baseUrl);
-    
+
     /// <summary>
     /// Creates a push notification for event repertoire changes.
     /// Sent to all users enrolled in the event.
@@ -38,7 +38,7 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateEventRepertoireNotification(Event @event, string songTitle, bool isAdded, string baseUrl);
-    
+
     /// <summary>
     /// Creates a push notification for new discussion posts.
     /// Sent to all users enrolled in the event.
@@ -49,7 +49,7 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateDiscussionPostNotification(Event @event, string authorNickname, string postTitle, string baseUrl);
-    
+
     /// <summary>
     /// Creates a push notification for new 1st place in leaderboard.
     /// Sent to all users.
@@ -59,7 +59,7 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateLeaderboardFirstPlaceNotification(string userNickname, int level, string baseUrl);
-    
+
     /// <summary>
     /// Creates a push notification for new meetings.
     /// Recipients vary by meeting type (AGO/AGE exclude leitões, CV only for veterans).
@@ -68,7 +68,7 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateMeetingNotification(Meeting meeting, string baseUrl);
-    
+
     /// <summary>
     /// Creates a push notification for new performance requests.
     /// Sent only to admins.

@@ -12,7 +12,7 @@ public interface ILyricStorageService
     /// <param name="songTitle">The song title</param>
     /// <returns>Pre-signed URL valid for a limited time, or null if file doesn't exist</returns>
     Task<string?> GetLyricPdfUrlAsync(string albumTitle, string songTitle);
-    
+
     /// <summary>
     /// Checks if a lyric PDF file exists in storage
     /// </summary>

@@ -47,7 +47,7 @@ public class EventRepertoireService : IEventRepertoireService
     {
         // Check if song already exists in repertoire for this date
         var exists = await _repertoireRepository.SongExistsInRepertoireAsync(eventId, songId, repertoireDate);
-        
+
         if (exists)
         {
             throw new InvalidOperationException("Song already exists in event repertoire for this date");
@@ -55,7 +55,7 @@ public class EventRepertoireService : IEventRepertoireService
 
         var repertoireItem = EventRepertoire.Create(eventId, songId, displayOrder, repertoireDate);
         var addedItem = await _repertoireRepository.AddAsync(repertoireItem);
-        
+
         // Send push notification to enrolled users
         try
         {
@@ -68,17 +68,17 @@ public class EventRepertoireService : IEventRepertoireService
                 {
                     var baseUrl = GetBaseUrl();
                     var notification = _pushNotificationFactory.CreateEventRepertoireNotification(
-                        eventEntity, 
-                        loadedItem.Song.Title, 
-                        isAdded: true, 
+                        eventEntity,
+                        loadedItem.Song.Title,
+                        isAdded: true,
                         baseUrl);
-                    
+
                     // Get enrolled users
                     var enrolledUserIds = await _enrollmentRepository.Query()
                         .Where(e => e.EventId == eventId)
                         .Select(e => e.UserId)
                         .ToListAsync();
-                    
+
                     // Send to each enrolled user
                     foreach (var userId in enrolledUserIds)
                     {
@@ -92,7 +92,7 @@ public class EventRepertoireService : IEventRepertoireService
             // Log error but don't fail the operation
             // Notification is secondary to the main operation
         }
-        
+
         return addedItem;
     }
 
@@ -123,17 +123,17 @@ public class EventRepertoireService : IEventRepertoireService
     {
         return await _repertoireRepository.SongExistsInRepertoireAsync(eventId, songId, date);
     }
-    
+
     public async Task RemoveRepertoireDayAsync(int eventId, DateTime date)
     {
         await _repertoireRepository.RemoveRepertoireDayAsync(eventId, date);
     }
-    
+
     public async Task<IEnumerable<DateTime>> GetRepertoireDatesAsync(int eventId)
     {
         return await _repertoireRepository.GetRepertoireDatesAsync(eventId);
     }
-    
+
     private string GetBaseUrl()
     {
         var request = _httpContextAccessor.HttpContext?.Request;

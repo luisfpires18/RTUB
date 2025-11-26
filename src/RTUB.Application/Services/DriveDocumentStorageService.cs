@@ -18,7 +18,7 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
     private readonly int _urlExpirationMinutes;
 
     public DriveDocumentStorageService(
-        IConfiguration configuration, 
+        IConfiguration configuration,
         ILogger<DriveDocumentStorageService> logger,
         IOptions<StorageOptions>? storageOptions = null)
         : base(configuration, logger)
@@ -29,7 +29,7 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
     public async Task<string?> GetDocumentUrlAsync(string documentPath, bool forceDownload = false)
     {
         ResponseHeaderOverrides? headerOverrides;
-        
+
         if (forceDownload)
         {
             var fileName = Path.GetFileName(documentPath);
@@ -59,7 +59,7 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
         try
         {
             var commonPrefixes = await ListCommonPrefixesAsync(prefix);
-            
+
             // Extract folder names from prefixes
             var folders = new List<string>();
             foreach (var commonPrefix in commonPrefixes)
@@ -86,7 +86,7 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
         try
         {
             var documents = new List<DocumentMetadata>();
-            
+
             // Ensure folder path ends with /
             if (!folderPath.EndsWith("/"))
             {
@@ -104,7 +104,7 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
             do
             {
                 response = await _s3Client.ListObjectsV2Async(request);
-                
+
                 foreach (var obj in response.S3Objects)
                 {
                     // Skip the folder marker itself
@@ -131,7 +131,7 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
         }
         catch (AmazonS3Exception ex)
         {
-            _logger.LogError(ex, "S3 error listing documents in folder. Bucket: '{BucketName}', FolderPath: '{FolderPath}', ErrorCode: {ErrorCode}, Message: {Message}", 
+            _logger.LogError(ex, "S3 error listing documents in folder. Bucket: '{BucketName}', FolderPath: '{FolderPath}', ErrorCode: {ErrorCode}, Message: {Message}",
                 _bucketName, folderPath, ex.ErrorCode, ex.Message);
             return [];
         }
@@ -155,13 +155,13 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
         try
         {
             await PutObjectAsync(documentPath, fileStream, contentType);
-            
+
             return documentPath;
         }
         catch (AmazonS3Exception ex)
         {
             // Add IDrive-specific context to S3 exceptions
-            _logger.LogError(ex, "S3 error uploading document: {FileName} to {FolderPath}. Bucket: {Bucket}, ErrorCode: {ErrorCode}", 
+            _logger.LogError(ex, "S3 error uploading document: {FileName} to {FolderPath}. Bucket: {Bucket}, ErrorCode: {ErrorCode}",
                 fileName, folderPath, _bucketName, ex.ErrorCode);
             throw new InvalidOperationException($"Failed to upload document '{fileName}' to '{folderPath}' in bucket '{_bucketName}'. Please verify that your IDrive credentials have write permissions to this bucket. Error: {ex.ErrorCode}", ex);
         }
@@ -183,7 +183,7 @@ public class DriveDocumentStorageService : BaseDriveStorageService<DriveDocument
         catch (AmazonS3Exception ex)
         {
             // Add IDrive-specific context to S3 exceptions
-            _logger.LogError(ex, "S3 error creating folder: {FolderPath}. Bucket: {Bucket}, ErrorCode: {ErrorCode}", 
+            _logger.LogError(ex, "S3 error creating folder: {FolderPath}. Bucket: {Bucket}, ErrorCode: {ErrorCode}",
                 folderPath, _bucketName, ex.ErrorCode);
             throw new InvalidOperationException($"Failed to create folder '{folderPath}' in bucket '{_bucketName}'. Please verify that your IDrive credentials have write permissions to this bucket. Error: {ex.ErrorCode}", ex);
         }

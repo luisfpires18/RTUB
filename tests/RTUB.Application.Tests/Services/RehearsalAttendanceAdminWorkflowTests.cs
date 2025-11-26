@@ -30,9 +30,9 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
-        
+
         _mockRetirementStatusService = new Mock<IRetirementStatusService>();
-        
+
         _attendanceService = new RehearsalAttendanceService(
             new RehearsalAttendanceRepository(_context),
             _mockRetirementStatusService.Object);
@@ -94,7 +94,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         await _context.SaveChangesAsync();
 
         var userId = "existing-user";
-        
+
         // Member already marked attendance (pending)
         var existingAttendance = await _attendanceService.MarkAttendanceAsync(rehearsal.Id, userId, true, InstrumentType.Bandolim);
 
@@ -105,7 +105,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         // Assert
         attendance.Id.Should().Be(existingAttendance.Id, "Should update existing attendance, not create new");
         attendance.Instrument.Should().Be(InstrumentType.Guitarra, "Should update instrument");
-        
+
         var result = await _attendanceService.GetAttendanceByIdAsync(attendance.Id);
         result!.Attended.Should().BeTrue("Should be marked as attended by admin");
     }
@@ -243,7 +243,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _attendanceService.UpdateAttendanceAsync(99999, true, null);
-        
+
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
@@ -253,7 +253,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
     {
         // Act & Assert
         var act = async () => await _attendanceService.DeleteAttendanceAsync(99999);
-        
+
         await act.Should().ThrowAsync<EntityNotFoundException>()
             .WithMessage("*not found*");
     }
@@ -285,7 +285,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         var allAttendances = await _context.RehearsalAttendances
             .Where(a => a.RehearsalId == rehearsal.Id && a.UserId == userId)
             .ToListAsync();
-        
+
         allAttendances.Should().HaveCount(1, "Should only have one record per user per rehearsal");
         allAttendances[0].Instrument.Should().Be(InstrumentType.Bandolim, "Should have latest instrument");
     }

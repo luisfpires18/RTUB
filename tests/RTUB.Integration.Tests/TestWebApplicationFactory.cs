@@ -26,7 +26,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         {
             // Set environment to Test to skip production behaviors
             context.HostingEnvironment.EnvironmentName = "Test";
-            
+
             // Add test configuration with mock credentials
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -68,24 +68,24 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 options.EnableSensitiveDataLogging();
             });
         });
-        
+
         builder.UseEnvironment("Test");
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
     {
         var host = base.CreateHost(builder);
-        
+
         // Initialize the database after the host is built
         using var scope = host.Services.CreateScope();
         var services = scope.ServiceProvider;
         var db = services.GetRequiredService<ApplicationDbContext>();
         db.Database.EnsureCreated();
-        
+
         // Seed basic test data
         var configuration = services.GetRequiredService<IConfiguration>();
         SeedData.InitializeAsync(services, configuration).GetAwaiter().GetResult();
-        
+
         return host;
     }
 

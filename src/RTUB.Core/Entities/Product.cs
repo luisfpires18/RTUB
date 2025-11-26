@@ -10,26 +10,26 @@ public class Product : BaseEntity
     [Required(ErrorMessage = "O nome é obrigatório")]
     [MaxLength(200, ErrorMessage = "O nome não pode exceder 200 caracteres")]
     public string Name { get; set; } = string.Empty;
-    
+
     [Required(ErrorMessage = "O tipo é obrigatório")]
     [MaxLength(50, ErrorMessage = "O tipo não pode exceder 50 caracteres")]
     public string Type { get; set; } = string.Empty;
-    
+
     [MaxLength(1000, ErrorMessage = "A descrição não pode exceder 1000 caracteres")]
     public string? Description { get; set; }
-    
+
     [Required(ErrorMessage = "O preço é obrigatório")]
     [Range(0.01, double.MaxValue, ErrorMessage = "O preço deve ser maior que 0")]
     public decimal Price { get; set; }
-    
+
     [Required(ErrorMessage = "O stock é obrigatório")]
     [Range(0, int.MaxValue, ErrorMessage = "O stock não pode ser negativo")]
     public int Stock { get; set; }
-    
+
     public bool IsAvailable { get; set; } = true;
-    
+
     public bool IsPublic { get; set; } = true;
-    
+
     // Image
     public string? ImageUrl { get; set; }
 

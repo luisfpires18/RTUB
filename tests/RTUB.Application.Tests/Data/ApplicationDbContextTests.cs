@@ -178,7 +178,7 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("Album");
         auditLog.EntityId.Should().Be(album.Id);
@@ -208,7 +208,7 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("Album");
         auditLog.EntityId.Should().Be(album.Id);
@@ -239,7 +239,7 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("Album");
         auditLog.EntityId.Should().Be(albumId);
@@ -298,10 +298,10 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.Changes.Should().NotBeNullOrEmpty();
-        
+
         // The audit log should only contain PhoneNumber change, not Categories or Positions
         auditLog.Changes.Should().Contain("PhoneNumber");
     }
@@ -338,10 +338,10 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.Changes.Should().NotBeNullOrEmpty();
-        
+
         // The audit log should only contain PhoneNumber change
         auditLog.Changes.Should().Contain("PhoneNumber");
     }
@@ -379,10 +379,10 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.Changes.Should().NotBeNullOrEmpty();
-        
+
         // The audit log should contain the collection changes
         auditLog.Changes.Should().Contain("Categories");
         auditLog.Changes.Should().Contain("Positions");
@@ -400,7 +400,7 @@ public class ApplicationDbContextTests : IDisposable
             NormalizedName = "MEMBER"
         };
         _context.Roles.Add(testRole);
-        
+
         // Create a test user
         var testUser = new ApplicationUser
         {
@@ -432,14 +432,14 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("UserRole");
         auditLog.Action.Should().Be("Role Added");
         auditLog.UserName.Should().Be(_testUsername);
         auditLog.IsCriticalAction.Should().BeTrue();
         auditLog.Changes.Should().NotBeNullOrEmpty();
-        
+
         // Verify the changes contain username and role name, not IDs
         auditLog.Changes.Should().Contain("jeans");
         auditLog.Changes.Should().Contain("Member");
@@ -459,7 +459,7 @@ public class ApplicationDbContextTests : IDisposable
             NormalizedName = "ADMIN"
         };
         _context.Roles.Add(testRole);
-        
+
         // Create a test user
         var testUser = new ApplicationUser
         {
@@ -472,7 +472,7 @@ public class ApplicationDbContextTests : IDisposable
             Nickname = "TestUser",
         };
         _context.Users.Add(testUser);
-        
+
         // Add user to role
         var userRole = new Microsoft.AspNetCore.Identity.IdentityUserRole<string>
         {
@@ -494,14 +494,14 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("UserRole");
         auditLog.Action.Should().Be("Role Removed");
         auditLog.UserName.Should().Be(_testUsername);
         auditLog.IsCriticalAction.Should().BeTrue();
         auditLog.Changes.Should().NotBeNullOrEmpty();
-        
+
         // Verify the changes contain username and role name, not IDs
         auditLog.Changes.Should().Contain("jeans");
         auditLog.Changes.Should().Contain("Admin");
@@ -544,7 +544,7 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("ApplicationUser");
         auditLog.Action.Should().Be("Modified");
@@ -583,7 +583,7 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("ApplicationUser");
         auditLog.Action.Should().Be("Modified");
@@ -621,7 +621,7 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("ApplicationUser");
         auditLog.Action.Should().Be("Modified");
@@ -659,7 +659,7 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("ApplicationUser");
         auditLog.Action.Should().Be("Modified");
@@ -786,7 +786,7 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("ApplicationUser");
         auditLog.Action.Should().Be("Modified");
@@ -856,7 +856,7 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("ApplicationUser");
         auditLog.Action.Should().Be("Deleted");
@@ -1197,7 +1197,7 @@ public class ApplicationDbContextTests : IDisposable
         // Create a SongYouTubeUrl that references the song
         var youtubeUrl = new SongYouTubeUrl { SongId = song.Id, Url = "https://youtube.com/test" };
         _context.SongYouTubeUrls.Add(youtubeUrl);
-        
+
         // Act - Save changes which triggers GetEntityDisplayName
         // Since Song is not in Local cache, EntityDisplayName should be null (not fetch from DB)
         await _context.SaveChangesAsync();
@@ -1205,7 +1205,7 @@ public class ApplicationDbContextTests : IDisposable
         // Assert - Audit log should exist but without resolved entity name
         var auditLogs = await _context.AuditLogs.Where(a => a.EntityType == "SongYouTubeUrl").ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         // EntityDisplayName should be null because Song was not in Local cache
         auditLog.EntityDisplayName.Should().BeNull();
@@ -1227,14 +1227,14 @@ public class ApplicationDbContextTests : IDisposable
         // Create a SongYouTubeUrl - Song is now in Local cache
         var youtubeUrl = new SongYouTubeUrl { SongId = song.Id, Url = "https://youtube.com/test" };
         _context.SongYouTubeUrls.Add(youtubeUrl);
-        
+
         // Act - Save changes which triggers GetEntityDisplayName
         await _context.SaveChangesAsync();
 
         // Assert - Audit log should have resolved entity name from Local cache
         var auditLogs = await _context.AuditLogs.Where(a => a.EntityType == "SongYouTubeUrl").ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityDisplayName.Should().Be("Test Song");
     }
@@ -1266,13 +1266,13 @@ public class ApplicationDbContextTests : IDisposable
         // Act - Update LastLoginDate using AuditContext (simulating login process)
         var userFromDb = await _context.Users.FindAsync(user.Id);
         userFromDb.Should().NotBeNull();
-        
+
         // Set AuditContext to track the user who is logging in
         _auditContext.SetUser(userFromDb!.UserName, userFromDb.Id);
-        
+
         userFromDb.LastLoginDate = DateTime.UtcNow;
         await _context.SaveChangesAsync();
-        
+
         // Clear AuditContext after save
         _auditContext.Clear();
 
@@ -1292,7 +1292,7 @@ public class ApplicationDbContextTests : IDisposable
             NormalizedName = "COORDINATOR"
         };
         _context.Roles.Add(testRole);
-        
+
         var testUser = new ApplicationUser
         {
             Id = Guid.NewGuid().ToString(),
@@ -1330,12 +1330,12 @@ public class ApplicationDbContextTests : IDisposable
         // Assert
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().ContainSingle();
-        
+
         var auditLog = auditLogs.First();
         auditLog.EntityType.Should().Be("UserRole");
         auditLog.Action.Should().Be("Role Added");
         auditLog.IsCriticalAction.Should().BeTrue();
-        
+
         // Verify the changes contain resolved username and role name (not IDs)
         // This proves async resolution worked correctly
         auditLog.Changes.Should().Contain("coordinator1");

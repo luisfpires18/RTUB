@@ -27,7 +27,7 @@ public class EmailSenderTests
         // Arrange
         _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
         _mockConfiguration.Setup(c => c["EmailSettings:SmtpPassword"]).Returns((string?)null);
-        
+
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
         // Act
@@ -43,7 +43,7 @@ public class EmailSenderTests
         // Arrange
         _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns("smtp.example.com");
         _mockConfiguration.Setup(c => c["EmailSettings:SmtpPassword"]).Returns("YOUR_APP_PASSWORD_HERE");
-        
+
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
         // Act
@@ -76,7 +76,7 @@ public class EmailSenderTests
         // Arrange
         _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
         _mockConfiguration.Setup(c => c["EmailSettings:SmtpPort"]).Returns("465");
-        
+
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
         // Act & Assert - Should not throw when parsing port
@@ -89,7 +89,7 @@ public class EmailSenderTests
         // Arrange
         _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
         _mockConfiguration.Setup(c => c["EmailSettings:SmtpPort"]).Returns((string?)null);
-        
+
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
         // Act & Assert - Should use default port 587
@@ -102,7 +102,7 @@ public class EmailSenderTests
         // Arrange
         _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
         _mockConfiguration.Setup(c => c["EmailSettings:SenderEmail"]).Returns((string?)null);
-        
+
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
         // Act & Assert - Should use default sender
@@ -115,7 +115,7 @@ public class EmailSenderTests
         // Arrange
         _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
         _mockConfiguration.Setup(c => c["EmailSettings:SenderName"]).Returns((string?)null);
-        
+
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
         // Act & Assert - Should use default sender name "RTUB 1991"
@@ -128,7 +128,7 @@ public class EmailSenderTests
         // Arrange
         _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
         _mockConfiguration.Setup(c => c["EmailSettings:EnableSsl"]).Returns((string?)null);
-        
+
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
         // Act & Assert - Should enable SSL by default
@@ -141,7 +141,7 @@ public class EmailSenderTests
         // Arrange
         _mockConfiguration.Setup(c => c["EmailSettings:SmtpServer"]).Returns((string?)null);
         _mockConfiguration.Setup(c => c["EmailSettings:EnableSsl"]).Returns("false");
-        
+
         var emailSender = new EmailSender(_mockLogger.Object, _mockConfiguration.Object);
 
         // Act & Assert

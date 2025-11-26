@@ -28,7 +28,7 @@ public class AuditLogServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _auditLogService = new AuditLogService(new AuditLogRepository(_context));
@@ -346,7 +346,7 @@ public class AuditLogServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         await SeedAuditLogs();
         var initialCount = await _context.AuditLogs.CountAsync();
         initialCount.Should().Be(5);
-        
+
         var logToDelete = await _context.AuditLogs.FirstAsync();
         var logId = logToDelete.Id;
 
@@ -356,7 +356,7 @@ public class AuditLogServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         var finalCount = await _context.AuditLogs.CountAsync();
         finalCount.Should().Be(4);
-        
+
         var deletedLog = await _context.AuditLogs.FindAsync(logId);
         deletedLog.Should().BeNull();
     }
@@ -406,7 +406,7 @@ public class AuditLogServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         var finalCount = await _context.AuditLogs.CountAsync();
         finalCount.Should().Be(3); // Only user2 logs remain
-        
+
         var remainingLogs = await _context.AuditLogs.ToListAsync();
         remainingLogs.Should().OnlyContain(log => log.UserName == "user2");
     }

@@ -18,7 +18,7 @@ namespace RTUB.Migrations
                 type: "TEXT",
                 nullable: false,
                 defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
-            
+
             // Update existing records to use the event's start date
             migrationBuilder.Sql(@"
                 UPDATE EventRepertoires 

@@ -55,17 +55,17 @@ public class EventService : IEventService
     public async Task<Event> CreateEventAsync(string name, DateTime date, string location, EventType type, string description = "", DateTime? endDate = null, string? imageUrl = null)
     {
         var eventEntity = Event.Create(name, date, location, type, description);
-        
+
         if (endDate.HasValue)
         {
             eventEntity.SetEndDate(endDate);
         }
-        
+
         if (!string.IsNullOrEmpty(imageUrl))
         {
             eventEntity.SetImage(imageUrl);
         }
-        
+
         return await _eventRepository.AddAsync(eventEntity);
     }
 
@@ -76,7 +76,7 @@ public class EventService : IEventService
             throw new EntityNotFoundException(nameof(Event), id);
 
         eventEntity.UpdateDetails(name, date, location, description);
-        
+
         if (endDate.HasValue)
         {
             eventEntity.SetEndDate(endDate);
@@ -85,7 +85,7 @@ public class EventService : IEventService
         {
             eventEntity.EndDate = null;
         }
-        
+
         await _eventRepository.UpdateAsync(eventEntity);
     }
 
@@ -97,7 +97,7 @@ public class EventService : IEventService
 
         // Update event details
         eventEntity.UpdateDetails(name, date, location, description);
-        
+
         if (endDate.HasValue)
         {
             eventEntity.SetEndDate(endDate);
@@ -117,7 +117,7 @@ public class EventService : IEventService
         var normalizedName = S3KeyNormalizer.NormalizeForS3Key(name);
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", normalizedName);
         eventEntity.SetImage(imageUrl);
-        
+
         await _eventRepository.UpdateAsync(eventEntity);
     }
 
@@ -137,7 +137,7 @@ public class EventService : IEventService
         var normalizedName = S3KeyNormalizer.NormalizeForS3Key(eventEntity.Name);
         var imageUrl = await _imageStorageService.UploadImageAsync(imageStream, fileName, contentType, "events", normalizedName);
         eventEntity.SetImage(imageUrl);
-        
+
         await _eventRepository.UpdateAsync(eventEntity);
     }
 
@@ -164,12 +164,18 @@ public class EventService : IEventService
 
         eventEntity.Cancel(reason);
         await _eventRepository.UpdateAsync(eventEntity);
-        
-        // Delete all enrollments for this event
-        var enrollments = await _enrollmentRepository.GetByEventIdAsync(id);
-        foreach (var enrollment in enrollments)
+
+        // Delete all enrollments for this event using batch operation
+        var enrollments = await _enrollmentRepository.Query()
+            .Where(e => e.EventId == id)
+            .ToListAsync();
+
+        if (enrollments.Any())
         {
-            await _enrollmentRepository.DeleteAsync(enrollment.Id);
+            foreach (var enrollment in enrollments)
+            {
+                await _enrollmentRepository.DeleteAsync(enrollment);
+            }
         }
     }
 

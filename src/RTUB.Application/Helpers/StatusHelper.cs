@@ -46,7 +46,7 @@ public static class StatusHelper
     public static string GetFilterStatusText(RequestStatus? status)
     {
         if (status == null) return "";
-        
+
         return status switch
         {
             RequestStatus.Pending => "pendente",
@@ -164,15 +164,18 @@ public static class StatusHelper
 
         return displayCategories.Distinct().ToList();
     }
-    
+
     /// <summary>
     /// Gets the display categories for a user, automatically adding Veterano/Tunossauro based on years as Tuno
     /// Legacy overload for backward compatibility
     /// </summary>
     public static List<MemberCategory> GetDisplayCategories(List<MemberCategory> categories, int? yearTuno)
     {
-        var user = new ApplicationUser { YearTuno = yearTuno };
-        user.Categories = categories;
+        var user = new ApplicationUser
+        {
+            YearTuno = yearTuno,
+            Categories = categories
+        };
         return GetDisplayCategories(user);
     }
 

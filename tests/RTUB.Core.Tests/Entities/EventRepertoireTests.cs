@@ -110,7 +110,7 @@ public class EventRepertoireTests
         result.Should().NotBeNull();
         result.DisplayOrder.Should().Be(order);
     }
-    
+
     [Fact]
     public void Create_StoresOnlyDatePartOfRepertoireDate()
     {

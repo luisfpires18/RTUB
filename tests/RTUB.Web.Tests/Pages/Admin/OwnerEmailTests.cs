@@ -153,7 +153,7 @@ public class OwnerEmailTests
         // This test verifies that only users with Subscribed = true are included
         // Arrange
         var allUsers = GetMockUsers();
-        
+
         // Act
         var subscribedUsers = allUsers.Where(u => u.Subscribed).ToList();
 
@@ -167,7 +167,7 @@ public class OwnerEmailTests
     {
         // Arrange
         var allUsers = GetMockUsers();
-        
+
         // Act
         var validRecipients = allUsers
             .Where(u => u.Subscribed && u.EmailConfirmed && !string.IsNullOrEmpty(u.Email))
@@ -187,7 +187,7 @@ public class OwnerEmailTests
             new MockUser { Subscribed = true, EmailConfirmed = true, Email = null },
             new MockUser { Subscribed = true, EmailConfirmed = true, Email = "" }
         };
-        
+
         // Act
         var validRecipients = users
             .Where(u => u.Subscribed && u.EmailConfirmed && !string.IsNullOrEmpty(u.Email))
@@ -206,7 +206,7 @@ public class OwnerEmailTests
     {
         // Arrange
         var user = new MockUser { Subscribed = true, EmailConfirmed = true, Email = "user@test.com" };
-        
+
         // Act
         user.Subscribed = false;
 
@@ -219,7 +219,7 @@ public class OwnerEmailTests
     {
         // Arrange
         var user = new MockUser { Subscribed = false, EmailConfirmed = true, Email = "user@test.com" };
-        
+
         // Act
         user.Subscribed = true;
 
@@ -631,7 +631,7 @@ public class OwnerEmailTests
     {
         // This test documents the authorization requirement
         // The page should have [Authorize(Roles = "Owner")] attribute
-        
+
         // Arrange
         var requiredRole = "Owner";
 

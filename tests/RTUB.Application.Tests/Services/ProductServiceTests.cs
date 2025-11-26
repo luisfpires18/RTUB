@@ -29,7 +29,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _imageStorageServiceMock = new Mock<IImageStorageService>();
@@ -52,7 +52,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var product = Product.Create("CD Album", "Music", 10.00m, 20);
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetByIdAsync(product.Id);
         result.Should().NotBeNull();
         result!.Name.Should().Be("CD Album");
@@ -74,7 +74,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             Product.Create("CD", "Music", 10.00m, 20)
         );
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetAllAsync();
         result.Should().HaveCount(3);
         result.First().Type.Should().Be("Clothing");
@@ -88,7 +88,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         unavailable.SetAvailability(false);
         _context.Products.AddRange(available, unavailable);
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetAvailableAsync();
         result.Should().HaveCount(1);
         result.First().IsAvailable.Should().BeTrue();
@@ -104,7 +104,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         privateProduct.SetPublicVisibility(false);
         _context.Products.AddRange(publicAvailable, publicUnavailable, privateProduct);
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetPublicAsync();
         result.Should().HaveCount(1);
         result.First().IsPublic.Should().BeTrue();
@@ -119,7 +119,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             Product.Create("CD", "Music", 10.00m, 20)
         );
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetByTypeAsync("Clothing");
         result.Should().HaveCount(2);
         result.Should().AllSatisfy(p => p.Type.Should().Be("Clothing"));
@@ -138,10 +138,10 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var product = Product.Create("Original", "Type1", 10.00m, 10);
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
-        
+
         product.Update("Updated", "Type1", 15.00m, 10);
         await _service.UpdateAsync(product);
-        
+
         var updated = await _context.Products.FindAsync(product.Id);
         updated!.Name.Should().Be("Updated");
         updated.Price.Should().Be(15.00m);
@@ -153,7 +153,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var product = Product.Create("To Delete", "Type1", 10.00m, 10);
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
-        
+
         await _service.DeleteAsync(product.Id);
         var deleted = await _context.Products.FindAsync(product.Id);
         deleted.Should().BeNull();
@@ -173,9 +173,9 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         product.ImageUrl = "https://example.com/images/product.jpg";
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
-        
+
         await _service.DeleteAsync(product.Id);
-        
+
         _imageStorageServiceMock.Verify(x => x.DeleteImageAsync("https://example.com/images/product.jpg"), Times.Once);
         var deleted = await _context.Products.FindAsync(product.Id);
         deleted.Should().BeNull();
@@ -187,9 +187,9 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var product = Product.Create("Product without Image", "Type1", 10.00m, 10);
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
-        
+
         await _service.DeleteAsync(product.Id);
-        
+
         _imageStorageServiceMock.Verify(x => x.DeleteImageAsync(It.IsAny<string>()), Times.Never);
         var deleted = await _context.Products.FindAsync(product.Id);
         deleted.Should().BeNull();
@@ -206,7 +206,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             Product.Create("Poster", "Merchandise", 5.00m, 50)
         );
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetTypeStatsAsync();
         result.Should().HaveCount(3);
         result["Clothing"].Should().Be(2);
@@ -230,7 +230,7 @@ public class ProductServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             Product.Create("Product3", "Type3", 15.00m, 2)   // 30
         );
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetTotalInventoryValueAsync();
         result.Should().Be(140.00m);
     }

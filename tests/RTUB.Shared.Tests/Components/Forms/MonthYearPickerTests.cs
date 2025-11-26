@@ -71,7 +71,7 @@ public class MonthYearPickerTests : TestContext
         // Assert
         var expectedMonths = new[] { "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
                                      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro" };
-        
+
         foreach (var month in expectedMonths)
         {
             cut.Markup.Should().Contain(month, $"month '{month}' should be in dropdown");
@@ -319,7 +319,7 @@ public class MonthYearPickerTests : TestContext
         // Act - Select month first
         var monthSelect = cut.FindAll("select").First();
         monthSelect.Change("7"); // July
-        
+
         // Act - Then select year (should not clear month)
         var yearSelect = cut.FindAll("select").Last();
         yearSelect.Change("2022");
@@ -340,7 +340,7 @@ public class MonthYearPickerTests : TestContext
         // Act - Select year first
         var yearSelect = cut.FindAll("select").Last();
         yearSelect.Change("2021");
-        
+
         // Act - Then select month (should not clear year)
         var monthSelect = cut.FindAll("select").First();
         monthSelect.Change("11"); // November
@@ -369,9 +369,9 @@ public class MonthYearPickerTests : TestContext
             .Add(p => p.Label, "Test"));
 
         // Assert
-        cut.Markup.Should().Contain(".month-year-picker option[disabled]", 
+        cut.Markup.Should().Contain(".month-year-picker option[disabled]",
             "CSS should include rule to hide disabled placeholder options");
-        cut.Markup.Should().Contain("display: none", 
+        cut.Markup.Should().Contain("display: none",
             "disabled options should have display: none to prevent hover effects");
     }
 }

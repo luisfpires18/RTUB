@@ -13,7 +13,7 @@ public class RetirementStatusService : IRetirementStatusService
     private readonly IRehearsalAttendanceRepository _rehearsalAttendanceRepository;
     private readonly IEnrollmentRepository _enrollmentRepository;
     private readonly IUserProfileRepository _userProfileRepository;
-    
+
     // Business rule constants
     private const int MonthsToRetire = 6;
     private const int ConsecutiveMonthsToReturn = 3;
@@ -47,7 +47,7 @@ public class RetirementStatusService : IRetirementStatusService
 
         // Only evaluate CALOIRO/TUNO members
         var categories = user.Categories;
-        if (!categories.Contains(MemberCategory.Caloiro) && 
+        if (!categories.Contains(MemberCategory.Caloiro) &&
             !categories.Contains(MemberCategory.Tuno) &&
             !categories.Contains(MemberCategory.Veterano) &&
             !categories.Contains(MemberCategory.Tunossauro))
@@ -159,7 +159,7 @@ public class RetirementStatusService : IRetirementStatusService
         for (int i = 0; i < MaxMonthsToCheckForConsecutive; i++)
         {
             var checkMonth = currentMonth.AddMonths(-i);
-            
+
             if (activitiesByMonth.Contains(checkMonth))
             {
                 consecutiveCount++;

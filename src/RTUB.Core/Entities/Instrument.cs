@@ -11,28 +11,28 @@ public class Instrument : BaseEntity
     [Required(ErrorMessage = "A categoria é obrigatória")]
     [MaxLength(50, ErrorMessage = "A categoria não pode exceder 50 caracteres")]
     public string Category { get; set; } = string.Empty;
-    
+
     [Required(ErrorMessage = "O nome é obrigatório")]
     [MaxLength(100, ErrorMessage = "O nome não pode exceder 100 caracteres")]
     public string Name { get; set; } = string.Empty;
-    
+
     [MaxLength(100, ErrorMessage = "O número de série não pode exceder 100 caracteres")]
     public string? SerialNumber { get; set; }
-    
+
     [MaxLength(100, ErrorMessage = "A marca não pode exceder 100 caracteres")]
     public string? Brand { get; set; }
-    
+
     [Required(ErrorMessage = "A condição é obrigatória")]
     public InstrumentCondition Condition { get; set; }
 
     [MaxLength(200)]
     public string? Location { get; set; }
-    
+
     [MaxLength(500)]
     public string? MaintenanceNotes { get; set; }
-    
+
     public DateTime? LastMaintenanceDate { get; set; }
-    
+
     // Images
     public string? ImageUrl { get; set; }
     public string? ThumbnailUrl { get; set; }
@@ -77,7 +77,7 @@ public class Instrument : BaseEntity
         };
     }
 
-    public void Update(string name, InstrumentCondition condition, string? serialNumber = null, 
+    public void Update(string name, InstrumentCondition condition, string? serialNumber = null,
                       string? brand = null, string? location = null)
     {
         if (string.IsNullOrWhiteSpace(name))

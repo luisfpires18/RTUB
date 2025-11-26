@@ -36,12 +36,12 @@ public class UserRoleQueryService : IUserRoleQueryService
         //     .Where(ur => userIdList.Contains(ur.UserId))
         //     .Join(DbContext.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
         //     .ToListAsync();
-        
+
         var userRoles = await _context.UserRoles
             .Where(ur => userIds.Contains(ur.UserId))
-            .Join(_context.Roles, 
-                  ur => ur.RoleId, 
-                  r => r.Id, 
+            .Join(_context.Roles,
+                  ur => ur.RoleId,
+                  r => r.Id,
                   (ur, r) => new UserRoleDto
                   {
                       UserId = ur.UserId,

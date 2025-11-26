@@ -49,7 +49,7 @@ public class PortalContentStyleTests
 
         // Assert - site.css should import portal headers
         siteCssContent.Should().Contain("portal-headers.css", "site.css should import portal headers component");
-        
+
         // Assert - portal headers CSS should contain the actual styles
         portalHeadersContent.Should().Contain(".portal-section-header", "Shared portal header styles should exist in portal-headers.css");
         portalHeadersContent.Should().Contain(".portal-section-title", "Shared portal title styles should exist in portal-headers.css");
@@ -103,7 +103,7 @@ public class PortalContentStyleTests
         var blockEnd = content.IndexOf('}', blockStart);
         var cssBlock = content.Substring(blockStart, blockEnd - blockStart + 1);
 
-        cssBlock.Should().NotContain("text-align: center", 
+        cssBlock.Should().NotContain("text-align: center",
             $"{introClass} should not have text-align: center in {cssFileName}");
     }
 
@@ -164,7 +164,7 @@ public class PortalContentStyleTests
     private static string GetProjectRoot()
     {
         var currentDirectory = Directory.GetCurrentDirectory();
-        
+
         // Navigate up from test output directory to find src folder
         var directory = new DirectoryInfo(currentDirectory);
         while (directory != null && !Directory.Exists(Path.Combine(directory.FullName, "src")))

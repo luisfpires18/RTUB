@@ -33,12 +33,12 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _mockImageStorageService = new Mock<IImageStorageService>();
         _mockRetirementStatusService = new Mock<IRetirementStatusService>();
-        
+
         _enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_context),
             _mockRetirementStatusService.Object);
@@ -96,7 +96,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         // Arrange
         var event1 = await _eventService.CreateEventAsync("Event 1", DateTime.Now.AddDays(7), "Location 1", Core.Enums.EventType.Festival, "Desc1");
         var event2 = await _eventService.CreateEventAsync("Event 2", DateTime.Now.AddDays(8), "Location 2", Core.Enums.EventType.Atuacao, "Desc2");
-        
+
         await _enrollmentService.CreateEnrollmentAsync("user1", event1.Id);
         await _enrollmentService.CreateEnrollmentAsync("user2", event1.Id);
         await _enrollmentService.CreateEnrollmentAsync("user3", event2.Id);
@@ -133,11 +133,11 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         // Arrange
         var event1 = await _eventService.CreateEventAsync("Event 1", DateTime.Now.AddDays(7), "Location 1", Core.Enums.EventType.Festival, "Desc1");
         var event2 = await _eventService.CreateEventAsync("Event 2", DateTime.Now.AddDays(8), "Location 2", Core.Enums.EventType.Atuacao, "Desc2");
-        
+
         var enroll1 = await _enrollmentService.CreateEnrollmentAsync("user1", event1.Id);
         var enroll2 = await _enrollmentService.CreateEnrollmentAsync("user2", event1.Id);
         var enroll3 = await _enrollmentService.CreateEnrollmentAsync("user3", event2.Id);
-        
+
         // Act - Get enrollments directly from context to test service method
         var allEnrollments = await _context.Enrollments.ToListAsync();
         var result = allEnrollments.Where(e => e.EventId == event1.Id).ToList();
@@ -154,7 +154,7 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         // Arrange
         var event1 = await _eventService.CreateEventAsync("Event 1", DateTime.Now.AddDays(7), "Location 1", Core.Enums.EventType.Festival, "Desc1");
         var event2 = await _eventService.CreateEventAsync("Event 2", DateTime.Now.AddDays(8), "Location 2", Core.Enums.EventType.Atuacao, "Desc2");
-        
+
         var enroll1 = await _enrollmentService.CreateEnrollmentAsync("user1", event1.Id);
         var enroll2 = await _enrollmentService.CreateEnrollmentAsync("user1", event2.Id);
         var enroll3 = await _enrollmentService.CreateEnrollmentAsync("user2", event1.Id);
@@ -204,10 +204,10 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         // Act
         var result = await _enrollmentService.UpdateEnrollmentAsync(
-            enrollment.Id, 
-            false, 
-            Core.Enums.InstrumentType.Percussao, 
-            "Updated notes", 
+            enrollment.Id,
+            false,
+            Core.Enums.InstrumentType.Percussao,
+            "Updated notes",
             "Guitarra, Bandolim");
 
         // Assert
@@ -229,10 +229,10 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
 
         // Act
         var result = await _enrollmentService.UpdateEnrollmentAsync(
-            enrollment.Id, 
-            true, 
-            null, 
-            "New notes", 
+            enrollment.Id,
+            true,
+            null,
+            "New notes",
             null);
 
         // Assert

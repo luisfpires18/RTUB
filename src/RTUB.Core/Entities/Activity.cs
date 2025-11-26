@@ -16,7 +16,7 @@ public class Activity : BaseEntity
     public string Name { get; set; } = string.Empty;
     [MaxLength(1000, ErrorMessage = "A descrição não pode exceder 1000 caracteres")]
     public string? Description { get; set; }
-    
+
     // Navigation properties
     public virtual Report? Report { get; set; }
     public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();

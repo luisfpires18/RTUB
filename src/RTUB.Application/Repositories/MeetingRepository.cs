@@ -25,15 +25,15 @@ public class MeetingRepository : Repository<Meeting>, IMeetingRepository
             .AsNoTracking()
             .AsQueryable()
             .WhereIf(!string.IsNullOrWhiteSpace(searchTerm),
-                m => m.Title.Contains(searchTerm!, StringComparison.OrdinalIgnoreCase) || 
+                m => m.Title.Contains(searchTerm!, StringComparison.OrdinalIgnoreCase) ||
                      m.Statement.Contains(searchTerm!, StringComparison.OrdinalIgnoreCase));
-        
+
         // Order by date - upcoming first, then past
         var today = DateTime.UtcNow.Date;
         query = query.OrderBy(m => m.Date >= today ? 0 : 1)
                      .ThenBy(m => m.Date >= today ? m.Date : DateTime.MaxValue)
                      .ThenByDescending(m => m.Date < today ? m.Date : DateTime.MinValue);
-        
+
         return await query
             .Include(m => m.Organizer)
             .PaginateAsync(pageNumber, pageSize);
@@ -52,14 +52,14 @@ public class MeetingRepository : Repository<Meeting>, IMeetingRepository
     {
         // Note: Veterano filtering is handled in the service layer
         var query = _dbSet.AsQueryable();
-        
+
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            query = query.Where(m => 
-                m.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
+            query = query.Where(m =>
+                m.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                 m.Statement.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
         }
-        
+
         return await query.CountAsync();
     }
 }

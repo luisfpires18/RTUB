@@ -11,15 +11,15 @@ public class Label : BaseEntity
     [MaxLength(100, ErrorMessage = "A referência não pode exceder 100 caracteres")]
     [RegularExpression("^[a-z0-9_-]+$", ErrorMessage = "A referência deve conter apenas letras minúsculas, números, hífens e underscores")]
     public string Reference { get; set; } = string.Empty;
-    
+
     [Required(ErrorMessage = "O título da etiqueta é obrigatório")]
     [MaxLength(200, ErrorMessage = "O título não pode exceder 200 caracteres")]
     public string Title { get; set; } = string.Empty;
-    
+
     [Required(ErrorMessage = "O conteúdo da etiqueta é obrigatório")]
     [MaxLength(5000, ErrorMessage = "O conteúdo não pode exceder 5000 caracteres")]
     public string Content { get; set; } = string.Empty;
-    
+
     public bool IsActive { get; set; } = true;
 
     // Private constructor for EF Core
@@ -29,10 +29,10 @@ public class Label : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(reference))
             throw new ArgumentException("A referência não pode estar vazia", nameof(reference));
-        
+
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título não pode estar vazio", nameof(title));
-        
+
         if (string.IsNullOrWhiteSpace(content))
             throw new ArgumentException("O conteúdo não pode estar vazio", nameof(content));
 
@@ -49,7 +49,7 @@ public class Label : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título não pode estar vazio", nameof(title));
-        
+
         if (string.IsNullOrWhiteSpace(content))
             throw new ArgumentException("O conteúdo não pode estar vazio", nameof(content));
 

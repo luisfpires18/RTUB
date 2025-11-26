@@ -64,7 +64,7 @@ public class EventTests
         event1.Location.Should().Be(newLocation);
         event1.Description.Should().Be(newDescription);
     }
-    
+
     [Fact]
     public void Cancel_WithValidReason_CancelsEvent()
     {
@@ -79,7 +79,7 @@ public class EventTests
         event1.IsCancelled.Should().BeTrue();
         event1.CancellationReason.Should().Be(reason);
     }
-    
+
     [Fact]
     public void Cancel_WithEmptyReason_ThrowsArgumentException()
     {
@@ -92,7 +92,7 @@ public class EventTests
         act.Should().Throw<ArgumentException>()
             .WithMessage("*motivo de cancelamento*");
     }
-    
+
     [Fact]
     public void Uncancel_WithCancelledEvent_UncancelsEvent()
     {
@@ -121,7 +121,7 @@ public class EventTests
         var enrollment1 = new Enrollment { UserId = user1, EventId = 0, Instrument = InstrumentType.Guitarra, WillAttend = true };
         var enrollment2 = new Enrollment { UserId = user2, EventId = 0, Instrument = InstrumentType.Guitarra, WillAttend = true };
         var enrollment3 = new Enrollment { UserId = user3, EventId = 0, Instrument = InstrumentType.Bandolim, WillAttend = true };
-        
+
         event1.Enrollments.Add(enrollment1);
         event1.Enrollments.Add(enrollment2);
         event1.Enrollments.Add(enrollment3);
@@ -157,7 +157,7 @@ public class EventTests
         var enrollment1 = new Enrollment { UserId = user1, EventId = 0, Instrument = InstrumentType.Guitarra, WillAttend = true, OtherInstruments = "Bandolim, Cavaquinho" };
         var enrollment2 = new Enrollment { UserId = user2, EventId = 0, Instrument = InstrumentType.Bandolim, WillAttend = true, OtherInstruments = "Guitarra" };
         var enrollment3 = new Enrollment { UserId = user3, EventId = 0, Instrument = InstrumentType.Cavaquinho, WillAttend = true, OtherInstruments = null };
-        
+
         event1.Enrollments.Add(enrollment1);
         event1.Enrollments.Add(enrollment2);
         event1.Enrollments.Add(enrollment3);
@@ -166,8 +166,8 @@ public class EventTests
         var memberInstruments = new Dictionary<string, List<MemberInstrument>>
         {
             [user1] = new List<MemberInstrument> { MemberInstrument.Create(user1, InstrumentType.Guitarra, isPrimary: true) },
-            [user2] = new List<MemberInstrument> 
-            { 
+            [user2] = new List<MemberInstrument>
+            {
                 MemberInstrument.Create(user2, InstrumentType.Guitarra, isPrimary: true),
                 MemberInstrument.Create(user2, InstrumentType.Bandolim, isPrimary: false)
             }
@@ -218,25 +218,25 @@ public class EventTests
         var user2 = "user-2";
 
         // user1 is playing Bandolim (primary), has "Guitarra, Cavaquinho" in OtherInstruments
-        var enrollment1 = new Enrollment 
-        { 
-            UserId = user1, 
-            EventId = 0, 
-            Instrument = InstrumentType.Bandolim, 
+        var enrollment1 = new Enrollment
+        {
+            UserId = user1,
+            EventId = 0,
+            Instrument = InstrumentType.Bandolim,
             OtherInstruments = "Guitarra, Cavaquinho",
-            WillAttend = true 
+            WillAttend = true
         };
-        
+
         // user2 is playing Guitarra (not primary), has "Acordeão" in OtherInstruments
-        var enrollment2 = new Enrollment 
-        { 
-            UserId = user2, 
-            EventId = 0, 
-            Instrument = InstrumentType.Guitarra, 
+        var enrollment2 = new Enrollment
+        {
+            UserId = user2,
+            EventId = 0,
+            Instrument = InstrumentType.Guitarra,
             OtherInstruments = "Acordeão",
-            WillAttend = true 
+            WillAttend = true
         };
-        
+
         event1.Enrollments.Add(enrollment1);
         event1.Enrollments.Add(enrollment2);
 
@@ -268,15 +268,15 @@ public class EventTests
         var event1 = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", EventType.Atuacao);
         var user1 = "user-1";
 
-        var enrollment1 = new Enrollment 
-        { 
-            UserId = user1, 
-            EventId = 0, 
-            Instrument = InstrumentType.Guitarra, 
+        var enrollment1 = new Enrollment
+        {
+            UserId = user1,
+            EventId = 0,
+            Instrument = InstrumentType.Guitarra,
             OtherInstruments = "",
-            WillAttend = true 
+            WillAttend = true
         };
-        
+
         event1.Enrollments.Add(enrollment1);
 
         var memberInstruments = new Dictionary<string, List<MemberInstrument>>

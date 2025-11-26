@@ -13,7 +13,7 @@ namespace RTUB.Integration.Tests.Pages;
 /// </summary>
 public class ProfilePageTests : IntegrationTestBase
 {
-    
+
     private readonly HttpClient _client;
 
     public ProfilePageTests(TestWebApplicationFactory factory) : base(factory)
@@ -443,7 +443,7 @@ public class ProfilePageTests : IntegrationTestBase
         };
 
         // Assert
-        personalInfoFieldsInModal.Should().Contain("City", 
+        personalInfoFieldsInModal.Should().Contain("City",
             "City should be displayed in Members view details modal under Personal Information");
     }
 
@@ -467,7 +467,7 @@ public class ProfilePageTests : IntegrationTestBase
         };
 
         // Assert
-        editableFieldsInModal.Should().Contain("City", 
+        editableFieldsInModal.Should().Contain("City",
             "City should be editable in Members edit modal");
     }
 
@@ -493,7 +493,7 @@ public class ProfilePageTests : IntegrationTestBase
         };
 
         // Assert
-        expectedInitializedFields.Should().Contain("City", 
+        expectedInitializedFields.Should().Contain("City",
             "OpenEditModal should initialize City from the user object to pre-fill the edit form");
     }
 
@@ -517,7 +517,7 @@ public class ProfilePageTests : IntegrationTestBase
         };
 
         // Assert
-        fieldsUpdatedOnSave.Should().Contain("City", 
+        fieldsUpdatedOnSave.Should().Contain("City",
             "SaveMember should update City field when saving user changes");
     }
 

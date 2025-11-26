@@ -40,22 +40,22 @@ public class GroupConversationSyncService : IGroupConversationSyncService
         {
             // Get current fiscal year to determine the right group name
             var currentFiscalYear = await GetCurrentFiscalYearAsync();
-            
+
             // 1. ORGANIZAÇÃO (Fiscal Year) - Members with positions in Orgãos Sociais
             await SyncOrganizacaoGroupAsync(currentFiscalYear);
-            
+
             // 2. TUNOSSAUROS - Users with CurrentRole == "TUNOSSAURO"
             await SyncRoleBasedGroupAsync("TUNOSSAUROS", "TUNOSSAURO");
-            
+
             // 3. VETERANOS - Users with CurrentRole == "VETERANO"
             await SyncRoleBasedGroupAsync("VETERANOS", "VETERANO");
-            
+
             // 4. TUNOS - Users whose Categories contains MemberCategory.Tuno
             await SyncCategoryBasedGroupAsync("TUNOS", new[] { MemberCategory.Tuno });
-            
+
             // 5. LEITÕES & CALOIROS - Users whose Categories contains Leitao or Caloiro
             await SyncCategoryBasedGroupAsync("LEITÕES & CALOIROS", new[] { MemberCategory.Leitao, MemberCategory.Caloiro });
-            
+
             // 6. ANUNCIOS - All active (non-retired) members, announcement-only channel
             await SyncAnunciosGroupAsync();
         }
@@ -78,7 +78,7 @@ public class GroupConversationSyncService : IGroupConversationSyncService
     private async Task SyncOrganizacaoGroupAsync(string fiscalYear)
     {
         var groupTitle = $"ORGANIZAÇÃO ({fiscalYear})";
-        
+
         // Get current fiscal year bounds
         var now = DateTime.UtcNow;
         var startYear = now.Month >= 9 ? now.Year : now.Year - 1;
@@ -103,9 +103,9 @@ public class GroupConversationSyncService : IGroupConversationSyncService
     {
         // Get all users and filter by CurrentRole property
         var allUsers = await _userManager.Users.ToListAsync();
-        
+
         List<string> participantIds;
-        
+
         if (targetRole == "VETERANO")
         {
             // VETERANOS group should include both VETERANO and TUNOSSAURO users
@@ -129,7 +129,7 @@ public class GroupConversationSyncService : IGroupConversationSyncService
     {
         // Get all users
         var allUsers = await _userManager.Users.ToListAsync();
-        
+
         var participantIds = allUsers
             .Where(u => u.Categories.Any(c => targetCategories.Contains(c)))
             .Select(u => u.Id)
@@ -152,7 +152,7 @@ public class GroupConversationSyncService : IGroupConversationSyncService
         {
             // Create new group
             await _messagingService.GetOrCreateSystemGroupAsync(groupTitle, participantIds);
-            _logger.LogInformation("Created system group {GroupTitle} with {ParticipantCount} participants", 
+            _logger.LogInformation("Created system group {GroupTitle} with {ParticipantCount} participants",
                 groupTitle, participantIds.Count);
         }
         else
@@ -164,24 +164,24 @@ public class GroupConversationSyncService : IGroupConversationSyncService
             if (hasChanges)
             {
                 await _messagingService.UpdateGroupParticipantsAsync(existingGroup.Id, participantIds);
-                _logger.LogInformation("Updated system group {GroupTitle}: {OldCount} -> {NewCount} participants", 
+                _logger.LogInformation("Updated system group {GroupTitle}: {OldCount} -> {NewCount} participants",
                     groupTitle, currentParticipants.Count, participantIds.Count);
             }
             else
             {
-                _logger.LogDebug("System group {GroupTitle} is up to date with {ParticipantCount} participants", 
+                _logger.LogDebug("System group {GroupTitle} is up to date with {ParticipantCount} participants",
                     groupTitle, participantIds.Count);
             }
         }
     }
-    
+
     private async Task SyncAnunciosGroupAsync()
     {
         const string groupTitle = "ANUNCIOS";
-        
+
         // Get all non-retired users (active members)
         var allUsers = await _userManager.Users.ToListAsync();
-        
+
         var participantIds = allUsers
             .Where(u => !u.IsRetired)
             .Select(u => u.Id)
@@ -189,7 +189,7 @@ public class GroupConversationSyncService : IGroupConversationSyncService
 
         await CreateOrUpdateAnnouncementGroupAsync(groupTitle, participantIds);
     }
-    
+
     private async Task CreateOrUpdateAnnouncementGroupAsync(string groupTitle, List<string> participantIds)
     {
         if (participantIds.Count == 0)
@@ -204,7 +204,7 @@ public class GroupConversationSyncService : IGroupConversationSyncService
         {
             // Create new announcement group
             await _messagingService.GetOrCreateAnnouncementGroupAsync(groupTitle, participantIds);
-            _logger.LogInformation("Created announcement group {GroupTitle} with {ParticipantCount} participants", 
+            _logger.LogInformation("Created announcement group {GroupTitle} with {ParticipantCount} participants",
                 groupTitle, participantIds.Count);
         }
         else
@@ -216,12 +216,12 @@ public class GroupConversationSyncService : IGroupConversationSyncService
             if (hasChanges)
             {
                 await _messagingService.UpdateGroupParticipantsAsync(existingGroup.Id, participantIds);
-                _logger.LogInformation("Updated announcement group {GroupTitle}: {OldCount} -> {NewCount} participants", 
+                _logger.LogInformation("Updated announcement group {GroupTitle}: {OldCount} -> {NewCount} participants",
                     groupTitle, currentParticipants.Count, participantIds.Count);
             }
             else
             {
-                _logger.LogDebug("Announcement group {GroupTitle} is up to date with {ParticipantCount} participants", 
+                _logger.LogDebug("Announcement group {GroupTitle} is up to date with {ParticipantCount} participants",
                     groupTitle, participantIds.Count);
             }
         }

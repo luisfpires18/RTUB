@@ -39,13 +39,13 @@ public class Transaction : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(description))
             throw new ArgumentException("A descrição não pode estar vazia", nameof(description));
-        
+
         if (string.IsNullOrWhiteSpace(category))
             throw new ArgumentException("A categoria não pode estar vazia", nameof(category));
-        
+
         if (amount < 0)
             throw new ArgumentException("O montante deve ser positivo", nameof(amount));
-        
+
         if (type != "Income" && type != "Expense")
             throw new ArgumentException("O tipo deve ser 'Income' ou 'Expense'", nameof(type));
 
@@ -64,13 +64,13 @@ public class Transaction : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(description))
             throw new ArgumentException("A descrição não pode estar vazia", nameof(description));
-        
+
         if (string.IsNullOrWhiteSpace(category))
             throw new ArgumentException("A categoria não pode estar vazia", nameof(category));
-        
+
         if (amount < 0)
             throw new ArgumentException("O montante deve ser positivo", nameof(amount));
-        
+
         if (type != "Income" && type != "Expense")
             throw new ArgumentException("O tipo deve ser 'Income' ou 'Expense'", nameof(type));
 

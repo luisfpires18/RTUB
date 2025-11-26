@@ -12,7 +12,7 @@ public interface IProductReservationRepository : IRepository<ProductReservation>
     /// Gets product reservations by user ID with product details
     /// </summary>
     Task<IEnumerable<ProductReservation>> GetByUserIdAsync(string userId);
-    
+
     /// <summary>
     /// Gets product reservations by product ID with user details
     /// </summary>

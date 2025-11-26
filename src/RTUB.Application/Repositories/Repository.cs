@@ -63,7 +63,7 @@ public class Repository<T> : IRepository<T> where T : class
             _dbSet.Attach(entity);
             entry.State = EntityState.Modified;
         }
-        
+
         await SaveChangesAsync();
     }
 
@@ -85,7 +85,7 @@ public class Repository<T> : IRepository<T> where T : class
         {
             _dbSet.Attach(entity);
         }
-        
+
         _dbSet.Remove(entity);
         await SaveChangesAsync();
     }

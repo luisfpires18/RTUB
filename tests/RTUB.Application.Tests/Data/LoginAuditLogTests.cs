@@ -32,14 +32,14 @@ public class LoginAuditLogTests : IDisposable
 
         _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
         _auditContext = new AuditContext();
-        
+
         // Set up HttpContext without an authenticated user (simulating pre-login state)
         var httpContextMock = new Mock<HttpContext>();
         httpContextMock.Setup(x => x.User).Returns(new ClaimsPrincipal());
         _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContextMock.Object);
 
         _context = new ApplicationDbContext(options, _httpContextAccessorMock.Object, _auditContext);
-        
+
         // Set up UserManager
         var userStore = new UserStore<ApplicationUser>(_context);
         _userManager = new UserManager<ApplicationUser>(
@@ -68,34 +68,34 @@ public class LoginAuditLogTests : IDisposable
             PhoneNumber = "123456789",
             EmailConfirmed = true
         };
-        
+
         var result = await _userManager.CreateAsync(user, "Password123!");
         result.Succeeded.Should().BeTrue();
-        
+
         // Clear audit logs from user creation
         var existingLogs = await _context.AuditLogs.ToListAsync();
         _context.AuditLogs.RemoveRange(existingLogs);
         await _context.SaveChangesAsync();
-        
+
         // Act - Simulate login endpoint behavior
         // 1. Set audit context (this is what Program.cs does on line 386)
         _auditContext.SetUser(user.UserName, user.Id);
-        
+
         // 2. Update LastLoginDate (this is what Program.cs does on line 388-389)
         user.LastLoginDate = DateTime.UtcNow;
         var updateResult = await _userManager.UpdateAsync(user);
-        
+
         // 3. Clear audit context (this is what Program.cs does on line 404)
         _auditContext.Clear();
-        
+
         // Assert
         updateResult.Succeeded.Should().BeTrue();
-        
+
         // LastLoginDate is now excluded from audit logs as it's tracked separately in application logs
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().BeEmpty("LastLoginDate changes should not create audit logs");
     }
-    
+
     [Fact]
     public async Task Login_WithoutAuditContext_DoesNotCreateAuditLog()
     {
@@ -110,24 +110,24 @@ public class LoginAuditLogTests : IDisposable
             PhoneNumber = "987654321",
             EmailConfirmed = true
         };
-        
+
         var result = await _userManager.CreateAsync(user, "Password123!");
         result.Succeeded.Should().BeTrue();
-        
+
         // Clear audit logs from user creation
         var existingLogs = await _context.AuditLogs.ToListAsync();
         _context.AuditLogs.RemoveRange(existingLogs);
         await _context.SaveChangesAsync();
-        
+
         // Act - Simulate login WITHOUT setting audit context
         // DON'T set audit context: _auditContext.SetUser(user.UserName, user.Id);
-        
+
         user.LastLoginDate = DateTime.UtcNow;
         var updateResult = await _userManager.UpdateAsync(user);
-        
+
         // Assert
         updateResult.Succeeded.Should().BeTrue();
-        
+
         // LastLoginDate is now excluded from audit logs
         var auditLogs = await _context.AuditLogs.ToListAsync();
         auditLogs.Should().BeEmpty("LastLoginDate changes should not create audit logs");

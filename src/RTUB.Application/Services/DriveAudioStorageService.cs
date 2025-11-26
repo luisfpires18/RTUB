@@ -18,7 +18,7 @@ public class DriveAudioStorageService : BaseDriveStorageService<DriveAudioStorag
     private readonly int _urlExpirationMinutes;
 
     public DriveAudioStorageService(
-        IConfiguration configuration, 
+        IConfiguration configuration,
         ILogger<DriveAudioStorageService> logger,
         IOptions<StorageOptions>? storageOptions = null)
         : base(configuration, logger)
@@ -43,11 +43,11 @@ public class DriveAudioStorageService : BaseDriveStorageService<DriveAudioStorag
         // Normalize names to match bucket structure
         // Example: "Boémios e Trovadores" -> "boemios_e_trovadores"
         // Example: "01. Noites Presentes" -> "noites_presentes"
-        
+
         // Ensure no leading/trailing whitespace
         albumTitle = albumTitle?.Trim() ?? string.Empty;
         songTitle = songTitle?.Trim() ?? string.Empty;
-        
+
         // Normalize album and song names
         var normalizedAlbum = S3KeyNormalizer.NormalizeForS3Key(albumTitle);
         var normalizedSong = S3KeyNormalizer.NormalizeForS3Key(songTitle);

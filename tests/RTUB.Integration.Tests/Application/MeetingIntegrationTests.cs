@@ -30,12 +30,12 @@ public class MeetingIntegrationTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
-        
+
         // Create mocks for new dependencies
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        
+
         _meetingService = new MeetingService(
             new MeetingRepository(_context),
             _context,
@@ -412,16 +412,16 @@ public class MeetingIntegrationTests : IDisposable
         // Arrange - This is conceptual, actual authorization happens in the UI layer
         // The service itself doesn't prevent creation, but the UI checks positions
         var userId = await CreateTestUserWithPosition("presidente_mesa", Position.PresidenteMesaAssembleia);
-        
+
         // The check would be:
         // CanManageMeeting(cvMeeting) where user.Positions contains PresidenteMesaAssembleia
         // Should return false for CV meetings
-        
+
         // Assert - Documented behavior: PresidenteMesaAssembleia can only manage AGO/AGE
         var user = await _context.Users.FindAsync(userId);
         var hasPosition = user!.Positions.Contains(Position.PresidenteMesaAssembleia);
         hasPosition.Should().BeTrue();
-        
+
         // CV meetings should not be manageable by PresidenteMesaAssembleia
         // This is enforced at the UI level through CanManageMeeting checks
     }
@@ -459,7 +459,7 @@ public class MeetingIntegrationTests : IDisposable
         var user = await _context.Users.FindAsync(userId);
         var hasPosition = user!.Positions.Contains(Position.PresidenteConselhoVeteranos);
         hasPosition.Should().BeTrue();
-        
+
         // AGO/AGE meetings should not be manageable by PresidenteConselhoVeteranos
         // This is enforced at the UI level through CanManageMeeting checks
     }

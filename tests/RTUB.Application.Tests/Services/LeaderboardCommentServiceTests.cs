@@ -4,6 +4,7 @@ using MockQueryable.Moq;
 using Microsoft.AspNetCore.Identity;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Tests.Utilities;
 using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
@@ -24,12 +25,7 @@ public class LeaderboardCommentServiceTests
     public LeaderboardCommentServiceTests()
     {
         _mockCommentRepository = new Mock<ILeaderboardCommentRepository>();
-        
-        // Mock UserManager
-        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
-        _userManagerMock = new Mock<UserManager<ApplicationUser>>(
-            userStoreMock.Object,
-            null!, null!, null!, null!, null!, null!, null!, null!);
+        _userManagerMock = MockHelpers.CreateMockUserManager();
 
         _service = new LeaderboardCommentService(_mockCommentRepository.Object, _userManagerMock.Object);
 
@@ -74,7 +70,7 @@ public class LeaderboardCommentServiceTests
         // Arrange
         var text = "Great job on the leaderboard!";
         var comment = LeaderboardComment.Create(_testUser.Id, _testAuthor.Id, text);
-        
+
         _mockCommentRepository.Setup(r => r.AddAsync(It.IsAny<LeaderboardComment>()))
             .ReturnsAsync(comment);
         _userManagerMock.Setup(um => um.FindByIdAsync(_testAuthor.Id))
@@ -129,13 +125,13 @@ public class LeaderboardCommentServiceTests
         var comment1 = LeaderboardComment.Create(_testUser.Id, _testAuthor.Id, "First comment");
         comment1.GetType().GetProperty("Author")!.SetValue(comment1, _testAuthor);
         comment1.GetType().GetProperty("Likes")!.SetValue(comment1, new List<LeaderboardCommentLike>());
-        
+
         var comment2 = LeaderboardComment.Create(_testUser.Id, _testAuthor.Id, "Second comment");
         comment2.GetType().GetProperty("Author")!.SetValue(comment2, _testAuthor);
         comment2.GetType().GetProperty("Likes")!.SetValue(comment2, new List<LeaderboardCommentLike>());
-        
+
         await Task.Delay(10); // Simulate time difference
-        
+
         var comments = new List<LeaderboardComment> { comment2, comment1 }; // Already ordered desc
         var mockQueryable = comments.BuildMockDbSet().Object;
 
@@ -159,10 +155,10 @@ public class LeaderboardCommentServiceTests
         var comment1 = LeaderboardComment.Create(_testUser.Id, _testAuthor.Id, "Active comment");
         comment1.GetType().GetProperty("Author")!.SetValue(comment1, _testAuthor);
         comment1.GetType().GetProperty("Likes")!.SetValue(comment1, new List<LeaderboardCommentLike>());
-        
+
         var comment2 = LeaderboardComment.Create(_testUser.Id, _testAuthor.Id, "Deleted comment");
         comment2.SoftDelete();
-        
+
         var comments = new List<LeaderboardComment> { comment1 }; // Repository should not return deleted
         var mockQueryable = comments.BuildMockDbSet().Object;
 
@@ -185,7 +181,7 @@ public class LeaderboardCommentServiceTests
         var comment = LeaderboardComment.Create(_testUser.Id, _testAuthor.Id, "Test comment");
         comment.GetType().GetProperty("Id")!.SetValue(comment, 1); // Set positive ID
         comment.GetType().GetProperty("Likes")!.SetValue(comment, new List<LeaderboardCommentLike>());
-        
+
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
         _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
@@ -206,7 +202,7 @@ public class LeaderboardCommentServiceTests
         comment.GetType().GetProperty("Id")!.SetValue(comment, 1); // Set positive ID
         var like = LeaderboardCommentLike.Create(comment.Id, _testUser.Id);
         comment.GetType().GetProperty("Likes")!.SetValue(comment, new List<LeaderboardCommentLike> { like });
-        
+
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
         _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
@@ -226,14 +222,14 @@ public class LeaderboardCommentServiceTests
         var comment = LeaderboardComment.Create(_testUser.Id, _testAuthor.Id, "Test comment");
         comment.GetType().GetProperty("Id")!.SetValue(comment, 1); // Set positive ID for like creation
         comment.GetType().GetProperty("Author")!.SetValue(comment, _testAuthor);
-        
+
         var like1 = LeaderboardCommentLike.Create(comment.Id, _testUser.Id);
         like1.GetType().GetProperty("User")!.SetValue(like1, _testUser);
         var like2 = LeaderboardCommentLike.Create(comment.Id, _adminUser.Id);
         like2.GetType().GetProperty("User")!.SetValue(like2, _adminUser);
-        
+
         comment.GetType().GetProperty("Likes")!.SetValue(comment, new List<LeaderboardCommentLike> { like1, like2 });
-        
+
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
         _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
@@ -255,12 +251,12 @@ public class LeaderboardCommentServiceTests
         var comment = LeaderboardComment.Create(_testUser.Id, _testAuthor.Id, "Test comment");
         comment.GetType().GetProperty("Id")!.SetValue(comment, 1); // Set positive ID for like creation
         comment.GetType().GetProperty("Author")!.SetValue(comment, _testAuthor);
-        
+
         var like = LeaderboardCommentLike.Create(comment.Id, _testUser.Id);
         like.GetType().GetProperty("User")!.SetValue(like, _testUser);
-        
+
         comment.GetType().GetProperty("Likes")!.SetValue(comment, new List<LeaderboardCommentLike> { like });
-        
+
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
         _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
@@ -283,7 +279,7 @@ public class LeaderboardCommentServiceTests
         // Arrange
         var comment = LeaderboardComment.Create(_testUser.Id, _testAuthor.Id, "Test comment");
         comment.GetType().GetProperty("Likes")!.SetValue(comment, new List<LeaderboardCommentLike>());
-        
+
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
         _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
@@ -303,7 +299,7 @@ public class LeaderboardCommentServiceTests
         // Arrange
         var comment = LeaderboardComment.Create(_testUser.Id, _testAuthor.Id, "Test comment");
         comment.GetType().GetProperty("Likes")!.SetValue(comment, new List<LeaderboardCommentLike>());
-        
+
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
         _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
@@ -322,7 +318,7 @@ public class LeaderboardCommentServiceTests
         // Arrange
         var comment = LeaderboardComment.Create(_testUser.Id, _testAuthor.Id, "Test comment");
         comment.GetType().GetProperty("Likes")!.SetValue(comment, new List<LeaderboardCommentLike>());
-        
+
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
         _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);
@@ -343,7 +339,7 @@ public class LeaderboardCommentServiceTests
         var like1 = LeaderboardCommentLike.Create(comment.Id, _testUser.Id);
         var like2 = LeaderboardCommentLike.Create(comment.Id, _adminUser.Id);
         comment.GetType().GetProperty("Likes")!.SetValue(comment, new List<LeaderboardCommentLike> { like1, like2 });
-        
+
         var comments = new List<LeaderboardComment> { comment };
         var mockQueryable = comments.BuildMockDbSet().Object;
         _mockCommentRepository.Setup(r => r.Query()).Returns(mockQueryable);

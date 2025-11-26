@@ -11,7 +11,7 @@ public interface ILogisticsListRepository : IRepository<LogisticsList>
     /// Get all lists for a board with cards
     /// </summary>
     Task<IEnumerable<LogisticsList>> GetListsByBoardIdAsync(int boardId);
-    
+
     /// <summary>
     /// Get list with all cards
     /// </summary>

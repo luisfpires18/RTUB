@@ -13,7 +13,7 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
     public EventRepertoireRepository(ApplicationDbContext context) : base(context)
     {
     }
-    
+
     public override async Task<EventRepertoire> AddAsync(EventRepertoire entity)
     {
         // Ensure the Event is loaded into Local cache for audit log display name resolution
@@ -21,16 +21,16 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
         {
             var evt = await _context.Events.FindAsync(entity.EventId);
         }
-        
+
         // Ensure the Song is loaded into Local cache for audit log display name resolution
         if (entity.SongId > 0)
         {
             var song = await _context.Songs.FindAsync(entity.SongId);
         }
-        
+
         return await base.AddAsync(entity);
     }
-    
+
     public override async Task UpdateAsync(EventRepertoire entity)
     {
         // Ensure the Event is loaded into Local cache for audit log display name resolution
@@ -38,16 +38,16 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
         {
             var evt = await _context.Events.FindAsync(entity.EventId);
         }
-        
+
         // Ensure the Song is loaded into Local cache for audit log display name resolution
         if (entity.SongId > 0)
         {
             var song = await _context.Songs.FindAsync(entity.SongId);
         }
-        
+
         await base.UpdateAsync(entity);
     }
-    
+
     public override async Task DeleteAsync(int id)
     {
         var entity = await _dbSet.FindAsync(id);
@@ -58,14 +58,14 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
             {
                 var evt = await _context.Events.FindAsync(entity.EventId);
             }
-            
+
             // Ensure the Song is loaded into Local cache for audit log display name resolution
             if (entity.SongId > 0)
             {
                 var song = await _context.Songs.FindAsync(entity.SongId);
             }
         }
-        
+
         await base.DeleteAsync(id);
     }
 
@@ -75,13 +75,13 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
             .Include(er => er.Song)
                 .ThenInclude(s => s!.Album)
             .Where(er => er.EventId == eventId);
-        
+
         if (date.HasValue)
         {
             var dateOnly = date.Value.Date;
             query = query.Where(er => er.RepertoireDate.Date == dateOnly);
         }
-        
+
         return await query
             .OrderBy(er => er.DisplayOrder)
             .ToListAsync();
@@ -101,7 +101,7 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
             .Include(er => er.Event)
             .FirstOrDefaultAsync(er => er.Id == id);
     }
-    
+
     public async Task<IEnumerable<DateTime>> GetRepertoireDatesAsync(int eventId)
     {
         return await _dbSet
@@ -111,14 +111,14 @@ public class EventRepertoireRepository : Repository<EventRepertoire>, IEventRepe
             .OrderBy(d => d)
             .ToListAsync();
     }
-    
+
     public async Task RemoveRepertoireDayAsync(int eventId, DateTime date)
     {
         var dateOnly = date.Date;
         var itemsToRemove = await _dbSet
             .Where(er => er.EventId == eventId && er.RepertoireDate.Date == dateOnly)
             .ToListAsync();
-        
+
         _dbSet.RemoveRange(itemsToRemove);
         await _context.SaveChangesAsync();
     }

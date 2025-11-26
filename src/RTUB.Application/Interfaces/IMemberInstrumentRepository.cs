@@ -12,7 +12,7 @@ public interface IMemberInstrumentRepository : IRepository<MemberInstrument>
     /// Gets member instruments by member ID
     /// </summary>
     Task<IEnumerable<MemberInstrument>> GetByMemberIdAsync(string memberId);
-    
+
     /// <summary>
     /// Gets primary instrument for a member
     /// </summary>

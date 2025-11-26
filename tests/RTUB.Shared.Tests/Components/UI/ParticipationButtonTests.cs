@@ -24,7 +24,7 @@ public class EnrollmentStatisticsButtonTests : TestContext
     {
         _mockEnrollmentService = new Mock<IEnrollmentService>();
         _mockEventService = new Mock<IEventService>();
-        
+
         // Setup UserManager mock
         var store = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
@@ -33,7 +33,7 @@ public class EnrollmentStatisticsButtonTests : TestContext
         Services.AddSingleton(_mockEnrollmentService.Object);
         Services.AddSingleton(_mockEventService.Object);
         Services.AddSingleton(_mockUserManager.Object);
-        
+
         // Add required services for components
         ComponentFactories.AddStub<SearchBar>();
         ComponentFactories.AddStub<EmptyState>();
@@ -122,7 +122,7 @@ public class MyEnrollmentsButtonTests : TestContext
     {
         _mockEnrollmentService = new Mock<IEnrollmentService>();
         _mockEventService = new Mock<IEventService>();
-        
+
         // Setup UserManager mock
         var store = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
@@ -131,11 +131,11 @@ public class MyEnrollmentsButtonTests : TestContext
         Services.AddSingleton(_mockEnrollmentService.Object);
         Services.AddSingleton(_mockEventService.Object);
         Services.AddSingleton(_mockUserManager.Object);
-        
+
         // Setup auth state
         var authContext = this.AddTestAuthorization();
         authContext.SetAuthorized("TestUser");
-        
+
         // Mock UserManager to return a test user
         var testUser = new ApplicationUser
         {
@@ -148,7 +148,7 @@ public class MyEnrollmentsButtonTests : TestContext
         };
         _mockUserManager.Setup(x => x.GetUserAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal>()))
             .ReturnsAsync(testUser);
-        
+
         // Add required component stubs
         ComponentFactories.AddStub<Modal>();
         ComponentFactories.AddStub<EmptyState>();

@@ -30,7 +30,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _imageStorageServiceMock = new Mock<IImageStorageService>();
@@ -53,7 +53,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var instrument = Instrument.Create("Percussion", "Drum Kit", InstrumentCondition.Excellent);
         _context.Instruments.Add(instrument);
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetByIdAsync(instrument.Id);
         result.Should().NotBeNull();
         result!.Name.Should().Be("Drum Kit");
@@ -75,7 +75,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             Instrument.Create("Brass", "Trumpet", InstrumentCondition.Worn)
         );
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetAllAsync();
         result.Should().HaveCount(3);
         result.First().Name.Should().Be("Flute");
@@ -90,7 +90,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             Instrument.Create("Wind", "Flute", InstrumentCondition.Good)
         );
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetByCategoryAsync("String");
         result.Should().HaveCount(2);
         result.Should().AllSatisfy(i => i.Category.Should().Be("String"));
@@ -112,7 +112,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             Instrument.Create("Wind", "Flute", InstrumentCondition.Worn)
         );
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetByConditionAsync(InstrumentCondition.Excellent);
         result.Should().HaveCount(2);
         result.Should().AllSatisfy(i => i.Condition.Should().Be(InstrumentCondition.Excellent));
@@ -129,7 +129,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         flute.Update("Flute", InstrumentCondition.Good, location: "Stage");
         _context.Instruments.AddRange(guitar, violin, flute);
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetByLocationAsync("Storage A");
         result.Should().HaveCount(2);
         result.Should().AllSatisfy(i => i.Location.Should().Be("Storage A"));
@@ -148,10 +148,10 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var instrument = Instrument.Create("String", "Original Guitar", InstrumentCondition.Good);
         _context.Instruments.Add(instrument);
         await _context.SaveChangesAsync();
-        
+
         instrument.Update("Updated Guitar", InstrumentCondition.Excellent);
         await _service.UpdateAsync(instrument);
-        
+
         var updated = await _context.Instruments.FindAsync(instrument.Id);
         updated!.Name.Should().Be("Updated Guitar");
         updated.Condition.Should().Be(InstrumentCondition.Excellent);
@@ -163,7 +163,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var instrument = Instrument.Create("String", "To Delete", InstrumentCondition.Good);
         _context.Instruments.Add(instrument);
         await _context.SaveChangesAsync();
-        
+
         await _service.DeleteAsync(instrument.Id);
         var deleted = await _context.Instruments.FindAsync(instrument.Id);
         deleted.Should().BeNull();
@@ -183,9 +183,9 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         instrument.ImageUrl = "https://example.com/images/guitar.jpg";
         _context.Instruments.Add(instrument);
         await _context.SaveChangesAsync();
-        
+
         await _service.DeleteAsync(instrument.Id);
-        
+
         _imageStorageServiceMock.Verify(x => x.DeleteImageAsync("https://example.com/images/guitar.jpg"), Times.Once);
         var deleted = await _context.Instruments.FindAsync(instrument.Id);
         deleted.Should().BeNull();
@@ -197,9 +197,9 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var instrument = Instrument.Create("String", "Guitar without Image", InstrumentCondition.Good);
         _context.Instruments.Add(instrument);
         await _context.SaveChangesAsync();
-        
+
         await _service.DeleteAsync(instrument.Id);
-        
+
         _imageStorageServiceMock.Verify(x => x.DeleteImageAsync(It.IsAny<string>()), Times.Never);
         var deleted = await _context.Instruments.FindAsync(instrument.Id);
         deleted.Should().BeNull();
@@ -216,7 +216,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             Instrument.Create("Percussion", "Drum", InstrumentCondition.NeedsMaintenance)
         );
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetConditionStatsAsync();
         result.Should().HaveCount(4);
         result[InstrumentCondition.Excellent].Should().Be(2);
@@ -243,7 +243,7 @@ public class InstrumentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             Instrument.Create("Brass", "Trombone", InstrumentCondition.Good)
         );
         await _context.SaveChangesAsync();
-        
+
         var result = await _service.GetCategoryStatsAsync();
         result.Should().HaveCount(3);
         result["String"].Should().Be(2);

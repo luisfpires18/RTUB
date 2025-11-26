@@ -30,13 +30,13 @@ public class MessagesHubService : IMessagesHubService
         {
             var groupName = $"conversation-{conversationId}";
             await _hubContext.Clients.Group(groupName).ReceiveMessage(message);
-            
+
             // Also notify server-side Blazor components
             await _notificationService.NotifyMessageReceivedAsync(message);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error broadcasting message {MessageId} to conversation {ConversationId}", 
+            _logger.LogError(ex, "Error broadcasting message {MessageId} to conversation {ConversationId}",
                 message.Id, conversationId);
         }
     }
@@ -47,13 +47,13 @@ public class MessagesHubService : IMessagesHubService
         {
             var groupName = $"conversation-{conversationId}";
             await _hubContext.Clients.Group(groupName).MessageSeen(conversationId, userId, seenAt);
-            
+
             // Also notify server-side Blazor components
             await _notificationService.NotifyMessageSeenAsync(conversationId, userId, seenAt);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error notifying message seen for conversation {ConversationId}", 
+            _logger.LogError(ex, "Error notifying message seen for conversation {ConversationId}",
                 conversationId);
         }
     }
@@ -67,7 +67,7 @@ public class MessagesHubService : IMessagesHubService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error notifying typing started for conversation {ConversationId}", 
+            _logger.LogError(ex, "Error notifying typing started for conversation {ConversationId}",
                 conversationId);
         }
     }
@@ -81,7 +81,7 @@ public class MessagesHubService : IMessagesHubService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error notifying typing stopped for conversation {ConversationId}", 
+            _logger.LogError(ex, "Error notifying typing stopped for conversation {ConversationId}",
                 conversationId);
         }
     }

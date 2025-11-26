@@ -25,7 +25,7 @@ public class RequestService : IRequestService
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public RequestService(
-        IRequestRepository requestRepository, 
+        IRequestRepository requestRepository,
         IEmailNotificationService emailNotificationService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
@@ -62,18 +62,18 @@ public class RequestService : IRequestService
 
         // Send email notification for new request
         await _emailNotificationService.SendNewRequestNotificationAsync(createdRequest.Id, name, email, eventType);
-        
+
         // Send push notification to admins
         try
         {
             var baseUrl = GetBaseUrl();
             var notification = _pushNotificationFactory.CreateRequestNotification(createdRequest, baseUrl);
-            
+
             // Get admin user IDs
             var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
             var ownerUsers = await _userManager.GetUsersInRoleAsync("Owner");
             var adminUserIds = adminUsers.Union(ownerUsers).Select(u => u.Id).Distinct().ToList();
-            
+
             // Send to each admin
             foreach (var userId in adminUserIds)
             {
@@ -125,7 +125,7 @@ public class RequestService : IRequestService
 
         await _requestRepository.DeleteAsync(request);
     }
-    
+
     private string GetBaseUrl()
     {
         var request = _httpContextAccessor.HttpContext?.Request;

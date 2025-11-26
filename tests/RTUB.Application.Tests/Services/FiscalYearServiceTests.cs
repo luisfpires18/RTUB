@@ -50,7 +50,7 @@ public class FiscalYearServiceTests
             .ReturnsAsync(existingFiscalYear);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _service.CreateFiscalYearAsync(startYear));
     }
 
@@ -61,7 +61,7 @@ public class FiscalYearServiceTests
         var futureYear = DateTime.Now.Year + 2;
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _service.CreateFiscalYearAsync(futureYear));
     }
 
@@ -178,7 +178,7 @@ public class FiscalYearServiceTests
             .ReturnsAsync((FiscalYear?)null);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _service.DeleteFiscalYearAsync(999));
     }
 
@@ -189,7 +189,7 @@ public class FiscalYearServiceTests
         var currentMonth = DateTime.Now.Month;
         var currentYear = DateTime.Now.Year;
         var currentFiscalStartYear = currentMonth >= 9 ? currentYear : currentYear - 1;
-        
+
         var existingFiscalYears = new List<FiscalYear>
         {
             FiscalYear.Create(1991, 1992),
@@ -218,7 +218,7 @@ public class FiscalYearServiceTests
         var currentMonth = DateTime.Now.Month;
         var currentYear = DateTime.Now.Year;
         var currentFiscalStartYear = currentMonth >= 9 ? currentYear : currentYear - 1;
-        
+
         // Create all fiscal years from 1991 to current
         var allFiscalYears = new List<FiscalYear>();
         for (int year = 1991; year <= currentFiscalStartYear; year++)

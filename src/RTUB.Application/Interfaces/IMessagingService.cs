@@ -59,27 +59,27 @@ public interface IMessagingService
     /// Gets or creates a one-to-one conversation between two users
     /// </summary>
     Task<ConversationDto> GetOrCreateConversationAsync(string userId1, string userId2);
-    
+
     /// <summary>
     /// Creates a new group conversation
     /// </summary>
     Task<ConversationDto> CreateGroupConversationAsync(string creatorUserId, string groupName, List<string> participantIds);
-    
+
     /// <summary>
     /// Sends a message to a group conversation
     /// </summary>
     Task<MessageDto> SendGroupMessageAsync(string senderId, int conversationId, string body);
-    
+
     /// <summary>
     /// Gets or creates a system group conversation by title
     /// </summary>
     Task<ConversationDto> GetOrCreateSystemGroupAsync(string groupTitle, List<string> participantIds);
-    
+
     /// <summary>
     /// Updates participants in a group conversation
     /// </summary>
     Task UpdateGroupParticipantsAsync(int conversationId, List<string> participantIds);
-    
+
     /// <summary>
     /// Toggles the mute status of a conversation for a user
     /// </summary>
@@ -87,7 +87,7 @@ public interface IMessagingService
     /// <param name="userId">The user ID</param>
     /// <returns>The new mute status (true if now muted)</returns>
     Task<bool> ToggleMuteAsync(int conversationId, string userId);
-    
+
     /// <summary>
     /// Toggles the pin status of a conversation for a user
     /// </summary>
@@ -95,7 +95,7 @@ public interface IMessagingService
     /// <param name="userId">The user ID</param>
     /// <returns>The new pin status (true if now pinned)</returns>
     Task<bool> TogglePinAsync(int conversationId, string userId);
-    
+
     /// <summary>
     /// Checks if a conversation is muted for a specific user
     /// </summary>
@@ -103,7 +103,7 @@ public interface IMessagingService
     /// <param name="userId">The user ID</param>
     /// <returns>True if the conversation is muted</returns>
     Task<bool> IsConversationMutedAsync(int conversationId, string userId);
-    
+
     /// <summary>
     /// Checks if a user can send messages in a conversation
     /// </summary>
@@ -111,7 +111,7 @@ public interface IMessagingService
     /// <param name="userId">The user ID</param>
     /// <returns>True if the user can send messages</returns>
     Task<bool> CanUserSendMessageAsync(int conversationId, string userId);
-    
+
     /// <summary>
     /// Gets or creates an announcement-only system group conversation by title
     /// </summary>

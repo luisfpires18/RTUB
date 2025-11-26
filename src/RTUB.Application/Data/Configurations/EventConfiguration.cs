@@ -13,34 +13,34 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
     public void Configure(EntityTypeBuilder<Event> builder)
     {
         builder.HasKey(e => e.Id);
-        
+
         builder.Property(e => e.Name)
             .IsRequired()
             .HasMaxLength(200);
-        
+
         builder.Property(e => e.Description)
             .HasMaxLength(1000);
-        
+
         builder.Property(e => e.Location)
             .IsRequired()
             .HasMaxLength(200);
-        
+
         builder.Property(e => e.ImageUrl)
             .HasMaxLength(500);
-        
+
         builder.Property(e => e.Date)
             .IsRequired();
-        
+
         builder.Property(e => e.Type)
             .IsRequired();
-        
+
         builder.Property(e => e.CreatedAt)
             .IsRequired();
-        
+
         // Indexes for common queries
         builder.HasIndex(e => e.Date)
             .HasDatabaseName("IX_Events_Date");
-        
+
         // Relationships
         builder.HasMany(e => e.Enrollments)
             .WithOne(en => en.Event)

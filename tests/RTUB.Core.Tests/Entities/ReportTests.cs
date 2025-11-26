@@ -47,16 +47,16 @@ public class ReportTests
     {
         // Arrange
         var report = Report.Create("Test Report", 2023);
-        
+
         // Add activities with transactions
         var activity1 = Activity.Create(1, "Activity 1");
         activity1.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 3000m, "Income", 1));
         activity1.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 1000m, "Expense", 1));
-        
+
         var activity2 = Activity.Create(1, "Activity 2");
         activity2.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Income", "Cat", 2000m, "Income", 1));
         activity2.Transactions.Add(Transaction.Create(DateTime.UtcNow, "Expense", "Cat", 2000m, "Expense", 1));
-        
+
         report.Activities.Add(activity1);
         report.Activities.Add(activity2);
 

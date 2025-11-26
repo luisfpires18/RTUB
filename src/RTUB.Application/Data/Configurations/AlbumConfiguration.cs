@@ -9,19 +9,19 @@ public class AlbumConfiguration : IEntityTypeConfiguration<Album>
     public void Configure(EntityTypeBuilder<Album> builder)
     {
         builder.HasKey(a => a.Id);
-        
+
         builder.Property(a => a.Title)
             .IsRequired()
             .HasMaxLength(200);
-        
+
         builder.Property(a => a.Description)
             .HasMaxLength(500);
-        
+
         builder.Property(a => a.ImageUrl)
             .HasMaxLength(500);
-        
+
         // Year is optional - removed .IsRequired() to match nullable int? in entity
-        
+
         // Relationships
         builder.HasMany(a => a.Songs)
             .WithOne(s => s.Album)

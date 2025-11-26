@@ -25,8 +25,8 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
     public async Task RehearsalAttendance_WithPrimaryInstrument_CountsCorrectly()
     {
         // Arrange
-        var user = await CreateUserWithInstrumentsAsync("ruser1", 
-            (InstrumentType.Guitarra, true), 
+        var user = await CreateUserWithInstrumentsAsync("ruser1",
+            (InstrumentType.Guitarra, true),
             (InstrumentType.Bandolim, false));
         var rehearsal = await CreateRehearsalAsync();
 
@@ -34,10 +34,10 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<IRehearsalAttendanceService>();
-            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user.Id, 
-                willAttend: true, 
-                instrument: InstrumentType.Guitarra, 
-                notes: null, 
+            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user.Id,
+                willAttend: true,
+                instrument: InstrumentType.Guitarra,
+                notes: null,
                 otherInstruments: "Bandolim");
         }
 
@@ -46,11 +46,11 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             var updatedRehearsal = await context.Rehearsals
                 .Include(r => r.Attendances)
                 .FirstAsync(r => r.Id == rehearsal.Id);
-                
+
             var memberInstruments = await memberInstrumentService.GetMemberInstrumentsByUserIdsAsync(
                 new[] { user.Id });
 
@@ -70,8 +70,8 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
     public async Task RehearsalAttendance_WithNonPrimaryInstrument_CountsInPrimaryCategoryNotOther()
     {
         // Arrange
-        var user = await CreateUserWithInstrumentsAsync("ruser2", 
-            (InstrumentType.Guitarra, true), 
+        var user = await CreateUserWithInstrumentsAsync("ruser2",
+            (InstrumentType.Guitarra, true),
             (InstrumentType.Bandolim, false),
             (InstrumentType.Cavaquinho, false));
         var rehearsal = await CreateRehearsalAsync();
@@ -80,10 +80,10 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<IRehearsalAttendanceService>();
-            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user.Id, 
-                willAttend: true, 
-                instrument: InstrumentType.Bandolim, 
-                notes: null, 
+            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user.Id,
+                willAttend: true,
+                instrument: InstrumentType.Bandolim,
+                notes: null,
                 otherInstruments: "Guitarra, Cavaquinho");
         }
 
@@ -92,11 +92,11 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             var updatedRehearsal = await context.Rehearsals
                 .Include(r => r.Attendances)
                 .FirstAsync(r => r.Id == rehearsal.Id);
-                
+
             var memberInstruments = await memberInstrumentService.GetMemberInstrumentsByUserIdsAsync(
                 new[] { user.Id });
 
@@ -119,7 +119,7 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
     public async Task RehearsalAttendance_NotAttending_DoesNotCountInstruments()
     {
         // Arrange
-        var user = await CreateUserWithInstrumentsAsync("ruser3", 
+        var user = await CreateUserWithInstrumentsAsync("ruser3",
             (InstrumentType.Guitarra, true));
         var rehearsal = await CreateRehearsalAsync();
 
@@ -127,10 +127,10 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<IRehearsalAttendanceService>();
-            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user.Id, 
-                willAttend: false, 
-                instrument: null, 
-                notes: null, 
+            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user.Id,
+                willAttend: false,
+                instrument: null,
+                notes: null,
                 otherInstruments: null);
         }
 
@@ -139,11 +139,11 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             var updatedRehearsal = await context.Rehearsals
                 .Include(r => r.Attendances)
                 .FirstAsync(r => r.Id == rehearsal.Id);
-                
+
             var memberInstruments = await memberInstrumentService.GetMemberInstrumentsByUserIdsAsync(
                 new[] { user.Id });
 
@@ -159,11 +159,11 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
     public async Task RehearsalAttendance_MultipleUsersWithDifferentInstruments_CountsAllCorrectly()
     {
         // Arrange
-        var user1 = await CreateUserWithInstrumentsAsync("ruser4", 
+        var user1 = await CreateUserWithInstrumentsAsync("ruser4",
             (InstrumentType.Guitarra, true), (InstrumentType.Bandolim, false));
-        var user2 = await CreateUserWithInstrumentsAsync("ruser5", 
+        var user2 = await CreateUserWithInstrumentsAsync("ruser5",
             (InstrumentType.Cavaquinho, true), (InstrumentType.Guitarra, false));
-        var user3 = await CreateUserWithInstrumentsAsync("ruser6", 
+        var user3 = await CreateUserWithInstrumentsAsync("ruser6",
             (InstrumentType.Bandolim, true), (InstrumentType.Flauta, false));
         var rehearsal = await CreateRehearsalAsync();
 
@@ -171,17 +171,17 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<IRehearsalAttendanceService>();
-            
+
             // User1 plays Guitarra (primary)
-            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user1.Id, 
+            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user1.Id,
                 true, InstrumentType.Guitarra, null, "Bandolim");
-            
+
             // User2 plays Guitarra (non-primary)
-            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user2.Id, 
+            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user2.Id,
                 true, InstrumentType.Guitarra, null, "Cavaquinho");
-            
+
             // User3 plays Bandolim (primary)
-            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user3.Id, 
+            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user3.Id,
                 true, InstrumentType.Bandolim, null, "Flauta");
         }
 
@@ -190,11 +190,11 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             var updatedRehearsal = await context.Rehearsals
                 .Include(r => r.Attendances)
                 .FirstAsync(r => r.Id == rehearsal.Id);
-                
+
             var memberInstruments = await memberInstrumentService.GetMemberInstrumentsByUserIdsAsync(
                 new[] { user1.Id, user2.Id, user3.Id });
 
@@ -222,10 +222,10 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<IRehearsalAttendanceService>();
-            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user.Id, 
-                willAttend: true, 
-                instrument: null, 
-                notes: null, 
+            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user.Id,
+                willAttend: true,
+                instrument: null,
+                notes: null,
                 otherInstruments: null);
         }
 
@@ -233,7 +233,7 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            
+
             var attendance = await context.RehearsalAttendances
                 .FirstOrDefaultAsync(a => a.RehearsalId == rehearsal.Id && a.UserId == user.Id);
 
@@ -247,8 +247,8 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
     public async Task RehearsalAttendance_UpdateInstrument_UpdatesCountsCorrectly()
     {
         // Arrange
-        var user = await CreateUserWithInstrumentsAsync("ruser8", 
-            (InstrumentType.Guitarra, true), 
+        var user = await CreateUserWithInstrumentsAsync("ruser8",
+            (InstrumentType.Guitarra, true),
             (InstrumentType.Bandolim, false));
         var rehearsal = await CreateRehearsalAsync();
 
@@ -256,7 +256,7 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<IRehearsalAttendanceService>();
-            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user.Id, 
+            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user.Id,
                 true, InstrumentType.Guitarra, null, "Bandolim");
         }
 
@@ -264,7 +264,7 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         using (var scope = Factory.Services.CreateScope())
         {
             var attendanceService = scope.ServiceProvider.GetRequiredService<IRehearsalAttendanceService>();
-            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user.Id, 
+            await attendanceService.MarkAttendanceAsync(rehearsal.Id, user.Id,
                 true, InstrumentType.Bandolim, null, "Guitarra");
         }
 
@@ -273,11 +273,11 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var memberInstrumentService = scope.ServiceProvider.GetRequiredService<IMemberInstrumentService>();
-            
+
             var updatedRehearsal = await context.Rehearsals
                 .Include(r => r.Attendances)
                 .FirstAsync(r => r.Id == rehearsal.Id);
-                
+
             var memberInstruments = await memberInstrumentService.GetMemberInstrumentsByUserIdsAsync(
                 new[] { user.Id });
 
@@ -316,7 +316,7 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
     }
 
     private async Task<ApplicationUser> CreateUserWithInstrumentsAsync(
-        string userId, 
+        string userId,
         params (InstrumentType instrument, bool isPrimary)[] instruments)
     {
         var user = await CreateUserAsync(userId);
@@ -338,7 +338,7 @@ public class RehearsalInstrumentWorkflowTests : IntegrationTestBase
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         var rehearsal = Rehearsal.Create(
-            DateTime.Now.AddDays(7), 
+            DateTime.Now.AddDays(7),
             "Test Location");
 
         context.Rehearsals.Add(rehearsal);

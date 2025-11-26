@@ -25,14 +25,14 @@ public class RequestServiceTests
     {
         _mockRequestRepository = new Mock<IRequestRepository>();
         _emailServiceMock = new Mock<IEmailNotificationService>();
-        
+
         // Create mocks for new dependencies
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockUserManager = new Mock<UserManager<ApplicationUser>>(
             Mock.Of<IUserStore<ApplicationUser>>(), null!, null!, null!, null!, null!, null!, null!, null!);
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        
+
         _requestService = new RequestService(
             _mockRequestRepository.Object,
             _emailServiceMock.Object,
@@ -66,7 +66,7 @@ public class RequestServiceTests
         result.Name.Should().Be(name);
         result.Email.Should().Be(email);
         result.Status.Should().Be(RequestStatus.Pending);
-        
+
         _emailServiceMock.Verify(
             x => x.SendNewRequestNotificationAsync(It.IsAny<int>(), name, email, eventType),
             Times.Once);

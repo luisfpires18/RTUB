@@ -508,7 +508,7 @@ public class AvatarCardTests : TestContext
         var markup = cut.Markup;
         var loginStatusIndex = markup.IndexOf("avatar-card-login-status");
         var tunaNameIndex = markup.IndexOf("avatar-card-tuna-name");
-        
+
         loginStatusIndex.Should().BeLessThan(tunaNameIndex, "login status should appear before tuna name in markup");
     }
 

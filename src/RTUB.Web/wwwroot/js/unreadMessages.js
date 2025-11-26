@@ -1,14 +1,22 @@
+// OPTIMIZATION: Lazy-loaded module for unread messages badge functionality
+// Only loads when user is authenticated and badge component is rendered
 (function () {
+    'use strict';
+    
     const eventType = 'rtub:push-received';
     let isRegistered = false;
     let storedDotNetRef = null;
+    let messageHandler = null;
 
     function attachHandler(dotNetRef) {
+        // OPTIMIZATION: Check service worker support early
         if (!('serviceWorker' in navigator)) {
+            console.warn('[UnreadMessages] Service Worker not supported');
             return;
         }
 
-        const handleMessage = (event) => {
+        // OPTIMIZATION: Store handler reference for potential cleanup
+        messageHandler = (event) => {
             if (!event?.data || event.data.type !== eventType) {
                 return;
             }
@@ -18,16 +26,18 @@
             }
 
             dotNetRef.invokeMethodAsync('RefreshUnreadMessages')
-                .catch(() => {
+                .catch((error) => {
                     // Silently ignore failures to avoid breaking the UI if the circuit is gone
+                    console.debug('[UnreadMessages] Failed to refresh:', error);
                 });
         };
 
-        navigator.serviceWorker.addEventListener('message', handleMessage);
+        navigator.serviceWorker.addEventListener('message', messageHandler);
     }
 
     window.rtubUnreadMessages = {
         register(dotNetRef) {
+            // OPTIMIZATION: Prevent duplicate registrations
             if (isRegistered || !dotNetRef) {
                 return;
             }
@@ -36,7 +46,11 @@
             storedDotNetRef = dotNetRef;
 
             if (navigator.serviceWorker?.ready) {
-                navigator.serviceWorker.ready.then(() => attachHandler(dotNetRef));
+                navigator.serviceWorker.ready
+                    .then(() => attachHandler(dotNetRef))
+                    .catch((error) => {
+                        console.error('[UnreadMessages] Service Worker registration failed:', error);
+                    });
             } else {
                 attachHandler(dotNetRef);
             }
@@ -46,10 +60,21 @@
         refresh() {
             if (storedDotNetRef) {
                 storedDotNetRef.invokeMethodAsync('RefreshUnreadMessages')
-                    .catch(() => {
+                    .catch((error) => {
                         // Silently ignore failures
+                        console.debug('[UnreadMessages] Failed to refresh:', error);
                     });
             }
+        },
+        
+        // OPTIMIZATION: Cleanup method for disposal
+        dispose() {
+            if (messageHandler && navigator.serviceWorker) {
+                navigator.serviceWorker.removeEventListener('message', messageHandler);
+            }
+            isRegistered = false;
+            storedDotNetRef = null;
+            messageHandler = null;
         }
     };
 })();

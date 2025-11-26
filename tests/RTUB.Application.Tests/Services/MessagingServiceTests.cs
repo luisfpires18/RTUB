@@ -5,6 +5,7 @@ using Moq;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
+using RTUB.Application.Tests.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -33,11 +34,7 @@ public class MessagingServiceTests
         _mockRoleAssignmentRepository = new Mock<IRoleAssignmentRepository>();
         _mockPushService = new Mock<IPushNotificationService>();
         _mockLogger = new Mock<ILogger<MessagingService>>();
-
-        // Mock UserManager (requires store mock)
-        var store = new Mock<IUserStore<ApplicationUser>>();
-        _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        _mockUserManager = MockHelpers.CreateMockUserManager();
 
         _service = new MessagingService(
             _mockConversationRepository.Object,
@@ -97,7 +94,7 @@ public class MessagingServiceTests
         var senderId = "sender123";
         var receiverId = "receiver456";
         var messageText = "Test message";
-        
+
         var conversation = new Conversation
         {
             Id = 1,
@@ -135,7 +132,7 @@ public class MessagingServiceTests
         result.Should().NotBeNull();
         result.Body.Should().Be(messageText);
         result.SenderId.Should().Be(senderId);
-        
+
         // Direct messages should use SendPushOnlyAsync (not SendToUserAsync which creates inbox message)
         _mockPushService.Verify(p => p.SendPushOnlyAsync(
             receiverId,
@@ -202,7 +199,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var userId = "user123";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -230,7 +227,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var userId = "user123";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -255,7 +252,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var userId = "user123";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -281,7 +278,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var userId = "user123";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -308,7 +305,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var creatorId = "creator123";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -338,7 +335,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var nonCreatorId = "user123";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -365,7 +362,7 @@ public class MessagingServiceTests
         // Arrange
         var user1Id = "user1";
         var user2Id = "user2";
-        
+
         var conversation = new Conversation
         {
             Id = 1,
@@ -407,7 +404,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var userId = "user123";
-        
+
         var lastMessage = new Message
         {
             Id = 1,
@@ -440,7 +437,7 @@ public class MessagingServiceTests
         var creatorId = "creator123";
         var groupName = "Test Group";
         var participantIds = new List<string> { "user1", "user2", "user3" };
-        
+
         var creator = new ApplicationUser
         {
             Id = creatorId,
@@ -472,10 +469,10 @@ public class MessagingServiceTests
         result.Title.Should().Be(groupName);
         result.IsGroup.Should().BeTrue();
         result.CreatedByUserId.Should().Be(creatorId);
-        
-        _mockConversationRepository.Verify(r => r.AddAsync(It.Is<Conversation>(c => 
-            c.IsGroup == true && 
-            c.Title == groupName && 
+
+        _mockConversationRepository.Verify(r => r.AddAsync(It.Is<Conversation>(c =>
+            c.IsGroup == true &&
+            c.Title == groupName &&
             c.CreatedByUserId == creatorId)), Times.Once);
     }
 
@@ -486,7 +483,7 @@ public class MessagingServiceTests
         var creatorId = "creator123";
         var groupName = "Test Group";
         var participantIds = new List<string> { "user1", "user2" }; // Creator not included
-        
+
         var creator = new ApplicationUser
         {
             Id = creatorId,
@@ -527,7 +524,7 @@ public class MessagingServiceTests
         var senderId = "sender123";
         var conversationId = 1;
         var messageBody = "Hello group!";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -561,7 +558,7 @@ public class MessagingServiceTests
         result.Should().NotBeNull();
         result.Body.Should().Be(messageBody);
         result.ConversationId.Should().Be(conversationId);
-        
+
         // Verify push notifications sent to other participants (using SendPushOnlyAsync, not SendToUserAsync)
         _mockPushService.Verify(p => p.SendPushOnlyAsync(
             "user1",
@@ -580,7 +577,7 @@ public class MessagingServiceTests
         var senderId = "sender123";
         var conversationId = 1;
         var messageBody = "Hello group!";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -594,7 +591,7 @@ public class MessagingServiceTests
             .ReturnsAsync(conversation);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _service.SendGroupMessageAsync(senderId, conversationId, messageBody));
     }
 
@@ -605,7 +602,7 @@ public class MessagingServiceTests
         var senderId = "sender123";
         var conversationId = 1;
         var messageBody = "Hello!";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -618,7 +615,7 @@ public class MessagingServiceTests
             .ReturnsAsync(conversation);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _service.SendGroupMessageAsync(senderId, conversationId, messageBody));
     }
 
@@ -648,10 +645,10 @@ public class MessagingServiceTests
         result.Should().NotBeNull();
         result.Title.Should().Be(groupTitle);
         result.IsGroup.Should().BeTrue();
-        
-        _mockConversationRepository.Verify(r => r.AddAsync(It.Is<Conversation>(c => 
-            c.CreatedByUserId == "system" && 
-            c.Title == groupTitle && 
+
+        _mockConversationRepository.Verify(r => r.AddAsync(It.Is<Conversation>(c =>
+            c.CreatedByUserId == "system" &&
+            c.Title == groupTitle &&
             c.IsGroup == true)), Times.Once);
     }
 
@@ -661,7 +658,7 @@ public class MessagingServiceTests
         // Arrange
         var groupTitle = "TUNOSSAUROS";
         var participantIds = new List<string> { "user1", "user2", "user3" };
-        
+
         var existingConversation = new Conversation
         {
             Id = 1,
@@ -687,7 +684,7 @@ public class MessagingServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Id.Should().Be(1);
-        
+
         // Should not create new conversation
         _mockConversationRepository.Verify(r => r.AddAsync(It.IsAny<Conversation>()), Times.Never);
     }
@@ -698,7 +695,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var newParticipantIds = new List<string> { "user1", "user2", "user3", "user4" };
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -715,7 +712,7 @@ public class MessagingServiceTests
         await _service.UpdateGroupParticipantsAsync(conversationId, newParticipantIds);
 
         // Assert
-        _mockConversationRepository.Verify(r => r.UpdateAsync(It.Is<Conversation>(c => 
+        _mockConversationRepository.Verify(r => r.UpdateAsync(It.Is<Conversation>(c =>
             c.GetParticipantIds().Count == 4)), Times.Once);
     }
 
@@ -725,7 +722,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var newParticipantIds = new List<string> { "user1", "user2" };
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -738,7 +735,7 @@ public class MessagingServiceTests
             .ReturnsAsync(conversation);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _service.UpdateGroupParticipantsAsync(conversationId, newParticipantIds));
     }
 
@@ -750,7 +747,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var userId = "user123";
-        
+
         var settings = new ConversationUserSettings
         {
             Id = 1,
@@ -778,7 +775,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var userId = "user123";
-        
+
         var settings = new ConversationUserSettings
         {
             Id = 1,
@@ -806,7 +803,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var userId = "user123";
-        
+
         var settings = new ConversationUserSettings
         {
             Id = 1,
@@ -834,7 +831,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var userId = "user123";
-        
+
         var settings = new ConversationUserSettings
         {
             Id = 1,
@@ -897,7 +894,7 @@ public class MessagingServiceTests
         var senderId = "sender123";
         var receiverId = "receiver456";
         var messageText = "Test message";
-        
+
         var conversation = new Conversation
         {
             Id = 1,
@@ -938,7 +935,7 @@ public class MessagingServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Body.Should().Be(messageText);
-        
+
         // Push notification should NOT be sent because receiver has muted
         _mockPushService.Verify(p => p.SendPushOnlyAsync(
             It.IsAny<string>(),
@@ -953,7 +950,7 @@ public class MessagingServiceTests
         var senderId = "sender123";
         var conversationId = 1;
         var messageBody = "Hello group!";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -993,13 +990,13 @@ public class MessagingServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Body.Should().Be(messageBody);
-        
+
         // Push notification should NOT be sent to user1 (muted)
         _mockPushService.Verify(p => p.SendPushOnlyAsync(
             "user1",
             It.IsAny<SendPushNotificationDto>()),
             Times.Never);
-        
+
         // Push notification SHOULD be sent to user2 (not muted)
         _mockPushService.Verify(p => p.SendPushOnlyAsync(
             "user2",
@@ -1016,7 +1013,7 @@ public class MessagingServiceTests
         var userId = "user123";
         var conversationId = 1;
         var (startYear, endYear) = GetCurrentFiscalYear();
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -1052,7 +1049,7 @@ public class MessagingServiceTests
         var userId = "user123";
         var conversationId = 1;
         var (startYear, endYear) = GetCurrentFiscalYear();
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -1088,7 +1085,7 @@ public class MessagingServiceTests
         // Arrange
         var userId = "user123";
         var conversationId = 1;
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -1118,7 +1115,7 @@ public class MessagingServiceTests
         // Arrange
         var userId = "user123";
         var conversationId = 1;
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -1146,7 +1143,7 @@ public class MessagingServiceTests
         var senderId = "sender123";
         var conversationId = 1;
         var messageBody = "Hello!";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -1164,7 +1161,7 @@ public class MessagingServiceTests
             .ReturnsAsync(new List<RoleAssignment>());
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _service.SendGroupMessageAsync(senderId, conversationId, messageBody));
     }
 
@@ -1176,7 +1173,7 @@ public class MessagingServiceTests
         var conversationId = 1;
         var messageBody = "Important announcement!";
         var (startYear, endYear) = GetCurrentFiscalYear();
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -1250,13 +1247,13 @@ public class MessagingServiceTests
         result.Title.Should().Be(groupTitle);
         result.IsGroup.Should().BeTrue();
         result.IsAnnouncementOnly.Should().BeTrue();
-        
-        _mockConversationRepository.Verify(r => r.AddAsync(It.Is<Conversation>(c => 
-            c.IsAnnouncementOnly == true && 
-            c.Title == groupTitle && 
+
+        _mockConversationRepository.Verify(r => r.AddAsync(It.Is<Conversation>(c =>
+            c.IsAnnouncementOnly == true &&
+            c.Title == groupTitle &&
             c.CreatedByUserId == "system")), Times.Once);
     }
-    
+
     // CanDelete property tests
 
     [Fact]
@@ -1266,14 +1263,14 @@ public class MessagingServiceTests
         var conversationId = 1;
         var userId = "user123";
         var otherUserId = "otherUser";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
             Participants = $"{userId};{otherUserId}",
             LastMessageAt = DateTime.UtcNow
         };
-        
+
         var otherUser = new ApplicationUser
         {
             Id = otherUserId,
@@ -1283,13 +1280,13 @@ public class MessagingServiceTests
 
         _mockConversationRepository.Setup(r => r.GetByIdAsync(conversationId))
             .ReturnsAsync(conversation);
-            
+
         _mockSettingsRepository.Setup(r => r.GetByUserAndConversationAsync(userId, conversationId))
             .ReturnsAsync((ConversationUserSettings?)null);
-            
+
         _mockUserManager.Setup(um => um.FindByIdAsync(otherUserId))
             .ReturnsAsync(otherUser);
-            
+
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(conversationId, userId))
             .ReturnsAsync(0);
 
@@ -1307,7 +1304,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var userId = "user123";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -1319,10 +1316,10 @@ public class MessagingServiceTests
 
         _mockConversationRepository.Setup(r => r.GetByIdAsync(conversationId))
             .ReturnsAsync(conversation);
-            
+
         _mockSettingsRepository.Setup(r => r.GetByUserAndConversationAsync(userId, conversationId))
             .ReturnsAsync((ConversationUserSettings?)null);
-            
+
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(conversationId, userId))
             .ReturnsAsync(0);
 
@@ -1340,7 +1337,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var userId = "user123";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -1350,16 +1347,16 @@ public class MessagingServiceTests
             Title = "TUNOSSAUROS",
             LastMessageAt = DateTime.UtcNow
         };
-        
+
         _mockConversationRepository.Setup(r => r.GetByIdAsync(conversationId))
             .ReturnsAsync(conversation);
-            
+
         _mockSettingsRepository.Setup(r => r.GetByUserAndConversationAsync(userId, conversationId))
             .ReturnsAsync((ConversationUserSettings?)null);
-            
+
         _mockUserManager.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
             .ReturnsAsync((string id) => new ApplicationUser { Id = id, FirstName = "User", LastName = id });
-            
+
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(conversationId, userId))
             .ReturnsAsync(0);
 
@@ -1377,7 +1374,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var creatorId = "creator123";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -1387,16 +1384,16 @@ public class MessagingServiceTests
             Title = "My Group",
             LastMessageAt = DateTime.UtcNow
         };
-        
+
         _mockConversationRepository.Setup(r => r.GetByIdAsync(conversationId))
             .ReturnsAsync(conversation);
-            
+
         _mockSettingsRepository.Setup(r => r.GetByUserAndConversationAsync(creatorId, conversationId))
             .ReturnsAsync((ConversationUserSettings?)null);
-            
+
         _mockUserManager.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
             .ReturnsAsync((string id) => new ApplicationUser { Id = id, FirstName = "User", LastName = id });
-            
+
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(conversationId, creatorId))
             .ReturnsAsync(0);
 
@@ -1414,7 +1411,7 @@ public class MessagingServiceTests
         // Arrange
         var conversationId = 1;
         var nonCreatorId = "user123";
-        
+
         var conversation = new Conversation
         {
             Id = conversationId,
@@ -1424,16 +1421,16 @@ public class MessagingServiceTests
             Title = "Other's Group",
             LastMessageAt = DateTime.UtcNow
         };
-        
+
         _mockConversationRepository.Setup(r => r.GetByIdAsync(conversationId))
             .ReturnsAsync(conversation);
-            
+
         _mockSettingsRepository.Setup(r => r.GetByUserAndConversationAsync(nonCreatorId, conversationId))
             .ReturnsAsync((ConversationUserSettings?)null);
-            
+
         _mockUserManager.Setup(um => um.FindByIdAsync(It.IsAny<string>()))
             .ReturnsAsync((string id) => new ApplicationUser { Id = id, FirstName = "User", LastName = id });
-            
+
         _mockMessageRepository.Setup(r => r.GetUnreadCountForConversationAsync(conversationId, nonCreatorId))
             .ReturnsAsync(0);
 
@@ -1455,7 +1452,7 @@ public class MessagingServiceTests
         var receiverId = "receiver456";
         var messageText = "Test message";
         var conversationId = 1;
-        
+
         var mockHubService = new Mock<IMessagesHubService>();
         var serviceWithHub = new MessagingService(
             _mockConversationRepository.Object,
@@ -1520,7 +1517,7 @@ public class MessagingServiceTests
         var senderId = "sender123";
         var conversationId = 1;
         var messageText = "Group message";
-        
+
         var mockHubService = new Mock<IMessagesHubService>();
         var serviceWithHub = new MessagingService(
             _mockConversationRepository.Object,
@@ -1580,7 +1577,7 @@ public class MessagingServiceTests
         // Arrange
         var userId = "user123";
         var conversationId = 1;
-        
+
         var mockHubService = new Mock<IMessagesHubService>();
         var serviceWithHub = new MessagingService(
             _mockConversationRepository.Object,

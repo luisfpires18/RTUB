@@ -29,7 +29,7 @@ public class AlbumServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _mockImageStorageService = new Mock<IImageStorageService>();
@@ -182,7 +182,7 @@ public class AlbumServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var newYear = 2021;
         var newDescription = "Updated description";
         var imageUrl = "https://example.com/test-image.webp";
-        
+
         _mockImageStorageService
             .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(imageUrl);
@@ -197,7 +197,7 @@ public class AlbumServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         updated.Year.Should().Be(newYear);
         updated.Description.Should().Be(newDescription);
         updated.ImageUrl.Should().Be(imageUrl);
-        
+
         // Verify image was uploaded with normalized title (not ID)
         _mockImageStorageService.Verify(
             x => x.UploadImageAsync(It.IsAny<Stream>(), "test.webp", "image/webp", "albums", "updated_title"),
@@ -211,12 +211,12 @@ public class AlbumServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var album = await _albumService.CreateAlbumAsync("Original Title", 2020);
         var oldImageUrl = "https://example.com/old-image.webp";
         var newImageUrl = "https://example.com/new-image.webp";
-        
+
         // Set initial image
         album.SetCoverImage(oldImageUrl);
         _context.Albums.Update(album);
         await _context.SaveChangesAsync();
-        
+
         _mockImageStorageService
             .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(newImageUrl);
@@ -317,7 +317,7 @@ public class AlbumServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Arrange
         var album = await _albumService.CreateAlbumAsync("Test Album", 2020, null, null, false);
         var imageUrl = "https://example.com/new-image.webp";
-        
+
         _mockImageStorageService
             .Setup(x => x.UploadImageAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(imageUrl);

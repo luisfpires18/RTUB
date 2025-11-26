@@ -10,7 +10,7 @@ namespace RTUB.Application.Extensions;
 public static class ApplicationUserExtensions
 {
     #region Category Checkers
-    
+
     /// <summary>
     /// Checks if the user has Leitao category
     /// </summary>
@@ -18,7 +18,7 @@ public static class ApplicationUserExtensions
     {
         return user.Categories.Contains(MemberCategory.Leitao);
     }
-    
+
     /// <summary>
     /// Checks if the user has Caloiro category
     /// </summary>
@@ -26,7 +26,7 @@ public static class ApplicationUserExtensions
     {
         return user.Categories.Contains(MemberCategory.Caloiro);
     }
-    
+
     /// <summary>
     /// Checks if the user has Tuno category
     /// </summary>
@@ -34,7 +34,7 @@ public static class ApplicationUserExtensions
     {
         return user.Categories.Contains(MemberCategory.Tuno);
     }
-    
+
     /// <summary>
     /// Checks if the user has Veterano category (2+ years as Tuno)
     /// </summary>
@@ -42,7 +42,7 @@ public static class ApplicationUserExtensions
     {
         return user.Categories.Contains(MemberCategory.Veterano);
     }
-    
+
     /// <summary>
     /// Checks if the user has Tunossauro category (6+ years as Tuno)
     /// </summary>
@@ -50,7 +50,7 @@ public static class ApplicationUserExtensions
     {
         return user.Categories.Contains(MemberCategory.Tunossauro);
     }
-    
+
     /// <summary>
     /// Checks if the user has TunoHonorario category
     /// </summary>
@@ -58,7 +58,7 @@ public static class ApplicationUserExtensions
     {
         return user.Categories.Contains(MemberCategory.TunoHonorario);
     }
-    
+
     /// <summary>
     /// Checks if the user has Fundador category (Founder of the Tuna)
     /// </summary>
@@ -66,25 +66,25 @@ public static class ApplicationUserExtensions
     {
         return user.Categories.Contains(MemberCategory.Fundador);
     }
-    
+
     #endregion
-    
+
     #region Position Checkers
-    
+
     /// <summary>
     /// Checks if the user is part of the Treasury Team (PrimeiroTesoureiro or SegundoTesoureiro)
     /// Used for financial report management permissions
     /// </summary>
     public static bool IsTreasuryTeam(this ApplicationUser user)
     {
-        return user.Positions.Contains(Position.PrimeiroTesoureiro) || 
+        return user.Positions.Contains(Position.PrimeiroTesoureiro) ||
                user.Positions.Contains(Position.SegundoTesoureiro);
     }
-    
+
     #endregion
-    
+
     #region Combined Checks
-    
+
     /// <summary>
     /// Checks if the user is ONLY Leitao (not Caloiro, Tuno, Veterano, or Tunossauro)
     /// Used for permission checks and UI visibility
@@ -98,7 +98,7 @@ public static class ApplicationUserExtensions
                !categories.Contains(MemberCategory.Veterano) &&
                !categories.Contains(MemberCategory.Tunossauro);
     }
-    
+
     /// <summary>
     /// Checks if the user is Tuno or higher (Tuno, Veterano, or Tunossauro)
     /// Used for mentor eligibility and permission checks
@@ -110,7 +110,7 @@ public static class ApplicationUserExtensions
                categories.Contains(MemberCategory.Veterano) ||
                categories.Contains(MemberCategory.Tunossauro);
     }
-    
+
     /// <summary>
     /// Checks if the user is an effective member (Caloiro, Tuno, Veterano, or Tunossauro)
     /// Excludes Leitao who are not yet official members
@@ -123,7 +123,7 @@ public static class ApplicationUserExtensions
                categories.Contains(MemberCategory.Veterano) ||
                categories.Contains(MemberCategory.Tunossauro);
     }
-    
+
     /// <summary>
     /// Checks if the user can be a mentor (Tuno or higher)
     /// Same as IsTunoOrHigher but more semantic for mentor-related logic
@@ -132,7 +132,7 @@ public static class ApplicationUserExtensions
     {
         return user.IsTunoOrHigher();
     }
-    
+
     /// <summary>
     /// Checks if the user can hold president position (not Leitao or Caloiro)
     /// Requires Tuno or higher category
@@ -141,7 +141,7 @@ public static class ApplicationUserExtensions
     {
         return user.IsTunoOrHigher();
     }
-    
+
     /// <summary>
     /// Checks if the user is not just a Leitao (has progressed to Caloiro or beyond)
     /// </summary>
@@ -149,11 +149,11 @@ public static class ApplicationUserExtensions
     {
         return !user.IsOnlyLeitao();
     }
-    
+
     #endregion
-    
+
     #region Years Calculation
-    
+
     /// <summary>
     /// Gets the number of years as Tuno (from YearTuno+MonthTuno to current year+month)
     /// Returns null if YearTuno is not set
@@ -162,17 +162,17 @@ public static class ApplicationUserExtensions
     public static int? GetYearsAsTuno(this ApplicationUser user)
     {
         if (user.YearTuno == null) return null;
-        
+
         var now = DateTime.Now;
         var tunoStartYear = user.YearTuno.Value;
         var tunoStartMonth = user.MonthTuno ?? 1; // Default to January if month not set
-        
+
         var tunoStart = new DateTime(tunoStartYear, tunoStartMonth, 1);
         var monthsAsTuno = ((now.Year - tunoStart.Year) * 12) + (now.Month - tunoStart.Month);
-        
+
         return monthsAsTuno / 12; // Integer division for complete years
     }
-    
+
     /// <summary>
     /// Checks if the user has been Tuno for at least the specified number of years
     /// Uses month-aware calculation
@@ -182,7 +182,7 @@ public static class ApplicationUserExtensions
         var yearsAsTuno = user.GetYearsAsTuno();
         return yearsAsTuno.HasValue && yearsAsTuno.Value >= years;
     }
-    
+
     /// <summary>
     /// Checks if the user qualifies for Veterano status (2+ years as Tuno)
     /// Uses month-aware calculation
@@ -191,7 +191,7 @@ public static class ApplicationUserExtensions
     {
         return user.HasBeenTunoForYears(2);
     }
-    
+
     /// <summary>
     /// Checks if the user qualifies for Tunossauro status (6+ years as Tuno)
     /// Uses month-aware calculation
@@ -202,11 +202,11 @@ public static class ApplicationUserExtensions
     {
         return user.HasBeenTunoForYears(6);
     }
-    
+
     #endregion
-    
+
     #region Display Name Methods
-    
+
     /// <summary>
     /// Gets the display name in the format: Nickname (First Name Last Name)
     /// Example: Jeans (Luís Pires)
@@ -214,13 +214,11 @@ public static class ApplicationUserExtensions
     /// </summary>
     public static string GetDisplayName(this ApplicationUser user)
     {
-        if (string.IsNullOrEmpty(user.Nickname))
-        {
-            return $"{user.FirstName} {user.LastName}".Trim();
-        }
-        return $"{user.Nickname} ({user.FirstName} {user.LastName})".Trim();
+        return string.IsNullOrEmpty(user.Nickname)
+            ? $"{user.FirstName} {user.LastName}".Trim()
+            : $"{user.Nickname} ({user.FirstName} {user.LastName})".Trim();
     }
-    
+
     /// <summary>
     /// Gets the primary category for display purposes
     /// Priority order: Tunossauro > Veterano > Tuno > Caloiro > Leitão > Membro

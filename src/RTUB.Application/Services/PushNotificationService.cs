@@ -65,7 +65,7 @@ public class PushNotificationService : IPushNotificationService
 
         // Check if subscription already exists
         var existingSubscription = await _subscriptionRepository.GetByEndpointAsync(subscription.Endpoint);
-        
+
         if (existingSubscription != null)
         {
             // Update existing subscription
@@ -75,7 +75,7 @@ public class PushNotificationService : IPushNotificationService
             existingSubscription.UserAgent = userAgent;
             existingSubscription.ExpirationTime = subscription.ExpirationTime;
             existingSubscription.UpdatedAt = DateTime.UtcNow;
-            
+
             await _subscriptionRepository.UpdateAsync(existingSubscription);
         }
         else
@@ -109,14 +109,14 @@ public class PushNotificationService : IPushNotificationService
     {
         // Always deliver to user's inbox as a system message, even if push is not configured
         await SendInboxMessageAsync(userId, notification);
-        
+
         if (!_options.IsConfigured())
         {
             return;
         }
 
         var subscriptions = await _subscriptionRepository.GetByUserIdAsync(userId);
-        
+
         foreach (var subscription in subscriptions)
         {
             await SendNotificationAsync(subscription, notification);
@@ -131,12 +131,12 @@ public class PushNotificationService : IPushNotificationService
         }
 
         var subscriptions = await _subscriptionRepository.GetByUserIdAsync(userId);
-        
+
         foreach (var subscription in subscriptions)
         {
             await SendNotificationAsync(subscription, notification);
         }
-        
+
         // Note: No inbox message is created - this is intentional for direct message notifications
         // since the actual message is already in the conversation
     }
@@ -149,7 +149,7 @@ public class PushNotificationService : IPushNotificationService
         }
 
         var subscriptions = await _subscriptionRepository.GetAllActiveAsync();
-        
+
         var tasks = subscriptions.Select(subscription => SendNotificationAsync(subscription, notification));
         await Task.WhenAll(tasks);
 
@@ -177,7 +177,7 @@ public class PushNotificationService : IPushNotificationService
 
         var allSubscriptions = await _subscriptionRepository.GetAllActiveAsync();
         var selectedSubscriptions = allSubscriptions.Where(s => userIds.Contains(s.UserId)).ToList();
-        
+
         var tasks = selectedSubscriptions.Select(subscription => SendNotificationAsync(subscription, notification));
         await Task.WhenAll(tasks);
     }
@@ -222,7 +222,7 @@ public class PushNotificationService : IPushNotificationService
 
             await _webPushClient.SendNotificationAsync(pushSubscription, payload);
         }
-        catch (WebPushException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Gone || 
+        catch (WebPushException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Gone ||
                                            ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
             // Subscription is no longer valid, remove it

@@ -36,15 +36,15 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        
+
         // Create mocks for new dependencies
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        
+
         _meetingService = new MeetingService(
             new MeetingRepository(_context),
             _context,
@@ -128,7 +128,7 @@ public class MeetingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             _context.Users.Add(_leitaoUser);
             _context.SaveChanges();
         }
-        
+
         // Re-enable auditing
         _context.EnableAuditing();
     }

@@ -14,7 +14,7 @@ public interface IRetirementStatusService
     /// <param name="userId">User ID to evaluate</param>
     /// <returns>RetirementStatusResult containing calculated status and metrics</returns>
     Task<RetirementStatusResult> EvaluateRetirementStatusAsync(string userId);
-    
+
     /// <summary>
     /// Updates user's IsRetired status in database if it differs from calculated value
     /// </summary>

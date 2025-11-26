@@ -10,7 +10,7 @@ public class Enrollment : BaseEntity
 {
     [Required(ErrorMessage = "O ID do utilizador é obrigatório")]
     public string UserId { get; set; } = string.Empty;
-    
+
     [Required(ErrorMessage = "O ID do evento é obrigatório")]
     [Range(1, int.MaxValue, ErrorMessage = "O ID do evento deve ser maior que 0")]
     public int EventId { get; set; }
@@ -20,7 +20,7 @@ public class Enrollment : BaseEntity
     public string? OtherInstruments { get; set; }
     public string? Notes { get; set; }
     public DateTime EnrolledAt { get; set; } = DateTime.UtcNow;
-    
+
     // Navigation properties
     public virtual Event? Event { get; set; }
     public virtual ApplicationUser? User { get; set; }

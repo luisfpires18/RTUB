@@ -9,28 +9,28 @@ public class LeaderboardComment : BaseEntity
 {
     [Required]
     public string TargetUserId { get; set; } = string.Empty;
-    
+
     [Required]
     public string AuthorId { get; set; } = string.Empty;
-    
+
     [Required]
     [MinLength(1, ErrorMessage = "O comentário deve ter pelo menos 1 caractere")]
     [MaxLength(1000, ErrorMessage = "O comentário não pode exceder 1000 caracteres")]
     public string Text { get; set; } = string.Empty;
-    
+
     public DateTime? DeletedAt { get; set; }
-    
+
     // Navigation properties
     public virtual ApplicationUser TargetUser { get; set; } = null!;
     public virtual ApplicationUser Author { get; set; } = null!;
     public virtual ICollection<LeaderboardCommentLike> Likes { get; set; } = new List<LeaderboardCommentLike>();
-    
+
     // Helper property to check if deleted
     public bool IsDeleted => DeletedAt.HasValue;
-    
+
     // Private constructor for EF Core
     private LeaderboardComment() { }
-    
+
     // Factory method
     public static LeaderboardComment Create(string targetUserId, string authorId, string text)
     {
@@ -42,7 +42,7 @@ public class LeaderboardComment : BaseEntity
             throw new ArgumentException("Text is required", nameof(text));
         if (text.Length > 1000)
             throw new ArgumentException("Text cannot exceed 1000 characters", nameof(text));
-            
+
         return new LeaderboardComment
         {
             TargetUserId = targetUserId,
@@ -51,7 +51,7 @@ public class LeaderboardComment : BaseEntity
             CreatedAt = DateTime.UtcNow
         };
     }
-    
+
     public void SoftDelete()
     {
         DeletedAt = DateTime.UtcNow;

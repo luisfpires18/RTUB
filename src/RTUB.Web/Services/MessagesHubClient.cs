@@ -16,12 +16,12 @@ public class MessagesHubClient : IAsyncDisposable
     /// These values follow SignalR best practices for reconnection exponential backoff.
     /// Hardcoded as they are standard for all SignalR connections and rarely need customization.
     /// </summary>
-    private static readonly TimeSpan[] ReconnectionDelays = 
-    { 
-        TimeSpan.Zero, 
-        TimeSpan.FromSeconds(2), 
-        TimeSpan.FromSeconds(5), 
-        TimeSpan.FromSeconds(10) 
+    private static readonly TimeSpan[] ReconnectionDelays =
+    {
+        TimeSpan.Zero,
+        TimeSpan.FromSeconds(2),
+        TimeSpan.FromSeconds(5),
+        TimeSpan.FromSeconds(10)
     };
 
     private readonly NavigationManager _navigationManager;
@@ -65,7 +65,7 @@ public class MessagesHubClient : IAsyncDisposable
         try
         {
             var hubUrl = _navigationManager.ToAbsoluteUri("/hubs/messages");
-            
+
             _hubConnection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>
                 {
@@ -80,7 +80,7 @@ public class MessagesHubClient : IAsyncDisposable
                             options.Headers["Cookie"] = cookies;
                         }
                     }
-                    
+
                     options.UseDefaultCredentials = true;
                 })
                 .WithAutomaticReconnect(ReconnectionDelays)
@@ -89,9 +89,9 @@ public class MessagesHubClient : IAsyncDisposable
             // Register server-to-client handlers
             _hubConnection.On<MessageDto>("ReceiveMessage", async (message) =>
             {
-                _logger.LogDebug("Received message {MessageId} in conversation {ConversationId}", 
+                _logger.LogDebug("Received message {MessageId} in conversation {ConversationId}",
                     message.Id, message.ConversationId);
-                
+
                 if (OnMessageReceived != null)
                 {
                     await OnMessageReceived.Invoke(message);
@@ -100,9 +100,9 @@ public class MessagesHubClient : IAsyncDisposable
 
             _hubConnection.On<int, string, DateTime>("MessageSeen", async (conversationId, userId, seenAt) =>
             {
-                _logger.LogDebug("Messages seen in conversation {ConversationId} by user {UserId}", 
+                _logger.LogDebug("Messages seen in conversation {ConversationId} by user {UserId}",
                     conversationId, userId);
-                
+
                 if (OnMessageSeen != null)
                 {
                     await OnMessageSeen.Invoke(conversationId, userId, seenAt);
@@ -111,9 +111,9 @@ public class MessagesHubClient : IAsyncDisposable
 
             _hubConnection.On<int, string>("TypingStarted", async (conversationId, userId) =>
             {
-                _logger.LogDebug("User {UserId} started typing in conversation {ConversationId}", 
+                _logger.LogDebug("User {UserId} started typing in conversation {ConversationId}",
                     userId, conversationId);
-                
+
                 if (OnTypingStarted != null)
                 {
                     await OnTypingStarted.Invoke(conversationId, userId);
@@ -122,9 +122,9 @@ public class MessagesHubClient : IAsyncDisposable
 
             _hubConnection.On<int, string>("TypingStopped", async (conversationId, userId) =>
             {
-                _logger.LogDebug("User {UserId} stopped typing in conversation {ConversationId}", 
+                _logger.LogDebug("User {UserId} stopped typing in conversation {ConversationId}",
                     userId, conversationId);
-                
+
                 if (OnTypingStopped != null)
                 {
                     await OnTypingStopped.Invoke(conversationId, userId);
@@ -141,7 +141,7 @@ public class MessagesHubClient : IAsyncDisposable
             _hubConnection.Reconnected += async connectionId =>
             {
                 _logger.LogInformation("SignalR reconnected with connection ID {ConnectionId}", connectionId);
-                
+
                 // Rejoin all previously joined conversations
                 foreach (var conversationId in _joinedConversations.Keys)
                 {
@@ -173,7 +173,7 @@ public class MessagesHubClient : IAsyncDisposable
             // Start the connection
             await _hubConnection.StartAsync();
             _isInitialized = true;
-            
+
             _logger.LogInformation("MessagesHub connection established");
         }
         catch (Exception ex)

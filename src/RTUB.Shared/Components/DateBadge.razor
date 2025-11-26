@@ -19,4 +19,22 @@ else if (Date.Date == DateTime.Today.AddDays(1))
     /// </summary>
     [Parameter]
     public DateTime Date { get; set; }
+    
+    private DateTime _previousDate;
+    private DateTime _previousToday;
+    
+    /// <summary>
+    /// Optimize rendering - only re-render when date changes or day changes
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        var today = DateTime.Today;
+        if (Date.Date != _previousDate || today != _previousToday)
+        {
+            _previousDate = Date.Date;
+            _previousToday = today;
+            return true;
+        }
+        return false;
+    }
 }

@@ -11,12 +11,12 @@ public class MemberInstrument : BaseEntity
 {
     [Required(ErrorMessage = "O ID do utilizador é obrigatório")]
     public string MemberId { get; set; } = string.Empty;
-    
+
     [Required(ErrorMessage = "O tipo de instrumento é obrigatório")]
     public InstrumentType InstrumentType { get; set; }
-    
+
     public bool IsPrimary { get; set; } = false;
-    
+
     // Navigation property
     public virtual ApplicationUser? Member { get; set; }
 

@@ -51,28 +51,28 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
         // Arrange
         var userId1 = Guid.NewGuid().ToString();
         var userId2 = Guid.NewGuid().ToString();
-        
-        var user1 = new ApplicationUser 
-        { 
-            Id = userId1, 
-            UserName = $"user1_{userId1}@test.com", 
+
+        var user1 = new ApplicationUser
+        {
+            Id = userId1,
+            UserName = $"user1_{userId1}@test.com",
             Email = $"user1_{userId1}@test.com",
             FirstName = "Test",
             LastName = "User1",
             Nickname = "User1",
             PhoneNumber = "123456789"
         };
-        var user2 = new ApplicationUser 
-        { 
-            Id = userId2, 
-            UserName = $"user2_{userId2}@test.com", 
+        var user2 = new ApplicationUser
+        {
+            Id = userId2,
+            UserName = $"user2_{userId2}@test.com",
             Email = $"user2_{userId2}@test.com",
             FirstName = "Test",
             LastName = "User2",
             Nickname = "User2",
             PhoneNumber = "987654321"
         };
-        
+
         _context.Users.AddRange(user1, user2);
         await _context.SaveChangesAsync();
 
@@ -90,7 +90,7 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
         // User1: 2 attended past rehearsals
         var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, user1.Id);
         attendance1.MarkAttendance(true);
-        
+
         var attendance2 = RehearsalAttendance.Create(rehearsal2.Id, user1.Id);
         attendance2.MarkAttendance(true);
 
@@ -126,17 +126,17 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = $"user_{userId}@test.com", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = $"user_{userId}@test.com",
             Email = $"user_{userId}@test.com",
             FirstName = "Test",
             LastName = "User",
             Nickname = "User",
             PhoneNumber = "123456789"
         };
-        
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -180,28 +180,28 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
         // Arrange
         var userId1 = Guid.NewGuid().ToString();
         var userId2 = Guid.NewGuid().ToString();
-        
-        var user1 = new ApplicationUser 
-        { 
-            Id = userId1, 
-            UserName = $"user1_{userId1}@test.com", 
+
+        var user1 = new ApplicationUser
+        {
+            Id = userId1,
+            UserName = $"user1_{userId1}@test.com",
             Email = $"user1_{userId1}@test.com",
             FirstName = "Test",
             LastName = "User1",
             Nickname = "User1",
             PhoneNumber = "123456789"
         };
-        var user2 = new ApplicationUser 
-        { 
-            Id = userId2, 
-            UserName = $"user2_{userId2}@test.com", 
+        var user2 = new ApplicationUser
+        {
+            Id = userId2,
+            UserName = $"user2_{userId2}@test.com",
             Email = $"user2_{userId2}@test.com",
             FirstName = "Test",
             LastName = "User2",
             Nickname = "User2",
             PhoneNumber = "987654321"
         };
-        
+
         _context.Users.AddRange(user1, user2);
         await _context.SaveChangesAsync();
 
@@ -262,17 +262,17 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = $"user_{userId}@test.com", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = $"user_{userId}@test.com",
             Email = $"user_{userId}@test.com",
             FirstName = "Test",
             LastName = "User",
             Nickname = "User",
             PhoneNumber = "123456789"
         };
-        
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -301,17 +301,17 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = $"user_{userId}@test.com", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = $"user_{userId}@test.com",
             Email = $"user_{userId}@test.com",
             FirstName = "Test",
             LastName = "User",
             Nickname = "User",
             PhoneNumber = "123456789"
         };
-        
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 

@@ -9,22 +9,22 @@ public enum InstrumentCondition
     /// Óptimo - Excellent condition (Green)
     /// </summary>
     Excellent,
-    
+
     /// <summary>
     /// Bom - Good condition (Blue)
     /// </summary>
     Good,
-    
+
     /// <summary>
     /// Velho - Old/Worn (Orange)
     /// </summary>
     Worn,
-    
+
     /// <summary>
     /// Precisa Manutenção - Needs maintenance (Yellow)
     /// </summary>
     NeedsMaintenance,
-    
+
     /// <summary>
     /// Perdido - Lost (Red)
     /// </summary>

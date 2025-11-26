@@ -22,12 +22,12 @@ public class NominatimGeocodingService : IGeocodingService
     private readonly ApplicationDbContext _dbContext;
     private readonly bool _disabledInTests;
     private const string NominatimBaseUrl = "https://nominatim.openstreetmap.org";
-    
+
     // Rate limiting: Nominatim requires ~1 request per second
     private static readonly SemaphoreSlim _rateLimiter = new(1, 1);
     private static DateTime _lastRequestTime = DateTime.MinValue;
     private const int MinMillisecondsBetweenRequests = 1100; // Slightly over 1 second to be safe
-    
+
     // Local fallback coordinates for specific cities (override remote geocoding)
     private static readonly Dictionary<string, (double Latitude, double Longitude)> LocalFallbackCoordinates = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -35,7 +35,7 @@ public class NominatimGeocodingService : IGeocodingService
     };
 
     public NominatimGeocodingService(
-        IHttpClientFactory httpClientFactory, 
+        IHttpClientFactory httpClientFactory,
         ILogger<NominatimGeocodingService> logger,
         ApplicationDbContext dbContext,
         IConfiguration configuration)
@@ -58,29 +58,29 @@ public class NominatimGeocodingService : IGeocodingService
 
         var normalizedCity = cityName.Trim().ToLowerInvariant();
         var normalizedCountryCode = countryCode?.ToUpperInvariant() ?? "PT";
-        
+
         // If disabled in tests, return dummy coordinates
         if (_disabledInTests)
         {
             return (38.7223, -9.1393); // Default to Lisbon coordinates
         }
-        
+
         // Check database cache first
         var cached = await _dbContext.GeocodingCaches
             .AsNoTracking()
             .FirstOrDefaultAsync(g => g.CityName == normalizedCity && g.CountryCode == normalizedCountryCode, cancellationToken);
-        
+
         if (cached != null)
         {
             return (cached.Latitude, cached.Longitude);
         }
-        
+
         // Not in cache - geocode and store
         try
         {
             // Try geocoding with strategies
             var coordinates = await TryGeocodeWithStrategies(cityName, normalizedCountryCode, cancellationToken);
-            
+
             if (coordinates.HasValue)
             {
                 // Store in database cache
@@ -107,7 +107,7 @@ public class NominatimGeocodingService : IGeocodingService
             // Check if already exists (race condition protection)
             var existing = await _dbContext.GeocodingCaches
                 .FirstOrDefaultAsync(g => g.CityName == normalizedCity && g.CountryCode == countryCode);
-            
+
             if (existing == null)
             {
                 var cache = new GeocodingCache
@@ -119,7 +119,7 @@ public class NominatimGeocodingService : IGeocodingService
                     LastUpdated = DateTime.UtcNow,
                     Source = "Nominatim"
                 };
-                
+
                 _dbContext.GeocodingCaches.Add(cache);
                 await _dbContext.SaveChangesAsync();
             }
@@ -139,7 +139,7 @@ public class NominatimGeocodingService : IGeocodingService
             _logger.LogInformation("Using local fallback coordinates for '{CityName}'", cityName);
             return fallbackCoords;
         }
-        
+
         // Strategy 1: Search as city with country filter (most common case)
         var result = await TryGeocode(cityName, countryCode, "city,town,village,municipality", cancellationToken);
         if (result.HasValue) return result;
@@ -174,18 +174,18 @@ public class NominatimGeocodingService : IGeocodingService
 
         var encodedQuery = Uri.EscapeDataString(query);
         var urlBuilder = new StringBuilder($"/search?q={encodedQuery}&format=json&limit=3&addressdetails=1");
-        
+
         if (!string.IsNullOrEmpty(countryCode))
         {
             urlBuilder.Append($"&countrycodes={countryCode.ToLowerInvariant()}");
         }
 
         var url = urlBuilder.ToString();
-        
+
         try
         {
             var response = await _httpClient.GetAsync(url, cancellationToken);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Nominatim request failed: {StatusCode}", response.StatusCode);
@@ -202,7 +202,7 @@ public class NominatimGeocodingService : IGeocodingService
 
             // Find the best match
             var bestResult = FindBestMatch(results, query, featureType);
-            
+
             if (bestResult != null)
             {
                 var coordinates = ExtractCoordinates(bestResult);
@@ -226,7 +226,7 @@ public class NominatimGeocodingService : IGeocodingService
     private (double Latitude, double Longitude) ExtractCoordinates(NominatimResult result)
     {
         // If result has a bounding box and is a place (city/town/village), compute center
-        if (result.boundingbox != null && 
+        if (result.boundingbox != null &&
             result.boundingbox.Count == 4 &&
             result.@class == "place" &&
             result.type != null &&
@@ -239,33 +239,33 @@ public class NominatimGeocodingService : IGeocodingService
                 var north = double.Parse(result.boundingbox[1], System.Globalization.CultureInfo.InvariantCulture);
                 var west = double.Parse(result.boundingbox[2], System.Globalization.CultureInfo.InvariantCulture);
                 var east = double.Parse(result.boundingbox[3], System.Globalization.CultureInfo.InvariantCulture);
-                
+
                 var centerLat = (south + north) / 2.0;
                 var centerLon = (west + east) / 2.0;
-                
-                _logger.LogDebug("Using bounding box center for {DisplayName}: ({Lat}, {Lon})", 
+
+                _logger.LogDebug("Using bounding box center for {DisplayName}: ({Lat}, {Lon})",
                     result.display_name, centerLat, centerLon);
-                
+
                 return (centerLat, centerLon);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to parse bounding box for {DisplayName}, falling back to direct coordinates", 
+                _logger.LogWarning(ex, "Failed to parse bounding box for {DisplayName}, falling back to direct coordinates",
                     result.display_name);
             }
         }
-        
+
         // Fallback to direct lat/lon
         var latitude = double.Parse(result.lat, System.Globalization.CultureInfo.InvariantCulture);
         var longitude = double.Parse(result.lon, System.Globalization.CultureInfo.InvariantCulture);
-        
+
         return (latitude, longitude);
     }
 
     private NominatimResult? FindBestMatch(List<NominatimResult> results, string query, string? featureType)
     {
         if (results.Count == 0) return null;
-        
+
         var queryLower = query.ToLowerInvariant();
         var preferredTypes = new[] { "city", "town", "village", "hamlet", "municipality" };
 
@@ -273,9 +273,9 @@ public class NominatimGeocodingService : IGeocodingService
         foreach (var result in results)
         {
             var nameMatch = result.display_name.Split(',')[0].Trim().ToLowerInvariant();
-            if (nameMatch == queryLower && 
+            if (nameMatch == queryLower &&
                 result.@class == "place" &&
-                result.type != null && 
+                result.type != null &&
                 preferredTypes.Contains(result.type.ToLowerInvariant()))
             {
                 return result;
@@ -286,7 +286,7 @@ public class NominatimGeocodingService : IGeocodingService
         foreach (var result in results)
         {
             if (result.@class == "place" &&
-                result.type != null && 
+                result.type != null &&
                 preferredTypes.Contains(result.type.ToLowerInvariant()))
             {
                 return result;

@@ -60,17 +60,17 @@ public class UserRoleQueryServiceTests : IClassFixture<DatabaseFixture>, IDispos
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = $"user_{userId}@test.com", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = $"user_{userId}@test.com",
             Email = $"user_{userId}@test.com",
             FirstName = "Test",
             LastName = "User",
             Nickname = "User",
             PhoneNumber = "123456789"
         };
-        
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -88,17 +88,17 @@ public class UserRoleQueryServiceTests : IClassFixture<DatabaseFixture>, IDispos
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = $"user_{userId}@test.com", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = $"user_{userId}@test.com",
             Email = $"user_{userId}@test.com",
             FirstName = "Test",
             LastName = "User",
             Nickname = "User",
             PhoneNumber = "123456789"
         };
-        
+
         _context.Users.Add(user);
 
         var role = new IdentityRole
@@ -137,17 +137,17 @@ public class UserRoleQueryServiceTests : IClassFixture<DatabaseFixture>, IDispos
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = $"user_{userId}@test.com", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = $"user_{userId}@test.com",
             Email = $"user_{userId}@test.com",
             FirstName = "Test",
             LastName = "User",
             Nickname = "User",
             PhoneNumber = "123456789"
         };
-        
+
         _context.Users.Add(user);
 
         var adminRole = new IdentityRole
@@ -201,11 +201,11 @@ public class UserRoleQueryServiceTests : IClassFixture<DatabaseFixture>, IDispos
         var userId1 = Guid.NewGuid().ToString();
         var userId2 = Guid.NewGuid().ToString();
         var userId3 = Guid.NewGuid().ToString();
-        
-        var user1 = new ApplicationUser 
-        { 
-            Id = userId1, 
-            UserName = $"user1_{userId1}@test.com", 
+
+        var user1 = new ApplicationUser
+        {
+            Id = userId1,
+            UserName = $"user1_{userId1}@test.com",
             Email = $"user1_{userId1}@test.com",
             FirstName = "Test",
             LastName = "User1",
@@ -213,10 +213,10 @@ public class UserRoleQueryServiceTests : IClassFixture<DatabaseFixture>, IDispos
             PhoneNumber = "123456789"
         };
 
-        var user2 = new ApplicationUser 
-        { 
-            Id = userId2, 
-            UserName = $"user2_{userId2}@test.com", 
+        var user2 = new ApplicationUser
+        {
+            Id = userId2,
+            UserName = $"user2_{userId2}@test.com",
             Email = $"user2_{userId2}@test.com",
             FirstName = "Test",
             LastName = "User2",
@@ -224,17 +224,17 @@ public class UserRoleQueryServiceTests : IClassFixture<DatabaseFixture>, IDispos
             PhoneNumber = "987654321"
         };
 
-        var user3 = new ApplicationUser 
-        { 
-            Id = userId3, 
-            UserName = $"user3_{userId3}@test.com", 
+        var user3 = new ApplicationUser
+        {
+            Id = userId3,
+            UserName = $"user3_{userId3}@test.com",
             Email = $"user3_{userId3}@test.com",
             FirstName = "Test",
             LastName = "User3",
             Nickname = "User3",
             PhoneNumber = "111222333"
         };
-        
+
         _context.Users.AddRange(user1, user2, user3);
 
         var adminRole = new IdentityRole
@@ -317,17 +317,17 @@ public class UserRoleQueryServiceTests : IClassFixture<DatabaseFixture>, IDispos
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = $"user_{userId}@test.com", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = $"user_{userId}@test.com",
             Email = $"user_{userId}@test.com",
             FirstName = "Test",
             LastName = "User",
             Nickname = "User",
             PhoneNumber = "123456789"
         };
-        
+
         _context.Users.Add(user);
 
         var role = new IdentityRole

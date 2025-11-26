@@ -46,7 +46,7 @@ public class SongService : ISongService
     public async Task UpdateSongAsync(int id, string title, int? trackNumber, string? lyricAuthor, string? musicAuthor, string? adaptation, int? duration)
     {
         var song = await _songRepository.GetSongForUpdateAsync(id);
-            
+
         if (song == null)
             throw new EntityNotFoundException(nameof(Song), id);
 
@@ -57,7 +57,7 @@ public class SongService : ISongService
     public async Task SetSongLyricsAsync(int id, string? lyrics)
     {
         var song = await _songRepository.GetSongForUpdateAsync(id);
-            
+
         if (song == null)
             throw new EntityNotFoundException(nameof(Song), id);
 
@@ -68,7 +68,7 @@ public class SongService : ISongService
     public async Task SetSongSpotifyUrlAsync(int id, string? url)
     {
         var song = await _songRepository.GetSongForUpdateAsync(id);
-            
+
         if (song == null)
             throw new EntityNotFoundException(nameof(Song), id);
 
@@ -79,7 +79,7 @@ public class SongService : ISongService
     public async Task SetSongHasMusicAsync(int id, bool hasMusic)
     {
         var song = await _songRepository.GetSongForUpdateAsync(id);
-            
+
         if (song == null)
             throw new EntityNotFoundException(nameof(Song), id);
 
@@ -90,7 +90,7 @@ public class SongService : ISongService
     public async Task DeleteSongAsync(int id)
     {
         var song = await _songRepository.GetSongForUpdateAsync(id);
-            
+
         if (song == null)
             throw new EntityNotFoundException(nameof(Song), id);
 
@@ -100,7 +100,7 @@ public class SongService : ISongService
     public async Task AddYouTubeUrlAsync(int songId, string url)
     {
         var song = await _songRepository.GetSongForUpdateAsync(songId);
-            
+
         if (song == null)
             throw new EntityNotFoundException(nameof(Song), songId);
 
@@ -116,12 +116,12 @@ public class SongService : ISongService
         }
 
         // Add YouTube URL to song
-        var youtubeUrl = new SongYouTubeUrl 
-        { 
-            SongId = songId, 
-            Url = canonicalUrl 
+        var youtubeUrl = new SongYouTubeUrl
+        {
+            SongId = songId,
+            Url = canonicalUrl
         };
-        
+
         song.YouTubeUrls.Add(youtubeUrl);
         await _songRepository.UpdateAsync(song);
     }
@@ -129,7 +129,7 @@ public class SongService : ISongService
     public async Task RemoveYouTubeUrlAsync(int songId, string url)
     {
         var song = await _songRepository.GetSongForUpdateAsync(songId);
-            
+
         if (song == null)
             throw new EntityNotFoundException(nameof(Song), songId);
 
@@ -147,7 +147,7 @@ public class SongService : ISongService
         }
         else
         {
-            _logger?.LogWarning("Attempted to remove non-existent YouTube URL from song {SongId}: {Url}", 
+            _logger?.LogWarning("Attempted to remove non-existent YouTube URL from song {SongId}: {Url}",
                 songId, canonicalUrl);
         }
     }
@@ -162,7 +162,7 @@ public class SongService : ISongService
     {
         if (string.IsNullOrWhiteSpace(url))
             return string.Empty;
-            
+
         return url.Trim().ToLowerInvariant();
     }
 }

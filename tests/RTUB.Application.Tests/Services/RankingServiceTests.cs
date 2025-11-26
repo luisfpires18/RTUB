@@ -9,6 +9,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Repositories;
 using RTUB.Application.Tests.Fixtures;
+using RTUB.Application.Tests.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -30,15 +31,11 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var tempContext = _fixture.CreateContext();
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
-        
+
         _fixture = fixture;
         _context = _fixture.CreateContext();
-        
-        // Mock UserManager
-        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
-        _mockUserManager = new Mock<UserManager<ApplicationUser>>(
-            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        
+        _mockUserManager = MockHelpers.CreateMockUserManager();
+
         // Setup test configuration
         _config = new RankingConfiguration
         {
@@ -58,19 +55,19 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
                 new() { Level = 5, Name = "Veterano das Cervejas", XpThreshold = 1000 }
             }
         };
-        
+
         // Create mocks for new dependencies
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        
+
         var configOptions = Options.Create(_config);
         var attendanceRepo = new RehearsalAttendanceRepository(_context);
         var enrollmentRepo = new EnrollmentRepository(_context);
         _service = new RankingService(
-            attendanceRepo, 
-            enrollmentRepo, 
-            _mockUserManager.Object, 
+            attendanceRepo,
+            enrollmentRepo,
+            _mockUserManager.Object,
             configOptions,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
@@ -97,7 +94,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var userId = "user-123";
         var rehearsal1 = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
         var rehearsal2 = new Rehearsal { Id = 2, Date = DateTime.UtcNow.AddDays(-2) };
-        
+
         await _context.Rehearsals.AddRangeAsync(rehearsal1, rehearsal2);
         var attendance1 = RehearsalAttendance.Create(1, userId);
         attendance1.Attended = true;
@@ -124,7 +121,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         event1.Id = 1;
         var event2 = Event.Create("Event 2", DateTime.UtcNow.AddDays(-2), "Location", EventType.Atuacao);
         event2.Id = 2;
-        
+
         await _context.Events.AddRangeAsync(event1, event2);
         var enrollment1 = Enrollment.Create(userId, 1);
         enrollment1.WillAttend = true;
@@ -150,7 +147,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var rehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
         var eventEntity = Event.Create("Event 1", DateTime.UtcNow.AddDays(-1), "Location", EventType.Festival);
         eventEntity.Id = 1;
-        
+
         await _context.Rehearsals.AddAsync(rehearsal);
         await _context.Events.AddAsync(eventEntity);
         var attendance = RehearsalAttendance.Create(1, userId);
@@ -175,7 +172,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var userId = "user-123";
         var rehearsal1 = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
         var rehearsal2 = new Rehearsal { Id = 2, Date = DateTime.UtcNow.AddDays(-2) };
-        
+
         await _context.Rehearsals.AddRangeAsync(rehearsal1, rehearsal2);
         var attendance1 = RehearsalAttendance.Create(1, userId);
         attendance1.Attended = true;
@@ -200,7 +197,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         event1.Id = 1;
         var event2 = Event.Create("Event 2", DateTime.UtcNow.AddDays(-2), "Location", EventType.Atuacao);
         event2.Id = 2;
-        
+
         await _context.Events.AddRangeAsync(event1, event2);
         var enrollment1 = Enrollment.Create(userId, 1);
         enrollment1.WillAttend = true;
@@ -225,7 +222,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         pastEvent.Id = 1;
         var futureEvent = Event.Create("Future Event", DateTime.UtcNow.AddDays(1), "Location", EventType.Atuacao);
         futureEvent.Id = 2;
-        
+
         await _context.Events.AddRangeAsync(pastEvent, futureEvent);
         var enrollment1 = Enrollment.Create(userId, 1);
         enrollment1.WillAttend = true;
@@ -248,7 +245,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var userId = "user-123";
         var pastRehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
         var futureRehearsal = new Rehearsal { Id = 2, Date = DateTime.UtcNow.AddDays(1) };
-        
+
         await _context.Rehearsals.AddRangeAsync(pastRehearsal, futureRehearsal);
         var attendance1 = RehearsalAttendance.Create(1, userId);
         attendance1.Attended = true;
@@ -361,7 +358,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var userId = "user-123";
         var user = new ApplicationUser { Id = userId, UserName = "testuser", Nickname = "Test" };
         var rehearsal = new Rehearsal { Id = 1, Date = DateTime.Now };
-        
+
         _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
         await _context.Rehearsals.AddAsync(rehearsal);
         var attendance = RehearsalAttendance.Create(1, userId);
@@ -391,10 +388,10 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var userId = "user-123";
         var user = new ApplicationUser { Id = userId, UserName = "testuser", Nickname = "Test" };
         var rehearsal = new Rehearsal { Id = 1, Date = DateTime.Now };
-        
+
         _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
         await _context.Rehearsals.AddAsync(rehearsal);
-        
+
         // Add enough attendances to reach max level (1000 XP)
         for (int i = 1; i <= 100; i++)
         {
@@ -422,20 +419,20 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     {
         // Arrange
         var userId = "user-123";
-        var user = new ApplicationUser 
-        { 
-            Id = userId, 
-            UserName = "testuser", 
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = "testuser",
             Nickname = "Test",
             ExperiencePoints = 0,
             Level = 1
         };
         var rehearsal = new Rehearsal { Id = 1, Date = DateTime.Now };
-        
+
         _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
         _mockUserManager.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
-        
+
         await _context.Rehearsals.AddAsync(rehearsal);
         var attendance = RehearsalAttendance.Create(1, userId);
         attendance.Attended = true;
@@ -458,7 +455,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var userId = "user-123";
         var festivalEvent = Event.Create("Festival Event", DateTime.UtcNow.AddDays(-1), "Location", EventType.Festival);
         festivalEvent.Id = 1;
-        
+
         await _context.Events.AddAsync(festivalEvent);
         var enrollment = Enrollment.Create(userId, 1);
         enrollment.WillAttend = true;
@@ -479,7 +476,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         var userId = "user-123";
         var nebraEvent = Event.Create("Nerba Event", DateTime.UtcNow.AddDays(-1), "Location", EventType.Nerba);
         nebraEvent.Id = 1;
-        
+
         await _context.Events.AddAsync(nebraEvent);
         var enrollment = Enrollment.Create(userId, 1);
         enrollment.WillAttend = true;
@@ -504,7 +501,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         atuacaoEvent.Id = 2;
         var casamentoEvent = Event.Create("Casamento", DateTime.UtcNow.AddDays(-3), "Location", EventType.Casamento);
         casamentoEvent.Id = 3;
-        
+
         await _context.Events.AddRangeAsync(festivalEvent, atuacaoEvent, casamentoEvent);
         var enrollment1 = Enrollment.Create(userId, 1);
         enrollment1.WillAttend = true;

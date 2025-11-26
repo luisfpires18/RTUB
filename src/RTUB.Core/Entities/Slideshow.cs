@@ -8,22 +8,22 @@ namespace RTUB.Core.Entities;
 public class Slideshow : BaseEntity, IValidatableObject
 {
     public string ImageUrl { get; set; } = string.Empty;
-    
+
     [Required(ErrorMessage = "O título do slideshow é obrigatório")]
     [MaxLength(200, ErrorMessage = "O título não pode exceder 200 caracteres")]
     public string Title { get; set; } = string.Empty;
-    
+
     [MaxLength(1000, ErrorMessage = "A descrição não pode exceder 1000 caracteres")]
     public string Description { get; set; } = string.Empty;
-    
+
     [Required(ErrorMessage = "A ordem é obrigatória")]
     [Range(1, int.MaxValue, ErrorMessage = "A ordem deve ser maior que 0")]
     public int Order { get; set; }
-    
+
     [Required(ErrorMessage = "O intervalo é obrigatório")]
     [Range(1000, 10000, ErrorMessage = "O intervalo deve estar entre 1000ms e 10000ms")]
     public int IntervalMs { get; set; } = 5000;
-    
+
     public bool IsActive { get; set; } = true;
 
     // Private constructor for EF Core
@@ -33,10 +33,10 @@ public class Slideshow : BaseEntity, IValidatableObject
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título não pode estar vazio", nameof(title));
-        
+
         if (order < 1)
             throw new ArgumentException("A ordem deve ser positiva", nameof(order));
-        
+
         if (intervalMs < 1000 || intervalMs > 10000)
             throw new ArgumentException("O intervalo deve estar entre 1000ms e 10000ms", nameof(intervalMs));
 
@@ -53,10 +53,10 @@ public class Slideshow : BaseEntity, IValidatableObject
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("O título não pode estar vazio", nameof(title));
-        
+
         if (order < 1)
             throw new ArgumentException("A ordem deve ser positiva", nameof(order));
-        
+
         if (intervalMs < 1000 || intervalMs > 10000)
             throw new ArgumentException("O intervalo deve estar entre 1000ms e 10000ms", nameof(intervalMs));
 

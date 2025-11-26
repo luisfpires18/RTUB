@@ -12,7 +12,7 @@ public interface IActivityRepository : IRepository<Activity>
     /// Gets activity with related report
     /// </summary>
     Task<Activity?> GetWithReportAsync(int id);
-    
+
     /// <summary>
     /// Gets activity with transactions
     /// </summary>
