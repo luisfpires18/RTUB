@@ -36,7 +36,7 @@
     {
         if (IsLocked && LockoutEnd.HasValue)
         {
-            return $"Conta bloqueada até {LockoutEnd.Value.LocalDateTime:dd/MM/yyyy HH:mm}";
+            return $"Conta bloqueada até {LockoutEnd.Value.ToLocalTime():dd/MM/yyyy HH:mm}";
         }
         return "Conta ativa";
     }

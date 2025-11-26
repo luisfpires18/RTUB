@@ -1,7 +1,7 @@
 /* User Roles Page - Responsive Table */
 
 .user-roles-table {
-    min-width: 100%;
+    min-width: 320px;
 }
 
 .user-roles-table .member-avatar-small {
@@ -56,10 +56,10 @@
     }
 
     .user-roles-table td {
-        display: flex;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: auto 1fr;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.5rem 0.75rem;
         border-bottom: 1px dashed rgba(var(--bs-primary-rgb), 0.1);
         padding: 0.5rem 0;
     }
@@ -74,12 +74,11 @@
         font-weight: 600;
         color: var(--bs-gray-400);
         letter-spacing: 0.01em;
-        flex-shrink: 0;
     }
 
     /* Show all columns on mobile in card view */
     .user-roles-table td.d-none {
-        display: flex !important;
+        display: grid !important;
     }
 
     .user-roles-table .member-avatar-small {
@@ -92,20 +91,24 @@
         min-height: 36px;
     }
 
-    /* User column - special handling */
+    /* User column - special handling for the avatar layout */
     .user-roles-table td[data-label="Utilizador"] {
-        flex-direction: column;
-        align-items: flex-start;
+        grid-template-columns: 1fr;
     }
 
     .user-roles-table td[data-label="Utilizador"]::before {
         margin-bottom: 0.25rem;
     }
 
-    /* Actions column - align buttons */
+    /* Actions column - right align buttons */
     .user-roles-table td[data-label="Ações"] {
+        display: flex;
         justify-content: flex-end;
         gap: 0.25rem;
+    }
+
+    .user-roles-table td[data-label="Ações"]::before {
+        display: none;
     }
 }
 
