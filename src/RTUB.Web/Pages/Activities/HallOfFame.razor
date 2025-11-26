@@ -28,7 +28,87 @@
 }
 else
 {
-    <!-- Row 1: Afilhados & Cargos -->
+    <!-- Row 1: Última Passagem a Caloiro & Última Passagem a Tuno -->
+    <div class="hof-row">
+        <div class="hof-panel">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">ÚLTIMA PASSAGEM A CALOIRO</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (mostRecentCaloiro.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in mostRecentCaloiro)
+                                {
+                                    <div class="col-md-@(mostRecentCaloiro.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@FormatMonthYear(member.Date)</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="hof-panel">
+            <section>
+                <div class="card shadow-sm portal-governing-body-card">
+                    <div class="card-header gov-body-card-header">
+                        <h3 class="mb-0">ÚLTIMA PASSAGEM A TUNO</h3>
+                    </div>
+                    <div class="card-body">
+                        @if (mostRecentTuno.Any())
+                        {
+                            <div class="row">
+                                @foreach (var member in mostRecentTuno)
+                                {
+                                    <div class="col-md-@(mostRecentTuno.Count > 1 ? "6" : "12") text-center mb-3">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <img src="@member.User.ProfilePictureSrc" alt="@member.User.GetDisplayName()" class="member-avatar-large mb-2" />
+                                            @if (!string.IsNullOrEmpty(member.User.Nickname))
+                                            {
+                                                <div class="text-light-theme">@member.User.Nickname</div>
+                                                <div class="member-nickname">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-light-theme">@member.User.FirstName @member.User.LastName</div>
+                                            }
+                                            <div class="text-muted small mt-1">@FormatMonthYear(member.Date)</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="not-available-text">Sem dados suficientes</div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Row 2: Afilhados & Cargos -->
     <div class="hof-row">
         <div class="hof-panel">
             <section>
@@ -108,7 +188,7 @@ else
         </div>
     </div>
 
-    <!-- Row 2: Magister & Instrumentos -->
+    <!-- Row 3: Magister & Instrumentos -->
     <div class="hof-row">
         <div class="hof-panel">
             <section>
@@ -188,7 +268,7 @@ else
         </div>
     </div>
 
-    <!-- Row 3: Tempo a Leitão -->
+    <!-- Row 4: Tempo a Leitão -->
     <div class="hof-row">
         <div class="hof-panel">
             <section>
@@ -268,7 +348,7 @@ else
         </div>
     </div>
 
-    <!-- Row 4: Tempo a Caloiro -->
+    <!-- Row 5: Tempo a Caloiro -->
     <div class="hof-row">
         <div class="hof-panel">
             <section>
@@ -348,7 +428,7 @@ else
         </div>
     </div>
 
-    <!-- Row 5: Ensaios & Atuações -->
+    <!-- Row 6: Ensaios & Atuações -->
     <div class="hof-row">
         <div class="hof-panel">
             <section>
@@ -444,7 +524,15 @@ else
         public int Count { get; set; }
     }
 
+    private class MemberDate
+    {
+        public ApplicationUser User { get; set; } = null!;
+        public DateTime Date { get; set; }
+    }
+
     // Metric results
+    private List<MemberDate> mostRecentCaloiro = new();
+    private List<MemberDate> mostRecentTuno = new();
     private List<MemberDuration> longestCaloiro = new();
     private List<MemberDuration> shortestCaloiro = new();
     private List<MemberDuration> longestLeitao = new();
@@ -483,6 +571,8 @@ else
         }
 
         // Calculate metrics
+        await CalculateMostRecentCaloiro(allUsers);
+        await CalculateMostRecentTuno(allUsers);
         await CalculateCaloiroDurations(allUsers);
         await CalculateLeitaoDurations(allUsers);
         await CalculateMostPositions(allUsers, allRoleAssignments.ToList());
@@ -491,6 +581,56 @@ else
         await CalculateMostPerformances(allUsers);
         await CalculateMostAfilhados(allUsers);
         await CalculateMostInstruments(allUsers);
+    }
+
+    private async Task CalculateMostRecentCaloiro(List<ApplicationUser> allUsers)
+    {
+        // Find users who have valid YearCaloiro and MonthCaloiro
+        // Create date from YearCaloiro and MonthCaloiro
+        // Find the most recent date(s) and the user(s) with that date
+        var usersWithDates = allUsers
+            .Where(u => u.YearCaloiro.HasValue && u.MonthCaloiro.HasValue
+                     && u.YearCaloiro.Value >= 1 && u.YearCaloiro.Value <= 9999
+                     && u.MonthCaloiro.Value >= 1 && u.MonthCaloiro.Value <= 12)
+            .Select(u => new MemberDate
+            {
+                User = u,
+                Date = new DateTime(u.YearCaloiro!.Value, u.MonthCaloiro!.Value, 1)
+            })
+            .ToList();
+
+        if (usersWithDates.Any())
+        {
+            var maxDate = usersWithDates.Max(x => x.Date);
+            mostRecentCaloiro = usersWithDates.Where(x => x.Date == maxDate).ToList();
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private async Task CalculateMostRecentTuno(List<ApplicationUser> allUsers)
+    {
+        // Find users who have valid YearTuno and MonthTuno
+        // Create date from YearTuno and MonthTuno
+        // Find the most recent date(s) and the user(s) with that date
+        var usersWithDates = allUsers
+            .Where(u => u.YearTuno.HasValue && u.MonthTuno.HasValue
+                     && u.YearTuno.Value >= 1 && u.YearTuno.Value <= 9999
+                     && u.MonthTuno.Value >= 1 && u.MonthTuno.Value <= 12)
+            .Select(u => new MemberDate
+            {
+                User = u,
+                Date = new DateTime(u.YearTuno!.Value, u.MonthTuno!.Value, 1)
+            })
+            .ToList();
+
+        if (usersWithDates.Any())
+        {
+            var maxDate = usersWithDates.Max(x => x.Date);
+            mostRecentTuno = usersWithDates.Where(x => x.Date == maxDate).ToList();
+        }
+
+        await Task.CompletedTask;
     }
 
     private async Task CalculateCaloiroDurations(List<ApplicationUser> allUsers)
@@ -765,5 +905,10 @@ else
         }
 
         return $"{years} {(years == 1 ? "ano" : "anos")} {remainingMonths} {(remainingMonths == 1 ? "mês" : "meses")}";
+    }
+
+    private string FormatMonthYear(DateTime date)
+    {
+        return date.ToString("MMMM yyyy", new System.Globalization.CultureInfo("pt-PT"));
     }
 }

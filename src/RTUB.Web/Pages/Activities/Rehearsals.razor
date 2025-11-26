@@ -1769,7 +1769,7 @@ else
         try
         {
             // Update the attendance to set WillAttend to false (cancel attendance)
-            await AttendanceService.CancelAttendanceAsync(attendance.Id);
+            await AttendanceService.CancelAttendanceAsync(attendance.Id, currentUserId);
             
             // Refresh the attendance list
             if (selectedRehearsal != null)
@@ -1793,7 +1793,7 @@ else
             // Save current page before refreshing
             var currentPage = attendancesPagination.CurrentPage;
             
-            await AttendanceService.UpdateAttendanceAsync(attendance.Id, true, attendance.Instrument);
+            await AttendanceService.UpdateAttendanceAsync(attendance.Id, true, attendance.Instrument, currentUserId);
             
             // Refresh the attendance list
             if (selectedRehearsal != null)

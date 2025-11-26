@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -8,6 +9,7 @@ using RTUB.Application.Data;
 using RTUB.Application.Services;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
+using RTUB.Application.Tests.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
 
@@ -23,6 +25,10 @@ public class RehearsalWorkflowTests : IDisposable
     private readonly RehearsalService _rehearsalService;
     private readonly RehearsalAttendanceService _attendanceService;
     private readonly Mock<IRetirementStatusService> _mockRetirementStatusService;
+    private readonly Mock<IPushNotificationService> _mockPushNotificationService;
+    private readonly Mock<IPushNotificationFactory> _mockPushNotificationFactory;
+    private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
+    private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
 
     public RehearsalWorkflowTests()
     {
@@ -39,11 +45,19 @@ public class RehearsalWorkflowTests : IDisposable
         _context = _serviceProvider.GetRequiredService<ApplicationDbContext>();
 
         _mockRetirementStatusService = new Mock<IRetirementStatusService>();
+        _mockPushNotificationService = new Mock<IPushNotificationService>();
+        _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        _mockUserManager = MockHelpers.CreateMockUserManager();
 
         _rehearsalService = new RehearsalService(new RehearsalRepository(_context), new RehearsalAttendanceRepository(_context));
         _attendanceService = new RehearsalAttendanceService(
             new RehearsalAttendanceRepository(_context),
-            _mockRetirementStatusService.Object);
+            _mockRetirementStatusService.Object,
+            _mockPushNotificationService.Object,
+            _mockPushNotificationFactory.Object,
+            _mockHttpContextAccessor.Object,
+            _mockUserManager.Object);
     }
 
     [Fact]

@@ -38,20 +38,8 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         _fixture = fixture;
         _context = _fixture.CreateContext();
 
-        // Create mocks for new dependencies
-        var mockEventRepository = new Mock<IEventRepository>();
-        var mockEnrollmentRepository = new Mock<IEnrollmentRepository>();
-        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
-        var mockPushNotificationService = new Mock<IPushNotificationService>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-
         _repertoireService = new EventRepertoireService(
-            new EventRepertoireRepository(_context),
-            mockEventRepository.Object,
-            mockEnrollmentRepository.Object,
-            mockPushNotificationFactory.Object,
-            mockPushNotificationService.Object,
-            mockHttpContextAccessor.Object);
+            new EventRepertoireRepository(_context));
 
         _mockImageStorageService = new Mock<IImageStorageService>();
         _eventService = new EventService(new EventRepository(_context), _mockImageStorageService.Object, new EnrollmentRepository(_context));

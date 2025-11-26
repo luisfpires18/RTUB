@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using MockQueryable.Moq;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
@@ -17,6 +18,9 @@ public class LeaderboardCommentServiceTests
 {
     private readonly Mock<ILeaderboardCommentRepository> _mockCommentRepository;
     private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
+    private readonly Mock<IPushNotificationService> _mockPushNotificationService;
+    private readonly Mock<IPushNotificationFactory> _mockPushNotificationFactory;
+    private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private readonly LeaderboardCommentService _service;
     private readonly ApplicationUser _testUser;
     private readonly ApplicationUser _testAuthor;
@@ -26,8 +30,16 @@ public class LeaderboardCommentServiceTests
     {
         _mockCommentRepository = new Mock<ILeaderboardCommentRepository>();
         _userManagerMock = MockHelpers.CreateMockUserManager();
+        _mockPushNotificationService = new Mock<IPushNotificationService>();
+        _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
-        _service = new LeaderboardCommentService(_mockCommentRepository.Object, _userManagerMock.Object);
+        _service = new LeaderboardCommentService(
+            _mockCommentRepository.Object,
+            _userManagerMock.Object,
+            _mockPushNotificationService.Object,
+            _mockPushNotificationFactory.Object,
+            _mockHttpContextAccessor.Object);
 
         // Setup test users
         _testUser = new ApplicationUser
