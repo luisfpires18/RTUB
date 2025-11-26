@@ -113,36 +113,41 @@
                             <ErrorDisplay />
 
                             <div class="row mb-3">
-                                <div class="col-md-6">
+                                <div class="col-md-6 mb-3 mb-md-0">
                                     <label class="form-label text-white-full fw-semibold">
                                         <i class="bi bi-person text-primary me-2"></i>Primeiro Nome
                                     </label>
                                     <InputText class="form-control" @bind-Value="editUser.FirstName" placeholder="Inserir primeiro nome..." />
+                                    <ValidationMessage For="@(() => editUser.FirstName)" />
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-white-full fw-semibold">
                                         <i class="bi bi-person text-primary me-2"></i>Último Nome
                                     </label>
                                     <InputText class="form-control" @bind-Value="editUser.LastName" placeholder="Inserir último nome..." />
+                                    <ValidationMessage For="@(() => editUser.LastName)" />
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label text-white-full fw-semibold">
-                                    <i class="bi bi-star text-primary me-2"></i>Nome de Tuna
-                                </label>
-                                <InputText class="form-control" @bind-Value="editUser.Nickname" placeholder="Inserir nome de tuna..." />
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label text-white-full fw-semibold">
-                                    <i class="bi bi-envelope text-primary me-2"></i>Email
-                                </label>
-                                <InputText class="form-control" @bind-Value="editUser.Email" type="email" placeholder="Inserir email..." />
+                            <div class="row mb-3">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <label class="form-label text-white-full fw-semibold">
+                                        <i class="bi bi-star text-primary me-2"></i>Nome de Tuna
+                                    </label>
+                                    <InputText class="form-control" @bind-Value="editUser.Nickname" placeholder="Inserir nome de tuna..." />
+                                    <ValidationMessage For="@(() => editUser.Nickname)" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-white-full fw-semibold">
+                                        <i class="bi bi-envelope text-primary me-2"></i>Email
+                                    </label>
+                                    <InputText class="form-control" @bind-Value="editUser.Email" type="email" placeholder="Inserir email..." />
+                                    <ValidationMessage For="@(() => editUser.Email)" />
+                                </div>
                             </div>
 
                             <div class="row mb-3">
-                                <div class="col-md-6">
+                                <div class="col-md-6 mb-3 mb-md-0">
                                     <label class="form-label text-white-full fw-semibold">
                                         <i class="bi bi-calendar3 text-primary me-2"></i>Data de Nascimento
                                     </label>
@@ -153,21 +158,23 @@
                                         <i class="bi bi-telephone text-primary me-2"></i>Contacto
                                     </label>
                                     <InputText class="form-control" @bind-Value="editUser.PhoneNumber" placeholder="Inserir contacto..." />
+                                    <ValidationMessage For="@(() => editUser.PhoneNumber)" />
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label text-white-full fw-semibold">
-                                    <i class="bi bi-geo-alt text-primary me-2"></i>Cidade
-                                </label>
-                                <InputText class="form-control" @bind-Value="editUser.City" placeholder="Inserir cidade..." />
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label text-white-full fw-semibold">
-                                    <i class="bi bi-mortarboard text-primary me-2"></i>Curso
-                                </label>
-                                <InputText class="form-control" @bind-Value="editUser.Degree" placeholder="Inserir curso..." />
+                            <div class="row mb-3">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <label class="form-label text-white-full fw-semibold">
+                                        <i class="bi bi-geo-alt text-primary me-2"></i>Cidade
+                                    </label>
+                                    <InputText class="form-control" @bind-Value="editUser.City" placeholder="Inserir cidade..." />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-white-full fw-semibold">
+                                        <i class="bi bi-mortarboard text-primary me-2"></i>Curso
+                                    </label>
+                                    <InputText class="form-control" @bind-Value="editUser.Degree" placeholder="Inserir curso..." />
+                                </div>
                             </div>
                         </EditForm>
                     }
