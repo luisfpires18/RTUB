@@ -1,0 +1,57 @@
+@namespace RTUB.Shared
+@using RTUB.Application.Interfaces
+@inject IGroupConversationSyncService GroupSyncService
+
+<button class="btn btn-purple" @onclick="SyncGroups" disabled="@isSyncing" title="Sincronizar grupos de chat">
+    @if (isSyncing)
+    {
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span> A sincronizar...</span>
+    }
+    else
+    {
+        <i class="bi bi-arrow-repeat"></i>
+        <span> Sync Grupos</span>
+    }
+</button>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="mt-2">
+        <Alert Type="@(isError ? Alert.AlertType.Error : Alert.AlertType.Success)"
+               Message="@message"
+               Dismissible="true"
+               OnDismiss="@(() => message = string.Empty)" />
+    </div>
+}
+
+@code {
+    private bool isSyncing = false;
+    private string message = string.Empty;
+    private bool isError = false;
+
+    private async Task SyncGroups()
+    {
+        if (isSyncing) return;
+
+        isSyncing = true;
+        message = string.Empty;
+
+        try
+        {
+            await GroupSyncService.SyncDefaultGroupsAsync();
+            message = "Grupos sincronizados com sucesso!";
+            isError = false;
+        }
+        catch (Exception)
+        {
+            message = "Erro ao sincronizar grupos. Por favor, tente novamente.";
+            isError = true;
+        }
+        finally
+        {
+            isSyncing = false;
+            StateHasChanged();
+        }
+    }
+}
