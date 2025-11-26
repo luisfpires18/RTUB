@@ -716,18 +716,18 @@
        AREA A: FULL-SCREEN INBOX ON MOBILE
        ============================================= */
     
-    /* Mobile browser: use min-height 100vh to enable flex layout while allowing overflow */
+    /* Mobile browser: use 100dvh with overflow hidden to enable proper flex scrolling */
     .messages-page {
         position: relative;
-        /* Use min-height to enable flex children to work properly, but allow content to grow */
+        /* Use full viewport height to create constraint for flex children */
         min-height: 100vh !important;
-        min-height: 100dvh !important;
-        /* Don't force max-height - allow content to grow beyond viewport if needed */
-        height: auto !important;
-        max-height: none !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        max-height: 100vh !important;
+        max-height: 100dvh !important;
         display: flex;
         flex-direction: column;
-        overflow: visible; /* Allow overflow in browser to prevent cutting off content */
+        overflow: hidden; /* Hide overflow to force internal scrolling only */
         padding-bottom: 0;
         margin-bottom: 0;
     }
