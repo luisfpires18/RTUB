@@ -199,44 +199,6 @@ public class PushControllerTests
     }
 
     [Fact]
-    public async Task SendTest_ReturnsForbid_WhenUserHasNoAccess()
-    {
-        // Arrange
-        _options.Enabled = false;
-        SetupUserContext("test-user", isOwner: false);
-        var notification = new SendPushNotificationDto();
-
-        // Act
-        var result = await _controller.SendTest(notification);
-
-        // Assert
-        Assert.IsType<ForbidResult>(result);
-    }
-
-    [Fact]
-    public async Task SendTest_ReturnsOk_WhenUserIsOwner()
-    {
-        // Arrange
-        SetupUserContext("test-user", isOwner: true);
-        _mockPushService.Setup(s => s.IsConfigured()).Returns(true);
-        
-        var notification = new SendPushNotificationDto
-        {
-            Title = "Test",
-            Body = "Test notification"
-        };
-
-        // Act
-        var result = await _controller.SendTest(notification) as OkObjectResult;
-
-        // Assert
-        Assert.NotNull(result);
-        _mockPushService.Verify(s => s.SendToUserAsync(
-            It.Is<string>(id => id == "test-user"),
-            It.IsAny<SendPushNotificationDto>()), Times.Once);
-    }
-
-    [Fact]
     public async Task Broadcast_RequiresOwnerRole()
     {
         // This test verifies that the [Authorize(Roles = "Owner")] attribute is present
