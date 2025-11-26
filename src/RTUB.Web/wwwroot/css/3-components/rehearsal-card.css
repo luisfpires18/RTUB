@@ -317,7 +317,7 @@
 }
 
 /* Very small screens - further compact mode */
-@media (max-width: 374px) {
+@media (max-width: 375px) {
   .rehearsal-icon-header {
     height: 70px;
   }

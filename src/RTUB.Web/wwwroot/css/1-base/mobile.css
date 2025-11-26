@@ -807,7 +807,7 @@ iframe {
 }
 
 /* Very small screens (under 375px) - Extra compact mode */
-@media (max-width: 374px) {
+@media (max-width: 375px) {
   /* Compact page header */
   .page-header-actions {
     gap: 0.25rem;
@@ -821,34 +821,5 @@ iframe {
   /* Compact card titles */
   .card-title {
     font-size: 1rem;
-  }
-
-  /* Compact event icon buttons */
-  .event-icon-btn {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
-    min-height: 40px !important;
-  }
-
-  .event-icon-btn i {
-    font-size: 1rem;
-  }
-
-  .event-icon-btn .enrollment-count-centered {
-    font-size: 1rem;
-  }
-
-  /* Enrollment card compactness */
-  .enrollment-card-image-wrapper {
-    max-width: 40px;
-  }
-
-  .enrollment-card-tuna-name {
-    font-size: 0.8rem;
-  }
-
-  .enrollment-card-full-name {
-    font-size: 0.7rem;
   }
 }

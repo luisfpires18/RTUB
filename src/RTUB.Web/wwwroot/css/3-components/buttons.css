@@ -229,7 +229,7 @@
 }
 
 /* Very small screens - more compact */
-@media (max-width: 374px) {
+@media (max-width: 375px) {
     .page-header-actions {
         gap: 0.25rem;
     }
