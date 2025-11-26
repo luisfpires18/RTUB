@@ -96,7 +96,7 @@ else
                     var isLastLevel = levelDef.Level == 10;
                     var actualLevel = levelDef.Level; // 1-based level number
                     
-                    // Grid positioning based on visual index
+                    // Grid positioning based on visual index (used for desktop snake pattern)
                     var gridRow = (visualIndex / 3) + 1;
                     var gridCol = (visualIndex % 3) + 1;
                     
@@ -106,7 +106,8 @@ else
                         gridCol = 3;
                     }
                     
-                    <div class="rank-grid-item @(isLastLevel ? "rank-final" : "")" style="grid-row: @gridRow; grid-column: @gridCol;">
+                    // Use CSS classes for grid positioning (row-X col-Y for desktop, level-X for mobile ordering)
+                    <div class="rank-grid-item row-@gridRow col-@gridCol level-@actualLevel @(isLastLevel ? "rank-final" : "")">
                         <div class="rank-card">
                             @if (isLastLevel)
                             {
