@@ -869,13 +869,30 @@
         overscroll-behavior: contain;
     }
 
-    /* Message thread panel - full height chat experience */
+    /* Message thread panel - full height chat experience
+       On iOS Safari, the keyboard behavior requires special handling.
+       The container uses position: fixed with inset: 0 to fill the screen.
+       Height is dynamically adjusted via JS using the Visual Viewport API
+       to ensure the header stays visible when the keyboard opens. */
     .rtub-messages__thread-panel {
-        flex: 1;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         display: flex;
         flex-direction: column;
         overflow: hidden;
         border-radius: 0;
+        /* z-index layering: thread panel (1000) < header (1001) < messages-page (1050) < modals (1060) */
+        z-index: 1000;
+        /* Safe area padding for notch devices */
+        padding-top: env(safe-area-inset-top, 0px);
+        /* Prevent any scrolling of this container */
+        overscroll-behavior: none;
+        /* GPU acceleration to prevent visual glitches during resize */
+        transform: translateZ(0);
+        will-change: height, top;
     }
 
     .rtub-messages__thread {
@@ -883,16 +900,14 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        /* Position relative for fixed children to reference */
-        position: relative;
+        /* min-height: 0 is critical for flex children to shrink properly */
+        min-height: 0;
     }
 
-    /* FIXED header - stays visible even when keyboard opens (like WhatsApp) */
+    /* Header - flex-shrink: 0 keeps it at fixed height within the flex container
+       The parent container's height is adjusted by JS when keyboard opens */
     .rtub-messages__thread-header {
-        position: fixed;
-        top: env(safe-area-inset-top, 0px);
-        left: 0;
-        right: 0;
+        flex-shrink: 0;
         height: var(--rtub-msg-mobile-header-height);
         background: #0f0f10;
         border-bottom: 1px solid var(--bs-border-color);
@@ -900,19 +915,20 @@
         z-index: 1001;
         display: flex;
         align-items: center;
+        /* GPU acceleration to keep header stable */
+        transform: translateZ(0);
     }
 
-    /* Scrollable message body - sits between fixed header and footer */
+    /* Scrollable message body - flex child that fills remaining space */
     .rtub-messages__thread-body {
-        position: fixed;
-        top: calc(env(safe-area-inset-top, 0px) + var(--rtub-msg-mobile-header-height));
-        left: 0;
-        right: 0;
-        bottom: calc(var(--rtub-msg-mobile-footer-height) + env(safe-area-inset-bottom, 0px));
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         padding: 0.5rem 0.75rem;
+        /* Account for the fixed footer at bottom */
+        padding-bottom: calc(var(--rtub-msg-mobile-footer-height) + env(safe-area-inset-bottom, 0px));
         /* Prevent elastic scroll bounce */
         touch-action: pan-y;
         overscroll-behavior: contain;

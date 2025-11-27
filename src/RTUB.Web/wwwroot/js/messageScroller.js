@@ -1,5 +1,114 @@
 window.messageScroller = {
     /**
+     * Mobile breakpoint - matches CSS @media (max-width: 767px)
+     * @private
+     */
+    _MOBILE_BREAKPOINT: 767,
+    
+    /**
+     * Track if Visual Viewport handler is set up
+     * @private
+     */
+    _viewportHandlerSetup: false,
+    
+    /**
+     * Store reference to the thread panel element for viewport resizing
+     * @private
+     */
+    _threadPanelElement: null,
+    
+    /**
+     * Store reference to input element for focus handling
+     * @private
+     */
+    _inputElement: null,
+    
+    /**
+     * Setup Visual Viewport resize handler to keep thread panel sized correctly
+     * when the mobile keyboard opens/closes.
+     * 
+     * On iOS Safari, when the keyboard opens:
+     * - The Visual Viewport shrinks but the Layout Viewport doesn't
+     * - position: fixed elements use the Layout Viewport
+     * - This causes the fixed container to extend behind the keyboard
+     * - The header can scroll out of view as the page adjusts
+     * 
+     * Solution: Resize the fixed container to match the Visual Viewport height
+     */
+    setupViewportResize: function() {
+        if (this._viewportHandlerSetup || !window.visualViewport) return;
+        
+        const self = this;
+        
+        const updateViewportHeight = () => {
+            // Only apply on mobile
+            if (window.innerWidth > self._MOBILE_BREAKPOINT) return;
+            
+            // Use cached element or find it (cache for performance on frequent events)
+            if (!self._threadPanelElement || !document.contains(self._threadPanelElement)) {
+                self._threadPanelElement = document.querySelector('.rtub-messages__thread-panel');
+            }
+            
+            const threadPanel = self._threadPanelElement;
+            if (!threadPanel) return;
+            
+            // Get the visual viewport height (accounts for keyboard)
+            const viewportHeight = window.visualViewport.height;
+            const viewportOffsetTop = window.visualViewport.offsetTop;
+            
+            // Set the thread panel height to match visual viewport
+            // and position it at the visual viewport offset
+            threadPanel.style.height = viewportHeight + 'px';
+            threadPanel.style.top = viewportOffsetTop + 'px';
+            threadPanel.style.bottom = 'auto';
+        };
+        
+        // Initial setup - set viewport size immediately
+        updateViewportHeight();
+        
+        // Listen for Visual Viewport resize (keyboard open/close)
+        window.visualViewport.addEventListener('resize', updateViewportHeight);
+        window.visualViewport.addEventListener('scroll', updateViewportHeight);
+        
+        // Also handle focus events on message input to proactively resize
+        // BEFORE the keyboard animation starts - this prevents the visual glitch
+        const handleInputFocus = () => {
+            if (window.innerWidth > self._MOBILE_BREAKPOINT) return;
+            
+            // Immediately set the current viewport dimensions
+            updateViewportHeight();
+            
+            // Also update multiple times during keyboard animation to stay in sync
+            // Keyboard animation typically takes 250-350ms on iOS
+            setTimeout(updateViewportHeight, 50);
+            setTimeout(updateViewportHeight, 100);
+            setTimeout(updateViewportHeight, 200);
+            setTimeout(updateViewportHeight, 350);
+        };
+        
+        // Find and attach to message input
+        const attachInputFocusHandler = () => {
+            const input = document.querySelector('.rtub-messages__composer-input');
+            if (input && input !== self._inputElement) {
+                if (self._inputElement) {
+                    self._inputElement.removeEventListener('focus', handleInputFocus);
+                }
+                self._inputElement = input;
+                input.addEventListener('focus', handleInputFocus);
+            }
+        };
+        
+        // Initial attachment
+        attachInputFocusHandler();
+        
+        // Re-attach when DOM changes (e.g., navigating between conversations)
+        const observer = new MutationObserver(attachInputFocusHandler);
+        observer.observe(document.body, { childList: true, subtree: true });
+        
+        this._viewportHandlerSetup = true;
+    },
+    
+    /**
      * Scroll to bottom of messages container - works reliably after DOM updates
      * @param {HTMLElement} element - The scrollable container element
      */
@@ -74,6 +183,12 @@ window.messageScroller = {
      * @param {HTMLElement} containerElement - The scrollable container element
      */
     setupInputFocusScroll: function (inputElement, containerElement) {
+        // Setup viewport resize handler for iOS keyboard handling
+        this.setupViewportResize();
+        
+        // Store reference to this for use in nested functions
+        const MOBILE_BREAKPOINT = this._MOBILE_BREAKPOINT;
+        
         // Validate that both parameters are actual DOM elements
         // Blazor's ElementReference may pass objects that aren't valid DOM elements
         if (!inputElement || !containerElement) return;
@@ -137,14 +252,14 @@ window.messageScroller = {
         const focusHandler = () => {
             // On mobile, when keyboard opens, scroll to bottom multiple times
             // to ensure messages stay visible even with small chat histories
-            if (window.innerWidth <= 767) {
+            if (window.innerWidth <= MOBILE_BREAKPOINT) {
                 scrollMultipleTimes();
             }
         };
         
         // Also handle input events to keep scroll at bottom while typing
         const inputHandler = () => {
-            if (window.innerWidth <= 767) {
+            if (window.innerWidth <= MOBILE_BREAKPOINT) {
                 // Small delay to allow textarea to resize first
                 setTimeout(scrollToBottom, 50);
             }
@@ -152,7 +267,7 @@ window.messageScroller = {
         
         // Handle viewport resize (keyboard opening/closing) to keep messages visible
         const resizeHandler = () => {
-            if (window.innerWidth <= 767 && document.activeElement === inputElement) {
+            if (window.innerWidth <= MOBILE_BREAKPOINT && document.activeElement === inputElement) {
                 // Keyboard likely opened or closed - scroll to bottom multiple times
                 scrollMultipleTimes();
             }
@@ -160,7 +275,7 @@ window.messageScroller = {
         
         // Handle visualViewport changes (more reliable on iOS for keyboard detection)
         const visualViewportHandler = () => {
-            if (window.innerWidth <= 767 && document.activeElement === inputElement) {
+            if (window.innerWidth <= MOBILE_BREAKPOINT && document.activeElement === inputElement) {
                 // Visual viewport changed - keyboard likely opened/closed
                 scrollMultipleTimes();
             }
