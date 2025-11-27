@@ -47,9 +47,13 @@ public class ImagesControllerTests : IDisposable
             {
                 Directory.Delete(_testWebRootPath, recursive: true);
             }
-            catch
+            catch (IOException)
             {
-                // Ignore cleanup errors in tests
+                // Ignore IO errors during cleanup (e.g., file in use)
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Ignore permission errors during cleanup
             }
         }
     }
