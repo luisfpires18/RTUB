@@ -552,7 +552,7 @@ public class MessagingService : IMessagingService
         // - For messages SENT by current user: true if any recipient has read it
         // - For messages RECEIVED by current user: true if current user has read it
         var isRead = message.SenderId == currentUserId
-            ? message.GetReadByIds().Any() // At least one recipient has read it
+            ? message.GetReadByIds().Any(id => id != currentUserId) // At least one recipient has read it (exclude sender)
             : message.IsReadBy(currentUserId); // Current user has read it
 
         var dto = new MessageDto
