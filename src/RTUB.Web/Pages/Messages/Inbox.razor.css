@@ -878,10 +878,11 @@
         left: 0;
         right: 0;
         bottom: 0;
-        /* Height fallback chain for maximum compatibility:
-           1. 100vh - Standard fallback for older browsers
-           2. -webkit-fill-available - iOS Safari/PWA specific
-           3. 100dvh - Dynamic viewport height (keyboard-aware) */
+        /* Height fallback chain using CSS progressive enhancement pattern:
+           - Browsers apply the last supported property value
+           - 100vh: Standard fallback for older browsers
+           - -webkit-fill-available: iOS Safari/PWA specific (takes precedence on WebKit)
+           - 100dvh: Dynamic viewport height (takes precedence on modern browsers) */
         height: 100vh;
         height: -webkit-fill-available;
         height: 100dvh;
@@ -889,6 +890,7 @@
         flex-direction: column;
         overflow: hidden;
         border-radius: 0;
+        /* z-index layering: thread panel (1000) < header (1001) < messages-page (1050) < modals (1060) */
         z-index: 1000;
         /* Safe area padding for notch devices */
         padding-top: env(safe-area-inset-top, 0px);
