@@ -548,6 +548,13 @@ public class MessagingService : IMessagingService
 
     private MessageDto MapMessageToDto(Message message, string currentUserId)
     {
+        // Determine IsRead based on the perspective:
+        // - For messages SENT by current user: true if any recipient has read it
+        // - For messages RECEIVED by current user: true if current user has read it
+        var isRead = message.SenderId == currentUserId
+            ? message.GetReadByIds().Any() // At least one recipient has read it
+            : message.IsReadBy(currentUserId); // Current user has read it
+
         var dto = new MessageDto
         {
             Id = message.Id,
@@ -556,7 +563,7 @@ public class MessagingService : IMessagingService
             Body = message.Body,
             IsSystem = message.IsSystem,
             CreatedAt = message.CreatedAt,
-            IsRead = message.IsReadBy(currentUserId),
+            IsRead = isRead,
             Link = message.Link,
             ReadBy = message.ReadBy
         };
