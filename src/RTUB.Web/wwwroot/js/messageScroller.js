@@ -1,5 +1,11 @@
 window.messageScroller = {
     /**
+     * Mobile breakpoint - matches CSS @media (max-width: 767px)
+     * @private
+     */
+    _MOBILE_BREAKPOINT: 767,
+    
+    /**
      * Track if Visual Viewport handler is set up
      * @private
      */
@@ -26,12 +32,18 @@ window.messageScroller = {
     setupViewportResize: function() {
         if (this._viewportHandlerSetup || !window.visualViewport) return;
         
+        const self = this;
+        
         const updateViewportHeight = () => {
             // Only apply on mobile
-            if (window.innerWidth > 767) return;
+            if (window.innerWidth > self._MOBILE_BREAKPOINT) return;
             
-            // Find the thread panel
-            const threadPanel = document.querySelector('.rtub-messages__thread-panel');
+            // Use cached element or find it (cache for performance on frequent events)
+            if (!self._threadPanelElement || !document.contains(self._threadPanelElement)) {
+                self._threadPanelElement = document.querySelector('.rtub-messages__thread-panel');
+            }
+            
+            const threadPanel = self._threadPanelElement;
             if (!threadPanel) return;
             
             // Get the visual viewport height (accounts for keyboard)
@@ -133,6 +145,9 @@ window.messageScroller = {
         // Setup viewport resize handler for iOS keyboard handling
         this.setupViewportResize();
         
+        // Store reference to this for use in nested functions
+        const MOBILE_BREAKPOINT = this._MOBILE_BREAKPOINT;
+        
         // Validate that both parameters are actual DOM elements
         // Blazor's ElementReference may pass objects that aren't valid DOM elements
         if (!inputElement || !containerElement) return;
@@ -196,14 +211,14 @@ window.messageScroller = {
         const focusHandler = () => {
             // On mobile, when keyboard opens, scroll to bottom multiple times
             // to ensure messages stay visible even with small chat histories
-            if (window.innerWidth <= 767) {
+            if (window.innerWidth <= MOBILE_BREAKPOINT) {
                 scrollMultipleTimes();
             }
         };
         
         // Also handle input events to keep scroll at bottom while typing
         const inputHandler = () => {
-            if (window.innerWidth <= 767) {
+            if (window.innerWidth <= MOBILE_BREAKPOINT) {
                 // Small delay to allow textarea to resize first
                 setTimeout(scrollToBottom, 50);
             }
@@ -211,7 +226,7 @@ window.messageScroller = {
         
         // Handle viewport resize (keyboard opening/closing) to keep messages visible
         const resizeHandler = () => {
-            if (window.innerWidth <= 767 && document.activeElement === inputElement) {
+            if (window.innerWidth <= MOBILE_BREAKPOINT && document.activeElement === inputElement) {
                 // Keyboard likely opened or closed - scroll to bottom multiple times
                 scrollMultipleTimes();
             }
@@ -219,7 +234,7 @@ window.messageScroller = {
         
         // Handle visualViewport changes (more reliable on iOS for keyboard detection)
         const visualViewportHandler = () => {
-            if (window.innerWidth <= 767 && document.activeElement === inputElement) {
+            if (window.innerWidth <= MOBILE_BREAKPOINT && document.activeElement === inputElement) {
                 // Visual viewport changed - keyboard likely opened/closed
                 scrollMultipleTimes();
             }
