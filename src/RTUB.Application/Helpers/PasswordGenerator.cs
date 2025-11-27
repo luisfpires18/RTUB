@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 
 namespace RTUB.Application.Helpers;
 
@@ -9,22 +10,31 @@ public static class PasswordGenerator
 {
     /// <summary>
     /// Generates a simple random password suitable for older users
-    /// - 4 characters (digits only for easier memorization)
+    /// - 4-6 random letters followed by 2-4 random numbers
     /// </summary>
     /// <returns>A simple random password</returns>
     public static string GeneratePassword()
     {
+        const string letters = "abcdefghijklmnopqrstuvwxyz";
         const string digits = "0123456789";
-        const int length = 4;
 
-        var password = new char[length];
+        var password = new StringBuilder();
 
-        for (int i = 0; i < length; i++)
+        // Generate 4-6 random letters
+        int letterCount = RandomNumberGenerator.GetInt32(4, 7); // 4, 5, or 6
+        for (int i = 0; i < letterCount; i++)
         {
-            password[i] = GetRandomChar(digits);
+            password.Append(GetRandomChar(letters));
         }
 
-        return new string(password);
+        // Generate 2-4 random numbers
+        int digitCount = RandomNumberGenerator.GetInt32(2, 5); // 2, 3, or 4
+        for (int i = 0; i < digitCount; i++)
+        {
+            password.Append(GetRandomChar(digits));
+        }
+
+        return password.ToString();
     }
 
     private static char GetRandomChar(string chars)

@@ -15,18 +15,18 @@ public class PasswordGeneratorTests
         // Act
         var password = PasswordGenerator.GeneratePassword();
 
-        // Assert
-        password.Should().HaveLength(4);
+        // Assert - password should be 6-10 characters (4-6 letters + 2-4 digits)
+        password.Length.Should().BeInRange(6, 10);
     }
 
     [Fact]
-    public void GeneratePassword_ContainsOnlyDigits()
+    public void GeneratePassword_ContainsLettersFollowedByDigits()
     {
         // Act
         var password = PasswordGenerator.GeneratePassword();
 
-        // Assert
-        password.Should().MatchRegex("^[0-9]+$", "password should contain only digits for easier memorization");
+        // Assert - password should match pattern: 4-6 lowercase letters followed by 2-4 digits
+        password.Should().MatchRegex("^[a-z]{4,6}[0-9]{2,4}$", "password should be 4-6 letters followed by 2-4 digits");
     }
 
     [Fact]
@@ -37,8 +37,7 @@ public class PasswordGeneratorTests
         var password2 = PasswordGenerator.GeneratePassword();
         var password3 = PasswordGenerator.GeneratePassword();
 
-        // Assert - at least some passwords should be different (randomness test)
-        // We can't guarantee all are different with only 4 digits, but statistically they should be
+        // Assert - passwords should be different (randomness test)
         var passwords = new[] { password1, password2, password3 };
         passwords.Distinct().Count().Should().BeGreaterThanOrEqualTo(2, "passwords should be random");
     }
@@ -52,8 +51,8 @@ public class PasswordGeneratorTests
             var password = PasswordGenerator.GeneratePassword();
 
             // Assert
-            password.Should().HaveLength(4);
-            password.Should().MatchRegex("^[0-9]+$", "password should contain only digits");
+            password.Length.Should().BeInRange(6, 10);
+            password.Should().MatchRegex("^[a-z]{4,6}[0-9]{2,4}$", "password should be 4-6 letters followed by 2-4 digits");
         }
     }
 }
