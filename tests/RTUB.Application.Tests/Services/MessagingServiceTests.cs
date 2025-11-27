@@ -1139,6 +1139,46 @@ public class MessagingServiceTests
     }
 
     [Fact]
+    public async Task CanUserSendMessageAsync_AnnouncementChannel_UserWithOwnerRole_ReturnsTrue()
+    {
+        // Arrange
+        var userId = "owner123";
+        var conversationId = 1;
+
+        var conversation = new Conversation
+        {
+            Id = conversationId,
+            Title = "DISCUSSÃO",
+            IsGroup = true,
+            IsAnnouncementOnly = true,
+            Participants = $"{userId};user2;user3",
+            LastMessageAt = DateTime.UtcNow
+        };
+
+        var ownerUser = new ApplicationUser
+        {
+            Id = userId,
+            FirstName = "Owner",
+            LastName = "User"
+        };
+
+        _mockConversationRepository.Setup(r => r.GetByIdAsync(conversationId))
+            .ReturnsAsync(conversation);
+
+        // User has Owner role but no Position assignments
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(ownerUser);
+        _mockUserManager.Setup(um => um.IsInRoleAsync(ownerUser, "Owner"))
+            .ReturnsAsync(true);
+
+        // Act
+        var result = await _service.CanUserSendMessageAsync(conversationId, userId);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task SendGroupMessageAsync_AnnouncementChannel_UserWithoutPermission_ThrowsException()
     {
         // Arrange
