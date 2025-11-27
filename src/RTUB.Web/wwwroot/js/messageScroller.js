@@ -18,6 +18,12 @@ window.messageScroller = {
     _threadPanelElement: null,
     
     /**
+     * Store reference to input element for focus handling
+     * @private
+     */
+    _inputElement: null,
+    
+    /**
      * Setup Visual Viewport resize handler to keep thread panel sized correctly
      * when the mobile keyboard opens/closes.
      * 
@@ -57,12 +63,47 @@ window.messageScroller = {
             threadPanel.style.bottom = 'auto';
         };
         
-        // Initial setup
+        // Initial setup - set viewport size immediately
         updateViewportHeight();
         
         // Listen for Visual Viewport resize (keyboard open/close)
         window.visualViewport.addEventListener('resize', updateViewportHeight);
         window.visualViewport.addEventListener('scroll', updateViewportHeight);
+        
+        // Also handle focus events on message input to proactively resize
+        // BEFORE the keyboard animation starts - this prevents the visual glitch
+        const handleInputFocus = () => {
+            if (window.innerWidth > self._MOBILE_BREAKPOINT) return;
+            
+            // Immediately set the current viewport dimensions
+            updateViewportHeight();
+            
+            // Also update multiple times during keyboard animation to stay in sync
+            // Keyboard animation typically takes 250-350ms on iOS
+            setTimeout(updateViewportHeight, 50);
+            setTimeout(updateViewportHeight, 100);
+            setTimeout(updateViewportHeight, 200);
+            setTimeout(updateViewportHeight, 350);
+        };
+        
+        // Find and attach to message input
+        const attachInputFocusHandler = () => {
+            const input = document.querySelector('.rtub-messages__composer-input');
+            if (input && input !== self._inputElement) {
+                if (self._inputElement) {
+                    self._inputElement.removeEventListener('focus', handleInputFocus);
+                }
+                self._inputElement = input;
+                input.addEventListener('focus', handleInputFocus);
+            }
+        };
+        
+        // Initial attachment
+        attachInputFocusHandler();
+        
+        // Re-attach when DOM changes (e.g., navigating between conversations)
+        const observer = new MutationObserver(attachInputFocusHandler);
+        observer.observe(document.body, { childList: true, subtree: true });
         
         this._viewportHandlerSetup = true;
     },
