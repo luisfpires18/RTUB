@@ -1,13 +1,36 @@
-.messages-page {
-    /* CSS custom properties for responsive calculations */
-    --message-content-offset: 80px; /* Avatar (40px) + horizontal padding/margins (~40px) */
-    --navbar-height: 56px;
-    --message-avatar-size: 32px;
-    --message-avatar-margin: 0.5rem;
-    --primary-hover: #8b5cf6; /* Lighter purple for hover states */
+/* ============================================================================
+   RTUB MESSAGING COMPONENT STYLES (Inbox.razor.css)
+   ============================================================================
+   
+   BEM-like Naming Convention:
+   - Root component: .rtub-messages
+   - Sub-elements: .rtub-messages__[element] (e.g., .rtub-messages__panel)
+   - Modifiers: .rtub-messages__[element]--[modifier] (e.g., .rtub-messages__panel--mobile)
+   - State classes: .is-[state] (e.g., .is-active, .is-sending)
+   
+   CSS Custom Properties are defined at the root component level for easy adjustment.
+   
+   Media Query Breakpoints:
+   - Desktop: >= 992px
+   - Tablet: 768px - 991px  
+   - Mobile: <= 767px
+   
+   ============================================================================ */
+
+/* ============================================================================
+   SECTION 1: CSS CUSTOM PROPERTIES (Design Tokens)
+   ============================================================================ */
+
+.rtub-messages {
+    /* Layout dimensions */
+    --rtub-msg-content-offset: 80px; /* Avatar (40px) + horizontal padding/margins (~40px) */
+    --rtub-msg-navbar-height: 56px;
+    --rtub-msg-avatar-size: 32px;
+    --rtub-msg-avatar-margin: 0.5rem;
+    --rtub-msg-primary-hover: #8b5cf6; /* Lighter purple for hover states */
     /* Mobile chat layout dimensions */
-    --mobile-header-height: 60px;
-    --mobile-footer-height: 60px;
+    --rtub-msg-mobile-header-height: 60px;
+    --rtub-msg-mobile-footer-height: 60px;
     
     /* Desktop: account for navbar and footer */
     min-height: 600px;
@@ -17,20 +40,24 @@
     overflow: hidden;
 }
 
-.messages-page .container-fluid {
+.rtub-messages .container-fluid {
     padding: 0;
     height: 100%;
 }
 
-.messages-page .row {
+.rtub-messages .row {
     margin: 0;
     height: 100%;
     flex-wrap: nowrap;
     align-items: stretch;
 }
 
-/* Conversations Panel */
-.conversations-panel {
+/* ============================================================================
+   SECTION 2: CONVERSATIONS PANEL (Left Sidebar)
+   ============================================================================ */
+
+/* --- 2.1: Panel Container --- */
+.rtub-messages__panel {
     background: #1a1a1b;
     border-right: 1px solid var(--bs-border-color);
     display: flex;
@@ -45,13 +72,14 @@
 
 /* On desktop (lg and above), ensure conversations panel stays visible with flex display even when d-lg-block is applied */
 @media (min-width: 992px) {
-    .conversations-panel.d-lg-block {
+    .rtub-messages__panel.d-lg-block {
         display: flex !important;
         flex-direction: column;
     }
 }
 
-.conversations-header {
+/* --- 2.2: Panel Header (Desktop) --- */
+.rtub-messages__panel-header {
     padding: 1.5rem 1rem;
     border-bottom: 1px solid var(--bs-border-color);
     display: flex;
@@ -60,8 +88,8 @@
     background: #0f0f10;
 }
 
-/* Mobile conversations header - base styles (hidden on desktop by Bootstrap d-lg-none) */
-.conversations-header-mobile {
+/* --- 2.3: Panel Header (Mobile) --- */
+.rtub-messages__panel-header--mobile {
     padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--bs-border-color);
     display: flex;
@@ -71,7 +99,7 @@
     background: #0f0f10;
 }
 
-.conversations-header-mobile .btn-link {
+.rtub-messages__panel-header--mobile .btn-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -83,41 +111,43 @@
     text-decoration: none;
 }
 
-.conversations-header-mobile .btn-link i {
+.rtub-messages__panel-header--mobile .btn-link i {
     color: white !important;
     font-size: 1.1rem;
 }
 
 /* Remove hover effect from back button */
-.conversations-header-mobile .btn-link:hover,
-.conversations-header-mobile .btn-link:focus,
-.conversations-header-mobile .btn-link:active {
+.rtub-messages__panel-header--mobile .btn-link:hover,
+.rtub-messages__panel-header--mobile .btn-link:focus,
+.rtub-messages__panel-header--mobile .btn-link:active {
     background-color: var(--bs-primary);
     color: white;
 }
 
-.conversations-header-mobile h3 {
+.rtub-messages__panel-header--mobile h3 {
     color: var(--bs-body-color);
     font-size: 1.1rem;
     flex: 1;
     margin: 0;
 }
 
-.conversations-header-mobile .dropdown {
+.rtub-messages__panel-header--mobile .dropdown {
     flex-shrink: 0;
 }
 
-.conversations-header h3 {
+.rtub-messages__panel-header h3 {
     color: var(--bs-body-color);
     font-size: 1.25rem;
 }
 
-.conversations-list {
+/* --- 2.4: Conversations List --- */
+.rtub-messages__list {
     flex: 1;
     overflow-y: auto;
 }
 
-.conversation-item {
+/* --- 2.5: Conversation Item --- */
+.rtub-messages__item {
     display: flex;
     align-items: center;
     padding: 1rem;
@@ -127,16 +157,17 @@
     position: relative;
 }
 
-.conversation-item:hover {
+.rtub-messages__item:hover {
     background-color: rgba(111, 66, 193, 0.1);
 }
 
-.conversation-item.active {
+.rtub-messages__item.is-active {
     background-color: rgba(111, 66, 193, 0.2);
     border-left: 3px solid var(--bs-primary);
 }
 
-.conversation-avatar {
+/* --- 2.6: Conversation Avatar --- */
+.rtub-messages__avatar {
     width: 50px;
     height: 50px;
     border-radius: 50%;
@@ -145,26 +176,26 @@
     margin-right: 1rem;
 }
 
-.conversation-avatar img {
+.rtub-messages__avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.conversation-content {
+.rtub-messages__item-content {
     flex: 1;
     min-width: 0;
     padding-right: 2.5rem;
 }
 
-.conversation-header {
+.rtub-messages__item-header {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
     margin-bottom: 0.25rem;
 }
 
-.conversation-name {
+.rtub-messages__item-name {
     font-size: 1rem;
     font-weight: 600;
     color: var(--bs-body-color);
@@ -176,19 +207,19 @@
     align-items: center;
 }
 
-.conversation-status-icon {
+.rtub-messages__item-status-icon {
     font-size: 0.75rem;
     flex-shrink: 0;
 }
 
-.conversation-time {
+.rtub-messages__item-time {
     font-size: 0.75rem;
     color: #888;
     white-space: nowrap;
     margin-left: 0.5rem;
 }
 
-.conversation-preview {
+.rtub-messages__item-preview {
     font-size: 0.875rem;
     color: #888;
     white-space: normal;
@@ -201,11 +232,11 @@
     word-break: break-word;
 }
 
-.conversation-preview .fw-bold {
+.rtub-messages__item-preview .fw-bold {
     color: var(--bs-body-color);
 }
 
-.conversation-badge {
+.rtub-messages__item-badge {
     position: absolute;
     right: 1rem;
     top: 50%;
@@ -220,44 +251,48 @@
 }
 
 /* Message Thread Panel */
-.message-thread-panel {
+.rtub-messages__thread-panel {
     display: flex;
     flex-direction: column;
     height: 100%;
     padding: 0;
     background: var(--bs-dark);
-    flex: 1;
+    flex: 1 1 0; /* Allow both growing and shrinking */
     min-width: 0;
     min-height: 0; /* Allow flex child to shrink and enable scrolling */
+    overflow: hidden; /* Prevent outer container from scrolling */
 }
 
-.message-thread {
+.rtub-messages__thread {
     display: flex;
     flex-direction: column;
     height: 100%;
     min-width: 0;
     min-height: 0; /* Allow flex child to shrink and enable scrolling */
+    flex: 1 1 0; /* Take available space and allow shrinking */
+    overflow: hidden; /* Contain the scroll within thread-body */
 }
 
-.message-thread-header {
+.rtub-messages__thread-header {
     padding: 1rem;
     border-bottom: 1px solid var(--bs-border-color);
     background: #1a1a1b;
     display: flex;
     align-items: center;
+    flex-shrink: 0; /* Prevent header from shrinking */
 }
 
-.message-thread-header .conversation-avatar {
+.rtub-messages__thread-header .rtub-messages__avatar {
     width: 40px;
     height: 40px;
 }
 
-.message-thread-header h5 {
+.rtub-messages__thread-header h5 {
     color: var(--bs-body-color);
 }
 
 /* Back button styling - purple square with white icon */
-.message-thread-header .btn-link {
+.rtub-messages__thread-header .btn-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -269,28 +304,28 @@
     text-decoration: none;
 }
 
-.message-thread-header .btn-link i {
+.rtub-messages__thread-header .btn-link i {
     color: white !important;
     font-size: 1.1rem;
 }
 
 /* Remove hover effect from back button */
-.message-thread-header .btn-link:hover,
-.message-thread-header .btn-link:focus,
-.message-thread-header .btn-link:active {
+.rtub-messages__thread-header .btn-link:hover,
+.rtub-messages__thread-header .btn-link:focus,
+.rtub-messages__thread-header .btn-link:active {
     background-color: var(--bs-primary);
     color: white;
 }
 
 /* Header action buttons (mute, pin, dropdown) */
-.header-actions {
+.rtub-messages__header-actions {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     margin-left: auto;
 }
 
-.header-action-btn {
+.rtub-messages__header-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -302,30 +337,30 @@
     transition: background-color 0.2s;
 }
 
-.header-action-btn:hover {
-    background-color: var(--primary-hover);
+.rtub-messages__header-btn:hover {
+    background-color: var(--rtub-msg-primary-hover);
 }
 
-.header-action-btn:active {
+.rtub-messages__header-btn:active {
     background-color: var(--bs-primary);
 }
 
 /* Highlight active state for pin and mute when ON */
-.header-action-btn.active {
-    background-color: var(--primary-hover);
+.rtub-messages__header-btn.is-active {
+    background-color: var(--rtub-msg-primary-hover);
 }
 
 /* Ensure all icons are white and same size */
-.header-actions .header-action-btn i,
-.header-actions .header-action-btn .bi,
-.header-actions .btn-link i,
-.header-actions .btn-link .bi {
+.rtub-messages__header-actions .rtub-messages__header-btn i,
+.rtub-messages__header-actions .rtub-messages__header-btn .bi,
+.rtub-messages__header-actions .btn-link i,
+.rtub-messages__header-actions .btn-link .bi {
     color: white !important;
     font-size: 1.1rem;
 }
 
 /* Dropdown button styling */
-.header-actions .dropdown .btn-link {
+.rtub-messages__header-actions .dropdown .btn-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -337,67 +372,74 @@
     transition: background-color 0.2s;
 }
 
-.header-actions .dropdown .btn-link:hover {
-    background-color: var(--primary-hover);
+.rtub-messages__header-actions .dropdown .btn-link:hover {
+    background-color: var(--rtub-msg-primary-hover);
 }
 
-.header-actions .dropdown .btn-link:active {
+.rtub-messages__header-actions .dropdown .btn-link:active {
     background-color: var(--bs-primary);
 }
 
-.message-thread-body {
-    flex: 1;
+.rtub-messages__thread-body {
+    flex: 1 1 0; /* Allow both growing and shrinking from zero base */
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 1rem 1.25rem 1rem 1rem;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    min-height: 0; /* Allow scrolling when content exceeds container height */
+    min-height: 0; /* Critical: Allow scrolling when content exceeds container height */
+    max-height: 100%; /* Constrain height to parent */
     align-items: stretch;
     scrollbar-gutter: stable both-edges;
+    /* Ensure scroll works on all platforms */
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Inner wrapper for bottom-aligning messages (WhatsApp/Telegram style) */
-.messages-inner-wrapper {
-    min-height: 100%;
+.rtub-messages__thread-wrapper {
+    /* Use flex-grow to fill available space, don't shrink (0), use auto basis */
+    flex: 1 0 auto;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     width: 100%;
+    /* Ensure proper sizing for scroll calculation - use 0 for better cross-browser compatibility */
+    min-height: 0;
 }
 
-.message {
+.rtub-messages__bubble {
     display: flex;
     margin-bottom: 1rem;
     width: 100%;
     min-width: 0;
 }
 
-.message-sent {
+.rtub-messages__bubble--sent {
     justify-content: flex-end;
     flex-direction: row-reverse;
 }
 
-.message-received {
+.rtub-messages__bubble--received {
     justify-content: flex-start;
 }
 
-.message-avatar {
-    width: var(--message-avatar-size);
-    height: var(--message-avatar-size);
+.rtub-messages__bubble-avatar {
+    width: var(--rtub-msg-avatar-size);
+    height: var(--rtub-msg-avatar-size);
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    margin: 0 var(--message-avatar-margin);
+    margin: 0 var(--rtub-msg-avatar-margin);
 }
 
-.message-avatar img {
+.rtub-messages__bubble-avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.message-content {
+.rtub-messages__bubble-content {
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -405,21 +447,21 @@
     width: auto;
 }
 
-.message-system {
+.rtub-messages__bubble--system {
     align-items: flex-start;
 }
 
-.message-sent .message-content {
+.rtub-messages__bubble--sent .rtub-messages__bubble-content {
     align-items: flex-end;
     margin-left: auto;
 }
 
-.message-received .message-content {
+.rtub-messages__bubble--received .rtub-messages__bubble-content {
     align-items: flex-start;
     margin-right: auto;
 }
 
-.message-body {
+.rtub-messages__bubble-body {
     background: rgba(111, 66, 193, 0.2);
     padding: 0.75rem 1rem;
     border-radius: 1rem;
@@ -432,22 +474,22 @@
     overflow-wrap: anywhere;
 }
 
-.message-text {
+.rtub-messages__bubble-text {
     margin: 0;
 }
 
-.message-sent .message-body {
+.rtub-messages__bubble--sent .rtub-messages__bubble-body {
     background: var(--bs-primary);
     color: white;
     border-bottom-right-radius: 0.25rem;
 }
 
-.message-received .message-body {
+.rtub-messages__bubble--received .rtub-messages__bubble-body {
     background: #2a2a2b;
     border-bottom-left-radius: 0.25rem;
 }
 
-.system-message-body {
+.rtub-messages__bubble-body--system {
     background: linear-gradient(135deg, #252431, #1f1f2a);
     border: 1px solid rgba(var(--bs-primary-rgb), 0.35);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
@@ -455,17 +497,17 @@
     min-width: 220px;
 }
 
-.message-system .message-content {
+.rtub-messages__bubble--system .rtub-messages__bubble-content {
     align-items: flex-start;
 }
 
-.message-actions {
+.rtub-messages__bubble-actions {
     display: flex;
     justify-content: flex-end;
     margin-top: 0.5rem;
 }
 
-.message-link-btn {
+.rtub-messages__bubble-link {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -479,8 +521,8 @@
     transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
-.message-link-btn:hover,
-.message-link-btn:focus {
+.rtub-messages__bubble-link:hover,
+.rtub-messages__bubble-link:focus {
     background: rgba(var(--bs-primary-rgb), 0.2);
     border-color: var(--bs-primary);
     color: #ffffff;
@@ -488,72 +530,73 @@
     text-decoration: none;
 }
 
-.message-time {
+.rtub-messages__bubble-time {
     font-size: 0.75rem;
     color: #888;
     margin-top: 0.25rem;
 }
 
 /* Message Grouping Styles */
-.message-avatar-placeholder {
-    width: var(--message-avatar-size);
-    height: var(--message-avatar-size);
+.rtub-messages__bubble-avatar-placeholder {
+    width: var(--rtub-msg-avatar-size);
+    height: var(--rtub-msg-avatar-size);
     flex-shrink: 0;
-    margin: 0 var(--message-avatar-margin);
+    margin: 0 var(--rtub-msg-avatar-margin);
     /* Invisible placeholder to maintain alignment */
 }
 
 /* Reduce spacing between grouped messages */
-.message-group-first {
+.rtub-messages__bubble--group-first {
     margin-bottom: 0.15rem;
 }
 
-.message-group-middle {
+.rtub-messages__bubble--group-middle {
     margin-bottom: 0.15rem;
 }
 
-.message-group-last {
+.rtub-messages__bubble--group-last {
     margin-bottom: 1rem;
 }
 
-.message-group-single {
+.rtub-messages__bubble--group-single {
     margin-bottom: 1rem;
 }
 
 /* Adjust bubble border radius for grouped messages */
-.message-sent.message-group-first .message-body {
+.rtub-messages__bubble--sent.rtub-messages__bubble--group-first .rtub-messages__bubble-body {
     border-bottom-right-radius: 0.35rem;
 }
 
-.message-sent.message-group-middle .message-body {
+.rtub-messages__bubble--sent.rtub-messages__bubble--group-middle .rtub-messages__bubble-body {
     border-top-right-radius: 0.35rem;
     border-bottom-right-radius: 0.35rem;
 }
 
-.message-sent.message-group-last .message-body {
+.rtub-messages__bubble--sent.rtub-messages__bubble--group-last .rtub-messages__bubble-body {
     border-top-right-radius: 0.35rem;
 }
 
-.message-received.message-group-first .message-body {
+.rtub-messages__bubble--received.rtub-messages__bubble--group-first .rtub-messages__bubble-body {
     border-bottom-left-radius: 0.35rem;
 }
 
-.message-received.message-group-middle .message-body {
+.rtub-messages__bubble--received.rtub-messages__bubble--group-middle .rtub-messages__bubble-body {
     border-top-left-radius: 0.35rem;
     border-bottom-left-radius: 0.35rem;
 }
 
-.message-received.message-group-last .message-body {
+.rtub-messages__bubble--received.rtub-messages__bubble--group-last .rtub-messages__bubble-body {
     border-top-left-radius: 0.35rem;
 }
 
-.message-thread-footer {
+.rtub-messages__thread-footer {
     padding: 1rem;
     border-top: 1px solid var(--bs-border-color);
     background: #1a1a1b;
+    flex-shrink: 0; /* Prevent footer from shrinking */
 }
 
-.message-composer {
+.rtub-messages__composer {
     display: flex;
     align-items: flex-end;
     gap: 0.5rem;
@@ -567,13 +610,13 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-.message-composer:focus-within {
+.rtub-messages__composer:focus-within {
     border-color: var(--bs-primary);
     box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
     background-color: #202331;
 }
 
-.message-composer__input {
+.rtub-messages__composer-input {
     flex: 1;
     background: transparent;
     border: none;
@@ -590,15 +633,15 @@
     font-size: inherit;
 }
 
-.message-composer__input:focus {
+.rtub-messages__composer-input:focus {
     box-shadow: none;
 }
 
-.message-composer__input::placeholder {
+.rtub-messages__composer-input::placeholder {
     color: #bdbdd1;
 }
 
-.message-composer__send {
+.rtub-messages__composer-send {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -613,27 +656,27 @@
     transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.message-composer__send:hover,
-.message-composer__send:focus {
+.rtub-messages__composer-send:hover,
+.rtub-messages__composer-send:focus {
     background: #7b5bc7;
     border-color: var(--bs-primary);
     box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.25);
 }
 
-.message-composer__send:disabled {
+.rtub-messages__composer-send:disabled {
     background: #6f42c140;
     border-color: #6f42c1;
     color: #e6dbff;
     box-shadow: none;
 }
 
-.message-composer__send .spinner-border {
+.rtub-messages__composer-send .spinner-border {
     width: 1rem;
     height: 1rem;
 }
 
 /* Empty State */
-.empty-state {
+.rtub-messages__empty {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -641,7 +684,7 @@
 }
 
 /* Member search in modal */
-.member-list-scrollable {
+.rtub-messages__member-list {
     max-height: 300px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -649,70 +692,70 @@
     overscroll-behavior: contain;
 }
 
-.member-item {
+.rtub-messages__member-item {
     background: var(--bs-dark);
     border-color: var(--bs-border-color) !important;
     cursor: pointer;
     transition: background-color 0.2s;
 }
 
-.member-item:hover {
+.rtub-messages__member-item:hover {
     background: rgba(111, 66, 193, 0.1) !important;
 }
 
-.member-avatar-small {
+.rtub-messages__member-avatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
 }
 
-.clickable-row {
+.rtub-messages__clickable {
     cursor: pointer;
 }
 
-.conversation-modal {
+.rtub-messages__modal {
     max-width: 640px;
 }
 
-.conversation-modal.conversation-modal--group {
+.rtub-messages__modal.rtub-messages__modal--group {
     max-width: 900px;
 }
 
-.conversation-modal .modal-content {
+.rtub-messages__modal .modal-content {
     border-radius: 1rem;
 }
 
-.conversation-modal .modal-body {
+.rtub-messages__modal .modal-body {
     padding: 1.25rem;
 }
 
 /* Mobile responsive */
 @media (max-width: 991px) {
-    .conversations-panel.d-none {
+    .rtub-messages__panel.d-none {
         display: none !important;
     }
 
-    .conversations-panel {
+    .rtub-messages__panel {
         flex: 1 1 100%;
         max-width: 100%;
     }
 
-    .message-thread-panel.d-none {
+    .rtub-messages__thread-panel.d-none {
         display: none !important;
     }
 
-    .message-thread-panel {
+    .rtub-messages__thread-panel {
         flex: 1 1 100%;
         max-width: 100%;
     }
 
-    .message {
+    .rtub-messages__bubble {
         max-width: 85%;
     }
 
     /* Message wrapping for mobile */
-    .message-body {
+    .rtub-messages__bubble-body {
         max-width: 100%;
         word-wrap: break-word;
         word-break: break-word;
@@ -720,8 +763,8 @@
         white-space: pre-wrap;
     }
 
-    .message-content {
-        max-width: calc(100vw - var(--message-content-offset));
+    .rtub-messages__bubble-content {
+        max-width: calc(100vw - var(--rtub-msg-content-offset));
     }
 }
 
@@ -791,7 +834,7 @@
     }
 
     /* Conversations panel - full height with internal scroll */
-    .conversations-panel {
+    .rtub-messages__panel {
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -803,17 +846,17 @@
     }
 
     /* Mobile header adjustments */
-    .conversations-header-mobile {
+    .rtub-messages__panel-header--mobile {
         flex-shrink: 0;
     }
 
-    .conversations-header {
+    .rtub-messages__panel-header {
         flex-shrink: 0;
         padding: 0.75rem;
     }
 
     /* Conversations list - reaches bottom with minimal safe-area padding */
-    .conversations-list {
+    .rtub-messages__list {
         flex: 1;
         overflow-y: auto;
         overflow-x: hidden;
@@ -827,7 +870,7 @@
     }
 
     /* Message thread panel - full height chat experience */
-    .message-thread-panel {
+    .rtub-messages__thread-panel {
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -835,7 +878,7 @@
         border-radius: 0;
     }
 
-    .message-thread {
+    .rtub-messages__thread {
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -845,12 +888,12 @@
     }
 
     /* FIXED header - stays visible even when keyboard opens (like WhatsApp) */
-    .message-thread-header {
+    .rtub-messages__thread-header {
         position: fixed;
         top: env(safe-area-inset-top, 0px);
         left: 0;
         right: 0;
-        height: var(--mobile-header-height);
+        height: var(--rtub-msg-mobile-header-height);
         background: #0f0f10;
         border-bottom: 1px solid var(--bs-border-color);
         padding: 0.75rem;
@@ -860,12 +903,12 @@
     }
 
     /* Scrollable message body - sits between fixed header and footer */
-    .message-thread-body {
+    .rtub-messages__thread-body {
         position: fixed;
-        top: calc(env(safe-area-inset-top, 0px) + var(--mobile-header-height));
+        top: calc(env(safe-area-inset-top, 0px) + var(--rtub-msg-mobile-header-height));
         left: 0;
         right: 0;
-        bottom: calc(var(--mobile-footer-height) + env(safe-area-inset-bottom, 0px));
+        bottom: calc(var(--rtub-msg-mobile-footer-height) + env(safe-area-inset-bottom, 0px));
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
@@ -876,12 +919,12 @@
     }
 
     /* FIXED footer - message composer at bottom (like WhatsApp) */
-    .message-thread-footer {
+    .rtub-messages__thread-footer {
         position: fixed;
         left: 0;
         right: 0;
         bottom: 0;
-        height: calc(var(--mobile-footer-height) + env(safe-area-inset-bottom, 0px));
+        height: calc(var(--rtub-msg-mobile-footer-height) + env(safe-area-inset-bottom, 0px));
         background: #0f0f10;
         box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
         padding: 0.5rem 0.75rem;
@@ -892,12 +935,12 @@
     }
 
     /* Read-only footer mobile override */
-    .read-only-footer {
+    .rtub-messages__thread-footer--readonly {
         position: fixed;
         left: 0;
         right: 0;
         bottom: 0;
-        height: calc(var(--mobile-footer-height) + env(safe-area-inset-bottom, 0px));
+        height: calc(var(--rtub-msg-mobile-footer-height) + env(safe-area-inset-bottom, 0px));
         background: #0f0f10;
         box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
         padding: 0.5rem 0.75rem;
@@ -908,35 +951,44 @@
         justify-content: center;
     }
 
+    /* Thread wrapper on mobile - allows messages to align to bottom */
+    .rtub-messages__thread-wrapper {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        min-height: 100%;
+        width: 100%;
+    }
+
     /* Message styling for mobile */
-    .message {
+    .rtub-messages__bubble {
         margin-bottom: 0.5rem;
         max-width: 100%;
     }
 
     /* Override margin for grouped messages on mobile */
-    .message-group-first,
-    .message-group-middle {
+    .rtub-messages__bubble--group-first,
+    .rtub-messages__bubble--group-middle {
         margin-bottom: 0.1rem;
     }
 
-    .message-group-last,
-    .message-group-single {
+    .rtub-messages__bubble--group-last,
+    .rtub-messages__bubble--group-single {
         margin-bottom: 0.5rem;
     }
 
     /* Avatar placeholder for mobile */
-    .message-avatar-placeholder {
+    .rtub-messages__bubble-avatar-placeholder {
         width: 32px;
         height: 32px;
         margin: 0 0.4rem;
     }
 
-    .message-content {
-        max-width: calc(100vw - var(--message-content-offset));
+    .rtub-messages__bubble-content {
+        max-width: calc(100vw - var(--rtub-msg-content-offset));
     }
 
-    .message-body {
+    .rtub-messages__bubble-body {
         border-radius: 1.15rem;
         padding: 0.65rem 0.9rem;
         max-width: 100%;
@@ -946,7 +998,7 @@
         white-space: pre-wrap;
     }
 
-    .message-avatar {
+    .rtub-messages__bubble-avatar {
         margin: 0 0.4rem;
     }
 
@@ -955,13 +1007,13 @@
        ============================================= */
     
     /* Message composer styling for textarea - mobile-specific overrides */
-    .message-composer {
+    .rtub-messages__composer {
         padding: 0.45rem 0.6rem 0.45rem 0.75rem;
         border-radius: 1rem;
         align-items: flex-end;
     }
 
-    .message-composer__input {
+    .rtub-messages__composer-input {
         /* !important is intentional here: iOS Safari auto-zooms inputs with font-size < 16px
            This is a critical mobile UX requirement to prevent jarring zoom behavior
            when users tap the message input field. The 16px minimum is a documented
@@ -973,101 +1025,101 @@
         line-height: 1.4; /* Tighter line height for mobile */
     }
 
-    .message-composer__send {
+    .rtub-messages__composer-send {
         min-width: 42px;
         height: 36px;
         flex-shrink: 0;
     }
 
     /* Other mobile adjustments */
-    .conversation-item {
+    .rtub-messages__item {
         padding: 0.75rem;
     }
 
-    .conversation-content {
+    .rtub-messages__item-content {
         padding-right: 2rem;
     }
 
-    .conversation-header {
+    .rtub-messages__item-header {
         align-items: flex-start;
         gap: 0.35rem;
     }
 
-    .conversation-time {
+    .rtub-messages__item-time {
         margin-left: 0;
     }
 
-    .conversation-avatar,
-    .message-thread-header .conversation-avatar {
+    .rtub-messages__avatar,
+    .rtub-messages__thread-header .rtub-messages__avatar {
         width: 44px;
         height: 44px;
         margin-right: 0.75rem;
     }
 
     /* Header actions on mobile - smaller square buttons */
-    .header-actions {
+    .rtub-messages__header-actions {
         gap: 0.35rem;
     }
 
-    .header-action-btn,
-    .header-actions .dropdown .btn-link {
+    .rtub-messages__header-btn,
+    .rtub-messages__header-actions .dropdown .btn-link {
         width: 32px;
         height: 32px;
         border-radius: 0.25rem; /* Smaller rounding for mobile */
     }
 
-    .message-thread-header .btn-link,
-    .conversations-header-mobile .btn-link {
+    .rtub-messages__thread-header .btn-link,
+    .rtub-messages__panel-header--mobile .btn-link {
         width: 32px;
         height: 32px;
         border-radius: 0.25rem;
     }
 
-    .header-actions .header-action-btn i,
-    .header-actions .header-action-btn .bi,
-    .header-actions .btn-link i,
-    .header-actions .btn-link .bi,
-    .conversations-header-mobile .btn-link i {
+    .rtub-messages__header-actions .rtub-messages__header-btn i,
+    .rtub-messages__header-actions .rtub-messages__header-btn .bi,
+    .rtub-messages__header-actions .btn-link i,
+    .rtub-messages__header-actions .btn-link .bi,
+    .rtub-messages__panel-header--mobile .btn-link i {
         font-size: 1rem;
     }
 
     /* Smaller status icons on mobile */
-    .conversation-status-icon {
+    .rtub-messages__item-status-icon {
         font-size: 0.65rem;
     }
 
-    .group-member-modal-item {
+    .rtub-messages__group-member {
         padding: 0.65rem;
     }
 
-    .conversation-modal {
+    .rtub-messages__modal {
         margin: 0.5rem;
     }
 
-    .conversation-modal.modal-lg {
+    .rtub-messages__modal.modal-lg {
         max-width: 100%;
     }
 
-    .conversation-modal .modal-content {
+    .rtub-messages__modal .modal-content {
         min-height: 80vh;
         border-radius: 0.85rem;
         /* Prevent horizontal scroll on mobile */
         overflow-x: hidden;
     }
 
-    .conversation-modal .modal-header,
-    .conversation-modal .modal-body,
-    .conversation-modal .modal-footer {
+    .rtub-messages__modal .modal-header,
+    .rtub-messages__modal .modal-body,
+    .rtub-messages__modal .modal-footer {
         padding: 0.9rem 1rem;
     }
 
-    .conversation-modal .modal-body {
+    .rtub-messages__modal .modal-body {
         /* Ensure modal body can scroll vertically but not horizontally */
         overflow-x: hidden;
         overflow-y: auto;
     }
 
-    .conversation-modal .member-list-scrollable {
+    .rtub-messages__modal .rtub-messages__member-list {
         max-height: 240px;
     }
 
@@ -1087,7 +1139,7 @@
     }
     
     /* Modal dialog - full screen on mobile */
-    .conversation-modal.modal-dialog {
+    .rtub-messages__modal.modal-dialog {
         position: fixed;
         inset: 0; /* top: 0, right: 0, bottom: 0, left: 0 */
         margin: 0;
@@ -1100,7 +1152,7 @@
     }
     
     /* Modal content - full height flex layout */
-    .conversation-modal .modal-content {
+    .rtub-messages__modal .modal-content {
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -1112,7 +1164,7 @@
     }
     
     /* Modal header - fixed at top */
-    .conversation-modal .modal-header {
+    .rtub-messages__modal .modal-header {
         flex-shrink: 0;
         padding: 1rem;
         border-bottom: 1px solid var(--bs-border-color);
@@ -1120,7 +1172,7 @@
     }
     
     /* Modal body - scrollable flex content with compact spacing */
-    .conversation-modal .modal-body {
+    .rtub-messages__modal .modal-body {
         flex: 1;
         overflow-y: auto;
         overflow-x: hidden;
@@ -1138,26 +1190,26 @@
     }
     
     /* Reduce spacing for form groups in modals on mobile */
-    .conversation-modal .modal-body .mb-3 {
+    .rtub-messages__modal .modal-body .mb-3 {
         margin-bottom: 0 !important;
     }
     
     /* Reduce label spacing */
-    .conversation-modal .modal-body .form-label {
+    .rtub-messages__modal .modal-body .form-label {
         margin-bottom: 0.375rem;
         font-size: 0.9rem;
         font-weight: 600;
     }
     
     /* Small helper text */
-    .conversation-modal .modal-body small {
+    .rtub-messages__modal .modal-body small {
         font-size: 0.75rem;
         display: block;
         margin-top: 0.25rem;
     }
     
     /* Modal footer - fixed at bottom with iOS safe area */
-    .conversation-modal .modal-footer {
+    .rtub-messages__modal .modal-footer {
         flex-shrink: 0;
         padding: 0.75rem 1rem;
         padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)); /* iOS notch support */
@@ -1169,7 +1221,7 @@
     }
     
     /* Make footer buttons equal width on mobile */
-    .conversation-modal .modal-footer .btn {
+    .rtub-messages__modal .modal-footer .btn {
         flex: 1;
     }
     
@@ -1179,28 +1231,28 @@
      * !important is required: iOS Safari auto-zooms inputs with font-size < 16px
      * This is a documented iOS Safari behavior that affects mobile PWA usability
      */
-    .conversation-modal input[type="text"],
-    .conversation-modal textarea,
-    .conversation-modal .form-control,
-    .conversation-modal .search-bar__input {
+    .rtub-messages__modal input[type="text"],
+    .rtub-messages__modal textarea,
+    .rtub-messages__modal .form-control,
+    .rtub-messages__modal .search-bar__input {
         font-size: 16px !important;
     }
     
     /* Group name input - minimum touch target for accessibility */
-    .conversation-modal input[type="text"].form-control {
+    .rtub-messages__modal input[type="text"].form-control {
         min-height: 44px;
         padding: 0.625rem 0.875rem;
     }
     
     /* Message textarea in New Message modal */
-    .conversation-modal textarea.form-control {
+    .rtub-messages__modal textarea.form-control {
         font-size: 16px !important;
         min-height: 100px;
         resize: vertical;
     }
     
     /* SearchBar inside modals - prevent iOS zoom */
-    .conversation-modal .search-bar__input {
+    .rtub-messages__modal .search-bar__input {
         font-size: 16px !important;
         min-height: 44px;
         padding: 0.625rem 0.875rem;
@@ -1212,7 +1264,7 @@
     }
     
     /* Member list scrollable area - compact height for better space usage */
-    .conversation-modal .member-list-scrollable {
+    .rtub-messages__modal .rtub-messages__member-list {
         max-height: 35vh; /* Use viewport height for responsive sizing */
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
@@ -1223,28 +1275,28 @@
     }
     
     /* Member search results section */
-    .conversation-modal .member-list {
+    .rtub-messages__modal .rtub-messages__member-list {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
     }
     
     /* Modal close button - larger touch target */
-    .conversation-modal .btn-close {
+    .rtub-messages__modal .btn-close {
         min-width: 44px;
         min-height: 44px;
         padding: 0.5rem;
     }
     
     /* Modal buttons - proper touch targets */
-    .conversation-modal .modal-footer .btn {
+    .rtub-messages__modal .modal-footer .btn {
         min-height: 44px;
         padding: 0.625rem 1.25rem;
         font-size: 1rem;
     }
     
     /* Group Members modal - specific adjustments */
-    .conversation-modal .group-members-modal-list {
+    .rtub-messages__modal .rtub-messages__group-members-list {
         max-height: calc(100dvh - 300px);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
@@ -1254,25 +1306,25 @@
     }
     
     /* Member item cards - compact spacing */
-    .conversation-modal .member-item {
+    .rtub-messages__modal .rtub-messages__member-item {
         padding: 0.625rem;
         margin-bottom: 0;
     }
     
     /* Member avatar in search results */
-    .conversation-modal .member-avatar-small {
+    .rtub-messages__modal .rtub-messages__member-avatar {
         width: 36px;
         height: 36px;
     }
     
     /* Badge counter for selected count */
-    .conversation-modal .badge.bg-primary {
+    .rtub-messages__modal .badge.bg-primary {
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
     }
     
     /* Selected members section - card-style block with internal scroll */
-    .conversation-modal .selected-members {
+    .rtub-messages__modal .rtub-messages__selected-members {
         padding: 0.75rem;
         max-height: 40vh; /* Use viewport height - takes up to 40% of screen */
         overflow-y: auto;
@@ -1289,7 +1341,7 @@
     }
     
     /* Label for selected members */
-    .conversation-modal .selected-members .form-label {
+    .rtub-messages__modal .rtub-messages__selected-members .form-label {
         margin-bottom: 0.5rem;
         font-size: 0.875rem;
         font-weight: 600;
@@ -1297,7 +1349,7 @@
     }
     
     /* Container for badge chips - wraps and scrolls if needed */
-    .conversation-modal .selected-members > div {
+    .rtub-messages__modal .rtub-messages__selected-members > div {
         display: flex;
         flex-wrap: wrap;
         gap: 0.4rem;
@@ -1305,7 +1357,7 @@
         align-content: flex-start;
     }
     
-    .conversation-modal .selected-members .badge {
+    .rtub-messages__modal .rtub-messages__selected-members .badge {
         font-size: 0.8rem;
         padding: 0.35rem 0.5rem;
         margin-bottom: 0;
@@ -1318,7 +1370,7 @@
         text-overflow: ellipsis;
     }
     
-    .conversation-modal .selected-members .btn-close {
+    .rtub-messages__modal .rtub-messages__selected-members .btn-close {
         font-size: 0.55rem;
         padding: 0;
         margin-left: 0.15rem;
@@ -1329,33 +1381,33 @@
 }
 
 /* Scrollbar styling for dark theme */
-.conversations-list::-webkit-scrollbar,
-.message-thread-body::-webkit-scrollbar,
-.member-list-scrollable::-webkit-scrollbar {
+.rtub-messages__list::-webkit-scrollbar,
+.rtub-messages__thread-body::-webkit-scrollbar,
+.rtub-messages__member-list::-webkit-scrollbar {
     width: 8px;
 }
 
-.conversations-list::-webkit-scrollbar-track,
-.message-thread-body::-webkit-scrollbar-track,
-.member-list-scrollable::-webkit-scrollbar-track {
+.rtub-messages__list::-webkit-scrollbar-track,
+.rtub-messages__thread-body::-webkit-scrollbar-track,
+.rtub-messages__member-list::-webkit-scrollbar-track {
     background: var(--bs-dark);
 }
 
-.conversations-list::-webkit-scrollbar-thumb,
-.message-thread-body::-webkit-scrollbar-thumb,
-.member-list-scrollable::-webkit-scrollbar-thumb {
+.rtub-messages__list::-webkit-scrollbar-thumb,
+.rtub-messages__thread-body::-webkit-scrollbar-thumb,
+.rtub-messages__member-list::-webkit-scrollbar-thumb {
     background: var(--bs-border-color);
     border-radius: 4px;
 }
 
-.conversations-list::-webkit-scrollbar-thumb:hover,
-.message-thread-body::-webkit-scrollbar-thumb:hover,
-.member-list-scrollable::-webkit-scrollbar-thumb:hover {
+.rtub-messages__list::-webkit-scrollbar-thumb:hover,
+.rtub-messages__thread-body::-webkit-scrollbar-thumb:hover,
+.rtub-messages__member-list::-webkit-scrollbar-thumb:hover {
     background: var(--bs-primary);
 }
 
 /* Group avatar icon */
-.group-avatar-icon {
+.rtub-messages__avatar--group {
     width: 100%;
     height: 100%;
     background: linear-gradient(135deg, var(--bs-primary) 0%, #8b5cf6 100%);
@@ -1367,16 +1419,16 @@
     font-size: 1.25rem;
 }
 
-.conversation-avatar .group-avatar-icon {
+.rtub-messages__avatar .rtub-messages__avatar--group {
     font-size: 1.5rem;
 }
 
-.message-thread-header .group-avatar-icon {
+.rtub-messages__thread-header .rtub-messages__avatar--group {
     font-size: 1.25rem;
 }
 
 /* Group message sender name */
-.message-sender-name {
+.rtub-messages__bubble-sender {
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--bs-primary);
@@ -1384,17 +1436,17 @@
 }
 
 /* Group member selection */
-.member-item.selected {
+.rtub-messages__member-item.is-selected {
     background: rgba(111, 66, 193, 0.2) !important;
     border-color: var(--bs-primary) !important;
 }
 
-.selected-members {
+.rtub-messages__selected-members {
     padding: 0.5rem 0;
     background: transparent;
 }
 
-.selected-members .badge {
+.rtub-messages__selected-members .badge {
     padding: 0.35rem 0.5rem;
     font-size: 0.875rem;
     display: inline-flex;
@@ -1402,14 +1454,14 @@
     gap: 0.25rem;
 }
 
-.selected-members .btn-close {
+.rtub-messages__selected-members .btn-close {
     padding: 0;
     margin-left: 0.25rem;
     font-size: 0.625rem;
 }
 
 /* Group members modal */
-.group-members-modal-list {
+.rtub-messages__group-members-list {
     max-height: 400px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -1417,7 +1469,7 @@
     overscroll-behavior: contain;
 }
 
-.group-member-modal-item {
+.rtub-messages__group-member {
     display: flex;
     align-items: center;
     padding: 0.75rem;
@@ -1428,11 +1480,11 @@
     transition: background-color 0.2s;
 }
 
-.group-member-modal-item:hover {
+.rtub-messages__group-member:hover {
     background: rgba(111, 66, 193, 0.1);
 }
 
-.group-member-modal-avatar {
+.rtub-messages__group-member-avatar {
     width: 45px;
     height: 45px;
     border-radius: 50%;
@@ -1441,12 +1493,12 @@
     flex-shrink: 0;
 }
 
-.group-member-modal-info {
+.rtub-messages__group-member-info {
     flex: 1;
     min-width: 0;
 }
 
-.group-member-modal-name {
+.rtub-messages__group-member-name {
     font-weight: 600;
     color: var(--bs-body-color);
     font-size: 1rem;
@@ -1455,7 +1507,7 @@
     text-overflow: ellipsis;
 }
 
-.group-member-modal-fullname {
+.rtub-messages__group-member-fullname {
     font-size: 0.875rem;
     color: #888;
     white-space: nowrap;
@@ -1463,22 +1515,22 @@
     text-overflow: ellipsis;
 }
 
-.group-members-preview {
+.rtub-messages__group-preview {
     font-size: 0.75rem;
 }
 
-.group-members-preview:hover {
+.rtub-messages__group-preview:hover {
     color: var(--bs-primary) !important;
 }
 
 /* Read-only footer for announcement channels */
-.read-only-footer {
+.rtub-messages__thread-footer--readonly {
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.read-only-message {
+.rtub-messages__readonly-notice {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -1486,25 +1538,25 @@
     font-size: 0.875rem;
 }
 
-.read-only-message i {
+.rtub-messages__readonly-notice i {
     font-size: 1rem;
 }
 
 /* Typing Indicator */
-.typing-indicator {
+.rtub-messages__typing {
     padding: 0.5rem 1rem;
     margin: 0.5rem 0;
     display: flex;
     align-items: center;
 }
 
-.typing-indicator-content {
+.rtub-messages__typing-content {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-.typing-indicator-dots {
+.rtub-messages__typing-dots {
     display: flex;
     gap: 0.25rem;
     padding: 0.5rem 0.75rem;
@@ -1512,23 +1564,23 @@
     border-radius: 1rem;
 }
 
-.typing-indicator-dots span {
+.rtub-messages__typing-dots span {
     width: 6px;
     height: 6px;
     background: var(--bs-primary);
     border-radius: 50%;
-    animation: typing-bounce 1.4s infinite;
+    animation: rtub-messages-typing-bounce 1.4s infinite;
 }
 
-.typing-indicator-dots span:nth-child(2) {
+.rtub-messages__typing-dots span:nth-child(2) {
     animation-delay: 0.2s;
 }
 
-.typing-indicator-dots span:nth-child(3) {
+.rtub-messages__typing-dots span:nth-child(3) {
     animation-delay: 0.4s;
 }
 
-@keyframes typing-bounce {
+@keyframes rtub-messages-typing-bounce {
     0%, 60%, 100% {
         transform: translateY(0);
         opacity: 0.7;
@@ -1539,7 +1591,7 @@
     }
 }
 
-.typing-indicator-text {
+.rtub-messages__typing-text {
     color: #888;
     font-size: 0.875rem;
     font-style: italic;

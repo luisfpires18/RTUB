@@ -25,13 +25,13 @@
 
 <PageTitle>Mensagens - RTUB</PageTitle>
 
-<div class="messages-page">
+<div class="rtub-messages">
     <div class="container-fluid h-100">
         <div class="row g-0 h-100">
             @* Conversations List *@
-            <div class="col-12 col-lg-4 conversations-panel @(selectedConversation != null ? "d-none d-lg-block" : "")">
+            <div class="col-12 col-lg-4 rtub-messages__panel @(selectedConversation != null ? "d-none d-lg-block" : "")">
                 @* Mobile-only header with back button to home *@
-                <div class="conversations-header-mobile d-lg-none">
+                <div class="rtub-messages__panel-header--mobile d-lg-none">
                     <a href="/" class="btn btn-link">
                         <i class="bi bi-arrow-left"></i>
                     </a>
@@ -55,7 +55,7 @@
                     </div>
                 </div>
                 @* Desktop header *@
-                <div class="conversations-header d-none d-lg-flex">
+                <div class="rtub-messages__panel-header d-none d-lg-flex">
                     <h3 class="mb-0"><i class="bi bi-chat-dots"></i> Mensagens</h3>
                     <div class="dropdown">
                         <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -86,7 +86,7 @@
                 }
                 else if (!conversations.Any())
                 {
-                    <div class="empty-state text-center py-5">
+                    <div class="rtub-messages__empty text-center py-5">
                         <i class="bi bi-chat-dots display-1 text-muted"></i>
                         <p class="text-muted mt-3">Ainda não tem mensagens</p>
                         <button class="btn btn-primary" @onclick="OpenNewMessageModal">
@@ -96,19 +96,19 @@
                 }
                 else
                 {
-                    <div class="conversations-list">
+                    <div class="rtub-messages__list">
                         @foreach (var conversation in conversations)
                         {
-                            <div class="conversation-item @(selectedConversation?.Id == conversation.Id ? "active" : "")"
+                            <div class="rtub-messages__item @(selectedConversation?.Id == conversation.Id ? "is-active" : "")"
                                  @onclick="() => SelectConversation(conversation.Id)">
-                                <div class="conversation-avatar">
+                                <div class="rtub-messages__avatar">
                                     @if (conversation.IsSystemConversation || conversation.IsAnnouncementOnly)
                                     {
                                         <img src="/icons/rtub-logo-192.png" alt="RTUB" />
                                     }
                                     else if (conversation.IsGroup)
                                     {
-                                        <div class="group-avatar-icon">
+                                        <div class="rtub-messages__avatar--group">
                                             <i class="bi bi-people-fill"></i>
                                         </div>
                                     }
@@ -119,16 +119,16 @@
                                              onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
                                     }
                                 </div>
-                                <div class="conversation-content">
-                                    <div class="conversation-header">
-                                        <h5 class="conversation-name">
+                                <div class="rtub-messages__item-content">
+                                    <div class="rtub-messages__item-header">
+                                        <h5 class="rtub-messages__item-name">
                                             @if (conversation.IsPinned)
                                             {
-                                                <i class="bi bi-pin-fill conversation-status-icon text-primary me-1" title="Afixado"></i>
+                                                <i class="bi bi-pin-fill rtub-messages__item-status-icon text-primary me-1" title="Afixado"></i>
                                             }
                                             @if (conversation.IsMuted)
                                             {
-                                                <i class="bi bi-bell-slash-fill conversation-status-icon text-muted me-1" title="Silenciado"></i>
+                                                <i class="bi bi-bell-slash-fill rtub-messages__item-status-icon text-muted me-1" title="Silenciado"></i>
                                             }
                                             @if (conversation.IsSystemConversation)
                                             {
@@ -143,9 +143,9 @@
                                                 @(conversation.OtherParticipantNickname ?? conversation.OtherParticipantName)
                                             }
                                         </h5>
-                                        <span class="conversation-time">@GetRelativeTime(conversation.LastMessageAt)</span>
+                                        <span class="rtub-messages__item-time">@GetRelativeTime(conversation.LastMessageAt)</span>
                                     </div>
-                                    <div class="conversation-preview">
+                                    <div class="rtub-messages__item-preview">
                                         <span class="@(conversation.UnreadCount > 0 ? "fw-bold" : "")">
                                             @if (conversation.IsGroup && !string.IsNullOrEmpty(conversation.LastMessageSenderId))
                                             {
@@ -162,7 +162,7 @@
                                 </div>
                                 @if (conversation.UnreadCount > 0)
                                 {
-                                    <span class="badge bg-danger conversation-badge">@conversation.UnreadCount</span>
+                                    <span class="badge bg-danger rtub-messages__item-badge">@conversation.UnreadCount</span>
                                 }
                             </div>
                         }
@@ -171,30 +171,30 @@
             </div>
 
             @* Message Thread *@
-            <div class="col-12 col-lg-8 message-thread-panel @(selectedConversation == null ? "d-none d-lg-flex" : "")">
+            <div class="col-12 col-lg-8 rtub-messages__thread-panel @(selectedConversation == null ? "d-none d-lg-flex" : "")">
                 @if (selectedConversation == null)
                 {
-                    <div class="empty-state text-center py-5 w-100">
+                    <div class="rtub-messages__empty text-center py-5 w-100">
                         <i class="bi bi-chat-text display-1 text-muted"></i>
                         <p class="text-muted mt-3">Selecione uma conversa para começar</p>
                     </div>
                 }
                 else
                 {
-                    <div class="message-thread">
-                        <div class="message-thread-header">
+                    <div class="rtub-messages__thread">
+                        <div class="rtub-messages__thread-header">
                             <button class="btn btn-link d-lg-none me-2" @onclick="BackToConversations">
                                 <i class="bi bi-arrow-left"></i>
                             </button>
                             <div class="d-flex align-items-center flex-grow-1">
-                                <div class="conversation-avatar me-2">
+                                <div class="rtub-messages__avatar me-2">
                                     @if (selectedConversation.IsSystemConversation || selectedConversation.IsAnnouncementOnly)
                                     {
                                         <img src="/icons/rtub-logo-192.png" alt="RTUB" />
                                     }
                                     else if (selectedConversation.IsGroup)
                                     {
-                                        <div class="group-avatar-icon">
+                                        <div class="rtub-messages__avatar--group">
                                             <i class="bi bi-people-fill"></i>
                                         </div>
                                     }
@@ -222,7 +222,7 @@
                                     </h5>
                                     @if (selectedConversation.IsGroup && selectedConversation.GroupParticipants?.Any() == true)
                                     {
-                                        <small class="text-muted group-members-preview" @onclick="OpenGroupMembersModal" @onclick:stopPropagation="true" style="cursor: pointer;">
+                                        <small class="text-muted rtub-messages__group-preview" @onclick="OpenGroupMembersModal" @onclick:stopPropagation="true" style="cursor: pointer;">
                                             <i class="bi bi-people me-1"></i>
                                             @selectedConversation.GroupParticipants.Count membros
                                             <i class="bi bi-chevron-right ms-1"></i>
@@ -232,11 +232,11 @@
                             </div>
                             @if (!selectedConversation.IsSystemConversation)
                             {
-                                <div class="header-actions">
-                                    <button class="btn btn-link header-action-btn @(selectedConversation.IsMuted ? "active" : "")" @onclick="ToggleMute" title="@(selectedConversation.IsMuted ? "Ativar notificações" : "Silenciar")">
+                                <div class="rtub-messages__header-actions">
+                                    <button class="btn btn-link rtub-messages__header-btn @(selectedConversation.IsMuted ? "is-active" : "")" @onclick="ToggleMute" title="@(selectedConversation.IsMuted ? "Ativar notificações" : "Silenciar")">
                                         <i class="bi @(selectedConversation.IsMuted ? "bi-bell-slash-fill" : "bi-bell")"></i>
                                     </button>
-                                    <button class="btn btn-link header-action-btn @(selectedConversation.IsPinned ? "active" : "")" @onclick="TogglePin" title="@(selectedConversation.IsPinned ? "Desafixar" : "Afixar")">
+                                    <button class="btn btn-link rtub-messages__header-btn @(selectedConversation.IsPinned ? "is-active" : "")" @onclick="TogglePin" title="@(selectedConversation.IsPinned ? "Desafixar" : "Afixar")">
                                         <i class="bi @(selectedConversation.IsPinned ? "bi-pin-fill" : "bi-pin")"></i>
                                     </button>
                                     <div class="dropdown">
@@ -265,8 +265,8 @@
                             }
                         </div>
 
-                        <div class="message-thread-body" @ref="messageThreadBody">
-                            <div class="messages-inner-wrapper">
+                        <div class="rtub-messages__thread-body" @ref="messageThreadBody">
+                            <div class="rtub-messages__thread-wrapper">
                                 @if (isLoadingMessages)
                                 {
                                     <div class="text-center py-5">
@@ -285,12 +285,12 @@
                                         var showTimestamp = groupPosition == MessageGroupPosition.Last || groupPosition == MessageGroupPosition.Single;
                                         var showSenderName = showAvatar && selectedConversation.IsGroup && message.SenderId != currentUserId && !message.IsSystem;
                                         
-                                        <div class="message @(message.SenderId == currentUserId ? "message-sent" : "message-received") @(message.IsSystem ? "message-system" : string.Empty) @GetMessageGroupClass(groupPosition)">
+                                        <div class="rtub-messages__bubble @(message.SenderId == currentUserId ? "rtub-messages__bubble--sent" : "rtub-messages__bubble--received") @(message.IsSystem ? "rtub-messages__bubble--system" : string.Empty) @GetMessageGroupClass(groupPosition)">
                                             @if (message.SenderId != currentUserId && !message.IsSystem)
                                             {
                                                 @if (showAvatar)
                                                 {
-                                                    <div class="message-avatar">
+                                                    <div class="rtub-messages__bubble-avatar">
                                                         <img src="@GetAvatarUrl(message.SenderAvatar)" 
                                                              alt="@(message.SenderNickname ?? message.SenderName)" 
                                                              onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
@@ -298,36 +298,36 @@
                                                 }
                                                 else
                                                 {
-                                                    <div class="message-avatar-placeholder"></div>
+                                                    <div class="rtub-messages__bubble-avatar-placeholder"></div>
                                                 }
                                             }
                                             @if (message.IsSystem)
                                             {
                                                 @if (showAvatar)
                                                 {
-                                                    <div class="message-avatar">
+                                                    <div class="rtub-messages__bubble-avatar">
                                                         <img src="/icons/rtub-logo-192.png" alt="RTUB" />
                                                     </div>
                                                 }
                                                 else
                                                 {
-                                                    <div class="message-avatar-placeholder"></div>
+                                                    <div class="rtub-messages__bubble-avatar-placeholder"></div>
                                                 }
                                             }
-                                            <div class="message-content">
+                                            <div class="rtub-messages__bubble-content">
                                                 @if (showSenderName)
                                                 {
-                                                    <div class="message-sender-name">
+                                                    <div class="rtub-messages__bubble-sender">
                                                         @(message.SenderNickname ?? message.SenderName)
                                                     </div>
                                                 }
-                                                <div class="message-body @(message.IsSystem ? "system-message-body" : string.Empty)">
-                                                    <p class="message-text">@message.Body</p>
+                                                <div class="rtub-messages__bubble-body @(message.IsSystem ? "rtub-messages__bubble-body--system" : string.Empty)">
+                                                    <p class="rtub-messages__bubble-text">@message.Body</p>
 
                                                     @if (!string.IsNullOrEmpty(message.Link))
                                                     {
-                                                        <div class="message-actions">
-                                                            <a href="@message.Link" class="message-link-btn">
+                                                        <div class="rtub-messages__bubble-actions">
+                                                            <a href="@message.Link" class="rtub-messages__bubble-link">
                                                                 <i class="bi bi-link-45deg"></i>
                                                                 <span>Ver mais</span>
                                                             </a>
@@ -336,7 +336,7 @@
                                                 </div>
                                                 @if (showTimestamp)
                                                 {
-                                                    <div class="message-time">
+                                                    <div class="rtub-messages__bubble-time">
                                                         @message.CreatedAt.ToString("dd/MM/yyyy HH:mm")
                                                         @if (message.SenderId == currentUserId && !message.IsSystem)
                                                         {
@@ -358,14 +358,14 @@
                                     @* Typing indicator *@
                                     @if (typingUsers.Any())
                                     {
-                                        <div class="typing-indicator">
-                                            <div class="typing-indicator-content">
-                                                <span class="typing-indicator-dots">
+                                        <div class="rtub-messages__typing">
+                                            <div class="rtub-messages__typing-content">
+                                                <span class="rtub-messages__typing-dots">
                                                     <span></span>
                                                     <span></span>
                                                     <span></span>
                                                 </span>
-                                                <span class="typing-indicator-text">
+                                                <span class="rtub-messages__typing-text">
                                                     @GetTypingUsersText()
                                                 </span>
                                             </div>
@@ -377,9 +377,9 @@
 
                         @if (!selectedConversation.IsSystemConversation && selectedConversation.CanSendMessage)
                         {
-                            <div class="message-thread-footer">
-                                <div class="message-composer">
-                                    <textarea @ref="messageInput" class="message-composer__input messaging-input"
+                            <div class="rtub-messages__thread-footer">
+                                <div class="rtub-messages__composer">
+                                    <textarea @ref="messageInput" class="rtub-messages__composer-input messaging-input"
                                            placeholder="Escreva uma mensagem..."
                                            value="@newMessageText"
                                            @oninput="HandleTextInput"
@@ -387,7 +387,7 @@
                                            @onblur="HandleInputBlur"
                                            rows="1"
                                            disabled="@isSending"></textarea>
-                                    <button class="message-composer__send"
+                                    <button class="rtub-messages__composer-send"
                                             @onclick="SendMessage"
                                             disabled="@(string.IsNullOrWhiteSpace(newMessageText) || isSending)">
                                         @if (isSending)
@@ -404,8 +404,8 @@
                         }
                         else if (selectedConversation.IsAnnouncementOnly && !selectedConversation.CanSendMessage)
                         {
-                            <div class="message-thread-footer read-only-footer">
-                                <div class="read-only-message">
+                            <div class="rtub-messages__thread-footer rtub-messages__thread-footer--readonly">
+                                <div class="rtub-messages__readonly-notice">
                                     <i class="bi bi-megaphone"></i>
                                     <span>Canal apenas de anúncios</span>
                                 </div>
@@ -422,7 +422,7 @@
 @if (showNewMessageModal)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down conversation-modal">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down rtub-messages__modal">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-plus-lg"></i> Nova Mensagem</h5>
@@ -440,15 +440,15 @@
 
                     @if (filteredMembers.Any())
                     {
-                        <div class="member-list member-list-scrollable mb-3">
+                        <div class="rtub-messages__member-list mb-3">
                             @foreach (var member in filteredMembers.Take(10))
                             {
-                                <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                <div class="rtub-messages__member-item p-2 mb-2 border rounded rtub-messages__clickable"
                                      @onclick="() => SelectMember(member)">
                                     <div class="d-flex align-items-center">
                                         <img src="@GetAvatarUrl(member.ImageUrl)" 
                                              alt="@(member.Nickname ?? $"{member.FirstName} {member.LastName}")"
-                                             class="member-avatar-small me-2" 
+                                             class="rtub-messages__member-avatar me-2" 
                                              onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
                                         <div>
                                             @if (!string.IsNullOrEmpty(member.Nickname))
@@ -515,7 +515,7 @@
 @if (showNewGroupModal)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg modal-fullscreen-sm-down conversation-modal conversation-modal--group">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg modal-fullscreen-sm-down rtub-messages__modal rtub-messages__modal--group">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-people"></i> Nova conversa de grupo</h5>
@@ -548,17 +548,17 @@
 
                     @if (filteredGroupMembers.Any())
                     {
-                        <div class="member-list member-list-scrollable mb-3">
+                        <div class="rtub-messages__member-list mb-3">
                             @foreach (var member in filteredGroupMembers.Take(10))
                             {
                                 var isSelected = selectedGroupMembers.Any(m => m.Id == member.Id);
-                                <div class="member-item p-2 mb-2 border rounded clickable-row @(isSelected ? "selected" : "")"
+                                <div class="rtub-messages__member-item p-2 mb-2 border rounded rtub-messages__clickable @(isSelected ? "is-selected" : "")"
                                      @onclick="() => ToggleGroupMember(member)">
                                     <div class="d-flex align-items-center justify-content-between">
                                         <div class="d-flex align-items-center">
                                             <img src="@GetAvatarUrl(member.ImageUrl)" 
                                                  alt="@(member.Nickname ?? $"{member.FirstName} {member.LastName}")"
-                                                 class="member-avatar-small me-2" 
+                                                 class="rtub-messages__member-avatar me-2" 
                                                  onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
                                             <div>
                                                 @if (!string.IsNullOrEmpty(member.Nickname))
@@ -584,7 +584,7 @@
 
                     @if (selectedGroupMembers.Any())
                     {
-                        <div class="selected-members mt-3">
+                        <div class="rtub-messages__selected-members mt-3">
                             <label class="form-label">Membros selecionados:</label>
                             <div class="d-flex flex-wrap gap-2">
                                 @foreach (var member in selectedGroupMembers)
@@ -646,7 +646,7 @@
                         var filteredParticipants = GetFilteredGroupParticipants().ToList();
                     }
 
-                    <div class="group-members-modal-list">
+                    <div class="rtub-messages__group-members-list">
                         @if (!filteredParticipants.Any())
                         {
                             <EmptyState Title="Nenhum membro encontrado"
@@ -657,16 +657,16 @@
                         {
                             @foreach (var participant in filteredParticipants)
                             {
-                                <div class="group-member-modal-item">
+                                <div class="rtub-messages__group-member">
                                     <img src="@GetAvatarUrl(participant.Avatar)"
                                          alt="@(participant.Nickname ?? participant.Name)"
-                                         class="group-member-modal-avatar"
+                                         class="rtub-messages__group-member-avatar"
                                          onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
-                                    <div class="group-member-modal-info">
-                                        <div class="group-member-modal-name">@(participant.Nickname ?? participant.Name)</div>
+                                    <div class="rtub-messages__group-member-info">
+                                        <div class="rtub-messages__group-member-name">@(participant.Nickname ?? participant.Name)</div>
                                         @if (!string.IsNullOrEmpty(participant.Nickname) && !string.IsNullOrEmpty(participant.Name))
                                         {
-                                            <div class="group-member-modal-fullname">@participant.Name</div>
+                                            <div class="rtub-messages__group-member-fullname">@participant.Name</div>
                                         }
                                     </div>
                                 </div>
@@ -707,6 +707,7 @@
     private ElementReference messageThreadBody;
     private ElementReference messageInput;
     private bool shouldScrollToBottom;
+    private bool shouldScrollIfNearEnd; // For received messages - only scroll if user is near bottom
     private bool isInputFocusHandlerSetup = false;
 
     // Group members modal
@@ -750,6 +751,13 @@
         {
             shouldScrollToBottom = false;
             await ScrollToLatestMessageAsync();
+        }
+        else if (shouldScrollIfNearEnd)
+        {
+            // For received messages, only scroll if user is near the bottom
+            // This prevents jarring scrolls when user is reading history
+            shouldScrollIfNearEnd = false;
+            await JSRuntime.InvokeVoidAsync("messageScroller.scrollToBottomIfNearEnd", messageThreadBody, 100);
         }
         
         // Setup input focus handler for mobile keyboard scrolling (only once)
@@ -1183,10 +1191,10 @@
     {
         return position switch
         {
-            MessageGroupPosition.Single => "message-group-single",
-            MessageGroupPosition.First => "message-group-first",
-            MessageGroupPosition.Middle => "message-group-middle",
-            MessageGroupPosition.Last => "message-group-last",
+            MessageGroupPosition.Single => "rtub-messages__bubble--group-single",
+            MessageGroupPosition.First => "rtub-messages__bubble--group-first",
+            MessageGroupPosition.Middle => "rtub-messages__bubble--group-middle",
+            MessageGroupPosition.Last => "rtub-messages__bubble--group-last",
             _ => string.Empty
         };
     }
@@ -1284,7 +1292,17 @@
                 if (!messages.Any(m => m.Id == message.Id))
                 {
                     messages.Add(message);
-                    shouldScrollToBottom = true;
+                    
+                    // For messages sent by current user, always scroll to bottom
+                    // For messages received from others, only scroll if user is near bottom
+                    if (message.SenderId == currentUserId)
+                    {
+                        shouldScrollToBottom = true;
+                    }
+                    else
+                    {
+                        shouldScrollIfNearEnd = true;
+                    }
                 }
                 
                 // If message is from another user, mark as read

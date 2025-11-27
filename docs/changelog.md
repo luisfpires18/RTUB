@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - 2025-11-27
+- ADR 002: CSS Architecture and BEM Naming Convention documentation
+- Standardized BEM-like naming pattern (`rtub-[component]__[element]--[modifier]`)
+- CSS custom properties naming convention (`--rtub-[component]-*`)
+- State classes pattern (`is-[state]`) for dynamic states
+- Guidelines for future CSS component development
+
 ### Added - 2025-11-26
 - Comprehensive performance optimizations (backend + frontend)
 - `ShouldRender()` implementation in 7 critical Blazor components
@@ -65,6 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Documentation Links
 
+- [ADR 002: CSS Naming Convention](decisions/002-css-naming-convention.md) - BEM-like naming convention
+- [ADR 001: ShouldRender Optimization](decisions/001-shouldrender-optimization.md) - Rendering optimization pattern
 - [Frontend Performance Optimizations](../FRONTEND-PERFORMANCE-OPTIMIZATIONS.md)
 - [.NET 10 Upgrade Changelog](../BLAZOR-NET10-CHANGELOG.md)
 - [Work Log](work-log.md) - Detailed chronological development log

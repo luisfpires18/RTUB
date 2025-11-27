@@ -4,6 +4,38 @@ This document tracks significant development work and improvements made to the R
 
 ---
 
+## [2025-11-27] CSS Architecture and BEM Naming Convention Documentation
+
+**Author:** @technical-writer-agent
+
+**Changes:**
+- Created ADR 002: CSS Architecture and BEM Naming Convention
+- Documented the new BEM-like naming convention for CSS classes
+- Established guidelines for CSS custom properties prefixing
+- Documented the CSS folder structure and file organization
+
+**Naming Convention Pattern:**
+```
+rtub-[component]__[element]--[modifier]
+```
+
+**Key Components Documented:**
+- Root containers (`.rtub-messages`)
+- Element naming (`.rtub-messages__panel`)
+- Modifier usage (`.rtub-messages__bubble--sent`)
+- State classes (`is-active`, `is-selected`, `is-sending`)
+- CSS custom properties (`--rtub-msg-*`)
+
+**Impact:**
+- Agent-friendly CSS structure for AI-assisted development
+- Clear naming convention prevents CSS conflicts
+- Self-documenting class names improve maintainability
+- Consistent patterns across the codebase
+
+**Documentation:** See [ADR 002: CSS Naming Convention](decisions/002-css-naming-convention.md) for complete details
+
+---
+
 ## [2025-11-26] HIGH PRIORITY Performance Optimizations
 
 **Author:** @performance-optimization-agent
