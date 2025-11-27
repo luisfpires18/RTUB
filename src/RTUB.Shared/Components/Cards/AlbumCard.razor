@@ -8,7 +8,7 @@
     <div class="position-relative music-card-clickable" @onclick="OnClick">
         @if (!string.IsNullOrEmpty(Album.CoverImageSrc))
         {
-            <img src="@Album.CoverImageSrc" class="card-img-top album-cover" alt="@Album.Title">
+            <img src="@Album.CoverImageSrc" class="card-img-top album-cover" alt="@Album.Title" loading="lazy">
         }
         else
         {
