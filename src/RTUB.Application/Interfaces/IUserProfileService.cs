@@ -21,4 +21,11 @@ public interface IUserProfileService
     Task AddUserToRoleAsync(string userId, string roleName);
     Task RemoveUserFromRoleAsync(string userId, string roleName);
     Task<bool> IsUserInRoleAsync(string userId, string roleName);
+
+    /// <summary>
+    /// Deletes a member and all related entities that have FK constraints preventing direct deletion
+    /// </summary>
+    /// <param name="userId">The user ID to delete</param>
+    /// <returns>True if deletion succeeded, false otherwise</returns>
+    Task<bool> DeleteMemberWithRelatedDataAsync(string userId);
 }

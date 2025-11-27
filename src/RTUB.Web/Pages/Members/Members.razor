@@ -5,7 +5,6 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
-@using RTUB.Application.Data
 @using RTUB.Application.Helpers
 @using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
@@ -23,12 +22,12 @@
 @inject IUserRoleQueryService UserRoleQueryService
 @inject IRetirementStatusService RetirementStatusService
 @inject IMemberStatusService MemberStatusService
+@inject IUserProfileService UserProfileService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject NavigationManager NavigationManager
 @inject ILogger<Members> _logger
 @inject IOptions<Toggles> Toggles
-@inject ApplicationDbContext DbContext
 @attribute [Authorize]
 
 <div class="d-flex flex-column gap-3 mb-4">
@@ -1961,82 +1960,17 @@ else
     {
         if (deletingUser == null) return;
 
-        var user = await UserManager.FindByIdAsync(deletingUser.Id);
-        if (user != null)
+        try
         {
-            var deleteSucceeded = false;
-            using var transaction = await DbContext.Database.BeginTransactionAsync();
-            try
-            {
-                var userId = user.Id;
-
-                // Delete related entities with Restrict/NoAction delete behaviors
-                // Order matters: delete child entities first to avoid FK constraint errors
-
-                // 1. Delete LeaderboardCommentLikes (depends on User)
-                var leaderboardCommentLikes = await DbContext.LeaderboardCommentLikes
-                    .Where(l => l.UserId == userId)
-                    .ToListAsync();
-                DbContext.LeaderboardCommentLikes.RemoveRange(leaderboardCommentLikes);
-
-                // 2. Delete LeaderboardComments (depends on User as Author and TargetUser)
-                var leaderboardComments = await DbContext.LeaderboardComments
-                    .Where(c => c.AuthorId == userId || c.TargetUserId == userId)
-                    .ToListAsync();
-                DbContext.LeaderboardComments.RemoveRange(leaderboardComments);
-
-                // 3. Delete Comments (depends on User as Author)
-                var comments = await DbContext.Comments
-                    .Where(c => c.AuthorId == userId)
-                    .ToListAsync();
-                DbContext.Comments.RemoveRange(comments);
-
-                // 4. Delete Posts (depends on User as Author)
-                var posts = await DbContext.Posts
-                    .Where(p => p.AuthorId == userId)
-                    .ToListAsync();
-                DbContext.Posts.RemoveRange(posts);
-
-                // 5. Set Meeting.OrganizerUserId to null (NoAction behavior)
-                var meetings = await DbContext.Meetings
-                    .Where(m => m.OrganizerUserId == userId)
-                    .ToListAsync();
-                foreach (var meeting in meetings)
-                {
-                    meeting.OrganizerUserId = null;
-                }
-
-                // 6. Delete MeetingRequests (depends on User as Author)
-                var meetingRequests = await DbContext.MeetingRequests
-                    .Where(mr => mr.AuthorUserId == userId)
-                    .ToListAsync();
-                DbContext.MeetingRequests.RemoveRange(meetingRequests);
-
-                // Save related entity changes and delete the user atomically
-                await DbContext.SaveChangesAsync();
-
-                var result = await UserManager.DeleteAsync(user);
-                if (!result.Succeeded)
-                {
-                    await transaction.RollbackAsync();
-                    _logger.LogError("Failed to delete user {UserId}: {Errors}", userId, string.Join(", ", result.Errors.Select(e => e.Description)));
-                    CloseDeleteModal();
-                    return;
-                }
-
-                await transaction.CommitAsync();
-                deleteSucceeded = true;
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error deleting member {UserId}", user.Id);
-            }
-
-            if (deleteSucceeded)
+            var succeeded = await UserProfileService.DeleteMemberWithRelatedDataAsync(deletingUser.Id);
+            if (succeeded)
             {
                 await LoadMembers();
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting member {UserId}", deletingUser.Id);
         }
 
         CloseDeleteModal();

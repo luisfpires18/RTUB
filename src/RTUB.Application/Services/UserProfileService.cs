@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -16,11 +17,31 @@ public class UserProfileService : IUserProfileService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IImageStorageService _imageStorageService;
+    private readonly ILeaderboardCommentRepository _leaderboardCommentRepository;
+    private readonly ICommentRepository _commentRepository;
+    private readonly IPostRepository _postRepository;
+    private readonly IMeetingRepository _meetingRepository;
+    private readonly IMeetingRequestRepository _meetingRequestRepository;
+    private readonly ILogger<UserProfileService> _logger;
 
-    public UserProfileService(UserManager<ApplicationUser> userManager, IImageStorageService imageStorageService)
+    public UserProfileService(
+        UserManager<ApplicationUser> userManager,
+        IImageStorageService imageStorageService,
+        ILeaderboardCommentRepository leaderboardCommentRepository,
+        ICommentRepository commentRepository,
+        IPostRepository postRepository,
+        IMeetingRepository meetingRepository,
+        IMeetingRequestRepository meetingRequestRepository,
+        ILogger<UserProfileService> logger)
     {
         _userManager = userManager;
         _imageStorageService = imageStorageService;
+        _leaderboardCommentRepository = leaderboardCommentRepository;
+        _commentRepository = commentRepository;
+        _postRepository = postRepository;
+        _meetingRepository = meetingRepository;
+        _meetingRequestRepository = meetingRequestRepository;
+        _logger = logger;
     }
 
     public async Task<ApplicationUser?> GetUserByIdAsync(string userId)
@@ -168,5 +189,109 @@ public class UserProfileService : IUserProfileService
             return false;
 
         return await _userManager.IsInRoleAsync(user, roleName);
+    }
+
+    /// <summary>
+    /// Deletes a member and all related entities that have FK constraints preventing direct deletion
+    /// Uses repository pattern and handles cleanup in proper order to avoid FK constraint violations
+    /// </summary>
+    public async Task<bool> DeleteMemberWithRelatedDataAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            _logger.LogWarning("Cannot delete member: User {UserId} not found", userId);
+            return false;
+        }
+
+        try
+        {
+            // Delete related entities with Restrict/NoAction delete behaviors
+            // Order matters: delete child entities first to avoid FK constraint errors
+
+            // 1. Delete LeaderboardCommentLikes by UserId (likes on OTHER users' comments)
+            // Load all comments that have likes from this user in a single query
+            var commentsWithUserLikes = await _leaderboardCommentRepository.Query()
+                .Include(c => c.Likes)
+                .Where(c => c.Likes.Any(l => l.UserId == userId))
+                .ToListAsync();
+
+            foreach (var comment in commentsWithUserLikes)
+            {
+                var likeToRemove = comment.Likes.FirstOrDefault(l => l.UserId == userId);
+                if (likeToRemove != null)
+                {
+                    comment.Likes.Remove(likeToRemove);
+                }
+            }
+
+            // 2. Delete LeaderboardComments where AuthorId = userId OR TargetUserId = userId
+            var leaderboardComments = await _leaderboardCommentRepository.Query()
+                .Include(c => c.Likes)
+                .Where(c => c.AuthorId == userId || c.TargetUserId == userId)
+                .ToListAsync();
+
+            foreach (var comment in leaderboardComments)
+            {
+                await _leaderboardCommentRepository.DeleteAsync(comment);
+            }
+
+            // 3. Delete Comments where AuthorId = userId
+            var comments = await _commentRepository.Query()
+                .Where(c => c.AuthorId == userId)
+                .ToListAsync();
+
+            foreach (var comment in comments)
+            {
+                await _commentRepository.DeleteAsync(comment);
+            }
+
+            // 4. Delete Posts where AuthorId = userId
+            var posts = await _postRepository.Query()
+                .Where(p => p.AuthorId == userId)
+                .ToListAsync();
+
+            foreach (var post in posts)
+            {
+                await _postRepository.DeleteAsync(post);
+            }
+
+            // 5. Set Meeting.OrganizerUserId to null where OrganizerUserId = userId
+            var meetings = await _meetingRepository.Query()
+                .Where(m => m.OrganizerUserId == userId)
+                .ToListAsync();
+
+            foreach (var meeting in meetings)
+            {
+                meeting.OrganizerUserId = null;
+                await _meetingRepository.UpdateAsync(meeting);
+            }
+
+            // 6. Delete MeetingRequests where AuthorUserId = userId
+            var meetingRequests = await _meetingRequestRepository.Query()
+                .Where(mr => mr.AuthorUserId == userId)
+                .ToListAsync();
+
+            foreach (var meetingRequest in meetingRequests)
+            {
+                await _meetingRequestRepository.DeleteAsync(meetingRequest);
+            }
+
+            // 7. Delete the user using UserManager
+            var result = await _userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                _logger.LogError("Failed to delete user {UserId}: {Errors}", userId, errors);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting member {UserId}", userId);
+            return false;
+        }
     }
 }
