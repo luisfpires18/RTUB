@@ -625,10 +625,18 @@ public class MessagingService : IMessagingService
     }
 
     /// <summary>
-    /// Checks if a user has one of the positions required to send messages in announcement channels
+    /// Checks if a user has one of the positions required to send messages in announcement channels,
+    /// or if the user has the Owner role
     /// </summary>
     private async Task<bool> CanUserSendMessageInAnnouncementChannelAsync(string userId)
     {
+        // Check if user has the Owner role (owners can always send messages in announcement channels)
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user != null && await _userManager.IsInRoleAsync(user, "Owner"))
+        {
+            return true;
+        }
+
         // Get current fiscal year bounds
         var now = DateTime.UtcNow;
         var startYear = now.Month >= 9 ? now.Year : now.Year - 1;
