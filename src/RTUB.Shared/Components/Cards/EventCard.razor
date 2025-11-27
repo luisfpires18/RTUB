@@ -8,7 +8,7 @@
     <div class="position-relative">
         @if (!string.IsNullOrEmpty(ImageUrl) || !string.IsNullOrEmpty(Event.ImageSrc))
         {
-            <img src="@(ImageUrl ?? Event.ImageSrc)" class="card-img-top event-image" alt="@Event.Name">
+            <img src="@(ImageUrl ?? Event.ImageSrc)" class="card-img-top event-image" alt="@Event.Name" loading="lazy">
         }
         else
         {
