@@ -1282,8 +1282,9 @@
                 if (conversation != null)
                 {
                     // Skip updating preview if message is from current user (already updated in SendMessage)
-                    // and only update if the incoming message is newer than or equal to the current preview
-                    if (message.SenderId != currentUserId && message.CreatedAt >= conversation.LastMessageAt)
+                    // and only update if the incoming message is strictly newer than the current preview
+                    // Use > to prevent messages with identical timestamps from overwriting each other
+                    if (message.SenderId != currentUserId && message.CreatedAt > conversation.LastMessageAt)
                     {
                         conversation.LastMessageAt = message.CreatedAt;
                         // Truncate the preview if it exceeds the max length
@@ -1703,7 +1704,7 @@
         NotificationService.OnTypingStopped -= HandleTypingStopped;
         
         typingTimer?.Dispose();
-        _conversationsLock.Dispose();
+        _conversationsLock?.Dispose();
         
         // Ensure body scroll is unlocked when component is disposed
         // This handles edge cases where modals might be open during navigation
