@@ -1,5 +1,61 @@
 window.messageScroller = {
     /**
+     * Track if Visual Viewport handler is set up
+     * @private
+     */
+    _viewportHandlerSetup: false,
+    
+    /**
+     * Store reference to the thread panel element for viewport resizing
+     * @private
+     */
+    _threadPanelElement: null,
+    
+    /**
+     * Setup Visual Viewport resize handler to keep thread panel sized correctly
+     * when the mobile keyboard opens/closes.
+     * 
+     * On iOS Safari, when the keyboard opens:
+     * - The Visual Viewport shrinks but the Layout Viewport doesn't
+     * - position: fixed elements use the Layout Viewport
+     * - This causes the fixed container to extend behind the keyboard
+     * - The header can scroll out of view as the page adjusts
+     * 
+     * Solution: Resize the fixed container to match the Visual Viewport height
+     */
+    setupViewportResize: function() {
+        if (this._viewportHandlerSetup || !window.visualViewport) return;
+        
+        const updateViewportHeight = () => {
+            // Only apply on mobile
+            if (window.innerWidth > 767) return;
+            
+            // Find the thread panel
+            const threadPanel = document.querySelector('.rtub-messages__thread-panel');
+            if (!threadPanel) return;
+            
+            // Get the visual viewport height (accounts for keyboard)
+            const viewportHeight = window.visualViewport.height;
+            const viewportOffsetTop = window.visualViewport.offsetTop;
+            
+            // Set the thread panel height to match visual viewport
+            // and position it at the visual viewport offset
+            threadPanel.style.height = viewportHeight + 'px';
+            threadPanel.style.top = viewportOffsetTop + 'px';
+            threadPanel.style.bottom = 'auto';
+        };
+        
+        // Initial setup
+        updateViewportHeight();
+        
+        // Listen for Visual Viewport resize (keyboard open/close)
+        window.visualViewport.addEventListener('resize', updateViewportHeight);
+        window.visualViewport.addEventListener('scroll', updateViewportHeight);
+        
+        this._viewportHandlerSetup = true;
+    },
+    
+    /**
      * Scroll to bottom of messages container - works reliably after DOM updates
      * @param {HTMLElement} element - The scrollable container element
      */
@@ -74,6 +130,9 @@ window.messageScroller = {
      * @param {HTMLElement} containerElement - The scrollable container element
      */
     setupInputFocusScroll: function (inputElement, containerElement) {
+        // Setup viewport resize handler for iOS keyboard handling
+        this.setupViewportResize();
+        
         // Validate that both parameters are actual DOM elements
         // Blazor's ElementReference may pass objects that aren't valid DOM elements
         if (!inputElement || !containerElement) return;

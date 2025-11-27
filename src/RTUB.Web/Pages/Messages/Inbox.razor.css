@@ -870,22 +870,16 @@
     }
 
     /* Message thread panel - full height chat experience
-       Uses fixed positioning with dvh to create a stable container
-       that resizes with the visual viewport (keyboard-aware) */
+       On iOS Safari, the keyboard behavior requires special handling.
+       The container uses position: fixed with inset: 0 to fill the screen.
+       Height is dynamically adjusted via JS using the Visual Viewport API
+       to ensure the header stays visible when the keyboard opens. */
     .rtub-messages__thread-panel {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        /* Height fallback chain using CSS progressive enhancement pattern:
-           - Browsers apply the last supported property value
-           - 100vh: Standard fallback for older browsers
-           - -webkit-fill-available: iOS Safari/PWA specific (takes precedence on WebKit)
-           - 100dvh: Dynamic viewport height (takes precedence on modern browsers) */
-        height: 100vh;
-        height: -webkit-fill-available;
-        height: 100dvh;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -894,6 +888,8 @@
         z-index: 1000;
         /* Safe area padding for notch devices */
         padding-top: env(safe-area-inset-top, 0px);
+        /* Prevent any scrolling of this container */
+        overscroll-behavior: none;
     }
 
     .rtub-messages__thread {
@@ -905,8 +901,8 @@
         min-height: 0;
     }
 
-    /* Header - uses flex layout instead of fixed positioning
-       This ensures it stays visible when Visual Viewport changes (keyboard opens) */
+    /* Header - flex-shrink: 0 keeps it at fixed height within the flex container
+       The parent container's height is adjusted by JS when keyboard opens */
     .rtub-messages__thread-header {
         flex-shrink: 0;
         height: var(--rtub-msg-mobile-header-height);
@@ -918,7 +914,7 @@
         align-items: center;
     }
 
-    /* Scrollable message body - flex child that fills available space */
+    /* Scrollable message body - flex child that fills remaining space */
     .rtub-messages__thread-body {
         flex: 1;
         min-height: 0;
