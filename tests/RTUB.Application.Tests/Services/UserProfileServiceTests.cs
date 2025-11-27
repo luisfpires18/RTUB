@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
@@ -13,6 +14,12 @@ public class UserProfileServiceTests
 {
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
+    private readonly Mock<ILeaderboardCommentRepository> _mockLeaderboardCommentRepository;
+    private readonly Mock<ICommentRepository> _mockCommentRepository;
+    private readonly Mock<IPostRepository> _mockPostRepository;
+    private readonly Mock<IMeetingRepository> _mockMeetingRepository;
+    private readonly Mock<IMeetingRequestRepository> _mockMeetingRequestRepository;
+    private readonly Mock<ILogger<UserProfileService>> _mockLogger;
     private readonly UserProfileService _service;
 
     public UserProfileServiceTests()
@@ -23,8 +30,22 @@ public class UserProfileServiceTests
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _mockImageStorageService = new Mock<IImageStorageService>();
+        _mockLeaderboardCommentRepository = new Mock<ILeaderboardCommentRepository>();
+        _mockCommentRepository = new Mock<ICommentRepository>();
+        _mockPostRepository = new Mock<IPostRepository>();
+        _mockMeetingRepository = new Mock<IMeetingRepository>();
+        _mockMeetingRequestRepository = new Mock<IMeetingRequestRepository>();
+        _mockLogger = new Mock<ILogger<UserProfileService>>();
 
-        _service = new UserProfileService(_mockUserManager.Object, _mockImageStorageService.Object);
+        _service = new UserProfileService(
+            _mockUserManager.Object,
+            _mockImageStorageService.Object,
+            _mockLeaderboardCommentRepository.Object,
+            _mockCommentRepository.Object,
+            _mockPostRepository.Object,
+            _mockMeetingRepository.Object,
+            _mockMeetingRequestRepository.Object,
+            _mockLogger.Object);
     }
 
     [Fact]
