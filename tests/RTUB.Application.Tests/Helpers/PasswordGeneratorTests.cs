@@ -1,12 +1,11 @@
 using FluentAssertions;
 using RTUB.Application.Helpers;
-using System.Text.RegularExpressions;
 
 namespace RTUB.Application.Tests.Helpers;
 
 /// <summary>
 /// Unit tests for PasswordGenerator
-/// Tests password generation requirements
+/// Tests simple password generation for older users
 /// </summary>
 public class PasswordGeneratorTests
 {
@@ -16,48 +15,18 @@ public class PasswordGeneratorTests
         // Act
         var password = PasswordGenerator.GeneratePassword();
 
-        // Assert
-        password.Should().HaveLength(10);
+        // Assert - password should be 6-10 characters (4-6 letters + 2-4 digits)
+        password.Length.Should().BeInRange(6, 10);
     }
 
     [Fact]
-    public void GeneratePassword_ContainsUppercaseLetter()
+    public void GeneratePassword_ContainsLettersFollowedByDigits()
     {
         // Act
         var password = PasswordGenerator.GeneratePassword();
 
-        // Assert
-        password.Should().MatchRegex("[A-Z]", "password should contain at least one uppercase letter");
-    }
-
-    [Fact]
-    public void GeneratePassword_ContainsLowercaseLetter()
-    {
-        // Act
-        var password = PasswordGenerator.GeneratePassword();
-
-        // Assert
-        password.Should().MatchRegex("[a-z]", "password should contain at least one lowercase letter");
-    }
-
-    [Fact]
-    public void GeneratePassword_ContainsDigit()
-    {
-        // Act
-        var password = PasswordGenerator.GeneratePassword();
-
-        // Assert
-        password.Should().MatchRegex("[0-9]", "password should contain at least one digit");
-    }
-
-    [Fact]
-    public void GeneratePassword_ContainsSpecialCharacter()
-    {
-        // Act
-        var password = PasswordGenerator.GeneratePassword();
-
-        // Assert
-        password.Should().MatchRegex(@"[!@#$%^&*]", "password should contain at least one special character");
+        // Assert - password should match pattern: 4-6 lowercase letters followed by 2-4 digits
+        password.Should().MatchRegex("^[a-z]{4,6}[0-9]{2,4}$", "password should be 4-6 letters followed by 2-4 digits");
     }
 
     [Fact]
@@ -68,10 +37,9 @@ public class PasswordGeneratorTests
         var password2 = PasswordGenerator.GeneratePassword();
         var password3 = PasswordGenerator.GeneratePassword();
 
-        // Assert
-        password1.Should().NotBe(password2, "passwords should be random");
-        password2.Should().NotBe(password3, "passwords should be random");
-        password1.Should().NotBe(password3, "passwords should be random");
+        // Assert - passwords should be different (randomness test)
+        var passwords = new[] { password1, password2, password3 };
+        passwords.Distinct().Count().Should().BeGreaterThanOrEqualTo(2, "passwords should be random");
     }
 
     [Fact]
@@ -83,11 +51,8 @@ public class PasswordGeneratorTests
             var password = PasswordGenerator.GeneratePassword();
 
             // Assert
-            password.Should().HaveLength(10);
-            password.Should().MatchRegex("[A-Z]", "password should contain uppercase");
-            password.Should().MatchRegex("[a-z]", "password should contain lowercase");
-            password.Should().MatchRegex("[0-9]", "password should contain digit");
-            password.Should().MatchRegex(@"[!@#$%^&*]", "password should contain special character");
+            password.Length.Should().BeInRange(6, 10);
+            password.Should().MatchRegex("^[a-z]{4,6}[0-9]{2,4}$", "password should be 4-6 letters followed by 2-4 digits");
         }
     }
 }
