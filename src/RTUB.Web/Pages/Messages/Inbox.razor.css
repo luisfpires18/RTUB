@@ -257,9 +257,10 @@
     height: 100%;
     padding: 0;
     background: var(--bs-dark);
-    flex: 1;
+    flex: 1 1 0; /* Allow both growing and shrinking */
     min-width: 0;
     min-height: 0; /* Allow flex child to shrink and enable scrolling */
+    overflow: hidden; /* Prevent outer container from scrolling */
 }
 
 .rtub-messages__thread {
@@ -268,6 +269,8 @@
     height: 100%;
     min-width: 0;
     min-height: 0; /* Allow flex child to shrink and enable scrolling */
+    flex: 1 1 0; /* Take available space and allow shrinking */
+    overflow: hidden; /* Contain the scroll within thread-body */
 }
 
 .rtub-messages__thread-header {
@@ -276,6 +279,7 @@
     background: #1a1a1b;
     display: flex;
     align-items: center;
+    flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .rtub-messages__thread-header .rtub-messages__avatar {
@@ -377,24 +381,31 @@
 }
 
 .rtub-messages__thread-body {
-    flex: 1;
+    flex: 1 1 0; /* Allow both growing and shrinking from zero base */
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 1rem 1.25rem 1rem 1rem;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    min-height: 0; /* Allow scrolling when content exceeds container height */
+    min-height: 0; /* Critical: Allow scrolling when content exceeds container height */
+    max-height: 100%; /* Constrain height to parent */
     align-items: stretch;
     scrollbar-gutter: stable both-edges;
+    /* Ensure scroll works on all platforms */
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Inner wrapper for bottom-aligning messages (WhatsApp/Telegram style) */
 .rtub-messages__thread-wrapper {
-    min-height: 100%;
+    /* Use flex-grow to fill available space but allow shrinking */
+    flex: 1 0 auto;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     width: 100%;
+    /* Ensure proper sizing for scroll calculation */
+    min-height: min-content;
 }
 
 .rtub-messages__bubble {
@@ -582,6 +593,7 @@
     padding: 1rem;
     border-top: 1px solid var(--bs-border-color);
     background: #1a1a1b;
+    flex-shrink: 0; /* Prevent footer from shrinking */
 }
 
 .rtub-messages__composer {
@@ -937,6 +949,15 @@
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+
+    /* Thread wrapper on mobile - allows messages to align to bottom */
+    .rtub-messages__thread-wrapper {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        min-height: 100%;
+        width: 100%;
     }
 
     /* Message styling for mobile */

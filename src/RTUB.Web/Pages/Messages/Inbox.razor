@@ -707,6 +707,7 @@
     private ElementReference messageThreadBody;
     private ElementReference messageInput;
     private bool shouldScrollToBottom;
+    private bool shouldScrollIfNearEnd; // For received messages - only scroll if user is near bottom
     private bool isInputFocusHandlerSetup = false;
 
     // Group members modal
@@ -750,6 +751,13 @@
         {
             shouldScrollToBottom = false;
             await ScrollToLatestMessageAsync();
+        }
+        else if (shouldScrollIfNearEnd)
+        {
+            // For received messages, only scroll if user is near the bottom
+            // This prevents jarring scrolls when user is reading history
+            shouldScrollIfNearEnd = false;
+            await JSRuntime.InvokeVoidAsync("messageScroller.scrollToBottomIfNearEnd", messageThreadBody, 100);
         }
         
         // Setup input focus handler for mobile keyboard scrolling (only once)
@@ -1284,7 +1292,17 @@
                 if (!messages.Any(m => m.Id == message.Id))
                 {
                     messages.Add(message);
-                    shouldScrollToBottom = true;
+                    
+                    // For messages sent by current user, always scroll to bottom
+                    // For messages received from others, only scroll if user is near bottom
+                    if (message.SenderId == currentUserId)
+                    {
+                        shouldScrollToBottom = true;
+                    }
+                    else
+                    {
+                        shouldScrollIfNearEnd = true;
+                    }
                 }
                 
                 // If message is from another user, mark as read
