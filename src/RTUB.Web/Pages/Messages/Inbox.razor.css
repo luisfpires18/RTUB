@@ -398,14 +398,14 @@
 
 /* Inner wrapper for bottom-aligning messages (WhatsApp/Telegram style) */
 .rtub-messages__thread-wrapper {
-    /* Use flex-grow to fill available space but allow shrinking */
+    /* Use flex-grow to fill available space, don't shrink (0), use auto basis */
     flex: 1 0 auto;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     width: 100%;
-    /* Ensure proper sizing for scroll calculation */
-    min-height: min-content;
+    /* Ensure proper sizing for scroll calculation - use 0 for better cross-browser compatibility */
+    min-height: 0;
 }
 
 .rtub-messages__bubble {
