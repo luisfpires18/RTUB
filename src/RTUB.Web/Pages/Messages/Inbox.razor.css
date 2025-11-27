@@ -798,6 +798,8 @@
         height: 100vh; /* Fallback for older browsers */
         height: -webkit-fill-available; /* iOS Safari/PWA - fills available space */
         height: 100dvh; /* Dynamic viewport height for modern browsers */
+        min-height: 0; /* Override desktop min-height: 600px */
+        max-height: none; /* Override desktop max-height: calc(100vh - 160px) */
         /* Safe area handling for iPhone notch/home indicator in PWA mode */
         padding-top: env(safe-area-inset-top, 0px);
         display: flex;
