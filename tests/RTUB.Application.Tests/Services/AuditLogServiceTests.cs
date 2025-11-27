@@ -295,6 +295,19 @@ public class AuditLogServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             Changes = "{}",
             IsCriticalAction = false
         });
+
+        _context.AuditLogs.Add(new AuditLog
+        {
+            EntityType = "ConversationUserSettings",
+            EntityId = 99,
+            Action = "Created",
+            UserId = "user3-id",
+            UserName = "user3",
+            Timestamp = DateTime.UtcNow,
+            Changes = "{}",
+            IsCriticalAction = false
+        });
+
         await _context.SaveChangesAsync();
 
         // Act
@@ -304,9 +317,11 @@ public class AuditLogServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         logs.Should().NotContain(l => string.Equals(l.EntityType, "Message", StringComparison.OrdinalIgnoreCase));
         logs.Should().NotContain(l => string.Equals(l.EntityType, "Conversation", StringComparison.OrdinalIgnoreCase));
+        logs.Should().NotContain(l => string.Equals(l.EntityType, "ConversationUserSettings", StringComparison.OrdinalIgnoreCase));
         totalCount.Should().Be(5); // Hidden entities are not counted
         entityTypes.Should().NotContain(type => string.Equals(type, "Message", StringComparison.OrdinalIgnoreCase));
         entityTypes.Should().NotContain(type => string.Equals(type, "Conversation", StringComparison.OrdinalIgnoreCase));
+        entityTypes.Should().NotContain(type => string.Equals(type, "ConversationUserSettings", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

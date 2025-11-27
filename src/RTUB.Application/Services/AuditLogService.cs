@@ -15,7 +15,7 @@ public class AuditLogService : IAuditLogService
     private readonly IAuditLogRepository _auditLogRepository;
     private static readonly HashSet<string> HiddenEntityTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Message", "Conversation"
+        "Message", "Conversation", "ConversationUserSettings"
     };
 
     public AuditLogService(IAuditLogRepository auditLogRepository)
