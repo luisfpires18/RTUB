@@ -115,6 +115,7 @@ public class Program
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
+        var loginMade = false;
         // Configure cookie authentication to redirect to /login instead of /Account/Login
         services.ConfigureApplicationCookie(options =>
         {
@@ -176,6 +177,8 @@ public class Program
                             "User {UserName} authenticated via cookie validation at {LoginTime}",
                             userName,
                             DateTime.UtcNow);
+
+                        loginMade = true;
 
                         // Cache for 1 hour to prevent duplicate logs from the same session
                         // This ensures the log appears only once per login session
@@ -582,14 +585,17 @@ public class Program
             var loginLogCacheKey = $"login-success:{user.Id}";
             if (!cache.TryGetValue(loginLogCacheKey, out _))
             {
-                logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
-                    user.UserName,
-                    DateTime.UtcNow);
+                if (!loginMade)
+                {
+                    logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
+                        user.UserName,
+                        DateTime.UtcNow);
+                }
 
-                // Cache for 5 seconds to prevent duplicate logs from concurrent login requests
+                // Cache for 30 seconds to prevent duplicate logs from concurrent login requests
                 cache.Set(loginLogCacheKey, true, new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(5)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
                 });
             }
 
