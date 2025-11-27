@@ -869,13 +869,29 @@
         overscroll-behavior: contain;
     }
 
-    /* Message thread panel - full height chat experience */
+    /* Message thread panel - full height chat experience
+       Uses fixed positioning with dvh to create a stable container
+       that resizes with the visual viewport (keyboard-aware) */
     .rtub-messages__thread-panel {
-        flex: 1;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        /* Height fallback chain for maximum compatibility:
+           1. 100vh - Standard fallback for older browsers
+           2. -webkit-fill-available - iOS Safari/PWA specific
+           3. 100dvh - Dynamic viewport height (keyboard-aware) */
+        height: 100vh;
+        height: -webkit-fill-available;
+        height: 100dvh;
         display: flex;
         flex-direction: column;
         overflow: hidden;
         border-radius: 0;
+        z-index: 1000;
+        /* Safe area padding for notch devices */
+        padding-top: env(safe-area-inset-top, 0px);
     }
 
     .rtub-messages__thread {
@@ -883,16 +899,14 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        /* Position relative for fixed children to reference */
-        position: relative;
+        /* min-height: 0 is critical for flex children to shrink properly */
+        min-height: 0;
     }
 
-    /* FIXED header - stays visible even when keyboard opens (like WhatsApp) */
+    /* Header - uses flex layout instead of fixed positioning
+       This ensures it stays visible when Visual Viewport changes (keyboard opens) */
     .rtub-messages__thread-header {
-        position: fixed;
-        top: env(safe-area-inset-top, 0px);
-        left: 0;
-        right: 0;
+        flex-shrink: 0;
         height: var(--rtub-msg-mobile-header-height);
         background: #0f0f10;
         border-bottom: 1px solid var(--bs-border-color);
@@ -902,17 +916,16 @@
         align-items: center;
     }
 
-    /* Scrollable message body - sits between fixed header and footer */
+    /* Scrollable message body - flex child that fills available space */
     .rtub-messages__thread-body {
-        position: fixed;
-        top: calc(env(safe-area-inset-top, 0px) + var(--rtub-msg-mobile-header-height));
-        left: 0;
-        right: 0;
-        bottom: calc(var(--rtub-msg-mobile-footer-height) + env(safe-area-inset-bottom, 0px));
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         padding: 0.5rem 0.75rem;
+        /* Account for the fixed footer at bottom */
+        padding-bottom: calc(var(--rtub-msg-mobile-footer-height) + env(safe-area-inset-bottom, 0px));
         /* Prevent elastic scroll bounce */
         touch-action: pan-y;
         overscroll-behavior: contain;
