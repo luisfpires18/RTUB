@@ -322,7 +322,7 @@ Avoid nesting beyond two levels. If you need more specificity:
 - [BEM Methodology](https://en.bem.info/methodology/)
 - [CSS Architecture for Design Systems](https://bradfrost.com/blog/post/css-architecture-for-design-systems/)
 - [Naming CSS Stuff Is Really Hard](https://seesparkbox.com/foundry/naming_css_stuff_is_really_hard)
-- Messaging component implementation: `src/RTUB.Web/Components/Pages/Inbox.razor.css`
+- Messaging component implementation: `src/RTUB.Web/Pages/Messages/Inbox.razor.css`
 
 ---
 
