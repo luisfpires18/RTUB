@@ -667,7 +667,7 @@ iframe {
    * 
    * For PWA mode: -webkit-fill-available ensures proper height in standalone mode
    */
-  body:has(.messages-page) {
+  body:has(.rtub-messages) {
     overflow: hidden !important;
     position: fixed !important;
     width: 100%;
@@ -677,18 +677,18 @@ iframe {
   }
 
   /* Hide navbar and footer when messages page is active */
-  body:has(.messages-page) .navbar-main,
-  body:has(.messages-page) .footer-main {
+  body:has(.rtub-messages) .navbar-main,
+  body:has(.rtub-messages) .footer-main {
     display: none;
   }
 
   /* Remove padding from content container */
-  body:has(.messages-page) .content-main {
+  body:has(.rtub-messages) .content-main {
     padding: 0;
     margin: 0;
   }
 
-  body:has(.messages-page) .content-main .container-xxl {
+  body:has(.rtub-messages) .content-main .container-xxl {
     padding: 0;
     margin: 0;
     max-width: 100%;
