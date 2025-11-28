@@ -191,18 +191,18 @@
                             </button>
                         </div>
 
-                        <!-- Enrollment action buttons row -->
+                        <!-- Enrollment action buttons row (toggle-style) -->
                         <div class="event-buttons-container">
                             @if (UserEnrollment == null)
                             {
-                                <!-- Going button (green) -->
+                                <!-- Going button (green) - create enrollment as going -->
                                 <button class="btn event-icon-btn btn-going" 
                                         @onclick="OnEnrollGoing" 
                                         title="Vou participar">
                                     <i class="bi bi-check-circle-fill"></i>
                                 </button>
                                 
-                                <!-- Not Going button (red) -->
+                                <!-- Not Going button (red) - create enrollment as not going -->
                                 <button class="btn event-icon-btn btn-not-going" 
                                         @onclick="OnEnrollNotGoing" 
                                         title="Não vou participar">
@@ -211,52 +211,31 @@
                             }
                             else if (UserEnrollment.WillAttend)
                             {
-                                <!-- Enrolled status button (disabled, green) -->
+                                <!-- Edit enrollment button (green with pencil) -->
                                 <button class="btn event-icon-btn btn-going" 
-                                        disabled 
-                                        title="Inscrito">
-                                    <i class="bi bi-check-circle-fill"></i>
-                                </button>
-                                
-                                <!-- Not Going button (red) - to change mind -->
-                                <button class="btn event-icon-btn btn-not-going" 
-                                        @onclick="OnEnrollNotGoing" 
-                                        title="Não vou participar">
-                                    <i class="bi bi-x-circle-fill"></i>
-                                </button>
-                                
-                                <!-- Edit enrollment button (white) -->
-                                <button class="btn event-icon-btn btn-light" 
                                         @onclick="OnEditEnrollment" 
                                         title="Editar Inscrição">
                                     <i class="bi bi-pencil-fill"></i>
                                 </button>
                                 
-                                <!-- Remove enrollment button (red) -->
-                                <button class="btn event-icon-btn btn-danger" 
-                                        @onclick="OnRemoveEnrollment" 
-                                        title="Cancelar Inscrição">
-                                    <i class="bi bi-trash-fill"></i>
+                                <!-- Not Going button (red) - change to not going -->
+                                <button class="btn event-icon-btn btn-not-going" 
+                                        @onclick="OnEnrollNotGoing" 
+                                        title="Não vou participar">
+                                    <i class="bi bi-x-circle-fill"></i>
                                 </button>
                             }
                             else
                             {
-                                <!-- Going button (green) - to change mind -->
+                                <!-- Going button (green) - change to going -->
                                 <button class="btn event-icon-btn btn-going" 
                                         @onclick="OnEnrollGoing" 
                                         title="Vou participar">
                                     <i class="bi bi-check-circle-fill"></i>
                                 </button>
                                 
-                                <!-- Not attending status button (disabled, red) -->
+                                <!-- Edit enrollment button (red with pencil) -->
                                 <button class="btn event-icon-btn btn-not-going" 
-                                        disabled 
-                                        title="Não vou">
-                                    <i class="bi bi-x-circle-fill"></i>
-                                </button>
-                                
-                                <!-- Edit enrollment button (white) -->
-                                <button class="btn event-icon-btn btn-light" 
                                         @onclick="OnEditEnrollment" 
                                         title="Editar Inscrição">
                                     <i class="bi bi-pencil-fill"></i>

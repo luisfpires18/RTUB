@@ -1717,21 +1717,44 @@ else
     {
         if (currentUser == null) return;
 
-        isEditingEnrollment = false;
         isParticipationPreSelected = true; // Hide WillAttend selection in modal
         selectedEvent = eventItem;
         
-        var (defaultInstrument, shouldWantToPlay) = GetDefaultInstrumentSettings();
-        wantToPlay = shouldWantToPlay;
+        // Check if user already has an enrollment for this event
+        var existingEnrollment = GetUserEnrollment(eventItem.Id);
         
-        enrollmentForm = new Enrollment
+        if (existingEnrollment != null)
         {
-            UserId = currentUser.Id,
-            EventId = eventItem.Id,
-            Instrument = defaultInstrument,
-            Notes = string.Empty,
-            WillAttend = willParticipate // Pre-set the participation value
-        };
+            // Update existing enrollment
+            isEditingEnrollment = true;
+            wantToPlay = existingEnrollment.Instrument.HasValue;
+            
+            enrollmentForm = new Enrollment
+            {
+                Id = existingEnrollment.Id,
+                UserId = existingEnrollment.UserId,
+                EventId = existingEnrollment.EventId,
+                Instrument = existingEnrollment.Instrument,
+                Notes = existingEnrollment.Notes,
+                WillAttend = willParticipate // Set the new participation value
+            };
+        }
+        else
+        {
+            // Create new enrollment
+            isEditingEnrollment = false;
+            var (defaultInstrument, shouldWantToPlay) = GetDefaultInstrumentSettings();
+            wantToPlay = shouldWantToPlay;
+            
+            enrollmentForm = new Enrollment
+            {
+                UserId = currentUser.Id,
+                EventId = eventItem.Id,
+                Instrument = defaultInstrument,
+                Notes = string.Empty,
+                WillAttend = willParticipate
+            };
+        }
         showEnrollModal = true;
     }
 
