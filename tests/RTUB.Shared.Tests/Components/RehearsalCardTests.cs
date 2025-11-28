@@ -133,7 +133,7 @@ public class RehearsalCardTests : TestContext
     }
 
     [Fact]
-    public void RehearsalCard_ShowsMarkAttendanceButton_WhenUserHasNotMarkedAttendance()
+    public void RehearsalCard_ShowsToggleButtons_WhenUserHasNotMarkedAttendance()
     {
         // Arrange
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
@@ -145,9 +145,11 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.IsPastRehearsal, false)
             .Add(p => p.AttendanceCount, 0));
 
-        // Assert
-        cut.Markup.Should().Contain("bi-plus-circle-fill", "should show mark attendance button");
-        cut.Markup.Should().Contain("btn-purple", "mark attendance button should have purple style");
+        // Assert - New toggle button design: clock (pending) and X (not going) when no attendance
+        cut.Markup.Should().Contain("bi-clock-fill", "should show pending clock button");
+        cut.Markup.Should().Contain("bi-x-circle-fill", "should show not going button");
+        cut.Markup.Should().Contain("btn-pending", "pending button should have pending style");
+        cut.Markup.Should().Contain("btn-not-attending", "not going button should have red style");
     }
 
     [Fact]
@@ -164,13 +166,14 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.IsPastRehearsal, false)
             .Add(p => p.AttendanceCount, 1));
 
-        // Assert
+        // Assert - New toggle button design: pending status shown as yellow clock with btn-selected
         cut.Markup.Should().Contain("bi-clock-fill", "should show pending clock icon");
-        cut.Markup.Should().Contain("btn-warning", "pending button should have warning style");
+        cut.Markup.Should().Contain("btn-pending", "pending button should have pending style");
+        cut.Markup.Should().Contain("btn-selected", "pending button should be selected");
     }
 
     [Fact]
-    public void RehearsalCard_ShowsEditAndRemoveButtons_WhenUserHasAttendance()
+    public void RehearsalCard_ShowsToggleButtons_WhenUserHasAttendance()
     {
         // Arrange
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
@@ -183,9 +186,11 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.IsPastRehearsal, false)
             .Add(p => p.AttendanceCount, 1));
 
-        // Assert
-        cut.Markup.Should().Contain("bi-pencil-fill", "should show edit attendance button");
-        cut.Markup.Should().Contain("bi-x-circle-fill", "should show remove attendance button");
+        // Assert - New toggle button design: clock (edit going) and X (not going)
+        cut.Markup.Should().Contain("bi-clock-fill", "should show pending clock icon");
+        cut.Markup.Should().Contain("bi-x-circle-fill", "should show not going button");
+        cut.Markup.Should().Contain("btn-pending", "pending button should have pending style");
+        cut.Markup.Should().Contain("btn-not-attending", "not-attending button should have red style");
     }
 
     [Fact]
@@ -303,7 +308,7 @@ public class RehearsalCardTests : TestContext
     }
 
     [Fact]
-    public void RehearsalCard_InvokesOnMarkAttendance_WhenMarkAttendanceButtonClicked()
+    public void RehearsalCard_InvokesOnAttendPending_WhenPendingButtonClicked()
     {
         // Arrange
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
@@ -314,14 +319,14 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.UserAttendance, (RehearsalAttendance?)null)
             .Add(p => p.IsPastRehearsal, false)
             .Add(p => p.AttendanceCount, 0)
-            .Add(p => p.OnMarkAttendance, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+            .Add(p => p.OnAttendPending, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
-        var markButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-purple"));
-        markButton.Click();
+        var pendingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-pending"));
+        pendingButton.Click();
 
         // Assert
-        callbackInvoked.Should().BeTrue("OnMarkAttendance callback should be invoked");
+        callbackInvoked.Should().BeTrue("OnAttendPending callback should be invoked");
     }
 
     [Fact]
@@ -418,7 +423,7 @@ public class RehearsalCardTests : TestContext
     }
 
     [Fact]
-    public void RehearsalCard_InvokesOnEditAttendance_WhenEditButtonClicked()
+    public void RehearsalCard_InvokesOnEditAttendance_WhenPendingButtonClickedWithAttendance()
     {
         // Arrange
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
@@ -432,17 +437,17 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.AttendanceCount, 1)
             .Add(p => p.OnEditAttendance, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
-        // Act
-        var editButton = cut.FindAll("button").First(b =>
-            b.ClassList.Contains("btn-light") && b.InnerHtml.Contains("bi-pencil-fill"));
-        editButton.Click();
+        // Act - Click the pending button which now triggers edit when user has attendance
+        var pendingButton = cut.FindAll("button").First(b => 
+            b.ClassList.Contains("btn-pending") && b.ClassList.Contains("btn-selected"));
+        pendingButton.Click();
 
         // Assert
-        callbackInvoked.Should().BeTrue("OnEditAttendance callback should be invoked");
+        callbackInvoked.Should().BeTrue("OnEditAttendance callback should be invoked when clicking pending button with attendance");
     }
 
     [Fact]
-    public void RehearsalCard_InvokesOnRemoveAttendance_WhenRemoveButtonClicked()
+    public void RehearsalCard_InvokesOnAttendNotGoing_WhenNotGoingButtonClicked()
     {
         // Arrange
         var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
@@ -454,14 +459,14 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.UserAttendance, attendance)
             .Add(p => p.IsPastRehearsal, false)
             .Add(p => p.AttendanceCount, 1)
-            .Add(p => p.OnRemoveAttendance, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+            .Add(p => p.OnAttendNotGoing, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
-        var removeButton = cut.FindAll("button").First(b =>
-            b.ClassList.Contains("btn-danger") && b.InnerHtml.Contains("bi-x-circle-fill"));
-        removeButton.Click();
+        var notGoingButton = cut.FindAll("button").First(b =>
+            b.ClassList.Contains("btn-not-attending") && b.InnerHtml.Contains("bi-x-circle-fill"));
+        notGoingButton.Click();
 
         // Assert
-        callbackInvoked.Should().BeTrue("OnRemoveAttendance callback should be invoked");
+        callbackInvoked.Should().BeTrue("OnAttendNotGoing callback should be invoked");
     }
 }

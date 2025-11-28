@@ -104,6 +104,8 @@ else
                                OnCancel="@(() => OpenCancelRehearsalModal(rehearsal))"
                                OnUncancel="@(() => UncancelRehearsal(rehearsal))"
                                OnMarkAttendance="@(() => MarkAttendance(rehearsal))"
+                               OnAttendPending="@(() => MarkAttendanceWithStatus(rehearsal, true))"
+                               OnAttendNotGoing="@(() => MarkAttendanceWithStatus(rehearsal, false))"
                                OnViewAttendances="@(() => ViewAttendances(rehearsal))"
                                OnEditAttendance="@(() => EditAttendance(rehearsal))"
                                OnRemoveAttendance="@(() => RemoveAttendance(rehearsal))"
@@ -141,10 +143,11 @@ else
         <div class="rehearsal-grid">
             @foreach (var rehearsal in paginatedPreviousRehearsals)
             {
+                var userAttendance = GetUserAttendance(rehearsal.Id);
                 var attendanceCount = rehearsal.Attendances.Count();
 
                 <RehearsalCard Rehearsal="@rehearsal"
-                               UserAttendance="null"
+                               UserAttendance="@userAttendance"
                                AttendanceCount="@attendanceCount"
                                IsAdmin="@isAdmin"
                                IsPastRehearsal="true"
@@ -155,9 +158,11 @@ else
                                OnCancel="@(() => OpenCancelRehearsalModal(rehearsal))"
                                OnUncancel="@(() => UncancelRehearsal(rehearsal))"
                                OnMarkAttendance="@(() => {})"
+                               OnAttendPending="@(() => {})"
+                               OnAttendNotGoing="@(() => {})"
                                OnViewAttendances="@(() => ViewAttendances(rehearsal))"
                                OnEditAttendance="@(() => {})"
-                               OnRemoveAttendance="@(() => {})"
+                               OnRemoveAttendance="@(() => RemoveAttendance(rehearsal))"
                                OnViewDetails="@(() => OpenRehearsalDetailsModal(rehearsal))" />
             }
         </div>
@@ -1197,6 +1202,8 @@ else
     private RehearsalAttendance? deletingAttendance;
     private RehearsalAttendance? cancellingMyAttendance;
     private AttendanceFormModel? attendanceForm;
+    private bool isEditingAttendance = false;
+    private int? editingAttendanceId = null;
     private bool wantToPlayRehearsal = true;
     private string editLocation = "";
     private string? editTheme;
@@ -1447,6 +1454,66 @@ else
         StateHasChanged();
     }
 
+    /// <summary>
+    /// Mark attendance with a pre-selected status (for toggle buttons)
+    /// </summary>
+    private async Task MarkAttendanceWithStatus(Rehearsal rehearsal, bool willAttend)
+    {
+        selectedRehearsal = rehearsal;
+        
+        // Check if user has existing attendance
+        var existingAttendance = GetUserAttendance(rehearsal.Id);
+        
+        // Load current user's instruments
+        InstrumentType? defaultInstrument = null;
+        if (currentUserId != null)
+        {
+            var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsAsync(currentUserId);
+            currentUserInstruments = memberInstruments.Select(mi => mi.InstrumentType).ToList();
+            
+            if (existingAttendance != null)
+            {
+                // Use existing instrument
+                defaultInstrument = existingAttendance.Instrument;
+                wantToPlayRehearsal = existingAttendance.Instrument.HasValue;
+            }
+            else
+            {
+                // Default to primary instrument
+                var primaryInstrument = memberInstruments.FirstOrDefault(mi => mi.IsPrimary);
+                defaultInstrument = primaryInstrument?.InstrumentType;
+                // Only enable "Quero tocar" if attending and instruments are available
+                wantToPlayRehearsal = willAttend && currentUserInstruments.Any();
+            }
+        }
+        else
+        {
+            wantToPlayRehearsal = false;
+        }
+        
+        attendanceForm = new AttendanceFormModel
+        {
+            WillAttend = willAttend,
+            Instrument = defaultInstrument,
+            Notes = existingAttendance?.Notes
+        };
+        
+        // If updating existing attendance, we need to handle it as an update
+        if (existingAttendance != null)
+        {
+            isEditingAttendance = true;
+            editingAttendanceId = existingAttendance.Id;
+        }
+        else
+        {
+            isEditingAttendance = false;
+            editingAttendanceId = null;
+        }
+        
+        showAttendanceModal = true;
+        StateHasChanged();
+    }
+
     private async Task ConfirmMarkAttendance()
     {
         if (selectedRehearsal != null && currentUserId != null && attendanceForm != null)
@@ -1505,6 +1572,8 @@ else
         selectedRehearsal = null;
         attendanceForm = null;
         wantToPlayRehearsal = false;
+        isEditingAttendance = false;
+        editingAttendanceId = null;
         StateHasChanged();
     }
 

@@ -126,47 +126,116 @@
 
                 @if (!IsPastRehearsal)
                 {
-                    <!-- Second row: User attendance action buttons -->
+                    <!-- Second row: User attendance action buttons (toggle-style like EventCard) -->
                     <div class="d-flex gap-2 align-items-center justify-content-center">
                         @if (UserAttendance == null)
                         {
-                            <!-- Mark Attendance button -->
-                            <button class="btn btn-sm btn-purple d-flex align-items-center gap-1" 
-                                    @onclick="HandleMarkAttendance" 
-                                    title="Marcar Presença">
-                                <i class="bi bi-plus-circle-fill icon-size-1rem"></i>
-                                <span class="d-none d-sm-inline">Marcar</span>
+                            <!-- Pending button (yellow) - create attendance as pending -->
+                            <button class="btn rehearsal-icon-btn btn-pending" 
+                                    @onclick="OnAttendPending" 
+                                    title="Marcar Presença (Pendente)">
+                                <i class="bi bi-clock-fill"></i>
+                            </button>
+                            
+                            <!-- Not Going button (red) - mark as not going -->
+                            <button class="btn rehearsal-icon-btn btn-not-attending" 
+                                    @onclick="OnAttendNotGoing" 
+                                    title="Não vou participar">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        }
+                        else if (UserAttendance.WillAttend)
+                        {
+                            @if (UserAttendance.Attended)
+                            {
+                                <!-- Approved attendance (green, selected) -->
+                                <button class="btn rehearsal-icon-btn btn-approved btn-selected" 
+                                        @onclick="OnEditAttendance" 
+                                        title="Presença Aprovada - Editar">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                </button>
+                            }
+                            else
+                            {
+                                <!-- Pending attendance (yellow, selected) -->
+                                <button class="btn rehearsal-icon-btn btn-pending btn-selected" 
+                                        @onclick="OnEditAttendance" 
+                                        title="Presença Pendente - Editar">
+                                    <i class="bi bi-clock-fill"></i>
+                                </button>
+                            }
+                            
+                            <!-- Not Going button (red) - change to not going -->
+                            <button class="btn rehearsal-icon-btn btn-not-attending" 
+                                    @onclick="OnAttendNotGoing" 
+                                    title="Não vou participar">
+                                <i class="bi bi-x-circle-fill"></i>
                             </button>
                         }
                         else
                         {
-                            @if (UserAttendance.WillAttend)
-                            {
-                                <!-- Attendance Pending button (disabled, warning) - only shown when WillAttend is true -->
-                                <button class="btn btn-sm btn-warning d-flex align-items-center gap-1" 
-                                        disabled 
-                                        title="Presença Pendente">
-                                    <i class="bi bi-clock-fill icon-size-1rem"></i>
-                                    <span class="d-none d-md-inline"></span>
-                                </button>
-                            }
-                            
-                            <!-- Edit Attendance button (white) -->
-                            <button class="btn btn-sm btn-light d-flex align-items-center" 
-                                    @onclick="HandleEditAttendance" 
-                                    title="Editar Presença">
-                                <i class="bi bi-pencil-fill icon-size-1rem"></i>
+                            <!-- Going button (yellow pending) - change to going -->
+                            <button class="btn rehearsal-icon-btn btn-pending" 
+                                    @onclick="OnAttendPending" 
+                                    title="Marcar Presença">
+                                <i class="bi bi-clock-fill"></i>
                             </button>
                             
-                            <!-- Remove Attendance button (red) -->
-                            <button class="btn btn-sm btn-danger d-flex align-items-center" 
-                                    @onclick="HandleRemoveAttendance" 
-                                    title="Remover Presença">
-                                <i class="bi bi-x-circle-fill icon-size-1rem"></i>
+                            <!-- Not attending status (red, selected) -->
+                            <button class="btn rehearsal-icon-btn btn-not-attending btn-selected" 
+                                    @onclick="OnEditAttendance" 
+                                    title="Não Vou - Editar">
+                                <i class="bi bi-x-circle-fill"></i>
                             </button>
                         }
                     </div>
                     
+                }
+                else
+                {
+                    <!-- Past rehearsal: Show pending status and delete button if user has attendance -->
+                    @if (UserAttendance != null)
+                    {
+                        <div class="d-flex gap-2 align-items-center justify-content-center">
+                            @if (UserAttendance.WillAttend)
+                            {
+                                @if (UserAttendance.Attended)
+                                {
+                                    <!-- Approved attendance (green) -->
+                                    <button class="btn rehearsal-icon-btn btn-approved btn-selected" 
+                                            disabled
+                                            title="Presença Aprovada">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <!-- Pending approval (yellow clock) -->
+                                    <button class="btn rehearsal-icon-btn btn-pending btn-selected" 
+                                            disabled
+                                            title="Presença Pendente de Aprovação">
+                                        <i class="bi bi-clock-fill"></i>
+                                    </button>
+                                }
+                            }
+                            else
+                            {
+                                <!-- Not attending (red) -->
+                                <button class="btn rehearsal-icon-btn btn-not-attending btn-selected" 
+                                        disabled
+                                        title="Não Participou">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            }
+                            
+                            <!-- Delete attendance button -->
+                            <button class="btn rehearsal-icon-btn btn-danger" 
+                                    @onclick="OnRemoveAttendance" 
+                                    title="Remover Presença">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </div>
+                    }
                 }
             </div>
         }
@@ -236,6 +305,18 @@
     /// </summary>
     [Parameter]
     public EventCallback OnMarkAttendance { get; set; }
+
+    /// <summary>
+    /// Callback when the "pending" (going) attendance button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnAttendPending { get; set; }
+
+    /// <summary>
+    /// Callback when the "not going" attendance button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnAttendNotGoing { get; set; }
 
     /// <summary>
     /// Callback when the view attendances button is clicked
