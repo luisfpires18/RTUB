@@ -696,6 +696,9 @@
     /// </summary>
     private const int MinSearchTermLength = 2;
 
+    private const int MessagePreviewMaxLength = 50;
+    private readonly SemaphoreSlim _conversationsLock = new(1, 1);
+    
     private string currentUserId = string.Empty;
     private List<ConversationDto> conversations = new();
     private ConversationDto? selectedConversation;
@@ -778,7 +781,17 @@
         try
         {
             // MessagingService already sorts: pinned first, then by LastMessageAt
-            conversations = (await MessagingService.GetUserConversationsAsync(currentUserId)).ToList();
+            var loadedConversations = (await MessagingService.GetUserConversationsAsync(currentUserId)).ToList();
+            
+            await _conversationsLock.WaitAsync();
+            try
+            {
+                conversations = loadedConversations;
+            }
+            finally
+            {
+                _conversationsLock.Release();
+            }
         }
         finally
         {
@@ -1259,29 +1272,54 @@
     {
         await InvokeAsync(async () =>
         {
-            // Update conversation list
-            var conversation = conversations.FirstOrDefault(c => c.Id == message.ConversationId);
-            if (conversation != null)
+            bool needsConversationReload = false;
+            
+            await _conversationsLock.WaitAsync();
+            try
             {
-                conversation.LastMessageAt = message.CreatedAt;
-                conversation.LastMessagePreview = message.Body;
-                conversation.LastMessageSenderId = message.SenderId;
-                
-                // Only increment unread count if this is not the current conversation AND it's not from the current user
-                if (selectedConversation?.Id != message.ConversationId && message.SenderId != currentUserId)
+                // Update conversation list
+                var conversation = conversations.FirstOrDefault(c => c.Id == message.ConversationId);
+                if (conversation != null)
                 {
-                    conversation.UnreadCount++;
+                    // Skip updating preview if message is from current user (already updated in SendMessage)
+                    // and only update if the incoming message is strictly newer than the current preview
+                    // Use > to prevent messages with identical timestamps from overwriting each other
+                    if (message.SenderId != currentUserId && message.CreatedAt > conversation.LastMessageAt)
+                    {
+                        conversation.LastMessageAt = message.CreatedAt;
+                        // Truncate the preview if it exceeds the max length
+                        conversation.LastMessagePreview = message.Body.Length > MessagePreviewMaxLength
+                            ? message.Body[..MessagePreviewMaxLength] + "..."
+                            : message.Body;
+                        conversation.LastMessageSenderId = message.SenderId;
+                    }
+                    
+                    // Only increment unread count if this is not the current conversation AND it's not from the current user
+                    if (selectedConversation?.Id != message.ConversationId && message.SenderId != currentUserId)
+                    {
+                        conversation.UnreadCount++;
+                    }
+                    
+                    // Re-sort conversations
+                    conversations = conversations
+                        .OrderByDescending(c => c.IsPinned)
+                        .ThenByDescending(c => c.LastMessageAt)
+                        .ToList();
                 }
-                
-                // Re-sort conversations
-                conversations = conversations
-                    .OrderByDescending(c => c.IsPinned)
-                    .ThenByDescending(c => c.LastMessageAt)
-                    .ToList();
+                else
+                {
+                    // New conversation - mark for reload outside the lock to avoid deadlock
+                    needsConversationReload = true;
+                }
             }
-            else
+            finally
             {
-                // New conversation - reload conversations to get it
+                _conversationsLock.Release();
+            }
+            
+            // Reload conversations outside the lock to avoid deadlock
+            if (needsConversationReload)
+            {
                 await LoadConversationsAsync();
             }
             
@@ -1605,31 +1643,42 @@
 
             // Update conversation in list - defensive check to prevent NullReferenceException
             // Guard against null conversations collection or null selectedConversation (race condition)
-            if (conversations != null && conversations.Any())
+            await _conversationsLock.WaitAsync();
+            try
             {
-                var conversationInList = conversations.FirstOrDefault(c => c.Id == conversationId);
-                if (conversationInList != null)
+                if (conversations != null && conversations.Any())
                 {
-                    conversationInList.LastMessageAt = sentMessage.CreatedAt;
-                    conversationInList.LastMessagePreview = sentMessage.Body;
-                    conversationInList.LastMessageSenderId = currentUserId;
-                    
-                    // Re-sort conversations
-                    conversations = conversations
-                        .OrderByDescending(c => c.IsPinned)
-                        .ThenByDescending(c => c.LastMessageAt)
-                        .ToList();
+                    var conversationInList = conversations.FirstOrDefault(c => c.Id == conversationId);
+                    if (conversationInList != null)
+                    {
+                        conversationInList.LastMessageAt = sentMessage.CreatedAt;
+                        // Truncate the preview if it exceeds the max length (for consistency with HandleMessageReceived)
+                        conversationInList.LastMessagePreview = sentMessage.Body.Length > MessagePreviewMaxLength
+                            ? sentMessage.Body[..MessagePreviewMaxLength] + "..."
+                            : sentMessage.Body;
+                        conversationInList.LastMessageSenderId = currentUserId;
+                        
+                        // Re-sort conversations
+                        conversations = conversations
+                            .OrderByDescending(c => c.IsPinned)
+                            .ThenByDescending(c => c.LastMessageAt)
+                            .ToList();
+                    }
+                    else
+                    {
+                        Logger.LogWarning("Conversation {ConversationId} not found in conversations list after sending message for user {UserId}",
+                            conversationId, currentUserId);
+                    }
                 }
                 else
                 {
-                    Logger.LogWarning("Conversation {ConversationId} not found in conversations list after sending message for user {UserId}",
+                    Logger.LogWarning("Conversations collection is null or empty when trying to update conversation {ConversationId} for user {UserId}",
                         conversationId, currentUserId);
                 }
             }
-            else
+            finally
             {
-                Logger.LogWarning("Conversations collection is null or empty when trying to update conversation {ConversationId} for user {UserId}",
-                    conversationId, currentUserId);
+                _conversationsLock.Release();
             }
             
             StateHasChanged();
@@ -1655,6 +1704,7 @@
         NotificationService.OnTypingStopped -= HandleTypingStopped;
         
         typingTimer?.Dispose();
+        _conversationsLock?.Dispose();
         
         // Ensure body scroll is unlocked when component is disposed
         // This handles edge cases where modals might be open during navigation
