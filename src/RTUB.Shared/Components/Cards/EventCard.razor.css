@@ -215,3 +215,43 @@
     background: rgba(245, 158, 11, 1);
     transform: scale(1.05);
 }
+
+/* Going button (green success style) */
+.btn-going {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+}
+
+.btn-going:hover:not(:disabled) {
+    background-color: #157347;
+    border-color: #146c43;
+    color: white;
+}
+
+.btn-going:disabled {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+    opacity: 0.65;
+}
+
+/* Not Going button (red danger style) */
+.btn-not-going {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.btn-not-going:hover:not(:disabled) {
+    background-color: #bb2d3b;
+    border-color: #b02a37;
+    color: white;
+}
+
+.btn-not-going:disabled {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+    opacity: 0.65;
+}

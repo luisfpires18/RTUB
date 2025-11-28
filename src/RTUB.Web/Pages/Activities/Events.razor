@@ -90,7 +90,8 @@ else
                                    OnSendPushNotification="@(() => OpenPushNotificationModal(eventItem))"
                                    OnCancelEvent="@(() => OpenCancelEventModal(eventItem))"
                                    OnUncancelEvent="@(() => UncancelEvent(eventItem))"
-                                   OnEnroll="@(() => OpenEnrollModal(eventItem))"
+                                   OnEnrollGoing="@(() => OpenEnrollModalWithParticipation(eventItem, true))"
+                                   OnEnrollNotGoing="@(() => OpenEnrollModalWithParticipation(eventItem, false))"
                                    OnEditEnrollment="@(() => { if (userEnrollment != null) OpenEditEnrollmentModal(userEnrollment); })"
                                    OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
                                    OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
@@ -348,7 +349,7 @@ else
     <ParticipationModal Show="@showEnrollModal"
                        ShowChanged="@((bool show) => showEnrollModal = show)"
                        Title="@(isEditingEnrollment ? "Editar Inscrição" : $"Inscrever em {selectedEvent?.Name}")"
-                       ShowWillAttend="true"
+                       ShowWillAttend="@(!isParticipationPreSelected)"
                        WillAttend="@enrollmentForm.WillAttend"
                        WillAttendChanged="@((bool value) => enrollmentForm.WillAttend = value)"
                        IsLeitao="@(currentUser != null && currentUser.Categories.Contains(MemberCategory.Leitao))"
@@ -1159,6 +1160,7 @@ else
     private bool showCancelEventModal = false;
     private bool isCreateMode = false;
     private bool isEditingEnrollment = false;
+    private bool isParticipationPreSelected = false; // Track if participation was pre-selected from card buttons
     private bool wantToPlay = false; // Toggle for "Quero tocar"
     private bool isUserAdmin = false;
     private bool isTrophyCreateMode = false;
@@ -1695,20 +1697,11 @@ else
         if (currentUser == null) return;
 
         isEditingEnrollment = false;
+        isParticipationPreSelected = false; // Show WillAttend selection in modal
         selectedEvent = eventItem;
         
-        // Set default instrument to primary instrument if available
-        InstrumentType? defaultInstrument = null;
-        if (currentUserInstruments != null && currentUserInstruments.Any())
-        {
-            var primaryInstrument = currentUserInstruments.FirstOrDefault(mi => mi.IsPrimary);
-            defaultInstrument = primaryInstrument?.InstrumentType ?? currentUserInstruments.First().InstrumentType;
-            wantToPlay = true; // Only enable "Quero tocar" if instruments are available
-        }
-        else
-        {
-            wantToPlay = false; // Disable "Quero tocar" if no instruments configured
-        }
+        var (defaultInstrument, shouldWantToPlay) = GetDefaultInstrumentSettings();
+        wantToPlay = shouldWantToPlay;
         
         enrollmentForm = new Enrollment
         {
@@ -1720,9 +1713,47 @@ else
         showEnrollModal = true;
     }
 
+    private void OpenEnrollModalWithParticipation(Event eventItem, bool willParticipate)
+    {
+        if (currentUser == null) return;
+
+        isEditingEnrollment = false;
+        isParticipationPreSelected = true; // Hide WillAttend selection in modal
+        selectedEvent = eventItem;
+        
+        var (defaultInstrument, shouldWantToPlay) = GetDefaultInstrumentSettings();
+        wantToPlay = shouldWantToPlay;
+        
+        enrollmentForm = new Enrollment
+        {
+            UserId = currentUser.Id,
+            EventId = eventItem.Id,
+            Instrument = defaultInstrument,
+            Notes = string.Empty,
+            WillAttend = willParticipate // Pre-set the participation value
+        };
+        showEnrollModal = true;
+    }
+
+    /// <summary>
+    /// Gets the default instrument and "want to play" toggle settings for enrollment.
+    /// </summary>
+    /// <returns>Tuple of (defaultInstrument, wantToPlay)</returns>
+    private (InstrumentType? defaultInstrument, bool wantToPlay) GetDefaultInstrumentSettings()
+    {
+        if (currentUserInstruments != null && currentUserInstruments.Any())
+        {
+            var primaryInstrument = currentUserInstruments.FirstOrDefault(mi => mi.IsPrimary);
+            var defaultInstrument = primaryInstrument?.InstrumentType ?? currentUserInstruments.First().InstrumentType;
+            return (defaultInstrument, true); // Enable "Quero tocar" if instruments are available
+        }
+        return (null, false); // Disable "Quero tocar" if no instruments configured
+    }
+
     private void OpenEditEnrollmentModal(Enrollment enrollment)
     {
         isEditingEnrollment = true;
+        isParticipationPreSelected = false; // Show WillAttend selection when editing
         selectedEvent = events?.FirstOrDefault(e => e.Id == enrollment.EventId);
         wantToPlay = enrollment.Instrument.HasValue; // Set toggle based on whether instrument is set
         enrollmentForm = new Enrollment
@@ -1743,6 +1774,7 @@ else
         enrollmentForm = null;
         selectedEvent = null;
         isEditingEnrollment = false;
+        isParticipationPreSelected = false;
         wantToPlay = false;
     }
 

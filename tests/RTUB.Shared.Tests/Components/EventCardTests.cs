@@ -99,7 +99,7 @@ public class EventCardTests : TestContext
     }
 
     [Fact]
-    public void EventCard_ShowsEnrollButton_WhenUserNotEnrolled()
+    public void EventCard_ShowsEnrollButtons_WhenUserNotEnrolled()
     {
         // Arrange
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
@@ -111,9 +111,11 @@ public class EventCardTests : TestContext
             .Add(p => p.IsPastEvent, false)
             .Add(p => p.EnrollmentCount, 0));
 
-        // Assert
-        cut.Markup.Should().Contain("bi-plus-circle-fill", "should show enroll button");
-        cut.Markup.Should().Contain("btn-purple", "enroll button should have purple style");
+        // Assert - Now shows two buttons: Going (green) and Not Going (red)
+        cut.Markup.Should().Contain("bi-check-circle-fill", "should show going button with check icon");
+        cut.Markup.Should().Contain("bi-x-circle-fill", "should show not going button with x icon");
+        cut.Markup.Should().Contain("btn-going", "going button should have green style");
+        cut.Markup.Should().Contain("btn-not-going", "not going button should have red style");
     }
 
     [Fact]
@@ -132,7 +134,7 @@ public class EventCardTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("bi-check-circle-fill", "should show enrolled check icon");
-        cut.Markup.Should().Contain("btn-purple", "enrolled button should have purple style");
+        cut.Markup.Should().Contain("btn-going", "enrolled button should have green style");
     }
 
     [Fact]
@@ -151,7 +153,7 @@ public class EventCardTests : TestContext
 
         // Assert
         cut.Markup.Should().Contain("bi-pencil-fill", "should show edit enrollment button");
-        cut.Markup.Should().Contain("bi-x-circle-fill", "should show remove enrollment button");
+        cut.Markup.Should().Contain("bi-trash-fill", "should show remove enrollment button");
         cut.Markup.Should().Contain("btn-danger", "remove button should have danger style");
     }
 
@@ -256,7 +258,7 @@ public class EventCardTests : TestContext
     }
 
     [Fact]
-    public void EventCard_InvokesOnEnroll_WhenEnrollButtonClicked()
+    public void EventCard_InvokesOnEnrollGoing_WhenGoingButtonClicked()
     {
         // Arrange
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
@@ -267,14 +269,36 @@ public class EventCardTests : TestContext
             .Add(p => p.UserEnrollment, (Enrollment?)null)
             .Add(p => p.IsPastEvent, false)
             .Add(p => p.EnrollmentCount, 0)
-            .Add(p => p.OnEnroll, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+            .Add(p => p.OnEnrollGoing, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
-        var enrollButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-purple"));
-        enrollButton.Click();
+        var goingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-going"));
+        goingButton.Click();
 
         // Assert
-        callbackInvoked.Should().BeTrue("OnEnroll callback should be invoked");
+        callbackInvoked.Should().BeTrue("OnEnrollGoing callback should be invoked");
+    }
+
+    [Fact]
+    public void EventCard_InvokesOnEnrollNotGoing_WhenNotGoingButtonClicked()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        bool callbackInvoked = false;
+
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, (Enrollment?)null)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0)
+            .Add(p => p.OnEnrollNotGoing, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act
+        var notGoingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-not-going"));
+        notGoingButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("OnEnrollNotGoing callback should be invoked");
     }
 
     [Theory]
