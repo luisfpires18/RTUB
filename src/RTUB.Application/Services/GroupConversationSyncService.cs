@@ -58,6 +58,9 @@ public class GroupConversationSyncService : IGroupConversationSyncService
 
             // 6. ANUNCIOS - All active (non-retired) members, announcement-only channel
             await SyncAnunciosGroupAsync();
+
+            // 7. GERAL - All members, chat
+            await SyncGeneralGroupAsync();
         }
         catch (Exception ex)
         {
@@ -173,6 +176,21 @@ public class GroupConversationSyncService : IGroupConversationSyncService
                     groupTitle, participantIds.Count);
             }
         }
+    }
+
+    private async Task SyncGeneralGroupAsync()
+    {
+        const string groupTitle = "GERAL";
+
+        // Get all non-retired users (active members)
+        var allUsers = await _userManager.Users.ToListAsync();
+
+        var participantIds = allUsers
+            .Where(u => !u.IsRetired)
+            .Select(u => u.Id)
+            .ToList();
+
+        await CreateOrUpdateSystemGroupAsync(groupTitle, participantIds);
     }
 
     private async Task SyncAnunciosGroupAsync()

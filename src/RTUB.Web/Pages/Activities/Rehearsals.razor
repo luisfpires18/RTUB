@@ -1472,7 +1472,13 @@ else
             var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsAsync(currentUserId);
             currentUserInstruments = memberInstruments.Select(mi => mi.InstrumentType).ToList();
             
-            if (existingAttendance != null)
+            // When not attending, always clear instrument selection
+            if (!willAttend)
+            {
+                defaultInstrument = null;
+                wantToPlayRehearsal = false;
+            }
+            else if (existingAttendance != null)
             {
                 // Use existing instrument
                 defaultInstrument = existingAttendance.Instrument;
@@ -1484,7 +1490,7 @@ else
                 var primaryInstrument = memberInstruments.FirstOrDefault(mi => mi.IsPrimary);
                 defaultInstrument = primaryInstrument?.InstrumentType;
                 // Only enable "Quero tocar" if attending and instruments are available
-                wantToPlayRehearsal = willAttend && currentUserInstruments.Any();
+                wantToPlayRehearsal = currentUserInstruments.Any();
             }
         }
         else
