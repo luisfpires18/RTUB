@@ -253,3 +253,15 @@
 .btn-not-going.btn-selected {
     opacity: 1;
 }
+
+/* Smaller secondary button (for non-selected state) */
+.event-icon-btn.btn-secondary-small {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+}
+
+.event-icon-btn.btn-secondary-small i {
+    font-size: 1rem;
+}

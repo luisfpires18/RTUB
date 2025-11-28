@@ -184,7 +184,7 @@ else
     <ParticipationModal Show="@showAttendanceModal"
                        ShowChanged="@((bool show) => showAttendanceModal = show)"
                        Title="Marcar Presença"
-                       ShowWillAttend="true"
+                       ShowWillAttend="@(!isParticipationPreSelected)"
                        WillAttend="@attendanceForm.WillAttend"
                        WillAttendChanged="@((bool value) => attendanceForm.WillAttend = value)"
                        IsLeitao="@(currentUser != null && currentUser.Categories.Contains(MemberCategory.Leitao))"
@@ -1204,6 +1204,7 @@ else
     private AttendanceFormModel? attendanceForm;
     private bool isEditingAttendance = false;
     private int? editingAttendanceId = null;
+    private bool isParticipationPreSelected = false; // Track if participation was pre-selected from card buttons
     private bool wantToPlayRehearsal = true;
     private string editLocation = "";
     private string? editTheme;
@@ -1510,6 +1511,7 @@ else
             editingAttendanceId = null;
         }
         
+        isParticipationPreSelected = true; // Hide "Vais participar?" section in modal
         showAttendanceModal = true;
         StateHasChanged();
     }
@@ -1574,6 +1576,7 @@ else
         wantToPlayRehearsal = false;
         isEditingAttendance = false;
         editingAttendanceId = null;
+        isParticipationPreSelected = false;
         StateHasChanged();
     }
 

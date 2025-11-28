@@ -109,3 +109,15 @@
 .btn-not-attending.btn-selected {
     opacity: 1;
 }
+
+/* Smaller secondary button (for non-selected state) */
+.rehearsal-icon-btn.btn-secondary-small {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+}
+
+.rehearsal-icon-btn.btn-secondary-small i {
+    font-size: 0.9rem;
+}
