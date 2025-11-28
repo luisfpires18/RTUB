@@ -40,8 +40,8 @@
                 </div>
             }
 
-            @* Only show instrument and notes if attending (or if not using WillAttend) *@
-            @if (!ShowWillAttend || WillAttend)
+            @* Only show instrument section if user is attending (WillAttend=true) *@
+            @if (WillAttend)
             {
                 @* Only show "Quero tocar" toggle for non-Leitão members *@
                 @if (!IsLeitao)
