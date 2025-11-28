@@ -1492,11 +1492,14 @@ else
             wantToPlayRehearsal = false;
         }
         
+        // Clear notes if changing participation status (different reasons)
+        var shouldClearNotes = existingAttendance != null && existingAttendance.WillAttend != willAttend;
+        
         attendanceForm = new AttendanceFormModel
         {
             WillAttend = willAttend,
             Instrument = defaultInstrument,
-            Notes = existingAttendance?.Notes
+            Notes = shouldClearNotes ? string.Empty : existingAttendance?.Notes
         };
         
         // If updating existing attendance, we need to handle it as an update

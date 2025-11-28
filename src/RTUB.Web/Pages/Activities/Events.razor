@@ -1729,13 +1729,16 @@ else
             isEditingEnrollment = true;
             wantToPlay = existingEnrollment.Instrument.HasValue;
             
+            // Clear notes if changing participation status (different reasons)
+            var shouldClearNotes = existingEnrollment.WillAttend != willParticipate;
+            
             enrollmentForm = new Enrollment
             {
                 Id = existingEnrollment.Id,
                 UserId = existingEnrollment.UserId,
                 EventId = existingEnrollment.EventId,
                 Instrument = existingEnrollment.Instrument,
-                Notes = existingEnrollment.Notes,
+                Notes = shouldClearNotes ? string.Empty : existingEnrollment.Notes,
                 WillAttend = willParticipate // Set the new participation value
             };
         }

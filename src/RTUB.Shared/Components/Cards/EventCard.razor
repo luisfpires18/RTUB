@@ -17,15 +17,30 @@
             </div>
         }
         
-        @* Cancellation badge *@
-        @if (Event.IsCancelled)
-        {
-            <div class="position-absolute top-0 start-0 p-2">
+        @* Status badges - Cancellation takes priority, then enrollment status *@
+        <div class="position-absolute top-0 start-0 p-2">
+            @if (Event.IsCancelled)
+            {
                 <span class="badge bg-danger fs-6">
                     <i class="bi bi-x-circle-fill me-1"></i>CANCELADO
                 </span>
-            </div>
-        }
+            }
+            else if (UserEnrollment != null)
+            {
+                @if (UserEnrollment.WillAttend)
+                {
+                    <span class="badge bg-success fs-6">
+                        <i class="bi bi-check-circle-fill me-1"></i>VOU
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-danger fs-6">
+                        <i class="bi bi-x-circle-fill me-1"></i>NÃO VOU
+                    </span>
+                }
+            }
+        </div>
         
         @* Trophy corner badge for AboutUsContent (Festival events only) *@
         @if (ShowTrophyCorner && Event.Type == EventType.Festival)
