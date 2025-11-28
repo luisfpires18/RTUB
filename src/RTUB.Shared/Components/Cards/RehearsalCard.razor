@@ -459,7 +459,9 @@
     private int _previousRehearsalId;
     private bool _previousIsCanceled;
     private int _previousAttendanceCount;
+    private bool _previousHasAttendance;
     private bool _previousWillAttend;
+    private bool _previousAttended;
     private bool _previousIsAdmin;
     private bool _previousIsPastRehearsal;
     
@@ -471,19 +473,25 @@
     {
         var rehearsalId = Rehearsal?.Id ?? 0;
         var isCanceled = Rehearsal?.IsCanceled ?? false;
+        var hasAttendance = UserAttendance != null;
         var willAttend = UserAttendance?.WillAttend ?? false;
+        var attended = UserAttendance?.Attended ?? false;
         
         if (rehearsalId != _previousRehearsalId ||
             isCanceled != _previousIsCanceled ||
             AttendanceCount != _previousAttendanceCount ||
+            hasAttendance != _previousHasAttendance ||
             willAttend != _previousWillAttend ||
+            attended != _previousAttended ||
             IsAdmin != _previousIsAdmin ||
             IsPastRehearsal != _previousIsPastRehearsal)
         {
             _previousRehearsalId = rehearsalId;
             _previousIsCanceled = isCanceled;
             _previousAttendanceCount = AttendanceCount;
+            _previousHasAttendance = hasAttendance;
             _previousWillAttend = willAttend;
+            _previousAttended = attended;
             _previousIsAdmin = IsAdmin;
             _previousIsPastRehearsal = IsPastRehearsal;
             return true;
@@ -491,4 +499,3 @@
         return false;
     }
 }
-

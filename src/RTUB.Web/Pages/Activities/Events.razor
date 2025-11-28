@@ -382,7 +382,7 @@ else
 @if (selectedEvent != null)
 {
     <Modal Show="@showEnrollmentListModal" 
-           ShowChanged="@((bool show) => showEnrollmentListModal = show)"
+           ShowChanged="@((bool show) => { if (!show) CloseEnrollmentListModal(); })"
            Title="@($"Inscrições em {selectedEvent.Name}")" 
            Size="Modal.ModalSize.Large"
            Centered="true">

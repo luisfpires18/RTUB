@@ -487,6 +487,7 @@
     private int _previousEnrollmentCount;
     private int _previousRepertoireCount;
     private int _previousDiscussionCount;
+    private bool _previousHasEnrollment;
     private bool _previousWillAttend;
     private bool _previousIsAdmin;
     private bool _previousIsPastEvent;
@@ -502,6 +503,7 @@
         // Check key parameters that would require a visual update
         var eventId = Event?.Id ?? 0;
         var isCancelled = Event?.IsCancelled ?? false;
+        var hasEnrollment = UserEnrollment != null;
         var willAttend = UserEnrollment?.WillAttend ?? false;
         var eventImageSrc = Event?.ImageSrc;
         
@@ -510,6 +512,7 @@
             EnrollmentCount != _previousEnrollmentCount ||
             RepertoireCount != _previousRepertoireCount ||
             DiscussionCount != _previousDiscussionCount ||
+            hasEnrollment != _previousHasEnrollment ||
             willAttend != _previousWillAttend ||
             IsAdmin != _previousIsAdmin ||
             IsPastEvent != _previousIsPastEvent ||
@@ -521,6 +524,7 @@
             _previousEnrollmentCount = EnrollmentCount;
             _previousRepertoireCount = RepertoireCount;
             _previousDiscussionCount = DiscussionCount;
+            _previousHasEnrollment = hasEnrollment;
             _previousWillAttend = willAttend;
             _previousIsAdmin = IsAdmin;
             _previousIsPastEvent = IsPastEvent;
