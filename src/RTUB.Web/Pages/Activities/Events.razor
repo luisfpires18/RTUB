@@ -348,7 +348,7 @@ else
 {
     <ParticipationModal Show="@showEnrollModal"
                        ShowChanged="@((bool show) => showEnrollModal = show)"
-                       Title="@(isEditingEnrollment ? "Editar Inscrição" : $"Inscrever em {selectedEvent?.Name}")"
+                       Title="@GetEnrollmentModalTitle()"
                        ShowWillAttend="@(!isParticipationPreSelected)"
                        WillAttend="@enrollmentForm.WillAttend"
                        WillAttendChanged="@((bool value) => enrollmentForm.WillAttend = value)"
@@ -359,8 +359,8 @@ else
                        Notes="@enrollmentForm.Notes"
                        NotesChanged="@((string value) => enrollmentForm.Notes = value)"
                        NotesRows="4"
-                       NotesPlaceholder="Informações adicionais..."
-                       SubmitButtonText="@(isEditingEnrollment ? "Atualizar" : "Inscrever")"
+                       NotesPlaceholder="@(enrollmentForm.WillAttend ? "Informações adicionais..." : "Motivo da impossibilidade...")"
+                       SubmitButtonText="@(isEditingEnrollment ? "Atualizar" : "Confirmar")"
                        WantToPlay="@wantToPlay"
                        WantToPlayChanged="@((bool value) => wantToPlay = value)"
                        OnSubmit="@SaveEnrollment"
@@ -1789,6 +1789,20 @@ else
             WillAttend = enrollment.WillAttend
         };
         showEnrollModal = true;
+    }
+
+    private string GetEnrollmentModalTitle()
+    {
+        if (isEditingEnrollment)
+        {
+            return enrollmentForm?.WillAttend == true 
+                ? "Editar Inscrição" 
+                : $"Editar Impossibilidade em {selectedEvent?.Name}";
+        }
+        
+        return enrollmentForm?.WillAttend == true 
+            ? $"Inscrever em {selectedEvent?.Name}" 
+            : $"Impossibilidade de inscrição em {selectedEvent?.Name}";
     }
 
     private void CloseEnrollModal()

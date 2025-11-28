@@ -137,8 +137,8 @@
                                 <i class="bi bi-plus-circle-fill"></i>
                             </button>
                             
-                            <!-- Not Going button (red, smaller) - mark as not going -->
-                            <button class="btn rehearsal-icon-btn btn-not-attending btn-secondary-small" 
+                            <!-- Not Going button (red, same size) - mark as not going -->
+                            <button class="btn rehearsal-icon-btn btn-not-attending" 
                                     @onclick="OnAttendNotGoing" 
                                     title="Não vou participar">
                                 <i class="bi bi-x-circle-fill"></i>
@@ -193,10 +193,17 @@
                 }
                 else
                 {
-                    <!-- Past rehearsal: Only show delete button if attendance is pending -->
+                    <!-- Past rehearsal: Only show pending icon and delete button if attendance is pending -->
                     @if (UserAttendance != null && UserAttendance.WillAttend && !UserAttendance.Attended)
                     {
                         <div class="d-flex gap-2 align-items-center justify-content-center">
+                            <!-- Pending status icon (yellow clock, disabled) -->
+                            <button class="btn rehearsal-icon-btn btn-pending" 
+                                    disabled
+                                    title="Presença Pendente de Aprovação">
+                                <i class="bi bi-clock-fill"></i>
+                            </button>
+                            
                             <!-- Delete attendance button -->
                             <button class="btn rehearsal-icon-btn btn-danger" 
                                     @onclick="OnRemoveAttendance" 
