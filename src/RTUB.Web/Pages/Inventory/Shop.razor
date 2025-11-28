@@ -784,24 +784,9 @@ else
 
     private void OpenEditProductModal(Product product)
     {
+        editingProduct = product;
         isProductCreateMode = false;
         uploadedImagePath = null;
-        croppedProductImageBytes = null;
-        selectedFile = null;
-        shopImageFileName = null;
-        // Create a new copy to avoid modifying the original reference in the list
-        var copy = Product.CreateEmpty();
-        copy.Id = product.Id;
-        copy.Name = product.Name;
-        copy.Type = product.Type;
-        copy.Description = product.Description;
-        copy.Price = product.Price;
-        copy.Stock = product.Stock;
-        copy.IsAvailable = product.IsAvailable;
-        copy.IsPublic = product.IsPublic;
-        copy.ImageUrl = product.ImageUrl;
-        copy.CreatedAt = product.CreatedAt;
-        editingProduct = copy;
         showProductEditModal = true;
     }
 
@@ -862,12 +847,9 @@ else
             }
             
             await LoadProducts();
-            StateHasChanged();
             showProductEditModal = false;
             uploadedImagePath = null;
             croppedProductImageBytes = null;
-            selectedFile = null;
-            shopImageFileName = null;
         }
         catch (Exception ex)
         {
@@ -897,8 +879,6 @@ else
         editingProduct = null;
         uploadedImagePath = null;
         shopImageFileName = null;
-        croppedProductImageBytes = null;
-        selectedFile = null;
     }
 
     private void CloseProductDeleteModal()
