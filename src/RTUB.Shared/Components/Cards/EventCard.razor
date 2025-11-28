@@ -17,15 +17,30 @@
             </div>
         }
         
-        @* Cancellation badge *@
-        @if (Event.IsCancelled)
-        {
-            <div class="position-absolute top-0 start-0 p-2">
+        @* Status badges - Cancellation takes priority, then enrollment status *@
+        <div class="position-absolute top-0 start-0 p-2">
+            @if (Event.IsCancelled)
+            {
                 <span class="badge bg-danger fs-6">
                     <i class="bi bi-x-circle-fill me-1"></i>CANCELADO
                 </span>
-            </div>
-        }
+            }
+            else if (UserEnrollment != null)
+            {
+                @if (UserEnrollment.WillAttend)
+                {
+                    <span class="badge bg-success fs-6">
+                        <i class="bi bi-check-circle-fill me-1"></i>VOU
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-danger fs-6">
+                        <i class="bi bi-x-circle-fill me-1"></i>NÃO VOU
+                    </span>
+                }
+            }
+        </div>
         
         @* Trophy corner badge for AboutUsContent (Festival events only) *@
         @if (ShowTrophyCorner && Event.Type == EventType.Festival)
@@ -191,56 +206,21 @@
                             </button>
                         </div>
 
-                        <!-- Enrollment action buttons row -->
+                        <!-- Enrollment action buttons row (simple 2-button toggle) -->
                         <div class="event-buttons-container">
-                            @if (UserEnrollment == null)
-                            {
-                                <!-- Enroll button -->
-                                <button class="btn event-icon-btn btn-purple" 
-                                        @onclick="OnEnroll" 
-                                        title="Inscrever">
-                                    <i class="bi bi-plus-circle-fill"></i>
-                                </button>
-                            }
-                            else if (UserEnrollment.WillAttend)
-                            {
-                                <!-- Enrolled status button (disabled, purple) -->
-                                <button class="btn event-icon-btn btn-purple" 
-                                        disabled 
-                                        title="Inscrito">
-                                    <i class="bi bi-check-circle-fill"></i>
-                                </button>
-                                
-                                <!-- Edit enrollment button (white) -->
-                                <button class="btn event-icon-btn btn-light" 
-                                        @onclick="OnEditEnrollment" 
-                                        title="Editar Inscrição">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </button>
-                                
-                                <!-- Remove enrollment button (red) -->
-                                <button class="btn event-icon-btn btn-danger" 
-                                        @onclick="OnRemoveEnrollment" 
-                                        title="Cancelar Inscrição">
-                                    <i class="bi bi-x-circle-fill"></i>
-                                </button>
-                            }
-                            else
-                            {
-                                <!-- Not attending status button (disabled, red) -->
-                                <button class="btn event-icon-btn btn-danger" 
-                                        disabled 
-                                        title="Não vou">
-                                    <i class="bi bi-x-circle-fill"></i>
-                                </button>
-                                
-                                <!-- Edit enrollment button (white) -->
-                                <button class="btn event-icon-btn btn-light" 
-                                        @onclick="OnEditEnrollment" 
-                                        title="Editar Inscrição">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </button>
-                            }
+                            <!-- Green "Vou" button - always visible, selected state when WillAttend=true -->
+                            <button class="btn event-icon-btn btn-going @(UserEnrollment?.WillAttend == true ? "btn-selected" : (UserEnrollment != null && !UserEnrollment.WillAttend ? "btn-secondary-small" : ""))" 
+                                    @onclick="OnEnrollGoing" 
+                                    title="@(UserEnrollment?.WillAttend == true ? "Editar inscrição" : "Vou participar")">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </button>
+                            
+                            <!-- Red "Não vou" button - always visible, selected state when WillAttend=false -->
+                            <button class="btn event-icon-btn btn-not-going @(UserEnrollment != null && !UserEnrollment.WillAttend ? "btn-selected" : (UserEnrollment?.WillAttend == true ? "btn-secondary-small" : ""))" 
+                                    @onclick="OnEnrollNotGoing" 
+                                    title="@(UserEnrollment != null && !UserEnrollment.WillAttend ? "Editar impossibilidade" : "Não vou participar")">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
                         </div>
                     }
                 </div>
@@ -391,12 +371,17 @@
     /// </summary>
     [Parameter]
     public EventCallback OnSendPushNotification { get; set; }
-
     /// <summary>
-    /// Callback when the enroll button is clicked
+    /// Callback when the "Going" enrollment button is clicked
     /// </summary>
     [Parameter]
-    public EventCallback OnEnroll { get; set; }
+    public EventCallback OnEnrollGoing { get; set; }
+
+    /// <summary>
+    /// Callback when the "Not Going" enrollment button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnEnrollNotGoing { get; set; }
 
     /// <summary>
     /// Callback when the view enrollments button is clicked

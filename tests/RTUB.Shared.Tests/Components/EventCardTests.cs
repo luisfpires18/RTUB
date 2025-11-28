@@ -99,7 +99,7 @@ public class EventCardTests : TestContext
     }
 
     [Fact]
-    public void EventCard_ShowsEnrollButton_WhenUserNotEnrolled()
+    public void EventCard_ShowsEnrollButtons_WhenUserNotEnrolled()
     {
         // Arrange
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
@@ -111,9 +111,11 @@ public class EventCardTests : TestContext
             .Add(p => p.IsPastEvent, false)
             .Add(p => p.EnrollmentCount, 0));
 
-        // Assert
-        cut.Markup.Should().Contain("bi-plus-circle-fill", "should show enroll button");
-        cut.Markup.Should().Contain("btn-purple", "enroll button should have purple style");
+        // Assert - Now shows two buttons: Going (green) and Not Going (red)
+        cut.Markup.Should().Contain("bi-check-circle-fill", "should show going button with check icon");
+        cut.Markup.Should().Contain("bi-x-circle-fill", "should show not going button with x icon");
+        cut.Markup.Should().Contain("btn-going", "going button should have green style");
+        cut.Markup.Should().Contain("btn-not-going", "not going button should have red style");
     }
 
     [Fact]
@@ -130,13 +132,14 @@ public class EventCardTests : TestContext
             .Add(p => p.IsPastEvent, false)
             .Add(p => p.EnrollmentCount, 1));
 
-        // Assert
-        cut.Markup.Should().Contain("bi-check-circle-fill", "should show enrolled check icon");
-        cut.Markup.Should().Contain("btn-purple", "enrolled button should have purple style");
+        // Assert - Simple 2-button layout: Green button selected when WillAttend=true
+        cut.Markup.Should().Contain("bi-check-circle-fill", "should show check icon on green button");
+        cut.Markup.Should().Contain("btn-going", "should have green going button");
+        cut.Markup.Should().Contain("btn-selected", "green button should be selected when enrolled as going");
     }
 
     [Fact]
-    public void EventCard_ShowsEditAndRemoveButtons_WhenUserIsEnrolled()
+    public void EventCard_ShowsToggleButtons_WhenUserIsEnrolled()
     {
         // Arrange
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
@@ -149,10 +152,14 @@ public class EventCardTests : TestContext
             .Add(p => p.IsPastEvent, false)
             .Add(p => p.EnrollmentCount, 1));
 
-        // Assert
-        cut.Markup.Should().Contain("bi-pencil-fill", "should show edit enrollment button");
-        cut.Markup.Should().Contain("bi-x-circle-fill", "should show remove enrollment button");
-        cut.Markup.Should().Contain("btn-danger", "remove button should have danger style");
+        // Assert - Simple 2-button layout: both buttons always visible
+        cut.Markup.Should().Contain("bi-check-circle-fill", "should show check icon on green button");
+        cut.Markup.Should().Contain("bi-x-circle-fill", "should show X icon on red button");
+        cut.Markup.Should().Contain("btn-going", "should have green going button");
+        cut.Markup.Should().Contain("btn-not-going", "should have red not-going button");
+        // Should NOT have separate edit/delete buttons
+        cut.Markup.Should().NotContain("bi-pencil-fill", "should not have separate edit button");
+        cut.Markup.Should().NotContain("bi-trash-fill", "should not have separate delete button");
     }
 
     [Fact]
@@ -256,7 +263,7 @@ public class EventCardTests : TestContext
     }
 
     [Fact]
-    public void EventCard_InvokesOnEnroll_WhenEnrollButtonClicked()
+    public void EventCard_InvokesOnEnrollGoing_WhenGoingButtonClicked()
     {
         // Arrange
         var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
@@ -267,14 +274,36 @@ public class EventCardTests : TestContext
             .Add(p => p.UserEnrollment, (Enrollment?)null)
             .Add(p => p.IsPastEvent, false)
             .Add(p => p.EnrollmentCount, 0)
-            .Add(p => p.OnEnroll, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+            .Add(p => p.OnEnrollGoing, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
-        var enrollButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-purple"));
-        enrollButton.Click();
+        var goingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-going"));
+        goingButton.Click();
 
         // Assert
-        callbackInvoked.Should().BeTrue("OnEnroll callback should be invoked");
+        callbackInvoked.Should().BeTrue("OnEnrollGoing callback should be invoked");
+    }
+
+    [Fact]
+    public void EventCard_InvokesOnEnrollNotGoing_WhenNotGoingButtonClicked()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        bool callbackInvoked = false;
+
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, (Enrollment?)null)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0)
+            .Add(p => p.OnEnrollNotGoing, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act
+        var notGoingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-not-going"));
+        notGoingButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("OnEnrollNotGoing callback should be invoked");
     }
 
     [Theory]
@@ -535,4 +564,231 @@ public class EventCardTests : TestContext
         cut.Markup.Should().NotContain("bi-bell-fill", "should not show push notification button for cancelled events");
         cut.Markup.Should().NotContain("Notificar por push", "should not show push notification title for cancelled events");
     }
+
+    #region Status Badge Tests
+
+    [Fact]
+    public void EventCard_ShowsVouBadge_WhenUserEnrolledAsGoing()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = true;
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        cut.Markup.Should().Contain("VOU", "should display VOU badge when enrolled as going");
+        cut.Markup.Should().Contain("bg-success", "VOU badge should have success (green) style");
+    }
+
+    [Fact]
+    public void EventCard_ShowsNaoVouBadge_WhenUserEnrolledAsNotGoing()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = false;
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        cut.Markup.Should().Contain("NÃO VOU", "should display NÃO VOU badge when enrolled as not going");
+        cut.Markup.Should().Contain("bg-danger", "NÃO VOU badge should have danger (red) style");
+    }
+
+    [Fact]
+    public void EventCard_DoesNotShowStatusBadge_WhenUserNotEnrolled()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, (Enrollment?)null)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        cut.Markup.Should().NotContain(">VOU<", "should not display VOU badge when not enrolled");
+        cut.Markup.Should().NotContain("NÃO VOU", "should not display NÃO VOU badge when not enrolled");
+    }
+
+    [Fact]
+    public void EventCard_ShowsCanceladoBadge_OverridesStatusBadge_WhenEventIsCancelled()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        eventEntity.Cancel("Event cancelled");
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = true;
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        cut.Markup.Should().Contain("CANCELADO", "should display CANCELADO badge");
+        cut.Markup.Should().NotContain(">VOU<", "VOU badge should be hidden when event is cancelled");
+    }
+
+    [Fact]
+    public void EventCard_StatusBadge_HasCorrectIcon_ForGoing()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = true;
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert - Check for the badge's check icon
+        var badgeSection = cut.Markup.Contains("VOU") && cut.Markup.Contains("bg-success");
+        badgeSection.Should().BeTrue("VOU badge should exist with success styling");
+    }
+
+    [Fact]
+    public void EventCard_StatusBadge_HasCorrectIcon_ForNotGoing()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = false;
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert - Check for the badge's X icon
+        var badgeSection = cut.Markup.Contains("NÃO VOU") && cut.Markup.Contains("bg-danger");
+        badgeSection.Should().BeTrue("NÃO VOU badge should exist with danger styling");
+    }
+
+    #endregion
+
+    #region Button Selection State Tests
+
+    [Fact]
+    public void EventCard_GreenButtonSelected_WhenEnrolledAsGoing()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = true;
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        var goingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-going"));
+        goingButton.ClassList.Should().Contain("btn-selected", "green button should be selected when enrolled as going");
+    }
+
+    [Fact]
+    public void EventCard_RedButtonSelected_WhenEnrolledAsNotGoing()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = false;
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        var notGoingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-not-going"));
+        notGoingButton.ClassList.Should().Contain("btn-selected", "red button should be selected when enrolled as not going");
+    }
+
+    [Fact]
+    public void EventCard_SecondaryButtonSmaller_WhenEnrolledAsGoing()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = true;
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        var notGoingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-not-going"));
+        notGoingButton.ClassList.Should().Contain("btn-secondary-small", "red button should be smaller when user is enrolled as going");
+    }
+
+    [Fact]
+    public void EventCard_SecondaryButtonSmaller_WhenEnrolledAsNotGoing()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+        var enrollment = Enrollment.Create("user123", eventEntity.Id);
+        enrollment.WillAttend = false;
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, enrollment)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 1));
+
+        // Assert
+        var goingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-going"));
+        goingButton.ClassList.Should().Contain("btn-secondary-small", "green button should be smaller when user is enrolled as not going");
+    }
+
+    [Fact]
+    public void EventCard_BothButtonsSameSize_WhenNotEnrolled()
+    {
+        // Arrange
+        var eventEntity = Event.Create("Test Event", DateTime.Now.AddDays(7), "Location", EventType.Atuacao);
+
+        // Act
+        var cut = RenderComponent<EventCard>(parameters => parameters
+            .Add(p => p.Event, eventEntity)
+            .Add(p => p.UserEnrollment, (Enrollment?)null)
+            .Add(p => p.IsPastEvent, false)
+            .Add(p => p.EnrollmentCount, 0));
+
+        // Assert
+        var goingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-going"));
+        var notGoingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-not-going"));
+        goingButton.ClassList.Should().NotContain("btn-secondary-small", "green button should not be smaller when not enrolled");
+        notGoingButton.ClassList.Should().NotContain("btn-secondary-small", "red button should not be smaller when not enrolled");
+    }
+
+    #endregion
 }
