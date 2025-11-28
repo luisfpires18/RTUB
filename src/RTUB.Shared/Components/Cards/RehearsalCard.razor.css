@@ -31,11 +31,24 @@
     justify-content: center;
     border-radius: 0.75rem;
     transition: all 0.2s ease;
+    flex-shrink: 0;
+    touch-action: manipulation;
 }
 
 .rehearsal-icon-btn i {
     font-size: 1.1rem;
     line-height: 1;
+}
+
+/* Button hover effects */
+.rehearsal-icon-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.rehearsal-icon-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
 }
 
 /* Add attendance button (green success style) */
@@ -120,4 +133,68 @@
 
 .rehearsal-icon-btn.btn-secondary-small i {
     font-size: 0.9rem;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .rehearsal-icon-btn {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+    }
+
+    .rehearsal-icon-btn i {
+        font-size: 1rem;
+    }
+
+    .rehearsal-icon-btn.btn-secondary-small {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        min-height: 28px;
+    }
+
+    .rehearsal-icon-btn.btn-secondary-small i {
+        font-size: 0.85rem;
+    }
+}
+
+/* Very small screens - further compact mode */
+@media (max-width: 375px) {
+    .rehearsal-icon-btn {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+    }
+
+    .rehearsal-icon-btn i {
+        font-size: 0.9rem;
+    }
+
+    .rehearsal-icon-btn.btn-secondary-small {
+        width: 24px;
+        height: 24px;
+        min-width: 24px;
+        min-height: 24px;
+    }
+
+    .rehearsal-icon-btn.btn-secondary-small i {
+        font-size: 0.75rem;
+    }
+}
+
+/* Status badges responsiveness */
+.rehearsal-status-badge,
+.rehearsal-cancel-badge {
+    white-space: nowrap;
+}
+
+@media (max-width: 375px) {
+    .rehearsal-status-badge,
+    .rehearsal-cancel-badge {
+        font-size: 0.75rem !important;
+        padding: 0.2rem 0.4rem;
+    }
 }
