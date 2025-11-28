@@ -308,8 +308,7 @@ else
                 <!-- Info about image cropping -->
                 <div class="alert alert-info mt-3 identity-alert-info">
                     <i class="bi bi-info-circle-fill"></i>
-                    <strong>Nota:</strong> Ao adicionar uma imagem, será apresentado um editor para recortar a imagem completa do instrumento 
-                    e uma miniatura circular para exibição na lista. Ambos os recortes devem ser concluídos antes de guardar.
+                    <strong>Nota:</strong> Utilize a área de recorte para definir como a miniatura do instrumento será exibida.
                 </div>
             </div>
 
@@ -328,23 +327,13 @@ else
     </DeleteConfirmationContent>
 </CrudModalManager>
 
-<!-- Image Cropper Component - Full Image -->
+<!-- Image Cropper Component - Thumbnail -->
 <ImageCropper @ref="imageCropper"
               ShowModal="showCropperModal"
               ShowModalChanged="OnCropperModalChanged"
-              OnImageCropped="OnImageCropped"
-              AspectRatio="0"
-              AspectRatioHelp="Crop to capture the full instrument - this will be shown in the details view"
-              ImageFormat="image/webp"
-              ImageQuality="0.85" />
-
-<!-- Image Cropper Component - Thumbnail -->
-<ImageCropper @ref="thumbnailCropper"
-              ShowModal="showThumbnailCropperModal"
-              ShowModalChanged="OnThumbnailCropperModalChanged"
-              OnImageCropped="OnThumbnailImageCropped"
+              OnImageCropped="OnThumbnailCropped"
               AspectRatio="1.0"
-              AspectRatioHelp="Define what is shown in the circular thumbnail - crop to show the best part of the instrument"
+              AspectRatioHelp="Use the crop area to define how the thumbnail will appear"
               ImageFormat="image/webp"
               ImageQuality="0.85" />
 
@@ -386,13 +375,9 @@ else
     private string? instrumentImageFileName;
     private string? uploadedInstrumentImagePath;
     private int imageRefreshTrigger = 0;
-    private byte[]? croppedInstrumentImageBytes;
-    private string? croppedInstrumentImageFileName = "instrument-image.webp";
-    
-    // Thumbnail Cropper
-    private bool showThumbnailCropperModal = false;
-    private bool launchThumbnailCropper = false;
-    private ImageCropper? thumbnailCropper;
+    private byte[]? originalImageBytes;
+    private string? originalImageContentType;
+    private string? originalImageFileName = "instrument-image.webp";
     private byte[]? croppedThumbnailImageBytes;
     private string? croppedThumbnailImageFileName = "instrument-thumbnail.webp";
 
@@ -505,11 +490,10 @@ else
         editingInstrument = Instrument.CreateEmpty();
         isInstrumentCreateMode = true;
         uploadedInstrumentImagePath = null;
-        croppedInstrumentImageBytes = null;
+        originalImageBytes = null;
         croppedThumbnailImageBytes = null;
         selectedFile = null;
         instrumentImageFileName = null;
-        launchThumbnailCropper = false;
         showInstrumentEditModal = true;
     }
 
@@ -518,11 +502,10 @@ else
         editingInstrument = instrument;
         isInstrumentCreateMode = false;
         uploadedInstrumentImagePath = null;
-        croppedInstrumentImageBytes = null;
+        originalImageBytes = null;
         croppedThumbnailImageBytes = null;
         selectedFile = null;
         instrumentImageFileName = null;
-        launchThumbnailCropper = false;
         showInstrumentEditModal = true;
     }
 
@@ -540,12 +523,12 @@ else
         {
             if (isInstrumentCreateMode)
             {
-                // If full image was cropped, upload it BEFORE creating entity
-                if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
+                // Upload original image (no cropping) as the full image BEFORE creating entity
+                if (originalImageBytes != null && originalImageBytes.Length > 0)
                 {
-                    using var stream = new MemoryStream(croppedInstrumentImageBytes);
+                    using var stream = new MemoryStream(originalImageBytes);
                     var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingInstrument.Name);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/webp", "instruments", normalizedName);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, originalImageFileName!, originalImageContentType ?? "image/webp", "instruments", normalizedName);
                     editingInstrument.ImageUrl = imageUrl;
                 }
                 
@@ -563,8 +546,8 @@ else
             }
             else
             {
-                // Upload full image to R2 if one was cropped
-                if (croppedInstrumentImageBytes != null && croppedInstrumentImageBytes.Length > 0)
+                // Upload original image (no cropping) as the full image
+                if (originalImageBytes != null && originalImageBytes.Length > 0)
                 {
                     // Delete old image if it exists
                     if (!string.IsNullOrEmpty(editingInstrument.ImageUrl))
@@ -572,9 +555,9 @@ else
                         await ImageStorageService.DeleteImageAsync(editingInstrument.ImageUrl);
                     }
                     
-                    using var stream = new MemoryStream(croppedInstrumentImageBytes);
+                    using var stream = new MemoryStream(originalImageBytes);
                     var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingInstrument.Name);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, croppedInstrumentImageFileName!, "image/webp", "instruments", normalizedName);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, originalImageFileName!, originalImageContentType ?? "image/webp", "instruments", normalizedName);
                     editingInstrument.ImageUrl = imageUrl;
                 }
                 
@@ -606,11 +589,10 @@ else
             await LoadData();
             showInstrumentEditModal = false;
             uploadedInstrumentImagePath = null;
-            croppedInstrumentImageBytes = null;
+            originalImageBytes = null;
             croppedThumbnailImageBytes = null;
             selectedFile = null;
             instrumentImageFileName = null;
-            launchThumbnailCropper = false;
         }
         catch (Exception ex)
         {
@@ -639,11 +621,10 @@ else
         showInstrumentEditModal = false;
         editingInstrument = null;
         uploadedInstrumentImagePath = null;
-        croppedInstrumentImageBytes = null;
+        originalImageBytes = null;
         croppedThumbnailImageBytes = null;
         instrumentImageFileName = null;
         selectedFile = null;
-        launchThumbnailCropper = false;
     }
 
     private void CloseInstrumentDeleteModal()
@@ -667,12 +648,21 @@ else
                 }
 
                 // Reset crop states for new image selection
-                croppedInstrumentImageBytes = null;
+                originalImageBytes = null;
                 croppedThumbnailImageBytes = null;
-                launchThumbnailCropper = false;
                 selectedFile = imageFile;
                 instrumentImageFileName = imageFile.Name;
+                
+                // Store the original image bytes (for full image - no cropping)
+                // Note: The file is read twice (here and in ImageCropper.LoadImageAsync) but this
+                // is acceptable for the typical file sizes involved (< 10MB)
+                using var ms = new MemoryStream();
+                await imageFile.OpenReadStream(maxFileSize).CopyToAsync(ms);
+                originalImageBytes = ms.ToArray();
+                originalImageContentType = imageFile.ContentType;
+                originalImageFileName = imageFile.Name;
 
+                // Load the image into the cropper for thumbnail definition
                 if (imageCropper != null)
                 {
                     await imageCropper.LoadImageAsync(selectedFile);
@@ -685,30 +675,7 @@ else
         }
     }
 
-    private async Task OnImageCropped(byte[] croppedImageData)
-    {
-        try
-        {
-            if (croppedImageData != null && croppedImageData.Length > 0)
-            {
-                if (editingInstrument != null)
-                {
-                    // Store the cropped full image bytes
-                    croppedInstrumentImageBytes = croppedImageData;
-                    uploadedInstrumentImagePath = "uploaded";
-                    launchThumbnailCropper = selectedFile != null;
-                }
-
-                StateHasChanged();
-            }
-        }
-        catch (Exception)
-        {
-            // Handle error
-        }
-    }
-
-    private void OnThumbnailImageCropped(byte[] croppedImageData)
+    private void OnThumbnailCropped(byte[] croppedImageData)
     {
         try
         {
@@ -718,6 +685,7 @@ else
                 {
                     // Store the cropped thumbnail bytes
                     croppedThumbnailImageBytes = croppedImageData;
+                    uploadedInstrumentImagePath = "uploaded";
                 }
                 
                 StateHasChanged();
@@ -729,35 +697,20 @@ else
         }
     }
 
-    private async Task OnCropperModalChanged(bool isOpen)
+    // Simplified callback - no longer needs to launch a second cropper (synchronous is sufficient)
+    private void OnCropperModalChanged(bool isOpen)
     {
         showCropperModal = isOpen;
-        if (!isOpen && launchThumbnailCropper && thumbnailCropper != null && selectedFile != null)
-        {
-            // Open the thumbnail cropper only after the full image modal closes
-            launchThumbnailCropper = false;
-            await thumbnailCropper.LoadImageAsync(selectedFile);
-        }
-        StateHasChanged();
-    }
-
-    private void OnThumbnailCropperModalChanged(bool isOpen)
-    {
-        showThumbnailCropperModal = isOpen;
         StateHasChanged();
     }
 
     private bool CanSaveInstrument()
     {
-        // If an image has been uploaded (selectedFile is not null), both crops must be completed
-        // before allowing save to prevent bugs
+        // If an image has been uploaded, the thumbnail must be cropped
         if (selectedFile != null)
         {
-            // Both full image and thumbnail must be cropped
-            return croppedInstrumentImageBytes != null && croppedThumbnailImageBytes != null;
+            return croppedThumbnailImageBytes != null;
         }
-        
-        // If no new image uploaded, can always save
         return true;
     }
 
