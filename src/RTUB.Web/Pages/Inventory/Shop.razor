@@ -847,9 +847,12 @@ else
             }
             
             await LoadProducts();
+            StateHasChanged();
             showProductEditModal = false;
             uploadedImagePath = null;
             croppedProductImageBytes = null;
+            selectedFile = null;
+            shopImageFileName = null;
         }
         catch (Exception ex)
         {
@@ -879,6 +882,8 @@ else
         editingProduct = null;
         uploadedImagePath = null;
         shopImageFileName = null;
+        croppedProductImageBytes = null;
+        selectedFile = null;
     }
 
     private void CloseProductDeleteModal()

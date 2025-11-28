@@ -604,6 +604,7 @@ else
             }
 
             await LoadData();
+            StateHasChanged();
             showInstrumentEditModal = false;
             uploadedInstrumentImagePath = null;
             croppedInstrumentImageBytes = null;

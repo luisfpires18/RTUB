@@ -1548,6 +1548,8 @@ else
         editingEvent = null;
         uploadedImagePath = null;
         showPastDateWarning = false;
+        croppedImageBytes = null;
+        selectedFile = null;
     }
 
     private async Task HandleImageUpload(IBrowserFile file)
@@ -1663,6 +1665,7 @@ else
 
         await LoadEvents();
         await LoadPreviousEvents();
+        StateHasChanged();
         CloseEditModal();
     }
 
