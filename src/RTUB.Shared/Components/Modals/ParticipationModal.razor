@@ -272,6 +272,7 @@
             if (!WantToPlay)
             {
                 Instrument = null;
+                await InstrumentChanged.InvokeAsync(null);
                 instrumentValidationError = string.Empty;
                 validationErrors.Clear();
             }
