@@ -221,19 +221,19 @@
     background-color: #198754;
     border-color: #198754;
     color: white;
+    opacity: 0.6;
 }
 
 .btn-going:hover:not(:disabled) {
     background-color: #157347;
     border-color: #146c43;
     color: white;
+    opacity: 1;
 }
 
-.btn-going:disabled {
-    background-color: #198754;
-    border-color: #198754;
-    color: white;
-    opacity: 0.65;
+.btn-going.btn-selected {
+    opacity: 1;
+    box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.5);
 }
 
 /* Not Going button (red danger style) */
@@ -241,37 +241,17 @@
     background-color: #dc3545;
     border-color: #dc3545;
     color: white;
+    opacity: 0.6;
 }
 
 .btn-not-going:hover:not(:disabled) {
     background-color: #bb2d3b;
     border-color: #b02a37;
     color: white;
+    opacity: 1;
 }
 
-.btn-not-going:disabled {
-    background-color: #dc3545;
-    border-color: #dc3545;
-    color: white;
-    opacity: 0.65;
-}
-
-/* Edit button (white background style) */
-.btn-edit-white {
-    background-color: #ffffff;
-    border-color: #dee2e6;
-    color: #212529;
-}
-
-.btn-edit-white:hover:not(:disabled) {
-    background-color: #f8f9fa;
-    border-color: #dee2e6;
-    color: #212529;
-}
-
-.btn-edit-white:disabled {
-    background-color: #ffffff;
-    border-color: #dee2e6;
-    color: #212529;
-    opacity: 0.65;
+.btn-not-going.btn-selected {
+    opacity: 1;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.5);
 }

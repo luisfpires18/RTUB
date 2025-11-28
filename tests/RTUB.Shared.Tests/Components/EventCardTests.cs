@@ -132,11 +132,10 @@ public class EventCardTests : TestContext
             .Add(p => p.IsPastEvent, false)
             .Add(p => p.EnrollmentCount, 1));
 
-        // Assert - When enrolled (WillAttend=true), shows green status indicator (disabled), white edit button, and red toggle
-        cut.Markup.Should().Contain("bi-check-circle-fill", "should show check icon for status indicator");
-        cut.Markup.Should().Contain("btn-going", "status indicator should have green style");
-        cut.Markup.Should().Contain("bi-pencil-fill", "should show pencil icon for edit button");
-        cut.Markup.Should().Contain("btn-edit-white", "edit button should have white style");
+        // Assert - Simple 2-button layout: Green button selected when WillAttend=true
+        cut.Markup.Should().Contain("bi-check-circle-fill", "should show check icon on green button");
+        cut.Markup.Should().Contain("btn-going", "should have green going button");
+        cut.Markup.Should().Contain("btn-selected", "green button should be selected when enrolled as going");
     }
 
     [Fact]
@@ -153,13 +152,13 @@ public class EventCardTests : TestContext
             .Add(p => p.IsPastEvent, false)
             .Add(p => p.EnrollmentCount, 1));
 
-        // Assert - Should show status indicator (green), edit button (white pencil), and toggle button (red X)
-        cut.Markup.Should().Contain("bi-check-circle-fill", "should show check icon for status");
-        cut.Markup.Should().Contain("bi-pencil-fill", "should show edit enrollment button");
-        cut.Markup.Should().Contain("bi-x-circle-fill", "should show not going button");
-        cut.Markup.Should().Contain("btn-not-going", "not-going button should have red style");
-        cut.Markup.Should().Contain("btn-edit-white", "edit button should have white style");
-        // Should NOT have separate delete button
+        // Assert - Simple 2-button layout: both buttons always visible
+        cut.Markup.Should().Contain("bi-check-circle-fill", "should show check icon on green button");
+        cut.Markup.Should().Contain("bi-x-circle-fill", "should show X icon on red button");
+        cut.Markup.Should().Contain("btn-going", "should have green going button");
+        cut.Markup.Should().Contain("btn-not-going", "should have red not-going button");
+        // Should NOT have separate edit/delete buttons
+        cut.Markup.Should().NotContain("bi-pencil-fill", "should not have separate edit button");
         cut.Markup.Should().NotContain("bi-trash-fill", "should not have separate delete button");
     }
 
