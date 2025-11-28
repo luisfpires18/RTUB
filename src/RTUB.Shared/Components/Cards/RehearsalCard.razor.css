@@ -38,6 +38,21 @@
     line-height: 1;
 }
 
+/* Add attendance button (green success style) */
+.btn-add-attendance {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+    opacity: 0.6;
+}
+
+.btn-add-attendance:hover:not(:disabled) {
+    background-color: #157347;
+    border-color: #146c43;
+    color: white;
+    opacity: 1;
+}
+
 /* Pending button (yellow warning style) */
 .btn-pending {
     background-color: #ffc107;
@@ -55,8 +70,6 @@
 
 .btn-pending.btn-selected {
     opacity: 1;
-    box-shadow: 0 0 8px 4px rgba(255, 255, 255, 0.6), 0 0 0 3px rgba(255, 255, 255, 0.4);
-    transform: scale(1.05);
 }
 
 /* Approved button (green success style) */
@@ -76,8 +89,6 @@
 
 .btn-approved.btn-selected {
     opacity: 1;
-    box-shadow: 0 0 8px 4px rgba(255, 255, 255, 0.6), 0 0 0 3px rgba(255, 255, 255, 0.4);
-    transform: scale(1.05);
 }
 
 /* Not attending button (red danger style) */
@@ -97,6 +108,4 @@
 
 .btn-not-attending.btn-selected {
     opacity: 1;
-    box-shadow: 0 0 8px 4px rgba(255, 255, 255, 0.6), 0 0 0 3px rgba(255, 255, 255, 0.4);
-    transform: scale(1.05);
 }

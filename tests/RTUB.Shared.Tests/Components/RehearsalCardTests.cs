@@ -145,10 +145,10 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.IsPastRehearsal, false)
             .Add(p => p.AttendanceCount, 0));
 
-        // Assert - New toggle button design: clock (pending) and X (not going) when no attendance
-        cut.Markup.Should().Contain("bi-clock-fill", "should show pending clock button");
+        // Assert - New toggle button design: green + (add) and red X (not going) when no attendance
+        cut.Markup.Should().Contain("bi-plus-circle-fill", "should show green add button");
         cut.Markup.Should().Contain("bi-x-circle-fill", "should show not going button");
-        cut.Markup.Should().Contain("btn-pending", "pending button should have pending style");
+        cut.Markup.Should().Contain("btn-add-attendance", "add button should have green add style");
         cut.Markup.Should().Contain("btn-not-attending", "not going button should have red style");
     }
 
@@ -321,9 +321,9 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.AttendanceCount, 0)
             .Add(p => p.OnAttendPending, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
-        // Act
-        var pendingButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-pending"));
-        pendingButton.Click();
+        // Act - Now uses green add button instead of yellow pending
+        var addButton = cut.FindAll("button").First(b => b.ClassList.Contains("btn-add-attendance"));
+        addButton.Click();
 
         // Assert
         callbackInvoked.Should().BeTrue("OnAttendPending callback should be invoked");

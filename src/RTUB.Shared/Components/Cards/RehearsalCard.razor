@@ -130,11 +130,11 @@
                     <div class="d-flex gap-2 align-items-center justify-content-center">
                         @if (UserAttendance == null)
                         {
-                            <!-- Pending button (yellow) - create attendance as pending -->
-                            <button class="btn rehearsal-icon-btn btn-pending" 
+                            <!-- Add attendance button (green +) - create attendance -->
+                            <button class="btn rehearsal-icon-btn btn-add-attendance" 
                                     @onclick="OnAttendPending" 
-                                    title="Marcar Presença (Pendente)">
-                                <i class="bi bi-clock-fill"></i>
+                                    title="Marcar Presença">
+                                <i class="bi bi-plus-circle-fill"></i>
                             </button>
                             
                             <!-- Not Going button (red) - mark as not going -->
@@ -174,11 +174,11 @@
                         }
                         else
                         {
-                            <!-- Going button (yellow pending) - change to going -->
-                            <button class="btn rehearsal-icon-btn btn-pending" 
+                            <!-- Add attendance button (green +) - change to going -->
+                            <button class="btn rehearsal-icon-btn btn-add-attendance" 
                                     @onclick="OnAttendPending" 
                                     title="Marcar Presença">
-                                <i class="bi bi-clock-fill"></i>
+                                <i class="bi bi-plus-circle-fill"></i>
                             </button>
                             
                             <!-- Not attending status (red, selected) -->
@@ -193,45 +193,14 @@
                 }
                 else
                 {
-                    <!-- Past rehearsal: Show pending status and delete button if user has attendance -->
-                    @if (UserAttendance != null)
+                    <!-- Past rehearsal: Only show delete button if attendance is pending -->
+                    @if (UserAttendance != null && UserAttendance.WillAttend && !UserAttendance.Attended)
                     {
                         <div class="d-flex gap-2 align-items-center justify-content-center">
-                            @if (UserAttendance.WillAttend)
-                            {
-                                @if (UserAttendance.Attended)
-                                {
-                                    <!-- Approved attendance (green) -->
-                                    <button class="btn rehearsal-icon-btn btn-approved btn-selected" 
-                                            disabled
-                                            title="Presença Aprovada">
-                                        <i class="bi bi-check-circle-fill"></i>
-                                    </button>
-                                }
-                                else
-                                {
-                                    <!-- Pending approval (yellow clock) -->
-                                    <button class="btn rehearsal-icon-btn btn-pending btn-selected" 
-                                            disabled
-                                            title="Presença Pendente de Aprovação">
-                                        <i class="bi bi-clock-fill"></i>
-                                    </button>
-                                }
-                            }
-                            else
-                            {
-                                <!-- Not attending (red) -->
-                                <button class="btn rehearsal-icon-btn btn-not-attending btn-selected" 
-                                        disabled
-                                        title="Não Participou">
-                                    <i class="bi bi-x-circle-fill"></i>
-                                </button>
-                            }
-                            
                             <!-- Delete attendance button -->
                             <button class="btn rehearsal-icon-btn btn-danger" 
                                     @onclick="OnRemoveAttendance" 
-                                    title="Remover Presença">
+                                    title="Remover Presença Pendente">
                                 <i class="bi bi-trash-fill"></i>
                             </button>
                         </div>
