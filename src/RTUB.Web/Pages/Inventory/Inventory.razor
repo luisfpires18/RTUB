@@ -377,7 +377,7 @@ else
     private int imageRefreshTrigger = 0;
     private byte[]? originalImageBytes;
     private string? originalImageContentType;
-    private string? originalImageFileName = "instrument-image.webp";
+    private string? originalImageFileName;
     private byte[]? croppedThumbnailImageBytes;
     private string? croppedThumbnailImageFileName = "instrument-thumbnail.webp";
 
@@ -528,7 +528,7 @@ else
                 {
                     using var stream = new MemoryStream(originalImageBytes);
                     var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingInstrument.Name);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, originalImageFileName!, originalImageContentType ?? "image/webp", "instruments", normalizedName);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, originalImageFileName ?? "instrument-image", originalImageContentType ?? "image/webp", "instruments", normalizedName);
                     editingInstrument.ImageUrl = imageUrl;
                 }
                 
@@ -557,7 +557,7 @@ else
                     
                     using var stream = new MemoryStream(originalImageBytes);
                     var normalizedName = S3KeyNormalizer.NormalizeForS3Key(editingInstrument.Name);
-                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, originalImageFileName!, originalImageContentType ?? "image/webp", "instruments", normalizedName);
+                    var imageUrl = await ImageStorageService.UploadImageAsync(stream, originalImageFileName ?? "instrument-image", originalImageContentType ?? "image/webp", "instruments", normalizedName);
                     editingInstrument.ImageUrl = imageUrl;
                 }
                 
