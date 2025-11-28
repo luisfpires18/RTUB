@@ -79,23 +79,6 @@
                         CANCELADO
                     </span>
                 }
-                else if (UserAttendance != null)
-                {
-                    @if (UserAttendance.WillAttend)
-                    {
-                        <span class="badge bg-success fs-6 rehearsal-status-badge d-inline-flex align-items-center gap-1">
-                            <i class="bi bi-check-circle-fill"></i>
-                            VOU
-                        </span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-danger fs-6 rehearsal-status-badge d-inline-flex align-items-center gap-1">
-                            <i class="bi bi-x-circle-fill"></i>
-                            NÃO VOU
-                        </span>
-                    }
-                }
                 else
                 {
                     <DateBadge Date="@Rehearsal.Date" />
@@ -122,6 +105,27 @@
         @if (!Rehearsal.IsCanceled)
         {
             <div class="rehearsal-actions-section mt-auto p-2 rounded">
+                <!-- Status badge row (above the separator/buttons) -->
+                @if (UserAttendance != null)
+                {
+                    <div class="d-flex justify-content-center mb-2">
+                        @if (UserAttendance.WillAttend)
+                        {
+                            <span class="badge bg-success fs-6 rehearsal-status-badge d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-check-circle-fill"></i>
+                                VOU
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger fs-6 rehearsal-status-badge d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-x-circle-fill"></i>
+                                NÃO VOU
+                            </span>
+                        }
+                    </div>
+                }
+                
                 <!-- First row: View Details and View Attendances buttons -->
                 <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
                     <!-- View Details button -->

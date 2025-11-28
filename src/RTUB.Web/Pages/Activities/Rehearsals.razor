@@ -89,7 +89,7 @@ else
             @foreach (var rehearsal in paginatedUpcomingRehearsals)
             {
                 var userAttendance = GetUserAttendance(rehearsal.Id);
-                var attendanceCount = rehearsal.Attendances.Count();
+                var attendanceCount = rehearsal.Attendances.Count(a => a.WillAttend);
 
                 <RehearsalCard Rehearsal="@rehearsal"
                                UserAttendance="@userAttendance"
@@ -144,7 +144,7 @@ else
             @foreach (var rehearsal in paginatedPreviousRehearsals)
             {
                 var userAttendance = GetUserAttendance(rehearsal.Id);
-                var attendanceCount = rehearsal.Attendances.Count();
+                var attendanceCount = rehearsal.Attendances.Count(a => a.WillAttend);
 
                 <RehearsalCard Rehearsal="@rehearsal"
                                UserAttendance="@userAttendance"
