@@ -17,7 +17,8 @@ public static partial class SeedData
     public static async Task SeedMembersAsync(
         IConfiguration configuration,
         ApplicationDbContext dbContext,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        bool isEmptyDb)
     {
         // ===== 1. OWNER =====
         var defaultUsername = configuration["AdminUser:Username"] ?? "rtub";
@@ -51,6 +52,11 @@ public static partial class SeedData
             {
                 await userManager.AddToRoleAsync(ownerUser, "Owner");
                 await userManager.AddToRoleAsync(ownerUser, "Admin");
+
+                if (isEmptyDb)
+                {
+                    return;
+                }
             }
             else
             {

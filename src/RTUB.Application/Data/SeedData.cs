@@ -34,7 +34,16 @@ public static partial class SeedData
             }
         }
 
-        await SeedMembersAsync(configuration, dbContext, userManager);
+        var isEmptyDb = false;
+
+        Console.WriteLine(isEmptyDb ? $"Seeding just a owner..." : $"Seeding initial data...");
+
+        await SeedMembersAsync(configuration, dbContext, userManager, isEmptyDb);
+
+        if (isEmptyDb)
+        {
+            return;
+        }
 
         await SeedSlideshowsAsync(dbContext);
 
