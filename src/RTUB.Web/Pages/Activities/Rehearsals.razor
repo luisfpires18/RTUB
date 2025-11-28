@@ -197,7 +197,7 @@ else
                        NotesPlaceholder="@(attendanceForm.WillAttend ? "Adicione alguma nota..." : "Motivo da impossibilidade...")"
                        SubmitButtonText="Confirmar"
                        WantToPlay="@wantToPlayRehearsal"
-                       WantToPlayChanged="@OnWantToPlayRehearsalChanged"
+                       WantToPlayChanged="@((bool value) => wantToPlayRehearsal = value)"
                        OnSubmit="@ConfirmMarkAttendance"
                        OnCancel="@CloseAttendanceModal" />
 }
@@ -1472,7 +1472,13 @@ else
             var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsAsync(currentUserId);
             currentUserInstruments = memberInstruments.Select(mi => mi.InstrumentType).ToList();
             
-            if (existingAttendance != null)
+            // When not attending, always clear instrument selection
+            if (!willAttend)
+            {
+                defaultInstrument = null;
+                wantToPlayRehearsal = false;
+            }
+            else if (existingAttendance != null)
             {
                 // Use existing instrument
                 defaultInstrument = existingAttendance.Instrument;
@@ -1484,7 +1490,7 @@ else
                 var primaryInstrument = memberInstruments.FirstOrDefault(mi => mi.IsPrimary);
                 defaultInstrument = primaryInstrument?.InstrumentType;
                 // Only enable "Quero tocar" if attending and instruments are available
-                wantToPlayRehearsal = willAttend && currentUserInstruments.Any();
+                wantToPlayRehearsal = currentUserInstruments.Any();
             }
         }
         else
@@ -2068,15 +2074,6 @@ else
         
         showAttendanceModal = true;
         StateHasChanged();
-    }
-
-    private void OnWantToPlayRehearsalChanged(bool value)
-    {
-        wantToPlayRehearsal = value;
-        if (!wantToPlayRehearsal && attendanceForm != null)
-        {
-            attendanceForm.Instrument = null;
-        }
     }
 
     private void RemoveAttendance(Rehearsal rehearsal)

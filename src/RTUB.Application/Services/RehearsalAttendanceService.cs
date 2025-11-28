@@ -71,8 +71,8 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         {
             // Update existing attendance
             existing.WillAttend = willAttend;
-            if (instrument.HasValue)
-                existing.UpdateInstrument(instrument);
+            // Always update instrument (including setting to null to clear it)
+            existing.UpdateInstrument(instrument);
             // Always update notes, even if empty (allows clearing notes)
             existing.Notes = notes;
             // Update other instruments
