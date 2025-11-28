@@ -182,14 +182,7 @@ public class GroupConversationSyncService : IGroupConversationSyncService
     {
         const string groupTitle = "GERAL";
 
-        // Get all non-retired users (active members)
-        var allUsers = await _userManager.Users.ToListAsync();
-
-        var participantIds = allUsers
-            .Where(u => !u.IsRetired)
-            .Select(u => u.Id)
-            .ToList();
-
+        var participantIds = await GetActiveUserIdsAsync();
         await CreateOrUpdateSystemGroupAsync(groupTitle, participantIds);
     }
 
@@ -197,15 +190,17 @@ public class GroupConversationSyncService : IGroupConversationSyncService
     {
         const string groupTitle = "ANUNCIOS";
 
-        // Get all non-retired users (active members)
-        var allUsers = await _userManager.Users.ToListAsync();
+        var participantIds = await GetActiveUserIdsAsync();
+        await CreateOrUpdateAnnouncementGroupAsync(groupTitle, participantIds);
+    }
 
-        var participantIds = allUsers
+    private async Task<List<string>> GetActiveUserIdsAsync()
+    {
+        var allUsers = await _userManager.Users.ToListAsync();
+        return allUsers
             .Where(u => !u.IsRetired)
             .Select(u => u.Id)
             .ToList();
-
-        await CreateOrUpdateAnnouncementGroupAsync(groupTitle, participantIds);
     }
 
     private async Task CreateOrUpdateAnnouncementGroupAsync(string groupTitle, List<string> participantIds)
