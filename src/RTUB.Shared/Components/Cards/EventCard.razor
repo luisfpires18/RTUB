@@ -30,13 +30,13 @@
                 @if (UserEnrollment.WillAttend)
                 {
                     <span class="badge bg-success fs-6">
-                        <i class="bi bi-check-circle-fill me-1"></i>VOU
+                        <i class="bi bi-check-circle-fill me-1"></i>@(IsPastEvent ? "FUI" : "VOU")
                     </span>
                 }
                 else
                 {
                     <span class="badge bg-danger fs-6">
-                        <i class="bi bi-x-circle-fill me-1"></i>NÃO VOU
+                        <i class="bi bi-x-circle-fill me-1"></i>@(IsPastEvent ? "NÃO FUI" : "NÃO VOU")
                     </span>
                 }
             }

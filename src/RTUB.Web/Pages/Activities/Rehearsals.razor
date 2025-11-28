@@ -197,7 +197,7 @@ else
                        NotesPlaceholder="@(attendanceForm.WillAttend ? "Adicione alguma nota..." : "Motivo da impossibilidade...")"
                        SubmitButtonText="Confirmar"
                        WantToPlay="@wantToPlayRehearsal"
-                       WantToPlayChanged="@OnWantToPlayRehearsalChanged"
+                       WantToPlayChanged="@((bool value) => wantToPlayRehearsal = value)"
                        OnSubmit="@ConfirmMarkAttendance"
                        OnCancel="@CloseAttendanceModal" />
 }
@@ -2074,15 +2074,6 @@ else
         
         showAttendanceModal = true;
         StateHasChanged();
-    }
-
-    private void OnWantToPlayRehearsalChanged(bool value)
-    {
-        wantToPlayRehearsal = value;
-        if (!wantToPlayRehearsal && attendanceForm != null)
-        {
-            attendanceForm.Instrument = null;
-        }
     }
 
     private void RemoveAttendance(Rehearsal rehearsal)
