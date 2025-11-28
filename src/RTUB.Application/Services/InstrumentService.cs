@@ -59,6 +59,16 @@ public class InstrumentService : IInstrumentService
         existingInstrument.Update(instrument.Name, instrument.Condition, instrument.SerialNumber,
                                   instrument.Brand, instrument.Location);
         existingInstrument.UpdateMaintenance(instrument.MaintenanceNotes, instrument.LastMaintenanceDate);
+        
+        // Update image URLs if they have changed
+        if (existingInstrument.ImageUrl != instrument.ImageUrl)
+        {
+            existingInstrument.ImageUrl = instrument.ImageUrl;
+        }
+        if (existingInstrument.ThumbnailUrl != instrument.ThumbnailUrl)
+        {
+            existingInstrument.ThumbnailUrl = instrument.ThumbnailUrl;
+        }
 
         await _instrumentRepository.UpdateAsync(existingInstrument);
     }

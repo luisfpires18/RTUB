@@ -490,6 +490,8 @@
     private bool _previousWillAttend;
     private bool _previousIsAdmin;
     private bool _previousIsPastEvent;
+    private string? _previousImageUrl;
+    private string? _previousEventImageSrc;
     
     /// <summary>
     /// Optimize rendering - only re-render when key parameters change.
@@ -501,6 +503,7 @@
         var eventId = Event?.Id ?? 0;
         var isCancelled = Event?.IsCancelled ?? false;
         var willAttend = UserEnrollment?.WillAttend ?? false;
+        var eventImageSrc = Event?.ImageSrc;
         
         if (eventId != _previousEventId ||
             isCancelled != _previousIsCancelled ||
@@ -509,7 +512,9 @@
             DiscussionCount != _previousDiscussionCount ||
             willAttend != _previousWillAttend ||
             IsAdmin != _previousIsAdmin ||
-            IsPastEvent != _previousIsPastEvent)
+            IsPastEvent != _previousIsPastEvent ||
+            ImageUrl != _previousImageUrl ||
+            eventImageSrc != _previousEventImageSrc)
         {
             _previousEventId = eventId;
             _previousIsCancelled = isCancelled;
@@ -519,6 +524,8 @@
             _previousWillAttend = willAttend;
             _previousIsAdmin = IsAdmin;
             _previousIsPastEvent = IsPastEvent;
+            _previousImageUrl = ImageUrl;
+            _previousEventImageSrc = eventImageSrc;
             return true;
         }
         return false;
