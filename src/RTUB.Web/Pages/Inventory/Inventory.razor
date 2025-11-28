@@ -515,7 +515,6 @@ else
 
     private void OpenEditInstrumentModal(Instrument instrument)
     {
-        editingInstrument = instrument;
         isInstrumentCreateMode = false;
         uploadedInstrumentImagePath = null;
         croppedInstrumentImageBytes = null;
@@ -523,6 +522,21 @@ else
         selectedFile = null;
         instrumentImageFileName = null;
         launchThumbnailCropper = false;
+        // Create a new copy to avoid modifying the original reference in the list
+        var copy = Instrument.CreateEmpty();
+        copy.Id = instrument.Id;
+        copy.Category = instrument.Category;
+        copy.Name = instrument.Name;
+        copy.SerialNumber = instrument.SerialNumber;
+        copy.Brand = instrument.Brand;
+        copy.Condition = instrument.Condition;
+        copy.Location = instrument.Location;
+        copy.MaintenanceNotes = instrument.MaintenanceNotes;
+        copy.LastMaintenanceDate = instrument.LastMaintenanceDate;
+        copy.ImageUrl = instrument.ImageUrl;
+        copy.ThumbnailUrl = instrument.ThumbnailUrl;
+        copy.CreatedAt = instrument.CreatedAt;
+        editingInstrument = copy;
         showInstrumentEditModal = true;
     }
 
