@@ -2039,6 +2039,9 @@ else
         var existingAttendance = GetUserAttendance(rehearsal.Id);
         selectedRehearsal = rehearsal;
         
+        // Hide "Vais participar?" section when editing existing attendance
+        isParticipationPreSelected = true;
+        
         // Load current user's instruments
         if (currentUserId != null)
         {

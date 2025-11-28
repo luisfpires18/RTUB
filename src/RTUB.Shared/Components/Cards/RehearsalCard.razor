@@ -154,7 +154,7 @@
                             <!-- Add attendance button (green +) - create attendance -->
                             <button class="btn rehearsal-icon-btn btn-add-attendance" 
                                     @onclick="OnAttendPending" 
-                                    title="Marcar Presença">
+                                    title="Marcar presença">
                                 <i class="bi bi-plus-circle-fill"></i>
                             </button>
                             
@@ -172,7 +172,7 @@
                                 <!-- Approved attendance (green, selected) -->
                                 <button class="btn rehearsal-icon-btn btn-approved btn-selected" 
                                         @onclick="OnEditAttendance" 
-                                        title="Presença Aprovada - Editar">
+                                        title="Editar presença aprovada">
                                     <i class="bi bi-check-circle-fill"></i>
                                 </button>
                             }
@@ -181,7 +181,7 @@
                                 <!-- Pending attendance (yellow, selected) -->
                                 <button class="btn rehearsal-icon-btn btn-pending btn-selected" 
                                         @onclick="OnEditAttendance" 
-                                        title="Presença Pendente - Editar">
+                                        title="Editar presença pendente">
                                     <i class="bi bi-clock-fill"></i>
                                 </button>
                             }
@@ -189,7 +189,7 @@
                             <!-- Not Going button (red, smaller) - change to not going -->
                             <button class="btn rehearsal-icon-btn btn-not-attending btn-secondary-small" 
                                     @onclick="OnAttendNotGoing" 
-                                    title="Não vou participar">
+                                    title="Mudar para não vou">
                                 <i class="bi bi-x-circle-fill"></i>
                             </button>
                         }
@@ -198,14 +198,14 @@
                             <!-- Add attendance button (green +, smaller) - change to going -->
                             <button class="btn rehearsal-icon-btn btn-add-attendance btn-secondary-small" 
                                     @onclick="OnAttendPending" 
-                                    title="Marcar Presença">
+                                    title="Mudar para vou">
                                 <i class="bi bi-plus-circle-fill"></i>
                             </button>
                             
                             <!-- Not attending status (red, selected) -->
                             <button class="btn rehearsal-icon-btn btn-not-attending btn-selected" 
                                     @onclick="OnEditAttendance" 
-                                    title="Não Vou - Editar">
+                                    title="Editar impossibilidade">
                                 <i class="bi bi-x-circle-fill"></i>
                             </button>
                         }
@@ -221,14 +221,14 @@
                             <!-- Pending status icon (yellow clock, disabled) -->
                             <button class="btn rehearsal-icon-btn btn-pending" 
                                     disabled
-                                    title="Presença Pendente de Aprovação">
+                                    title="Presença pendente de aprovação">
                                 <i class="bi bi-clock-fill"></i>
                             </button>
                             
                             <!-- Delete attendance button -->
                             <button class="btn rehearsal-icon-btn btn-danger" 
                                     @onclick="OnRemoveAttendance" 
-                                    title="Remover Presença Pendente">
+                                    title="Remover presença pendente">
                                 <i class="bi bi-trash-fill"></i>
                             </button>
                         </div>

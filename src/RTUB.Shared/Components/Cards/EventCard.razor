@@ -211,14 +211,14 @@
                             <!-- Green "Vou" button - always visible, selected state when WillAttend=true -->
                             <button class="btn event-icon-btn btn-going @(UserEnrollment?.WillAttend == true ? "btn-selected" : (UserEnrollment != null && !UserEnrollment.WillAttend ? "btn-secondary-small" : ""))" 
                                     @onclick="OnEnrollGoing" 
-                                    title="Vou participar">
+                                    title="@(UserEnrollment?.WillAttend == true ? "Editar inscrição" : "Vou participar")">
                                 <i class="bi bi-check-circle-fill"></i>
                             </button>
                             
                             <!-- Red "Não vou" button - always visible, selected state when WillAttend=false -->
                             <button class="btn event-icon-btn btn-not-going @(UserEnrollment != null && !UserEnrollment.WillAttend ? "btn-selected" : (UserEnrollment?.WillAttend == true ? "btn-secondary-small" : ""))" 
                                     @onclick="OnEnrollNotGoing" 
-                                    title="Não vou participar">
+                                    title="@(UserEnrollment != null && !UserEnrollment.WillAttend ? "Editar impossibilidade" : "Não vou participar")">
                                 <i class="bi bi-x-circle-fill"></i>
                             </button>
                         </div>
