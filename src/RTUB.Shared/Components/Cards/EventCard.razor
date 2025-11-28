@@ -211,8 +211,15 @@
                             }
                             else if (UserEnrollment.WillAttend)
                             {
-                                <!-- Edit enrollment button (green with pencil) -->
+                                <!-- Status indicator (green, disabled) - shows current state -->
                                 <button class="btn event-icon-btn btn-going" 
+                                        disabled 
+                                        title="Inscrito - Vou participar">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                </button>
+                                
+                                <!-- Edit enrollment button (white with pencil) -->
+                                <button class="btn event-icon-btn btn-edit-white" 
                                         @onclick="OnEditEnrollment" 
                                         title="Editar Inscrição">
                                     <i class="bi bi-pencil-fill"></i>
@@ -227,18 +234,25 @@
                             }
                             else
                             {
+                                <!-- Status indicator (red, disabled) - shows current state -->
+                                <button class="btn event-icon-btn btn-not-going" 
+                                        disabled 
+                                        title="Inscrito - Não vou participar">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                                
+                                <!-- Edit enrollment button (white with pencil) -->
+                                <button class="btn event-icon-btn btn-edit-white" 
+                                        @onclick="OnEditEnrollment" 
+                                        title="Editar Inscrição">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                
                                 <!-- Going button (green) - change to going -->
                                 <button class="btn event-icon-btn btn-going" 
                                         @onclick="OnEnrollGoing" 
                                         title="Vou participar">
                                     <i class="bi bi-check-circle-fill"></i>
-                                </button>
-                                
-                                <!-- Edit enrollment button (red with pencil) -->
-                                <button class="btn event-icon-btn btn-not-going" 
-                                        @onclick="OnEditEnrollment" 
-                                        title="Editar Inscrição">
-                                    <i class="bi bi-pencil-fill"></i>
                                 </button>
                             }
                         </div>

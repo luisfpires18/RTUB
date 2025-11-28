@@ -255,3 +255,23 @@
     color: white;
     opacity: 0.65;
 }
+
+/* Edit button (white background style) */
+.btn-edit-white {
+    background-color: #ffffff;
+    border-color: #dee2e6;
+    color: #212529;
+}
+
+.btn-edit-white:hover:not(:disabled) {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    color: #212529;
+}
+
+.btn-edit-white:disabled {
+    background-color: #ffffff;
+    border-color: #dee2e6;
+    color: #212529;
+    opacity: 0.65;
+}

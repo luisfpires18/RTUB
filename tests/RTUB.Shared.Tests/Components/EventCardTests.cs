@@ -132,9 +132,11 @@ public class EventCardTests : TestContext
             .Add(p => p.IsPastEvent, false)
             .Add(p => p.EnrollmentCount, 1));
 
-        // Assert - When enrolled (WillAttend=true), green button shows pencil for edit
-        cut.Markup.Should().Contain("bi-pencil-fill", "should show pencil icon for edit when enrolled");
-        cut.Markup.Should().Contain("btn-going", "enrolled button should have green style");
+        // Assert - When enrolled (WillAttend=true), shows green status indicator (disabled), white edit button, and red toggle
+        cut.Markup.Should().Contain("bi-check-circle-fill", "should show check icon for status indicator");
+        cut.Markup.Should().Contain("btn-going", "status indicator should have green style");
+        cut.Markup.Should().Contain("bi-pencil-fill", "should show pencil icon for edit button");
+        cut.Markup.Should().Contain("btn-edit-white", "edit button should have white style");
     }
 
     [Fact]
@@ -151,10 +153,12 @@ public class EventCardTests : TestContext
             .Add(p => p.IsPastEvent, false)
             .Add(p => p.EnrollmentCount, 1));
 
-        // Assert - Should show edit button (green pencil) and not-going button (red X)
+        // Assert - Should show status indicator (green), edit button (white pencil), and toggle button (red X)
+        cut.Markup.Should().Contain("bi-check-circle-fill", "should show check icon for status");
         cut.Markup.Should().Contain("bi-pencil-fill", "should show edit enrollment button");
         cut.Markup.Should().Contain("bi-x-circle-fill", "should show not going button");
         cut.Markup.Should().Contain("btn-not-going", "not-going button should have red style");
+        cut.Markup.Should().Contain("btn-edit-white", "edit button should have white style");
         // Should NOT have separate delete button
         cut.Markup.Should().NotContain("bi-trash-fill", "should not have separate delete button");
     }
