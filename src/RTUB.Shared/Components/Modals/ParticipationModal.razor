@@ -266,19 +266,18 @@
 
     private async Task OnWantToPlayChanged(bool value)
     {
-        if (WantToPlay != value)
+        // Note: Don't compare WantToPlay != value as the parameter may have already been updated
+        // by the parent component before this callback executes
+        WantToPlay = value;
+        if (!WantToPlay)
         {
-            WantToPlay = value;
-            if (!WantToPlay)
-            {
-                Instrument = null;
-                await InstrumentChanged.InvokeAsync(null);
-                instrumentValidationError = string.Empty;
-                validationErrors.Clear();
-            }
-            await WantToPlayChanged.InvokeAsync(value);
-            StateHasChanged();
+            Instrument = null;
+            await InstrumentChanged.InvokeAsync(null);
+            instrumentValidationError = string.Empty;
+            validationErrors.Clear();
         }
+        await WantToPlayChanged.InvokeAsync(value);
+        StateHasChanged();
     }
 
     private async Task OnWillAttendChanged(bool value)
