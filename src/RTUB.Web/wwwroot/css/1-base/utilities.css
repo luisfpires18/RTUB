@@ -104,3 +104,9 @@
     background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
+.page-header-subtitle {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
