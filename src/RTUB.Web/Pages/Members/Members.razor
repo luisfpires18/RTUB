@@ -536,11 +536,12 @@ else
 <!-- View Details Modal -->
 @if (viewingUser != null)
 {
-    <Modal Show="@showViewDetailsModal" 
-           ShowChanged="@((bool show) => showViewDetailsModal = show)"
-           Title="Detalhes do Membro" 
+    <Modal Show="@showViewDetailsModal"
+           ShowChanged="OnViewDetailsModalChanged"
+           Title="Detalhes do Membro"
            Size="Modal.ModalSize.Large"
-           Centered="true">
+           Centered="true"
+           OnClose="CloseViewDetailsModal">
         <BodyContent>
             <!-- Centered Header Section -->
             <div class="text-center mb-4">
@@ -2028,10 +2029,19 @@ else
 
     private void CloseViewDetailsModal()
     {
-        showViewDetailsModal = false;
-        viewingUser = null;
-        viewingUserMentor = null;
-        viewingUserInstruments = null;
+        OnViewDetailsModalChanged(false);
+    }
+
+    private void OnViewDetailsModalChanged(bool isVisible)
+    {
+        showViewDetailsModal = isVisible;
+
+        if (!isVisible)
+        {
+            viewingUser = null;
+            viewingUserMentor = null;
+            viewingUserInstruments = null;
+        }
     }
 
     private Position? GetCurrentFiscalYearPosition(string userId)
