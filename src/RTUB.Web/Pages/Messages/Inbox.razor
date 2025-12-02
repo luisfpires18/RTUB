@@ -1323,11 +1323,11 @@
                 await LoadConversationsAsync();
             }
             
-            // If this message is for the currently selected conversation, add it to the message list
-            if (selectedConversation?.Id == message.ConversationId)
-            {
-                // Only add if not already in the list (avoid duplicates from sender)
-                if (!messages.Any(m => m.Id == message.Id))
+                // If this message is for the currently selected conversation, add it to the message list
+                if (selectedConversation?.Id == message.ConversationId)
+                {
+                    // Only add if not already in the list (avoid duplicates from sender)
+                    if (!messages.Any(m => m.Id == message.Id))
                 {
                     messages.Add(message);
                     
@@ -1342,11 +1342,12 @@
                         shouldScrollIfNearEnd = true;
                     }
                 }
-                
+
                 // If message is from another user, mark as read
                 if (message.SenderId != currentUserId)
                 {
                     await MessagingService.MarkConversationAsReadAsync(message.ConversationId, currentUserId);
+                    UnreadMessagesBadge.RequestRefresh();
                 }
             }
             else
