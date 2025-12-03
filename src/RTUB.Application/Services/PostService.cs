@@ -130,18 +130,22 @@ public class PostService : IPostService
         int sortOrder = 0;
         foreach (var file in files)
         {
-            using var stream = file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024); // 100MB max
+            // Copy to MemoryStream to make it seekable (required for S3 checksum calculation)
+            using var browserStream = file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024); // 100MB max
+            using var memoryStream = new MemoryStream();
+            await browserStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
 
             string url;
             if (mediaType == "Image")
             {
                 url = await _eventMediaStorageService.UploadImageAsync(
-                    stream, file.Name, file.ContentType, eventId, "post");
+                    memoryStream, file.Name, file.ContentType, eventId, "post");
             }
             else
             {
                 url = await _eventMediaStorageService.UploadVideoAsync(
-                    stream, file.Name, file.ContentType, eventId);
+                    memoryStream, file.Name, file.ContentType, eventId);
             }
 
             var media = mediaType == "Image"

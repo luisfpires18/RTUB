@@ -82,10 +82,14 @@ public class CommentService : ICommentService
         int sortOrder = 0;
         foreach (var file in files)
         {
-            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB max for comment images
+            // Copy to MemoryStream to make it seekable (required for S3 checksum calculation)
+            using var browserStream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB max for comment images
+            using var memoryStream = new MemoryStream();
+            await browserStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
 
             var url = await _eventMediaStorageService.UploadImageAsync(
-                stream, file.Name, file.ContentType, eventId, "comment");
+                memoryStream, file.Name, file.ContentType, eventId, "comment");
 
             var image = CommentImage.Create(commentId, url, file.ContentType, file.Size, sortOrder++);
             await _commentImageRepository.AddAsync(image);
