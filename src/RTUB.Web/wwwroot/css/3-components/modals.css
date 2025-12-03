@@ -71,10 +71,16 @@
 /* Lock body scroll when any modal is open */
 body.modal-open {
     overflow: hidden !important;
-    position: fixed !important;
-    width: 100%;
-    height: 100vh;
-    height: 100dvh; /* Dynamic viewport height for mobile */
+}
+
+/* On mobile, use position fixed to prevent scroll-behind on iOS Safari */
+@media (max-width: 1024px) {
+    body.modal-open {
+        position: fixed !important;
+        width: 100%;
+        height: 100vh;
+        height: 100dvh; /* Dynamic viewport height for mobile */
+    }
 }
 
 /* Ensure modal and backdrop stack properly */
