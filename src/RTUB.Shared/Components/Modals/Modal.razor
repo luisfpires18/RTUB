@@ -1,5 +1,7 @@
 @namespace RTUB.Shared
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
 @* 
     Reusable Modal Component
     Used across the application for dialogs and modals
@@ -115,6 +117,41 @@
         }
         // Only render if modal is visible (Show == true)
         return Show;
+    }
+    
+    /// <summary>
+    /// Handle modal show/hide state changes and manage body scroll lock
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Show != _previousShowState)
+        {
+            try
+            {
+                if (Show)
+                {
+                    // Modal opened - lock body scroll
+                    await JSRuntime.InvokeVoidAsync("eval", "document.body.classList.add('modal-open')");
+                }
+                else
+                {
+                    // Modal closed - unlock body scroll
+                    await JSRuntime.InvokeVoidAsync("eval", "document.body.classList.remove('modal-open')");
+                }
+            }
+            catch (JSException)
+            {
+                // Silently handle JS errors (e.g., during prerendering)
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected - benign, ignore
+            }
+            catch (TaskCanceledException)
+            {
+                // User navigated away - benign, ignore
+            }
+        }
     }
 
     private async Task Close()

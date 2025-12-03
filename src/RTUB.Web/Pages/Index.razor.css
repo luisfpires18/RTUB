@@ -141,3 +141,51 @@
         max-width: 160px;
     }
 }
+
+/* ========================================
+   MOBILE / PWA LAYOUT FIX
+   Match Profile.razor behavior - full height, no gaps, single scroll
+   ======================================== */
+
+/* Mobile-only styles (max-width: 767px) for PWA/mobile devices */
+@media (max-width: 767px) {
+    /* Ensure homepage content fills properly without extra gaps */
+    :global(body:has(.homepage-content)) :global(.content-main) {
+        padding: 0;
+    }
+    
+    :global(body:has(.homepage-content)) :global(.content-main .container-xxl) {
+        padding: 0.75rem;
+        max-width: 100%;
+    }
+    
+    /* Remove extra spacing that could cause gaps */
+    .homepage-content {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+    }
+    
+    /* Ensure carousel doesn't create extra space */
+    #homeCarousel {
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Tighter spacing for mobile */
+    .homepage-content .mb-5 {
+        margin-bottom: 1.5rem !important;
+    }
+    
+    .homepage-content .mb-4 {
+        margin-bottom: 1rem !important;
+    }
+}
+
+/* For PWA mode - use dynamic viewport height */
+@media (max-width: 767px) {
+    :global(body:has(.homepage-content)) {
+        min-height: 100vh;
+        min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+    }
+}
