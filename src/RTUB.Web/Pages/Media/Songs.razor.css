@@ -1,37 +1,49 @@
-/* Page-scoped styles for Songs.razor - Video Modal */
-
-/* Modal video player */
-.modal-video {
+/* Video modal styles (matches PostCard pattern) */
+.video-player-container {
     width: 100%;
-    max-height: 60vh;
-    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #000;
     border-radius: 8px;
+    overflow: hidden;
 }
 
-/* Video selector */
+.modal-video {
+    width: 100%;
+    max-width: 100%;
+    max-height: 70vh;
+    display: block;
+}
+
 .video-selector {
     margin-bottom: 1rem;
 }
 
-.video-player-container {
-    margin-top: 1rem;
+.video-selector .list-group-item {
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-/* Localized file picker styles (matches PostComposer) */
-.localized-file-picker {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+.video-selector .list-group-item:hover:not(.active) {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
-.localized-file-button {
-    flex-shrink: 0;
+.video-selector .list-group-item.active {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: white;
 }
 
-.localized-file-name {
-    color: var(--bs-secondary);
-    font-size: 0.875rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+/* Responsive video sizing for modal */
+@media (max-width: 768px) {
+    .modal-video {
+        max-height: 50vh;
+    }
+}
+
+@media (min-width: 769px) {
+    .modal-video {
+        max-height: 70vh;
+    }
 }
