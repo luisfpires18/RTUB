@@ -438,7 +438,7 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.OnEditAttendance, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act - Click the pending button which now triggers edit when user has attendance
-        var pendingButton = cut.FindAll("button").First(b => 
+        var pendingButton = cut.FindAll("button").First(b =>
             b.ClassList.Contains("btn-pending") && b.ClassList.Contains("btn-selected"));
         pendingButton.Click();
 

@@ -44,7 +44,9 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         _mockImageStorageService = new Mock<IImageStorageService>();
         _eventService = new EventService(new EventRepository(_context), _mockImageStorageService.Object, new EnrollmentRepository(_context));
         _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
-        _songService = new SongService(new SongRepository(_context));
+        var mockSongVideoRepository = new Mock<ISongVideoRepository>();
+        var mockSongVideoStorageService = new Mock<ISongVideoStorageService>();
+        _songService = new SongService(new SongRepository(_context), mockSongVideoRepository.Object, mockSongVideoStorageService.Object);
     }
 
     [Fact]

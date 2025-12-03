@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.Extensions.Logging
 @using RTUB.Application.Interfaces
+@using RTUB.Core.Entities
 @using RTUB.Shared
 @inject IAlbumService AlbumService
 @inject ISongService SongService
@@ -86,6 +87,7 @@ else
                          OnPlay="@(() => PlaySong(song))"
                          OnViewLyric="@(() => OpenViewLyricsModal(song))"
                          OnViewLinks="@(() => OpenLinksModal(song))"
+                         OnViewVideos="@(() => OpenVideosModal(song))"
                          OnEdit="@(() => OpenEditModal(song))"
                          OnDelete="@(() => OpenDeleteSongModal(song))" />
             }
@@ -415,6 +417,152 @@ else
                OnConfirm="DeleteSong"
                OnCancel="CloseDeleteModal" />
 
+<!-- Videos Modal (with Upload and View sections) -->
+<Modal Show="@showVideosModal" 
+       ShowChanged="@((value) => showVideosModal = value)"
+       Title="@($"Vídeos - {viewingVideosForSong?.Title}")" 
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true"
+       OnClose="@CloseVideosModal">
+    <BodyContent>
+        @* Upload Section - Visible to all logged-in users *@
+        @if (currentUserId != null)
+        {
+            <div class="mb-4">
+                <h6 class="mb-3">
+                    <i class="bi bi-upload text-primary me-2"></i>Adicionar Vídeo
+                </h6>
+                
+                @if (isUploadingVideo)
+                {
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">A carregar...</span>
+                        </div>
+                        <p class="mt-2">A enviar vídeo...</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <label class="form-label">Ficheiro de vídeo</label>
+                        <div class="localized-file-picker">
+                            <InputFile id="@videoInputId" 
+                                       @key="videoUploadKey"
+                                       class="d-none" 
+                                       OnChange="@HandleVideoSelection" 
+                                       accept="video/*" 
+                                       aria-label="Escolher vídeo" />
+                            <label class="btn btn-outline-secondary localized-file-button" for="@videoInputId">
+                                <i class="bi bi-upload me-2"></i>Escolher vídeo
+                            </label>
+                            <span class="localized-file-name">
+                                @if (!string.IsNullOrEmpty(selectedVideoName))
+                                {
+                                    <text>@selectedVideoName</text>
+                                }
+                                else
+                                {
+                                    <text>Nenhum vídeo selecionado</text>
+                                }
+                            </span>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            <i class="bi bi-info-circle me-1"></i>Tamanho máximo: 100MB
+                        </small>
+                    </div>
+                    
+                    @if (selectedVideoFile != null)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Título do vídeo <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="videoTitle" class="form-control" placeholder="Digite um título para o vídeo" />
+                            <small class="text-muted">Este nome aparecerá na lista de vídeos</small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-secondary me-2" @onclick="CancelVideoSelection">
+                                Cancelar
+                            </button>
+                            <button type="button" class="btn btn-primary" @onclick="UploadVideo" disabled="@(string.IsNullOrWhiteSpace(videoTitle))">
+                                <i class="bi bi-upload me-2"></i>Enviar vídeo
+                            </button>
+                        </div>
+                    }
+                }
+            </div>
+            
+            <hr class="my-4" />
+        }
+        
+        @* View Section *@
+        <div>
+            <h6 class="mb-3">
+                <i class="bi bi-list-ul text-primary me-2"></i>Vídeos Disponíveis
+            </h6>
+            
+            @if (songVideos == null || !songVideos.Any())
+            {
+                <EmptyState Title="Ainda não existem vídeos para esta música"
+                           Icon="bi-camera-video"
+                           Message="Os vídeos aparecerão aqui quando forem adicionados." />
+            }
+            else
+            {
+                var videos = songVideos.OrderBy(v => v.SortOrder).ToList();
+                
+                <div class="video-selector mb-3">
+                    <label class="form-label fw-semibold">Selecione um vídeo:</label>
+                    <div class="list-group">
+                        @for (int i = 0; i < videos.Count; i++)
+                        {
+                            var index = i;
+                            var video = videos[i];
+                            var isSelected = selectedVideoId == video.Id;
+                            
+                            // Generate clean display title
+                            var displayTitle = GetCleanVideoTitle(video, i + 1);
+                            
+                            <div class="list-group-item list-group-item-action position-relative @(isSelected ? "active" : "")"
+                                 role="button"
+                                 @onclick="() => SelectVideoByIndex(video.Id)">
+                                <span class="video-title-content">
+                                    <i class="bi bi-play-circle me-2"></i>@displayTitle
+                                </span>
+                                @if (CanDeleteVideo(video))
+                                {
+                                    <button type="button" 
+                                            class="btn btn-sm admin-btn-delete position-absolute top-50 end-0 translate-middle-y me-2" 
+                                            @onclick:stopPropagation="true"
+                                            @onclick="() => DeleteVideoFromModal(video)"
+                                            title="Eliminar vídeo">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                
+                @if (selectedVideoId.HasValue)
+                {
+                    var selectedVideo = videos.FirstOrDefault(v => v.Id == selectedVideoId.Value);
+                    if (selectedVideo != null)
+                    {
+                        <div class="video-player-container">
+                            <video @key="@selectedVideo.Id" controls class="modal-video" preload="metadata">
+                                <source src="@selectedVideo.Url" type="@selectedVideo.MimeType">
+                                O seu navegador não suporta o elemento de vídeo.
+                            </video>
+                        </div>
+                    }
+                }
+            }
+        </div>
+    </BodyContent>
+</Modal>
+
 @code {
     [Parameter]
     public int AlbumId { get; set; }
@@ -428,11 +576,25 @@ else
     private bool showViewLyricsPdfModal = false;
     private bool showLinksModal = false;
     private bool showDeleteModal = false;
+    private bool showVideosModal = false;
     private Song? editingSong;
     private Song? viewingSong;
     private Song? deletingSong;
+    private Song? viewingVideosForSong = null;
     private List<string> editingYouTubeUrls = new();
     private bool canManageSongs = false;
+    private string? currentUserId = null;
+    private bool isAdmin = false;
+    
+    // Video modal state (view and upload)
+    private List<SongVideo>? songVideos = null;
+    private int? selectedVideoId = null; // Changed from index to ID for better tracking
+    private bool isUploadingVideo = false;
+    private Guid videoUploadKey = Guid.NewGuid(); // Force InputFile to recreate on modal open
+    private string videoInputId = $"song-video-{Guid.NewGuid():N}";
+    private string? selectedVideoName = null;
+    private IBrowserFile? selectedVideoFile = null;
+    private string videoTitle = string.Empty;
     
     // Audio player state
     private string? currentAudioUrl;
@@ -445,6 +607,10 @@ else
     // URL cache for performance (session-based with size limit)
     private Dictionary<string, string> urlCache = new();
     private const int MaxCacheSize = 100; // Limit cache to 100 URLs per session
+    
+    // Video title detection constants
+    private const int MaxCleanTitleLength = 50;
+    private static readonly string[] VideoExtensions = { ".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -467,10 +633,12 @@ else
         
         await LoadSongs();
         
-        // Check if user is Owner or Mod
+        // Check if user is Owner or Mod and get user info
         var authStateForOwner = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var userForOwner = authStateForOwner.User;
         canManageSongs = userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
+        isAdmin = userForOwner.IsInRole("Admin") || userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
+        currentUserId = userForOwner.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
     }
 
     private async Task LoadSongs()
@@ -854,6 +1022,214 @@ else
         currentAudioUrl = null;
         currentSongTitle = null;
         StateHasChanged();
+    }
+    
+    private async Task<string> GetCurrentUserId()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        return user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+    }
+    
+    private async Task OpenVideosModal(Song song)
+    {
+        viewingVideosForSong = song;
+        songVideos = (await SongService.GetVideosBySongIdAsync(song.Id)).ToList();
+        selectedVideoId = null; // No video selected by default
+        videoUploadKey = Guid.NewGuid(); // Force InputFile to recreate to avoid JSException
+        showVideosModal = true;
+    }
+    
+    private void CloseVideosModal()
+    {
+        showVideosModal = false;
+        viewingVideosForSong = null;
+        songVideos = null;
+        selectedVideoId = null;
+        isUploadingVideo = false;
+        selectedVideoName = null;
+        selectedVideoFile = null;
+        videoTitle = string.Empty;
+    }
+    
+    private void SelectVideoByIndex(int videoId)
+    {
+        // Toggle: if clicking the same video, collapse it
+        if (selectedVideoId == videoId)
+        {
+            selectedVideoId = null;
+        }
+        else
+        {
+            selectedVideoId = videoId;
+        }
+    }
+    
+    private void HandleVideoSelection(InputFileChangeEventArgs e)
+    {
+        if (viewingVideosForSong == null) return;
+        
+        var file = e.File;
+        var maxFileSize = 100 * 1024 * 1024; // 100MB
+        
+        if (file.Size > maxFileSize)
+        {
+            Logger.LogWarning("Video file size exceeds maximum allowed size of 100MB");
+            selectedVideoName = null;
+            selectedVideoFile = null;
+            return;
+        }
+        
+        // Store file and show selected file name
+        selectedVideoFile = file;
+        selectedVideoName = file.Name;
+        
+        // Generate generic title based on song name and existing video count
+        var existingCount = songVideos?.Count ?? 0;
+        var videoNumber = existingCount + 1;
+        videoTitle = $"{viewingVideosForSong.Title} - Vídeo {videoNumber}";
+        
+        StateHasChanged();
+    }
+    
+    private void CancelVideoSelection()
+    {
+        selectedVideoFile = null;
+        selectedVideoName = null;
+        videoTitle = string.Empty;
+        videoUploadKey = Guid.NewGuid();
+    }
+    
+    private async Task UploadVideo()
+    {
+        if (viewingVideosForSong == null || selectedVideoFile == null) return;
+        
+        var maxFileSize = 100 * 1024 * 1024; // 100MB
+        isUploadingVideo = true;
+        StateHasChanged();
+        
+        try
+        {
+            // Read file immediately into MemoryStream BEFORE any state changes
+            // This prevents JSException when Blazor re-renders
+            using var browserStream = selectedVideoFile.OpenReadStream(maxFileSize);
+            using var memoryStream = new MemoryStream();
+            await browserStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+            
+            var currentUserId = await GetCurrentUserId();
+            
+            await SongService.AddVideoAsync(
+                viewingVideosForSong.Id,
+                memoryStream,
+                selectedVideoFile.Name,
+                selectedVideoFile.ContentType,
+                currentUserId,
+                videoTitle // Use the user-provided title
+            );
+            
+            // Reload videos for the modal
+            songVideos = (await SongService.GetVideosBySongIdAsync(viewingVideosForSong.Id)).ToList();
+            
+            // Don't auto-select video after upload - keep all collapsed
+            selectedVideoId = null;
+            
+            // Clear selection and force InputFile to recreate for next upload
+            CancelVideoSelection();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading video for song: {SongId}", viewingVideosForSong.Id);
+        }
+        finally
+        {
+            isUploadingVideo = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task DeleteVideoFromModal(SongVideo video)
+    {
+        if (viewingVideosForSong == null) return;
+        
+        try
+        {
+            var userId = await GetCurrentUserId();
+            await SongService.DeleteVideoAsync(video.Id, userId, isAdmin);
+            
+            // Clear selection if the deleted video was selected
+            if (selectedVideoId == video.Id)
+            {
+                selectedVideoId = null;
+            }
+            
+            // Reload videos for the modal
+            songVideos = (await SongService.GetVideosBySongIdAsync(viewingVideosForSong.Id)).ToList();
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting video: {VideoId}", video.Id);
+        }
+    }
+    
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+    
+    /// <summary>
+    /// Generate a clean display title for a video.
+    /// If the title looks like a storage key (very long, contains .mp4, etc.), 
+    /// generate a generic title based on song name and video index.
+    /// </summary>
+    private string GetCleanVideoTitle(SongVideo video, int videoNumber)
+    {
+        if (viewingVideosForSong == null) 
+            return $"Vídeo {videoNumber}";
+        
+        // If no title exists, generate generic one
+        if (string.IsNullOrWhiteSpace(video.Title))
+        {
+            return $"{viewingVideosForSong.Title} - Vídeo {videoNumber}";
+        }
+        
+        // Check if title looks like a storage key (long, contains file extensions, or path separators)
+        var title = video.Title.Trim();
+        var looksLikeKey = title.Length > MaxCleanTitleLength || 
+                          VideoExtensions.Any(ext => title.Contains(ext, StringComparison.OrdinalIgnoreCase)) ||
+                          title.Contains("/") ||
+                          title.Contains("\\");
+        
+        if (looksLikeKey)
+        {
+            return $"{viewingVideosForSong.Title} - Vídeo {videoNumber}";
+        }
+        
+        // Title looks good, use as-is
+        return title;
+    }
+    
+    /// <summary>
+    /// Check if the current user can delete a specific video.
+    /// Returns true if user is the uploader OR an admin.
+    /// </summary>
+    private bool CanDeleteVideo(SongVideo video)
+    {
+        if (string.IsNullOrEmpty(currentUserId))
+            return false;
+            
+        // User can delete if they are the uploader OR if they are admin
+        return video.CreatedByUserId == currentUserId || isAdmin;
     }
 }
 

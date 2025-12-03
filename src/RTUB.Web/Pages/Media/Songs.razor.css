@@ -1,0 +1,116 @@
+/* Video modal styles (matches PostCard pattern) */
+.video-player-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #000;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.modal-video {
+    width: 100%;
+    max-width: 100%;
+    max-height: 70vh;
+    display: block;
+}
+
+.video-selector {
+    margin-bottom: 1rem;
+}
+
+.video-selector .list-group-item {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.video-selector .list-group-item:hover:not(.active) {
+    background-color: var(--bs-primary); /* Purple hover using theme color */
+    color: white;
+}
+
+.video-selector .list-group-item.active {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: white;
+}
+
+/* Video title truncation to prevent overflow when delete button is present */
+.video-selector .list-group-item {
+    padding-right: 3.5rem; /* Make room for delete button */
+    overflow: hidden; /* Prevent any content from overflowing */
+}
+
+.video-selector .video-title-content {
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+/* Fix filename overflow in file picker */
+.localized-file-picker .localized-file-name {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* Responsive video sizing for modal */
+@media (max-width: 768px) {
+    .modal-video {
+        max-height: 50vh;
+    }
+    
+    /* Mobile/PWA optimizations for video list */
+    .video-selector .list-group-item {
+        padding: 0.75rem 1rem;
+        padding-right: 3.5rem; /* Maintain space for delete button */
+        font-size: 0.95rem;
+    }
+    
+    /* Make delete button more touch-friendly on mobile */
+    .video-selector .admin-btn-delete {
+        min-width: 36px;
+        min-height: 36px;
+    }
+    
+    /* Better file picker on mobile */
+    .localized-file-picker {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .localized-file-picker .localized-file-button {
+        width: 100%;
+    }
+    
+    .localized-file-picker .localized-file-name {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+@media (min-width: 769px) {
+    .modal-video {
+        max-height: 70vh;
+    }
+}
+
+/* PWA-specific improvements for standalone mode */
+@media (display-mode: standalone) {
+    .video-player-container {
+        /* Account for safe areas on mobile devices */
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    .modal-video {
+        /* Optimize for full-screen PWA experience */
+        max-height: calc(80vh - env(safe-area-inset-bottom));
+    }
+}

@@ -37,6 +37,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Album> Albums { get; set; }
     public DbSet<Song> Songs { get; set; }
     public DbSet<SongYouTubeUrl> SongYouTubeUrls { get; set; }
+    public DbSet<SongVideo> SongVideos { get; set; } = null!;
     public DbSet<EventRepertoire> EventRepertoires { get; set; }
     public DbSet<Report> Reports { get; set; }
     public DbSet<Activity> Activities { get; set; }

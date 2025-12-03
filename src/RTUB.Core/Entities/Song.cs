@@ -40,6 +40,7 @@ public class Song : BaseEntity
     // Navigation properties
     public virtual Album? Album { get; set; }
     public virtual ICollection<SongYouTubeUrl> YouTubeUrls { get; set; } = new List<SongYouTubeUrl>();
+    public virtual ICollection<SongVideo> Videos { get; set; } = new List<SongVideo>();
     public virtual ICollection<EventRepertoire> EventRepertoires { get; set; } = new List<EventRepertoire>();
 
     // Private constructor for EF Core
