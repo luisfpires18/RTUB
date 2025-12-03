@@ -41,13 +41,18 @@
     }
 
     .discussion-header-title {
-        order: 3;
+        order: 2;
         width: 100%;
     }
 
-    .discussion-header-actions {
+    .discussion-header-actions:first-child {
+        order: 1;
+    }
+
+    .discussion-header-actions:last-child {
+        order: 3;
         width: 100%;
-        justify-content: space-between;
+        justify-content: flex-end;
     }
 }
 

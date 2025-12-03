@@ -82,9 +82,9 @@ public class PostService : IPostService
                         title,
                         baseUrl);
 
-                    // Get enrolled users (excluding the author)
+                    // Get enrolled users with WillAttend=true (excluding the author)
                     var enrolledUserIds = await _enrollmentRepository.Query()
-                        .Where(e => e.EventId == discussion.Event.Id && e.UserId != authorId)
+                        .Where(e => e.EventId == discussion.Event.Id && e.UserId != authorId && e.WillAttend)
                         .Select(e => e.UserId)
                         .ToListAsync();
 

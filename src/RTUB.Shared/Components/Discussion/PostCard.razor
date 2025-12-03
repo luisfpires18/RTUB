@@ -25,14 +25,7 @@
         </div>
         
         <p class="post-card-body">
-            @if (Post.Body.Length > 200)
-            {
-                @Post.Body.Substring(0, 200)<text>...</text>
-            }
-            else
-            {
-                @Post.Body
-            }
+            @Post.Body
         </p>
         
         <div class="post-card-footer">
