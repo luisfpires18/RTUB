@@ -977,15 +977,11 @@ else
         StateHasChanged();
     }
     
-    private async Task<ApplicationUser> GetCurrentUser()
+    private async Task<string> GetCurrentUserId()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-        
-        // Return a minimal user object with ID (assuming ApplicationUser has an Id property)
-        // In a real scenario, you'd fetch the full user from a user service
-        return new ApplicationUser { Id = userId };
+        return user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
     }
     
     private async Task OpenVideosModal(Song song)
@@ -1025,15 +1021,18 @@ else
         try
         {
             using var stream = selectedVideoFile.OpenReadStream(maxFileSize);
-            var currentUser = await GetCurrentUser();
+            var currentUserId = await GetCurrentUserId();
+            
+            // Use filename without extension as default title
+            var defaultTitle = System.IO.Path.GetFileNameWithoutExtension(selectedVideoFile.Name);
             
             await SongService.AddVideoAsync(
                 viewingVideosForSong.Id,
                 stream,
                 selectedVideoFile.Name,
                 selectedVideoFile.ContentType,
-                currentUser.Id,
-                selectedVideoFile.Name
+                currentUserId,
+                defaultTitle
             );
             
             // Reload videos
@@ -1058,8 +1057,8 @@ else
         
         try
         {
-            var currentUser = await GetCurrentUser();
-            await SongService.DeleteVideoAsync(video.Id, currentUser.Id);
+            var currentUserId = await GetCurrentUserId();
+            await SongService.DeleteVideoAsync(video.Id, currentUserId);
             
             // Reload videos
             songVideos = (await SongService.GetVideosBySongIdAsync(viewingVideosForSong.Id)).ToList();
