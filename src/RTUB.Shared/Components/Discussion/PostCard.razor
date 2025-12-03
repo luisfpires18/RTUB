@@ -159,7 +159,7 @@
             {
                 var selectedVideo = videos[selectedVideoIndex];
                 <div class="video-player-container">
-                    <video controls class="modal-video" autoplay preload="metadata" key="@selectedVideo.Url">
+                    <video @key="@selectedVideo.Id" controls class="modal-video" autoplay preload="metadata">
                         <source src="@selectedVideo.Url" type="@selectedVideo.MimeType">
                         O seu navegador não suporta o elemento de vídeo.
                     </video>
