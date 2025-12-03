@@ -451,26 +451,10 @@ else
                     }
                     else
                     {
-                        <div class="localized-file-picker">
-                            <InputFile id="@videoInputId" 
-                                       class="d-none" 
-                                       OnChange="@HandleVideoUpload" 
-                                       accept="video/*" 
-                                       aria-label="Escolher vídeo" />
-                            <label class="btn btn-outline-secondary localized-file-button" for="@videoInputId">
-                                <i class="bi bi-upload me-2"></i>Escolher vídeo
-                            </label>
-                            <span class="localized-file-name">
-                                @if (selectedVideoFile != null)
-                                {
-                                    <text>@selectedVideoFile.Name</text>
-                                }
-                                else
-                                {
-                                    <text>Nenhum vídeo selecionado</text>
-                                }
-                            </span>
-                        </div>
+                        <InputFile OnChange="@HandleVideoUpload" 
+                                   accept="video/*" 
+                                   class="form-control"
+                                   aria-label="Escolher vídeo" />
                         <small class="text-muted d-block mt-2">
                             <i class="bi bi-info-circle me-1"></i>Tamanho máximo: 100MB
                         </small>
@@ -554,8 +538,6 @@ else
     private List<SongVideo>? songVideos = null;
     private int selectedVideoIndex = 0;
     private bool isUploadingVideo = false;
-    private IBrowserFile? selectedVideoFile = null;
-    private string videoInputId = $"song-videos-{Guid.NewGuid():N}";
     
     // Audio player state
     private string? currentAudioUrl;
@@ -1000,7 +982,6 @@ else
         viewingVideosForSong = null;
         songVideos = null;
         selectedVideoIndex = 0;
-        selectedVideoFile = null;
         isUploadingVideo = false;
     }
     
