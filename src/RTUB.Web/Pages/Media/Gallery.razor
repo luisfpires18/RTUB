@@ -1,0 +1,1263 @@
+@page "/gallery"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
+@using RTUB.Core.Entities
+@using RTUB.Core.Enums
+@using System.Globalization
+@using RTUB.Shared
+@inject IGalleryMediaService GalleryMediaService
+@inject IGalleryMediaStorageService GalleryMediaStorageService
+@inject UserManager<ApplicationUser> UserManager
+@inject IConfiguration Configuration
+@inject IPushNotificationService PushNotificationService
+@inject IUserProfileRepository UserProfileRepository
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<Gallery> Logger
+@attribute [Authorize]
+
+<div class="d-flex flex-column gap-3 mb-4">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <div>
+            <h1 class="mb-2"><i class="bi bi-images"></i> Galeria</h1>
+            <p class="lead page-header-subtitle mb-0 text-light-theme">Memórias da RTUB através dos anos.</p>
+        </div>
+
+        <div class="page-header-actions justify-content-lg-end">
+            <AuthorizeView Roles="Admin,Member">
+                <Authorized>
+                    <button class="btn btn-success" @onclick="OpenUploadModal" title="Carregar Media">
+                        <i class="bi bi-cloud-upload"></i> Carregar
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-2 flex-wrap justify-content-between">
+        <div class="d-flex flex-column flex-sm-row gap-2 flex-grow-1">
+            <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
+                <label class="form-label fw-semibold">Ano</label>
+                <FilterDropdown IconClass="bi-calendar3"
+                               AllItemsLabel="Todos os anos"
+                               Options="@yearFilterOptions"
+                               @bind-SelectedValue="selectedYear"
+                               OnChange="ApplyFilters" />
+            </div>
+            <div class="flex-grow-1" style="min-width: 300px; max-width: 400px;">
+                <label class="form-label fw-semibold">Pessoas</label>
+                <FilterDropdown IconClass="bi-people"
+                               AllItemsLabel="Todas as pessoas"
+                               Options="@peopleFilterOptions"
+                               @bind-SelectedValue="selectedPersonId"
+                               OnChange="ApplyFilters" />
+            </div>
+        </div>
+        <div class="flex-sm-shrink-0" style="min-width: 150px; max-width: 180px;">
+            <label class="form-label fw-semibold">Itens por página</label>
+            <select class="form-select" @bind="pageSize" @bind:after="ApplyFilters">
+                @foreach (var size in pageSizeOptions)
+                {
+                    <option value="@size">@size</option>
+                }
+            </select>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <div class="d-flex justify-content-center my-5">
+        <LoadingSpinner />
+    </div>
+}
+else if (!groupedMedia.Any())
+{
+    <EmptyState Title="Nenhuma media encontrada"
+                Icon="bi-images"
+                Message="@(string.IsNullOrEmpty(selectedYear) && string.IsNullOrEmpty(selectedPersonId) ? "Ainda não há conteúdo na galeria." : "A pesquisa não devolveu resultados.")" />
+}
+else
+{
+    <!-- Timeline Container -->
+    <div class="gallery-timeline">
+        <!-- Central vertical line -->
+        <div class="gallery-timeline-line"></div>
+        
+        @foreach (var yearGroup in groupedMedia)
+        {
+            <!-- Year badge/pill -->
+            <div class="timeline-year-node">
+                <div class="timeline-year-marker">
+                    <div class="timeline-year-dot"></div>
+                    <h2 class="timeline-year-label">@yearGroup.Key</h2>
+                </div>
+            </div>
+
+            @RenderMediaItems(yearGroup.Key, yearGroup.Value)
+        }
+    </div>
+
+    <!-- Load More Button -->
+    @if (hasMore)
+    {
+        <div class="text-center my-4">
+            <button class="btn btn-primary btn-primary-purple" @onclick="LoadMore" disabled="@isLoadingMore">
+                @if (isLoadingMore)
+                {
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                }
+                Carregar Mais
+            </button>
+        </div>
+    }
+}
+
+<!-- Upload Modal -->
+<Modal Show="@showUploadModal"
+       ShowChanged="@((bool show) => showUploadModal = show)"
+       Title="Carregar Media"
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        <EditForm Model="@uploadModel" OnValidSubmit="HandleUploadClick">
+            <DataAnnotationsValidator />
+            <ErrorDisplay />
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-file-earmark-image text-primary me-2"></i>Ficheiro <span class="text-danger">*</span>
+                </label>
+                <MediaUploadManager @ref="mediaUploadManager"
+                                   Label=""
+                                   CurrentMediaUrl="@uploadModel.PreviewUrl"
+                                   ShowCurrentMedia="true"
+                                   OnFileSelected="HandleFileSelected" />
+                @if (selectedFile != null)
+                {
+                    <small class="form-text text-muted">
+                        Ficheiro selecionado: @selectedFile.Name (@FormatFileSize(selectedFile.Size))
+                    </small>
+                }
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-type text-primary me-2"></i>Título <span class="text-danger">*</span>
+                </label>
+                <InputText class="form-control" @bind-Value="uploadModel.Title" placeholder="Título da media..." />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-calendar text-primary me-2"></i>Data <span class="text-danger">*</span>
+                </label>
+                <InputDate class="form-control" @bind-Value="uploadModel.SelectedDate" />
+                <div class="form-text small text-muted">
+                    Se não tiver a certeza da data exata, pode escolher o primeiro dia do mês ou do ano. O sistema guardará apenas a informação disponível.
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-people text-primary me-2"></i>Pessoas marcadas
+                </label>
+                <div class="member-search-container">
+                    <SearchBar @bind-Value="personSearchTerm"
+                               Placeholder="Pesquisar pessoa por nome ou alcunha..."
+                               OnSearch="OnPersonSearch"
+                               OnClear="ClearPersonSearch"
+                               Compact="true" />
+                </div>
+                
+                @if (!string.IsNullOrEmpty(personSearchTerm) && filteredMembers.Any())
+                {
+                    <div class="list-group mt-2" style="max-height: 200px; overflow-y: auto;">
+                        @foreach (var member in filteredMembers.Take(10))
+                        {
+                            <button type="button" 
+                                    class="list-group-item list-group-item-action"
+                                    @onclick="() => TogglePersonTag(member.Id)">
+                                <div class="d-flex align-items-center">
+                                    <img src="@member.ProfilePictureSrc" alt="@(member.Nickname ?? member.FirstName)" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;" />
+                                    <span>@(member.Nickname ?? $"{member.FirstName} {member.LastName}")</span>
+                                </div>
+                            </button>
+                        }
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(personSearchTerm) && !filteredMembers.Any())
+                {
+                    <div class="text-muted small mt-2">
+                        <i class="bi bi-info-circle me-1"></i>Nenhuma pessoa encontrada
+                    </div>
+                }
+                
+                @if (uploadModel.TaggedPeopleIds.Any())
+                {
+                    <div class="mt-2">
+                        <strong class="small">Selecionados:</strong>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            @foreach (var personId in uploadModel.TaggedPeopleIds)
+                            {
+                                var person = allMembers.FirstOrDefault(m => m.Id == personId);
+                                if (person != null)
+                                {
+                                    <PersonBadge Name="@(person.Nickname ?? person.FirstName)"
+                                                ShowCloseButton="true"
+                                                OnClose="() => RemovePersonTag(personId)" />
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </EditForm>
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseUploadModal" disabled="@isUploading">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="HandleUploadClick" disabled="@isUploading">
+            @if (isUploading)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Carregar
+        </button>
+    </FooterContent>
+</Modal>
+
+<!-- Edit Modal -->
+<Modal Show="@showEditModal"
+       ShowChanged="@((bool show) => showEditModal = show)"
+       Title="Editar Media"
+       Size="Modal.ModalSize.Large"
+       Centered="true">
+    <BodyContent>
+        @if (editingMedia != null)
+        {
+            <EditForm Model="@editModel" OnValidSubmit="HandleEditClick">
+                <DataAnnotationsValidator />
+                <ErrorDisplay />
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-type text-primary me-2"></i>Título <span class="text-danger">*</span>
+                    </label>
+                    <InputText class="form-control" @bind-Value="editModel.Title" placeholder="Título da media..." />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-calendar text-primary me-2"></i>Data <span class="text-danger">*</span>
+                    </label>
+                    <InputDate class="form-control" @bind-Value="editModel.SelectedDate" />
+                    <div class="form-text small text-muted">
+                        Se não tiver a certeza da data exata, pode escolher o primeiro dia do mês ou do ano. O sistema guardará apenas a informação disponível.
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-people text-primary me-2"></i>Pessoas marcadas
+                    </label>
+                    <div class="member-search-container">
+                        <SearchBar @bind-Value="editPersonSearchTerm"
+                                   Placeholder="Pesquisar pessoa por nome ou alcunha..."
+                                   OnSearch="OnEditPersonSearch"
+                                   OnClear="ClearEditPersonSearch"
+                                   Compact="true" />
+                    </div>
+                    
+                    @if (!string.IsNullOrEmpty(editPersonSearchTerm) && filteredEditMembers.Any())
+                    {
+                        <div class="list-group mt-2" style="max-height: 200px; overflow-y: auto;">
+                            @foreach (var member in filteredEditMembers.Take(10))
+                            {
+                                <button type="button" 
+                                        class="list-group-item list-group-item-action"
+                                        @onclick="() => ToggleEditPersonTag(member.Id)">
+                                    <div class="d-flex align-items-center">
+                                        <img src="@member.ProfilePictureSrc" alt="@(member.Nickname ?? member.FirstName)" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;" />
+                                        <span>@(member.Nickname ?? $"{member.FirstName} {member.LastName}")</span>
+                                    </div>
+                                </button>
+                            }
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(editPersonSearchTerm) && !filteredEditMembers.Any())
+                    {
+                        <div class="text-muted small mt-2">
+                            <i class="bi bi-info-circle me-1"></i>Nenhuma pessoa encontrada
+                        </div>
+                    }
+                    
+                    @if (editModel.TaggedPeopleIds.Any())
+                    {
+                        <div class="mt-2">
+                            <strong class="small">Selecionados:</strong>
+                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                @foreach (var personId in editModel.TaggedPeopleIds)
+                                {
+                                    var person = allMembers.FirstOrDefault(m => m.Id == personId);
+                                    if (person != null)
+                                    {
+                                        <PersonBadge Name="@(person.Nickname ?? person.FirstName)"
+                                                    ShowCloseButton="true"
+                                                    OnClose="() => RemoveEditPersonTag(personId)" />
+                                    }
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </EditForm>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseEditModal" disabled="@isEditing">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="HandleEditClick" disabled="@isEditing">
+            @if (isEditing)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Guardar
+        </button>
+    </FooterContent>
+</Modal>
+
+<!-- Delete Confirmation Modal -->
+<ConfirmDialog Show="@showDeleteModal"
+               ShowChanged="@((bool show) => showDeleteModal = show)"
+               Title="Confirmar Eliminação"
+               Message="@($"Tem certeza que deseja eliminar \"{deletingMedia?.Title}\"?")"
+               WarningMessage="Esta ação não pode ser desfeita."
+               ConfirmText="Eliminar"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-danger"
+               OnConfirm="HandleDelete"
+               OnCancel="CloseDeleteModal" />
+
+<!-- Lightbox Modal -->
+<DetailsModal Show="@showLightbox"
+              ShowChanged="@((bool show) => showLightbox = show)"
+              Title="@(lightboxMedia?.Title ?? "")"
+              HeaderTitle="@(lightboxMedia?.Title ?? "")"
+              UseRectangularImage="true"
+              OnClose="CloseLightbox">
+    <ImageContent>
+        @if (lightboxMedia != null)
+        {
+            @if (lightboxMedia.MediaType == MediaType.Image)
+            {
+                <img src="@lightboxMedia.MediaUrl" alt="@lightboxMedia.Title" class="mb-3 details-modal-image-rectangular" />
+            }
+            else
+            {
+                <video controls class="mb-3 details-modal-image-rectangular">
+                    <source src="@lightboxMedia.MediaUrl" type="video/mp4" />
+                    O seu browser não suporta a reprodução de vídeo.
+                </video>
+            }
+        }
+    </ImageContent>
+    <Sections>
+        @if (lightboxMedia != null)
+        {
+            <!-- Date Section -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-calendar3 text-primary fs-5"></i>
+                        <div>
+                            <small class="text-muted d-block">Data</small>
+                            <strong>@FormatMediaDate(lightboxMedia.Year, lightboxMedia.Month, lightboxMedia.Day)</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pessoas Section -->
+            @if (lightboxMedia.PeopleInMedia.Any())
+            {
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-people text-primary fs-5"></i>
+                            <div>
+                                <small class="text-muted d-block">Pessoas</small>
+                                <div class="d-flex flex-wrap gap-1 mt-1">
+                                    @foreach (var tag in lightboxMedia.PeopleInMedia)
+                                    {
+                                        <PersonBadge Name="@(tag.User.Nickname ?? tag.User.FirstName)"
+                                                    ShowCloseButton="false" />
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </Sections>
+    <FooterContent>
+        @if (lightboxMedia != null)
+        {
+            <button type="button" class="btn btn-primary" @onclick="() => DownloadMedia(lightboxMedia)" title="Download file">
+                <i class="bi bi-download me-2"></i>Download
+            </button>
+        }
+        <button type="button" class="btn btn-secondary" @onclick="CloseLightbox">Fechar</button>
+    </FooterContent>
+</DetailsModal>
+
+@code {
+    // Data
+    private List<GalleryMedia> allMedia = new();
+    private Dictionary<int, List<GalleryMedia>> groupedMedia = new();
+    private List<ApplicationUser> allMembers = new();
+    private List<ApplicationUser> filteredMembers = new();
+    private List<ApplicationUser> filteredEditMembers = new();
+    private List<int> availableYears = new();
+    private List<ApplicationUser> taggedPeople = new();
+    
+    // Components
+    private MediaUploadManager? mediaUploadManager;
+
+    // Filters
+    private string selectedYear = "";
+    private string selectedPersonId = "";
+    private List<FilterDropdownOption> yearFilterOptions = new();
+    private List<FilterDropdownOption> peopleFilterOptions = new();
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 15;
+    private int[] pageSizeOptions = { 15, 30, 45, 60, 75 };
+    private bool hasMore = false;
+
+    // State
+    private bool isLoading = true;
+    private bool isLoadingMore = false;
+    private bool isUploading = false;
+    private bool isEditing = false;
+
+    // Modals
+    private bool showUploadModal = false;
+    private bool showEditModal = false;
+    private bool showDeleteModal = false;
+    private bool showLightbox = false;
+
+    // Upload
+    private UploadModel uploadModel = new();
+    private IBrowserFile? selectedFile = null;
+    private string personSearchTerm = "";
+    private string editPersonSearchTerm = "";
+
+    // Edit
+    private GalleryMedia? editingMedia = null;
+    private EditModel editModel = new();
+
+    // Delete
+    private GalleryMedia? deletingMedia = null;
+
+    // Lightbox
+    private GalleryMedia? lightboxMedia = null;
+
+    // User
+    private string? currentUserId;
+    private bool isAdmin = false;
+
+    // Timeline rendering
+    private int timelineItemIndex = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentUser();
+        await LoadMembers();
+        await LoadAvailableYears();
+        await LoadTaggedPeople();
+        await LoadMedia();
+    }
+
+    private async Task LoadCurrentUser()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        isAdmin = user.IsInRole("Admin");
+    }
+
+    private async Task LoadMembers()
+    {
+        allMembers = await UserManager.Users
+            .OrderBy(u => u.Nickname ?? u.FirstName)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    private async Task LoadAvailableYears()
+    {
+        availableYears = (await GalleryMediaService.GetAvailableYearsAsync()).ToList();
+        yearFilterOptions = availableYears
+            .OrderByDescending(y => y)
+            .Select(y => new FilterDropdownOption(y.ToString(), y.ToString()))
+            .ToList();
+    }
+
+    private async Task LoadTaggedPeople()
+    {
+        // Get distinct users who are tagged in at least one gallery media
+        // Note: This loads all media but only extracts user IDs - could be optimized with a dedicated query
+        var allMediaWithTags = await GalleryMediaService.GetAllAsync();
+        var taggedUserIds = allMediaWithTags
+            .SelectMany(m => m.PeopleInMedia.Select(p => p.UserId))
+            .Distinct()
+            .ToHashSet();
+
+        // If no one is tagged yet, return empty list
+        if (!taggedUserIds.Any())
+        {
+            taggedPeople = new List<ApplicationUser>();
+            peopleFilterOptions = new List<FilterDropdownOption>();
+            return;
+        }
+
+        taggedPeople = allMembers
+            .Where(m => taggedUserIds.Contains(m.Id))
+            .OrderBy(m => m.Nickname ?? m.FirstName)
+            .ToList();
+
+        peopleFilterOptions = taggedPeople
+            .Select(p => new FilterDropdownOption(
+                p.Id,
+                p.Nickname ?? $"{p.FirstName} {p.LastName}"))
+            .ToList();
+    }
+
+    private async Task LoadMedia()
+    {
+        isLoading = true;
+        try
+        {
+            var yearFilter = string.IsNullOrEmpty(selectedYear) ? (int?)null : int.Parse(selectedYear);
+            var personFilter = string.IsNullOrEmpty(selectedPersonId) ? null : selectedPersonId;
+
+            var result = await GalleryMediaService.GetPaginatedAsync(currentPage, pageSize, yearFilter, personFilter);
+            
+            if (currentPage == 1)
+            {
+                allMedia = result.Items.ToList();
+            }
+            else
+            {
+                allMedia.AddRange(result.Items);
+            }
+
+            hasMore = allMedia.Count < result.TotalCount;
+            GroupMediaByYear();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading gallery media");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GroupMediaByYear()
+    {
+        timelineItemIndex = 0; // Reset timeline index for rendering
+        groupedMedia = allMedia
+            .GroupBy(m => m.Year)
+            .OrderByDescending(g => g.Key)
+            .ToDictionary(g => g.Key, g => g.ToList()); // Don't sort here, we'll sort in the rendering
+    }
+
+    private async Task ApplyFilters()
+    {
+        currentPage = 1;
+        allMedia.Clear();
+        await LoadMedia();
+    }
+
+    private async Task LoadMore()
+    {
+        isLoadingMore = true;
+        currentPage++;
+        await LoadMedia();
+        isLoadingMore = false;
+    }
+
+    // Upload Modal
+    private void OpenUploadModal()
+    {
+        uploadModel = new UploadModel();
+        selectedFile = null;
+        showUploadModal = true;
+    }
+
+    private void CloseUploadModal()
+    {
+        showUploadModal = false;
+        uploadModel = new UploadModel();
+        selectedFile = null;
+    }
+
+    private async Task HandleFileSelected(IBrowserFile file)
+    {
+        selectedFile = file;
+
+        // Generate preview for images
+        if (selectedFile.ContentType.StartsWith("image/"))
+        {
+            try
+            {
+                var buffer = new byte[selectedFile.Size];
+                using var stream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+                await stream.ReadAsync(buffer);
+                var base64 = Convert.ToBase64String(buffer);
+                uploadModel.PreviewUrl = $"data:{selectedFile.ContentType};base64,{base64}";
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error generating preview");
+            }
+        }
+
+        // Try to extract EXIF date if available (simplified - could be enhanced with ExifLib)
+        // For now, pre-fill with current date if not set
+        if (uploadModel.SelectedDate == default)
+        {
+            uploadModel.SelectedDate = DateTime.Today;
+        }
+        
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleUploadClick()
+    {
+        if (selectedFile == null || string.IsNullOrEmpty(uploadModel.Title))
+        {
+            return;
+        }
+
+        isUploading = true;
+        try
+        {
+            var mediaType = selectedFile.ContentType.StartsWith("image/") ? MediaType.Image : MediaType.Video;
+            
+            // Validate file size
+            var maxSize = GalleryMediaStorageService.GetMaxFileSize(mediaType);
+            if (selectedFile.Size > maxSize)
+            {
+                Logger.LogError("File size {Size} exceeds maximum allowed size {MaxSize}", selectedFile.Size, maxSize);
+                // TODO: Show user-friendly error message
+                return;
+            }
+
+            // Create media entity
+            // Smart detection: if day is 1 and month is 1, save only year
+            // if day is 1 (but not Jan), save year and month
+            // otherwise save full date
+            int year = uploadModel.SelectedDate.Year;
+            byte? month = null;
+            byte? day = null;
+            
+            if (uploadModel.SelectedDate.Month == 1 && uploadModel.SelectedDate.Day == 1)
+            {
+                // Jan 1st - save only year
+            }
+            else if (uploadModel.SelectedDate.Day == 1)
+            {
+                // 1st of some month (not Jan) - save year and month
+                month = (byte)uploadModel.SelectedDate.Month;
+            }
+            else
+            {
+                // Any other day - save full date
+                month = (byte)uploadModel.SelectedDate.Month;
+                day = (byte)uploadModel.SelectedDate.Day;
+            }
+
+            // Upload file with metadata for proper naming
+            using var stream = selectedFile.OpenReadStream(maxAllowedSize: maxSize);
+            var mediaUrl = await GalleryMediaStorageService.UploadMediaAsync(
+                stream, selectedFile.Name, selectedFile.ContentType, mediaType,
+                uploadModel.Title, year, month, day);
+            
+            var media = GalleryMedia.Create(
+                currentUserId!,
+                uploadModel.Title,
+                mediaType,
+                mediaUrl,
+                year,
+                month,
+                day,
+                null,
+                null
+            );
+
+            await GalleryMediaService.CreateAsync(media);
+
+            // Add person tags
+            if (uploadModel.TaggedPeopleIds.Any())
+            {
+                await GalleryMediaService.AddPersonTagsAsync(media.Id, uploadModel.TaggedPeopleIds);
+            }
+
+            // Send notification
+            await SendUploadNotification(media);
+
+            // Reload
+            await LoadAvailableYears();
+            currentPage = 1;
+            allMedia.Clear();
+            await LoadMedia();
+
+            CloseUploadModal();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading media");
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private void OnPersonSearch()
+    {
+        if (string.IsNullOrWhiteSpace(personSearchTerm))
+        {
+            filteredMembers.Clear();
+            return;
+        }
+
+        var searchTerm = personSearchTerm.ToLower();
+        filteredMembers = allMembers
+            .Where(m => 
+                !uploadModel.TaggedPeopleIds.Contains(m.Id) && // Exclude already selected
+                ((m.Nickname != null && m.Nickname.ToLower().Contains(searchTerm)) ||
+                (m.FirstName != null && m.FirstName.ToLower().Contains(searchTerm)) ||
+                (m.LastName != null && m.LastName.ToLower().Contains(searchTerm))))
+            .OrderBy(m => m.Nickname ?? m.FirstName)
+            .ToList();
+    }
+
+    private void ClearPersonSearch()
+    {
+        personSearchTerm = "";
+        filteredMembers.Clear();
+    }
+
+    private void TogglePersonTag(string personId)
+    {
+        if (uploadModel.TaggedPeopleIds.Contains(personId))
+        {
+            uploadModel.TaggedPeopleIds.Remove(personId);
+        }
+        else
+        {
+            uploadModel.TaggedPeopleIds.Add(personId);
+            // Clear search and refresh filtered list
+            personSearchTerm = "";
+            filteredMembers.Clear();
+        }
+    }
+
+    private void RemovePersonTag(string personId)
+    {
+        uploadModel.TaggedPeopleIds.Remove(personId);
+    }
+
+    // Edit Modal
+    private void OpenEditModal(GalleryMedia media)
+    {
+        editingMedia = media;
+        
+        // Reconstruct date from year/month/day
+        // Use day 1 if not specified, and month 1 if not specified
+        DateTime selectedDate;
+        
+        if (media.Day.HasValue && media.Month.HasValue)
+        {
+            selectedDate = new DateTime(media.Year, media.Month.Value, media.Day.Value);
+        }
+        else if (media.Month.HasValue)
+        {
+            selectedDate = new DateTime(media.Year, media.Month.Value, 1);
+        }
+        else
+        {
+            selectedDate = new DateTime(media.Year, 1, 1);
+        }
+        
+        editModel = new EditModel
+        {
+            Title = media.Title,
+            SelectedDate = selectedDate,
+            TaggedPeopleIds = media.PeopleInMedia.Select(p => p.UserId).ToList()
+        };
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editingMedia = null;
+        editModel = new EditModel();
+        filteredEditMembers.Clear();
+        editPersonSearchTerm = "";
+    }
+
+    private async Task HandleEditClick()
+    {
+        if (editingMedia == null || string.IsNullOrEmpty(editModel.Title))
+        {
+            return;
+        }
+
+        isEditing = true;
+        try
+        {
+            // Reload the entity to avoid EF tracking conflicts
+            var mediaToUpdate = await GalleryMediaService.GetByIdAsync(editingMedia.Id);
+            if (mediaToUpdate == null)
+            {
+                Logger.LogError("Media with ID {Id} not found", editingMedia.Id);
+                return;
+            }
+
+            // Get current tags before update
+            var currentTags = mediaToUpdate.PeopleInMedia.Select(p => p.UserId).ToList();
+            var tagsToAdd = editModel.TaggedPeopleIds.Except(currentTags).ToList();
+            var tagsToRemove = currentTags.Except(editModel.TaggedPeopleIds).ToList();
+
+            // Update media details
+            // Smart detection: if day is 1 and month is 1, save only year
+            // if day is 1 (but not Jan), save year and month
+            // otherwise save full date
+            int year = editModel.SelectedDate.Year;
+            byte? month = null;
+            byte? day = null;
+            
+            if (editModel.SelectedDate.Month == 1 && editModel.SelectedDate.Day == 1)
+            {
+                // Jan 1st - save only year
+            }
+            else if (editModel.SelectedDate.Day == 1)
+            {
+                // 1st of some month (not Jan) - save year and month
+                month = (byte)editModel.SelectedDate.Month;
+            }
+            else
+            {
+                // Any other day - save full date
+                month = (byte)editModel.SelectedDate.Month;
+                day = (byte)editModel.SelectedDate.Day;
+            }
+            
+            mediaToUpdate.UpdateDetails(editModel.Title, year, month, day);
+            await GalleryMediaService.UpdateAsync(mediaToUpdate);
+
+            // Update tags
+            if (tagsToAdd.Any())
+            {
+                await GalleryMediaService.AddPersonTagsAsync(mediaToUpdate.Id, tagsToAdd);
+            }
+
+            if (tagsToRemove.Any())
+            {
+                await GalleryMediaService.RemovePersonTagsAsync(mediaToUpdate.Id, tagsToRemove);
+            }
+
+            // Update the local item instead of reloading everything
+            var localItem = allMedia.FirstOrDefault(m => m.Id == mediaToUpdate.Id);
+            if (localItem != null)
+            {
+                localItem.Title = mediaToUpdate.Title;
+                localItem.Year = mediaToUpdate.Year;
+                localItem.Month = mediaToUpdate.Month;
+                localItem.Day = mediaToUpdate.Day;
+                // Update people tags
+                localItem.PeopleInMedia.Clear();
+                foreach (var personId in editModel.TaggedPeopleIds)
+                {
+                    var user = allMembers.FirstOrDefault(m => m.Id == personId);
+                    if (user != null)
+                    {
+                        var tag = GalleryMediaPersonTag.Create(localItem.Id, personId);
+                        tag.User = user;
+                        localItem.PeopleInMedia.Add(tag);
+                    }
+                }
+            }
+
+            // Re-group without resetting timeline index to prevent cards from moving
+            var currentIndex = timelineItemIndex;
+            GroupMediaByYear();
+            timelineItemIndex = currentIndex;
+
+            CloseEditModal();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error editing media");
+        }
+        finally
+        {
+            isEditing = false;
+        }
+    }
+
+    private void OnEditPersonSearch()
+    {
+        if (string.IsNullOrWhiteSpace(editPersonSearchTerm))
+        {
+            filteredEditMembers.Clear();
+            return;
+        }
+
+        var searchTerm = editPersonSearchTerm.ToLower();
+        filteredEditMembers = allMembers
+            .Where(m => 
+                !editModel.TaggedPeopleIds.Contains(m.Id) && // Exclude already selected
+                ((m.Nickname != null && m.Nickname.ToLower().Contains(searchTerm)) ||
+                (m.FirstName != null && m.FirstName.ToLower().Contains(searchTerm)) ||
+                (m.LastName != null && m.LastName.ToLower().Contains(searchTerm))))
+            .OrderBy(m => m.Nickname ?? m.FirstName)
+            .ToList();
+    }
+
+    private void ClearEditPersonSearch()
+    {
+        editPersonSearchTerm = "";
+        filteredEditMembers.Clear();
+    }
+
+    private void ToggleEditPersonTag(string personId)
+    {
+        if (editModel.TaggedPeopleIds.Contains(personId))
+        {
+            editModel.TaggedPeopleIds.Remove(personId);
+        }
+        else
+        {
+            editModel.TaggedPeopleIds.Add(personId);
+            // Clear search and refresh filtered list
+            editPersonSearchTerm = "";
+            filteredEditMembers.Clear();
+        }
+    }
+
+    private void RemoveEditPersonTag(string personId)
+    {
+        editModel.TaggedPeopleIds.Remove(personId);
+    }
+
+    // Delete Modal
+    private void OpenDeleteModal(GalleryMedia media)
+    {
+        deletingMedia = media;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deletingMedia = null;
+    }
+
+    private async Task HandleDelete()
+    {
+        if (deletingMedia == null) return;
+
+        try
+        {
+            // Delete file from storage
+            await GalleryMediaStorageService.DeleteMediaAsync(deletingMedia.MediaUrl);
+
+            // Delete from database
+            await GalleryMediaService.DeleteAsync(deletingMedia.Id);
+
+            // Reload
+            await LoadAvailableYears();
+            currentPage = 1;
+            allMedia.Clear();
+            await LoadMedia();
+
+            CloseDeleteModal();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting media");
+        }
+    }
+
+    // Lightbox
+    private void OpenLightbox(GalleryMedia media)
+    {
+        lightboxMedia = media;
+        showLightbox = true;
+    }
+
+    private void CloseLightbox()
+    {
+        showLightbox = false;
+        lightboxMedia = null;
+    }
+
+    // Helpers
+    private bool CanEditOrDelete(GalleryMedia media)
+    {
+        return isAdmin || media.UploaderId == currentUserId;
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    private async Task SendUploadNotification(GalleryMedia media)
+    {
+        try
+        {
+            // Check if uploader is loaded; reload if necessary
+            if (media.Uploader == null)
+            {
+                var reloadedMedia = await GalleryMediaService.GetByIdAsync(media.Id);
+                if (reloadedMedia?.Uploader == null)
+                {
+                    Logger.LogWarning("Cannot send upload notification: uploader not found for media ID {MediaId}", media.Id);
+                    return;
+                }
+                media = reloadedMedia;
+            }
+            
+            var notification = new SendPushNotificationDto
+            {
+                Title = "Nova Media na Galeria",
+                Body = $"{GetDisplayName(media.Uploader)} carregou \"{media.Title}\" ({media.Year})",
+                Url = "/gallery"
+            };
+            await PushNotificationService.BroadcastAsync(notification);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error sending upload notification (non-critical)");
+        }
+    }
+
+    private string GetDisplayName(ApplicationUser? user)
+    {
+        if (user == null)
+        {
+            Logger.LogWarning("GetDisplayName called with null user");
+            return "Utilizador desconhecido";
+        }
+        
+        return !string.IsNullOrEmpty(user.Nickname) 
+            ? user.Nickname 
+            : $"{user.FirstName} {user.LastName}";
+    }
+
+    private string GetDownloadFileName(GalleryMedia media)
+    {
+        // Extract the original filename from the URL
+        var uri = new Uri(media.MediaUrl);
+        var fileName = Path.GetFileName(uri.LocalPath);
+        
+        // If we can't get a filename, create one from title and date
+        if (string.IsNullOrEmpty(fileName))
+        {
+            var extension = media.MediaType == MediaType.Image ? ".jpg" : ".mp4";
+            var dateStr = FormatMediaDate(media.Year, media.Month, media.Day).Replace(" ", "-");
+            fileName = $"{media.Title}_{dateStr}{extension}";
+        }
+        
+        return fileName;
+    }
+
+    private async Task DownloadMedia(GalleryMedia media)
+    {
+        var fileName = GetDownloadFileName(media);
+        
+        // Use JavaScript to download the file
+        await JSRuntime.InvokeVoidAsync("downloadFileFromUrl", media.MediaUrl, fileName);
+    }
+
+    private RenderFragment RenderMediaItems(int year, List<GalleryMedia> mediaList)
+    {
+        // Sort media by month (descending - newest first), day, and created date
+        var sortedMedia = mediaList
+            .OrderByDescending(m => m.Month ?? 0) // null months go to beginning, then 12->1
+            .ThenByDescending(m => m.Day ?? 0)
+            .ThenByDescending(m => m.TakenAt ?? m.CreatedAt)
+            .ToList();
+        
+        int? currentMonth = null;
+        
+        return __builder =>
+        {
+            foreach (var media in sortedMedia)
+            {
+                // Check if we need to show a month label
+                if (currentMonth != media.Month)
+                {
+                    currentMonth = media.Month;
+                    <div class="gallery-timeline-month-label">
+                        @if (media.Month.HasValue)
+                        {
+                            <text>@GetMonthName(media.Month.Value) @year</text>
+                        }
+                        else
+                        {
+                            <text>Sem mês definido</text>
+                        }
+                    </div>
+                }
+
+                var isLeft = timelineItemIndex % 2 == 0;
+                <div class="gallery-timeline-item @(isLeft ? "left" : "right")">
+                    <!-- Dot on the line -->
+                    <div class="gallery-timeline-dot"></div>
+                    
+                    <!-- Media card -->
+                    <div class="gallery-card" @onclick="() => OpenLightbox(media)">
+                        <div class="media-card-image">
+                            @if (media.MediaType == MediaType.Image)
+                            {
+                                <img src="@media.MediaUrl" alt="@media.Title" loading="lazy" />
+                            }
+                            else
+                            {
+                                <div class="video-thumbnail">
+                                    @if (!string.IsNullOrEmpty(media.ThumbnailUrl))
+                                    {
+                                        <img src="@media.ThumbnailUrl" alt="@media.Title" loading="lazy" />
+                                    }
+                                    <div class="video-overlay">
+                                        <i class="bi bi-play-circle-fill"></i>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="media-card-body">
+                            <h5 class="media-card-title">@media.Title</h5>
+                            <div class="media-card-meta">
+                                <div class="text-muted small mb-2">
+                                    @FormatMediaDate(media.Year, media.Month, media.Day)
+                                </div>
+                                @if (media.PeopleInMedia.Any())
+                                {
+                                    <div class="tagged-people">
+                                        <i class="bi bi-people-fill me-1"></i>
+                                        <span class="small">@string.Join(", ", media.PeopleInMedia.Select(p => p.User.Nickname ?? p.User.FirstName).Take(3))</span>
+                                        @if (media.PeopleInMedia.Count > 3)
+                                        {
+                                            <span class="small text-muted"> +@(media.PeopleInMedia.Count - 3)</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        
+                        @if (CanEditOrDelete(media))
+                        {
+                            <div class="gallery-admin-overlay">
+                                <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(media)" title="Editar">
+                                    <i class="bi bi-pencil music-icon-edit"></i>
+                                </button>
+                                <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(media)" title="Eliminar">
+                                    <i class="bi bi-trash music-icon-delete"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+                timelineItemIndex++;
+            }
+        };
+    }
+
+    private string GetMonthName(int month)
+    {
+        try
+        {
+            var date = new DateTime(2000, month, 1);
+            return date.ToString("MMMM", new CultureInfo("pt-PT"));
+        }
+        catch
+        {
+            return $"Mês {month}";
+        }
+    }
+
+    private string FormatMediaDate(int year, byte? month, byte? day)
+    {
+        try
+        {
+            if (month.HasValue && day.HasValue)
+            {
+                // Validate that the date is valid (handles Feb 30, Apr 31, etc.)
+                if (DateTime.DaysInMonth(year, month.Value) >= day.Value)
+                {
+                    var date = new DateTime(year, month.Value, day.Value);
+                    return date.ToString("dd MMM yyyy", new CultureInfo("pt-PT"));
+                }
+                // If day is invalid for the month, just show month and year
+                var monthDate = new DateTime(year, month.Value, 1);
+                return monthDate.ToString("MMM yyyy", new CultureInfo("pt-PT"));
+            }
+            else if (month.HasValue)
+            {
+                var date = new DateTime(year, month.Value, 1);
+                return date.ToString("MMM yyyy", new CultureInfo("pt-PT"));
+            }
+            else
+            {
+                return year.ToString();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error formatting media date: Year={Year}, Month={Month}, Day={Day}", year, month, day);
+            return year.ToString(); // Fallback to just showing the year
+        }
+    }
+
+    // Models
+    private class UploadModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public DateTime SelectedDate { get; set; } = DateTime.Today;
+        public List<string> TaggedPeopleIds { get; set; } = new();
+        public string? PreviewUrl { get; set; }
+    }
+
+    private class EditModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public DateTime SelectedDate { get; set; } = DateTime.Today;
+        public List<string> TaggedPeopleIds { get; set; } = new();
+    }
+}

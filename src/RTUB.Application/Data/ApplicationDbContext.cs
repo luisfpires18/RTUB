@@ -93,6 +93,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Message> Messages { get; set; }
     public DbSet<ConversationUserSettings> ConversationUserSettings { get; set; }
 
+    // Gallery DbSets
+    public DbSet<GalleryMedia> GalleryMedia { get; set; }
+    public DbSet<GalleryMediaPersonTag> GalleryMediaPersonTags { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

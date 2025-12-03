@@ -1,0 +1,46 @@
+@namespace RTUB.Shared
+
+@*
+    PersonBadge Component
+    Displays a person's name in a badge with optional close button
+    Matches the simple badge style used on /owner/tracing (bg-primary)
+    No avatar - just text and optional close button
+*@
+
+<span class="badge bg-primary @AdditionalClasses" style="display: inline-flex; align-items: center; gap: 0.25rem;">
+    @Name
+    @if (ShowCloseButton)
+    {
+        <span role="button" 
+              style="cursor: pointer; line-height: 1; padding: 0; margin: 0; opacity: 0.8;" 
+              @onclick="OnClose" 
+              @onclick:stopPropagation="true"
+              aria-label="Remover">×</span>
+    }
+</span>
+
+@code {
+    /// <summary>
+    /// The person's display name
+    /// </summary>
+    [Parameter]
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether to show the close button
+    /// </summary>
+    [Parameter]
+    public bool ShowCloseButton { get; set; } = false;
+
+    /// <summary>
+    /// Additional CSS classes to apply to the badge
+    /// </summary>
+    [Parameter]
+    public string AdditionalClasses { get; set; } = "";
+
+    /// <summary>
+    /// Callback when close button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+}

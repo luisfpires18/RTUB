@@ -2,11 +2,18 @@
 
 /* Image - Rectangular variant */
 .details-modal-image-rectangular {
-    max-width: 400px;
+    max-width: 600px;
     width: 100%;
     height: auto;
     border-radius: 8px;
     border: 3px solid var(--bs-primary);
+}
+
+/* Responsive adjustments for rectangular images */
+@media (max-width: 768px) {
+    .details-modal-image-rectangular {
+        max-width: 100%;
+    }
 }
 
 /* Image - Circular variant */

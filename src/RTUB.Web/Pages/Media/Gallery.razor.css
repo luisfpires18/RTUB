@@ -1,0 +1,373 @@
+/* ========================================
+   GALLERY TIMELINE - SIMPLIFIED LAYOUT
+   ======================================== */
+
+/* Base container */
+.gallery-timeline {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+/* Central vertical line */
+.gallery-timeline-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    background: var(--bs-purple);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Year badge/pill */
+.timeline-year-node {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin: 40px 0;
+    z-index: 1;
+}
+
+.timeline-year-marker {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: var(--bs-dark);
+    padding: 10px 30px;
+    border-radius: 30px;
+    border: 3px solid var(--bs-purple);
+}
+
+.timeline-year-dot {
+    width: 20px;
+    height: 20px;
+    background: var(--bs-purple);
+    border-radius: 50%;
+    border: 3px solid var(--bs-dark);
+}
+
+.timeline-year-label {
+    margin: 0;
+    color: white;
+    font-weight: bold;
+    font-size: 1.8rem;
+}
+
+/* Month label - just text near the line */
+.gallery-timeline-month-label {
+    position: relative;
+    margin: 1rem 0 0.5rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #b0b0b0;
+    font-weight: 500;
+    text-transform: capitalize;
+    z-index: 1;
+}
+
+/* Timeline item - one card per item */
+.gallery-timeline-item {
+    position: relative;
+    width: 100%;
+    margin: 3rem 0;
+}
+
+/* Dot on the line for each item */
+.gallery-timeline-dot {
+    position: absolute;
+    left: 50%;
+    top: 1.25rem;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--bs-purple);
+    border: 2px solid var(--bs-dark);
+    z-index: 1;
+}
+
+/* Card positioning - left and right */
+.gallery-timeline-item.left .gallery-card {
+    margin-right: auto;
+    margin-left: 0;
+}
+
+.gallery-timeline-item.right .gallery-card {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+/* Gallery card base styles */
+.gallery-card {
+    width: min(420px, 45%);
+    position: relative;
+    background: var(--bs-card-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    z-index: 1;
+}
+
+/* Hover style matching Members.razor avatar-card */
+.gallery-card:hover,
+.gallery-card:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--bs-primary);
+    outline: none;
+}
+
+.gallery-card:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--bs-primary);
+    outline: none;
+}
+
+/* Admin overlay (edit/delete buttons) */
+.gallery-admin-overlay {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+    opacity: 0.85;
+    transition: opacity 0.2s ease;
+}
+
+.gallery-card:hover .gallery-admin-overlay {
+    opacity: 1;
+}
+
+.media-card-image {
+    position: relative;
+    width: 100%;
+    height: 250px;
+    overflow: hidden;
+    background: var(--bs-gray-900);
+}
+
+.media-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.media-card:hover .media-card-image img {
+    transform: scale(1.05);
+}
+
+.video-thumbnail {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.video-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 4rem;
+    color: white;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.media-card:hover .video-overlay {
+    opacity: 1;
+}
+
+.media-card-body {
+    padding: 15px;
+}
+
+.media-card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--bs-body-color);
+    margin-bottom: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.media-card-meta {
+    margin-bottom: 10px;
+}
+
+.uploader-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--bs-purple);
+}
+
+.tagged-people {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: white;
+}
+
+.tagged-people i {
+    color: var(--bs-purple);
+}
+
+.media-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+/* Lightbox */
+.lightbox-content {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.lightbox-content > img {
+    display: block;
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: 8px;
+    margin: 0 auto;
+}
+
+.lightbox-content video {
+    border-radius: 8px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    /* Shift line to the left */
+    .gallery-timeline-line {
+        left: 30px;
+    }
+
+    /* Shift dot to the left */
+    .gallery-timeline-dot {
+        left: 30px;
+        transform: translateX(-50%);
+    }
+
+    /* All cards to the right of the line */
+    .gallery-timeline-item.left .gallery-card,
+    .gallery-timeline-item.right .gallery-card {
+        margin-left: 3.5rem;
+        margin-right: 0;
+        width: auto;
+    }
+
+    /* Month label aligned left */
+    .gallery-timeline-month-label {
+        text-align: left;
+        padding-left: 3.5rem;
+    }
+
+    /* Year marker aligned left */
+    .timeline-year-node {
+        justify-content: flex-start;
+        padding-left: 3.5rem;
+    }
+
+    .timeline-year-marker {
+        padding: 8px 20px;
+    }
+
+    .timeline-year-label {
+        font-size: 1.5rem;
+    }
+
+    .media-card-image {
+        height: 200px;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 576px) {
+    /* Line closer to left edge */
+    .gallery-timeline-line {
+        left: 20px;
+    }
+
+    /* Dot closer to left edge */
+    .gallery-timeline-dot {
+        left: 20px;
+    }
+
+    /* Cards with less left margin */
+    .gallery-timeline-item.left .gallery-card,
+    .gallery-timeline-item.right .gallery-card {
+        margin-left: 2.5rem;
+    }
+
+    /* Month label closer */
+    .gallery-timeline-month-label {
+        padding-left: 2.5rem;
+    }
+
+    /* Year marker closer */
+    .timeline-year-node {
+        padding-left: 2.5rem;
+    }
+
+    .timeline-year-marker {
+        padding: 6px 15px;
+    }
+
+    .timeline-year-dot {
+        width: 16px;
+        height: 16px;
+    }
+
+    .timeline-year-label {
+        font-size: 1.3rem;
+    }
+}
+
+/* Gallery-specific override for larger image in modal */
+::deep .details-modal-image-rectangular {
+    max-width: 800px;
+}
+
+@media (max-width: 768px) {
+    ::deep .details-modal-image-rectangular {
+        max-width: 100%;
+    }
+}
+
+/* Person selector styling */
+::deep .list-group-item {
+    background-color: var(--bs-card-bg);
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+::deep .list-group-item:hover {
+    background-color: rgba(138, 43, 226, 0.1);
+    border-color: var(--bs-purple);
+}
+
+::deep .list-group-item.active {
+    background-color: rgba(138, 43, 226, 0.2);
+    border-color: var(--bs-purple);
+    color: var(--bs-body-color);
+}

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RTUB.Application.Data;
 
@@ -10,9 +11,11 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251203131626_AddGalleryMedia")]
+    partial class AddGalleryMedia
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -880,8 +883,9 @@ namespace RTUB.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("TEXT");
 
-                    b.Property<byte?>("Day")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("MediaType")
                         .HasColumnType("INTEGER");
@@ -890,9 +894,6 @@ namespace RTUB.Migrations
                         .IsRequired()
                         .HasMaxLength(2048)
                         .HasColumnType("TEXT");
-
-                    b.Property<byte?>("Month")
-                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("TakenAt")
                         .HasColumnType("TEXT");
@@ -2225,64 +2226,6 @@ namespace RTUB.Migrations
                     b.ToTable("Songs");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.SongVideo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedByUserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MimeType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("SizeBytes")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SongId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SortOrder")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
-
-                    b.Property<string>("Title")
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("SongId");
-
-                    b.HasIndex("SongId", "SortOrder");
-
-                    b.ToTable("SongVideos", (string)null);
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.SongYouTubeUrl", b =>
                 {
                     b.Property<int>("Id")
@@ -2837,25 +2780,6 @@ namespace RTUB.Migrations
                     b.Navigation("Album");
                 });
 
-            modelBuilder.Entity("RTUB.Core.Entities.SongVideo", b =>
-                {
-                    b.HasOne("RTUB.Core.Entities.ApplicationUser", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("RTUB.Core.Entities.Song", "Song")
-                        .WithMany("Videos")
-                        .HasForeignKey("SongId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CreatedByUser");
-
-                    b.Navigation("Song");
-                });
-
             modelBuilder.Entity("RTUB.Core.Entities.SongYouTubeUrl", b =>
                 {
                     b.HasOne("RTUB.Core.Entities.Song", "Song")
@@ -2961,8 +2885,6 @@ namespace RTUB.Migrations
             modelBuilder.Entity("RTUB.Core.Entities.Song", b =>
                 {
                     b.Navigation("EventRepertoires");
-
-                    b.Navigation("Videos");
 
                     b.Navigation("YouTubeUrls");
                 });

@@ -14,3 +14,24 @@ window.downloadFile = function (filename, base64Content, contentType) {
     link.click();
     window.URL.revokeObjectURL(link.href);
 };
+
+// Download file from URL using server-side proxy to bypass CORS
+window.downloadFileFromUrl = async function (url, filename) {
+    try {
+        // Use server-side proxy endpoint to download file
+        // This bypasses CORS restrictions on Cloudflare R2 URLs
+        const proxyUrl = `/api/DownloadMedia?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+        
+        // Create a temporary link and trigger download
+        const link = document.createElement('a');
+        link.href = proxyUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (error) {
+        console.error('Download failed:', error);
+        // Fallback: open in new tab if proxy fails
+        window.open(url, '_blank');
+    }
+}
