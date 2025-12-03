@@ -74,8 +74,9 @@
                     
                     <div class="post-wrapper mb-3">
                         <!-- PostCard as clickable header with action buttons -->
-                        <PostCard Post="@post" 
-                                 CommentCount="@commentCount" 
+                        <PostCard Post="@post"
+                                 CommentCount="@commentCount"
+                                 EventName="@eventItem.Name"
                                  OnClick="@(() => TogglePost(post.Id))"
                                  ShowAuthorControls="@IsAuthor(post)"
                                  ShowAdminControls="@isAdmin"
