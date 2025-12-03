@@ -421,8 +421,9 @@ else
 <Modal Show="@showVideosModal" 
        ShowChanged="@((value) => showVideosModal = value)"
        Title="@($"Vídeos - {viewingVideosForSong?.Title}")" 
-       Size="Modal.ModalSize.ExtraLarge"
+       Size="Modal.ModalSize.Large"
        Centered="true"
+       ShowCloseButton="true"
        OnClose="@CloseVideosModal">
     <BodyContent>
         @if (songVideos == null || (!songVideos.Any() && !canManageSongs))
@@ -435,10 +436,10 @@ else
         {
             @if (canManageSongs)
             {
-                <div class="mb-4 p-3 border rounded bg-light">
-                    <h6 class="mb-3">
-                        <i class="bi bi-upload text-primary me-2"></i>Adicionar Vídeo
-                    </h6>
+                <div class="mb-3 p-3 border rounded bg-light">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-camera-video text-primary me-2"></i>Adicionar Vídeo
+                    </label>
                     @if (isUploadingVideo)
                     {
                         <div class="text-center py-3">
@@ -450,11 +451,28 @@ else
                     }
                     else
                     {
-                        <div class="mb-2">
-                            <InputFile OnChange="HandleVideoUpload" accept="video/*" class="form-control" />
+                        <div class="localized-file-picker">
+                            <InputFile id="@videoInputId" 
+                                       class="d-none" 
+                                       OnChange="@HandleVideoUpload" 
+                                       accept="video/*" 
+                                       aria-label="Escolher vídeo" />
+                            <label class="btn btn-outline-secondary localized-file-button" for="@videoInputId">
+                                <i class="bi bi-upload me-2"></i>Escolher vídeo
+                            </label>
+                            <span class="localized-file-name">
+                                @if (selectedVideoFile != null)
+                                {
+                                    <text>@selectedVideoFile.Name</text>
+                                }
+                                else
+                                {
+                                    <text>Nenhum vídeo selecionado</text>
+                                }
+                            </span>
                         </div>
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>Tamanho máximo: 100MB. Formatos aceites: MP4, WebM, OGG
+                        <small class="text-muted d-block mt-2">
+                            <i class="bi bi-info-circle me-1"></i>Tamanho máximo: 100MB
                         </small>
                     }
                 </div>
@@ -462,70 +480,53 @@ else
             
             @if (songVideos != null && songVideos.Any())
             {
-                <div class="row g-3">
-                    <!-- Video Player -->
-                    <div class="col-lg-8 order-1 order-lg-1">
-                        @if (!string.IsNullOrEmpty(selectedVideoUrl))
-                        {
-                            <div class="video-player-wrapper">
-                                <video controls class="w-100 rounded" style="max-height: 500px; background: #000;" @key="selectedVideoUrl">
-                                    <source src="@selectedVideoUrl" type="video/mp4">
-                                    Seu navegador não suporta o elemento de vídeo.
-                                </video>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="text-center p-5 border rounded bg-light">
-                                <i class="bi bi-camera-video display-4 text-muted"></i>
-                                <p class="mt-3 text-muted">Selecione um vídeo para reproduzir</p>
-                            </div>
-                        }
-                    </div>
-                    
-                    <!-- Video List -->
-                    <div class="col-lg-4 order-2 order-lg-2">
-                        <h6 class="mb-3">
-                            <i class="bi bi-list-ul text-primary me-2"></i>Vídeos Disponíveis (@songVideos.Count)
-                        </h6>
-                        <div class="video-list" style="max-height: 500px; overflow-y: auto;">
-                            @foreach (var video in songVideos.OrderBy(v => v.SortOrder))
+                var videos = songVideos.OrderBy(v => v.SortOrder).ToList();
+                
+                @if (videos.Count > 1)
+                {
+                    <div class="video-selector mb-3">
+                        <label class="form-label fw-semibold">Selecione um vídeo:</label>
+                        <div class="list-group">
+                            @for (int i = 0; i < videos.Count; i++)
                             {
-                                <div class="video-list-item p-3 mb-2 border rounded @(selectedVideoUrl == video.Url ? "bg-primary text-white" : "bg-light")" 
-                                     style="cursor: pointer; transition: all 0.2s;"
-                                     @onclick="() => SelectVideo(video.Url)">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div class="flex-grow-1">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <i class="bi bi-play-circle-fill"></i>
-                                                <span class="fw-semibold">@(video.Title ?? "Vídeo")</span>
-                                            </div>
-                                            <small class="d-block mt-1 @(selectedVideoUrl == video.Url ? "text-white-50" : "text-muted")">
-                                                @FormatFileSize(video.SizeBytes)
-                                            </small>
-                                        </div>
-                                        @if (canManageSongs)
-                                        {
-                                            <button type="button" 
-                                                    class="btn btn-sm @(selectedVideoUrl == video.Url ? "btn-light" : "btn-outline-danger")" 
-                                                    @onclick:stopPropagation="true"
-                                                    @onclick="() => DeleteVideo(video)"
-                                                    title="Eliminar vídeo">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        }
-                                    </div>
-                                </div>
+                                var index = i;
+                                var video = videos[i];
+                                var isSelected = selectedVideoIndex == index;
+                                <button type="button"
+                                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center @(isSelected ? "active" : "")"
+                                        @onclick="() => SelectVideoByIndex(index)">
+                                    <span>
+                                        <i class="bi bi-play-circle me-2"></i>@(video.Title ?? $"Vídeo {i + 1}")
+                                    </span>
+                                    @if (canManageSongs)
+                                    {
+                                        <button type="button" 
+                                                class="btn btn-sm @(isSelected ? "btn-light" : "btn-outline-danger")" 
+                                                @onclick:stopPropagation="true"
+                                                @onclick="() => DeleteVideo(video)"
+                                                title="Eliminar vídeo">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </button>
                             }
                         </div>
                     </div>
-                </div>
+                }
+                
+                @if (selectedVideoIndex >= 0 && selectedVideoIndex < videos.Count)
+                {
+                    var selectedVideo = videos[selectedVideoIndex];
+                    <div class="video-player-container">
+                        <video @key="@selectedVideo.Id" controls class="modal-video" autoplay preload="metadata">
+                            <source src="@selectedVideo.Url" type="@selectedVideo.MimeType">
+                            O seu navegador não suporta o elemento de vídeo.
+                        </video>
+                    </div>
+                }
             }
         }
     </BodyContent>
-    <FooterContent>
-        <button type="button" class="btn btn-secondary" @onclick="CloseVideosModal">Fechar</button>
-    </FooterContent>
 </Modal>
 
 @code {
@@ -551,9 +552,10 @@ else
     
     // Video modal state
     private List<SongVideo>? songVideos = null;
-    private string? selectedVideoUrl = null;
+    private int selectedVideoIndex = 0;
     private bool isUploadingVideo = false;
     private IBrowserFile? selectedVideoFile = null;
+    private string videoInputId = $"song-videos-{Guid.NewGuid():N}";
     
     // Audio player state
     private string? currentAudioUrl;
@@ -988,7 +990,7 @@ else
     {
         viewingVideosForSong = song;
         songVideos = (await SongService.GetVideosBySongIdAsync(song.Id)).ToList();
-        selectedVideoUrl = songVideos.FirstOrDefault()?.Url;
+        selectedVideoIndex = 0;
         showVideosModal = true;
     }
     
@@ -997,21 +999,26 @@ else
         showVideosModal = false;
         viewingVideosForSong = null;
         songVideos = null;
-        selectedVideoUrl = null;
+        selectedVideoIndex = 0;
         selectedVideoFile = null;
+        isUploadingVideo = false;
+    }
+    
+    private void SelectVideoByIndex(int index)
+    {
+        selectedVideoIndex = index;
     }
     
     private async Task HandleVideoUpload(InputFileChangeEventArgs e)
     {
         if (viewingVideosForSong == null) return;
         
-        selectedVideoFile = e.File;
+        var file = e.File;
         var maxFileSize = 100 * 1024 * 1024; // 100MB
         
-        if (selectedVideoFile.Size > maxFileSize)
+        if (file.Size > maxFileSize)
         {
             Logger.LogWarning("Video file size exceeds maximum allowed size of 100MB");
-            // TODO: Show error notification to user
             return;
         }
         
@@ -1020,24 +1027,29 @@ else
         
         try
         {
-            using var stream = selectedVideoFile.OpenReadStream(maxFileSize);
+            // Copy to MemoryStream to make it seekable (required for S3 checksum calculation)
+            using var browserStream = file.OpenReadStream(maxFileSize);
+            using var memoryStream = new MemoryStream();
+            await browserStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+            
             var currentUserId = await GetCurrentUserId();
             
             // Use filename without extension as default title
-            var defaultTitle = System.IO.Path.GetFileNameWithoutExtension(selectedVideoFile.Name);
+            var defaultTitle = System.IO.Path.GetFileNameWithoutExtension(file.Name);
             
             await SongService.AddVideoAsync(
                 viewingVideosForSong.Id,
-                stream,
-                selectedVideoFile.Name,
-                selectedVideoFile.ContentType,
+                memoryStream,
+                file.Name,
+                file.ContentType,
                 currentUserId,
                 defaultTitle
             );
             
-            // Reload videos
+            // Reload videos and select the newly uploaded one
             songVideos = (await SongService.GetVideosBySongIdAsync(viewingVideosForSong.Id)).ToList();
-            selectedVideoUrl = songVideos.LastOrDefault()?.Url;
+            selectedVideoIndex = songVideos.Count - 1; // Select last (newly added) video
         }
         catch (Exception ex)
         {
@@ -1046,7 +1058,6 @@ else
         finally
         {
             isUploadingVideo = false;
-            selectedVideoFile = null;
             StateHasChanged();
         }
     }
@@ -1060,13 +1071,22 @@ else
             var currentUserId = await GetCurrentUserId();
             await SongService.DeleteVideoAsync(video.Id, currentUserId);
             
+            // Store the video we're deleting to check if it's selected
+            var wasSelected = songVideos != null && selectedVideoIndex >= 0 && 
+                              selectedVideoIndex < songVideos.Count && 
+                              songVideos[selectedVideoIndex].Id == video.Id;
+            
             // Reload videos
             songVideos = (await SongService.GetVideosBySongIdAsync(viewingVideosForSong.Id)).ToList();
             
-            // Clear selected video if it was deleted
-            if (selectedVideoUrl == video.Url)
+            // Adjust selected index if needed
+            if (wasSelected)
             {
-                selectedVideoUrl = songVideos.FirstOrDefault()?.Url;
+                selectedVideoIndex = 0; // Reset to first video
+            }
+            else if (selectedVideoIndex >= songVideos.Count)
+            {
+                selectedVideoIndex = Math.Max(0, songVideos.Count - 1);
             }
             
             StateHasChanged();
@@ -1077,11 +1097,7 @@ else
         }
     }
     
-    private void SelectVideo(string videoUrl)
-    {
-        selectedVideoUrl = videoUrl;
-        StateHasChanged();
-    }
+
     
     private string FormatFileSize(long bytes)
     {
