@@ -116,7 +116,8 @@ else
         <div class="avatar-card-grid">
             @foreach (var user in paginatedRegularMembers)
             {
-                <AvatarCard AvatarUrl="@user.ProfilePictureSrc"
+                <AvatarCard @key="user.Id"
+                           AvatarUrl="@user.ProfilePictureSrc"
                            TunaName="@user.Nickname"
                            FullName="@($"{user.FirstName} {user.LastName}")"
                            InstrumentText="@(userPrimaryInstruments.ContainsKey(user.Id) ? userPrimaryInstruments[user.Id] : "")"
@@ -141,7 +142,7 @@ else
                             @foreach (var category in user.Categories.Where(c =>
                                 c == MemberCategory.Caloiro || c == MemberCategory.Tuno))
                             {
-                                <CategoryBadge Category="@category" />
+                                <CategoryBadge @key="category" Category="@category" />
                             }
                         </div>
                         <!-- Role/Position badges row -->
@@ -181,7 +182,8 @@ else
         <div class="avatar-card-grid">
             @foreach (var user in paginatedLeitoes)
             {
-                <AvatarCard AvatarUrl="@user.ProfilePictureSrc"
+                <AvatarCard @key="user.Id"
+                           AvatarUrl="@user.ProfilePictureSrc"
                            TunaName="@user.Nickname"
                            FullName="@($"{user.FirstName} {user.LastName}")"
                            InstrumentText="@(userPrimaryInstruments.ContainsKey(user.Id) ? userPrimaryInstruments[user.Id] : "")"
@@ -565,7 +567,7 @@ else
                     }
                     @foreach (var category in displayCategories)
                     {
-                        <CategoryBadge Category="@category" />
+                        <CategoryBadge @key="category" Category="@category" />
                     }
                     @if (viewingUser.Positions.Any())
                     {
@@ -1936,15 +1938,6 @@ else
             }
         }
 
-        // Clear all cached data before reloading to ensure fresh data
-        users = null;
-        filteredUsers.Clear();
-        filteredRegularMembers.Clear();
-        filteredLeitoes.Clear();
-        paginatedUsers.Clear();
-        paginatedRegularMembers.Clear();
-        paginatedLeitoes.Clear();
-        
         await LoadMembers();
         CloseEditModal();
         }
