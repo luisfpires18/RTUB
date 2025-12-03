@@ -141,7 +141,7 @@ else
                             @foreach (var category in user.Categories.Where(c =>
                                 c == MemberCategory.Caloiro || c == MemberCategory.Tuno))
                             {
-                                <CategoryBadge Category="category" />
+                                <CategoryBadge Category="@category" />
                             }
                         </div>
                         <!-- Role/Position badges row -->
@@ -565,7 +565,7 @@ else
                     }
                     @foreach (var category in displayCategories)
                     {
-                        <CategoryBadge Category="category" />
+                        <CategoryBadge Category="@category" />
                     }
                     @if (viewingUser.Positions.Any())
                     {
@@ -1937,6 +1937,7 @@ else
         }
 
         await LoadMembers();
+        StateHasChanged();
         CloseEditModal();
         }
         finally
