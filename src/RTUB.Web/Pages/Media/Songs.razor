@@ -612,6 +612,10 @@ else
     // URL cache for performance (session-based with size limit)
     private Dictionary<string, string> urlCache = new();
     private const int MaxCacheSize = 100; // Limit cache to 100 URLs per session
+    
+    // Video title detection constants
+    private const int MaxCleanTitleLength = 50;
+    private static readonly string[] VideoExtensions = { ".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -1198,12 +1202,10 @@ else
             return $"{viewingVideosForSong.Title} - Vídeo {videoNumber}";
         }
         
-        // Check if title looks like a storage key (long and contains file extensions or GUIDs)
+        // Check if title looks like a storage key (long, contains file extensions, or path separators)
         var title = video.Title.Trim();
-        var looksLikeKey = title.Length > 50 || 
-                          title.Contains(".mp4", StringComparison.OrdinalIgnoreCase) ||
-                          title.Contains(".mov", StringComparison.OrdinalIgnoreCase) ||
-                          title.Contains(".avi", StringComparison.OrdinalIgnoreCase) ||
+        var looksLikeKey = title.Length > MaxCleanTitleLength || 
+                          VideoExtensions.Any(ext => title.Contains(ext, StringComparison.OrdinalIgnoreCase)) ||
                           title.Contains("/") ||
                           title.Contains("\\");
         
