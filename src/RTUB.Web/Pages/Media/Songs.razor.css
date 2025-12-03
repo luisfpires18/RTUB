@@ -26,7 +26,8 @@
 }
 
 .video-selector .list-group-item:hover:not(.active) {
-    background-color: rgba(var(--bs-primary-rgb), 0.15); /* Purple hover using theme color */
+    background-color: var(--bs-primary); /* Purple hover using theme color */
+    color: white;
 }
 
 .video-selector .list-group-item.active {
