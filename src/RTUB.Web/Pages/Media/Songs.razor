@@ -1126,12 +1126,8 @@ else
             // Reload videos for the modal
             songVideos = (await SongService.GetVideosBySongIdAsync(viewingVideosForSong.Id)).ToList();
             
-            // Select the newly uploaded video
-            var newVideo = songVideos.OrderByDescending(v => v.CreatedAt).FirstOrDefault();
-            if (newVideo != null)
-            {
-                selectedVideoId = newVideo.Id;
-            }
+            // Don't auto-select video after upload - keep all collapsed
+            selectedVideoId = null;
             
             // Clear selection and force InputFile to recreate for next upload
             CancelVideoSelection();

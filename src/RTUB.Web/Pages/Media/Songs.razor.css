@@ -37,15 +37,17 @@
 
 /* Video title truncation to prevent overflow when delete button is present */
 .video-selector .list-group-item {
-    padding-right: 3rem; /* Make room for delete button */
+    padding-right: 3.5rem; /* Make room for delete button */
+    overflow: hidden; /* Prevent any content from overflowing */
 }
 
 .video-selector .video-title-content {
-    display: block;
+    display: inline-block;
+    max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-right: 0.5rem; /* Extra space before delete button */
+    vertical-align: middle;
 }
 
 /* Responsive video sizing for modal */
