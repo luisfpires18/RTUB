@@ -35,16 +35,9 @@
     color: white;
 }
 
-/* Video title truncation to prevent overflow */
-.video-title-wrapper {
-    display: flex;
-    align-items: center;
-    min-width: 0; /* Allow flex item to shrink */
-    flex: 1;
-    margin-right: 8px;
-}
-
-.video-title-text {
+/* Video title truncation to prevent overflow when delete button is present */
+.video-selector .list-group-item {
+    padding-right: 3rem; /* Make room for delete button */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

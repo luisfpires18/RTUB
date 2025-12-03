@@ -524,23 +524,21 @@ else
                             // Generate clean display title
                             var displayTitle = GetCleanVideoTitle(video, i + 1);
                             
-                            <button type="button"
-                                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center @(isSelected ? "active" : "")"
-                                    @onclick="() => SelectVideoByIndex(video.Id)">
-                                <span class="video-title-wrapper">
-                                    <i class="bi bi-play-circle me-2"></i><span class="video-title-text">@displayTitle</span>
-                                </span>
+                            <div class="list-group-item list-group-item-action position-relative @(isSelected ? "active" : "")"
+                                 role="button"
+                                 @onclick="() => SelectVideoByIndex(video.Id)">
+                                <i class="bi bi-play-circle me-2"></i>@displayTitle
                                 @if (canManageSongs)
                                 {
                                     <button type="button" 
-                                            class="btn btn-sm @(isSelected ? "btn-light" : "btn-outline-danger")" 
+                                            class="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-2 @(isSelected ? "btn-light" : "btn-outline-danger")" 
                                             @onclick:stopPropagation="true"
                                             @onclick="() => DeleteVideoFromModal(video)"
                                             title="Eliminar vídeo">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 }
-                            </button>
+                            </div>
                         }
                     </div>
                 </div>
