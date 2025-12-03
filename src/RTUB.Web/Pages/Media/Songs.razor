@@ -530,7 +530,7 @@ else
                                 <span class="video-title-content">
                                     <i class="bi bi-play-circle me-2"></i>@displayTitle
                                 </span>
-                                @if (canManageSongs)
+                                @if (CanDeleteVideo(video))
                                 {
                                     <button type="button" 
                                             class="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-2 @(isSelected ? "btn-light" : "btn-outline-danger")" 
@@ -558,13 +558,6 @@ else
                         </div>
                     }
                 }
-                else
-                {
-                    <div class="text-center p-5 border rounded bg-light">
-                        <i class="bi bi-camera-video display-4 text-muted"></i>
-                        <p class="mt-3 text-muted">Selecione um vídeo para reproduzir</p>
-                    </div>
-                }
             }
         </div>
     </BodyContent>
@@ -590,6 +583,8 @@ else
     private Song? viewingVideosForSong = null;
     private List<string> editingYouTubeUrls = new();
     private bool canManageSongs = false;
+    private string? currentUserId = null;
+    private bool isAdmin = false;
     
     // Video modal state (view and upload)
     private List<SongVideo>? songVideos = null;
@@ -638,10 +633,12 @@ else
         
         await LoadSongs();
         
-        // Check if user is Owner or Mod
+        // Check if user is Owner or Mod and get user info
         var authStateForOwner = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var userForOwner = authStateForOwner.User;
         canManageSongs = userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
+        isAdmin = userForOwner.IsInRole("Admin") || userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
+        currentUserId = userForOwner.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
     }
 
     private async Task LoadSongs()
@@ -1149,8 +1146,8 @@ else
         
         try
         {
-            var currentUserId = await GetCurrentUserId();
-            await SongService.DeleteVideoAsync(video.Id, currentUserId);
+            var userId = await GetCurrentUserId();
+            await SongService.DeleteVideoAsync(video.Id, userId, isAdmin);
             
             // Clear selection if the deleted video was selected
             if (selectedVideoId == video.Id)
@@ -1212,6 +1209,19 @@ else
         
         // Title looks good, use as-is
         return title;
+    }
+    
+    /// <summary>
+    /// Check if the current user can delete a specific video.
+    /// Returns true if user is the uploader OR an admin.
+    /// </summary>
+    private bool CanDeleteVideo(SongVideo video)
+    {
+        if (string.IsNullOrEmpty(currentUserId))
+            return false;
+            
+        // User can delete if they are the uploader OR if they are admin
+        return video.CreatedByUserId == currentUserId || isAdmin;
     }
 }
 

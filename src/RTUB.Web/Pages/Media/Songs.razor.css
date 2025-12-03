@@ -50,6 +50,16 @@
     vertical-align: middle;
 }
 
+/* Fix filename overflow in file picker */
+.localized-file-picker .localized-file-name {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
 /* Responsive video sizing for modal */
 @media (max-width: 768px) {
     .modal-video {
