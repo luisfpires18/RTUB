@@ -445,8 +445,28 @@ else
                 }
                 else
                 {
-                    <InputFile @key="videoUploadKey" OnChange="HandleVideoUpload" accept="video/*" class="form-control mb-2" />
-                    <small class="text-muted d-block">
+                    <div class="localized-file-picker">
+                        <InputFile id="@videoInputId" 
+                                   @key="videoUploadKey"
+                                   class="d-none" 
+                                   OnChange="@HandleVideoUpload" 
+                                   accept="video/*" 
+                                   aria-label="Escolher vídeo" />
+                        <label class="btn btn-outline-secondary localized-file-button" for="@videoInputId">
+                            <i class="bi bi-upload me-2"></i>Escolher vídeo
+                        </label>
+                        <span class="localized-file-name">
+                            @if (!string.IsNullOrEmpty(selectedVideoName))
+                            {
+                                <text>@selectedVideoName</text>
+                            }
+                            else
+                            {
+                                <text>Nenhum vídeo selecionado</text>
+                            }
+                        </span>
+                    </div>
+                    <small class="text-muted d-block mt-2">
                         <i class="bi bi-info-circle me-1"></i>Tamanho máximo: 100MB
                     </small>
                 }
@@ -544,6 +564,8 @@ else
     private int selectedVideoIndex = 0;
     private bool isUploadingVideo = false;
     private Guid videoUploadKey = Guid.NewGuid(); // Force InputFile to recreate on modal open
+    private string videoInputId = $"song-video-{Guid.NewGuid():N}";
+    private string? selectedVideoName = null;
     
     // Audio player state
     private string? currentAudioUrl;
@@ -990,6 +1012,7 @@ else
         songVideos = null;
         selectedVideoIndex = 0;
         isUploadingVideo = false;
+        selectedVideoName = null;
     }
     
     private void SelectVideoByIndex(int index)
@@ -1007,20 +1030,25 @@ else
         if (file.Size > maxFileSize)
         {
             Logger.LogWarning("Video file size exceeds maximum allowed size of 100MB");
+            selectedVideoName = null;
             return;
         }
         
-        isUploadingVideo = true;
-        StateHasChanged();
+        // Show selected file name
+        selectedVideoName = file.Name;
         
         try
         {
-            // Copy to MemoryStream to make it seekable (required for S3 checksum calculation)
-            // This also reads the file immediately, avoiding JSException when modal state changes
+            // Read file immediately into MemoryStream BEFORE any state changes
+            // This prevents JSException when Blazor re-renders
             using var browserStream = file.OpenReadStream(maxFileSize);
             using var memoryStream = new MemoryStream();
             await browserStream.CopyToAsync(memoryStream);
             memoryStream.Position = 0;
+            
+            // Now it's safe to update UI state
+            isUploadingVideo = true;
+            StateHasChanged();
             
             var currentUserId = await GetCurrentUserId();
             
@@ -1040,12 +1068,14 @@ else
             songVideos = (await SongService.GetVideosBySongIdAsync(viewingVideosForSong.Id)).ToList();
             selectedVideoIndex = songVideos.Count - 1; // Select the newly uploaded video
             
-            // Force InputFile to recreate for next upload
+            // Clear selection and force InputFile to recreate for next upload
+            selectedVideoName = null;
             videoUploadKey = Guid.NewGuid();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error uploading video for song: {SongId}", viewingVideosForSong.Id);
+            selectedVideoName = null;
         }
         finally
         {
