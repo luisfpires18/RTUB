@@ -426,8 +426,8 @@ else
        ShowCloseButton="true"
        OnClose="@CloseVideosModal">
     <BodyContent>
-        @* Upload Section - Only visible to authorized users *@
-        @if (canManageSongs)
+        @* Upload Section - Visible to all logged-in users *@
+        @if (currentUserId != null)
         {
             <div class="mb-4">
                 <h6 class="mb-3">
@@ -520,27 +520,27 @@ else
                             var index = i;
                             var video = videos[i];
                             var isSelected = selectedVideoId == video.Id;
-                            var displayTitle = !string.IsNullOrWhiteSpace(video.Title) 
-                                ? video.Title 
-                                : System.IO.Path.GetFileNameWithoutExtension(video.Url.Split('/').LastOrDefault() ?? $"Vídeo {i + 1}");
                             
-                            <button type="button"
-                                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center @(isSelected ? "active" : "")"
-                                    @onclick="() => SelectVideoByIndex(video.Id)">
-                                <span class="video-title-wrapper">
-                                    <i class="bi bi-play-circle me-2"></i><span class="video-title-text">@displayTitle</span>
+                            // Generate clean display title
+                            var displayTitle = GetCleanVideoTitle(video, i + 1);
+                            
+                            <div class="list-group-item list-group-item-action position-relative @(isSelected ? "active" : "")"
+                                 role="button"
+                                 @onclick="() => SelectVideoByIndex(video.Id)">
+                                <span class="video-title-content">
+                                    <i class="bi bi-play-circle me-2"></i>@displayTitle
                                 </span>
-                                @if (canManageSongs)
+                                @if (CanDeleteVideo(video))
                                 {
                                     <button type="button" 
-                                            class="btn btn-sm @(isSelected ? "btn-light" : "btn-outline-danger")" 
+                                            class="btn btn-sm admin-btn-delete position-absolute top-50 end-0 translate-middle-y me-2" 
                                             @onclick:stopPropagation="true"
                                             @onclick="() => DeleteVideoFromModal(video)"
                                             title="Eliminar vídeo">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 }
-                            </button>
+                            </div>
                         }
                     </div>
                 </div>
@@ -557,13 +557,6 @@ else
                             </video>
                         </div>
                     }
-                }
-                else
-                {
-                    <div class="text-center p-5 border rounded bg-light">
-                        <i class="bi bi-camera-video display-4 text-muted"></i>
-                        <p class="mt-3 text-muted">Selecione um vídeo para reproduzir</p>
-                    </div>
                 }
             }
         </div>
@@ -590,6 +583,8 @@ else
     private Song? viewingVideosForSong = null;
     private List<string> editingYouTubeUrls = new();
     private bool canManageSongs = false;
+    private string? currentUserId = null;
+    private bool isAdmin = false;
     
     // Video modal state (view and upload)
     private List<SongVideo>? songVideos = null;
@@ -612,6 +607,10 @@ else
     // URL cache for performance (session-based with size limit)
     private Dictionary<string, string> urlCache = new();
     private const int MaxCacheSize = 100; // Limit cache to 100 URLs per session
+    
+    // Video title detection constants
+    private const int MaxCleanTitleLength = 50;
+    private static readonly string[] VideoExtensions = { ".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -634,10 +633,12 @@ else
         
         await LoadSongs();
         
-        // Check if user is Owner or Mod
+        // Check if user is Owner or Mod and get user info
         var authStateForOwner = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var userForOwner = authStateForOwner.User;
         canManageSongs = userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
+        isAdmin = userForOwner.IsInRole("Admin") || userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
+        currentUserId = userForOwner.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
     }
 
     private async Task LoadSongs()
@@ -1053,7 +1054,15 @@ else
     
     private void SelectVideoByIndex(int videoId)
     {
-        selectedVideoId = videoId;
+        // Toggle: if clicking the same video, collapse it
+        if (selectedVideoId == videoId)
+        {
+            selectedVideoId = null;
+        }
+        else
+        {
+            selectedVideoId = videoId;
+        }
     }
     
     private void HandleVideoSelection(InputFileChangeEventArgs e)
@@ -1075,8 +1084,10 @@ else
         selectedVideoFile = file;
         selectedVideoName = file.Name;
         
-        // Pre-fill title with cleaned filename (without extension)
-        videoTitle = System.IO.Path.GetFileNameWithoutExtension(file.Name);
+        // Generate generic title based on song name and existing video count
+        var existingCount = songVideos?.Count ?? 0;
+        var videoNumber = existingCount + 1;
+        videoTitle = $"{viewingVideosForSong.Title} - Vídeo {videoNumber}";
         
         StateHasChanged();
     }
@@ -1120,12 +1131,8 @@ else
             // Reload videos for the modal
             songVideos = (await SongService.GetVideosBySongIdAsync(viewingVideosForSong.Id)).ToList();
             
-            // Select the newly uploaded video
-            var newVideo = songVideos.OrderByDescending(v => v.CreatedAt).FirstOrDefault();
-            if (newVideo != null)
-            {
-                selectedVideoId = newVideo.Id;
-            }
+            // Don't auto-select video after upload - keep all collapsed
+            selectedVideoId = null;
             
             // Clear selection and force InputFile to recreate for next upload
             CancelVideoSelection();
@@ -1147,8 +1154,8 @@ else
         
         try
         {
-            var currentUserId = await GetCurrentUserId();
-            await SongService.DeleteVideoAsync(video.Id, currentUserId);
+            var userId = await GetCurrentUserId();
+            await SongService.DeleteVideoAsync(video.Id, userId, isAdmin);
             
             // Clear selection if the deleted video was selected
             if (selectedVideoId == video.Id)
@@ -1178,6 +1185,51 @@ else
             len = len / 1024;
         }
         return $"{len:0.##} {sizes[order]}";
+    }
+    
+    /// <summary>
+    /// Generate a clean display title for a video.
+    /// If the title looks like a storage key (very long, contains .mp4, etc.), 
+    /// generate a generic title based on song name and video index.
+    /// </summary>
+    private string GetCleanVideoTitle(SongVideo video, int videoNumber)
+    {
+        if (viewingVideosForSong == null) 
+            return $"Vídeo {videoNumber}";
+        
+        // If no title exists, generate generic one
+        if (string.IsNullOrWhiteSpace(video.Title))
+        {
+            return $"{viewingVideosForSong.Title} - Vídeo {videoNumber}";
+        }
+        
+        // Check if title looks like a storage key (long, contains file extensions, or path separators)
+        var title = video.Title.Trim();
+        var looksLikeKey = title.Length > MaxCleanTitleLength || 
+                          VideoExtensions.Any(ext => title.Contains(ext, StringComparison.OrdinalIgnoreCase)) ||
+                          title.Contains("/") ||
+                          title.Contains("\\");
+        
+        if (looksLikeKey)
+        {
+            return $"{viewingVideosForSong.Title} - Vídeo {videoNumber}";
+        }
+        
+        // Title looks good, use as-is
+        return title;
+    }
+    
+    /// <summary>
+    /// Check if the current user can delete a specific video.
+    /// Returns true if user is the uploader OR an admin.
+    /// </summary>
+    private bool CanDeleteVideo(SongVideo video)
+    {
+        if (string.IsNullOrEmpty(currentUserId))
+            return false;
+            
+        // User can delete if they are the uploader OR if they are admin
+        return video.CreatedByUserId == currentUserId || isAdmin;
     }
 }
 

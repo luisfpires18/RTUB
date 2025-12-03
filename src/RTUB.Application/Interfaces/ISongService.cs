@@ -21,6 +21,6 @@ public interface ISongService
     Task DeleteSongAsync(int id);
     Task<IEnumerable<SongVideo>> GetVideosBySongIdAsync(int songId);
     Task<SongVideo> AddVideoAsync(int songId, Stream fileStream, string fileName, string contentType, string createdByUserId, string? title = null);
-    Task DeleteVideoAsync(int videoId, string userId);
+    Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false);
     Task<int> GetVideoCountBySongIdAsync(int songId);
 }

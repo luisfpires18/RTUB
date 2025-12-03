@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
@@ -220,13 +221,21 @@ public class SongService : ISongService
         return createdVideo;
     }
 
-    public async Task DeleteVideoAsync(int videoId, string userId)
+    public async Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false)
     {
         // Fetch video by id
         var video = await _songVideoRepository.GetByIdAsync(videoId);
 
         if (video == null)
             throw new EntityNotFoundException(nameof(SongVideo), videoId);
+
+        // Check permissions: only allow if user is the uploader OR is an admin
+        if (video.CreatedByUserId != userId && !isAdmin)
+        {
+            _logger?.LogWarning("User {UserId} attempted to delete video {VideoId} created by {CreatedByUserId} without permission",
+                userId, videoId, video.CreatedByUserId);
+            throw new UnauthorizedAccessException("You do not have permission to delete this video.");
+        }
 
         // Delete from storage
         try
