@@ -1,173 +1,185 @@
 @namespace RTUB.Shared
 @using RTUB.Core.Entities
 
-<div class="post-card" 
-     role="button"
-     aria-label="@($"Post: {Post.Title}")">
-    
-    <!-- Left side: Author avatar and info -->
-    <div class="post-card-avatar-section" @onclick="OnClick">
-        <img src="@(Post.Author.ProfilePictureSrc)" 
-             class="post-card-avatar" 
-             alt="@(Post.Author.Nickname ?? Post.Author.UserName)" />
-        <div class="post-card-author-info">
-            <div class="post-card-author-name">@(Post.Author.Nickname ?? Post.Author.UserName)</div>
-            <small class="post-card-date">@Post.CreatedAt.ToString("dd MMM yyyy")</small>
+@if (Post == null || Post.Author == null)
+{
+    <div class="post-card post-card--placeholder">
+        <div class="alert alert-warning mb-0 d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <span>Não foi possível carregar os dados do post.</span>
         </div>
     </div>
-    
-    <!-- Right side: Post content -->
-    <div class="post-card-content" @onclick="OnClick">
-        <div class="post-card-header">
-            <h5 class="post-card-title">
-                @Post.Title
-            </h5>
-        </div>
-        
-        <p class="post-card-body">
-            @Post.Body
-        </p>
-        
-        @* Video button if videos are present *@
-        @if (Post.Media != null && Post.Media.Any(m => m.MediaType == "Video"))
-        {
-            var videoCount = Post.Media.Count(m => m.MediaType == "Video");
-            <div class="post-videos-button-container mb-2">
-                <button class="btn btn-outline-primary btn-sm" @onclick="OpenVideoModal" @onclick:stopPropagation="true">
-                    <i class="bi bi-play-circle me-2"></i>
-                    @if (videoCount == 1)
-                    {
-                        <text>Ver Vídeo</text>
-                    }
-                    else
-                    {
-                        <text>Ver Vídeos (@videoCount)</text>
-                    }
-                </button>
-            </div>
-        }
-        
-        <div class="post-card-footer">
-            <div class="post-card-meta">
-                <span class="post-card-meta-item">
-                    <i class="bi bi-chat-left-dots"></i>
-                    @CommentCount comentários
-                </span>
-                <span class="post-card-meta-item">
-                    <i class="bi bi-clock"></i>
-                    @Post.LastActivityAt.ToString("dd MMM, HH:mm")
-                </span>
-            </div>
-            <div class="post-card-badges">
-                @if (Post.IsPinned)
-                {
-                    <span class="badge bg-warning text-dark">
-                        <i class="bi bi-pin-fill"></i> Fixado
-                    </span>
-                }
-                @if (Post.IsLocked)
-                {
-                    <span class="badge bg-danger">
-                        <i class="bi bi-lock-fill"></i> Bloqueado
-                    </span>
-                }
-            </div>
-        </div>
-    </div>
-    
-    <!-- Admin/Owner/Author controls (top-right) -->
-    @if (ShowAdminControls || ShowOwnerControls || ShowAuthorControls)
-    {
-        <div class="post-card-admin-actions" @onclick:stopPropagation="true">
-            @if (ShowAdminControls)
-            {
-                <button class="btn btn-sm @(Post.IsPinned ? "btn-warning" : "btn-outline-warning")"
-                        @onclick="OnTogglePin"
-                        @onclick:stopPropagation="true"
-                        title="@(Post.IsPinned ? "Desafixar" : "Fixar")">
-                    <i class="bi bi-pin-fill"></i>
-                </button>
-                <button class="btn btn-sm @(Post.IsLocked ? "btn-danger" : "btn-outline-danger")"
-                        @onclick="OnToggleLock"
-                        @onclick:stopPropagation="true"
-                        title="@(Post.IsLocked ? "Desbloquear" : "Bloquear")">
-                    <i class="bi bi-lock-fill"></i>
-                </button>
-            }
+}
+else
+{
+    <div class="post-card"
+         role="button"
+         aria-label="@($"Post: {Post.Title}")">
 
-            @if (ShowAuthorControls)
-            {
-                <button class="btn btn-sm btn-outline-light"
-                        @onclick="OnEdit"
-                        @onclick:stopPropagation="true"
-                        title="Editar">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-sm btn-danger"
-                        @onclick="OnDelete"
-                        @onclick:stopPropagation="true"
-                        title="Eliminar">
-                    <i class="bi bi-trash"></i>
-                </button>
-            }
-            else if (ShowOwnerControls)
-            {
-                <button class="btn btn-sm btn-danger"
-                        @onclick="OnDelete"
-                        @onclick:stopPropagation="true"
-                        title="Eliminar Post">
-                    <i class="bi bi-trash"></i>
-                </button>
-            }
+        <!-- Left side: Author avatar and info -->
+        <div class="post-card-avatar-section" @onclick="OnClick">
+            <img src="@(Post.Author.ProfilePictureSrc ?? "")"
+                 class="post-card-avatar"
+                 alt="@(Post.Author.Nickname ?? Post.Author.UserName ?? "Autor")" />
+            <div class="post-card-author-info">
+                <div class="post-card-author-name">@(Post.Author.Nickname ?? Post.Author.UserName ?? "Autor")</div>
+                <small class="post-card-date">@Post.CreatedAt.ToString("dd MMM yyyy")</small>
+            </div>
         </div>
-    }
-</div>
 
-<!-- Video Modal -->
-<Modal Show="@showVideoModal" 
-       ShowChanged="@((show) => showVideoModal = show)"
-       Title="Vídeos do Post"
-       Size="Modal.ModalSize.Large"
-       Centered="true"
-       ShowCloseButton="true">
-    <BodyContent>
-        @if (Post.Media != null)
-        {
-            var videos = Post.Media.Where(m => m.MediaType == "Video").OrderBy(m => m.SortOrder).ToList();
-            
-            @if (videos.Count > 1)
+        <!-- Right side: Post content -->
+        <div class="post-card-content" @onclick="OnClick">
+            <div class="post-card-header">
+                <h5 class="post-card-title">
+                    @Post.Title
+                </h5>
+            </div>
+
+            <p class="post-card-body">
+                @Post.Body
+            </p>
+
+            @* Video button if videos are present *@
+            @if (Post.Media != null && Post.Media.Any(m => m.MediaType == "Video"))
             {
-                <div class="video-selector mb-3">
-                    <label class="form-label fw-semibold">Selecione um vídeo:</label>
-                    <div class="list-group">
-                        @for (int i = 0; i < videos.Count; i++)
+                var videoCount = Post.Media.Count(m => m.MediaType == "Video");
+                <div class="post-videos-button-container mb-2">
+                    <button class="btn btn-outline-primary btn-sm" @onclick="OpenVideoModal" @onclick:stopPropagation="true">
+                        <i class="bi bi-play-circle me-2"></i>
+                        @if (videoCount == 1)
                         {
-                            var index = i;
-                            var video = videos[i];
-                            var isSelected = selectedVideoIndex == index;
-                            <button type="button" 
-                                    class="list-group-item list-group-item-action @(isSelected ? "active" : "")"
-                                    @onclick="() => SelectVideo(index)">
-                                <i class="bi bi-play-circle me-2"></i>Vídeo @(i + 1)
-                            </button>
+                            <text>Ver Vídeo</text>
                         }
-                    </div>
+                        else
+                        {
+                            <text>Ver Vídeos (@videoCount)</text>
+                        }
+                    </button>
                 </div>
             }
-            
-            @if (selectedVideoIndex >= 0 && selectedVideoIndex < videos.Count)
-            {
-                var selectedVideo = videos[selectedVideoIndex];
-                <div class="video-player-container">
-                    <video @key="@selectedVideo.Id" controls class="modal-video" autoplay preload="metadata">
-                        <source src="@selectedVideo.Url" type="@selectedVideo.MimeType">
-                        O seu navegador não suporta o elemento de vídeo.
-                    </video>
+
+            <div class="post-card-footer">
+                <div class="post-card-meta">
+                    <span class="post-card-meta-item">
+                        <i class="bi bi-chat-left-dots"></i>
+                        @CommentCount comentários
+                    </span>
+                    <span class="post-card-meta-item">
+                        <i class="bi bi-clock"></i>
+                        @Post.LastActivityAt.ToString("dd MMM, HH:mm")
+                    </span>
                 </div>
-            }
+                <div class="post-card-badges">
+                    @if (Post.IsPinned)
+                    {
+                        <span class="badge bg-warning text-dark">
+                            <i class="bi bi-pin-fill"></i> Fixado
+                        </span>
+                    }
+                    @if (Post.IsLocked)
+                    {
+                        <span class="badge bg-danger">
+                            <i class="bi bi-lock-fill"></i> Bloqueado
+                        </span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin/Owner/Author controls (top-right) -->
+        @if (ShowAdminControls || ShowOwnerControls || ShowAuthorControls)
+        {
+            <div class="post-card-admin-actions" @onclick:stopPropagation="true">
+                @if (ShowAdminControls)
+                {
+                    <button class="btn btn-sm @(Post.IsPinned ? "btn-warning" : "btn-outline-warning")"
+                            @onclick="OnTogglePin"
+                            @onclick:stopPropagation="true"
+                            title="@(Post.IsPinned ? "Desafixar" : "Fixar")">
+                        <i class="bi bi-pin-fill"></i>
+                    </button>
+                    <button class="btn btn-sm @(Post.IsLocked ? "btn-danger" : "btn-outline-danger")"
+                            @onclick="OnToggleLock"
+                            @onclick:stopPropagation="true"
+                            title="@(Post.IsLocked ? "Desbloquear" : "Bloquear")">
+                        <i class="bi bi-lock-fill"></i>
+                    </button>
+                }
+
+                @if (ShowAuthorControls)
+                {
+                    <button class="btn btn-sm btn-outline-light"
+                            @onclick="OnEdit"
+                            @onclick:stopPropagation="true"
+                            title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger"
+                            @onclick="OnDelete"
+                            @onclick:stopPropagation="true"
+                            title="Eliminar">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                }
+                else if (ShowOwnerControls)
+                {
+                    <button class="btn btn-sm btn-danger"
+                            @onclick="OnDelete"
+                            @onclick:stopPropagation="true"
+                            title="Eliminar Post">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                }
+            </div>
         }
-    </BodyContent>
-</Modal>
+    </div>
+
+    <!-- Video Modal -->
+    <Modal Show="@showVideoModal"
+           ShowChanged="@((show) => showVideoModal = show)"
+           Title="Vídeos do Post"
+           Size="Modal.ModalSize.Large"
+           Centered="true"
+           ShowCloseButton="true">
+        <BodyContent>
+            @if (Post.Media != null)
+            {
+                var videos = Post.Media.Where(m => m.MediaType == "Video").OrderBy(m => m.SortOrder).ToList();
+
+                @if (videos.Count > 1)
+                {
+                    <div class="video-selector mb-3">
+                        <label class="form-label fw-semibold">Selecione um vídeo:</label>
+                        <div class="list-group">
+                            @for (int i = 0; i < videos.Count; i++)
+                            {
+                                var index = i;
+                                var video = videos[i];
+                                var isSelected = selectedVideoIndex == index;
+                                <button type="button"
+                                        class="list-group-item list-group-item-action @(isSelected ? "active" : "")"
+                                        @onclick="() => SelectVideo(index)">
+                                    <i class="bi bi-play-circle me-2"></i>Vídeo @(i + 1)
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (selectedVideoIndex >= 0 && selectedVideoIndex < videos.Count)
+                {
+                    var selectedVideo = videos[selectedVideoIndex];
+                    <div class="video-player-container">
+                        <video @key="@selectedVideo.Id" controls class="modal-video" autoplay preload="metadata">
+                            <source src="@selectedVideo.Url" type="@selectedVideo.MimeType">
+                            O seu navegador não suporta o elemento de vídeo.
+                        </video>
+                    </div>
+                }
+            }
+        </BodyContent>
+    </Modal>
+}
 
 @code {
     [Parameter, EditorRequired]
