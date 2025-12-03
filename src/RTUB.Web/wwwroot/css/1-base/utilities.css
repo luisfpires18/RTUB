@@ -110,3 +110,12 @@
     text-overflow: ellipsis;
 }
 
+/* Allow page header subtitle to wrap on mobile to prevent layout breaking */
+@media (max-width: 767px) {
+    .page-header-subtitle {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+    }
+}
+
