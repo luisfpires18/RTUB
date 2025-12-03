@@ -527,7 +527,9 @@ else
                             <div class="list-group-item list-group-item-action position-relative @(isSelected ? "active" : "")"
                                  role="button"
                                  @onclick="() => SelectVideoByIndex(video.Id)">
-                                <i class="bi bi-play-circle me-2"></i>@displayTitle
+                                <span class="video-title-content">
+                                    <i class="bi bi-play-circle me-2"></i>@displayTitle
+                                </span>
                                 @if (canManageSongs)
                                 {
                                     <button type="button" 
