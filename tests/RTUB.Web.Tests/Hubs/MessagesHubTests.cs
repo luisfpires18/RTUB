@@ -467,9 +467,9 @@ public class MessagesHubTests
 /// </summary>
 internal class TestableMessagesHub : MessagesHub
 {
-    private const System.Reflection.BindingFlags DeclaredFlags = 
-        System.Reflection.BindingFlags.Instance | 
-        System.Reflection.BindingFlags.Public | 
+    private const System.Reflection.BindingFlags DeclaredFlags =
+        System.Reflection.BindingFlags.Instance |
+        System.Reflection.BindingFlags.Public |
         System.Reflection.BindingFlags.DeclaredOnly;
 
     public TestableMessagesHub(

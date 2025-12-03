@@ -80,7 +80,7 @@ public class FiscalYearHelperTests
 
         // Assert
         result.Should().MatchRegex(@"^\d{4}-\d{4}$");
-        
+
         var parts = result.Split('-');
         var startYear = int.Parse(parts[0]);
         var endYear = int.Parse(parts[1]);

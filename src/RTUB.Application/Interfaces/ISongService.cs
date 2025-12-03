@@ -19,4 +19,8 @@ public interface ISongService
     Task AddYouTubeUrlAsync(int songId, string url);
     Task RemoveYouTubeUrlAsync(int songId, string url);
     Task DeleteSongAsync(int id);
+    Task<IEnumerable<SongVideo>> GetVideosBySongIdAsync(int songId);
+    Task<SongVideo> AddVideoAsync(int songId, Stream fileStream, string fileName, string contentType, string createdByUserId, string? title = null);
+    Task DeleteVideoAsync(int videoId, string userId);
+    Task<int> GetVideoCountBySongIdAsync(int songId);
 }

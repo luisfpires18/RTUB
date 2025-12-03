@@ -23,6 +23,8 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     private readonly SongService _songService;
     private readonly AlbumService _albumService;
     private readonly Mock<IImageStorageService> _mockImageStorageService;
+    private readonly Mock<ISongVideoRepository> _mockSongVideoRepository;
+    private readonly Mock<ISongVideoStorageService> _mockSongVideoStorageService;
 
     public SongServiceTests(DatabaseFixture fixture)
     {
@@ -35,7 +37,9 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _fixture = fixture;
         _context = _fixture.CreateContext();
         _songRepository = new SongRepository(_context);
-        _songService = new SongService(_songRepository);
+        _mockSongVideoRepository = new Mock<ISongVideoRepository>();
+        _mockSongVideoStorageService = new Mock<ISongVideoStorageService>();
+        _songService = new SongService(_songRepository, _mockSongVideoRepository.Object, _mockSongVideoStorageService.Object);
         _mockImageStorageService = new Mock<IImageStorageService>();
         _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
     }

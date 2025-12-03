@@ -58,7 +58,7 @@ public class ProductService : IProductService
         existingProduct.Update(product.Name, product.Type, product.Price, product.Stock, product.Description);
         existingProduct.SetAvailability(product.IsAvailable);
         existingProduct.SetPublicVisibility(product.IsPublic);
-        
+
         // Update image URL if it has changed
         if (existingProduct.ImageUrl != product.ImageUrl)
         {

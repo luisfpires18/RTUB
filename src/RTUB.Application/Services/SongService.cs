@@ -14,11 +14,19 @@ namespace RTUB.Application.Services;
 public class SongService : ISongService
 {
     private readonly ISongRepository _songRepository;
+    private readonly ISongVideoRepository _songVideoRepository;
+    private readonly ISongVideoStorageService _songVideoStorageService;
     private readonly ILogger<SongService>? _logger;
 
-    public SongService(ISongRepository songRepository, ILogger<SongService>? logger = null)
+    public SongService(
+        ISongRepository songRepository,
+        ISongVideoRepository songVideoRepository,
+        ISongVideoStorageService songVideoStorageService,
+        ILogger<SongService>? logger = null)
     {
         _songRepository = songRepository;
+        _songVideoRepository = songVideoRepository;
+        _songVideoStorageService = songVideoStorageService;
         _logger = logger;
     }
 
@@ -164,5 +172,82 @@ public class SongService : ISongService
             return string.Empty;
 
         return url.Trim().ToLowerInvariant();
+    }
+
+    public async Task<IEnumerable<SongVideo>> GetVideosBySongIdAsync(int songId)
+    {
+        return await _songVideoRepository.GetBySongIdAsync(songId);
+    }
+
+    public async Task<SongVideo> AddVideoAsync(int songId, Stream fileStream, string fileName, string contentType, string createdByUserId, string? title = null)
+    {
+        // Validate that song exists
+        var song = await _songRepository.GetSongForUpdateAsync(songId);
+        if (song == null)
+            throw new EntityNotFoundException(nameof(Song), songId);
+
+        // Upload video to storage
+        var videoUrl = await _songVideoStorageService.UploadVideoAsync(fileStream, fileName, contentType, songId);
+
+        // Get file size from stream position (if seekable)
+        long sizeBytes = 0;
+        if (fileStream.CanSeek)
+        {
+            sizeBytes = fileStream.Length;
+        }
+
+        // Determine sort order (next available position)
+        var existingVideosCount = await _songVideoRepository.GetCountBySongIdAsync(songId);
+        var sortOrder = existingVideosCount;
+
+        // Create SongVideo entity
+        var songVideo = SongVideo.CreateVideo(
+            songId,
+            videoUrl,
+            contentType,
+            sizeBytes,
+            createdByUserId,
+            title,
+            sortOrder
+        );
+
+        // Save to repository
+        var createdVideo = await _songVideoRepository.AddAsync(songVideo);
+
+        _logger?.LogInformation("Video added to song {SongId} by user {UserId}. Video ID: {VideoId}",
+            songId, createdByUserId, createdVideo.Id);
+
+        return createdVideo;
+    }
+
+    public async Task DeleteVideoAsync(int videoId, string userId)
+    {
+        // Fetch video by id
+        var video = await _songVideoRepository.GetByIdAsync(videoId);
+
+        if (video == null)
+            throw new EntityNotFoundException(nameof(SongVideo), videoId);
+
+        // Delete from storage
+        try
+        {
+            await _songVideoStorageService.DeleteVideoAsync(video.Url);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to delete video from storage: {VideoUrl}", video.Url);
+            // Continue with database deletion even if storage deletion fails
+        }
+
+        // Delete from repository
+        await _songVideoRepository.DeleteAsync(video);
+
+        _logger?.LogInformation("Video {VideoId} deleted from song {SongId} by user {UserId}",
+            videoId, video.SongId, userId);
+    }
+
+    public async Task<int> GetVideoCountBySongIdAsync(int songId)
+    {
+        return await _songVideoRepository.GetCountBySongIdAsync(songId);
     }
 }

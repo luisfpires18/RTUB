@@ -59,7 +59,7 @@ public class InstrumentService : IInstrumentService
         existingInstrument.Update(instrument.Name, instrument.Condition, instrument.SerialNumber,
                                   instrument.Brand, instrument.Location);
         existingInstrument.UpdateMaintenance(instrument.MaintenanceNotes, instrument.LastMaintenanceDate);
-        
+
         // Update image URLs if they have changed
         if (existingInstrument.ImageUrl != instrument.ImageUrl)
         {
