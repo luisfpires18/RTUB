@@ -1,29 +1,54 @@
-/* Video display styles */
-.post-card-videos {
-    margin-top: 1rem;
+/* Video button styles */
+.post-videos-button-container {
+    margin-top: 0.5rem;
 }
 
-.post-video-container {
+/* Video modal styles */
+.video-player-container {
     width: 100%;
-    max-width: 100%;
-}
-
-.post-video {
-    width: 100%;
-    max-width: 100%;
-    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     background-color: #000;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
-/* Responsive video sizing */
+.modal-video {
+    width: 100%;
+    max-width: 100%;
+    max-height: 70vh;
+    display: block;
+}
+
+.video-selector {
+    margin-bottom: 1rem;
+}
+
+.video-selector .list-group-item {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.video-selector .list-group-item:hover:not(.active) {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.video-selector .list-group-item.active {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: white;
+}
+
+/* Responsive video sizing for modal */
 @media (max-width: 768px) {
-    .post-video {
-        max-height: 300px;
+    .modal-video {
+        max-height: 50vh;
     }
 }
 
 @media (min-width: 769px) {
-    .post-video {
-        max-height: 500px;
+    .modal-video {
+        max-height: 70vh;
     }
 }

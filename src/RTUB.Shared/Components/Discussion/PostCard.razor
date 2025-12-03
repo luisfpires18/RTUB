@@ -28,19 +28,22 @@
             @Post.Body
         </p>
         
-        @* Display videos if present *@
+        @* Video button if videos are present *@
         @if (Post.Media != null && Post.Media.Any(m => m.MediaType == "Video"))
         {
-            <div class="post-card-videos mb-3">
-                @foreach (var video in Post.Media.Where(m => m.MediaType == "Video").OrderBy(m => m.SortOrder))
-                {
-                    <div class="post-video-container mb-2">
-                        <video controls class="post-video" preload="metadata">
-                            <source src="@video.Url" type="@video.MimeType">
-                            O seu navegador não suporta o elemento de vídeo.
-                        </video>
-                    </div>
-                }
+            var videoCount = Post.Media.Count(m => m.MediaType == "Video");
+            <div class="post-videos-button-container mb-2">
+                <button class="btn btn-outline-primary btn-sm" @onclick="OpenVideoModal" @onclick:stopPropagation="true">
+                    <i class="bi bi-play-circle me-2"></i>
+                    @if (videoCount == 1)
+                    {
+                        <text>Ver Vídeo</text>
+                    }
+                    else
+                    {
+                        <text>Ver Vídeos (@videoCount)</text>
+                    }
+                </button>
             </div>
         }
         
@@ -120,6 +123,52 @@
     }
 </div>
 
+<!-- Video Modal -->
+<Modal Show="@showVideoModal" 
+       ShowChanged="@((show) => showVideoModal = show)"
+       Title="Vídeos do Post"
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true">
+    <BodyContent>
+        @if (Post.Media != null)
+        {
+            var videos = Post.Media.Where(m => m.MediaType == "Video").OrderBy(m => m.SortOrder).ToList();
+            
+            @if (videos.Count > 1)
+            {
+                <div class="video-selector mb-3">
+                    <label class="form-label fw-semibold">Selecione um vídeo:</label>
+                    <div class="list-group">
+                        @for (int i = 0; i < videos.Count; i++)
+                        {
+                            var index = i;
+                            var video = videos[i];
+                            var isSelected = selectedVideoIndex == index;
+                            <button type="button" 
+                                    class="list-group-item list-group-item-action @(isSelected ? "active" : "")"
+                                    @onclick="() => SelectVideo(index)">
+                                <i class="bi bi-play-circle me-2"></i>Vídeo @(i + 1)
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+            
+            @if (selectedVideoIndex >= 0 && selectedVideoIndex < videos.Count)
+            {
+                var selectedVideo = videos[selectedVideoIndex];
+                <div class="video-player-container">
+                    <video controls class="modal-video" autoplay preload="metadata" key="@selectedVideo.Url">
+                        <source src="@selectedVideo.Url" type="@selectedVideo.MimeType">
+                        O seu navegador não suporta o elemento de vídeo.
+                    </video>
+                </div>
+            }
+        }
+    </BodyContent>
+</Modal>
+
 @code {
     [Parameter, EditorRequired]
     public Post Post { get; set; } = default!;
@@ -150,4 +199,19 @@
     
     [Parameter]
     public EventCallback OnToggleLock { get; set; }
+    
+    private bool showVideoModal = false;
+    private int selectedVideoIndex = 0;
+    
+    private void OpenVideoModal()
+    {
+        selectedVideoIndex = 0;
+        showVideoModal = true;
+    }
+    
+    private void SelectVideo(int index)
+    {
+        selectedVideoIndex = index;
+        StateHasChanged();
+    }
 }
