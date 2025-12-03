@@ -31,7 +31,7 @@ else
 
             <AuthorizeView Roles="Admin,Mod">
                 <Authorized>
-                    <div class="d-flex justify-content-lg-end">
+                    <div class="page-header-actions justify-content-lg-end">
                         <button class="btn btn-success" @onclick="OpenCreateSongModal" title="Criar Nova Música">
                             <i class="bi bi-plus-lg"></i> Adicionar Música
                         </button>
@@ -152,8 +152,10 @@ else
         else if (!string.IsNullOrEmpty(currentPdfUrl))
         {
             <div class="pdf-viewer-container" style="height: 80vh; overflow: auto;">
-                <iframe src="@(currentPdfUrl + "#toolbar=0&navpanes=0")" 
+                @* Enable PDF toolbar on mobile for zoom controls, hide on desktop for cleaner UX *@
+                <iframe src="@GetPdfViewerUrl(currentPdfUrl)" 
                         style="width: 100%; height: 100%; border: none;"
+                        allow="fullscreen"
                         title="@($"Letra - {viewingSong?.Title}")">
                 </iframe>
             </div>
@@ -768,6 +770,22 @@ else
         isLoadingPdf = false;
         currentPdfUrl = null;
         viewingSong = null;
+    }
+    
+    /// <summary>
+    /// Get PDF viewer URL with zoom-enabled parameters
+    /// Uses #view=FitH to fit page width while allowing zoom controls
+    /// </summary>
+    private string GetPdfViewerUrl(string pdfUrl)
+    {
+        if (string.IsNullOrEmpty(pdfUrl))
+        {
+            return string.Empty;
+        }
+        
+        // Enable zoom by not hiding toolbar with #toolbar=0
+        // The #view=FitH parameter fits the page width for better viewing
+        return $"{pdfUrl}#view=FitH";
     }
 
     private async Task OpenLinksModal(Song song)

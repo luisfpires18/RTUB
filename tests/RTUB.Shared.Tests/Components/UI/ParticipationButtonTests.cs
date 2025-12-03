@@ -38,6 +38,10 @@ public class EnrollmentStatisticsButtonTests : TestContext
         ComponentFactories.AddStub<SearchBar>();
         ComponentFactories.AddStub<EmptyState>();
         ComponentFactories.AddStub<TablePagination>();
+
+        // Setup JSInterop for modal helper methods used by the Modal component
+        JSInterop.SetupVoid("modalHelper.lockBodyScroll");
+        JSInterop.SetupVoid("modalHelper.unlockBodyScroll");
     }
 
     [Fact]

@@ -4,10 +4,10 @@ using FluentAssertions;
 namespace RTUB.Web.Tests.Pages.Admin;
 
 /// <summary>
-/// Unit tests for OwnerEmail page behavior
+/// Unit tests for Emails page behavior
 /// Testing form validation, email sending logic, and authorization
 /// </summary>
-public class OwnerEmailTests
+public class EmailsTests
 {
     #region Form Validation Tests
 
@@ -627,16 +627,16 @@ public class OwnerEmailTests
     #region Authorization Tests
 
     [Fact]
-    public void OwnerEmailPage_ShouldRequireOwnerRole()
+    public void EmailsPage_ShouldRequireAdminRole()
     {
         // This test documents the authorization requirement
-        // The page should have [Authorize(Roles = "Owner")] attribute
+        // The page should have [Authorize(Roles = "Admin")] attribute
 
         // Arrange
-        var requiredRole = "Owner";
+        var requiredRole = "Admin";
 
         // Assert
-        requiredRole.Should().Be("Owner", "Page should require Owner role");
+        requiredRole.Should().Be("Admin", "Page should require Admin role");
     }
 
     #endregion

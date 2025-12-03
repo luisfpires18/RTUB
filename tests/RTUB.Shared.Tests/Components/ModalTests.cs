@@ -10,6 +10,13 @@ namespace RTUB.Shared.Tests.Components;
 /// </summary>
 public class ModalTests : TestContext
 {
+    public ModalTests()
+    {
+        // Setup JSInterop for modal helper methods
+        JSInterop.SetupVoid("modalHelper.lockBodyScroll");
+        JSInterop.SetupVoid("modalHelper.unlockBodyScroll");
+    }
+
     [Fact]
     public void Modal_WhenShowIsFalse_DoesNotRender()
     {

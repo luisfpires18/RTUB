@@ -7,20 +7,17 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Shared
-@attribute [Authorize(Roles = "Admin,Owner")]
+@attribute [Authorize(Roles = "Admin")]
 @inject UserManager<ApplicationUser> UserManager
 @inject IPushNotificationService PushNotificationService
 @inject NavigationManager Navigation
 
 <PageTitle>Enviar Notificação Push</PageTitle>
 
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <h1 class="page-title"><i class="bi bi-bell"></i> Enviar Notificação Push</h1>
-            <p class="lead page-header-subtitle mb-4 text-light-theme">Enviar notificações push para todos os utilizadores subscritos</p>
-        </div>
-    </div>
+<div class="mb-4">
+    <h1 class="page-title"><i class="bi bi-bell"></i> Enviar Notificação Push</h1>
+    <p class="lead page-header-subtitle mb-4 text-light-theme">Enviar notificações push para todos os utilizadores subscritos</p>
+</div>
 
     @if (!string.IsNullOrEmpty(message))
     {
@@ -209,7 +206,6 @@
             </div>
         }
     }
-</div>
 
 <!-- Preview Modal -->
 <Modal Show="@showPreviewModal" 

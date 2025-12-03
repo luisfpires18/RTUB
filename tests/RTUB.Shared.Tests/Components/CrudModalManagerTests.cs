@@ -10,6 +10,13 @@ namespace RTUB.Shared.Tests.Components;
 /// </summary>
 public class CrudModalManagerTests : TestContext
 {
+    public CrudModalManagerTests()
+    {
+        // Setup JSInterop for modal helper methods used by the Modal component
+        JSInterop.SetupVoid("modalHelper.lockBodyScroll");
+        JSInterop.SetupVoid("modalHelper.unlockBodyScroll");
+    }
+
     private class TestEntity
     {
         public int Id { get; set; }

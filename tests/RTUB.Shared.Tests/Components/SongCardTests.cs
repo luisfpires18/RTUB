@@ -1,4 +1,5 @@
 using Bunit;
+using Bunit.TestDoubles;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using RTUB.Core.Entities;
@@ -11,6 +12,12 @@ namespace RTUB.Shared.Tests.Components;
 /// </summary>
 public class SongCardTests : TestContext
 {
+    public SongCardTests()
+    {
+        // Setup authorization services for AuthorizeView component
+        this.AddTestAuthorization();
+    }
+
     [Fact]
     public void SongCard_RendersSongTitle()
     {
