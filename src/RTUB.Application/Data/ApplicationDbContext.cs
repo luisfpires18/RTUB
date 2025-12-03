@@ -67,6 +67,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Discussion> Discussions { get; set; }
     public DbSet<Post> Posts { get; set; }
     public DbSet<Comment> Comments { get; set; }
+    public DbSet<PostMedia> PostMedia { get; set; }
+    public DbSet<CommentImage> CommentImages { get; set; }
 
     // Meeting DbSet
     public DbSet<Meeting> Meetings { get; set; }
