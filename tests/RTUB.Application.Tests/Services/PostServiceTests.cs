@@ -37,6 +37,8 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Create mocks for new dependencies
         var mockDiscussionRepository = new Mock<IDiscussionRepository>();
         var mockEnrollmentRepository = new Mock<IEnrollmentRepository>();
+        var mockPostMediaRepository = new Mock<IPostMediaRepository>();
+        var mockEventMediaStorageService = new Mock<IEventMediaStorageService>();
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
@@ -45,6 +47,8 @@ public class PostServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             new PostRepository(_context),
             mockDiscussionRepository.Object,
             mockEnrollmentRepository.Object,
+            mockPostMediaRepository.Object,
+            mockEventMediaStorageService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockHttpContextAccessor.Object);

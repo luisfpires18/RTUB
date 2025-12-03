@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Interfaces;
@@ -15,6 +16,8 @@ public class PostService : IPostService
     private readonly IPostRepository _postRepository;
     private readonly IDiscussionRepository _discussionRepository;
     private readonly IEnrollmentRepository _enrollmentRepository;
+    private readonly IPostMediaRepository _postMediaRepository;
+    private readonly IEventMediaStorageService _eventMediaStorageService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -23,6 +26,8 @@ public class PostService : IPostService
         IPostRepository postRepository,
         IDiscussionRepository discussionRepository,
         IEnrollmentRepository enrollmentRepository,
+        IPostMediaRepository postMediaRepository,
+        IEventMediaStorageService eventMediaStorageService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         IHttpContextAccessor httpContextAccessor)
@@ -30,6 +35,8 @@ public class PostService : IPostService
         _postRepository = postRepository;
         _discussionRepository = discussionRepository;
         _enrollmentRepository = enrollmentRepository;
+        _postMediaRepository = postMediaRepository;
+        _eventMediaStorageService = eventMediaStorageService;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _httpContextAccessor = httpContextAccessor;
@@ -50,7 +57,7 @@ public class PostService : IPostService
         return await _postRepository.GetCountByDiscussionIdAsync(discussionId, searchTerm);
     }
 
-    public async Task<Post> CreateAsync(int discussionId, string authorId, string title, string body, string? mentionsJson = null)
+    public async Task<Post> CreateAsync(int discussionId, string authorId, string title, string body, string? mentionsJson = null, IReadOnlyList<IBrowserFile>? imageFiles = null, IReadOnlyList<IBrowserFile>? videoFiles = null)
     {
         var post = Post.Create(discussionId, authorId, title, body);
         if (!string.IsNullOrWhiteSpace(mentionsJson))
@@ -60,10 +67,23 @@ public class PostService : IPostService
 
         var createdPost = await _postRepository.AddAsync(post);
 
+        // Upload and save media if provided
+        var discussion = await _discussionRepository.GetByIdWithEventAsync(discussionId);
+        var eventId = discussion?.EventId ?? 0;
+
+        if (imageFiles != null && imageFiles.Count > 0)
+        {
+            await UploadPostMediaAsync(createdPost.Id, imageFiles, "Image", eventId);
+        }
+
+        if (videoFiles != null && videoFiles.Count > 0)
+        {
+            await UploadPostMediaAsync(createdPost.Id, videoFiles, "Video", eventId);
+        }
+
         // Send push notification to enrolled users
         try
         {
-            var discussion = await _discussionRepository.GetByIdWithEventAsync(discussionId);
             if (discussion?.Event != null)
             {
                 // Load author to get nickname (use Query to include navigation properties)
@@ -103,6 +123,33 @@ public class PostService : IPostService
         }
 
         return createdPost;
+    }
+
+    private async Task UploadPostMediaAsync(int postId, IReadOnlyList<IBrowserFile> files, string mediaType, int eventId)
+    {
+        int sortOrder = 0;
+        foreach (var file in files)
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024); // 100MB max
+
+            string url;
+            if (mediaType == "Image")
+            {
+                url = await _eventMediaStorageService.UploadImageAsync(
+                    stream, file.Name, file.ContentType, eventId, "post");
+            }
+            else
+            {
+                url = await _eventMediaStorageService.UploadVideoAsync(
+                    stream, file.Name, file.ContentType, eventId);
+            }
+
+            var media = mediaType == "Image"
+                ? PostMedia.CreateImage(postId, url, file.ContentType, file.Size, sortOrder++)
+                : PostMedia.CreateVideo(postId, url, file.ContentType, file.Size, sortOrder++);
+
+            await _postMediaRepository.AddAsync(media);
+        }
     }
 
     public async Task UpdateAsync(int id, string title, string body, string? mentionsJson = null)
@@ -166,8 +213,27 @@ public class PostService : IPostService
         if (post == null)
             throw new EntityNotFoundException(nameof(Post), id);
 
+        // Get media before soft delete
+        var media = await _postMediaRepository.GetByPostIdAsync(id);
+
         post.SoftDelete();
         await _postRepository.UpdateAsync(post);
+
+        // Delete media files from storage
+        foreach (var item in media)
+        {
+            try
+            {
+                await _eventMediaStorageService.DeleteMediaAsync(item.Url);
+            }
+            catch
+            {
+                // Log but don't fail - media cleanup is secondary
+            }
+        }
+
+        // Remove media records (cascade delete will handle this, but explicit is clearer)
+        await _postMediaRepository.DeleteByPostIdAsync(id);
     }
 
     public async Task UpdateLastActivityAsync(int id)
