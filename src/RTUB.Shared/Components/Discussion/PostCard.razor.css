@@ -1,0 +1,29 @@
+/* Video display styles */
+.post-card-videos {
+    margin-top: 1rem;
+}
+
+.post-video-container {
+    width: 100%;
+    max-width: 100%;
+}
+
+.post-video {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 8px;
+    background-color: #000;
+}
+
+/* Responsive video sizing */
+@media (max-width: 768px) {
+    .post-video {
+        max-height: 300px;
+    }
+}
+
+@media (min-width: 769px) {
+    .post-video {
+        max-height: 500px;
+    }
+}

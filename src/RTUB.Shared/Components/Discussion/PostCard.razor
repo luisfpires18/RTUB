@@ -28,6 +28,22 @@
             @Post.Body
         </p>
         
+        @* Display videos if present *@
+        @if (Post.Media != null && Post.Media.Any(m => m.MediaType == "Video"))
+        {
+            <div class="post-card-videos mb-3">
+                @foreach (var video in Post.Media.Where(m => m.MediaType == "Video").OrderBy(m => m.SortOrder))
+                {
+                    <div class="post-video-container mb-2">
+                        <video controls class="post-video" preload="metadata">
+                            <source src="@video.Url" type="@video.MimeType">
+                            O seu navegador não suporta o elemento de vídeo.
+                        </video>
+                    </div>
+                }
+            </div>
+        }
+        
         <div class="post-card-footer">
             <div class="post-card-meta">
                 <span class="post-card-meta-item">

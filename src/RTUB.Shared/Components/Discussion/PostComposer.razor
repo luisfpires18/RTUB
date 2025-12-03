@@ -29,34 +29,7 @@
             <ValidationMessage For="@(() => model.Body)" />
         </div>
 
-        <!-- Media Upload Section -->
-        <div class="mb-3">
-            <label class="form-label fw-semibold">
-                <i class="bi bi-images text-primary me-2"></i>Imagens
-            </label>
-            <div class="localized-file-picker">
-                <InputFile id="@imageInputId" 
-                           class="d-none" 
-                           OnChange="@HandleImageSelection" 
-                           accept="image/*" 
-                           multiple 
-                           aria-label="Escolher imagens" />
-                <label class="btn btn-outline-secondary localized-file-button" for="@imageInputId">
-                    <i class="bi bi-upload me-2"></i>Escolher imagens
-                </label>
-                <span class="localized-file-name">
-                    @if (selectedImages.Count > 0)
-                    {
-                        <text>@selectedImages.Count imagem(ns) selecionada(s)</text>
-                    }
-                    else
-                    {
-                        <text>Nenhuma imagem selecionada</text>
-                    }
-                </span>
-            </div>
-        </div>
-
+        <!-- Video Upload Section -->
         <div class="mb-3">
             <label class="form-label fw-semibold">
                 <i class="bi bi-camera-video text-primary me-2"></i>Vídeos
@@ -98,7 +71,7 @@
 
 @code {
     [Parameter]
-    public EventCallback<(string title, string body, IReadOnlyList<IBrowserFile> images, IReadOnlyList<IBrowserFile> videos)> OnSubmit { get; set; }
+    public EventCallback<(string title, string body, IReadOnlyList<IBrowserFile> videos)> OnSubmit { get; set; }
     
     [Parameter]
     public string? Title { get; set; }
@@ -108,9 +81,7 @@
 
     private PostComposerModel model = new();
     private bool isSubmitting = false;
-    private List<IBrowserFile> selectedImages = new();
     private List<IBrowserFile> selectedVideos = new();
-    private string imageInputId = $"post-images-{Guid.NewGuid():N}";
     private string videoInputId = $"post-videos-{Guid.NewGuid():N}";
     
     protected override void OnParametersSet()
@@ -120,11 +91,6 @@
             model.Title = Title ?? string.Empty;
             model.Body = Body ?? string.Empty;
         }
-    }
-
-    private void HandleImageSelection(InputFileChangeEventArgs e)
-    {
-        selectedImages = e.GetMultipleFiles(10).ToList(); // Max 10 images
     }
 
     private void HandleVideoSelection(InputFileChangeEventArgs e)
@@ -139,9 +105,8 @@
         isSubmitting = true;
         try
         {
-            await OnSubmit.InvokeAsync((model.Title, model.Body, selectedImages, selectedVideos));
+            await OnSubmit.InvokeAsync((model.Title, model.Body, selectedVideos));
             model = new PostComposerModel(); // Reset form
-            selectedImages.Clear();
             selectedVideos.Clear();
         }
         finally

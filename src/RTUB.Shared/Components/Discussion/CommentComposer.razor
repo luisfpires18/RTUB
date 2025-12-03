@@ -15,33 +15,6 @@
             <ValidationMessage For="@(() => model.Body)" />
         </div>
 
-        <div class="mb-3">
-            <label class="form-label">
-                <i class="bi bi-images me-2"></i>Imagens (opcional)
-            </label>
-            <div class="localized-file-picker">
-                <InputFile id="@imageInputId" 
-                           class="d-none" 
-                           OnChange="@HandleImageSelection" 
-                           accept="image/*" 
-                           multiple 
-                           aria-label="Escolher imagens" />
-                <label class="btn btn-outline-secondary localized-file-button" for="@imageInputId">
-                    <i class="bi bi-upload me-2"></i>Escolher imagens
-                </label>
-                <span class="localized-file-name">
-                    @if (selectedImages.Count > 0)
-                    {
-                        <text>@selectedImages.Count imagem(ns) selecionada(s)</text>
-                    }
-                    else
-                    {
-                        <text>Nenhuma imagem selecionada</text>
-                    }
-                </span>
-            </div>
-        </div>
-
         <div class="d-flex justify-content-end">
             <button type="submit" class="btn btn-outline-primary" disabled="@isSubmitting">
                 @if (isSubmitting)
@@ -56,17 +29,10 @@
 
 @code {
     [Parameter]
-    public EventCallback<(string body, IReadOnlyList<IBrowserFile> images)> OnSubmit { get; set; }
+    public EventCallback<string> OnSubmit { get; set; }
 
     private CommentComposerModel model = new();
     private bool isSubmitting = false;
-    private List<IBrowserFile> selectedImages = new();
-    private string imageInputId = $"comment-images-{Guid.NewGuid():N}";
-
-    private void HandleImageSelection(InputFileChangeEventArgs e)
-    {
-        selectedImages = e.GetMultipleFiles(3).ToList(); // Max 3 images per comment
-    }
 
     private async Task HandleSubmit()
     {
@@ -75,9 +41,8 @@
         isSubmitting = true;
         try
         {
-            await OnSubmit.InvokeAsync((model.Body, selectedImages));
+            await OnSubmit.InvokeAsync(model.Body);
             model = new CommentComposerModel(); // Reset form
-            selectedImages.Clear();
         }
         finally
         {
