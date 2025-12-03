@@ -1419,33 +1419,43 @@ else
     private async Task OpenEditModal(ApplicationUser user)
     {
         isCreateMode = false;
+        
+        // Always fetch the latest user data from the database to ensure we have fresh values
+        // This prevents showing stale data if the user was edited previously in the same session
+        var freshUser = await UserManager.FindByIdAsync(user.Id);
+        if (freshUser == null)
+        {
+            // User was deleted, close any modal and return
+            return;
+        }
+        
         editingUser = new ApplicationUser
         {
-            Id = user.Id,
-            UserName = user.UserName,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Nickname = user.Nickname,
-            PhoneNumber = user.PhoneNumber,
-            City = user.City,
-            DateOfBirth = user.DateOfBirth,
-            Degree = user.Degree,
-            YearLeitao = user.YearLeitao,
-            MonthLeitao = user.MonthLeitao,
-            YearCaloiro = user.YearCaloiro,
-            MonthCaloiro = user.MonthCaloiro,
-            YearTuno = user.YearTuno,
-            MonthTuno = user.MonthTuno,
-            EmailConfirmed = user.EmailConfirmed,
-            MentorId = user.MentorId,
+            Id = freshUser.Id,
+            UserName = freshUser.UserName,
+            Email = freshUser.Email,
+            FirstName = freshUser.FirstName,
+            LastName = freshUser.LastName,
+            Nickname = freshUser.Nickname,
+            PhoneNumber = freshUser.PhoneNumber,
+            City = freshUser.City,
+            DateOfBirth = freshUser.DateOfBirth,
+            Degree = freshUser.Degree,
+            YearLeitao = freshUser.YearLeitao,
+            MonthLeitao = freshUser.MonthLeitao,
+            YearCaloiro = freshUser.YearCaloiro,
+            MonthCaloiro = freshUser.MonthCaloiro,
+            YearTuno = freshUser.YearTuno,
+            MonthTuno = freshUser.MonthTuno,
+            EmailConfirmed = freshUser.EmailConfirmed,
+            MentorId = freshUser.MentorId,
         };
 
         // Set SelectedCategory based on user's primary category
-        var primaryCategory = user.Categories.FirstOrDefault();
+        var primaryCategory = freshUser.Categories.FirstOrDefault();
         
         // Check if user has Fundador in their categories (as a subcategory)
-        isFundador = user.Categories.Contains(MemberCategory.Fundador);
+        isFundador = freshUser.Categories.Contains(MemberCategory.Fundador);
         
         // Map categories to dropdown - if user has Fundador, they must also have Tuno
         editingUser.SelectedCategory = primaryCategory switch
@@ -1457,9 +1467,9 @@ else
         };
         
         // Initialize mentor search term if user has a mentor
-        if (!string.IsNullOrEmpty(user.MentorId))
+        if (!string.IsNullOrEmpty(freshUser.MentorId))
         {
-            var mentor = eligibleMentors.FirstOrDefault(m => m.Id == user.MentorId);
+            var mentor = eligibleMentors.FirstOrDefault(m => m.Id == freshUser.MentorId);
             if (mentor != null)
             {
                 selectedMentorCache = mentor;
@@ -1475,7 +1485,7 @@ else
         filteredMentors.Clear();
         
         // Load member instruments
-        memberInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(user.Id)).ToList();
+        memberInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(freshUser.Id)).ToList();
         selectedInstrumentToAdd = "";
         
         showEditModal = true;
