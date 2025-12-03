@@ -15,6 +15,14 @@ public class PostRepository : Repository<Post>, IPostRepository
     {
     }
 
+    public override async Task<Post?> GetByIdAsync(int id)
+    {
+        return await _dbSet
+            .Include(p => p.Author)
+            .Include(p => p.Media)
+            .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
     public async Task<IEnumerable<Post>> GetByDiscussionIdAsync(int discussionId, int page, int pageSize, string? searchTerm)
     {
         var query = _dbSet
