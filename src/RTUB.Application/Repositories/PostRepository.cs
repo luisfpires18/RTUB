@@ -21,6 +21,7 @@ public class PostRepository : Repository<Post>, IPostRepository
             .AsNoTracking()
             .Include(p => p.Author)
             .Include(p => p.Comments)
+            .Include(p => p.Media)
             .Where(p => p.DiscussionId == discussionId && !p.IsDeleted)
             .WhereIf(!string.IsNullOrWhiteSpace(searchTerm),
                 p => p.Title.Contains(searchTerm!, StringComparison.OrdinalIgnoreCase) ||

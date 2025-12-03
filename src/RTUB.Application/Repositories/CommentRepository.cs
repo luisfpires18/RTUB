@@ -20,6 +20,7 @@ public class CommentRepository : Repository<Comment>, ICommentRepository
         return await _dbSet
             .AsNoTracking()
             .Include(c => c.Author)
+            .Include(c => c.Images)
             .Where(c => c.PostId == postId && !c.IsDeleted)
             .OrderBy(c => c.CreatedAt)
             .PaginateAsync(page, pageSize);
