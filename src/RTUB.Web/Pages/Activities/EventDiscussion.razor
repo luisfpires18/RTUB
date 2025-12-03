@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
@@ -116,7 +117,7 @@
                                     @if (!post.IsLocked && canCreatePost)
                                     {
                                         <div class="mt-3">
-                                            <CommentComposer OnSubmit="@(async (body) => await CreateComment(post.Id, body))" />
+                                            <CommentComposer OnSubmit="@(async (tuple) => await CreateComment(post.Id, tuple.body, tuple.images))" />
                                         </div>
                                     }
                                     else if (post.IsLocked)
@@ -156,7 +157,7 @@
        Size="Modal.ModalSize.Large"
        Centered="true">
     <BodyContent>
-        <PostComposer OnSubmit="@(async (tuple) => await CreatePost(tuple.Item1, tuple.Item2))" />
+        <PostComposer OnSubmit="@(async (tuple) => await CreatePost(tuple.title, tuple.body, tuple.images, tuple.videos))" />
     </BodyContent>
 </Modal>
 
@@ -317,7 +318,7 @@
         return postCommentCounts.ContainsKey(postId) ? postCommentCounts[postId] : 0;
     }
 
-    private async Task CreatePost(string title, string body)
+    private async Task CreatePost(string title, string body, IReadOnlyList<IBrowserFile> images, IReadOnlyList<IBrowserFile> videos)
     {
         if (currentUser == null) return;
 
@@ -327,17 +328,17 @@
             discussion = await DiscussionService.CreateForEventAsync(EventId);
         }
 
-        await PostService.CreateAsync(discussion.Id, currentUser.Id, title, body);
+        await PostService.CreateAsync(discussion.Id, currentUser.Id, title, body, null, images, videos);
         await LoadPostsAsync();
         showCreatePostModal = false;
         StateHasChanged();
     }
 
-    private async Task CreateComment(int postId, string body)
+    private async Task CreateComment(int postId, string body, IReadOnlyList<IBrowserFile> images)
     {
         if (currentUser == null) return;
 
-        await CommentService.CreateAsync(postId, currentUser.Id, body);
+        await CommentService.CreateAsync(postId, currentUser.Id, body, null, images);
         await LoadCommentsForPost(postId);
         
         // Update comment count
