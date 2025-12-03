@@ -1936,8 +1936,16 @@ else
             }
         }
 
+        // Clear all cached data before reloading to ensure fresh data
+        users = null;
+        filteredUsers.Clear();
+        filteredRegularMembers.Clear();
+        filteredLeitoes.Clear();
+        paginatedUsers.Clear();
+        paginatedRegularMembers.Clear();
+        paginatedLeitoes.Clear();
+        
         await LoadMembers();
-        StateHasChanged();
         CloseEditModal();
         }
         finally
