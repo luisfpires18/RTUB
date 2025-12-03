@@ -88,8 +88,8 @@ body.modal-open {
     }
 }
 
-/* Ensure modal and backdrop stack properly */
-.modal-backdrop {
+/* Ensure modal and backdrop stack properly when shown */
+.modal-backdrop.show {
     position: fixed;
     top: 0;
     left: 0;
@@ -99,7 +99,7 @@ body.modal-open {
     height: 100dvh;
 }
 
-.modal {
+.modal.show {
     position: fixed;
     top: 0;
     left: 0;
