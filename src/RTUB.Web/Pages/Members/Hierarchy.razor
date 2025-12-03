@@ -26,16 +26,20 @@ else if (!members.Any())
 }
 else
 {
-    <div class="family-tree-viewport" id="familyTreeViewport">
-        <div class="family-tree-container" id="familyTreeContainer">
-            @* Root level - members without mentors *@
-            <div class="tree-level">
-                @foreach (var rootMember in rootMembers)
-                {
-                    <div class="tree-node-wrapper" data-is-root="true">
-                        @RenderMemberNode(rootMember)
+    <div class="family-tree-page">
+        <div class="family-tree-scroll" id="familyTreeScroll">
+            <div class="family-tree-viewport" id="familyTreeViewport">
+                <div class="family-tree-container" id="familyTreeContainer">
+                    @* Root level - members without mentors *@
+                    <div class="tree-level">
+                        @foreach (var rootMember in rootMembers)
+                        {
+                            <div class="tree-node-wrapper" data-is-root="true">
+                                @RenderMemberNode(rootMember)
+                            </div>
+                        }
                     </div>
-                }
+                </div>
             </div>
         </div>
     </div>
