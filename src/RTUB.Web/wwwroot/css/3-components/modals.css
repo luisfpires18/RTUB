@@ -73,7 +73,9 @@ body.modal-open {
     overflow: hidden !important;
 }
 
-/* On mobile, use position fixed to prevent scroll-behind on iOS Safari */
+/* On mobile and tablet, use position fixed to prevent scroll-behind on iOS Safari 
+   Note: This applies to 1024px and below to cover both mobile and tablet devices
+   Modal layout specifics are defined separately for mobile (767px) and tablet (768-1024px) */
 @media (max-width: 1024px) {
     body.modal-open {
         position: fixed !important;

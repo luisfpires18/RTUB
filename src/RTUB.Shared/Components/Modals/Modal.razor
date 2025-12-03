@@ -130,13 +130,13 @@
             {
                 if (Show)
                 {
-                    // Modal opened - lock body scroll
-                    await JSRuntime.InvokeVoidAsync("eval", "document.body.classList.add('modal-open')");
+                    // Modal opened - lock body scroll using dedicated modalHelper function
+                    await JSRuntime.InvokeVoidAsync("modalHelper.lockBodyScroll");
                 }
                 else
                 {
-                    // Modal closed - unlock body scroll
-                    await JSRuntime.InvokeVoidAsync("eval", "document.body.classList.remove('modal-open')");
+                    // Modal closed - unlock body scroll using dedicated modalHelper function
+                    await JSRuntime.InvokeVoidAsync("modalHelper.unlockBodyScroll");
                 }
             }
             catch (JSException)
