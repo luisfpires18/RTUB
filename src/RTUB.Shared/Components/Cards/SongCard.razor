@@ -113,6 +113,23 @@
                         <span class="action-label">Links</span>
                     </button>
                 }
+                @{
+                    var hasVideos = Song.Videos?.Any() == true;
+                }
+                @if (hasVideos || IsOwner)
+                {
+                    <button class="btn btn-sm btn-purple song-action-btn" @onclick="HandleViewVideos" title="Ver Vídeos">
+                        <i class="bi bi-camera-video-fill"></i>
+                        <span class="action-label">Vídeos</span>
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-sm btn-purple song-action-btn" disabled title="Sem vídeos ainda">
+                        <i class="bi bi-camera-video-fill"></i>
+                        <span class="action-label">Vídeos</span>
+                    </button>
+                }
             </div>
         </div>
     </div>
@@ -150,6 +167,12 @@
     public EventCallback OnViewLinks { get; set; }
 
     /// <summary>
+    /// Callback when the view videos button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewVideos { get; set; }
+
+    /// <summary>
     /// Callback when the edit button is clicked
     /// </summary>
     [Parameter]
@@ -182,6 +205,14 @@
         if (OnViewLinks.HasDelegate)
         {
             await OnViewLinks.InvokeAsync();
+        }
+    }
+
+    private async Task HandleViewVideos()
+    {
+        if (OnViewVideos.HasDelegate)
+        {
+            await OnViewVideos.InvokeAsync();
         }
     }
 
@@ -226,6 +257,7 @@
     private int _previousSongId;
     private bool _previousHasMusic;
     private bool _previousIsOwner;
+    private bool _previousHasVideos;
     
     /// <summary>
     /// Optimize rendering - only re-render when key parameters change.
@@ -235,14 +267,17 @@
     {
         var songId = Song?.Id ?? 0;
         var hasMusic = Song?.HasMusic ?? false;
+        var hasVideos = Song?.Videos?.Any() == true;
         
         if (songId != _previousSongId ||
             hasMusic != _previousHasMusic ||
-            IsOwner != _previousIsOwner)
+            IsOwner != _previousIsOwner ||
+            hasVideos != _previousHasVideos)
         {
             _previousSongId = songId;
             _previousHasMusic = hasMusic;
             _previousIsOwner = IsOwner;
+            _previousHasVideos = hasVideos;
             return true;
         }
         return false;

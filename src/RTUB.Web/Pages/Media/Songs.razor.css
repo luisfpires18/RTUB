@@ -1,0 +1,61 @@
+/* Page-scoped styles for Songs.razor - Video Modal */
+
+/* Video player wrapper */
+.video-player-wrapper {
+    position: relative;
+    width: 100%;
+    background-color: #000;
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+/* Video list styling */
+.video-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.video-list-item {
+    transition: all 0.2s ease;
+    border: 1px solid var(--bs-border-color);
+}
+
+.video-list-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(var(--bs-primary-rgb), 0.2);
+}
+
+.video-list-item.bg-primary {
+    border-color: var(--bs-primary);
+}
+
+/* Responsive video layout */
+@media (max-width: 991px) {
+    /* Stack video player on top, list below on mobile */
+    .video-player-wrapper {
+        margin-bottom: 1rem;
+    }
+    
+    .video-list {
+        max-height: 300px !important;
+    }
+}
+
+/* Scrollbar styling for video list */
+.video-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.video-list::-webkit-scrollbar-track {
+    background: rgba(var(--bs-primary-rgb), 0.1);
+    border-radius: 4px;
+}
+
+.video-list::-webkit-scrollbar-thumb {
+    background: rgba(var(--bs-primary-rgb), 0.4);
+    border-radius: 4px;
+}
+
+.video-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--bs-primary-rgb), 0.6);
+}
