@@ -203,7 +203,7 @@ else
                            LazyLoad="true">
                     <BadgeContent>
                         <div class="avatar-card-badges-row">
-                            <CategoryBadge Category="@MemberCategory.Leitao" />
+                            <CategoryBadge @key="MemberCategory.Leitao" Category="@MemberCategory.Leitao" />
                         </div>
                     </BadgeContent>
                 </AvatarCard>
@@ -819,7 +819,7 @@ else
                                     {
                                         foreach (var category in member.Categories)
                                         {
-                                            <CategoryBadge Category="@category" />
+                                            <CategoryBadge @key="category" Category="@category" />
                                         }
                                     }
                                 </td>
