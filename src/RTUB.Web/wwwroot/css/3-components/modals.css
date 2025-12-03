@@ -75,7 +75,10 @@ body.modal-open {
 
 /* On mobile and tablet, use position fixed to prevent scroll-behind on iOS Safari 
    Note: This applies to 1024px and below to cover both mobile and tablet devices
-   Modal layout specifics are defined separately for mobile (767px) and tablet (768-1024px) */
+   Modal layout specifics are defined separately:
+   - Mobile (≤767px): Full-screen flex layout with flex dialog
+   - Tablet (768-1024px): 90% width centered modals (see line 189)
+   - Both share the same scroll lock behavior */
 @media (max-width: 1024px) {
     body.modal-open {
         position: fixed !important;
