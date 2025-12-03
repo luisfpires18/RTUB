@@ -142,7 +142,7 @@ else
                             @foreach (var category in user.Categories.Where(c =>
                                 c == MemberCategory.Caloiro || c == MemberCategory.Tuno))
                             {
-                                <CategoryBadge @key="category" Category="@category" />
+                                <CategoryBadge @key="@($"category-{user.Id}-{category}")" Category="@category" />
                             }
                         </div>
                         <!-- Role/Position badges row -->
@@ -567,7 +567,7 @@ else
                     }
                     @foreach (var category in displayCategories)
                     {
-                        <CategoryBadge @key="category" Category="@category" />
+                        <CategoryBadge @key="@($"category-{viewingUser.Id}-{category}")" Category="@category" />
                     }
                     @if (viewingUser.Positions.Any())
                     {
@@ -819,7 +819,7 @@ else
                                     {
                                         foreach (var category in member.Categories)
                                         {
-                                            <CategoryBadge @key="category" Category="@category" />
+                                            <CategoryBadge @key="@($"category-{member.Id}-{category}")" Category="@category" />
                                         }
                                     }
                                 </td>
