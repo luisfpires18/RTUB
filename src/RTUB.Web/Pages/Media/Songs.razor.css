@@ -35,6 +35,21 @@
     color: white;
 }
 
+/* Video title truncation to prevent overflow */
+.video-title-wrapper {
+    display: flex;
+    align-items: center;
+    min-width: 0; /* Allow flex item to shrink */
+    flex: 1;
+    margin-right: 8px;
+}
+
+.video-title-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* Responsive video sizing for modal */
 @media (max-width: 768px) {
     .modal-video {

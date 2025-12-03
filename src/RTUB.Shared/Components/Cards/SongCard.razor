@@ -116,16 +116,10 @@
                 @{
                     var hasVideos = Song.Videos?.Any() == true;
                 }
+                @* Only show Videos button if there are videos OR user is owner/admin *@
                 @if (hasVideos || IsOwner)
                 {
                     <button class="btn btn-sm btn-purple song-action-btn" @onclick="HandleViewVideos" title="Ver Vídeos">
-                        <i class="bi bi-camera-video-fill"></i>
-                        <span class="action-label">Vídeos</span>
-                    </button>
-                }
-                else
-                {
-                    <button class="btn btn-sm btn-purple song-action-btn" disabled title="Sem vídeos ainda">
                         <i class="bi bi-camera-video-fill"></i>
                         <span class="action-label">Vídeos</span>
                     </button>
