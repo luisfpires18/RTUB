@@ -34,34 +34,54 @@
             <label class="form-label fw-semibold">
                 <i class="bi bi-images text-primary me-2"></i>Imagens
             </label>
-            <InputFile id="post-images" 
-                       class="form-control" 
-                       OnChange="@HandleImageSelection" 
-                       accept="image/*" 
-                       multiple />
-            @if (selectedImages.Count > 0)
-            {
-                <div class="mt-2">
-                    <small class="text-success">@selectedImages.Count imagem(ns) selecionada(s)</small>
-                </div>
-            }
+            <div class="localized-file-picker">
+                <InputFile id="@imageInputId" 
+                           class="d-none" 
+                           OnChange="@HandleImageSelection" 
+                           accept="image/*" 
+                           multiple 
+                           aria-label="Escolher imagens" />
+                <label class="btn btn-outline-secondary localized-file-button" for="@imageInputId">
+                    <i class="bi bi-upload me-2"></i>Escolher imagens
+                </label>
+                <span class="localized-file-name">
+                    @if (selectedImages.Count > 0)
+                    {
+                        <text>@selectedImages.Count imagem(ns) selecionada(s)</text>
+                    }
+                    else
+                    {
+                        <text>Nenhuma imagem selecionada</text>
+                    }
+                </span>
+            </div>
         </div>
 
         <div class="mb-3">
             <label class="form-label fw-semibold">
                 <i class="bi bi-camera-video text-primary me-2"></i>Vídeos
             </label>
-            <InputFile id="post-videos" 
-                       class="form-control" 
-                       OnChange="@HandleVideoSelection" 
-                       accept="video/*" 
-                       multiple />
-            @if (selectedVideos.Count > 0)
-            {
-                <div class="mt-2">
-                    <small class="text-success">@selectedVideos.Count vídeo(s) selecionado(s)</small>
-                </div>
-            }
+            <div class="localized-file-picker">
+                <InputFile id="@videoInputId" 
+                           class="d-none" 
+                           OnChange="@HandleVideoSelection" 
+                           accept="video/*" 
+                           multiple 
+                           aria-label="Escolher vídeos" />
+                <label class="btn btn-outline-secondary localized-file-button" for="@videoInputId">
+                    <i class="bi bi-upload me-2"></i>Escolher vídeos
+                </label>
+                <span class="localized-file-name">
+                    @if (selectedVideos.Count > 0)
+                    {
+                        <text>@selectedVideos.Count vídeo(s) selecionado(s)</text>
+                    }
+                    else
+                    {
+                        <text>Nenhum vídeo selecionado</text>
+                    }
+                </span>
+            </div>
         </div>
 
         <div class="d-flex justify-content-end">
@@ -90,6 +110,8 @@
     private bool isSubmitting = false;
     private List<IBrowserFile> selectedImages = new();
     private List<IBrowserFile> selectedVideos = new();
+    private string imageInputId = $"post-images-{Guid.NewGuid():N}";
+    private string videoInputId = $"post-videos-{Guid.NewGuid():N}";
     
     protected override void OnParametersSet()
     {

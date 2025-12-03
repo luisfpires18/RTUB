@@ -19,17 +19,27 @@
             <label class="form-label">
                 <i class="bi bi-images me-2"></i>Imagens (opcional)
             </label>
-            <InputFile id="comment-images" 
-                       class="form-control" 
-                       OnChange="@HandleImageSelection" 
-                       accept="image/*" 
-                       multiple />
-            @if (selectedImages.Count > 0)
-            {
-                <div class="mt-2">
-                    <small class="text-success">@selectedImages.Count imagem(ns) selecionada(s)</small>
-                </div>
-            }
+            <div class="localized-file-picker">
+                <InputFile id="@imageInputId" 
+                           class="d-none" 
+                           OnChange="@HandleImageSelection" 
+                           accept="image/*" 
+                           multiple 
+                           aria-label="Escolher imagens" />
+                <label class="btn btn-outline-secondary localized-file-button" for="@imageInputId">
+                    <i class="bi bi-upload me-2"></i>Escolher imagens
+                </label>
+                <span class="localized-file-name">
+                    @if (selectedImages.Count > 0)
+                    {
+                        <text>@selectedImages.Count imagem(ns) selecionada(s)</text>
+                    }
+                    else
+                    {
+                        <text>Nenhuma imagem selecionada</text>
+                    }
+                </span>
+            </div>
         </div>
 
         <div class="d-flex justify-content-end">
@@ -51,6 +61,7 @@
     private CommentComposerModel model = new();
     private bool isSubmitting = false;
     private List<IBrowserFile> selectedImages = new();
+    private string imageInputId = $"comment-images-{Guid.NewGuid():N}";
 
     private void HandleImageSelection(InputFileChangeEventArgs e)
     {
