@@ -5,6 +5,8 @@
 @inject ISlideshowService SlideshowService
 @inject IJSRuntime JSRuntime
 
+<div class="homepage-content">
+
 <!-- #1 Carousel -->
 @if (slides != null && slides.Any())
 {
@@ -160,6 +162,8 @@
         </a>
     </div>
 </section>
+
+</div>
 
 @code {
     private List<Slideshow>? slides;

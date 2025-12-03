@@ -63,20 +63,75 @@
    MODAL MOBILE & PWA IMPROVEMENTS
    ======================================== */
 
+/* ========================================
+   BODY SCROLL LOCK WHEN MODAL IS OPEN
+   Critical for preventing background scroll on mobile/PWA
+   ======================================== */
+
+/* Lock body scroll when any modal is open */
+body.modal-open {
+    overflow: hidden !important;
+}
+
+/* On mobile and tablet, use position fixed to prevent scroll-behind on iOS Safari 
+   Note: This applies to 1024px and below to cover both mobile and tablet devices
+   Modal layout specifics are defined separately:
+   - Mobile (≤767px): Full-screen flex layout with flex dialog
+   - Tablet (768-1024px): 90% width centered modals (see line 189)
+   - Both share the same scroll lock behavior */
+@media (max-width: 1024px) {
+    body.modal-open {
+        position: fixed !important;
+        width: 100%;
+        height: 100vh;
+        height: 100dvh; /* Dynamic viewport height for mobile */
+    }
+}
+
+/* Ensure modal and backdrop stack properly when shown */
+.modal-backdrop.show {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+}
+
+.modal.show {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1050;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
 /* Mobile modal improvements */
 @media (max-width: 767px) {
+    /* Full-screen or near full-screen modal on mobile */
     .modal-dialog {
         margin: 0.5rem;
         max-width: calc(100% - 1rem);
+        height: calc(100vh - 1rem);
+        height: calc(100dvh - 1rem);
+        display: flex;
+        align-items: center;
     }
 
     .modal-content {
-        max-height: calc(100vh - 1rem);
-        max-height: calc(100dvh - 1rem); /* Use dynamic viewport height */
+        display: flex;
+        flex-direction: column;
+        max-height: 100%;
         border-radius: 1rem;
+        overflow: hidden;
     }
 
     .modal-header {
+        flex: 0 0 auto; /* Fixed header */
         padding: 0.875rem 1rem;
         border-bottom: 1px solid rgba(var(--bs-primary-rgb), 0.2);
     }
@@ -87,13 +142,17 @@
     }
 
     .modal-body {
+        flex: 1 1 auto; /* Scrollable content area */
         padding: 1rem;
         overflow-y: auto;
+        overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
+        min-height: 0; /* Critical for flex scrolling */
     }
 
     .modal-footer {
+        flex: 0 0 auto; /* Fixed footer */
         padding: 0.875rem 1rem;
         border-top: 1px solid rgba(var(--bs-primary-rgb), 0.2);
         flex-wrap: wrap;
@@ -115,6 +174,17 @@
     /* Better close button touch target */
     .btn-close {
         padding: 0.75rem;
+    }
+    
+    /* Ensure pagination and other controls inside modal don't cause page scroll */
+    .modal-body .pagination {
+        margin-bottom: 0;
+    }
+    
+    /* Fix for tables with pagination inside modals */
+    .modal-body .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 }
 

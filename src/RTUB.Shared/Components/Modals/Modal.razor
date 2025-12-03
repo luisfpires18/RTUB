@@ -1,5 +1,7 @@
 @namespace RTUB.Shared
 @using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
 @* 
     Reusable Modal Component
     Used across the application for dialogs and modals
@@ -94,6 +96,7 @@
     public EventCallback OnClose { get; set; }
 
     private bool _previousShowState = false;
+    private bool _bodyScrollLockApplied = false;
     
     private string SizeClass => Size switch
     {
@@ -115,6 +118,64 @@
         }
         // Only render if modal is visible (Show == true)
         return Show;
+    }
+    
+    /// <summary>
+    /// Handle modal show/hide state changes and manage body scroll lock
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Check if body scroll lock state needs to change
+        if (Show && !_bodyScrollLockApplied)
+        {
+            // Modal opened - lock body scroll
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("modalHelper.lockBodyScroll");
+                _bodyScrollLockApplied = true;
+            }
+            catch (JSException)
+            {
+                // Silent failure is acceptable here - modal will still function without scroll lock
+                // This can occur during prerendering or if JS is disabled
+                // The modal itself remains functional; scroll lock is a UX enhancement
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected - benign, ignore
+                // Modal is being disposed, no action needed
+            }
+            catch (TaskCanceledException)
+            {
+                // User navigated away - benign, ignore
+                // Modal will be cleaned up by Blazor lifecycle
+            }
+        }
+        else if (!Show && _bodyScrollLockApplied)
+        {
+            // Modal closed - unlock body scroll
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("modalHelper.unlockBodyScroll");
+                _bodyScrollLockApplied = false;
+            }
+            catch (JSException)
+            {
+                // Silent failure is acceptable - body scroll will be unlocked when page refreshes
+                // This can occur during prerendering or if JS is disabled
+                // Worst case: user can refresh page to restore scroll
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected - benign, ignore
+                // Modal is being disposed, scroll will restore on page reload
+            }
+            catch (TaskCanceledException)
+            {
+                // User navigated away - benign, ignore
+                // Page navigation will reset body scroll state
+            }
+        }
     }
 
     private async Task Close()
