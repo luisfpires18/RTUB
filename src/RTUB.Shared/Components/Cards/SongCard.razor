@@ -1,4 +1,5 @@
 @namespace RTUB.Shared
+@using Microsoft.AspNetCore.Components.Authorization
 @using RTUB.Core.Entities
 @using Microsoft.AspNetCore.Components
 @*
@@ -113,14 +114,16 @@
                         <span class="action-label">Links</span>
                     </button>
                 }
-                @{
-                    var hasVideos = Song.Videos?.Any() == true;
-                }
-                @* Show Videos button to all users (any logged-in member can view/upload) *@
-                <button class="btn btn-sm btn-purple song-action-btn" @onclick="HandleViewVideos" title="Ver Vídeos">
-                    <i class="bi bi-camera-video-fill"></i>
-                    <span class="action-label">Vídeos</span>
-                </button>
+
+                <AuthorizeView>
+                    <Authorized>
+                        <button class="btn btn-sm btn-purple song-action-btn" @onclick="HandleViewVideos" title="Ver Vídeos">
+                            <i class="bi bi-camera-video-fill"></i>
+                            <span class="action-label">Vídeos</span>
+                        </button>
+                     </Authorized>
+                </AuthorizeView>
+               
             </div>
         </div>
     </div>
