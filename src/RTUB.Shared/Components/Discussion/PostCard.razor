@@ -137,7 +137,7 @@ else
     <!-- Video Modal -->
     <Modal Show="@showVideoModal"
            ShowChanged="@((show) => showVideoModal = show)"
-           Title="Vídeos do Post"
+           Title="@VideoModalTitle"
            Size="Modal.ModalSize.Large"
            Centered="true"
            ShowCloseButton="true">
@@ -199,7 +199,7 @@ else
     
     [Parameter]
     public bool ShowOwnerControls { get; set; }
-    
+
     [Parameter]
     public EventCallback OnEdit { get; set; }
     
@@ -211,9 +211,14 @@ else
     
     [Parameter]
     public EventCallback OnToggleLock { get; set; }
+
+    [Parameter]
+    public string? EventName { get; set; }
     
     private bool showVideoModal = false;
     private int selectedVideoIndex = 0;
+
+    private string VideoModalTitle => $"Vídeos do evento {(string.IsNullOrWhiteSpace(EventName) ? "desconhecido" : EventName)}";
     
     private void OpenVideoModal()
     {
