@@ -182,6 +182,12 @@
     .post-card-title {
         font-size: 1.1rem;
     }
+
+    /* Show full text on mobile */
+    .post-card-body {
+        -webkit-line-clamp: unset;
+        display: block;
+    }
 }
 
 @media (max-width: 576px) {

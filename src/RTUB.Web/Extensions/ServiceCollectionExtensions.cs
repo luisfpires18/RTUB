@@ -30,6 +30,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAlbumRepository, AlbumRepository>();
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<ICommentRepository, CommentRepository>();
+        services.AddScoped<IPostMediaRepository, PostMediaRepository>();
+        services.AddScoped<ICommentImageRepository, CommentImageRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddScoped<IDiscussionRepository, DiscussionRepository>();
         services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
@@ -182,6 +184,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILyricStorageService, DriveLyricStorageService>();
         services.AddScoped<IDocumentStorageService, CloudflareDocumentStorageService>();
         services.AddScoped<DriveDocumentStorageService>(); // For /roles page RGI document from IDrive
+        services.AddScoped<IEventMediaStorageService, CloudflareEventMediaStorageService>();
 
         return services;
     }

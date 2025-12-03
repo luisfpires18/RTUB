@@ -1,5 +1,6 @@
 @namespace RTUB.Shared
 @using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
 
 <div class="post-composer">
     <EditForm Model="@model" OnValidSubmit="HandleSubmit">
@@ -28,6 +29,34 @@
             <ValidationMessage For="@(() => model.Body)" />
         </div>
 
+        <!-- Video Upload Section -->
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-camera-video text-primary me-2"></i>Vídeos
+            </label>
+            <div class="localized-file-picker">
+                <InputFile id="@videoInputId" 
+                           class="d-none" 
+                           OnChange="@HandleVideoSelection" 
+                           accept="video/*" 
+                           multiple 
+                           aria-label="Escolher vídeos" />
+                <label class="btn btn-outline-secondary localized-file-button" for="@videoInputId">
+                    <i class="bi bi-upload me-2"></i>Escolher vídeos
+                </label>
+                <span class="localized-file-name">
+                    @if (selectedVideos.Count > 0)
+                    {
+                        <text>@selectedVideos.Count vídeo(s) selecionado(s)</text>
+                    }
+                    else
+                    {
+                        <text>Nenhum vídeo selecionado</text>
+                    }
+                </span>
+            </div>
+        </div>
+
         <div class="d-flex justify-content-end">
             <button type="submit" class="btn btn-primary btn-primary-purple" disabled="@isSubmitting">
                 @if (isSubmitting)
@@ -42,7 +71,7 @@
 
 @code {
     [Parameter]
-    public EventCallback<(string title, string body)> OnSubmit { get; set; }
+    public EventCallback<(string title, string body, IReadOnlyList<IBrowserFile> videos)> OnSubmit { get; set; }
     
     [Parameter]
     public string? Title { get; set; }
@@ -52,6 +81,8 @@
 
     private PostComposerModel model = new();
     private bool isSubmitting = false;
+    private List<IBrowserFile> selectedVideos = new();
+    private string videoInputId = $"post-videos-{Guid.NewGuid():N}";
     
     protected override void OnParametersSet()
     {
@@ -62,6 +93,11 @@
         }
     }
 
+    private void HandleVideoSelection(InputFileChangeEventArgs e)
+    {
+        selectedVideos = e.GetMultipleFiles(3).ToList(); // Max 3 videos
+    }
+
     private async Task HandleSubmit()
     {
         if (isSubmitting) return;
@@ -69,8 +105,9 @@
         isSubmitting = true;
         try
         {
-            await OnSubmit.InvokeAsync((model.Title, model.Body));
+            await OnSubmit.InvokeAsync((model.Title, model.Body, selectedVideos));
             model = new PostComposerModel(); // Reset form
+            selectedVideos.Clear();
         }
         finally
         {
