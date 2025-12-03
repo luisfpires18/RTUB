@@ -520,9 +520,9 @@ else
                             var index = i;
                             var video = videos[i];
                             var isSelected = selectedVideoId == video.Id;
-                            var displayTitle = !string.IsNullOrWhiteSpace(video.Title) 
-                                ? video.Title 
-                                : System.IO.Path.GetFileNameWithoutExtension(video.Url.Split('/').LastOrDefault() ?? $"Vídeo {i + 1}");
+                            
+                            // Generate clean display title
+                            var displayTitle = GetCleanVideoTitle(video, i + 1);
                             
                             <button type="button"
                                     class="list-group-item list-group-item-action d-flex justify-content-between align-items-center @(isSelected ? "active" : "")"
@@ -1075,8 +1075,10 @@ else
         selectedVideoFile = file;
         selectedVideoName = file.Name;
         
-        // Pre-fill title with cleaned filename (without extension)
-        videoTitle = System.IO.Path.GetFileNameWithoutExtension(file.Name);
+        // Generate generic title based on song name and existing video count
+        var existingCount = songVideos?.Count ?? 0;
+        var videoNumber = existingCount + 1;
+        videoTitle = $"{viewingVideosForSong.Title} - Vídeo {videoNumber}";
         
         StateHasChanged();
     }
@@ -1178,6 +1180,40 @@ else
             len = len / 1024;
         }
         return $"{len:0.##} {sizes[order]}";
+    }
+    
+    /// <summary>
+    /// Generate a clean display title for a video.
+    /// If the title looks like a storage key (very long, contains .mp4, etc.), 
+    /// generate a generic title based on song name and video index.
+    /// </summary>
+    private string GetCleanVideoTitle(SongVideo video, int videoNumber)
+    {
+        if (viewingVideosForSong == null) 
+            return $"Vídeo {videoNumber}";
+        
+        // If no title exists, generate generic one
+        if (string.IsNullOrWhiteSpace(video.Title))
+        {
+            return $"{viewingVideosForSong.Title} - Vídeo {videoNumber}";
+        }
+        
+        // Check if title looks like a storage key (long and contains file extensions or GUIDs)
+        var title = video.Title.Trim();
+        var looksLikeKey = title.Length > 50 || 
+                          title.Contains(".mp4", StringComparison.OrdinalIgnoreCase) ||
+                          title.Contains(".mov", StringComparison.OrdinalIgnoreCase) ||
+                          title.Contains(".avi", StringComparison.OrdinalIgnoreCase) ||
+                          title.Contains("/") ||
+                          title.Contains("\\");
+        
+        if (looksLikeKey)
+        {
+            return $"{viewingVideosForSong.Title} - Vídeo {videoNumber}";
+        }
+        
+        // Title looks good, use as-is
+        return title;
     }
 }
 
