@@ -46,11 +46,13 @@ public class MemberStatisticsService : IMemberStatisticsService
     {
         // Optimized query: Use Join instead of Include for better performance
         // EF Core will optimize this to avoid loading full Event entities
+        var beforeDateOnly = beforeDate.Date;
+
         var enrollmentsWithTypes = await (
             from enrollment in _context.Enrollments
             join evt in _context.Events on enrollment.EventId equals evt.Id
-            let eventEndDate = evt.EndDate ?? evt.Date
-            where enrollment.WillAttend && eventEndDate < beforeDate
+            let eventEndDate = (evt.EndDate ?? evt.Date).Date
+            where enrollment.WillAttend && eventEndDate < beforeDateOnly
             select new UserEnrollmentWithEventType
             {
                 UserId = enrollment.UserId,

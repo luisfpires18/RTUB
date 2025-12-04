@@ -335,6 +335,45 @@ public class MemberStatisticsServiceTests : IClassFixture<DatabaseFixture>, IDis
     }
 
     [Fact]
+    public async Task GetEnrollmentsByUserWithEventTypeAsync_ExcludesOngoingMultiDayEvents()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var user = new ApplicationUser
+        {
+            Id = userId,
+            UserName = $"user_{userId}@test.com",
+            Email = $"user_{userId}@test.com",
+            FirstName = "Test",
+            LastName = "User",
+            Nickname = "User",
+            PhoneNumber = "123456789"
+        };
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        var today = DateTime.UtcNow.Date;
+        var event1 = Event.Create("Event 1", today, "Location", EventType.Convivio);
+        event1.SetEndDate(today.AddDays(2)); // Multi-day event currently in progress
+        _context.Events.Add(event1);
+        await _context.SaveChangesAsync();
+
+        var enrollment = Enrollment.Create(user.Id, event1.Id);
+        enrollment.WillAttend = true;
+        _context.Enrollments.Add(enrollment);
+        await _context.SaveChangesAsync();
+
+        var beforeDate = today.AddDays(1); // During the event window
+
+        // Act
+        var result = await _service.GetEnrollmentsByUserWithEventTypeAsync(beforeDate);
+
+        // Assert
+        result.Should().BeEmpty(); // Ongoing event should not be counted yet
+    }
+
+    [Fact]
     public async Task Constructor_WithNullContext_ThrowsArgumentNullException()
     {
         // Act & Assert

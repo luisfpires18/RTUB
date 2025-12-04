@@ -44,18 +44,18 @@ public class RankingService : IRankingService
 
     public async Task<int> CalculateTotalXpAsync(string userId)
     {
-        var now = DateTime.UtcNow;
+        var nowDate = DateTime.UtcNow.Date;
 
         // Count rehearsal attendances where Attended == true AND rehearsal date is in the past
         var rehearsalXp = await _attendanceRepository.Query()
             .Include(ra => ra.Rehearsal)
-            .Where(ra => ra.UserId == userId && ra.Attended && ra.Rehearsal!.Date < now)
+            .Where(ra => ra.UserId == userId && ra.Attended && ra.Rehearsal!.Date < nowDate)
             .CountAsync() * _rankingConfig.Value.XpPerRehearsal;
 
         // Calculate event XP with type-specific values - only count events with configured XP
         var eventTypes = await _enrollmentRepository.Query()
             .Include(e => e.Event)
-            .Where(e => e.UserId == userId && e.WillAttend && e.Event!.Date < now)
+            .Where(e => e.UserId == userId && e.WillAttend && (e.Event!.EndDate ?? e.Event!.Date).Date < nowDate)
             .Select(e => e.Event!.Type.ToString())
             .ToListAsync();
 
@@ -187,12 +187,12 @@ public class RankingService : IRankingService
             return new Dictionary<string, RankProgressInfo>();
         }
 
-        var now = DateTime.UtcNow;
+        var nowDate = DateTime.UtcNow.Date;
 
         // Batch load all rehearsal attendances in a single query
         var rehearsalXpByUser = await _attendanceRepository.Query()
             .Include(ra => ra.Rehearsal)
-            .Where(ra => userIdList.Contains(ra.UserId) && ra.Attended && ra.Rehearsal!.Date < now)
+            .Where(ra => userIdList.Contains(ra.UserId) && ra.Attended && ra.Rehearsal!.Date < nowDate)
             .GroupBy(ra => ra.UserId)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.UserId, x => x.Count * _rankingConfig.Value.XpPerRehearsal);
@@ -200,7 +200,7 @@ public class RankingService : IRankingService
         // Batch load all enrollments with event types in a single query
         var enrollmentsByUser = await _enrollmentRepository.Query()
             .Include(e => e.Event)
-            .Where(e => userIdList.Contains(e.UserId) && e.WillAttend && e.Event!.Date < now)
+            .Where(e => userIdList.Contains(e.UserId) && e.WillAttend && (e.Event!.EndDate ?? e.Event!.Date).Date < nowDate)
             .Select(e => new { e.UserId, EventType = e.Event!.Type.ToString() })
             .ToListAsync();
 

@@ -239,6 +239,60 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
     }
 
     [Fact]
+    public async Task CalculateTotalXpAsync_DoesNotCountOngoingMultiDayEvents()
+    {
+        // Arrange
+        var userId = "user-123";
+        var ongoingEvent = Event.Create("Ongoing Festival", DateTime.UtcNow.AddDays(-1), "Location", EventType.Festival);
+        ongoingEvent.Id = 1;
+        ongoingEvent.EndDate = DateTime.UtcNow.AddDays(1);
+
+        await _context.Events.AddAsync(ongoingEvent);
+        var enrollment = Enrollment.Create(userId, 1);
+        enrollment.WillAttend = true;
+        await _context.Enrollments.AddAsync(enrollment);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.CalculateTotalXpAsync(userId);
+
+        // Assert - Ongoing event should not count until after the end date
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetRankProgressBatchAsync_DoesNotCountOngoingEvents()
+    {
+        // Arrange
+        var userId = "user-123";
+        var otherUserId = "other-user";
+        var ongoingEvent = Event.Create("Ongoing Festival", DateTime.UtcNow.AddDays(-1), "Location", EventType.Festival);
+        ongoingEvent.Id = 1;
+        ongoingEvent.EndDate = DateTime.UtcNow.AddDays(1);
+
+        var pastEvent = Event.Create("Past Festival", DateTime.UtcNow.AddDays(-3), "Location", EventType.Festival);
+        pastEvent.Id = 2;
+
+        await _context.Events.AddRangeAsync(ongoingEvent, pastEvent);
+
+        var enrollment1 = Enrollment.Create(userId, ongoingEvent.Id);
+        enrollment1.WillAttend = true;
+
+        var enrollment2 = Enrollment.Create(otherUserId, pastEvent.Id);
+        enrollment2.WillAttend = true;
+
+        await _context.Enrollments.AddRangeAsync(enrollment1, enrollment2);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetRankProgressBatchAsync(new[] { userId, otherUserId });
+
+        // Assert
+        result[userId].CurrentXp.Should().Be(0);
+        result[otherUserId].CurrentXp.Should().Be(_config.XpPerEventType["Festival"]);
+    }
+
+    [Fact]
     public async Task CalculateTotalXpAsync_DoesNotCountFutureRehearsals()
     {
         // Arrange
