@@ -52,29 +52,35 @@ public class DownloadMediaController : ControllerBase
             // Set both FileName (ASCII-safe fallback for older browsers) and FileNameStar (RFC 5987 for full Unicode support)
             var contentDisposition = new ContentDispositionHeaderValue("attachment");
             
-            // Try to create ASCII-safe version for FileName, fallback to FileNameStar for full support
+            // Check if filename contains non-ASCII characters
+            var hasNonAsciiChars = !filename.All(c => c < 128);
+            
+            // Try to set the filename
             try
             {
-                // For ASCII-compatible filenames, set FileName directly
-                if (filename.All(c => c < 128))
+                if (hasNonAsciiChars)
                 {
-                    contentDisposition.FileName = filename;
+                    // For non-ASCII filenames, use ASCII-safe fallback in FileName and full filename in FileNameStar
+                    // Replace non-ASCII characters with underscores for FileName fallback
+                    var asciiSafeFilename = new string(filename.Select(c => c < 128 ? c : '_').ToArray());
+                    contentDisposition.FileName = asciiSafeFilename;
+                    
+                    // Set FileNameStar for full Unicode support (RFC 5987)
+                    contentDisposition.FileNameStar = filename;
                 }
                 else
                 {
-                    // For non-ASCII filenames, use ASCII-safe fallback in FileName and full filename in FileNameStar
-                    // Remove or replace non-ASCII characters for FileName fallback
-                    var asciiSafeFilename = new string(filename.Select(c => c < 128 ? c : '_').ToArray());
-                    contentDisposition.FileName = asciiSafeFilename;
+                    // For ASCII-compatible filenames, set FileName directly (no need for FileNameStar per RFC 5987)
+                    contentDisposition.FileName = filename;
                 }
             }
-            catch
+            catch (ArgumentException ex)
             {
-                // If setting FileName fails, just skip it and rely on FileNameStar
+                // If setting FileName fails due to invalid characters, log and fallback to FileNameStar only
+                _logger.LogWarning(ex, "Failed to set FileName for {Filename}, using FileNameStar fallback", filename);
+                contentDisposition.FileNameStar = filename;
             }
             
-            // Always set FileNameStar for full Unicode support (RFC 5987)
-            contentDisposition.FileNameStar = filename;
             Response.Headers["Content-Disposition"] = contentDisposition.ToString();
 
             // Stream file content to client
