@@ -371,3 +371,13 @@
     border-color: var(--bs-purple);
     color: var(--bs-body-color);
 }
+
+/* Gallery media modal preview - crisp, non-pixelated preview for both images and videos */
+.gallery-media-modal__preview img,
+.gallery-media-modal__preview video {
+    max-width: 220px;
+    max-height: 180px;
+    width: auto;
+    height: auto;
+    object-fit: cover;
+}

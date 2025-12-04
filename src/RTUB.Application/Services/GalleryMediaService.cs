@@ -16,9 +16,9 @@ public class GalleryMediaService : IGalleryMediaService
         _context = context;
     }
 
-    public async Task<IEnumerable<GalleryMedia>> GetAllAsync(int? year = null, string? personId = null)
+    public async Task<IEnumerable<GalleryMedia>> GetAllAsync(int? year = null, string? personId = null, bool? isAuthenticated = null)
     {
-        return await _repository.GetAllWithDetailsAsync(year, personId);
+        return await _repository.GetAllWithDetailsAsync(year, personId, isAuthenticated);
     }
 
     public async Task<GalleryMedia?> GetByIdAsync(int id)
@@ -44,6 +44,7 @@ public class GalleryMediaService : IGalleryMediaService
         
         // Update only the allowed fields on the tracked entity
         existingMedia.UpdateDetails(media.Title, media.Year, media.Month, media.Day, media.TakenAt);
+        existingMedia.UpdatePrivacy(media.IsPrivate);
         
         await _context.SaveChangesAsync();
         return existingMedia;
@@ -96,17 +97,18 @@ public class GalleryMediaService : IGalleryMediaService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<int>> GetAvailableYearsAsync()
+    public async Task<IEnumerable<int>> GetAvailableYearsAsync(bool? isAuthenticated = null)
     {
-        return await _repository.GetAvailableYearsAsync();
+        return await _repository.GetAvailableYearsAsync(isAuthenticated);
     }
 
     public async Task<(IEnumerable<GalleryMedia> Items, int TotalCount)> GetPaginatedAsync(
         int page,
         int pageSize,
         int? year = null,
-        string? personId = null)
+        string? personId = null,
+        bool? isAuthenticated = null)
     {
-        return await _repository.GetPaginatedWithDetailsAsync(page, pageSize, year, personId);
+        return await _repository.GetPaginatedWithDetailsAsync(page, pageSize, year, personId, isAuthenticated);
     }
 }

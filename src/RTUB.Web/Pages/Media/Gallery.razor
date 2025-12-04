@@ -21,7 +21,6 @@
 @inject IJSRuntime JSRuntime
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILogger<Gallery> Logger
-@attribute [Authorize]
 
 <div class="d-flex flex-column gap-3 mb-4">
     <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
@@ -140,6 +139,7 @@ else
                                    Label=""
                                    CurrentMediaUrl="@uploadModel.PreviewUrl"
                                    ShowCurrentMedia="true"
+                                   PreviewCssClass="gallery-media-modal__preview"
                                    OnFileSelected="HandleFileSelected" />
                 @if (selectedFile != null)
                 {
@@ -219,6 +219,20 @@ else
                         </div>
                     </div>
                 }
+            </div>
+
+            <div class="mb-3">
+                <div class="rtub-checkbox-wrapper">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input rtub-checkbox-large" id="uploadIsPrivate" @bind-Value="uploadModel.IsPrivate" />
+                        <label class="form-check-label" for="uploadIsPrivate">
+                            <i class="bi bi-lock text-primary me-2"></i>Visível apenas para membros
+                        </label>
+                    </div>
+                </div>
+                <div class="form-text small text-muted mt-1">
+                    Se marcado, apenas membros autenticados podem ver esta media. Desmarcado, qualquer visitante pode visualizar.
+                </div>
             </div>
         </EditForm>
     </BodyContent>
@@ -317,6 +331,20 @@ else
                             </div>
                         </div>
                     }
+                </div>
+
+                <div class="mb-3">
+                    <div class="rtub-checkbox-wrapper">
+                        <div class="form-check">
+                            <InputCheckbox class="form-check-input rtub-checkbox-large" id="editIsPrivate" @bind-Value="editModel.IsPrivate" />
+                            <label class="form-check-label" for="editIsPrivate">
+                                <i class="bi bi-lock text-primary me-2"></i>Visível apenas para membros
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-text small text-muted mt-1">
+                        Se marcado, apenas membros autenticados podem ver esta media. Desmarcado, qualquer visitante pode visualizar.
+                    </div>
                 </div>
             </EditForm>
         }
@@ -474,9 +502,11 @@ else
     // User
     private string? currentUserId;
     private bool isAdmin = false;
+    private bool isAuthenticated = false;
 
     // Timeline rendering
     private int timelineItemIndex = 0;
+    private Dictionary<int, bool> mediaPositions = new(); // Track if each media is on the left (true) or right (false)
 
     protected override async Task OnInitializedAsync()
     {
@@ -491,6 +521,7 @@ else
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
+        isAuthenticated = user.Identity?.IsAuthenticated ?? false;
         currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         isAdmin = user.IsInRole("Admin");
     }
@@ -505,7 +536,7 @@ else
 
     private async Task LoadAvailableYears()
     {
-        availableYears = (await GalleryMediaService.GetAvailableYearsAsync()).ToList();
+        availableYears = (await GalleryMediaService.GetAvailableYearsAsync(isAuthenticated)).ToList();
         yearFilterOptions = availableYears
             .OrderByDescending(y => y)
             .Select(y => new FilterDropdownOption(y.ToString(), y.ToString()))
@@ -516,7 +547,7 @@ else
     {
         // Get distinct users who are tagged in at least one gallery media
         // Note: This loads all media but only extracts user IDs - could be optimized with a dedicated query
-        var allMediaWithTags = await GalleryMediaService.GetAllAsync();
+        var allMediaWithTags = await GalleryMediaService.GetAllAsync(isAuthenticated: isAuthenticated);
         var taggedUserIds = allMediaWithTags
             .SelectMany(m => m.PeopleInMedia.Select(p => p.UserId))
             .Distinct()
@@ -550,7 +581,7 @@ else
             var yearFilter = string.IsNullOrEmpty(selectedYear) ? (int?)null : int.Parse(selectedYear);
             var personFilter = string.IsNullOrEmpty(selectedPersonId) ? null : selectedPersonId;
 
-            var result = await GalleryMediaService.GetPaginatedAsync(currentPage, pageSize, yearFilter, personFilter);
+            var result = await GalleryMediaService.GetPaginatedAsync(currentPage, pageSize, yearFilter, personFilter, isAuthenticated);
             
             if (currentPage == 1)
             {
@@ -581,6 +612,26 @@ else
             .GroupBy(m => m.Year)
             .OrderByDescending(g => g.Key)
             .ToDictionary(g => g.Key, g => g.ToList()); // Don't sort here, we'll sort in the rendering
+        
+        // Assign stable positions to each media item
+        int globalIndex = 0;
+        foreach (var yearGroup in groupedMedia.OrderByDescending(g => g.Key))
+        {
+            var sortedMedia = yearGroup.Value
+                .OrderByDescending(m => m.Month ?? 0)
+                .ThenByDescending(m => m.Day ?? 0)
+                .ThenByDescending(m => m.TakenAt ?? m.CreatedAt)
+                .ToList();
+            
+            foreach (var media in sortedMedia)
+            {
+                if (!mediaPositions.ContainsKey(media.Id))
+                {
+                    mediaPositions[media.Id] = globalIndex % 2 == 0; // true = left, false = right
+                }
+                globalIndex++;
+            }
+        }
     }
 
     private async Task ApplyFilters()
@@ -704,7 +755,8 @@ else
                 month,
                 day,
                 null,
-                null
+                null,
+                uploadModel.IsPrivate
             );
 
             await GalleryMediaService.CreateAsync(media);
@@ -807,7 +859,8 @@ else
         {
             Title = media.Title,
             SelectedDate = selectedDate,
-            TaggedPeopleIds = media.PeopleInMedia.Select(p => p.UserId).ToList()
+            TaggedPeopleIds = media.PeopleInMedia.Select(p => p.UserId).ToList(),
+            IsPrivate = media.IsPrivate
         };
         showEditModal = true;
     }
@@ -869,6 +922,7 @@ else
             }
             
             mediaToUpdate.UpdateDetails(editModel.Title, year, month, day);
+            mediaToUpdate.UpdatePrivacy(editModel.IsPrivate);
             await GalleryMediaService.UpdateAsync(mediaToUpdate);
 
             // Update tags
@@ -890,6 +944,7 @@ else
                 localItem.Year = mediaToUpdate.Year;
                 localItem.Month = mediaToUpdate.Month;
                 localItem.Day = mediaToUpdate.Day;
+                localItem.IsPrivate = mediaToUpdate.IsPrivate;
                 // Update people tags
                 localItem.PeopleInMedia.Clear();
                 foreach (var personId in editModel.TaggedPeopleIds)
@@ -902,12 +957,18 @@ else
                         localItem.PeopleInMedia.Add(tag);
                     }
                 }
+                
+                // Update the item in the grouped dictionary if year didn't change
+                if (groupedMedia.ContainsKey(localItem.Year))
+                {
+                    var yearGroup = groupedMedia[localItem.Year];
+                    var index = yearGroup.FindIndex(m => m.Id == localItem.Id);
+                    if (index >= 0)
+                    {
+                        yearGroup[index] = localItem;
+                    }
+                }
             }
-
-            // Re-group without resetting timeline index to prevent cards from moving
-            var currentIndex = timelineItemIndex;
-            GroupMediaByYear();
-            timelineItemIndex = currentIndex;
 
             CloseEditModal();
         }
@@ -1041,25 +1102,37 @@ else
     {
         try
         {
-            // Check if uploader is loaded; reload if necessary
-            if (media.Uploader == null)
+            // Reload media with all details including tags
+            var reloadedMedia = await GalleryMediaService.GetByIdAsync(media.Id);
+            if (reloadedMedia == null)
             {
-                var reloadedMedia = await GalleryMediaService.GetByIdAsync(media.Id);
-                if (reloadedMedia?.Uploader == null)
-                {
-                    Logger.LogWarning("Cannot send upload notification: uploader not found for media ID {MediaId}", media.Id);
-                    return;
-                }
-                media = reloadedMedia;
+                Logger.LogWarning("Cannot send upload notification: media ID {MediaId} not found", media.Id);
+                return;
             }
             
+            // Get distinct tagged user IDs
+            var taggedUserIds = reloadedMedia.PeopleInMedia
+                .Select(p => p.UserId)
+                .Distinct()
+                .ToList();
+            
+            // If no one is tagged, don't send notifications
+            if (!taggedUserIds.Any())
+            {
+                Logger.LogDebug("No tagged users for media ID {MediaId}, skipping notification", media.Id);
+                return;
+            }
+            
+            // Send notification only to tagged users
             var notification = new SendPushNotificationDto
             {
-                Title = "Nova Media na Galeria",
-                Body = $"{GetDisplayName(media.Uploader)} carregou \"{media.Title}\" ({media.Year})",
+                Title = "Nova media na Galeria",
+                Body = $"Foste marcado em \"{reloadedMedia.Title}\"",
                 Url = "/gallery"
             };
-            await PushNotificationService.BroadcastAsync(notification);
+            
+            await PushNotificationService.SendToSelectedUsersAsync(taggedUserIds, notification);
+            Logger.LogInformation("Sent gallery notification to {Count} tagged users for media ID {MediaId}", taggedUserIds.Count, media.Id);
         }
         catch (Exception ex)
         {
@@ -1136,7 +1209,7 @@ else
                     </div>
                 }
 
-                var isLeft = timelineItemIndex % 2 == 0;
+                var isLeft = mediaPositions.ContainsKey(media.Id) ? mediaPositions[media.Id] : (timelineItemIndex % 2 == 0);
                 <div class="gallery-timeline-item @(isLeft ? "left" : "right")">
                     <!-- Dot on the line -->
                     <div class="gallery-timeline-dot"></div>
@@ -1252,6 +1325,7 @@ else
         public DateTime SelectedDate { get; set; } = DateTime.Today;
         public List<string> TaggedPeopleIds { get; set; } = new();
         public string? PreviewUrl { get; set; }
+        public bool IsPrivate { get; set; } = true;
     }
 
     private class EditModel
@@ -1259,5 +1333,6 @@ else
         public string Title { get; set; } = string.Empty;
         public DateTime SelectedDate { get; set; } = DateTime.Today;
         public List<string> TaggedPeopleIds { get; set; } = new();
+        public bool IsPrivate { get; set; } = true;
     }
 }

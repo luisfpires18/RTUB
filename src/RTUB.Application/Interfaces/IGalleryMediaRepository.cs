@@ -10,7 +10,7 @@ public interface IGalleryMediaRepository : IRepository<GalleryMedia>
     /// <summary>
     /// Get all gallery media with filters
     /// </summary>
-    Task<IEnumerable<GalleryMedia>> GetAllWithDetailsAsync(int? year = null, string? personId = null);
+    Task<IEnumerable<GalleryMedia>> GetAllWithDetailsAsync(int? year = null, string? personId = null, bool? isAuthenticated = null);
 
     /// <summary>
     /// Get gallery media by ID with all related data
@@ -20,7 +20,7 @@ public interface IGalleryMediaRepository : IRepository<GalleryMedia>
     /// <summary>
     /// Get all available years
     /// </summary>
-    Task<IEnumerable<int>> GetAvailableYearsAsync();
+    Task<IEnumerable<int>> GetAvailableYearsAsync(bool? isAuthenticated = null);
 
     /// <summary>
     /// Get paginated gallery media with details
@@ -29,5 +29,6 @@ public interface IGalleryMediaRepository : IRepository<GalleryMedia>
         int page,
         int pageSize,
         int? year = null,
-        string? personId = null);
+        string? personId = null,
+        bool? isAuthenticated = null);
 }

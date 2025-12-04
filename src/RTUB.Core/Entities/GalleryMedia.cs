@@ -35,6 +35,11 @@ public class GalleryMedia : BaseEntity
 
     public DateTime? TakenAt { get; set; }
 
+    /// <summary>
+    /// Indicates if the media is private (visible only to logged-in members)
+    /// </summary>
+    public bool IsPrivate { get; set; } = true;
+
     // Navigation properties
     public virtual ApplicationUser Uploader { get; set; } = null!;
     public virtual ICollection<GalleryMediaPersonTag> PeopleInMedia { get; set; } = new List<GalleryMediaPersonTag>();
@@ -54,7 +59,8 @@ public class GalleryMedia : BaseEntity
         byte? month = null,
         byte? day = null,
         string? thumbnailUrl = null,
-        DateTime? takenAt = null)
+        DateTime? takenAt = null,
+        bool isPrivate = true)
     {
         ValidateUploaderId(uploaderId);
         ValidateTitle(title);
@@ -75,6 +81,7 @@ public class GalleryMedia : BaseEntity
             Day = day,
             ThumbnailUrl = thumbnailUrl,
             TakenAt = takenAt,
+            IsPrivate = isPrivate,
             CreatedAt = now
         };
     }
@@ -111,6 +118,14 @@ public class GalleryMedia : BaseEntity
     public void SetThumbnailUrl(string? thumbnailUrl)
     {
         ThumbnailUrl = thumbnailUrl;
+    }
+
+    /// <summary>
+    /// Update privacy setting
+    /// </summary>
+    public void UpdatePrivacy(bool isPrivate)
+    {
+        IsPrivate = isPrivate;
     }
 
     // Validation methods

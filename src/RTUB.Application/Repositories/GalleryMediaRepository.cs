@@ -11,13 +11,19 @@ public class GalleryMediaRepository : Repository<GalleryMedia>, IGalleryMediaRep
     {
     }
 
-    public async Task<IEnumerable<GalleryMedia>> GetAllWithDetailsAsync(int? year = null, string? personId = null)
+    public async Task<IEnumerable<GalleryMedia>> GetAllWithDetailsAsync(int? year = null, string? personId = null, bool? isAuthenticated = null)
     {
         var query = _context.GalleryMedia
             .Include(m => m.Uploader)
             .Include(m => m.PeopleInMedia)
                 .ThenInclude(p => p.User)
             .AsQueryable();
+
+        // Filter by privacy: if user is not authenticated, only show public media
+        if (isAuthenticated.HasValue && !isAuthenticated.Value)
+        {
+            query = query.Where(m => !m.IsPrivate);
+        }
 
         if (year.HasValue)
         {
@@ -48,9 +54,17 @@ public class GalleryMediaRepository : Repository<GalleryMedia>, IGalleryMediaRep
             .FirstOrDefaultAsync(m => m.Id == id);
     }
 
-    public async Task<IEnumerable<int>> GetAvailableYearsAsync()
+    public async Task<IEnumerable<int>> GetAvailableYearsAsync(bool? isAuthenticated = null)
     {
-        return await _context.GalleryMedia
+        var query = _context.GalleryMedia.AsQueryable();
+
+        // Filter by privacy: if user is not authenticated, only show public media
+        if (isAuthenticated.HasValue && !isAuthenticated.Value)
+        {
+            query = query.Where(m => !m.IsPrivate);
+        }
+
+        return await query
             .AsNoTracking()
             .Select(m => m.Year)
             .Distinct()
@@ -62,13 +76,20 @@ public class GalleryMediaRepository : Repository<GalleryMedia>, IGalleryMediaRep
         int page,
         int pageSize,
         int? year = null,
-        string? personId = null)
+        string? personId = null,
+        bool? isAuthenticated = null)
     {
         var query = _context.GalleryMedia
             .Include(m => m.Uploader)
             .Include(m => m.PeopleInMedia)
                 .ThenInclude(p => p.User)
             .AsQueryable();
+
+        // Filter by privacy: if user is not authenticated, only show public media
+        if (isAuthenticated.HasValue && !isAuthenticated.Value)
+        {
+            query = query.Where(m => !m.IsPrivate);
+        }
 
         if (year.HasValue)
         {
