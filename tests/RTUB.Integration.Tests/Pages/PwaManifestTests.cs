@@ -127,6 +127,37 @@ public class PwaManifestTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task ServiceWorker_HandlesAllFetchEventsWithRespondWith()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/service-worker.js");
+        var content = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+        
+        // Verify fetch event listener exists
+        content.Should().Contain("addEventListener('fetch'", 
+            "service worker must have fetch event listener for PWABuilder detection");
+        
+        // Verify event.respondWith is used (PWABuilder requirement)
+        content.Should().Contain("event.respondWith", 
+            "service worker must use event.respondWith for all fetch events (PWABuilder requirement)");
+        
+        // Count event.respondWith occurrences to ensure all paths are covered
+        var respondWithCount = System.Text.RegularExpressions.Regex.Matches(content, @"event\.respondWith").Count;
+        respondWithCount.Should().BeGreaterThanOrEqualTo(5, 
+            "service worker should handle multiple fetch scenarios with event.respondWith");
+        
+        // Verify cache version is present
+        content.Should().Contain("CACHE_VERSION", "service worker should have cache versioning");
+        
+        // Verify current cache version (v4 after the fix)
+        content.Should().Contain("rtub-v4", 
+            "service worker should use updated cache version to clear old caches");
+    }
+
+    [Fact]
     public async Task HomePage_ContainsManifestLink()
     {
         // Arrange & Act
