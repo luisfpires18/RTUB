@@ -95,10 +95,12 @@ self.addEventListener('fetch', (event) => {
                         });
                 })
                 .catch(() => {
-                    // Return default avatar if offline
+                    // Return default avatar if offline and it's an avatar/profile image
                     if (url.pathname.includes('avatar') || url.pathname.includes('profile')) {
                         return caches.match('/images/default-avatar.webp');
                     }
+                    // For other images, return a basic response to avoid "Failed to convert value to 'Response'" error
+                    return new Response('', { status: 404, statusText: 'Not Found' });
                 })
         );
         return;

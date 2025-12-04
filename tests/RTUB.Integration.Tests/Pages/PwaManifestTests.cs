@@ -69,6 +69,64 @@ public class PwaManifestTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task ManifestWebmanifest_ContainsRequiredFieldsForTWA()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/manifest.webmanifest");
+        var content = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+        content.Should().Contain("\"id\"", "manifest should contain id field required for TWA");
+        content.Should().Contain("\"name\"", "manifest should contain name field");
+        content.Should().Contain("\"short_name\"", "manifest should contain short_name field");
+        content.Should().Contain("\"start_url\"", "manifest should contain start_url field");
+        content.Should().Contain("\"display\"", "manifest should contain display field");
+        content.Should().Contain("\"scope\"", "manifest should contain scope field");
+        content.Should().Contain("\"theme_color\"", "manifest should contain theme_color field");
+        content.Should().Contain("\"background_color\"", "manifest should contain background_color field");
+        content.Should().Contain("\"categories\"", "manifest should contain categories field for better discoverability");
+    }
+
+    [Fact]
+    public async Task ServiceWorker_IsAccessible()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/service-worker.js");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK, "service-worker.js should be accessible");
+        response.Content.Headers.ContentType?.MediaType.Should().Be("text/javascript", 
+            "service worker should be served with correct content type");
+    }
+
+    [Fact]
+    public async Task ServiceWorkerRegistration_IsAccessible()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/js/sw-register.js");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK, "sw-register.js should be accessible");
+        response.Content.Headers.ContentType?.MediaType.Should().Be("text/javascript");
+    }
+
+    [Fact]
+    public async Task ServiceWorker_ContainsCachingStrategy()
+    {
+        // Arrange & Act
+        var response = await _client.GetAsync("/service-worker.js");
+        var content = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+        content.Should().Contain("install", "service worker should have install event");
+        content.Should().Contain("activate", "service worker should have activate event");
+        content.Should().Contain("fetch", "service worker should have fetch event for caching");
+        content.Should().Contain("caches", "service worker should implement caching");
+    }
+
+    [Fact]
     public async Task HomePage_ContainsManifestLink()
     {
         // Arrange & Act

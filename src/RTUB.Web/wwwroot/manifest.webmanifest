@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "RTUB - Real Tuna Universitária de Bragança",
   "short_name": "RTUB",
   "description": "Real Tuna Universitária de Bragança - Plataforma de Gestão",
@@ -7,7 +8,7 @@
   "display": "standalone",
   "scope": "/",
   "start_url": "/",
-  "orientation": "portrait-primary",
+  "categories": ["music", "education", "lifestyle", "entertainment"],
   "icons": [
     {
       "src": "/icons/rtub-logo-192.png",

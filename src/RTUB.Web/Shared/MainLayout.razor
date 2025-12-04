@@ -257,6 +257,9 @@
     
     @* PWA Configuration - manifest link moved to App.razor for static rendering *@
     <meta name="theme-color" content="#3F2A86" />
+    @* Modern standard for web app capability *@
+    <meta name="mobile-web-app-capable" content="yes" />
+    @* Keep for iOS backward compatibility *@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
@@ -298,6 +301,8 @@
         crossorigin=""></script>
 <VersionedAsset Path="/js/memberMap.js" Type="VersionedAsset.AssetType.Js" />
 <VersionedAsset Path="/js/push-notifications.js" Type="VersionedAsset.AssetType.Js" />
+@* Service Worker registration for PWA support *@
+<VersionedAsset Path="/js/sw-register.js" Type="VersionedAsset.AssetType.Js" />
 <script>
     // Configure Blazor to use absolute path for SignalR hub
     // This prevents 404 errors when on /admin/* or other sub-paths

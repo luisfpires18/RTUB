@@ -7,6 +7,7 @@ A modern **Blazor Web Application** for managing and promoting the Real Tuna Uni
 - [About](#about)
 - [Architecture](#architecture)
 - [Technologies](#technologies)
+  - [Progressive Web App (PWA)](#progressive-web-app-pwa)
 - [Features](#features)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
@@ -78,6 +79,31 @@ RTUB/
 - **SQLite** - Primary database
 - **Entity Framework Core Migrations** - Database version control
 - **Automatic Migration & Seeding** - Database initialization on startup
+
+### Progressive Web App (PWA)
+
+RTUB is a **production-ready Progressive Web App** that can be installed on devices and work offline:
+
+- **Installable**: Add to home screen on mobile and desktop
+- **Offline Support**: Service Worker caches core assets for offline functionality
+- **App-like Experience**: Runs in standalone mode without browser UI
+- **Push Notifications**: Native push notification support
+- **Mobile App Ready**: 
+  - 🤖 **Android**: Packaged via Trusted Web Activities (TWA) → [Android Guide](docs/android-twa-checklist.md)
+  - 🍎 **iOS**: Packaged via PWABuilder or Xcode → [iOS Guide](docs/ios-app-store-guide.md)
+
+**PWA Features**:
+- ✅ Web App Manifest with TWA-compatible `id` field
+- ✅ Service Worker with intelligent caching strategies
+- ✅ Automatic service worker registration and updates
+- ✅ iOS-optimized with Apple touch icons and web app meta tags
+- ✅ 192x192 and 512x512 app icons (maskable)
+- ✅ HTTPS-ready for production deployment
+
+**Documentation**:
+- 📖 [PWA Setup Guide](docs/pwa-setup.md) - Testing, development, and deployment
+- 🤖 [Android TWA Packaging](docs/android-twa-checklist.md) - Google Play Store submission
+- 🍎 [iOS App Store Guide](docs/ios-app-store-guide.md) - Apple App Store submission
 
 ## ✨ Features
 
