@@ -65,12 +65,16 @@ self.addEventListener('fetch', (event) => {
     
     // Skip non-HTTP(S) requests (e.g., chrome-extension://, moz-extension://)
     // Cache API only supports http and https schemes
+    // Pass through to network without caching
     if (!url.protocol.startsWith('http')) {
+        event.respondWith(fetch(request));
         return;
     }
     
     // Skip non-GET requests and Blazor SignalR connections
+    // Pass through to network without caching
     if (request.method !== 'GET' || url.pathname.includes('/_blazor')) {
+        event.respondWith(fetch(request));
         return;
     }
     
