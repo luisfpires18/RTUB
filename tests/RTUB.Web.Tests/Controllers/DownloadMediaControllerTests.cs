@@ -131,6 +131,9 @@ public class DownloadMediaControllerTests
         // The filename should be properly encoded (RFC 5987) with filename* parameter
         // which uses percent-encoding for non-ASCII characters
         contentDisposition.Should().Contain("filename*=utf-8''");
+        
+        // Should also have a fallback filename for older browsers
+        contentDisposition.Should().Contain("filename=");
     }
 
     [Fact]

@@ -49,8 +49,31 @@ public class DownloadMediaController : ControllerBase
             var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
 
             // Set Content-Disposition header to force download with proper RFC 5987 encoding
-            // Use FileNameStar for non-ASCII characters according to RFC 5987
+            // Set both FileName (ASCII-safe fallback for older browsers) and FileNameStar (RFC 5987 for full Unicode support)
             var contentDisposition = new ContentDispositionHeaderValue("attachment");
+            
+            // Try to create ASCII-safe version for FileName, fallback to FileNameStar for full support
+            try
+            {
+                // For ASCII-compatible filenames, set FileName directly
+                if (filename.All(c => c < 128))
+                {
+                    contentDisposition.FileName = filename;
+                }
+                else
+                {
+                    // For non-ASCII filenames, use ASCII-safe fallback in FileName and full filename in FileNameStar
+                    // Remove or replace non-ASCII characters for FileName fallback
+                    var asciiSafeFilename = new string(filename.Select(c => c < 128 ? c : '_').ToArray());
+                    contentDisposition.FileName = asciiSafeFilename;
+                }
+            }
+            catch
+            {
+                // If setting FileName fails, just skip it and rely on FileNameStar
+            }
+            
+            // Always set FileNameStar for full Unicode support (RFC 5987)
             contentDisposition.FileNameStar = filename;
             Response.Headers["Content-Disposition"] = contentDisposition.ToString();
 
