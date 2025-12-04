@@ -9,3 +9,14 @@
   border-top: 1px solid var(--bs-border-color);
 }
 
+.footer-link {
+  color: #aaa;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-link:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
