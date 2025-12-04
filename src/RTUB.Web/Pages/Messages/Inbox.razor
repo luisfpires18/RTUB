@@ -230,15 +230,15 @@
                                     }
                                 </div>
                             </div>
-                            @if (!selectedConversation.IsSystemConversation)
-                            {
-                                <div class="rtub-messages__header-actions">
-                                    <button class="btn btn-link rtub-messages__header-btn @(selectedConversation.IsMuted ? "is-active" : "")" @onclick="ToggleMute" title="@(selectedConversation.IsMuted ? "Ativar notificações" : "Silenciar")">
-                                        <i class="bi @(selectedConversation.IsMuted ? "bi-bell-slash-fill" : "bi-bell")"></i>
-                                    </button>
-                                    <button class="btn btn-link rtub-messages__header-btn @(selectedConversation.IsPinned ? "is-active" : "")" @onclick="TogglePin" title="@(selectedConversation.IsPinned ? "Desafixar" : "Afixar")">
-                                        <i class="bi @(selectedConversation.IsPinned ? "bi-pin-fill" : "bi-pin")"></i>
-                                    </button>
+                            <div class="rtub-messages__header-actions">
+                                <button class="btn btn-link rtub-messages__header-btn @(selectedConversation.IsMuted ? "is-active" : "")" @onclick="ToggleMute" title="@(selectedConversation.IsMuted ? "Ativar notificações" : "Silenciar")">
+                                    <i class="bi @(selectedConversation.IsMuted ? "bi-bell-slash-fill" : "bi-bell")"></i>
+                                </button>
+                                <button class="btn btn-link rtub-messages__header-btn @(selectedConversation.IsPinned ? "is-active" : "")" @onclick="TogglePin" title="@(selectedConversation.IsPinned ? "Desafixar" : "Afixar")">
+                                    <i class="bi @(selectedConversation.IsPinned ? "bi-pin-fill" : "bi-pin")"></i>
+                                </button>
+                                @if (!selectedConversation.IsSystemConversation)
+                                {
                                     <div class="dropdown">
                                         <button class="btn btn-link" type="button" data-bs-toggle="dropdown">
                                             <i class="bi bi-three-dots-vertical"></i>
@@ -261,8 +261,8 @@
                                             }
                                         </ul>
                                     </div>
-                                </div>
-                            }
+                                }
+                            </div>
                         </div>
 
                         <div class="rtub-messages__thread-body" @ref="messageThreadBody">

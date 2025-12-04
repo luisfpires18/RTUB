@@ -15,6 +15,7 @@ public class PushNotificationServiceTests
     private readonly Mock<IPushSubscriptionRepository> _mockRepository;
     private readonly Mock<IConversationRepository> _mockConversationRepository;
     private readonly Mock<IMessageRepository> _mockMessageRepository;
+    private readonly Mock<IConversationUserSettingsRepository> _mockSettingsRepository;
     private readonly Mock<ILogger<PushNotificationService>> _mockLogger;
     private readonly WebPushOptions _options;
     private readonly PushNotificationService _service;
@@ -24,6 +25,7 @@ public class PushNotificationServiceTests
         _mockRepository = new Mock<IPushSubscriptionRepository>();
         _mockConversationRepository = new Mock<IConversationRepository>();
         _mockMessageRepository = new Mock<IMessageRepository>();
+        _mockSettingsRepository = new Mock<IConversationUserSettingsRepository>();
         _mockLogger = new Mock<ILogger<PushNotificationService>>();
 
         // Configure with minimal VAPID configuration for testing
@@ -42,6 +44,7 @@ public class PushNotificationServiceTests
             _mockRepository.Object,
             _mockConversationRepository.Object,
             _mockMessageRepository.Object,
+            _mockSettingsRepository.Object,
             optionsWrapper,
             _mockLogger.Object);
     }
@@ -65,6 +68,7 @@ public class PushNotificationServiceTests
             _mockRepository.Object,
             _mockConversationRepository.Object,
             _mockMessageRepository.Object,
+            _mockSettingsRepository.Object,
             emptyOptions,
             _mockLogger.Object);
 
@@ -259,8 +263,24 @@ public class PushNotificationServiceTests
             .ReturnsAsync(Enumerable.Empty<PushSubscription>());
 
         _mockConversationRepository
-            .Setup(r => r.GetByParticipantsAsync(It.IsAny<List<string>>()))
+            .Setup(r => r.GetSystemConversationForUserAsync(userId))
             .ReturnsAsync((Conversation?)null);
+
+        var createdConversation = new Conversation { Id = 1 };
+        _mockConversationRepository
+            .Setup(r => r.AddAsync(It.IsAny<Conversation>()))
+            .Callback<Conversation>(c => c.Id = createdConversation.Id);
+
+        var settings = new ConversationUserSettings
+        {
+            UserId = userId,
+            ConversationId = createdConversation.Id,
+            IsPinned = false
+        };
+
+        _mockSettingsRepository
+            .Setup(r => r.GetOrCreateAsync(userId, createdConversation.Id))
+            .ReturnsAsync(settings);
 
         // Act
         await _service.SendToUserAsync(userId, notification);
@@ -306,6 +326,17 @@ public class PushNotificationServiceTests
             .Setup(r => r.GetSystemConversationForUserAsync(userId))
             .ReturnsAsync(existingConversation);
 
+        var existingSettings = new ConversationUserSettings
+        {
+            UserId = userId,
+            ConversationId = 123,
+            IsPinned = true // Already pinned
+        };
+
+        _mockSettingsRepository
+            .Setup(r => r.GetOrCreateAsync(userId, 123))
+            .ReturnsAsync(existingSettings);
+
         // Act
         await _service.SendToUserAsync(userId, notification);
 
@@ -314,6 +345,8 @@ public class PushNotificationServiceTests
         _mockMessageRepository.Verify(r => r.AddAsync(It.Is<Message>(
             m => m.ConversationId == 123
         )), Times.Once);
+        // Settings should not be updated since already pinned
+        _mockSettingsRepository.Verify(r => r.UpdateAsync(It.IsAny<ConversationUserSettings>()), Times.Never);
     }
 
     [Fact]
@@ -339,8 +372,22 @@ public class PushNotificationServiceTests
             .ReturnsAsync(subscriptions);
 
         _mockConversationRepository
-            .Setup(r => r.GetByParticipantsAsync(It.IsAny<List<string>>()))
+            .Setup(r => r.GetSystemConversationForUserAsync(It.IsAny<string>()))
             .ReturnsAsync((Conversation?)null);
+
+        var callCount = 0;
+        _mockConversationRepository
+            .Setup(r => r.AddAsync(It.IsAny<Conversation>()))
+            .Callback<Conversation>(c => c.Id = ++callCount);
+
+        _mockSettingsRepository
+            .Setup(r => r.GetOrCreateAsync(It.IsAny<string>(), It.IsAny<int>()))
+            .ReturnsAsync((string userId, int convId) => new ConversationUserSettings
+            {
+                UserId = userId,
+                ConversationId = convId,
+                IsPinned = false
+            });
 
         // Act
         await _service.BroadcastAsync(notification);
@@ -359,6 +406,7 @@ public class PushNotificationServiceTests
             _mockRepository.Object,
             _mockConversationRepository.Object,
             _mockMessageRepository.Object,
+            _mockSettingsRepository.Object,
             emptyOptions,
             _mockLogger.Object);
 
@@ -371,6 +419,22 @@ public class PushNotificationServiceTests
         _mockConversationRepository
             .Setup(r => r.GetSystemConversationForUserAsync("test-user"))
             .ReturnsAsync((Conversation?)null);
+
+        var createdConversation = new Conversation { Id = 1 };
+        _mockConversationRepository
+            .Setup(r => r.AddAsync(It.IsAny<Conversation>()))
+            .Callback<Conversation>(c => c.Id = createdConversation.Id);
+
+        var settings = new ConversationUserSettings
+        {
+            UserId = "test-user",
+            ConversationId = createdConversation.Id,
+            IsPinned = false
+        };
+
+        _mockSettingsRepository
+            .Setup(r => r.GetOrCreateAsync("test-user", createdConversation.Id))
+            .ReturnsAsync(settings);
 
         // Act
         await service.SendToUserAsync("test-user", notification);
@@ -398,8 +462,24 @@ public class PushNotificationServiceTests
             .ReturnsAsync(Enumerable.Empty<PushSubscription>());
 
         _mockConversationRepository
-            .Setup(r => r.GetByParticipantsAsync(It.IsAny<List<string>>()))
+            .Setup(r => r.GetSystemConversationForUserAsync(userId))
             .ReturnsAsync((Conversation?)null);
+
+        var createdConversation = new Conversation { Id = 1 };
+        _mockConversationRepository
+            .Setup(r => r.AddAsync(It.IsAny<Conversation>()))
+            .Callback<Conversation>(c => c.Id = createdConversation.Id);
+
+        var settings = new ConversationUserSettings
+        {
+            UserId = userId,
+            ConversationId = createdConversation.Id,
+            IsPinned = false
+        };
+
+        _mockSettingsRepository
+            .Setup(r => r.GetOrCreateAsync(userId, createdConversation.Id))
+            .ReturnsAsync(settings);
 
         // Act
         await _service.SendToUserAsync(userId, notification);
@@ -426,8 +506,24 @@ public class PushNotificationServiceTests
             .ReturnsAsync(Enumerable.Empty<PushSubscription>());
 
         _mockConversationRepository
-            .Setup(r => r.GetByParticipantsAsync(It.IsAny<List<string>>()))
+            .Setup(r => r.GetSystemConversationForUserAsync(userId))
             .ReturnsAsync((Conversation?)null);
+
+        var createdConversation = new Conversation { Id = 1 };
+        _mockConversationRepository
+            .Setup(r => r.AddAsync(It.IsAny<Conversation>()))
+            .Callback<Conversation>(c => c.Id = createdConversation.Id);
+
+        var settings = new ConversationUserSettings
+        {
+            UserId = userId,
+            ConversationId = createdConversation.Id,
+            IsPinned = false
+        };
+
+        _mockSettingsRepository
+            .Setup(r => r.GetOrCreateAsync(userId, createdConversation.Id))
+            .ReturnsAsync(settings);
 
         // Act
         await _service.SendToUserAsync(userId, notification);
@@ -435,6 +531,69 @@ public class PushNotificationServiceTests
         // Assert
         _mockMessageRepository.Verify(r => r.AddAsync(It.Is<Message>(
             m => m.Body == "Just the body content"
+        )), Times.Once);
+    }
+
+    [Fact]
+    public async Task SendToUserAsync_AutoPinsSystemConversation_WhenCreated()
+    {
+        // Arrange
+        var userId = "test-user-id";
+        var notification = new SendPushNotificationDto
+        {
+            Title = "Test Notification",
+            Body = "Test Body"
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByUserIdAsync(userId))
+            .ReturnsAsync(Enumerable.Empty<PushSubscription>());
+
+        _mockConversationRepository
+            .Setup(r => r.GetSystemConversationForUserAsync(userId))
+            .ReturnsAsync((Conversation?)null);
+
+        var createdConversation = new Conversation
+        {
+            Id = 1,
+            Participants = userId,
+            IsSystemConversation = true,
+            Title = "Sistema RTUB"
+        };
+
+        _mockConversationRepository
+            .Setup(r => r.AddAsync(It.IsAny<Conversation>()))
+            .Callback<Conversation>(c => c.Id = createdConversation.Id);
+
+        var settings = new ConversationUserSettings
+        {
+            UserId = userId,
+            ConversationId = createdConversation.Id,
+            IsPinned = false
+        };
+
+        _mockSettingsRepository
+            .Setup(r => r.GetOrCreateAsync(userId, createdConversation.Id))
+            .ReturnsAsync(settings);
+
+        // Act
+        await _service.SendToUserAsync(userId, notification);
+
+        // Assert - verify system conversation was created
+        _mockConversationRepository.Verify(r => r.AddAsync(It.Is<Conversation>(
+            c => c.Participants == userId &&
+                 c.IsSystemConversation == true &&
+                 c.Title == "Sistema RTUB"
+        )), Times.Once);
+
+        // Verify settings were created/fetched
+        _mockSettingsRepository.Verify(r => r.GetOrCreateAsync(userId, createdConversation.Id), Times.Once);
+
+        // Verify pinning was set
+        _mockSettingsRepository.Verify(r => r.UpdateAsync(It.Is<ConversationUserSettings>(
+            s => s.UserId == userId &&
+                 s.ConversationId == createdConversation.Id &&
+                 s.IsPinned == true
         )), Times.Once);
     }
 

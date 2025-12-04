@@ -160,10 +160,21 @@ public class MessagingServiceTests
             .ReturnsAsync((Conversation?)null);
 
         _mockConversationRepository.Setup(r => r.AddAsync(It.IsAny<Conversation>()))
+            .Callback<Conversation>(c => c.Id = conversation.Id)
             .ReturnsAsync(conversation);
 
         _mockMessageRepository.Setup(r => r.AddAsync(It.IsAny<Message>()))
             .ReturnsAsync((Message m) => m);
+
+        var settings = new ConversationUserSettings
+        {
+            UserId = receiverId,
+            ConversationId = conversation.Id,
+            IsPinned = false
+        };
+
+        _mockSettingsRepository.Setup(r => r.GetOrCreateAsync(receiverId, conversation.Id))
+            .ReturnsAsync(settings);
 
         // Act
         var result = await _service.SendSystemMessageAsync(receiverId, messageText, link);
@@ -174,6 +185,59 @@ public class MessagingServiceTests
         result.IsSystem.Should().BeTrue();
         result.Link.Should().Be(link);
         result.SenderId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SendSystemMessageAsync_NewSystemConversation_AutoPinsForUser()
+    {
+        // Arrange
+        var receiverId = "receiver789";
+        var messageText = "Welcome to RTUB";
+
+        _mockConversationRepository.Setup(r => r.GetSystemConversationForUserAsync(receiverId))
+            .ReturnsAsync((Conversation?)null);
+
+        var conversation = new Conversation
+        {
+            Id = 1,
+            Participants = receiverId,
+            IsSystemConversation = true,
+            Title = "Sistema RTUB",
+            LastMessageAt = DateTime.UtcNow
+        };
+
+        _mockConversationRepository.Setup(r => r.AddAsync(It.IsAny<Conversation>()))
+            .Callback<Conversation>(c => c.Id = conversation.Id)
+            .ReturnsAsync(conversation);
+
+        _mockMessageRepository.Setup(r => r.AddAsync(It.IsAny<Message>()))
+            .ReturnsAsync((Message m) => m);
+
+        var settings = new ConversationUserSettings
+        {
+            UserId = receiverId,
+            ConversationId = conversation.Id,
+            IsPinned = false
+        };
+
+        _mockSettingsRepository.Setup(r => r.GetOrCreateAsync(receiverId, conversation.Id))
+            .ReturnsAsync(settings);
+
+        // Act
+        var result = await _service.SendSystemMessageAsync(receiverId, messageText);
+
+        // Assert
+        result.Should().NotBeNull();
+        
+        // Verify that the settings were created/fetched
+        _mockSettingsRepository.Verify(r => r.GetOrCreateAsync(receiverId, conversation.Id), Times.Once);
+        
+        // Verify that the conversation was pinned
+        _mockSettingsRepository.Verify(r => r.UpdateAsync(It.Is<ConversationUserSettings>(
+            s => s.UserId == receiverId &&
+                 s.ConversationId == conversation.Id &&
+                 s.IsPinned == true
+        )), Times.Once);
     }
 
     [Fact]

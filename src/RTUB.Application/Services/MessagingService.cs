@@ -184,6 +184,16 @@ public class MessagingService : IMessagingService
             await _conversationRepository.AddAsync(conversation);
         }
 
+        // Auto-pin system conversation for the user (both new and existing)
+        // This ensures existing conversations are also pinned for users who had them before this feature
+        var settings = await _settingsRepository.GetOrCreateAsync(receiverId, conversation.Id);
+        if (!settings.IsPinned)
+        {
+            settings.IsPinned = true;
+            settings.UpdatedAt = DateTime.UtcNow;
+            await _settingsRepository.UpdateAsync(settings);
+        }
+
         // Create system message
         var message = new Message
         {

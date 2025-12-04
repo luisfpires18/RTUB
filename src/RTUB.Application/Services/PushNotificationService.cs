@@ -19,6 +19,7 @@ public class PushNotificationService : IPushNotificationService
     private readonly IPushSubscriptionRepository _subscriptionRepository;
     private readonly IConversationRepository _conversationRepository;
     private readonly IMessageRepository _messageRepository;
+    private readonly IConversationUserSettingsRepository _settingsRepository;
     private readonly WebPushOptions _options;
     private readonly ILogger<PushNotificationService> _logger;
     private readonly WebPushClient _webPushClient;
@@ -27,12 +28,14 @@ public class PushNotificationService : IPushNotificationService
         IPushSubscriptionRepository subscriptionRepository,
         IConversationRepository conversationRepository,
         IMessageRepository messageRepository,
+        IConversationUserSettingsRepository settingsRepository,
         IOptions<WebPushOptions> options,
         ILogger<PushNotificationService> logger)
     {
         _subscriptionRepository = subscriptionRepository;
         _conversationRepository = conversationRepository;
         _messageRepository = messageRepository;
+        _settingsRepository = settingsRepository;
         _options = options.Value;
         _logger = logger;
         _webPushClient = new WebPushClient();
@@ -262,6 +265,16 @@ public class PushNotificationService : IPushNotificationService
                     CreatedAt = DateTime.UtcNow
                 };
                 await _conversationRepository.AddAsync(conversation);
+            }
+
+            // Auto-pin system conversation for the user (both new and existing)
+            // This ensures existing conversations are also pinned for users who had them before this feature
+            var settings = await _settingsRepository.GetOrCreateAsync(userId, conversation.Id);
+            if (!settings.IsPinned)
+            {
+                settings.IsPinned = true;
+                settings.UpdatedAt = DateTime.UtcNow;
+                await _settingsRepository.UpdateAsync(settings);
             }
 
             // Create system message
