@@ -210,9 +210,9 @@ else
 <!-- Details Modal -->
 @if (viewingItem != null)
 {
-    <Modal Show="@showDetailsModal" 
-           ShowChanged="@((bool show) => showDetailsModal = show)"
-           Title="Detalhes da Classificação" 
+    <Modal Show="@showDetailsModal"
+           ShowChanged="@OnDetailsModalShowChanged"
+           Title="Detalhes da Classificação"
            Size="Modal.ModalSize.Large"
            Centered="true">
         <BodyContent>
@@ -586,6 +586,16 @@ else
         
         // Load comments for this user
         await LoadComments();
+    }
+
+    private void OnDetailsModalShowChanged(bool show)
+    {
+        showDetailsModal = show;
+
+        if (!show)
+        {
+            CloseDetailsModal();
+        }
     }
 
     private void CloseDetailsModal()
