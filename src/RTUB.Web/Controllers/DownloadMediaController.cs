@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Http.Headers;
 
 namespace RTUB.Web.Controllers;
 
@@ -47,8 +48,11 @@ public class DownloadMediaController : ControllerBase
             // Get content type, default to octet-stream if not specified
             var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
 
-            // Set Content-Disposition header to force download
-            Response.Headers["Content-Disposition"] = $"attachment; filename=\"{filename}\"";
+            // Set Content-Disposition header to force download with proper RFC 5987 encoding
+            // Use FileNameStar for non-ASCII characters according to RFC 5987
+            var contentDisposition = new ContentDispositionHeaderValue("attachment");
+            contentDisposition.FileNameStar = filename;
+            Response.Headers["Content-Disposition"] = contentDisposition.ToString();
 
             // Stream file content to client
             var stream = await response.Content.ReadAsStreamAsync();
