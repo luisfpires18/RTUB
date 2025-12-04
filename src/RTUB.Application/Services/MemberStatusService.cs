@@ -52,7 +52,7 @@ public class MemberStatusService : IMemberStatusService
             .FirstOrDefaultAsync();
 
         // Get last event date where member is enrolled (WillAttend) and event is not canceled
-        // CRITICAL: Only include PAST events (Date < now)
+        // CRITICAL: Only include PAST events (EndDate or Date < now)
         // Uses same predicate as MemberStatisticsService for XP calculation
         var lastEventDate = await _context.Enrollments
             .Include(e => e.Event)
@@ -60,9 +60,9 @@ public class MemberStatusService : IMemberStatusService
                 && e.WillAttend
                 && e.Event != null
                 && !e.Event.IsCancelled
-                && e.Event.Date < now) // BUG FIX: Exclude future events
-            .OrderByDescending(e => e.Event!.Date)
-            .Select(e => e.Event!.Date)
+                && (e.Event.EndDate ?? e.Event.Date) < now) // BUG FIX: Exclude future events
+            .OrderByDescending(e => e.Event!.EndDate ?? e.Event!.Date)
+            .Select(e => e.Event!.EndDate ?? e.Event!.Date)
             .FirstOrDefaultAsync();
 
         // Calculate last activity date as the maximum of the two
@@ -161,9 +161,9 @@ public class MemberStatusService : IMemberStatusService
                 && e.WillAttend
                 && e.Event != null
                 && !e.Event.IsCancelled
-                && e.Event.Date >= startDate
-                && e.Event.Date < endDate)
-            .Select(e => e.Event!.Date)
+                && (e.Event.EndDate ?? e.Event.Date) >= startDate
+                && (e.Event.EndDate ?? e.Event.Date) < endDate)
+            .Select(e => e.Event!.EndDate ?? e.Event!.Date)
             .ToListAsync();
 
         // Combine all activity dates
