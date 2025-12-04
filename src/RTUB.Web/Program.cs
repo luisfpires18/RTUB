@@ -49,6 +49,10 @@ public class Program
         // Configure Ranking system
         services.Configure<RTUB.Application.Configuration.RankingConfiguration>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.RankingConfiguration.SectionName));
+        
+        // Configure XP Settings (same section as RankingConfiguration, but focused on XP values)
+        services.Configure<RTUB.Application.Configuration.XpSettings>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.XpSettings.SectionName));
 
         // Configure App Settings
         services.Configure<RTUB.Application.Configuration.Toggles>(

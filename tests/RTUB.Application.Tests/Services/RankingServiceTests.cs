@@ -411,7 +411,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Arrange
         var userId = "user-123";
         var user = new ApplicationUser { Id = userId, UserName = "testuser", Nickname = "Test" };
-        var rehearsal = new Rehearsal { Id = 1, Date = DateTime.Now };
+        var rehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
 
         _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
         await _context.Rehearsals.AddAsync(rehearsal);
@@ -441,7 +441,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Arrange
         var userId = "user-123";
         var user = new ApplicationUser { Id = userId, UserName = "testuser", Nickname = "Test" };
-        var rehearsal = new Rehearsal { Id = 1, Date = DateTime.Now };
+        var rehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
 
         _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
         await _context.Rehearsals.AddAsync(rehearsal);
@@ -481,7 +481,7 @@ public class RankingServiceTests : IClassFixture<DatabaseFixture>, IDisposable
             ExperiencePoints = 0,
             Level = 1
         };
-        var rehearsal = new Rehearsal { Id = 1, Date = DateTime.Now };
+        var rehearsal = new Rehearsal { Id = 1, Date = DateTime.UtcNow.AddDays(-1) };
 
         _mockUserManager.Setup(x => x.FindByIdAsync(userId)).ReturnsAsync(user);
         _mockUserManager.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))

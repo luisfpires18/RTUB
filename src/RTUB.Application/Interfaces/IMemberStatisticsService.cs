@@ -23,4 +23,20 @@ public interface IMemberStatisticsService
     /// <param name="beforeDate">Only include events before this date</param>
     /// <returns>List of user enrollments with event types</returns>
     Task<List<UserEnrollmentWithEventType>> GetEnrollmentsByUserWithEventTypeAsync(DateTime beforeDate);
+
+    /// <summary>
+    /// Gets the XP breakdown for a specific user, showing XP from rehearsals and each event type
+    /// </summary>
+    /// <param name="userId">User ID</param>
+    /// <param name="beforeDate">Only count activities before this date</param>
+    /// <returns>XP breakdown details</returns>
+    Task<UserXpBreakdownDto> GetUserXpBreakdownAsync(string userId, DateTime beforeDate);
+
+    /// <summary>
+    /// Gets all attended activities (events and rehearsals) for a specific user
+    /// </summary>
+    /// <param name="userId">User ID</param>
+    /// <param name="beforeDate">Only include activities before this date</param>
+    /// <returns>List of attended activities, ordered by date descending</returns>
+    Task<List<AttendedActivityDto>> GetUserAttendedActivitiesAsync(string userId, DateTime beforeDate);
 }

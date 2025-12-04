@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
+using RTUB.Application.Helpers;
 using RTUB.Application.Interfaces;
 
 namespace RTUB.Application.Services;
@@ -13,10 +16,12 @@ namespace RTUB.Application.Services;
 public class MemberStatisticsService : IMemberStatisticsService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IOptions<XpSettings> _xpSettings;
 
-    public MemberStatisticsService(ApplicationDbContext context)
+    public MemberStatisticsService(ApplicationDbContext context, IOptions<XpSettings> xpSettings)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _xpSettings = xpSettings ?? throw new ArgumentNullException(nameof(xpSettings));
     }
 
     /// <summary>
@@ -61,5 +66,121 @@ public class MemberStatisticsService : IMemberStatisticsService
         ).ToListAsync();
 
         return enrollmentsWithTypes;
+    }
+
+    /// <summary>
+    /// Gets the XP breakdown for a specific user
+    /// Shows XP earned from rehearsals and each event type with per-unit and total values
+    /// XP values come from appsettings via XpSettings configuration
+    /// </summary>
+    public async Task<UserXpBreakdownDto> GetUserXpBreakdownAsync(string userId, DateTime beforeDate)
+    {
+        var beforeDateOnly = beforeDate.Date;
+        var xpConfig = _xpSettings.Value;
+        
+        // Get rehearsal count
+        var rehearsalCount = await (
+            from attendance in _context.RehearsalAttendances
+            join rehearsal in _context.Rehearsals on attendance.RehearsalId equals rehearsal.Id
+            where attendance.UserId == userId && attendance.Attended && rehearsal.Date < beforeDateOnly
+            select attendance
+        ).CountAsync();
+        
+        // Get events by type
+        var eventsByType = await (
+            from enrollment in _context.Enrollments
+            join evt in _context.Events on enrollment.EventId equals evt.Id
+            let eventEndDate = (evt.EndDate ?? evt.Date).Date
+            where enrollment.UserId == userId && enrollment.WillAttend && eventEndDate < beforeDateOnly
+            group evt by evt.Type into g
+            select new { EventType = g.Key, Count = g.Count() }
+        ).ToListAsync();
+        
+        // Calculate XP breakdown by event type
+        var eventTypeXpList = new List<EventTypeXpDto>();
+        foreach (var eventGroup in eventsByType)
+        {
+            var eventTypeName = eventGroup.EventType.ToString();
+            var xpPerUnit = xpConfig.GetXpForEventType(eventTypeName);
+            
+            eventTypeXpList.Add(new EventTypeXpDto
+            {
+                TypeName = eventTypeName,
+                Count = eventGroup.Count,
+                XpPerUnit = xpPerUnit,
+                TotalXp = eventGroup.Count * xpPerUnit
+            });
+        }
+        
+        // Calculate totals
+        var rehearsalXpTotal = rehearsalCount * xpConfig.XpPerRehearsal;
+        var eventsXpTotal = eventTypeXpList.Sum(e => e.TotalXp);
+        
+        return new UserXpBreakdownDto
+        {
+            TotalXp = rehearsalXpTotal + eventsXpTotal,
+            RehearsalCount = rehearsalCount,
+            RehearsalXpPerUnit = xpConfig.XpPerRehearsal,
+            RehearsalXpTotal = rehearsalXpTotal,
+            EventsByType = eventTypeXpList.OrderByDescending(e => e.TotalXp).ToList()
+        };
+    }
+
+    /// <summary>
+    /// Gets all attended activities (events and rehearsals) for a user
+    /// Used for displaying detailed attended events list in leaderboard modal
+    /// Ordered by date descending (newest first)
+    /// </summary>
+    public async Task<List<AttendedActivityDto>> GetUserAttendedActivitiesAsync(string userId, DateTime beforeDate)
+    {
+        var beforeDateOnly = beforeDate.Date;
+        var xpConfig = _xpSettings.Value;
+        var activities = new List<AttendedActivityDto>();
+        
+        // Get attended rehearsals
+        var rehearsals = await (
+            from attendance in _context.RehearsalAttendances
+            join rehearsal in _context.Rehearsals on attendance.RehearsalId equals rehearsal.Id
+            where attendance.UserId == userId && attendance.Attended && rehearsal.Date < beforeDateOnly
+            select new AttendedActivityDto
+            {
+                Date = rehearsal.Date,
+                Name = "Ensaio" + (string.IsNullOrEmpty(rehearsal.Theme) ? "" : $" - {rehearsal.Theme}"),
+                Type = "Ensaio",
+                XpEarned = xpConfig.XpPerRehearsal,
+                IsRehearsal = true
+            }
+        ).ToListAsync();
+        
+        activities.AddRange(rehearsals);
+        
+        // Get attended events with event type information
+        var eventData = await (
+            from enrollment in _context.Enrollments
+            join evt in _context.Events on enrollment.EventId equals evt.Id
+            let eventEndDate = (evt.EndDate ?? evt.Date).Date
+            where enrollment.UserId == userId && enrollment.WillAttend && eventEndDate < beforeDateOnly
+            select new 
+            { 
+                Date = evt.Date,
+                Name = evt.Name,
+                Type = evt.Type
+            }
+        ).ToListAsync();
+        
+        // Transform events to AttendedActivityDto with calculated XP
+        var eventActivities = eventData.Select(evt => new AttendedActivityDto
+        {
+            Date = evt.Date,
+            Name = evt.Name,
+            Type = StatusHelper.GetEventTypeDisplay(evt.Type),
+            XpEarned = xpConfig.GetXpForEventType(evt.Type.ToString()),
+            IsRehearsal = false
+        });
+        
+        activities.AddRange(eventActivities);
+        
+        // Sort by date descending (newest first)
+        return activities.OrderByDescending(a => a.Date).ToList();
     }
 }

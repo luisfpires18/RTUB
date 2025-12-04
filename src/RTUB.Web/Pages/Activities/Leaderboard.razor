@@ -244,7 +244,7 @@ else
 
             <div class="mb-3"></div>
 
-            <!-- Statistics Section -->
+            <!-- Statistics Section with XP Breakdown -->
             <div class="modal-info-section mb-4">
                 <div class="modal-section-header">
                     <h6 class="modal-section-title">
@@ -253,28 +253,118 @@ else
                     </h6>
                 </div>
                 <div class="modal-section-body">
-                    <ProfileField Label="XP Total" Value="@viewingItem.RankProgress.CurrentXp.ToString()" Icon="bi-lightning-charge-fill" />
-                    <ProfileField Label="Ensaios Frequentados" Value="@viewingItem.TotalRehearsals.ToString()" Icon="bi-music-note-list" />
-                    
-                    <!-- Events by Type -->
-                    <div class="mb-2">
-                        <strong>Atuações Participadas por Tipo:</strong>
-                    </div>
-                    @if (viewingItem.EventsByType.Any())
+                    @if (xpBreakdown == null)
                     {
-                        @foreach (var eventTypeGroup in viewingItem.EventsByType.OrderByDescending(kvp => kvp.Value))
-                        {
-                            <ProfileField Label="@StatusHelper.GetEventTypeDisplay(eventTypeGroup.Key)"
-                                          Value="@eventTypeGroup.Value.ToString()"
-                                          Icon="bi-calendar-event-fill" />
-                        }
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">A carregar estatísticas...</span>
+                            </div>
+                        </div>
                     }
                     else
                     {
-                        <p class="text-muted">Nenhuma atuação registrada</p>
+                        <!-- XP Total -->
+                        <ProfileField Label="XP Total" Value="@xpBreakdown.TotalXp.ToString()" Icon="bi-lightning-charge-fill" />
+                        
+                        <!-- XP Breakdown Header -->
+                        <div class="mb-3 mt-3">
+                            <strong><i class="bi bi-bar-chart-fill me-2"></i>Origem do XP:</strong>
+                        </div>
+                        
+                        <!-- XP Breakdown: Rehearsals -->
+                        <div class="mb-2 ps-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-music-note-list me-2 text-muted"></i>
+                                    <strong>Ensaios:</strong> 
+                                    @xpBreakdown.RehearsalCount × @xpBreakdown.RehearsalXpPerUnit XP
+                                </span>
+                                <span class="badge bg-primary">@xpBreakdown.RehearsalXpTotal XP</span>
+                            </div>
+                        </div>
+                        
+                        <!-- XP Breakdown: Event Types -->
+                        @if (xpBreakdown.EventsByType.Any())
+                        {
+                            @foreach (var eventTypeXp in xpBreakdown.EventsByType)
+                            {
+                                <div class="mb-2 ps-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>
+                                            <i class="bi bi-calendar-event-fill me-2 text-muted"></i>
+                                            <strong>@GetEventTypeDisplayName(eventTypeXp.TypeName):</strong>
+                                            @eventTypeXp.Count × @eventTypeXp.XpPerUnit XP
+                                        </span>
+                                        <span class="badge bg-info">@eventTypeXp.TotalXp XP</span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="mb-2 ps-3">
+                                <p class="text-muted mb-0">Nenhuma atuação registrada</p>
+                            </div>
+                        }
                     }
                 </div>
             </div>
+            
+            <!-- Collapsible Attended Activities Section -->
+            @if (xpBreakdown != null && attendedActivities != null)
+            {
+                <div class="modal-info-section mb-4">
+                    <div class="modal-section-header" 
+                         style="cursor: pointer;" 
+                         @onclick="ToggleActivitiesExpanded">
+                        <h6 class="modal-section-title d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="bi bi-list-ul me-2 text-primary"></i>
+                                Ver atuações e ensaios detalhados
+                            </span>
+                            <i class="bi @(isActivitiesExpanded ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                        </h6>
+                    </div>
+                    
+                    @if (isActivitiesExpanded)
+                    {
+                        <div class="modal-section-body" style="max-height: 400px; overflow-y: auto;">
+                            @if (attendedActivities.Any())
+                            {
+                                <div class="list-group">
+                                    @foreach (var activity in attendedActivities)
+                                    {
+                                        <div class="list-group-item d-flex justify-content-between align-items-start" 
+                                             style="background-color: #1a1a1b; border-color: #343536; margin-bottom: 0.5rem; border-radius: 4px;">
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex align-items-center mb-1">
+                                                    <i class="bi @(activity.IsRehearsal ? "bi-music-note-list" : "bi-calendar-event-fill") me-2"></i>
+                                                    <strong>@activity.Name</strong>
+                                                </div>
+                                                <div class="text-muted small">
+                                                    <i class="bi bi-calendar3 me-1"></i>
+                                                    @activity.Date.ToString("dd/MM/yyyy")
+                                                    <span class="ms-2">
+                                                        <i class="bi bi-tag me-1"></i>
+                                                        @activity.Type
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <span class="badge bg-success ms-3" style="align-self: center;">
+                                                +@activity.XpEarned XP
+                                            </span>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted text-center py-3">Nenhuma atividade registrada</p>
+                            }
+                        </div>
+                    }
+                </div>
+            }
 
             <!-- Rank Card Section -->
             <div class="modal-info-section mb-3">
@@ -424,6 +514,11 @@ else
     private string? currentUserId;
     private string newCommentText = string.Empty;
     private bool isAddingComment = false;
+    
+    // XP breakdown and attended activities state
+    private UserXpBreakdownDto? xpBreakdown;
+    private List<AttendedActivityDto>? attendedActivities;
+    private bool isActivitiesExpanded = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -583,9 +678,13 @@ else
     {
         viewingItem = item;
         showDetailsModal = true;
+        isActivitiesExpanded = false; // Reset to collapsed when opening modal
         
-        // Load comments for this user
-        await LoadComments();
+        // Load comments and XP breakdown for this user
+        await Task.WhenAll(
+            LoadComments(),
+            LoadXpBreakdownAndActivities()
+        );
     }
 
     private void OnDetailsModalShowChanged(bool show)
@@ -604,6 +703,9 @@ else
         viewingItem = null;
         comments = null;
         newCommentText = string.Empty;
+        xpBreakdown = null;
+        attendedActivities = null;
+        isActivitiesExpanded = false;
     }
     
     private async Task LoadComments()
@@ -614,6 +716,38 @@ else
             viewingItem.User.Id, 
             currentUserId);
         StateHasChanged();
+    }
+    
+    private async Task LoadXpBreakdownAndActivities()
+    {
+        if (viewingItem == null) return;
+        
+        var now = DateTime.UtcNow;
+        
+        // Load XP breakdown and attended activities in parallel
+        xpBreakdown = await MemberStatisticsService.GetUserXpBreakdownAsync(viewingItem.User.Id, now);
+        attendedActivities = await MemberStatisticsService.GetUserAttendedActivitiesAsync(viewingItem.User.Id, now);
+        
+        StateHasChanged();
+    }
+    
+    private void ToggleActivitiesExpanded()
+    {
+        isActivitiesExpanded = !isActivitiesExpanded;
+    }
+    
+    /// <summary>
+    /// Safely gets the display name for an event type
+    /// Handles invalid enum values gracefully by returning the original string
+    /// </summary>
+    private string GetEventTypeDisplayName(string eventTypeName)
+    {
+        if (Enum.TryParse<EventType>(eventTypeName, out var eventType))
+        {
+            return StatusHelper.GetEventTypeDisplay(eventType);
+        }
+        // Fallback to the raw string if parsing fails
+        return eventTypeName;
     }
     
     private async Task AddComment()
