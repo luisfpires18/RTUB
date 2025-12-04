@@ -266,45 +266,48 @@ else
                         <!-- XP Total -->
                         <ProfileField Label="XP Total" Value="@xpBreakdown.TotalXp.ToString()" Icon="bi-lightning-charge-fill" />
                         
-                        <!-- XP Breakdown Header -->
-                        <div class="mb-3 mt-3">
-                            <strong><i class="bi bi-bar-chart-fill me-2"></i>Origem do XP:</strong>
-                        </div>
-                        
-                        <!-- XP Breakdown: Rehearsals -->
-                        <div class="mb-2 ps-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span>
-                                    <i class="bi bi-music-note-list me-2 text-muted"></i>
-                                    <strong>Ensaios:</strong> 
-                                    @xpBreakdown.RehearsalCount × @xpBreakdown.RehearsalXpPerUnit XP
-                                </span>
-                                <span class="badge bg-primary">@xpBreakdown.RehearsalXpTotal XP</span>
-                            </div>
-                        </div>
-                        
-                        <!-- XP Breakdown: Event Types -->
-                        @if (xpBreakdown.EventsByType.Any())
+                        @if (xpBreakdown.TotalXp > 0)
                         {
-                            @foreach (var eventTypeXp in xpBreakdown.EventsByType)
+                            <!-- XP Breakdown Header -->
+                            <div class="mb-3 mt-3">
+                                <strong><i class="bi bi-bar-chart-fill me-2"></i>Origem do XP:</strong>
+                            </div>
+
+                            <!-- XP Breakdown: Rehearsals -->
+                            <div class="mb-2 ps-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>
+                                        <i class="bi bi-music-note-list me-2 text-muted"></i>
+                                        <strong>Ensaios:</strong>
+                                        @xpBreakdown.RehearsalCount × @xpBreakdown.RehearsalXpPerUnit XP
+                                    </span>
+                                    <span class="badge bg-primary">@xpBreakdown.RehearsalXpTotal XP</span>
+                                </div>
+                            </div>
+
+                            <!-- XP Breakdown: Event Types -->
+                            @if (xpBreakdown.EventsByType.Any())
+                            {
+                                @foreach (var eventTypeXp in xpBreakdown.EventsByType)
+                                {
+                                    <div class="mb-2 ps-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span>
+                                                <i class="bi bi-calendar-event-fill me-2 text-muted"></i>
+                                                <strong>@GetEventTypeDisplayName(eventTypeXp.TypeName):</strong>
+                                                @eventTypeXp.Count × @eventTypeXp.XpPerUnit XP
+                                            </span>
+                                            <span class="badge bg-info">@eventTypeXp.TotalXp XP</span>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
                             {
                                 <div class="mb-2 ps-3">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span>
-                                            <i class="bi bi-calendar-event-fill me-2 text-muted"></i>
-                                            <strong>@GetEventTypeDisplayName(eventTypeXp.TypeName):</strong>
-                                            @eventTypeXp.Count × @eventTypeXp.XpPerUnit XP
-                                        </span>
-                                        <span class="badge bg-info">@eventTypeXp.TotalXp XP</span>
-                                    </div>
+                                    <p class="text-muted mb-0">Nenhuma atuação registrada</p>
                                 </div>
                             }
-                        }
-                        else
-                        {
-                            <div class="mb-2 ps-3">
-                                <p class="text-muted mb-0">Nenhuma atuação registrada</p>
-                            </div>
                         }
                     }
                 </div>
