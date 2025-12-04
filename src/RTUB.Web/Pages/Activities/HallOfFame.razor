@@ -812,7 +812,10 @@ else
             {
                 User = user,
                 Count = allEnrollments
-                    .Where(e => e.Event != null && e.Event.Date < now && !e.Event.IsCancelled)
+                    .Where(e =>
+                        e.Event != null
+                        && (e.Event.EndDate ?? e.Event.Date) < now
+                        && !e.Event.IsCancelled)
                     .Count(e => e.UserId == user.Id && e.WillAttend)
             })
             .Where(mc => mc.Count > 0)

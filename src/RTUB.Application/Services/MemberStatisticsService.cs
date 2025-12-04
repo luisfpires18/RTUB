@@ -49,7 +49,8 @@ public class MemberStatisticsService : IMemberStatisticsService
         var enrollmentsWithTypes = await (
             from enrollment in _context.Enrollments
             join evt in _context.Events on enrollment.EventId equals evt.Id
-            where enrollment.WillAttend && evt.Date < beforeDate
+            let eventEndDate = evt.EndDate ?? evt.Date
+            where enrollment.WillAttend && eventEndDate < beforeDate
             select new UserEnrollmentWithEventType
             {
                 UserId = enrollment.UserId,
