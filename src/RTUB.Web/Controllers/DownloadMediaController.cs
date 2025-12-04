@@ -53,7 +53,7 @@ public class DownloadMediaController : ControllerBase
             var contentDisposition = new ContentDispositionHeaderValue("attachment");
             
             // Check if filename contains non-ASCII characters
-            var hasNonAsciiChars = !filename.All(c => c < 128);
+            var hasNonAsciiChars = !filename.All(char.IsAscii);
             
             // Try to set the filename
             try
@@ -62,7 +62,7 @@ public class DownloadMediaController : ControllerBase
                 {
                     // For non-ASCII filenames, use ASCII-safe fallback in FileName and full filename in FileNameStar
                     // Replace non-ASCII characters with underscores for FileName fallback
-                    var asciiSafeFilename = new string(filename.Select(c => c < 128 ? c : '_').ToArray());
+                    var asciiSafeFilename = new string(filename.Select(c => char.IsAscii(c) ? c : '_').ToArray());
                     contentDisposition.FileName = asciiSafeFilename;
                     
                     // Set FileNameStar for full Unicode support (RFC 5987)
