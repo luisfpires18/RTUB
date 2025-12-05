@@ -326,6 +326,9 @@ public class Program
         // Messaging notification service for server-side Blazor real-time updates
         services.AddSingleton<RTUB.Web.Services.MessagesNotificationService>();
 
+        // Media Session API interop for lock screen / system media overlay
+        services.AddScoped<RTUB.Web.Interop.MediaSessionInterop>();
+
         // ---------- Blazor + Authentication ----------
         services.AddRazorComponents()
                 .AddInteractiveServerComponents(options =>

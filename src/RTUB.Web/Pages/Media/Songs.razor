@@ -14,6 +14,7 @@
 @inject ILogger<Songs> Logger
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject RTUB.Web.Interop.MediaSessionInterop MediaSession
 
 @if (album == null)
 {
@@ -1019,6 +1020,27 @@ else
             {
                 currentAudioUrl = audioUrl;
                 currentSongTitle = song.Title;
+                
+                // Update media session metadata for lock screen / system media overlay
+                try
+                {
+                    var albumCoverUrl = !string.IsNullOrEmpty(album.CoverImageSrc) 
+                        ? GetAlbumImageUrl(album.CoverImageSrc) 
+                        : string.Empty;
+                    var rtubLogoUrl = "/icons/rtub-logo-512.png";
+                    
+                    await MediaSession.SetNowPlayingMetadataAsync(
+                        song.Title,
+                        album.Title,
+                        albumCoverUrl,
+                        rtubLogoUrl
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to set media session metadata for song: {SongTitle}", song.Title);
+                }
+                
                 StateHasChanged();
             }
             else
@@ -1035,10 +1057,21 @@ else
         }
     }
     
-    private void StopAudio()
+    private async Task StopAudio()
     {
         currentAudioUrl = null;
         currentSongTitle = null;
+        
+        // Clear media session metadata when playback stops
+        try
+        {
+            await MediaSession.ClearMetadataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to clear media session metadata");
+        }
+        
         StateHasChanged();
     }
     
