@@ -681,7 +681,7 @@ else
                 var statusResult = viewingUserStatusData.GetValueOrDefault(viewingUser.Id);
                 var hasActivityHistory = statusResult?.HasAnyActivity ?? false;
             }
-            @if (isActiveMember && hasActivityHistory)
+            @if (isActiveMember && (hasActivityHistory || isOwner))
             {
                 <div class="modal-info-section mb-3">
                     <div class="modal-section-header">
@@ -691,40 +691,43 @@ else
                         </h6>
                     </div>
                     <div class="modal-section-body">
-                        <ProfileField Label="Estado atual" Value="badge" Icon="bi-flag-fill">
-                            <ValueContent>
-                                @if (viewingUser.IsRetired)
-                                {
-                                    <span class="badge badge-retired"
-                                          title="Reformados: transitam para esta categoria os Associados Efectivos que por motivos profissionais ou pessoais, se encontrem afastados, por um período de seis meses ou superior, das actividades da RTUB. Poderão retornar à sua categoria após três meses de actividade ininterrupta.">
-                                        REFORMADO
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge badge-active">
-                                        NO ATIVO
-                                    </span>
-                                }
-                            </ValueContent>
-                        </ProfileField>
+                        @if (hasActivityHistory)
+                        {
+                            <ProfileField Label="Estado atual" Value="badge" Icon="bi-flag-fill">
+                                <ValueContent>
+                                    @if (viewingUser.IsRetired)
+                                    {
+                                        <span class="badge badge-retired"
+                                              title="Reformados: transitam para esta categoria os Associados Efectivos que por motivos profissionais ou pessoais, se encontrem afastados, por um período de seis meses ou superior, das actividades da RTUB. Poderão retornar à sua categoria após três meses de actividade ininterrupta.">
+                                            REFORMADO
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-active">
+                                            NO ATIVO
+                                        </span>
+                                    }
+                                </ValueContent>
+                            </ProfileField>
 
-                        <ProfileField Label="Último ensaio"
-                                      Icon="bi-music-note-list"
-                                      Value="@(statusResult?.LastRehearsalDate.HasValue == true
-                                          ? statusResult.LastRehearsalDate.Value.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("pt-PT"))
-                                          : null)" />
+                            <ProfileField Label="Último ensaio"
+                                          Icon="bi-music-note-list"
+                                          Value="@(statusResult?.LastRehearsalDate.HasValue == true
+                                              ? statusResult.LastRehearsalDate.Value.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("pt-PT"))
+                                              : null)" />
 
-                        <ProfileField Label="Última atuação"
-                                      Icon="bi-megaphone-fill"
-                                      Value="@(statusResult?.LastEventDate.HasValue == true
-                                          ? statusResult.LastEventDate.Value.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("pt-PT"))
-                                          : null)" />
+                            <ProfileField Label="Última atuação"
+                                          Icon="bi-megaphone-fill"
+                                          Value="@(statusResult?.LastEventDate.HasValue == true
+                                              ? statusResult.LastEventDate.Value.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("pt-PT"))
+                                              : null)" />
+                        }
                         
                         @* OWNER-only manual override for IsRetired status *@
                         <AuthorizeView Roles="Owner">
                             <Authorized>
-                                <div class="mt-3 pt-3 border-top">
+                                <div class="@(hasActivityHistory ? "mt-3 pt-3 border-top" : "")">
                                     <div class="d-flex align-items-center justify-content-between">
                                         <div>
                                             <label class="form-label fw-semibold mb-1">
