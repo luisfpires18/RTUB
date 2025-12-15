@@ -60,12 +60,16 @@ public static partial class SeedData
         await dbContext.Rehearsals.AddRangeAsync(rehearsalsToCreate);
         await dbContext.SaveChangesAsync();
 
-        var members = await userManager.Users
+        // Get all members for older rehearsals (more than 6 months ago)
+        var allMembers = await userManager.Users
             .AsNoTracking()
             .OrderBy(m => m.Id)
             .ToListAsync();
-        if (members.Count == 0)
+        if (allMembers.Count == 0)
             return;
+        
+        // Get only active members (not retired) for recent rehearsals
+        var activeMembers = allMembers.Where(m => !m.IsRetired).ToList();
 
         var pastRehearsals = await dbContext.Rehearsals
             .AsNoTracking()
@@ -76,9 +80,15 @@ public static partial class SeedData
             return;
 
         var attendances = new List<RehearsalAttendance>();
+        
+        // Define threshold: 6 months ago (matches retirement logic)
+        var sixMonthsAgo = today.AddMonths(-6);
 
         foreach (var rehearsal in pastRehearsals)
         {
+            // Use all members for old rehearsals, active members only for recent ones
+            var membersPool = rehearsal.Date < sixMonthsAgo ? allMembers : activeMembers;
+            
             var seed = (int)((((long)rehearsal.Id * 92821L) ^ rehearsal.Date.DayOfYear) & 0x7FFFFFFF);
             if (seed == 0)
             {
@@ -88,9 +98,9 @@ public static partial class SeedData
             var random = new Random(seed);
 
             var attendanceRate = 0.6 + (random.NextDouble() * 0.2);
-            var attendingCount = Math.Clamp((int)Math.Round(members.Count * attendanceRate), 3, members.Count);
+            var attendingCount = Math.Clamp((int)Math.Round(membersPool.Count * attendanceRate), 3, membersPool.Count);
 
-            var attendingMembers = members
+            var attendingMembers = membersPool
                 .OrderBy(_ => random.Next())
                 .Take(attendingCount)
                 .ToList();

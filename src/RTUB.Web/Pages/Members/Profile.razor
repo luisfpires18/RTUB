@@ -270,7 +270,7 @@
                                             @if (memberStatusResult.ProgressMonths.HasValue && memberStatusResult.ProgressTotalMonths.HasValue)
                                             {
                                                 <div class="progress" style="height: 8px;">
-                                                    <div class="progress-bar @(memberStatusResult.IsRetired ? "bg-success" : "bg-warning")" 
+                                                    <div class="progress-bar bg-primary" 
                                                          role="progressbar" 
                                                          style="width: @((memberStatusResult.ProgressMonths.Value * 100.0 / memberStatusResult.ProgressTotalMonths.Value).ToString("F0"))%"
                                                          aria-valuenow="@memberStatusResult.ProgressMonths.Value" 

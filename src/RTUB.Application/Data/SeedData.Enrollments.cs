@@ -27,27 +27,19 @@ public static partial class SeedData
         if (events.Count == 0)
             return;
 
-        var members = await userManager.Users
+        // Get all members for older events and active members for recent events
+        var allMembers = await userManager.Users
             .AsNoTracking()
             .OrderBy(m => m.Id)
             .ToListAsync();
-        if (members.Count == 0)
+        if (allMembers.Count == 0)
             return;
-
-        // Create a general fallback queue for all members
-        var generalFallback = new Queue<ApplicationUser>(members.OrderBy(m => m.Id));
-
-        ApplicationUser CycleQueue(Queue<ApplicationUser> queue)
-        {
-            if (queue.Count == 0)
-            {
-                return CycleQueue(generalFallback);
-            }
-
-            var user = queue.Dequeue();
-            queue.Enqueue(user);
-            return user;
-        }
+        
+        var activeMembers = allMembers.Where(m => !m.IsRetired).ToList();
+        
+        // Define threshold: 6 months ago (matches retirement logic)
+        var today = DateTime.Today;
+        var sixMonthsAgo = today.AddMonths(-6);
 
         var enrollments = new List<Enrollment>();
         var assigned = new HashSet<string>();
@@ -77,6 +69,30 @@ public static partial class SeedData
 
         foreach (var evt in events)
         {
+            // Use all members for old events, active members only for recent ones
+            var membersPool = evt.Date < sixMonthsAgo ? allMembers : activeMembers;
+            
+            // Create a general fallback queue for the current event
+            var generalFallback = new Queue<ApplicationUser>(membersPool.OrderBy(m => m.Id));
+            
+            ApplicationUser CycleQueue(Queue<ApplicationUser> queue)
+            {
+                if (queue.Count == 0)
+                {
+                    // If queue is empty, cycle from generalFallback
+                    if (generalFallback.Count == 0)
+                        generalFallback = new Queue<ApplicationUser>(membersPool.OrderBy(m => m.Id));
+                    
+                    var user = generalFallback.Dequeue();
+                    generalFallback.Enqueue(user);
+                    return user;
+                }
+
+                var u = queue.Dequeue();
+                queue.Enqueue(u);
+                return u;
+            }
+            
             int seed = (int)((((long)evt.Id * 73856093L) ^ evt.Date.DayOfYear ^ (int)evt.Type) & 0x7FFFFFFF);
             if (seed == 0)
             {
@@ -137,7 +153,7 @@ public static partial class SeedData
             };
 
             // Add extra members randomly
-            foreach (var member in members)
+            foreach (var member in membersPool)
             {
                 if (assigned.Contains($"{member.Id}:{evt.Id}"))
                     continue;

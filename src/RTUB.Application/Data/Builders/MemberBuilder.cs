@@ -25,6 +25,7 @@ public sealed class MemberBuilder
     private int? _yearLeitao;
     private string? _mentorId;
     private string _password = "Rtub123!";
+    private bool _isRetired;
 
     public MemberBuilder(UserManager<ApplicationUser> userManager)
     {
@@ -44,6 +45,7 @@ public sealed class MemberBuilder
     public MemberBuilder YearLeitao(int year) { _yearLeitao = year; return this; }
     public MemberBuilder Mentor(string mentorId) { _mentorId = mentorId; return this; }
     public MemberBuilder Password(string password) { _password = password; return this; }
+    public MemberBuilder IsRetired(bool isRetired) { _isRetired = isRetired; return this; }
 
     public async Task<ApplicationUser?> CreateAsync()
     {
@@ -64,7 +66,8 @@ public sealed class MemberBuilder
             _yearTuno,
             _yearCaloiro,
             _yearLeitao,
-            _mentorId
+            _mentorId,
+            _isRetired
         );
     }
 
@@ -106,7 +109,8 @@ public sealed class MemberBuilder
         int? yearTuno = null,
         int? yearCaloiro = null,
         int? yearLeitao = null,
-        string? mentorId = null)
+        string? mentorId = null,
+        bool isRetired = false)
     {
         var username = UsernameFromNickname(nickname);
         var user = await userManager.FindByNameAsync(username);
@@ -129,7 +133,8 @@ public sealed class MemberBuilder
                 Subscribed = false,
                 Positions = positions ?? new List<Position>(),
                 Categories = categories ?? new List<MemberCategory>(),
-                MentorId = mentorId
+                MentorId = mentorId,
+                IsRetired = isRetired
             };
 
             var result = await userManager.CreateAsync(user, password);
@@ -156,6 +161,7 @@ public sealed class MemberBuilder
             user.YearTuno = yearTuno;
             user.YearCaloiro = yearCaloiro;
             user.YearLeitao = yearLeitao;
+            user.IsRetired = isRetired;
 
             await userManager.UpdateAsync(user);
 
