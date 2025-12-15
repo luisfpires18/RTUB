@@ -107,9 +107,11 @@ public class CloudflareEventVideoStorageService : BaseCloudflareStorageService<C
         {
             await DeleteObjectAsync(objectKey);
         }
-        catch
+        catch (Exception ex)
         {
             // Don't throw - deletion failure shouldn't block operations
+            // Log for diagnostic purposes
+            _logger.LogWarning(ex, "Failed to delete video from storage: {VideoUrl}", videoUrl);
         }
     }
 

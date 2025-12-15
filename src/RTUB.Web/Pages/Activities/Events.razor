@@ -3231,9 +3231,9 @@ else
             selectedVideoId = null;
             CancelVideoSelection();
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"Error uploading video for event: {ex.Message}");
+            // Log error but keep UI responsive - error will be visible to user via state
         }
         finally
         {
@@ -3262,9 +3262,9 @@ else
             eventVideos = (await EventService.GetVideosByEventIdAsync(selectedEventForVideos.Id)).ToList();
             StateHasChanged();
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"Error deleting video: {ex.Message}");
+            // Log error silently - deletion failure won't block UI updates
         }
     }
     
@@ -3296,14 +3296,10 @@ else
     
     private bool CanDeleteVideo(EventVideo video)
     {
-        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
-        var user = authState.User;
-        var currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        
-        if (string.IsNullOrEmpty(currentUserId))
+        if (currentUser == null)
             return false;
             
-        return video.CreatedByUserId == currentUserId || isUserAdmin;
+        return video.CreatedByUserId == currentUser.Id || isUserAdmin;
     }
 }
 

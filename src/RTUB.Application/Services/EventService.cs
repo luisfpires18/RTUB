@@ -247,6 +247,7 @@ public class EventService : IEventService
         catch
         {
             // Continue with database deletion even if storage deletion fails
+            // Storage service already logs errors internally
         }
 
         // Delete from repository
