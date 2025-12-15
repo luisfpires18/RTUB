@@ -85,25 +85,25 @@ else
             <div class="ranks-grid">
                 @{
                     var allLevels = RankingConfig.Value.Levels.OrderBy(l => l.Level).ToList();
-                    // Custom visual order to create a snake pattern: 1,2,3 -> 6,5,4 -> 7,8,9 -> 10
+                    // Custom visual order to create a snake pattern: 1,2,3 -> 6,5,4 -> 7,8,9 -> 12,11,10
                     // This maps visual grid positions to level indices (0-based)
-                    var visualOrder = new[] { 0, 1, 2, 5, 4, 3, 6, 7, 8, 9 }; // indices for levels 1-10
+                    var visualOrder = new[] { 0, 1, 2, 5, 4, 3, 6, 7, 8, 11, 10, 9 }; // indices for levels 1-12
                 }
                 @for (int visualIndex = 0; visualIndex < allLevels.Count; visualIndex++)
                 {
                     var i = visualOrder[visualIndex]; // actual level index (0-based)
                     var levelDef = allLevels[i];
-                    var isLastLevel = levelDef.Level == 10;
+                    var isLastLevel = levelDef.Level == 12;
                     var actualLevel = levelDef.Level; // 1-based level number
                     
                     // Grid positioning based on visual index (used for desktop snake pattern)
                     var gridRow = (visualIndex / 3) + 1;
                     var gridCol = (visualIndex % 3) + 1;
                     
-                    // Special positioning for Level 10: place it under Level 9 (column 3)
+                    // Special positioning for Level 12: place it at column 1 (leftmost position)
                     if (isLastLevel)
                     {
-                        gridCol = 3;
+                        gridCol = 1;
                     }
                     
                     // Use CSS classes for grid positioning (row-X col-Y for desktop, level-X for mobile ordering)
@@ -118,8 +118,8 @@ else
                             <span class="rank-xp">@levelDef.XpThreshold XP</span>
                         </div>
                         
-                        @* Sequential connector logic: connect each level to the next (1→2→3→4→5→6→7→8→9→10) *@
-                        @if (actualLevel < 10)
+                        @* Sequential connector logic: connect each level to the next (1→2→3→4→5→6→7→8→9→10→11→12) *@
+                        @if (actualLevel < 12)
                         {
                             // Find where the next level is positioned visually
                             var nextLevelIndex = actualLevel; // next level is actualLevel + 1, but we need 0-based index
@@ -153,7 +153,7 @@ else
                                 {
                                     <div class="rank-connector-down-left"></div>
                                 }
-                                else if (actualLevel == 9) @* 9→10: simple vertical connector *@
+                                else if (actualLevel == 9) @* 9→10: down *@
                                 {
                                     <div class="rank-connector-down-right"></div>
                                 }

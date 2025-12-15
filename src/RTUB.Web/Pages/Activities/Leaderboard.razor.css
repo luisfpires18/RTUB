@@ -70,14 +70,14 @@
     text-align: center;
 }
 
-/* Trophy icon for Level 10 */
+/* Trophy icon for Level 12 */
 .rank-trophy-icon {
     font-size: 1.5rem;
     color: #FFD700;
     margin-bottom: 0.25rem;
 }
 
-/* Final level (Level 10) styling */
+/* Final level (Level 12) styling */
 .rank-final {
     /* Grid position is set inline, no need for grid-column here */
 }
@@ -120,7 +120,7 @@
     left: 50%;
     top: 50%;
     width: 2px;
-    height: calc(2rem + 50%);
+    height: calc(2rem + 100%);
     background: #6c757d;
     z-index: 1;
     pointer-events: none;
@@ -132,7 +132,7 @@
     left: 50%;
     top: 50%;
     width: 2px;
-    height: calc(2rem + 50%);
+    height: calc(2rem + 100%);
     background: #6c757d;
     z-index: 1;
     pointer-events: none;
@@ -162,6 +162,8 @@
     .level-8 { order: 8; }
     .level-9 { order: 9; }
     .level-10 { order: 10; }
+    .level-11 { order: 11; }
+    .level-12 { order: 12; }
     
     .rank-final {
         grid-column: span 2; /* Span both columns on smaller screens */
