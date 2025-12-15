@@ -1194,13 +1194,17 @@ else
         }
 
         // Check if member already has a position assigned in this fiscal year
-        var memberHasAssignment = (await RoleAssignmentService.GetRoleAssignmentsByUserIdAsync(selectedMember.Id))
-            .Any(r => r.StartYear == startYear && r.EndYear == endYear);
-
-        if (memberHasAssignment)
+        // Skip this check for Ensaiador position since it's not an official member role
+        if (selectedPosition.Value != Position.Ensaiador)
         {
-            errorMessage = "Este membro já tem um cargo atribuído para este ano letivo.";
-            return;
+            var memberHasAssignment = (await RoleAssignmentService.GetRoleAssignmentsByUserIdAsync(selectedMember.Id))
+                .Any(r => r.StartYear == startYear && r.EndYear == endYear);
+
+            if (memberHasAssignment)
+            {
+                errorMessage = "Este membro já tem um cargo atribuído para este ano letivo.";
+                return;
+            }
         }
 
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();

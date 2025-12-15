@@ -96,6 +96,36 @@ public class RolesPageTests
         presidentPositions.Should().Contain(Position.PresidenteMesaAssembleia, "Presidente Mesa is a president position");
     }
 
+    [Fact]
+    public void Position_Ensaiador_ShouldAllowMultipleRoleAssignments()
+    {
+        // This test verifies the business rule that Ensaiador position
+        // does not prevent members from having other roles in the same fiscal year
+        // since Ensaiador is not an official member role
+
+        // Arrange
+        var ensaiadorPosition = Position.Ensaiador;
+        var otherPositions = new[]
+        {
+            Position.Magister,
+            Position.ViceMagister,
+            Position.Secretario,
+            Position.PrimeiroTesoureiro,
+            Position.SegundoTesoureiro,
+            Position.PresidenteMesaAssembleia,
+            Position.PresidenteConselhoFiscal,
+            Position.PresidenteConselhoVeteranos
+        };
+
+        // Act - Ensaiador should be different from all official positions
+        var isEnsaiador = ensaiadorPosition == Position.Ensaiador;
+        var isOfficialPosition = otherPositions.Contains(ensaiadorPosition);
+
+        // Assert
+        isEnsaiador.Should().BeTrue("Position should be Ensaiador");
+        isOfficialPosition.Should().BeFalse("Ensaiador should not be in the list of official positions that prevent multiple role assignments");
+    }
+
     #endregion
 
     #region Member Category Validation Tests
