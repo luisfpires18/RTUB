@@ -2,6 +2,42 @@
 
 /* Desktop: Keep table as-is (default behavior) */
 
+/* Mobile: Full-width search and filters on small screens */
+@media (max-width: 991.98px) {
+    /* Make search bar full-width on mobile/tablet */
+    .search-controls-container > div:first-child {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+    
+    /* Make filter container full-width on mobile/tablet */
+    .search-controls-container > div:last-child {
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    /* Make individual filter dropdowns full-width on mobile */
+    .search-controls-container .flex-sm-row > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+    
+    /* Align toggle to the left on mobile like other dropdowns */
+    .search-controls-container .form-check-switch {
+        padding-left: 0 !important;
+        justify-content: flex-start !important;
+    }
+    
+    /* Remove toggle container width constraints on mobile */
+    .search-controls-container .flex-sm-row > div:last-child {
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+}
+
 /* Mobile: Responsive anniversaries table */
 @media (max-width: 768px) {
     /* Transform table rows into cards on mobile */

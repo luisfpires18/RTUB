@@ -33,7 +33,7 @@
 }
 
 .badge-honorario {
-    background: linear-gradient(135deg, var(--bs-primary) 0%, #764ba2 100%);
+    background-color: #FF1D8E;
     color: white;
     font-weight: bold;
 }

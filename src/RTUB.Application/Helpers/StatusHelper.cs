@@ -143,6 +143,12 @@ public static class StatusHelper
     {
         var displayCategories = new List<MemberCategory>(user.Categories);
 
+        // If user is TunoHonorario, show ONLY TunoHonorario (special case - remove Tuno, Veterano, Tunossauro)
+        if (user.IsTunoHonorario())
+        {
+            return new List<MemberCategory> { MemberCategory.TunoHonorario };
+        }
+
         // If user is TUNO, automatically add VETERANO and/or TUNOSSAURO based on years
         if (user.IsTuno() && user.YearTuno.HasValue)
         {

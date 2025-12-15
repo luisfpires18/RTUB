@@ -67,6 +67,23 @@ public static class ApplicationUserExtensions
         return user.Categories.Contains(MemberCategory.Fundador);
     }
 
+    /// <summary>
+    /// Checks if the user is marked as retired (reformed/inactive)
+    /// This can be set automatically by the retirement logic or manually by OWNER role
+    /// </summary>
+    public static bool IsRetiredMember(this ApplicationUser user)
+    {
+        return user.IsRetired;
+    }
+
+    /// <summary>
+    /// Checks if the user is active (not retired)
+    /// </summary>
+    public static bool IsActiveMember(this ApplicationUser user)
+    {
+        return !user.IsRetired;
+    }
+
     #endregion
 
     #region Position Checkers

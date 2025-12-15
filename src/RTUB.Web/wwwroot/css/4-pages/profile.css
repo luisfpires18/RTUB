@@ -266,6 +266,19 @@
   color: white;
 }
 
+/* Tuno Honorário - pink/magenta with special icon */
+.timeline-item-unified.timeline-honorario {
+  background-color: #FF1D8E;
+  border: 2px solid #FF1D8E;
+  font-weight: bold;
+}
+
+.timeline-item-unified.timeline-honorario .timeline-label-unified,
+.timeline-item-unified.timeline-honorario .timeline-year-unified,
+.timeline-item-unified.timeline-honorario .timeline-badge-unified {
+  color: white;
+}
+
 /* Role - purple (all roles including Magister use same purple from badge-position) */
 .timeline-item-unified.timeline-role {
   background-color: var(--bs-primary);
