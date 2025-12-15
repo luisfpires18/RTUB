@@ -225,6 +225,27 @@ public class EventService : IEventService
         return createdVideo;
     }
 
+    public async Task UpdateVideoTitleAsync(int videoId, string? title, string userId, bool isAdmin = false)
+    {
+        // Fetch video by id
+        var video = await _eventVideoRepository.GetByIdAsync(videoId);
+
+        if (video == null)
+            throw new EntityNotFoundException(nameof(EventVideo), videoId);
+
+        // Check permissions: only allow if user is the uploader OR is an admin
+        if (video.CreatedByUserId != userId && !isAdmin)
+        {
+            throw new UnauthorizedAccessException("You do not have permission to update this video.");
+        }
+
+        // Update the title
+        video.UpdateTitle(title);
+
+        // Save to repository
+        await _eventVideoRepository.UpdateAsync(video);
+    }
+
     public async Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false)
     {
         // Fetch video by id
