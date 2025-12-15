@@ -60,6 +60,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMessageRepository, MessageRepository>();
         services.AddScoped<IConversationUserSettingsRepository, ConversationUserSettingsRepository>();
         services.AddScoped<ISongVideoRepository, SongVideoRepository>();
+        services.AddScoped<IEventVideoRepository, EventVideoRepository>();
         services.AddScoped<IGalleryMediaRepository, GalleryMediaRepository>();
 
         return services;
@@ -189,6 +190,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<DriveDocumentStorageService>(); // For /roles page RGI document from IDrive
         services.AddScoped<IEventMediaStorageService, CloudflareEventMediaStorageService>();
         services.AddScoped<ISongVideoStorageService, CloudflareSongVideoStorageService>();
+        services.AddScoped<IEventVideoStorageService, CloudflareEventVideoStorageService>();
         services.AddScoped<IGalleryMediaStorageService, CloudflareGalleryMediaStorageService>();
 
         return services;
