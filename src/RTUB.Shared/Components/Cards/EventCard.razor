@@ -139,19 +139,24 @@
 
         @if (ShowOnlyTrophy)
         {
-            <!-- Show only trophy button (for public portal) -->
-            @if (Event.Type == EventType.Festival)
-            {
-                <div class="enrollment-section mt-auto p-2 rounded">
-                    <div class="event-buttons-container">
+            <!-- Show trophy and videos buttons for public users -->
+            <div class="enrollment-section mt-auto p-2 rounded">
+                <div class="event-buttons-container">
+                    @if (Event.Type == EventType.Festival)
+                    {
                         <button class="btn event-icon-btn btn-warning" 
                                 @onclick="OnViewTrophies" 
                                 title="Prémios">
                             <i class="bi bi-trophy-fill"></i>
                         </button>
-                    </div>
+                    }
+                    <button class="btn event-icon-btn btn-outline-secondary" 
+                            @onclick="OnViewVideos" 
+                            title="Vídeos">
+                        <i class="bi bi-camera-video"></i>
+                    </button>
                 </div>
-            }
+            </div>
         }
         else if (ShowButtons)
         {
@@ -284,6 +289,13 @@
                                     <i class="bi bi-trophy-fill"></i>
                                 </button>
                             }
+
+                            <!-- Videos button (for all past events) -->
+                            <button class="btn event-icon-btn btn-outline-secondary" 
+                                    @onclick="OnViewVideos" 
+                                    title="Vídeos">
+                                <i class="bi bi-camera-video"></i>
+                            </button>
                         </div>
                         
                         <!-- Enrollment management for past events -->
@@ -418,6 +430,12 @@
     /// </summary>
     [Parameter]
     public EventCallback OnViewTrophies { get; set; }
+    
+    /// <summary>
+    /// Callback when the view videos button is clicked
+    /// </summary>
+    [Parameter]
+    public EventCallback OnViewVideos { get; set; }
     
     /// <summary>
     /// Callback when the view discussion button is clicked

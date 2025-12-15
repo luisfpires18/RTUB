@@ -127,34 +127,34 @@ else
 }
 
 <!-- Previous Events Section -->
-<AuthorizeView>
-    <Authorized>
-        <hr class="my-5" />
+<hr class="my-5" />
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2>Atuações Anteriores</h2>
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Atuações Anteriores</h2>
+</div>
 
-        <SearchBar @bind-Value="previousEventsSearch"
-                   Placeholder="Pesquisar atuações anteriores..."
-                   OnSearch="@HandlePreviousEventsSearch" />
+<SearchBar @bind-Value="previousEventsSearch"
+           Placeholder="Pesquisar atuações anteriores..."
+           OnSearch="@HandlePreviousEventsSearch" />
 
-        @if (filteredPreviousEvents == null)
+@if (filteredPreviousEvents == null)
+{
+    <p>A carregar atuações anteriores...</p>
+}
+else if (!filteredPreviousEvents.Any())
+{
+    <EmptyState Title="Nenhum evento anterior encontrado"
+                     Message="Não existem atuações passados para mostrar."
+                   Icon="bi-calendar-x" />
+}
+else
+{
+    <div class="row">
+        @foreach (var eventItem in paginatedPreviousEvents)
         {
-            <p>A carregar atuações anteriores...</p>
-        }
-        else if (!filteredPreviousEvents.Any())
-        {
-            <EmptyState Title="Nenhum evento anterior encontrado"
-                             Message="Não existem atuações passados para mostrar."
-                           Icon="bi-calendar-x" />
-        }
-        else
-        {
-            <div class="row">
-                @foreach (var eventItem in paginatedPreviousEvents)
-                {
-                    <div class="col-md-4 mb-4">
+            <div class="col-md-4 mb-4">
+                <AuthorizeView>
+                    <Authorized>
                         @{
                             var userEnrollment = GetUserEnrollment(eventItem.Id);
                         }
@@ -176,7 +176,8 @@ else
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
                                            OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
-                                           OnViewTrophies="@(() => OpenTrophyModal(eventItem))" />
+                                           OnViewTrophies="@(() => OpenTrophyModal(eventItem))"
+                                           OnViewVideos="@(() => OpenVideosModal(eventItem))" />
                             </Authorized>
                             <NotAuthorized Context="adminOnlyContext">
                                 <EventCard Event="@eventItem"
@@ -193,23 +194,37 @@ else
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
                                            OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
-                                           OnViewTrophies="@(() => OpenTrophyModal(eventItem))" />
+                                           OnViewTrophies="@(() => OpenTrophyModal(eventItem))"
+                                           OnViewVideos="@(() => OpenVideosModal(eventItem))" />
                             </NotAuthorized>
                         </AuthorizeView>
-                    </div>
-                }
+                    </Authorized>
+                    <NotAuthorized>
+                        <EventCard Event="@eventItem"
+                                   ImageUrl="@GetEventImageUrl(eventItem.ImageSrc)"
+                                   EnrollmentCount="@GetEnrollmentCount(eventItem.Id)"
+                                   RepertoireCount="@GetRepertoireCount(eventItem.Id)"
+                                   DiscussionCount="@GetDiscussionCount(eventItem.Id)"
+                                   IsAdmin="false"
+                                   IsPastEvent="true"
+                                   ShowButtons="false"
+                                   ShowOnlyTrophy="true"
+                                   OnViewTrophies="@(() => OpenTrophyModal(eventItem))"
+                                   OnViewVideos="@(() => OpenVideosModal(eventItem))" />
+                    </NotAuthorized>
+                </AuthorizeView>
             </div>
-
-            <TablePagination CurrentPage="@paginationHelper.CurrentPage"
-                            PageSize="@paginationHelper.PageSize"
-                            TotalItems="@(filteredPreviousEvents?.Count ?? 0)"
-                            ItemLabel="eventos"
-                            PageSizeOptions="@(new[] { 3, 6, 9, 12, 15 })"
-                            OnPageChanged="@HandlePreviousEventsPageChange"
-                            OnPageSizeChanged="@HandlePreviousEventsPageSizeChange" />
         }
-    </Authorized>
-</AuthorizeView>
+    </div>
+
+    <TablePagination CurrentPage="@paginationHelper.CurrentPage"
+                    PageSize="@paginationHelper.PageSize"
+                    TotalItems="@(filteredPreviousEvents?.Count ?? 0)"
+                    ItemLabel="eventos"
+                    PageSizeOptions="@(new[] { 3, 6, 9, 12, 15 })"
+                    OnPageChanged="@HandlePreviousEventsPageChange"
+                    OnPageSizeChanged="@HandlePreviousEventsPageSizeChange" />
+}
 
 <!-- Edit/Create Modal -->
 <Modal Show="@showEditModal" 
@@ -825,6 +840,153 @@ else
                OnConfirm="DeleteTrophy"
                OnCancel="CloseTrophyDeleteModal" />
 
+<!-- Videos Modal (with Upload and View sections) -->
+<Modal Show="@showVideosModal" 
+       ShowChanged="@((value) => showVideosModal = value)"
+       Title="@($"Vídeos - {selectedEventForVideos?.Name}")" 
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true"
+       OnClose="@CloseVideosModal">
+    <BodyContent>
+        @* Upload Section - Visible to all logged-in users (members only) *@
+        <AuthorizeView>
+            <Authorized>
+                <div class="mb-4">
+                    <h6 class="mb-3">
+                        <i class="bi bi-upload text-primary me-2"></i>Adicionar Vídeo
+                    </h6>
+                    
+                    @if (isUploadingVideo)
+                    {
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">A carregar...</span>
+                            </div>
+                            <p class="mt-2">A enviar vídeo...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Ficheiro de vídeo</label>
+                            <div class="localized-file-picker">
+                                <InputFile id="@videoInputId" 
+                                           @key="videoUploadKey"
+                                           class="d-none" 
+                                           OnChange="@HandleVideoSelection" 
+                                           accept="video/*" 
+                                           aria-label="Escolher vídeo" />
+                                <label class="btn btn-outline-secondary localized-file-button" for="@videoInputId">
+                                    <i class="bi bi-upload me-2"></i>Escolher vídeo
+                                </label>
+                                <span class="localized-file-name">
+                                    @if (!string.IsNullOrEmpty(selectedVideoName))
+                                    {
+                                        <text>@selectedVideoName</text>
+                                    }
+                                    else
+                                    {
+                                        <text>Nenhum vídeo selecionado</text>
+                                    }
+                                </span>
+                            </div>
+                            <small class="text-muted d-block mt-1">
+                                <i class="bi bi-info-circle me-1"></i>Tamanho máximo: 100MB
+                            </small>
+                        </div>
+                        
+                        @if (selectedVideoFile != null)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Título do vídeo <span class="text-danger">*</span></label>
+                                <InputText @bind-Value="videoTitle" class="form-control" placeholder="Digite um título para o vídeo" />
+                                <small class="text-muted">Este nome aparecerá na lista de vídeos</small>
+                            </div>
+                            
+                            <div class="d-flex justify-content-end">
+                                <button type="button" class="btn btn-secondary me-2" @onclick="CancelVideoSelection">
+                                    Cancelar
+                                </button>
+                                <button type="button" class="btn btn-primary" @onclick="UploadVideo" disabled="@(string.IsNullOrWhiteSpace(videoTitle))">
+                                    <i class="bi bi-upload me-2"></i>Enviar vídeo
+                                </button>
+                            </div>
+                        }
+                    }
+                </div>
+                
+                <hr class="my-4" />
+            </Authorized>
+        </AuthorizeView>
+        
+        @* View Section - Visible to everyone *@
+        <div>
+            <h6 class="mb-3">
+                <i class="bi bi-list-ul text-primary me-2"></i>Vídeos Disponíveis
+            </h6>
+            
+            @if (eventVideos == null || !eventVideos.Any())
+            {
+                <EmptyState Title="Ainda não existem vídeos para este evento"
+                           Icon="bi-camera-video"
+                           Message="Os vídeos aparecerão aqui quando forem adicionados." />
+            }
+            else
+            {
+                var videos = eventVideos.OrderBy(v => v.SortOrder).ToList();
+                
+                <div class="video-selector mb-3">
+                    <label class="form-label fw-semibold">Selecione um vídeo:</label>
+                    <div class="list-group">
+                        @for (int i = 0; i < videos.Count; i++)
+                        {
+                            var index = i;
+                            var video = videos[i];
+                            var isSelected = selectedVideoId == video.Id;
+                            
+                            // Generate clean display title
+                            var displayTitle = GetCleanVideoTitle(video, i + 1);
+                            
+                            <div class="list-group-item list-group-item-action position-relative @(isSelected ? "active" : "")"
+                                 role="button"
+                                 @onclick="() => SelectVideoByIndex(video.Id)">
+                                <span class="video-title-content">
+                                    <i class="bi bi-play-circle me-2"></i>@displayTitle
+                                </span>
+                                @if (CanDeleteVideo(video))
+                                {
+                                    <button type="button" 
+                                            class="btn btn-sm admin-btn-delete position-absolute top-50 end-0 translate-middle-y me-2" 
+                                            @onclick:stopPropagation="true"
+                                            @onclick="() => DeleteVideoFromModal(video)"
+                                            title="Eliminar vídeo">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                
+                @if (selectedVideoId.HasValue)
+                {
+                    var selectedVideo = videos.FirstOrDefault(v => v.Id == selectedVideoId.Value);
+                    if (selectedVideo != null)
+                    {
+                        <div class="video-player-container">
+                            <video @key="@selectedVideo.Id" controls class="modal-video" preload="metadata">
+                                <source src="@selectedVideo.Url" type="@selectedVideo.MimeType">
+                                O seu navegador não suporta o elemento de vídeo.
+                            </video>
+                        </div>
+                    }
+                }
+            }
+        </div>
+    </BodyContent>
+</Modal>
+
 <!-- Delete Enrollment Confirmation Modal -->
 <ConfirmDialog Show="@showDeleteEnrollmentModal"
                ShowChanged="@((bool show) => showDeleteEnrollmentModal = show)"
@@ -1154,6 +1316,7 @@ else
     private bool showTrophyModal = false;
     private bool showTrophyEditModal = false;
     private bool showTrophyDeleteModal = false;
+    private bool showVideosModal = false;
     private bool showDeleteEnrollmentModal = false;
     private bool showEmailNotificationModal = false;
     private bool showPushNotificationModal = false;
@@ -1169,6 +1332,7 @@ else
     private Event? selectedEvent;
     private Event? selectedEventForRepertoire;
     private Event? selectedEventForTrophies;
+    private Event? selectedEventForVideos;
     private Event? selectedEventForEmail;
     private Event? selectedEventForPush;
     private Event? selectedEventForCancellation;
@@ -1178,6 +1342,17 @@ else
     private Trophy? editingTrophy;
     private Trophy? deletingTrophy;
     private List<Trophy>? eventTrophies;
+    
+    // Video modal state (view and upload)
+    private List<EventVideo>? eventVideos = null;
+    private int? selectedVideoId = null;
+    private bool isUploadingVideo = false;
+    private Guid videoUploadKey = Guid.NewGuid();
+    private string videoInputId = $"event-video-{Guid.NewGuid():N}";
+    private string? selectedVideoName = null;
+    private IBrowserFile? selectedVideoFile = null;
+    private string videoTitle = string.Empty;
+    
     private string? uploadedImagePath;
     private string dateValidationError = string.Empty;
     private bool showPastDateWarning = false;
@@ -2956,6 +3131,179 @@ else
     private string FormatEventDateRange(Event eventItem)
     {
         return RTUB.Application.Utilities.DateFormatHelper.FormatEventDateRange(eventItem.Date, eventItem.EndDate);
+    }
+    
+    // Video modal methods
+    private async Task OpenVideosModal(Event eventItem)
+    {
+        selectedEventForVideos = eventItem;
+        eventVideos = (await EventService.GetVideosByEventIdAsync(eventItem.Id)).ToList();
+        selectedVideoId = null;
+        videoUploadKey = Guid.NewGuid();
+        showVideosModal = true;
+    }
+    
+    private void CloseVideosModal()
+    {
+        showVideosModal = false;
+        selectedEventForVideos = null;
+        eventVideos = null;
+        selectedVideoId = null;
+        isUploadingVideo = false;
+        selectedVideoName = null;
+        selectedVideoFile = null;
+        videoTitle = string.Empty;
+    }
+    
+    private void SelectVideoByIndex(int videoId)
+    {
+        if (selectedVideoId == videoId)
+        {
+            selectedVideoId = null;
+        }
+        else
+        {
+            selectedVideoId = videoId;
+        }
+    }
+    
+    private void HandleVideoSelection(InputFileChangeEventArgs e)
+    {
+        if (selectedEventForVideos == null) return;
+        
+        var file = e.File;
+        var maxFileSize = 100 * 1024 * 1024; // 100MB
+        
+        if (file.Size > maxFileSize)
+        {
+            selectedVideoName = null;
+            selectedVideoFile = null;
+            return;
+        }
+        
+        selectedVideoFile = file;
+        selectedVideoName = file.Name;
+        
+        var existingCount = eventVideos?.Count ?? 0;
+        var videoNumber = existingCount + 1;
+        videoTitle = $"{selectedEventForVideos.Name} - Vídeo {videoNumber}";
+        
+        StateHasChanged();
+    }
+    
+    private void CancelVideoSelection()
+    {
+        selectedVideoFile = null;
+        selectedVideoName = null;
+        videoTitle = string.Empty;
+        videoUploadKey = Guid.NewGuid();
+    }
+    
+    private async Task UploadVideo()
+    {
+        if (selectedEventForVideos == null || selectedVideoFile == null) return;
+        
+        var maxFileSize = 100 * 1024 * 1024; // 100MB
+        isUploadingVideo = true;
+        StateHasChanged();
+        
+        try
+        {
+            using var browserStream = selectedVideoFile.OpenReadStream(maxFileSize);
+            using var memoryStream = new MemoryStream();
+            await browserStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+            
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+            
+            await EventService.AddVideoAsync(
+                selectedEventForVideos.Id,
+                memoryStream,
+                selectedVideoFile.Name,
+                selectedVideoFile.ContentType,
+                currentUserId,
+                videoTitle
+            );
+            
+            eventVideos = (await EventService.GetVideosByEventIdAsync(selectedEventForVideos.Id)).ToList();
+            selectedVideoId = null;
+            CancelVideoSelection();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading video for event: {ex.Message}");
+        }
+        finally
+        {
+            isUploadingVideo = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task DeleteVideoFromModal(EventVideo video)
+    {
+        if (selectedEventForVideos == null) return;
+        
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+            
+            await EventService.DeleteVideoAsync(video.Id, currentUserId, isUserAdmin);
+            
+            if (selectedVideoId == video.Id)
+            {
+                selectedVideoId = null;
+            }
+            
+            eventVideos = (await EventService.GetVideosByEventIdAsync(selectedEventForVideos.Id)).ToList();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting video: {ex.Message}");
+        }
+    }
+    
+    private string GetCleanVideoTitle(EventVideo video, int videoNumber)
+    {
+        if (selectedEventForVideos == null) 
+            return $"Vídeo {videoNumber}";
+        
+        if (string.IsNullOrWhiteSpace(video.Title))
+        {
+            return $"{selectedEventForVideos.Name} - Vídeo {videoNumber}";
+        }
+        
+        var title = video.Title.Trim();
+        var MaxCleanTitleLength = 50;
+        var VideoExtensions = new[] { ".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv" };
+        var looksLikeKey = title.Length > MaxCleanTitleLength || 
+                          VideoExtensions.Any(ext => title.Contains(ext, StringComparison.OrdinalIgnoreCase)) ||
+                          title.Contains("/") ||
+                          title.Contains("\\");
+        
+        if (looksLikeKey)
+        {
+            return $"{selectedEventForVideos.Name} - Vídeo {videoNumber}";
+        }
+        
+        return title;
+    }
+    
+    private bool CanDeleteVideo(EventVideo video)
+    {
+        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
+        var user = authState.User;
+        var currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        
+        if (string.IsNullOrEmpty(currentUserId))
+            return false;
+            
+        return video.CreatedByUserId == currentUserId || isUserAdmin;
     }
 }
 
