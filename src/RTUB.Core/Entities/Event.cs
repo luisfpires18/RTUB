@@ -43,6 +43,7 @@ public class Event : BaseEntity
     public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
     public virtual ICollection<EventRepertoire> RepertoireSongs { get; set; } = new List<EventRepertoire>();
     public virtual ICollection<Trophy> Trophies { get; set; } = new List<Trophy>();
+    public virtual ICollection<EventVideo> Videos { get; set; } = new List<EventVideo>();
 
     // Private constructor for EF Core
     public Event() { }

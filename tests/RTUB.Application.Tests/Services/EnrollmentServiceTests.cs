@@ -44,7 +44,9 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             _mockRetirementStatusService.Object);
 
         _eventRepository = new EventRepository(_context);
-        _eventService = new EventService(_eventRepository, _mockImageStorageService.Object, new EnrollmentRepository(_context));
+        var mockEventVideoRepository = new Mock<IEventVideoRepository>();
+        var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
+        _eventService = new EventService(_eventRepository, _mockImageStorageService.Object, new EnrollmentRepository(_context), mockEventVideoRepository.Object, mockEventVideoStorageService.Object);
     }
 
     [Fact]
