@@ -3137,7 +3137,16 @@ else
     private async Task OpenVideosModal(Event eventItem)
     {
         selectedEventForVideos = eventItem;
-        eventVideos = (await EventService.GetVideosByEventIdAsync(eventItem.Id)).ToList();
+        try
+        {
+            eventVideos = (await EventService.GetVideosByEventIdAsync(eventItem.Id)).ToList();
+        }
+        catch (Exception ex)
+        {
+            // Log error but still open modal to show empty state
+            Console.WriteLine($"Error loading event videos: {ex.Message}");
+            eventVideos = new List<EventVideo>();
+        }
         selectedVideoId = null;
         videoUploadKey = Guid.NewGuid();
         showVideosModal = true;
