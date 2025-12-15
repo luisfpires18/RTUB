@@ -35,7 +35,9 @@ public class ImageStorageIntegrationTests : IDisposable
         _mockImageStorageService = new Mock<IImageStorageService>();
 
         _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
-        _eventService = new EventService(new EventRepository(_context), _mockImageStorageService.Object, new EnrollmentRepository(_context));
+        var mockEventVideoRepository = new Mock<IEventVideoRepository>();
+        var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
+        _eventService = new EventService(new EventRepository(_context), _mockImageStorageService.Object, new EnrollmentRepository(_context), mockEventVideoRepository.Object, mockEventVideoStorageService.Object);
         _slideshowService = new SlideshowService(new SlideshowRepository(_context), _mockImageStorageService.Object);
     }
 
