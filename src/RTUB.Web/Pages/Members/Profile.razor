@@ -193,21 +193,25 @@
                           OnCancel="@CancelEdit"
                           AdditionalClasses="w-100">
                 <ChildContent>
-                    @* Display all instruments with primary indicator *@
-                    @if (userInstrumentsForDisplay != null && userInstrumentsForDisplay.Any())
+                    @* Display all instruments with primary indicator - hide for Tuno Honorários *@
+                    @if (user != null && !user.Categories.Contains(MemberCategory.TunoHonorario))
                     {
-                        <ProfileField Label="Instrumentos"
-                                    Value="@string.Join(", ", userInstrumentsForDisplay
-                                        .OrderByDescending(i => i.IsPrimary)
-                                        .Select(i => StatusHelper.GetInstrumentDisplay(i.InstrumentType) + (i.IsPrimary ? " (Principal)" : "")))"
-                                    Icon="bi bi-music-note-list" />
-                    }
-                    else
-                    {
-                        <ProfileField Label="Instrumentos" Value="@null" Icon="bi bi-music-note-list" />
+                        @if (userInstrumentsForDisplay != null && userInstrumentsForDisplay.Any())
+                        {
+                            <ProfileField Label="Instrumentos"
+                                        Value="@string.Join(", ", userInstrumentsForDisplay
+                                            .OrderByDescending(i => i.IsPrimary)
+                                            .Select(i => StatusHelper.GetInstrumentDisplay(i.InstrumentType) + (i.IsPrimary ? " (Principal)" : "")))"
+                                        Icon="bi bi-music-note-list" />
+                        }
+                        else
+                        {
+                            <ProfileField Label="Instrumentos" Value="@null" Icon="bi bi-music-note-list" />
+                        }
                     }
 
-                    @if (user != null && (!user.IsLeitao() || user.IsCaloiro() || user.IsTuno()) && !user.IsFundador())
+                    @* Hide Padrinho for Leitao, Fundador and Tuno Honorário *@
+                    @if (user != null && (!user.IsLeitao() || user.IsCaloiro() || user.IsTuno()) && !user.IsFundador() && !user.Categories.Contains(MemberCategory.TunoHonorario))
                     {
                         <ProfileField Label="Padrinho"
                                     Value="@GetMentorDisplayName()"
@@ -220,15 +224,16 @@
                         </ValueContent>
                     </ProfileField>
                     
-                    <!-- Estado na Tuna Section -->
+                    <!-- Estado na Tuna Section - hide for Tuno Honorários -->
                     @{
                         var isActiveMember = user?.Categories.Contains(MemberCategory.Caloiro) == true || 
                                             user?.Categories.Contains(MemberCategory.Tuno) == true ||
                                             user?.Categories.Contains(MemberCategory.Veterano) == true ||
                                             user?.Categories.Contains(MemberCategory.Tunossauro) == true;
+                        var isTunoHonorario = user?.Categories.Contains(MemberCategory.TunoHonorario) == true;
                         var hasActivityHistory = memberStatusResult?.HasAnyActivity ?? false;
                     }
-                    @if (isActiveMember && hasActivityHistory)
+                    @if (isActiveMember && !isTunoHonorario && hasActivityHistory)
                     {
                         <div class="profile-field-section mt-4">
                             <div class="profile-field-section-header mb-3">
@@ -240,19 +245,42 @@
                             
                             <ProfileField Label="Estado atual" Value="badge">
                                 <ValueContent>
-                                    @if (memberStatusResult?.IsRetired == true)
-                                    {
-                                        <span class="badge badge-retired" 
-                                              title="Reformados: transitam para esta categoria os Associados Efectivos que por motivos profissionais ou pessoais, se encontrem afastados, por um período de seis meses ou superior, das actividades da RTUB. Poderão retornar à sua categoria após três meses de actividade ininterrupta.">
-                                            REFORMADO
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge badge-active">
-                                            NO ATIVO
-                                        </span>
-                                    }
+                                    <div class="d-flex flex-column gap-2">
+                                        <div>
+                                            @if (memberStatusResult?.IsRetired == true)
+                                            {
+                                                <span class="badge badge-retired" 
+                                                      title="Reformados: transitam para esta categoria os Associados Efectivos que por motivos profissionais ou pessoais, se encontrem afastados, por um período de seis meses ou superior, das actividades da RTUB. Poderão retornar à sua categoria após três meses de actividade ininterrupta.">
+                                                    REFORMADO
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-active">
+                                                    NO ATIVO
+                                                </span>
+                                            }
+                                        </div>
+                                        @* Progress indicator *@
+                                        @if (memberStatusResult?.ProgressDescription != null)
+                                        {
+                                            <div class="small text-muted">
+                                                <i class="bi bi-clock-history me-1"></i>@memberStatusResult.ProgressDescription
+                                            </div>
+                                            @if (memberStatusResult.ProgressMonths.HasValue && memberStatusResult.ProgressTotalMonths.HasValue)
+                                            {
+                                                <div class="progress" style="height: 8px;">
+                                                    <div class="progress-bar @(memberStatusResult.IsRetired ? "bg-success" : "bg-warning")" 
+                                                         role="progressbar" 
+                                                         style="width: @((memberStatusResult.ProgressMonths.Value * 100.0 / memberStatusResult.ProgressTotalMonths.Value).ToString("F0"))%"
+                                                         aria-valuenow="@memberStatusResult.ProgressMonths.Value" 
+                                                         aria-valuemin="0" 
+                                                         aria-valuemax="@memberStatusResult.ProgressTotalMonths.Value">
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
                                 </ValueContent>
                             </ProfileField>
                             

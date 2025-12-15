@@ -127,13 +127,46 @@ public class MemberStatusService : IMemberStatusService
             }
         }
 
+        // Calculate progress
+        int? progressMonths = null;
+        int? progressTotalMonths = null;
+        string? progressDescription = null;
+
+        if (hasAnyActivity && lastActivityDate.HasValue)
+        {
+            if (isRetired)
+            {
+                // For reformed members: count consecutive months of activity (out of 3 needed)
+                var consecutiveMonths = await CountConsecutiveMonthsWithActivityAsync(userId, now);
+                progressMonths = consecutiveMonths;
+                progressTotalMonths = 3;
+                progressDescription = $"{consecutiveMonths}/3 meses de atividade consecutiva";
+            }
+            else
+            {
+                // For active members: calculate months until reform (6 months from last activity)
+                var monthsSinceLastActivity = GetMonthsDifference(lastActivityDate.Value, now);
+                var monthsUntilReform = 6 - monthsSinceLastActivity;
+                if (monthsUntilReform < 0) monthsUntilReform = 0;
+                
+                progressMonths = monthsUntilReform;
+                progressTotalMonths = 6;
+                progressDescription = monthsUntilReform > 0 
+                    ? $"{monthsUntilReform} {(monthsUntilReform == 1 ? "mês" : "meses")} até reforma"
+                    : "Próximo da reforma";
+            }
+        }
+
         return new MemberStatusResult
         {
             IsRetired = isRetired,
             LastRehearsalDate = lastRehearsalDate == default ? null : lastRehearsalDate,
             LastEventDate = lastEventDate == default ? null : lastEventDate,
             LastActivityDate = lastActivityDate,
-            HasAnyActivity = hasAnyActivity
+            HasAnyActivity = hasAnyActivity,
+            ProgressMonths = progressMonths,
+            ProgressTotalMonths = progressTotalMonths,
+            ProgressDescription = progressDescription
         };
     }
 
@@ -187,5 +220,62 @@ public class MemberStatusService : IMemberStatusService
         }
 
         return true;
+    }
+    
+    /// <summary>
+    /// Counts the number of consecutive months (starting from most recent) that have at least one activity
+    /// Used to track progress for retired members returning to active status
+    /// Stops counting when a month without activity is found
+    /// </summary>
+    private async Task<int> CountConsecutiveMonthsWithActivityAsync(string userId, DateTime referenceDate)
+    {
+        int consecutiveMonths = 0;
+        var now = referenceDate;
+
+        // Check up to 12 months back (reasonable limit)
+        for (int i = 1; i <= 12; i++)
+        {
+            var monthStart = now.AddMonths(-i);
+            var monthEnd = now.AddMonths(-(i - 1));
+
+            // Get activities in this month
+            var hasRehearsalInMonth = await _context.RehearsalAttendances
+                .Include(ra => ra.Rehearsal)
+                .AnyAsync(ra => ra.UserId == userId
+                    && ra.Attended
+                    && ra.Rehearsal != null
+                    && !ra.Rehearsal.IsCanceled
+                    && ra.Rehearsal.Date >= monthStart
+                    && ra.Rehearsal.Date < monthEnd);
+
+            var hasEventInMonth = await _context.Enrollments
+                .Include(e => e.Event)
+                .AnyAsync(e => e.UserId == userId
+                    && e.WillAttend
+                    && e.Event != null
+                    && !e.Event.IsCancelled
+                    && (e.Event.EndDate ?? e.Event.Date) >= monthStart
+                    && (e.Event.EndDate ?? e.Event.Date) < monthEnd);
+
+            if (hasRehearsalInMonth || hasEventInMonth)
+            {
+                consecutiveMonths++;
+            }
+            else
+            {
+                // Stop counting when we find a month without activity
+                break;
+            }
+        }
+
+        return consecutiveMonths;
+    }
+    
+    /// <summary>
+    /// Calculates the difference in months between two dates
+    /// </summary>
+    private int GetMonthsDifference(DateTime startDate, DateTime endDate)
+    {
+        return ((endDate.Year - startDate.Year) * 12) + endDate.Month - startDate.Month;
     }
 }

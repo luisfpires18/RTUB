@@ -54,6 +54,15 @@
                     <i class="bi bi-geo-alt"></i> Ver Mapa de Membros
                 </button>
             }
+            
+            <!-- Gestão de Membros Ativos button - Admin only -->
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <button class="btn btn-primary btn-primary-purple" @onclick="OpenActiveMembersManagementModal" title="Gestão de Membros Ativos">
+                        <i class="bi bi-person-badge"></i> Gestão de Membros Ativos
+                    </button>
+                </Authorized>
+            </AuthorizeView>
 
             <button class="btn btn-primary btn-primary-purple" @onclick="OpenAnniversariesModal" title="Ver Aniversários dos Membros">
                 <i class="bi bi-cake2"></i> Aniversários
@@ -71,11 +80,22 @@
         <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch ms-lg-auto">
             <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
                 <FilterDropdown SelectedValue="@selectedCategoryFilter"
-                                SelectedValueChanged="@(value => selectedCategoryFilter = value)"
+                                SelectedValueChanged="@OnCategoryFilterChanged"
                                 OnChange="@ApplyFilters"
                                 AllItemsLabel="Categoria"
                                 Options="@categoryFilterOptions" />
             </div>
+            @* SubCategory dropdown - only show when Tuno is selected *@
+            @if (selectedCategoryFilter == "Tuno")
+            {
+                <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
+                    <FilterDropdown SelectedValue="@selectedSubCategoryFilter"
+                                    SelectedValueChanged="@(value => selectedSubCategoryFilter = value)"
+                                    OnChange="@ApplyFilters"
+                                    AllItemsLabel="Sub-Categoria"
+                                    Options="@subCategoryFilterOptions" />
+                </div>
+            }
             <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
                 <FilterDropdown SelectedValue="@selectedInstrumentFilter"
                                 SelectedValueChanged="@(value => selectedInstrumentFilter = value)"
@@ -632,23 +652,27 @@ else
                     </h6>
                 </div>
                 <div class="modal-section-body">
-                    @* Display all instruments with primary indicator *@
-                    @if (viewingUserInstruments != null && viewingUserInstruments.Any())
+                    @* Display all instruments with primary indicator - hide for Tuno Honorários *@
+                    @if (!viewingUser.Categories.Contains(MemberCategory.TunoHonorario))
                     {
-                        <ProfileField Label="Instrumentos" Icon="bi-music-note-beamed">
-                            <ValueContent>
-                                @string.Join(", ", viewingUserInstruments
-                                    .OrderByDescending(i => i.IsPrimary)
-                                    .Select(i => StatusHelper.GetInstrumentDisplay(i.InstrumentType) + (i.IsPrimary ? " (Principal)" : "")))
-                            </ValueContent>
-                        </ProfileField>
-                    }
-                    else
-                    {
-                        <ProfileField Label="Instrumentos" Value="@null" Icon="bi-music-note-beamed" />
+                        @if (viewingUserInstruments != null && viewingUserInstruments.Any())
+                        {
+                            <ProfileField Label="Instrumentos" Icon="bi-music-note-beamed">
+                                <ValueContent>
+                                    @string.Join(", ", viewingUserInstruments
+                                        .OrderByDescending(i => i.IsPrimary)
+                                        .Select(i => StatusHelper.GetInstrumentDisplay(i.InstrumentType) + (i.IsPrimary ? " (Principal)" : "")))
+                                </ValueContent>
+                            </ProfileField>
+                        }
+                        else
+                        {
+                            <ProfileField Label="Instrumentos" Value="@null" Icon="bi-music-note-beamed" />
+                        }
                     }
                     
-                    @if (!viewingUser.IsFundador())
+                    @* Hide Padrinho for Fundador and Tuno Honorário *@
+                    @if (!viewingUser.IsFundador() && !viewingUser.Categories.Contains(MemberCategory.TunoHonorario))
                     {
                         <ProfileField Label="Padrinho"
                                     Value="@(viewingUserMentor != null ? viewingUserMentor.GetDisplayName() : null)"
@@ -672,16 +696,17 @@ else
                 </div>
             </div>
 
-            <!-- Estado na Tuna Section -->
+            <!-- Estado na Tuna Section - hide for Tuno Honorários -->
             @{
                 var isActiveMember = viewingUser.Categories.Contains(MemberCategory.Caloiro) ||
                                     viewingUser.Categories.Contains(MemberCategory.Tuno) ||
                                     viewingUser.Categories.Contains(MemberCategory.Veterano) ||
                                     viewingUser.Categories.Contains(MemberCategory.Tunossauro);
+                var isTunoHonorario = viewingUser.Categories.Contains(MemberCategory.TunoHonorario);
                 var statusResult = viewingUserStatusData.GetValueOrDefault(viewingUser.Id);
                 var hasActivityHistory = statusResult?.HasAnyActivity ?? false;
             }
-            @if (isActiveMember && (hasActivityHistory || isOwner))
+            @if (isActiveMember && !isTunoHonorario && (hasActivityHistory || isOwner))
             {
                 <div class="modal-info-section mb-3">
                     <div class="modal-section-header">
@@ -695,19 +720,42 @@ else
                         {
                             <ProfileField Label="Estado atual" Value="badge" Icon="bi-flag-fill">
                                 <ValueContent>
-                                    @if (viewingUser.IsRetired)
-                                    {
-                                        <span class="badge badge-retired"
-                                              title="Reformados: transitam para esta categoria os Associados Efectivos que por motivos profissionais ou pessoais, se encontrem afastados, por um período de seis meses ou superior, das actividades da RTUB. Poderão retornar à sua categoria após três meses de actividade ininterrupta.">
-                                            REFORMADO
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge badge-active">
-                                            NO ATIVO
-                                        </span>
-                                    }
+                                    <div class="d-flex flex-column gap-2">
+                                        <div>
+                                            @if (viewingUser.IsRetired)
+                                            {
+                                                <span class="badge badge-retired"
+                                                      title="Reformados: transitam para esta categoria os Associados Efectivos que por motivos profissionais ou pessoais, se encontrem afastados, por um período de seis meses ou superior, das actividades da RTUB. Poderão retornar à sua categoria após três meses de actividade ininterrupta.">
+                                                    REFORMADO
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-active">
+                                                    NO ATIVO
+                                                </span>
+                                            }
+                                        </div>
+                                        @* Progress indicator *@
+                                        @if (statusResult?.ProgressDescription != null)
+                                        {
+                                            <div class="small text-muted">
+                                                <i class="bi bi-clock-history me-1"></i>@statusResult.ProgressDescription
+                                            </div>
+                                            @if (statusResult.ProgressMonths.HasValue && statusResult.ProgressTotalMonths.HasValue)
+                                            {
+                                                <div class="progress" style="height: 8px;">
+                                                    <div class="progress-bar @(viewingUser.IsRetired ? "bg-success" : "bg-warning")" 
+                                                         role="progressbar" 
+                                                         style="width: @((statusResult.ProgressMonths.Value * 100.0 / statusResult.ProgressTotalMonths.Value).ToString("F0"))%"
+                                                         aria-valuenow="@statusResult.ProgressMonths.Value" 
+                                                         aria-valuemin="0" 
+                                                         aria-valuemax="@statusResult.ProgressTotalMonths.Value">
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
                                 </ValueContent>
                             </ProfileField>
 
@@ -811,6 +859,154 @@ else
             }
             Guardar
         </button>
+    </FooterContent>
+</Modal>
+
+<!-- Active Members Management Modal -->
+<Modal Show="@showActiveMembersManagementModal"
+       ShowChanged="@((bool show) => showActiveMembersManagementModal = show)"
+       Title="Gestão de Membros Ativos"
+       Size="Modal.ModalSize.ExtraLarge"
+       Centered="true">
+    <BodyContent>
+        @if (activeMembersLoading)
+        {
+            <div class="d-flex justify-content-center my-5">
+                <LoadingSpinner />
+            </div>
+        }
+        else if (allActiveMembers == null || !allActiveMembers.Any())
+        {
+            <EmptyState Title="Nenhum membro ativo encontrado"
+                       Message="Não há membros com histórico de atividade."
+                       Icon="bi-person-badge" />
+        }
+        else
+        {
+            <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
+                <div class="flex-grow-1">
+                    <SearchBar @bind-Value="activeMembersSearchTerm"
+                               Placeholder="Pesquisar membros por nome ou alcunha..."
+                               OnSearch="ApplyActiveMembersSearch" />
+                </div>
+                <div class="flex-shrink-0" style="min-width: 200px;">
+                    <select class="form-select" @bind="activeMembersStatusFilter" @bind:after="@(() => ApplyActiveMembersSearch(activeMembersSearchTerm))">
+                        <option value="">Todos</option>
+                        <option value="active">No Ativo</option>
+                        <option value="retired">Reformado</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Membro</th>
+                            <th>Instrumento</th>
+                            <th>Estado Atual</th>
+                            <th>Último Ensaio</th>
+                            <th>Última Atuação</th>
+                            <AuthorizeView Roles="Owner">
+                                <Authorized>
+                                    <th>Override</th>
+                                </Authorized>
+                            </AuthorizeView>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var memberData in paginatedActiveMembers)
+                        {
+                            var member = memberData.Member;
+                            var statusData = memberData.StatusData;
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="@member.ProfilePictureSrc" alt="@member.Nickname"
+                                             class="member-avatar-small me-2" />
+                                        <div>
+                                            <div><strong>@member.Nickname</strong></div>
+                                            <div class="text-muted small">@member.FirstName @member.LastName</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="Instrumento">
+                                    @(userPrimaryInstruments.ContainsKey(member.Id) ? userPrimaryInstruments[member.Id] : "-")
+                                </td>
+                                <td data-label="Estado Atual">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div>
+                                            @if (statusData?.IsRetired == true)
+                                            {
+                                                <span class="badge badge-retired">REFORMADO</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-active">NO ATIVO</span>
+                                            }
+                                        </div>
+                                        @if (statusData?.ProgressDescription != null)
+                                        {
+                                            <small class="text-muted">
+                                                <i class="bi bi-clock-history me-1"></i>@statusData.ProgressDescription
+                                            </small>
+                                        }
+                                    </div>
+                                </td>
+                                <td data-label="Último Ensaio">
+                                    @if (statusData?.LastRehearsalDate.HasValue == true)
+                                    {
+                                        <text>@statusData.LastRehearsalDate.Value.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("pt-PT"))</text>
+                                    }
+                                    else
+                                    {
+                                        <text>-</text>
+                                    }
+                                </td>
+                                <td data-label="Última Atuação">
+                                    @if (statusData?.LastEventDate.HasValue == true)
+                                    {
+                                        <text>@statusData.LastEventDate.Value.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("pt-PT"))</text>
+                                    }
+                                    else
+                                    {
+                                        <text>-</text>
+                                    }
+                                </td>
+                                <AuthorizeView Roles="Owner">
+                                    <Authorized>
+                                        <td>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" 
+                                                       type="checkbox" 
+                                                       role="switch"
+                                                       checked="@(!member.IsRetired)"
+                                                       @onchange="@(async (e) => await ToggleIsRetiredInManagement(member, !(bool)e.Value!))"
+                                                       style="cursor: pointer;">
+                                                <label class="form-check-label small text-muted">
+                                                    @(member.IsRetired ? "Reformado" : "Ativo")
+                                                </label>
+                                            </div>
+                                        </td>
+                                    </Authorized>
+                                </AuthorizeView>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <TablePagination CurrentPage="@activeMembersPaginationHelper.CurrentPage"
+                            PageSize="@activeMembersPaginationHelper.PageSize"
+                            TotalItems="@filteredActiveMembers.Count"
+                            ItemLabel="membros"
+                            PageSizeOptions="@(new[] { 10, 20, 30, 40, 50 })"
+                            OnPageChanged="ChangeActiveMembersPage"
+                            OnPageSizeChanged="ChangeActiveMembersPageSize" />
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseActiveMembersManagementModal">Fechar</button>
     </FooterContent>
 </Modal>
 
@@ -1057,6 +1253,7 @@ else
 
     // Filter variables
     private string selectedCategoryFilter = "";
+    private string selectedSubCategoryFilter = "";
     private string selectedInstrumentFilter = "";
     private bool showActiveOnly = false; // Toggle for showing only active (non-retired) members
     
@@ -1065,9 +1262,15 @@ else
         new FilterDropdownOption("Leitao", "Leitão"),
         new FilterDropdownOption("Caloiro", "Caloiro"),
         new FilterDropdownOption("Tuno", "Tuno"),
+        new FilterDropdownOption("TunoHonorario", "Tuno Honorário")
+    };
+    
+    private IEnumerable<FilterDropdownOption> subCategoryFilterOptions => new[]
+    {
+        new FilterDropdownOption("Tuno", "Tuno"),
         new FilterDropdownOption("Veterano", "Veterano"),
         new FilterDropdownOption("Tunossauro", "Tunossauro"),
-        new FilterDropdownOption("TunoHonorario", "Tuno Honorário")
+        new FilterDropdownOption("Fundador", "Fundador")
     };
     
     private IEnumerable<FilterDropdownOption> instrumentFilterOptions => AllInstrumentTypes
@@ -1102,6 +1305,24 @@ else
     private string anniversariesSearchTerm = string.Empty;
     private SearchHelper<ApplicationUser> anniversariesSearchHelper = new();
     private PaginationHelper<ApplicationUser> anniversariesPaginationHelper = new() { PageSize = 10 };
+    
+    // Active Members Management modal
+    private bool showActiveMembersManagementModal = false;
+    private bool activeMembersLoading = false;
+    private List<ActiveMemberData> allActiveMembers = new();
+    private List<ActiveMemberData> filteredActiveMembers = new();
+    private List<ActiveMemberData> paginatedActiveMembers = new();
+    private string activeMembersSearchTerm = string.Empty;
+    private string activeMembersStatusFilter = string.Empty;
+    private SearchHelper<ActiveMemberData> activeMembersSearchHelper = new();
+    private PaginationHelper<ActiveMemberData> activeMembersPaginationHelper = new() { PageSize = 10 };
+    
+    // Helper class for active members data
+    public class ActiveMemberData
+    {
+        public ApplicationUser Member { get; set; } = null!;
+        public MemberStatusResult? StatusData { get; set; }
+    }
     
     // Birthday notification modal
     private bool showBirthdayEmailModal = false;
@@ -1316,14 +1537,67 @@ else
                     .Where(u => u.Categories.Contains(MemberCategory.TunoHonorario))
                     .ToList();
             }
+            // When Tuno is selected as category, apply subcategory filter if set
+            else if (categoryEnum == MemberCategory.Tuno)
+            {
+                // If subcategory filter is set, apply it
+                if (!string.IsNullOrEmpty(selectedSubCategoryFilter))
+                {
+                    var subCategoryEnum = Enum.Parse<MemberCategory>(selectedSubCategoryFilter);
+                    
+                    if (subCategoryEnum == MemberCategory.Tuno)
+                    {
+                        // Show only base Tuno (not Veterano, not Tunossauro, not Fundador)
+                        allFilteredUsers = allFilteredUsers
+                            .Where(u => !u.Categories.Contains(MemberCategory.TunoHonorario) &&
+                                       u.Categories.Contains(MemberCategory.Tuno) &&
+                                       !u.QualifiesForVeterano() &&
+                                       !u.QualifiesForTunossauro() &&
+                                       !u.Categories.Contains(MemberCategory.Fundador))
+                            .ToList();
+                    }
+                    else if (subCategoryEnum == MemberCategory.Veterano)
+                    {
+                        // Show Veterano
+                        allFilteredUsers = allFilteredUsers
+                            .Where(u => !u.Categories.Contains(MemberCategory.TunoHonorario) &&
+                                       u.QualifiesForVeterano() &&
+                                       !u.QualifiesForTunossauro())
+                            .ToList();
+                    }
+                    else if (subCategoryEnum == MemberCategory.Tunossauro)
+                    {
+                        // Show Tunossauro
+                        allFilteredUsers = allFilteredUsers
+                            .Where(u => !u.Categories.Contains(MemberCategory.TunoHonorario) &&
+                                       u.QualifiesForTunossauro())
+                            .ToList();
+                    }
+                    else if (subCategoryEnum == MemberCategory.Fundador)
+                    {
+                        // Show Fundador
+                        allFilteredUsers = allFilteredUsers
+                            .Where(u => u.Categories.Contains(MemberCategory.Fundador))
+                            .ToList();
+                    }
+                }
+                else
+                {
+                    // No subcategory filter - show all Tuno (including Veterano, Tunossauro, Fundador)
+                    allFilteredUsers = allFilteredUsers
+                        .Where(u => !u.Categories.Contains(MemberCategory.TunoHonorario) &&
+                                   (u.Categories.Contains(MemberCategory.Tuno) ||
+                                    u.QualifiesForVeterano() ||
+                                    u.QualifiesForTunossauro()))
+                        .ToList();
+                }
+            }
             else
             {
-                // For other categories, exclude TunoHonorario members (they only appear in their own filter)
+                // For other categories (Leitao, Caloiro), exclude TunoHonorario members
                 allFilteredUsers = allFilteredUsers
                     .Where(u => !u.Categories.Contains(MemberCategory.TunoHonorario) &&
-                               (u.Categories.Contains(categoryEnum) || 
-                                (categoryEnum == MemberCategory.Veterano && u.QualifiesForVeterano()) ||
-                                (categoryEnum == MemberCategory.Tunossauro && u.QualifiesForTunossauro())))
+                               u.Categories.Contains(categoryEnum))
                     .ToList();
             }
         }
@@ -1349,6 +1623,16 @@ else
     private void ApplyFilters()
     {
         FilterMembers();
+    }
+    
+    private void OnCategoryFilterChanged(string value)
+    {
+        selectedCategoryFilter = value;
+        // Clear subcategory filter when category changes
+        if (selectedCategoryFilter != "Tuno")
+        {
+            selectedSubCategoryFilter = "";
+        }
     }
 
     private async Task HandleSearchChanged(string search)
@@ -2481,6 +2765,199 @@ else
     private void NavigateToMap()
     {
         NavigationManager.NavigateTo("/member/map");
+    }
+    
+    // Active Members Management modal methods
+    
+    /// <summary>
+    /// Opens the active members management modal and loads active members data
+    /// </summary>
+    private async Task OpenActiveMembersManagementModal()
+    {
+        showActiveMembersManagementModal = true;
+        activeMembersLoading = true;
+        activeMembersSearchTerm = string.Empty;
+        activeMembersStatusFilter = string.Empty;
+        StateHasChanged();
+        
+        try
+        {
+            // Get all active members (excluding Leitão and Tuno Honorário)
+            // Active members = Caloiro, Tuno, Veterano, Tunossauro
+            var activeMembers = users?
+                .Where(u => !u.IsLeitao() && !u.Categories.Contains(MemberCategory.TunoHonorario) &&
+                           (u.Categories.Contains(MemberCategory.Caloiro) ||
+                            u.Categories.Contains(MemberCategory.Tuno) ||
+                            u.Categories.Contains(MemberCategory.Veterano) ||
+                            u.Categories.Contains(MemberCategory.Tunossauro)))
+                .ToList() ?? new List<ApplicationUser>();
+            
+            // Load status data for each member
+            allActiveMembers = new List<ActiveMemberData>();
+            foreach (var member in activeMembers)
+            {
+                MemberStatusResult? statusData = null;
+                try
+                {
+                    statusData = await MemberStatusService.GetMemberStatusAsync(member.Id);
+                }
+                catch
+                {
+                    // If status data fails to load, include member with null status
+                }
+                
+                // Only include members with activity history
+                if (statusData?.HasAnyActivity == true)
+                {
+                    allActiveMembers.Add(new ActiveMemberData
+                    {
+                        Member = member,
+                        StatusData = statusData
+                    });
+                }
+            }
+            
+            // Sort by name
+            allActiveMembers = allActiveMembers
+                .OrderBy(m => m.Member.FirstName)
+                .ThenBy(m => m.Member.LastName)
+                .ToList();
+
+            // Reset pagination and apply search filter
+            activeMembersPaginationHelper.CurrentPage = 1;
+            ApplyActiveMembersSearch(activeMembersSearchTerm);
+        }
+        finally
+        {
+            activeMembersLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    /// <summary>
+    /// Closes the active members management modal
+    /// </summary>
+    private void CloseActiveMembersManagementModal()
+    {
+        showActiveMembersManagementModal = false;
+        allActiveMembers.Clear();
+        filteredActiveMembers.Clear();
+        paginatedActiveMembers.Clear();
+        activeMembersSearchTerm = string.Empty;
+        activeMembersStatusFilter = string.Empty;
+    }
+    
+    /// <summary>
+    /// Updates the paginated active members list
+    /// </summary>
+    private void UpdateActiveMembersPagination()
+    {
+        paginatedActiveMembers = activeMembersPaginationHelper.GetPageData(filteredActiveMembers);
+    }
+    
+    /// <summary>
+    /// Changes the current page in active members modal
+    /// </summary>
+    private async Task ChangeActiveMembersPage(int newPage)
+    {
+        activeMembersPaginationHelper.CurrentPage = newPage;
+        UpdateActiveMembersPagination();
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+    
+    /// <summary>
+    /// Changes the page size in active members modal
+    /// </summary>
+    private async Task ChangeActiveMembersPageSize(int newPageSize)
+    {
+        activeMembersPaginationHelper.PageSize = newPageSize;
+        activeMembersPaginationHelper.CurrentPage = 1; // Reset to first page
+        UpdateActiveMembersPagination();
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private void ApplyActiveMembersSearch(string term)
+    {
+        activeMembersSearchTerm = term ?? string.Empty;
+
+        var membersToFilter = allActiveMembers;
+        
+        // Apply status filter first
+        if (!string.IsNullOrEmpty(activeMembersStatusFilter))
+        {
+            if (activeMembersStatusFilter == "active")
+            {
+                membersToFilter = membersToFilter.Where(m => m.StatusData?.IsRetired == false).ToList();
+            }
+            else if (activeMembersStatusFilter == "retired")
+            {
+                membersToFilter = membersToFilter.Where(m => m.StatusData?.IsRetired == true).ToList();
+            }
+        }
+
+        // Apply search filter
+        if (string.IsNullOrWhiteSpace(activeMembersSearchTerm))
+        {
+            filteredActiveMembers = membersToFilter;
+        }
+        else
+        {
+            activeMembersSearchHelper.SearchTerm = activeMembersSearchTerm;
+            filteredActiveMembers = activeMembersSearchHelper.FilterMultiple(membersToFilter, new List<Func<ActiveMemberData, string>>
+            {
+                m => m.Member.FirstName ?? string.Empty,
+                m => m.Member.LastName ?? string.Empty,
+                m => $"{m.Member.FirstName} {m.Member.LastName}",
+                m => m.Member.Nickname ?? string.Empty
+            }, caseSensitive: false, accentSensitive: false);
+        }
+
+        activeMembersPaginationHelper.CurrentPage = 1;
+        UpdateActiveMembersPagination();
+    }
+    
+    /// <summary>
+    /// Toggles the IsRetired status for a user in the active members management modal
+    /// </summary>
+    private async Task ToggleIsRetiredInManagement(ApplicationUser user, bool isRetired)
+    {
+        try
+        {
+            var dbUser = await UserManager.FindByIdAsync(user.Id);
+            if (dbUser != null)
+            {
+                dbUser.IsRetired = isRetired;
+                await SetAuditContextToCurrentUser();
+                await UserManager.UpdateAsync(dbUser);
+                
+                // Update local data
+                user.IsRetired = isRetired;
+                
+                // Reload status data for this member
+                var memberData = allActiveMembers.FirstOrDefault(m => m.Member.Id == user.Id);
+                if (memberData != null)
+                {
+                    try
+                    {
+                        memberData.StatusData = await MemberStatusService.GetMemberStatusAsync(user.Id);
+                    }
+                    catch
+                    {
+                        // Keep existing status data if reload fails
+                    }
+                }
+                
+                // Reapply filters
+                ApplyActiveMembersSearch(activeMembersSearchTerm);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling IsRetired for user {UserId}", user.Id);
+        }
     }
     
     // Anniversaries modal methods
