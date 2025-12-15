@@ -31,6 +31,12 @@
     gap: 0.5rem;
 }
 
+.discussion-header .page-header-actions {
+    width: auto;
+    max-width: none;
+    margin-left: auto;
+}
+
 @media (max-width: 576px) {
     .discussion-page-wrapper {
         padding-inline: 0.75rem;
