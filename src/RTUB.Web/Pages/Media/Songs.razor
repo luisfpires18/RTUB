@@ -614,6 +614,9 @@ else
     // Video title detection constants
     private const int MaxCleanTitleLength = 50;
     private static readonly string[] VideoExtensions = { ".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv" };
+    
+    // Media session constants
+    private const int VideoElementRenderDelayMs = 100; // Delay to ensure video element is rendered before attaching MediaSession
 
     protected override async Task OnInitializedAsync()
     {
@@ -1091,7 +1094,7 @@ else
         showVideosModal = true;
     }
     
-    private void CloseVideosModal()
+    private async Task CloseVideosModal()
     {
         showVideosModal = false;
         viewingVideosForSong = null;
@@ -1101,18 +1104,66 @@ else
         selectedVideoName = null;
         selectedVideoFile = null;
         videoTitle = string.Empty;
+        
+        // Clear media session when modal closes
+        try
+        {
+            await MediaSession.ClearMetadataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to clear media session metadata on modal close");
+        }
     }
     
-    private void SelectVideoByIndex(int videoId)
+    private async Task SelectVideoByIndex(int videoId)
     {
         // Toggle: if clicking the same video, collapse it
         if (selectedVideoId == videoId)
         {
             selectedVideoId = null;
+            // Clear media session when video is collapsed
+            try
+            {
+                await MediaSession.ClearMetadataAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to clear media session metadata");
+            }
         }
         else
         {
             selectedVideoId = videoId;
+            
+            // Set media session metadata when video is selected
+            if (viewingVideosForSong != null && songVideos != null)
+            {
+                var selectedVideo = songVideos.FirstOrDefault(v => v.Id == videoId);
+                if (selectedVideo != null)
+                {
+                    try
+                    {
+                        var videoTitle = GetCleanVideoTitle(selectedVideo, songVideos.IndexOf(selectedVideo) + 1);
+                        var albumCoverUrl = !string.IsNullOrEmpty(album?.CoverImageSrc) 
+                            ? GetAlbumImageUrl(album.CoverImageSrc) 
+                            : string.Empty;
+                        
+                        // Use a small delay to ensure video element is rendered before attaching
+                        await Task.Delay(VideoElementRenderDelayMs);
+                        await MediaSession.AttachToVideoAsync(
+                            ".modal-video",
+                            videoTitle,
+                            viewingVideosForSong.Title,
+                            albumCoverUrl
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to set video media session metadata");
+                    }
+                }
+            }
         }
     }
     

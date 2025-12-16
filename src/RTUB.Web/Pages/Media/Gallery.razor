@@ -21,6 +21,7 @@
 @inject IJSRuntime JSRuntime
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILogger<Gallery> Logger
+@inject RTUB.Web.Interop.MediaSessionInterop MediaSession
 
 <div class="d-flex flex-column gap-3 mb-4">
     <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
@@ -447,6 +448,9 @@ else
 </DetailsModal>
 
 @code {
+    // Constants
+    private const int VideoElementRenderDelayMs = 100; // Delay to ensure video element is rendered before attaching MediaSession
+    
     // Data
     private List<GalleryMedia> allMedia = new();
     private Dictionary<int, List<GalleryMedia>> groupedMedia = new();
@@ -1067,16 +1071,46 @@ else
     }
 
     // Lightbox
-    private void OpenLightbox(GalleryMedia media)
+    private async Task OpenLightbox(GalleryMedia media)
     {
         lightboxMedia = media;
         showLightbox = true;
+        
+        // Set media session metadata for videos
+        if (media.MediaType == MediaType.Video)
+        {
+            try
+            {
+                // Use a small delay to ensure video element is rendered before attaching
+                await Task.Delay(VideoElementRenderDelayMs);
+                await MediaSession.AttachToVideoAsync(
+                    ".details-modal-image-rectangular",
+                    media.Title ?? "Vídeo RTUB",
+                    FormatMediaDate(media.Year, media.Month, media.Day),
+                    "" // Gallery videos don't have dedicated artwork, use default RTUB logo
+                );
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to set video media session metadata");
+            }
+        }
     }
 
-    private void CloseLightbox()
+    private async Task CloseLightbox()
     {
         showLightbox = false;
         lightboxMedia = null;
+        
+        // Clear media session when modal closes
+        try
+        {
+            await MediaSession.ClearMetadataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to clear media session metadata on modal close");
+        }
     }
 
     // Helpers
