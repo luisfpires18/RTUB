@@ -722,7 +722,7 @@ else
                                 <ValueContent>
                                     <div class="d-flex flex-column gap-2">
                                         <div>
-                                            @if (viewingUser.IsRetired)
+                                            @if (statusResult?.IsRetired ?? viewingUser.IsRetired)
                                             {
                                                 <span class="badge badge-retired"
                                                       title="Reformados: transitam para esta categoria os Associados Efectivos que por motivos profissionais ou pessoais, se encontrem afastados, por um período de seis meses ou superior, das actividades da RTUB. Poderão retornar à sua categoria após três meses de actividade ininterrupta.">

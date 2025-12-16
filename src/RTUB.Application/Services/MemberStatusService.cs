@@ -196,20 +196,23 @@ public class MemberStatusService : IMemberStatusService
     /// Used to determine if a retired member should return to active status
     /// Member needs 3 consecutive months to transition from RETIRED to ACTIVE
     /// Stops counting when a month without activity is found
+    /// CRITICAL: Only counts PAST activities (before referenceDate)
     /// </summary>
     private async Task<int> CountConsecutiveMonthsWithActivityAsync(string userId, DateTime referenceDate)
     {
         int consecutiveMonths = 0;
-        var now = referenceDate;
 
         // Check up to 12 months back (reasonable limit)
         // Start from i=0 to include the CURRENT month
         for (int i = 0; i < 12; i++)
         {
-            var monthStart = now.AddMonths(-i).AddDays(-now.Day + 1).Date; // First day of the month
+            var targetDate = referenceDate.AddMonths(-i);
+            var monthStart = new DateTime(targetDate.Year, targetDate.Month, 1); // First day of the month
             var monthEnd = monthStart.AddMonths(1); // First day of next month
 
             // Get activities in this month
+            // CRITICAL: Exclude future activities (after referenceDate)
+            // For consecutive months, we count the START date of activities (when they began)
             var hasRehearsalInMonth = await _context.RehearsalAttendances
                 .Include(ra => ra.Rehearsal)
                 .AnyAsync(ra => ra.UserId == userId
@@ -217,7 +220,8 @@ public class MemberStatusService : IMemberStatusService
                     && ra.Rehearsal != null
                     && !ra.Rehearsal.IsCanceled
                     && ra.Rehearsal.Date >= monthStart
-                    && ra.Rehearsal.Date < monthEnd);
+                    && ra.Rehearsal.Date < monthEnd
+                    && ra.Rehearsal.Date < referenceDate); // Exclude future rehearsals
 
             var hasEventInMonth = await _context.Enrollments
                 .Include(e => e.Event)
@@ -225,8 +229,9 @@ public class MemberStatusService : IMemberStatusService
                     && e.WillAttend
                     && e.Event != null
                     && !e.Event.IsCancelled
-                    && (e.Event.EndDate ?? e.Event.Date) >= monthStart
-                    && (e.Event.EndDate ?? e.Event.Date) < monthEnd);
+                    && e.Event.Date >= monthStart  // Use start date for month counting
+                    && e.Event.Date < monthEnd
+                    && e.Event.Date < referenceDate); // Exclude future events
 
             if (hasRehearsalInMonth || hasEventInMonth)
             {
