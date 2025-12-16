@@ -226,7 +226,8 @@
                     
                     <!-- Estado na Tuna Section - hide for Tuno Honorários -->
                     @{
-                        var isActiveMember = user?.Categories.Contains(MemberCategory.Caloiro) == true || 
+                        var isActiveMember = user?.Categories.Contains(MemberCategory.Leitao) == true ||
+                                            user?.Categories.Contains(MemberCategory.Caloiro) == true || 
                                             user?.Categories.Contains(MemberCategory.Tuno) == true ||
                                             user?.Categories.Contains(MemberCategory.Veterano) == true ||
                                             user?.Categories.Contains(MemberCategory.Tunossauro) == true;
@@ -792,7 +793,8 @@
                 }
                 
                 // Load status data for active members (ALWAYS shown when there's activity)
-                var isActiveMember = user.Categories.Contains(MemberCategory.Caloiro) || 
+                var isActiveMember = user.Categories.Contains(MemberCategory.Leitao) ||
+                                    user.Categories.Contains(MemberCategory.Caloiro) || 
                                     user.Categories.Contains(MemberCategory.Tuno) ||
                                     user.Categories.Contains(MemberCategory.Veterano) ||
                                     user.Categories.Contains(MemberCategory.Tunossauro);
