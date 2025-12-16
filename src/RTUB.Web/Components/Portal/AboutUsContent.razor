@@ -41,7 +41,8 @@
                                IsAdmin="false"
                                IsPastEvent="true"
                                ShowOnlyTrophy="true"
-                               OnViewTrophies="@(() => OpenTrophyModal(evt))" />
+                               OnViewTrophies="@(() => OpenTrophyModal(evt))"
+                               OnViewVideos="@(() => OpenVideosModal(evt))" />
                 </div>
             }
         </div>
@@ -127,6 +128,71 @@
     </FooterContent>
 </Modal>
 
+<!-- Videos Modal (view-only for public users) -->
+<Modal Show="@showVideosModal" 
+       ShowChanged="@((value) => showVideosModal = value)"
+       Title="@($"Vídeos - {selectedEventForVideos?.Name}")" 
+       Size="Modal.ModalSize.Large"
+       Centered="true"
+       ShowCloseButton="true"
+       OnClose="@CloseVideosModal">
+    <BodyContent>
+        <div>
+            <h6 class="mb-3">
+                <i class="bi bi-list-ul text-primary me-2"></i>Vídeos Disponíveis
+            </h6>
+            
+            @if (eventVideos == null || !eventVideos.Any())
+            {
+                <EmptyState Title="Ainda não existem vídeos para este evento"
+                           Icon="bi-camera-video"
+                           Message="Os vídeos aparecerão aqui quando forem adicionados." />
+            }
+            else
+            {
+                var videos = eventVideos.OrderBy(v => v.SortOrder).ToList();
+                
+                <div class="video-selector mb-3">
+                    <label class="form-label fw-semibold">Selecione um vídeo:</label>
+                    <div class="list-group">
+                        @for (int i = 0; i < videos.Count; i++)
+                        {
+                            var index = i;
+                            var video = videos[i];
+                            var isSelected = selectedVideoId == video.Id;
+                            
+                            // Generate clean display title
+                            var displayTitle = GetCleanVideoTitle(video, i + 1);
+                            
+                            <div class="list-group-item list-group-item-action position-relative @(isSelected ? "active" : "")"
+                                 role="button"
+                                 @onclick="() => SelectVideoByIndex(video.Id)">
+                                <span class="video-title-content">
+                                    <i class="bi bi-play-circle me-2"></i>@displayTitle
+                                </span>
+                            </div>
+                        }
+                    </div>
+                </div>
+                
+                @if (selectedVideoId.HasValue)
+                {
+                    var selectedVideo = videos.FirstOrDefault(v => v.Id == selectedVideoId.Value);
+                    if (selectedVideo != null)
+                    {
+                        <div class="video-player-container">
+                            <video @key="@selectedVideo.Id" controls class="modal-video" preload="metadata">
+                                <source src="@selectedVideo.Url" type="@selectedVideo.MimeType">
+                                O seu navegador não suporta o elemento de vídeo.
+                            </video>
+                        </div>
+                    }
+                }
+            }
+        </div>
+    </BodyContent>
+</Modal>
+
 @code {
     private Label? aboutUs;
     private List<Event>? previousEvents;
@@ -136,6 +202,12 @@
 
     private Label? editingLabel;
     private bool showEditModal = false;
+    
+    // Video modal state
+    private bool showVideosModal = false;
+    private Event? selectedEventForVideos;
+    private List<EventVideo>? eventVideos = null;
+    private int? selectedVideoId = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -206,5 +278,68 @@
         showTrophyModal = false;
         selectedEvent = null;
         eventTrophies = null;
+    }
+    
+    // Video modal methods
+    private async Task OpenVideosModal(Event eventItem)
+    {
+        selectedEventForVideos = eventItem;
+        try
+        {
+            eventVideos = (await EventService.GetVideosByEventIdAsync(eventItem.Id)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading event videos");
+            eventVideos = new List<EventVideo>();
+        }
+        selectedVideoId = null;
+        showVideosModal = true;
+    }
+    
+    private void CloseVideosModal()
+    {
+        showVideosModal = false;
+        selectedEventForVideos = null;
+        eventVideos = null;
+        selectedVideoId = null;
+    }
+    
+    private void SelectVideoByIndex(int videoId)
+    {
+        if (selectedVideoId == videoId)
+        {
+            selectedVideoId = null;
+        }
+        else
+        {
+            selectedVideoId = videoId;
+        }
+    }
+    
+    private string GetCleanVideoTitle(EventVideo video, int videoNumber)
+    {
+        if (selectedEventForVideos == null) 
+            return $"Vídeo {videoNumber}";
+        
+        if (string.IsNullOrWhiteSpace(video.Title))
+        {
+            return $"{selectedEventForVideos.Name} - Vídeo {videoNumber}";
+        }
+        
+        var title = video.Title.Trim();
+        var MaxCleanTitleLength = 50;
+        var VideoExtensions = new[] { ".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv" };
+        var looksLikeKey = title.Length > MaxCleanTitleLength || 
+                          VideoExtensions.Any(ext => title.Contains(ext, StringComparison.OrdinalIgnoreCase)) ||
+                          title.Contains("/") ||
+                          title.Contains("\\");
+        
+        if (looksLikeKey)
+        {
+            return $"{selectedEventForVideos.Name} - Vídeo {videoNumber}";
+        }
+        
+        return title;
     }
 }
