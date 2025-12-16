@@ -103,6 +103,8 @@ RTUB is a **production-ready Progressive Web App** that can be installed on devi
 **Documentation**:
 - 📖 [PWA Setup Guide](docs/pwa-setup.md) - Testing, development, and deployment
 - 🤖 [Android TWA Packaging](docs/android-twa-checklist.md) - Google Play Store submission
+- 🔧 [TWA Configuration Guide](docs/twa-configuration-guide.md) - Digital Asset Links setup for standalone mode
+- 📋 [TWA Release Runbook](docs/twa-release-runbook.md) - Maintenance and troubleshooting
 - 🍎 [iOS App Store Guide](docs/ios-app-store-guide.md) - Apple App Store submission
 
 ## ✨ Features
