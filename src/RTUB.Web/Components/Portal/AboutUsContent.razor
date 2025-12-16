@@ -194,6 +194,10 @@
 </Modal>
 
 @code {
+    // Constants for video title cleaning
+    private const int MaxCleanTitleLength = 50;
+    private static readonly string[] VideoExtensions = { ".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv" };
+    
     private Label? aboutUs;
     private List<Event>? previousEvents;
     private bool showTrophyModal = false;
@@ -328,8 +332,6 @@
         }
         
         var title = video.Title.Trim();
-        var MaxCleanTitleLength = 50;
-        var VideoExtensions = new[] { ".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv" };
         var looksLikeKey = title.Length > MaxCleanTitleLength || 
                           VideoExtensions.Any(ext => title.Contains(ext, StringComparison.OrdinalIgnoreCase)) ||
                           title.Contains("/") ||
