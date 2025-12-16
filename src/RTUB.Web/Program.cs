@@ -474,11 +474,10 @@ public class Program
                     {
                         var path = ctx.Context.Request.Path.Value?.ToLowerInvariant() ?? "";
 
-                        // Digital Asset Links for Android TWA - no caching during verification
-                        if (path.Contains("/.well-known/assetlinks.json"))
+                        // Digital Asset Links for Android TWA - minimal caching for verification
+                        // FileExtensionContentTypeProvider handles Content-Type automatically
+                        if (path.Equals("/.well-known/assetlinks.json"))
                         {
-                            // Serve with correct Content-Type and minimal caching for verification
-                            ctx.Context.Response.Headers.Append("Content-Type", "application/json");
                             ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600");
                         }
                         // PWA icons and manifest should have shorter cache to allow updates
