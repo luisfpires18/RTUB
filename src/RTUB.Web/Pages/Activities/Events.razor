@@ -3113,8 +3113,12 @@ else
 
         try
         {
+            // Get the member's primary instrument
+            var primaryInstrument = await MemberInstrumentService.GetPrimaryInstrumentAsync(user.Id);
+            var instrumentToUse = primaryInstrument?.InstrumentType;
+            
             // Add the enrollment, marking it as approved for past events (willAttend = true)
-            await EnrollmentService.CreateEnrollmentAsync(user.Id, selectedEvent.Id, null, null, true);
+            await EnrollmentService.CreateEnrollmentAsync(user.Id, selectedEvent.Id, instrumentToUse, null, true);
             
             addMemberToEnrollmentFeedbackMessage = $"Inscrição de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";
             addMemberToEnrollmentFeedbackIsError = false;

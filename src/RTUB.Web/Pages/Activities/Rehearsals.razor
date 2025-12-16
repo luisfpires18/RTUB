@@ -1977,16 +1977,20 @@ else
 
         try
         {
+            // Get the member's primary instrument
+            var primaryInstrument = await MemberInstrumentService.GetPrimaryInstrumentAsync(user.Id);
+            var instrumentToUse = primaryInstrument?.InstrumentType;
+            
             // For approvable rehearsals (past or today after 21:00), create attendance with immediate approval
             // This avoids creating "Created + Modified" audit entries
             if (isSelectedRehearsalApprovable)
             {
-                await AttendanceService.CreateAttendanceWithApprovalAsync(selectedRehearsal.Id, user.Id, null, null, null);
+                await AttendanceService.CreateAttendanceWithApprovalAsync(selectedRehearsal.Id, user.Id, instrumentToUse, null, null);
             }
             else
             {
                 // For future rehearsals, create pending attendance (Attended = false)
-                await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, user.Id, true, null, null);
+                await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, user.Id, true, instrumentToUse, null);
             }
             
             addMemberFeedbackMessage = $"Presença de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";
