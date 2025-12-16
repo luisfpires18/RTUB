@@ -58,7 +58,7 @@
                            Placeholder="Pesquisar por nome..."
                            OnSearch="HandleEnrollmentSearch" />
                 
-                <div class="enrollment-card-grid mb-4">
+                <div class="enrollment-card-grid-compact mb-4">
                     @foreach (var enrollment in paginatedPerformingMembers)
                     {
                         <EnrollmentCard 
@@ -104,7 +104,7 @@
                             TotalItems="@filteredPerformingMembers.Count"
                             CurrentPage="@performingMembersPagination.CurrentPage"
                             PageSize="@performingMembersPagination.PageSize"
-                            PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
+                            PageSizeOptions="@(new[] { 12, 18, 24, 30 })"
                             OnPageChanged="@HandlePerformingMembersPageChange"
                             OnPageSizeChanged="@HandlePerformingMembersPageSizeChange" />
                     </div>
@@ -118,7 +118,7 @@
             @if (leitaoMembers.Any())
             {
                 <h6 class="mb-3 heading-warning">Leitões (@leitaoMembers.Count)</h6>
-                <div class="enrollment-card-grid">
+                <div class="enrollment-card-grid-compact">
                     @foreach (var enrollment in paginatedLeitoes)
                     {
                         <EnrollmentCard 
@@ -150,7 +150,7 @@
                             TotalItems="@filteredLeitoes.Count"
                             CurrentPage="@leitoesPagination.CurrentPage"
                             PageSize="@leitoesPagination.PageSize"
-                            PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
+                            PageSizeOptions="@(new[] { 12, 18, 24, 30 })"
                             OnPageChanged="@HandleLeitoesPageChange"
                             OnPageSizeChanged="@HandleLeitoesPageSizeChange" />
                     </div>
@@ -160,7 +160,7 @@
             @if (notAttendingMembers.Any())
             {
                 <h6 class="mb-3 mt-4 heading-danger">Não vão participar (@filteredNotAttending.Count)</h6>
-                <div class="enrollment-card-grid">
+                <div class="enrollment-card-grid-compact">
                     @foreach (var enrollment in paginatedNotAttending)
                     {
                         <EnrollmentCard 
@@ -210,7 +210,7 @@
                             TotalItems="@filteredNotAttending.Count"
                             CurrentPage="@notAttendingPagination.CurrentPage"
                             PageSize="@notAttendingPagination.PageSize"
-                            PageSizeOptions="@(new[] { 4, 8, 12, 16 })"
+                            PageSizeOptions="@(new[] { 12, 18, 24, 30 })"
                             OnPageChanged="@HandleNotAttendingPageChange"
                             OnPageSizeChanged="@HandleNotAttendingPageSizeChange" />
                     </div>
@@ -334,9 +334,9 @@
     private Dictionary<InstrumentType, int> otherInstrumentCounts = new();
     
     // Pagination for enrollment sections
-    private PaginationHelper<Enrollment> performingMembersPagination = new() { PageSize = 8 };
-    private PaginationHelper<Enrollment> leitoesPagination = new() { PageSize = 8 };
-    private PaginationHelper<Enrollment> notAttendingPagination = new() { PageSize = 8 };
+    private PaginationHelper<Enrollment> performingMembersPagination = new() { PageSize = 18 };
+    private PaginationHelper<Enrollment> leitoesPagination = new() { PageSize = 18 };
+    private PaginationHelper<Enrollment> notAttendingPagination = new() { PageSize = 18 };
     private List<Enrollment> paginatedPerformingMembers => performingMembersPagination.GetPageData(filteredPerformingMembers ?? new List<Enrollment>());
     private List<Enrollment> paginatedLeitoes => leitoesPagination.GetPageData(filteredLeitoes ?? new List<Enrollment>());
     private List<Enrollment> paginatedNotAttending => notAttendingPagination.GetPageData(filteredNotAttending ?? new List<Enrollment>());

@@ -17,15 +17,15 @@
                 @if (!string.IsNullOrEmpty(Title) || ShowCloseButton || HeaderActions != null)
                 {
                     <div class="modal-header" style="background: rgba(var(--bs-primary-rgb), 0.1);">
-                        @if (!string.IsNullOrEmpty(Title))
-                        {
-                            <h5 class="modal-title">@Title</h5>
-                        }
                         @if (HeaderActions != null)
                         {
                             <div class="modal-header-actions">
                                 @HeaderActions
                             </div>
+                        }
+                        else if (!string.IsNullOrEmpty(Title))
+                        {
+                            <h5 class="modal-title">@Title</h5>
                         }
                         @if (ShowCloseButton)
                         {
