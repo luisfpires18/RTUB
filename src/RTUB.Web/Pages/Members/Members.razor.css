@@ -2,6 +2,11 @@
 
 /* Desktop: Keep table as-is (default behavior) */
 
+.active-only-toggle {
+    height: 100%;
+    padding-left: 2.5rem;
+}
+
 /* Mobile: Full-width search and filters on small screens */
 @media (max-width: 991.98px) {
     /* Make search bar full-width on mobile/tablet */
@@ -24,11 +29,12 @@
         max-width: 100% !important;
         min-width: 0 !important;
     }
-    
+
     /* Align toggle to the left on mobile like other dropdowns */
-    .search-controls-container .form-check-switch {
+    .search-controls-container .active-only-toggle {
         padding-left: 0 !important;
         justify-content: flex-start !important;
+        width: 100%;
     }
     
     /* Remove toggle container width constraints on mobile */
