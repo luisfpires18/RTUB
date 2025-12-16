@@ -448,6 +448,9 @@ else
 </DetailsModal>
 
 @code {
+    // Constants
+    private const int VideoElementRenderDelayMs = 100; // Delay to ensure video element is rendered before attaching MediaSession
+    
     // Data
     private List<GalleryMedia> allMedia = new();
     private Dictionary<int, List<GalleryMedia>> groupedMedia = new();
@@ -1079,7 +1082,7 @@ else
             try
             {
                 // Use a small delay to ensure video element is rendered before attaching
-                await Task.Delay(100);
+                await Task.Delay(VideoElementRenderDelayMs);
                 await MediaSession.AttachToVideoAsync(
                     ".details-modal-image-rectangular",
                     media.Title ?? "Vídeo RTUB",

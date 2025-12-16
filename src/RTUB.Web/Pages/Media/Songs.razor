@@ -614,6 +614,9 @@ else
     // Video title detection constants
     private const int MaxCleanTitleLength = 50;
     private static readonly string[] VideoExtensions = { ".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv" };
+    
+    // Media session constants
+    private const int VideoElementRenderDelayMs = 100; // Delay to ensure video element is rendered before attaching MediaSession
 
     protected override async Task OnInitializedAsync()
     {
@@ -1147,7 +1150,7 @@ else
                             : string.Empty;
                         
                         // Use a small delay to ensure video element is rendered before attaching
-                        await Task.Delay(100);
+                        await Task.Delay(VideoElementRenderDelayMs);
                         await MediaSession.AttachToVideoAsync(
                             ".modal-video",
                             videoTitle,

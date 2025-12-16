@@ -1467,6 +1467,9 @@ else
     private const string NotificationTypeNew = "new";
     private const string NotificationTypeReminder = "reminder";
     
+    // Media session constants
+    private const int VideoElementRenderDelayMs = 100; // Delay to ensure video element is rendered before attaching MediaSession
+    
     // Cancel event modal variables
     private bool notifySubscribersOnCancel = false;
     private string cancelEventReason = string.Empty;
@@ -3247,7 +3250,7 @@ else
                             : string.Empty;
                         
                         // Use a small delay to ensure video element is rendered before attaching
-                        await Task.Delay(100);
+                        await Task.Delay(VideoElementRenderDelayMs);
                         await MediaSession.AttachToVideoAsync(
                             ".modal-video",
                             videoTitle,

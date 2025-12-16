@@ -4,6 +4,17 @@ window.rtubMediaSession = {
     // Track active video element to clean up event listeners
     activeVideoElement: null,
     activeVideoHandler: null,
+    activeEndedHandler: null,
+
+    // Utility function to detect image type from URL extension
+    getImageType: function(url) {
+        if (!url) return 'image/png';
+        const lowerUrl = url.toLowerCase();
+        if (lowerUrl.includes('.jpg') || lowerUrl.includes('.jpeg')) return 'image/jpeg';
+        if (lowerUrl.includes('.webp')) return 'image/webp';
+        if (lowerUrl.includes('.svg')) return 'image/svg+xml';
+        return 'image/png'; // default fallback
+    },
 
     setNowPlayingMetadata: function (title, album, artworkUrl, fallbackArtworkUrl) {
         try {
@@ -13,17 +24,7 @@ window.rtubMediaSession = {
                 ? artworkUrl
                 : (fallbackArtworkUrl || '');
 
-            // Detect image type from URL extension
-            const getImageType = function(url) {
-                if (!url) return 'image/png';
-                const lowerUrl = url.toLowerCase();
-                if (lowerUrl.includes('.jpg') || lowerUrl.includes('.jpeg')) return 'image/jpeg';
-                if (lowerUrl.includes('.webp')) return 'image/webp';
-                if (lowerUrl.includes('.svg')) return 'image/svg+xml';
-                return 'image/png'; // default fallback
-            };
-
-            const imageType = getImageType(finalArtwork);
+            const imageType = this.getImageType(finalArtwork);
 
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: title || '',
@@ -51,17 +52,7 @@ window.rtubMediaSession = {
                 ? artworkUrl
                 : '/icons/rtub-logo-512.png';
 
-            // Detect image type from URL extension
-            const getImageType = function(url) {
-                if (!url) return 'image/png';
-                const lowerUrl = url.toLowerCase();
-                if (lowerUrl.includes('.jpg') || lowerUrl.includes('.jpeg')) return 'image/jpeg';
-                if (lowerUrl.includes('.webp')) return 'image/webp';
-                if (lowerUrl.includes('.svg')) return 'image/svg+xml';
-                return 'image/png'; // default fallback
-            };
-
-            const imageType = getImageType(finalArtwork);
+            const imageType = this.getImageType(finalArtwork);
 
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: title || 'Vídeo RTUB',
@@ -82,9 +73,14 @@ window.rtubMediaSession = {
     // This will set metadata when the video starts playing
     attachToVideo: function (videoSelector, title, subtitle, artworkUrl) {
         try {
-            // Clean up previous video listener if any
-            if (this.activeVideoElement && this.activeVideoHandler) {
-                this.activeVideoElement.removeEventListener('play', this.activeVideoHandler);
+            // Clean up previous video listeners if any
+            if (this.activeVideoElement) {
+                if (this.activeVideoHandler) {
+                    this.activeVideoElement.removeEventListener('play', this.activeVideoHandler);
+                }
+                if (this.activeEndedHandler) {
+                    this.activeVideoElement.removeEventListener('ended', this.activeEndedHandler);
+                }
             }
 
             // Find the video element
@@ -102,18 +98,19 @@ window.rtubMediaSession = {
                 this.setVideoMetadata(title, subtitle, artworkUrl);
             };
 
-            // Attach event listener
+            // Create handler that clears metadata when video ends
+            this.activeEndedHandler = () => {
+                this.clearMetadata();
+            };
+
+            // Attach event listeners
             videoElement.addEventListener('play', this.activeVideoHandler);
+            videoElement.addEventListener('ended', this.activeEndedHandler);
 
             // If video is already playing, set metadata immediately
             if (!videoElement.paused) {
                 this.setVideoMetadata(title, subtitle, artworkUrl);
             }
-
-            // Also clear metadata when video ends or is paused
-            videoElement.addEventListener('ended', () => {
-                this.clearMetadata();
-            });
 
         } catch (e) {
             console.warn('Failed to attach to video', e);
