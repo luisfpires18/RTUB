@@ -25,7 +25,11 @@ public class MemberStatusService : IMemberStatusService
 
     /// <summary>
     /// Gets the comprehensive status of a member including retirement state and last activity dates
-    /// CRITICAL BUG FIX: Only includes PAST activities (before DateTime.UtcNow)
+    /// Retirement status follows a state transition model:
+    /// - New members: manual initial state (can be set as active or retired)
+    /// - RETIRED → ACTIVE: requires 3 consecutive months with activity
+    /// - ACTIVE → RETIRED: requires 6 months without any activity
+    /// CRITICAL: Only includes PAST activities (before DateTime.UtcNow)
     /// Uses same predicates as XP/Leaderboard logic to ensure consistency
     /// </summary>
     /// <param name="userId">The user ID to get status for</param>
@@ -95,27 +99,36 @@ public class MemberStatusService : IMemberStatusService
             throw new InvalidOperationException($"User with ID {userId} not found");
         }
 
-        bool isRetired = user.IsRetired;
+        bool isRetired;
 
         // Apply retirement rules only if user has activity history
         if (hasAnyActivity)
         {
-            // Rule 1: User is retired if last activity > 6 months ago
-            var sixMonthsAgo = now.AddMonths(-6);
-            if (lastActivityDate!.Value < sixMonthsAgo)
+            // Start with current retirement status from database
+            isRetired = user.IsRetired;
+            
+            // State transition rules based on activity:
+            // 1. RETIRED → ACTIVE: requires 3 consecutive months with activity
+            // 2. ACTIVE → RETIRED: requires 6 months without any activity
+            
+            if (user.IsRetired)
             {
-                isRetired = true;
-            }
-            // Rule 2: Retired user returns to active if 3 consecutive months with activity
-            else if (user.IsRetired)
-            {
-                // Check if user has activity in last 3 consecutive months
-                var threeMonthsAgo = now.AddMonths(-3);
-                var hasConsecutiveActivity = await HasConsecutiveMonthlyActivityAsync(userId, threeMonthsAgo, now);
-
-                if (hasConsecutiveActivity)
+                // Currently retired - check if should return to active
+                // Need 3 consecutive months of activity to become active
+                var consecutiveMonths = await CountConsecutiveMonthsWithActivityAsync(userId, now);
+                if (consecutiveMonths >= 3)
                 {
-                    isRetired = false;
+                    isRetired = false; // Return to active
+                }
+            }
+            else
+            {
+                // Currently active - check if should become retired
+                // Need 6 months without activity to become retired
+                var sixMonthsAgo = now.AddMonths(-6);
+                if (lastActivityDate!.Value < sixMonthsAgo)
+                {
+                    isRetired = true; // Become retired
                 }
             }
 
@@ -126,25 +139,32 @@ public class MemberStatusService : IMemberStatusService
                 await _userManager.UpdateAsync(user);
             }
         }
+        else
+        {
+            // No activity history -> keep current status (allows manual setting for new members)
+            isRetired = user.IsRetired;
+        }
 
-        // Calculate progress
+        // Calculate progress based on consecutive months of activity
         int? progressMonths = null;
         int? progressTotalMonths = null;
         string? progressDescription = null;
 
         if (hasAnyActivity && lastActivityDate.HasValue)
         {
+            // Get consecutive months count (already calculated above if retired, need to recalculate if active)
+            var consecutiveMonths = await CountConsecutiveMonthsWithActivityAsync(userId, now);
+            
             if (isRetired)
             {
-                // For reformed members: count consecutive months of activity (out of 3 needed)
-                var consecutiveMonths = await CountConsecutiveMonthsWithActivityAsync(userId, now);
+                // For retired members: show consecutive months toward reactivation (need 3 to become active)
                 progressMonths = consecutiveMonths;
                 progressTotalMonths = 3;
                 progressDescription = $"{consecutiveMonths}/3 meses de atividade consecutiva";
             }
             else
             {
-                // For active members: calculate months until reform (6 months from last activity)
+                // For active members: show months until retirement (6 months from last activity)
                 var monthsSinceLastActivity = GetMonthsDifference(lastActivityDate.Value, now);
                 var monthsUntilReform = 6 - monthsSinceLastActivity;
                 if (monthsUntilReform < 0) monthsUntilReform = 0;
@@ -170,61 +190,11 @@ public class MemberStatusService : IMemberStatusService
         };
     }
 
-    /// <summary>
-    /// Checks if user has at least one approved activity in each of the last 3 consecutive months
-    /// Used to determine if a retired member should return to active status
-    /// </summary>
-    private async Task<bool> HasConsecutiveMonthlyActivityAsync(string userId, DateTime startDate, DateTime endDate)
-    {
-        // Get all activities in the period
-        var rehearsalDates = await _context.RehearsalAttendances
-            .Include(ra => ra.Rehearsal)
-            .Where(ra => ra.UserId == userId
-                && ra.Attended
-                && ra.Rehearsal != null
-                && !ra.Rehearsal.IsCanceled
-                && ra.Rehearsal.Date >= startDate
-                && ra.Rehearsal.Date < endDate)
-            .Select(ra => ra.Rehearsal!.Date)
-            .ToListAsync();
-
-        var eventDates = await _context.Enrollments
-            .Include(e => e.Event)
-            .Where(e => e.UserId == userId
-                && e.WillAttend
-                && e.Event != null
-                && !e.Event.IsCancelled
-                && (e.Event.EndDate ?? e.Event.Date) >= startDate
-                && (e.Event.EndDate ?? e.Event.Date) < endDate)
-            .Select(e => e.Event!.EndDate ?? e.Event!.Date)
-            .ToListAsync();
-
-        // Combine all activity dates
-        var allActivityDates = rehearsalDates.Concat(eventDates).ToList();
-
-        if (!allActivityDates.Any())
-            return false;
-
-        // Check if there's at least one activity in each of the last 3 months
-        var now = DateTime.UtcNow;
-        for (int i = 0; i < 3; i++)
-        {
-            var monthStart = now.AddMonths(-(i + 1));
-            var monthEnd = now.AddMonths(-i);
-
-            var hasActivityInMonth = allActivityDates.Any(d => d >= monthStart && d < monthEnd);
-            if (!hasActivityInMonth)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
     
     /// <summary>
     /// Counts the number of consecutive months (starting from most recent) that have at least one activity
-    /// Used to track progress for retired members returning to active status
+    /// Used to determine if a retired member should return to active status
+    /// Member needs 3 consecutive months to transition from RETIRED to ACTIVE
     /// Stops counting when a month without activity is found
     /// </summary>
     private async Task<int> CountConsecutiveMonthsWithActivityAsync(string userId, DateTime referenceDate)
@@ -233,10 +203,11 @@ public class MemberStatusService : IMemberStatusService
         var now = referenceDate;
 
         // Check up to 12 months back (reasonable limit)
-        for (int i = 1; i <= 12; i++)
+        // Start from i=0 to include the CURRENT month
+        for (int i = 0; i < 12; i++)
         {
-            var monthStart = now.AddMonths(-i);
-            var monthEnd = now.AddMonths(-(i - 1));
+            var monthStart = now.AddMonths(-i).AddDays(-now.Day + 1).Date; // First day of the month
+            var monthEnd = monthStart.AddMonths(1); // First day of next month
 
             // Get activities in this month
             var hasRehearsalInMonth = await _context.RehearsalAttendances
