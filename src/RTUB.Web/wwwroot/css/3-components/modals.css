@@ -48,6 +48,15 @@
     color: #e2e2e2 !important;
 }
 
+/* Modal header actions */
+.modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+}
+
 /* Card styling for info boxes */
 .card-info-purple {
     background-color: var(--bs-primary) !important;

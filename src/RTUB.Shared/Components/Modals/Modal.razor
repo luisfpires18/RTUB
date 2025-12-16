@@ -14,10 +14,16 @@
     <div class="modal show d-block" tabindex="-1" @onkeydown="HandleKeyDown">
         <div class="modal-dialog @SizeClass @(Centered ? "modal-dialog-centered" : "")">
             <div class="modal-content">
-                @if (!string.IsNullOrEmpty(Title) || ShowCloseButton)
+                @if (!string.IsNullOrEmpty(Title) || ShowCloseButton || HeaderActions != null)
                 {
                     <div class="modal-header" style="background: rgba(var(--bs-primary-rgb), 0.1);">
-                        @if (!string.IsNullOrEmpty(Title))
+                        @if (HeaderActions != null)
+                        {
+                            <div class="modal-header-actions">
+                                @HeaderActions
+                            </div>
+                        }
+                        else if (!string.IsNullOrEmpty(Title))
                         {
                             <h5 class="modal-title">@Title</h5>
                         }
@@ -71,6 +77,12 @@
     /// </summary>
     [Parameter]
     public RenderFragment? FooterContent { get; set; }
+
+    /// <summary>
+    /// Header actions content (buttons, links, etc.)
+    /// </summary>
+    [Parameter]
+    public RenderFragment? HeaderActions { get; set; }
 
     /// <summary>
     /// Modal size: Small, Default, Large, ExtraLarge

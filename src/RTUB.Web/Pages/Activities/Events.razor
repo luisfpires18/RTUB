@@ -400,9 +400,14 @@ else
 {
     <Modal Show="@showEnrollmentListModal" 
            ShowChanged="@((bool show) => { if (!show) CloseEnrollmentListModal(); })"
-           Title="@($"Inscrições em {selectedEvent.Name}")" 
            Size="Modal.ModalSize.Large"
            Centered="true">
+        <HeaderActions>
+            <button type="button" class="btn btn-sm btn-outline-primary me-2" @onclick="@(() => NavigateToEnrollmentsPage(selectedEvent.Id))" title="Abrir em página completa">
+                <i class="bi bi-box-arrow-up-right"></i>
+            </button>
+            <h5 class="modal-title mb-0">@($"Inscrições em {selectedEvent.Name}")</h5>
+        </HeaderActions>
         <BodyContent>
             @if (eventEnrollments != null && eventEnrollments.Any())
             {
@@ -3173,6 +3178,11 @@ else
     private void NavigateToDiscussion(Event eventItem)
     {
         Navigation.NavigateTo($"/events/{eventItem.Id}/discussion");
+    }
+
+    private void NavigateToEnrollmentsPage(int eventId)
+    {
+        Navigation.NavigateTo($"/events/{eventId}/enrollments");
     }
 
     private string FormatEventDateRange(Event eventItem)
