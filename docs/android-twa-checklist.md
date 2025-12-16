@@ -307,10 +307,19 @@ Orientation: portrait-primary
 ## Troubleshooting
 
 ### App Opens in Browser Instead of TWA
-- Verify Digital Asset Links file is accessible
-- Check package ID matches in manifest and assetlinks.json
-- Wait 15-30 minutes after uploading assetlinks.json
-- Clear app data and reinstall
+
+**This is the most common issue!** See the complete troubleshooting guide: **[TWA Configuration Guide](twa-configuration-guide.md)**
+
+Quick checklist:
+- [ ] Digital Asset Links file exists at `/.well-known/assetlinks.json`
+- [ ] File returns HTTP 200 with `Content-Type: application/json`
+- [ ] Package name matches exactly between app and assetlinks.json
+- [ ] SHA-256 fingerprint is from "App signing key certificate" (NOT upload key)
+- [ ] Waited 15-30 minutes after uploading assetlinks.json
+- [ ] Cleared app data AND Chrome cache
+- [ ] No domain redirects (check with `curl -L -I https://rtub.azurewebsites.net`)
+
+**Detailed Solution**: Follow the step-by-step guide in [twa-configuration-guide.md](twa-configuration-guide.md)
 
 ### Review Rejected
 - Read rejection reason carefully
@@ -326,6 +335,8 @@ Orientation: portrait-primary
 
 ---
 
-**For detailed technical information**, see [PWA Setup Guide](pwa-setup.md)
+**For detailed technical information**, see:
+- **[TWA Configuration Guide](twa-configuration-guide.md)** - Digital Asset Links setup and troubleshooting
+- **[PWA Setup Guide](pwa-setup.md)** - PWA development and testing
 
 **Last Updated**: December 2025

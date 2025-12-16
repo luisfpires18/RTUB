@@ -461,9 +461,11 @@ public class Program
             context => !context.Request.Path.StartsWithSegments("/images"),
             appBuilder =>
             {
-                // Configure content type provider to serve .webmanifest with correct MIME type
+                // Configure content type provider to serve .webmanifest and .well-known files with correct MIME types
                 var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
                 provider.Mappings[".webmanifest"] = "application/manifest+json";
+                // Ensure .well-known/assetlinks.json is served as application/json for Android Digital Asset Links
+                provider.Mappings[".json"] = "application/json";
 
                 appBuilder.UseStaticFiles(new Microsoft.AspNetCore.Builder.StaticFileOptions
                 {
@@ -472,8 +474,15 @@ public class Program
                     {
                         var path = ctx.Context.Request.Path.Value?.ToLowerInvariant() ?? "";
 
+                        // Digital Asset Links for Android TWA - no caching during verification
+                        if (path.Contains("/.well-known/assetlinks.json"))
+                        {
+                            // Serve with correct Content-Type and minimal caching for verification
+                            ctx.Context.Response.Headers.Append("Content-Type", "application/json");
+                            ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600");
+                        }
                         // PWA icons and manifest should have shorter cache to allow updates
-                        if (path.Contains("/icons/") || path.EndsWith("manifest.json") || path.EndsWith("manifest.webmanifest") || path.StartsWith("/apple-touch-icon"))
+                        else if (path.Contains("/icons/") || path.EndsWith("manifest.json") || path.EndsWith("manifest.webmanifest") || path.StartsWith("/apple-touch-icon"))
                         {
                             // Cache for 1 hour with must-revalidate to ensure updates are picked up
                             ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=3600,must-revalidate");
