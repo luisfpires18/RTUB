@@ -332,16 +332,35 @@
         }
         
         var title = video.Title.Trim();
-        var looksLikeKey = title.Length > MaxCleanTitleLength || 
-                          VideoExtensions.Any(ext => title.Contains(ext, StringComparison.OrdinalIgnoreCase)) ||
-                          title.Contains("/") ||
-                          title.Contains("\\");
         
-        if (looksLikeKey)
+        if (IsVideoTitleGenerated(title))
         {
             return $"{selectedEventForVideos.Name} - Vídeo {videoNumber}";
         }
         
         return title;
+    }
+    
+    /// <summary>
+    /// Determines if a video title appears to be auto-generated or a storage key
+    /// rather than a user-friendly title.
+    /// </summary>
+    /// <param name="title">The video title to check</param>
+    /// <returns>True if the title looks like it was auto-generated</returns>
+    private bool IsVideoTitleGenerated(string title)
+    {
+        // Check if title is too long (likely a storage key or UUID)
+        if (title.Length > MaxCleanTitleLength)
+            return true;
+        
+        // Check if title contains video file extensions (e.g., "video.mp4")
+        if (VideoExtensions.Any(ext => title.Contains(ext, StringComparison.OrdinalIgnoreCase)))
+            return true;
+        
+        // Check if title contains path separators (e.g., "folder/video" or "folder\\video")
+        if (title.Contains("/") || title.Contains("\\"))
+            return true;
+        
+        return false;
     }
 }
