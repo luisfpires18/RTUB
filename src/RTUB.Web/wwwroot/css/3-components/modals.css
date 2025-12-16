@@ -48,6 +48,15 @@
     color: #e2e2e2 !important;
 }
 
+/* Modal header actions */
+.modal-header-actions {
+    margin-left: auto;
+    margin-right: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 /* Card styling for info boxes */
 .card-info-purple {
     background-color: var(--bs-primary) !important;
@@ -139,6 +148,11 @@ body.modal-open {
     .modal-title {
         font-size: 1.125rem;
         font-weight: 600;
+    }
+
+    .modal-header-actions {
+        margin-left: auto;
+        margin-right: 0.5rem;
     }
 
     .modal-body {
