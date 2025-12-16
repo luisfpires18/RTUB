@@ -1222,7 +1222,7 @@ else
 
     // Helper instances
     private SearchHelper<ApplicationUser> searchHelper = new();
-    private SortableTableHelper<ApplicationUser> sortHelper = new() { SortColumn = nameof(ApplicationUser.FirstName) };
+    private SortableTableHelper<ApplicationUser> sortHelper = new() { SortColumn = nameof(ApplicationUser.Nickname) };
     private PaginationHelper<ApplicationUser> paginationHelper = new() { PageSize = 30 };
     private PaginationHelper<ApplicationUser> paginationHelperLeitoes = new() { PageSize = 18 };
 
