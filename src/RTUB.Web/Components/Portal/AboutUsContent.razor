@@ -6,6 +6,7 @@
 @inject IEventService EventService
 @inject ITrophyService TrophyService
 @inject ILogger<AboutUsContent> Logger
+@inject RTUB.Web.Interop.MediaSessionInterop MediaSession
 @namespace RTUB.Components.Portal
 
 <!-- #1 About Us -->
@@ -198,6 +199,9 @@
     private const int MaxCleanTitleLength = 50;
     private static readonly string[] VideoExtensions = { ".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv" };
     
+    // Media session constants
+    private const int VideoElementRenderDelayMs = 100; // Delay to ensure video element is rendered before attaching MediaSession
+    
     private Label? aboutUs;
     private List<Event>? previousEvents;
     private bool showTrophyModal = false;
@@ -301,23 +305,71 @@
         showVideosModal = true;
     }
     
-    private void CloseVideosModal()
+    private async Task CloseVideosModal()
     {
         showVideosModal = false;
         selectedEventForVideos = null;
         eventVideos = null;
         selectedVideoId = null;
+        
+        // Clear media session when modal closes
+        try
+        {
+            await MediaSession.ClearMetadataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to clear media session metadata on modal close");
+        }
     }
     
-    private void SelectVideoByIndex(int videoId)
+    private async Task SelectVideoByIndex(int videoId)
     {
         if (selectedVideoId == videoId)
         {
             selectedVideoId = null;
+            // Clear media session when video is collapsed
+            try
+            {
+                await MediaSession.ClearMetadataAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to clear media session metadata");
+            }
         }
         else
         {
             selectedVideoId = videoId;
+            
+            // Set media session metadata when video is selected
+            if (selectedEventForVideos != null && eventVideos != null)
+            {
+                var selectedVideo = eventVideos.FirstOrDefault(v => v.Id == videoId);
+                if (selectedVideo != null)
+                {
+                    try
+                    {
+                        var videoTitle = GetCleanVideoTitle(selectedVideo, eventVideos.IndexOf(selectedVideo) + 1);
+                        var eventImageUrl = !string.IsNullOrEmpty(selectedEventForVideos.ImageSrc) 
+                            ? selectedEventForVideos.ImageSrc 
+                            : string.Empty;
+                        
+                        // Use a small delay to ensure video element is rendered before attaching
+                        await Task.Delay(VideoElementRenderDelayMs);
+                        await MediaSession.AttachToVideoAsync(
+                            ".modal-video",
+                            videoTitle,
+                            selectedEventForVideos.Name,
+                            eventImageUrl
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to set video media session metadata");
+                    }
+                }
+            }
         }
     }
     
