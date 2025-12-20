@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 
@@ -136,21 +137,24 @@ public class PostService : IPostService
             await browserStream.CopyToAsync(memoryStream);
             memoryStream.Position = 0;
 
+            // Ensure we have a valid MIME type (mobile uploads may have empty/incorrect contentType)
+            var mimeType = MimeTypeHelper.GetMediaMimeType(file.Name, file.ContentType, mediaType == "Video");
+
             string url;
             if (mediaType == "Image")
             {
                 url = await _eventMediaStorageService.UploadImageAsync(
-                    memoryStream, file.Name, file.ContentType, eventId, "post");
+                    memoryStream, file.Name, mimeType, eventId, "post");
             }
             else
             {
                 url = await _eventMediaStorageService.UploadVideoAsync(
-                    memoryStream, file.Name, file.ContentType, eventId);
+                    memoryStream, file.Name, mimeType, eventId);
             }
 
             var media = mediaType == "Image"
-                ? PostMedia.CreateImage(postId, url, file.ContentType, file.Size, sortOrder++)
-                : PostMedia.CreateVideo(postId, url, file.ContentType, file.Size, sortOrder++);
+                ? PostMedia.CreateImage(postId, url, mimeType, file.Size, sortOrder++)
+                : PostMedia.CreateVideo(postId, url, mimeType, file.Size, sortOrder++);
 
             await _postMediaRepository.AddAsync(media);
         }
