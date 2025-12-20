@@ -62,5 +62,60 @@ window.pwaHelper = {
      */
     shouldShowPushPrompt: function() {
         return this.isPwaMode() && !this.hasBeenPrompted();
+    },
+
+    /**
+     * Fetches push notification status from the server
+     * Returns push status data or null if unavailable
+     */
+    getPushStatus: async function() {
+        try {
+            const response = await fetch('/api/push/status', { credentials: 'include' });
+            if (!response.ok) return null;
+            const data = await response.json();
+            return data;
+        } catch (e) {
+            console.error('Error fetching push status:', e);
+            return null;
+        }
+    },
+
+    /**
+     * Initializes the push notification manager
+     * Returns true if successful, false otherwise
+     */
+    initializePushManager: async function() {
+        try {
+            if (typeof PushNotificationsManager === 'undefined') {
+                console.error('PushNotificationsManager not loaded');
+                return false;
+            }
+            const manager = new PushNotificationsManager();
+            const success = await manager.initialize();
+            if (success) {
+                window.rtubPushManager = manager;
+                return true;
+            }
+            return false;
+        } catch (e) {
+            console.error('Error initializing push manager:', e);
+            return false;
+        }
+    },
+
+    /**
+     * Subscribes to push notifications
+     * Returns true if successful, false otherwise
+     */
+    subscribeToPush: async function() {
+        try {
+            if (window.rtubPushManager && typeof window.rtubPushManager.subscribe === 'function') {
+                return await window.rtubPushManager.subscribe();
+            }
+            throw new Error('RTUB Push manager not available or subscribe method missing');
+        } catch (e) {
+            console.error('Error subscribing to push:', e);
+            return false;
+        }
     }
 };
