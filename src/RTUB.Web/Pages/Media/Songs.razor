@@ -663,10 +663,6 @@ else
             try
             {
                 isPwaMode = await MediaSession.IsPwaModeAsync();
-                if (isPwaMode)
-                {
-                    Logger.LogInformation("Running in PWA mode - Media Session will be initialized on first play");
-                }
             }
             catch (Exception ex)
             {
@@ -1387,7 +1383,6 @@ else
             if (initialized)
             {
                 pwaMediaSessionInitialized = true;
-                Logger.LogInformation("PWA Media Session initialized");
                 
                 // Build and set queue BEFORE binding handlers
                 // iOS needs to know the queue exists to show next/prev buttons
@@ -1398,7 +1393,6 @@ else
                 
                 // Bind handlers after queue is set
                 await JSRuntime.InvokeVoidAsync("pwaMediaSession.bindHandlers");
-                Logger.LogInformation("PWA Media Session handlers bound");
             }
         }
         catch (Exception ex)
@@ -1465,9 +1459,6 @@ else
             if (pwaMediaSessionInitialized)
             {
                 await MediaSession.SetQueueAsync(queueWithUrls, currentQueueIndex);
-                
-                Logger.LogInformation("PWA queue built with {Count} tracks, starting at index {Index}", 
-                    playbackQueue.Count, currentQueueIndex);
             }
         }
         catch (Exception ex)
