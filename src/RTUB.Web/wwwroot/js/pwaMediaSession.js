@@ -236,6 +236,12 @@ window.pwaMediaSession = {
         this.audioElement.load();
         this.audioElement.play();
         
+        // Update the displayed song title in the UI to avoid flicker
+        const titleElement = document.querySelector('.audio-title');
+        if (titleElement) {
+            titleElement.textContent = track.title;
+        }
+        
         // Update metadata
         this.setNowPlaying({
             title: track.title,
