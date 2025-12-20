@@ -55,6 +55,11 @@ When running as a normal web app in a browser tab, the behavior remains unchange
 - **If current playback time ≤ 3 seconds**: Goes to the previous track
 - **If at start of queue**: Restarts the current track
 
+#### Auto-Play Next Track
+- When a track ends, automatically plays the next track in the queue
+- If at the end of the queue, playback stops
+- Works seamlessly with lockscreen controls
+
 #### PWA-Only Activation
 The feature only activates when:
 ```javascript

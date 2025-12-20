@@ -275,6 +275,12 @@ window.pwaMediaSession = {
         this.audioElement.addEventListener('pause', updatePositionState);
         this.audioElement.addEventListener('ratechange', updatePositionState);
         
+        // Auto-play next track when current track ends
+        this.audioElement.addEventListener('ended', () => {
+            console.log('Track ended - auto-playing next track');
+            this.handleNext();
+        });
+        
         console.log('Audio event listeners attached');
     },
     
