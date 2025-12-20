@@ -195,8 +195,11 @@ public class EventService : IEventService
         if (eventEntity == null)
             throw new EntityNotFoundException(nameof(Event), eventId);
 
+        // Ensure we have a valid MIME type (mobile uploads may have empty/incorrect contentType)
+        var mimeType = MimeTypeHelper.GetVideoMimeType(fileName, contentType);
+
         // Upload video to storage
-        var videoUrl = await _eventVideoStorageService.UploadVideoAsync(fileStream, fileName, contentType, eventId);
+        var videoUrl = await _eventVideoStorageService.UploadVideoAsync(fileStream, fileName, mimeType, eventId);
 
         // Get file size from stream position (if seekable)
         long sizeBytes = 0;
@@ -213,7 +216,7 @@ public class EventService : IEventService
         var eventVideo = EventVideo.CreateVideo(
             eventId,
             videoUrl,
-            contentType,
+            mimeType,
             sizeBytes,
             createdByUserId,
             title,

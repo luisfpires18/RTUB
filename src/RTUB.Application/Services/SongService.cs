@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Interfaces;
+using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 
@@ -187,8 +188,11 @@ public class SongService : ISongService
         if (song == null)
             throw new EntityNotFoundException(nameof(Song), songId);
 
+        // Ensure we have a valid MIME type (mobile uploads may have empty/incorrect contentType)
+        var mimeType = MimeTypeHelper.GetVideoMimeType(fileName, contentType);
+
         // Upload video to storage
-        var videoUrl = await _songVideoStorageService.UploadVideoAsync(fileStream, fileName, contentType, songId);
+        var videoUrl = await _songVideoStorageService.UploadVideoAsync(fileStream, fileName, mimeType, songId);
 
         // Get file size from stream position (if seekable)
         long sizeBytes = 0;
@@ -205,7 +209,7 @@ public class SongService : ISongService
         var songVideo = SongVideo.CreateVideo(
             songId,
             videoUrl,
-            contentType,
+            mimeType,
             sizeBytes,
             createdByUserId,
             title,
