@@ -70,9 +70,9 @@
 }
 
 .video-selector .list-group-item.active {
-    background-color: var(--bs-primary);
-    border-color: var(--bs-primary);
-    color: white;
+    background-color: var(--bs-primary) !important;
+    border-color: var(--bs-primary) !important;
+    color: white !important;
 }
 
 /* Drag handle for videos */
