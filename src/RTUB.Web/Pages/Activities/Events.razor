@@ -1889,6 +1889,7 @@ else
         await LoadEvents();
         await LoadPreviousEvents();
         CloseEditModal();
+        StateHasChanged();
     }
 
     private void OpenDeleteModal(Event eventItem)
@@ -1912,6 +1913,7 @@ else
         await LoadPreviousEvents();
 
         CloseDeleteModal();
+        StateHasChanged();
     }
 
     // Enrollment methods
@@ -3028,6 +3030,7 @@ else
             await EventService.UncancelEventAsync(eventItem.Id);
             await LoadEvents();
             await LoadPreviousEvents();
+            StateHasChanged();
         }
         catch (Exception ex)
         {
