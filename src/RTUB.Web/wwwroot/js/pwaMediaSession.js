@@ -201,7 +201,10 @@ window.pwaMediaSession = {
             console.log('Restarting current track (>3s)');
             if (this.audioElement) {
                 this.audioElement.currentTime = 0;
-                this.audioElement.play();
+                const playPromise = this.audioElement.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => console.error('Play failed:', e));
+                }
             }
         } else {
             // Go to previous track if available
@@ -218,7 +221,10 @@ window.pwaMediaSession = {
                 // At start of queue, just restart current track
                 if (this.audioElement) {
                     this.audioElement.currentTime = 0;
-                    this.audioElement.play();
+                    const playPromise = this.audioElement.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(e => console.error('Play failed:', e));
+                    }
                 }
             }
         }
@@ -234,7 +240,18 @@ window.pwaMediaSession = {
         // Update audio source
         this.audioElement.src = track.audioUrl;
         this.audioElement.load();
-        this.audioElement.play();
+        
+        // Play with promise handling (browsers can block autoplay)
+        const playPromise = this.audioElement.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                console.log('Playback started successfully');
+            }).catch(error => {
+                console.error('Playback failed:', error);
+                // User interaction required - log for debugging
+                console.log('Note: Browser may have blocked autoplay. User needs to interact with page.');
+            });
+        }
         
         // Update metadata
         this.setNowPlaying({
