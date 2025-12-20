@@ -654,20 +654,28 @@ else
         canManageSongs = userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
         isAdmin = userForOwner.IsInRole("Admin") || userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
         currentUserId = userForOwner.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        
-        // Check if running in PWA mode
-        try
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
         {
-            isPwaMode = await MediaSession.IsPwaModeAsync();
-            if (isPwaMode)
+            // Check if running in PWA mode (must be done after render for JS interop)
+            try
             {
-                Logger.LogInformation("Running in PWA mode - Media Session will be initialized on first play");
+                isPwaMode = await MediaSession.IsPwaModeAsync();
+                if (isPwaMode)
+                {
+                    Logger.LogInformation("Running in PWA mode - Media Session will be initialized on first play");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to check PWA mode");
             }
         }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Failed to check PWA mode");
-        }
+        
+        await base.OnAfterRenderAsync(firstRender);
     }
 
     private async Task LoadSongs()
