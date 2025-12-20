@@ -952,9 +952,23 @@ else
                             // Generate clean display title
                             var displayTitle = GetCleanVideoTitle(video, i + 1);
                             
-                            <div class="list-group-item list-group-item-action position-relative @(isSelected ? "active" : "")"
+                            <div class="list-group-item list-group-item-action position-relative @(isSelected ? "active" : "") @(draggingVideoId == video.Id ? "dragging" : "") @(dragOverVideoId == video.Id ? "drag-over" : "")"
                                  role="button"
+                                 draggable="@(isUserAdmin ? "true" : "false")"
+                                 @ondragstart="@(() => HandleVideoDragStart(video.Id))"
+                                 @ondragover="HandleVideoDragOver"
+                                 @ondragover:preventDefault
+                                 @ondragenter="@(() => HandleVideoDragEnter(video.Id))"
+                                 @ondragleave="@(() => HandleVideoDragLeave())"
+                                 @ondrop="@(async () => await HandleVideoDrop(video.Id))"
+                                 @ondragend="@(() => HandleVideoDragEnd())"
                                  @onclick="() => SelectVideoByIndex(video.Id)">
+                                @if (isUserAdmin)
+                                {
+                                    <div class="drag-handle-video" title="Arrastar para reordenar">
+                                        <i class="bi bi-grip-vertical"></i>
+                                    </div>
+                                }
                                 <span class="video-title-content">
                                     <i class="bi bi-play-circle me-2"></i>@displayTitle
                                 </span>
@@ -1394,6 +1408,10 @@ else
     private string videoTitle = string.Empty;
     private EventVideo? editingVideo = null;
     private string editingVideoTitle = string.Empty;
+    
+    // Video drag-and-drop state
+    private int? draggingVideoId = null;
+    private int? dragOverVideoId = null;
     
     private string? uploadedImagePath;
     private string dateValidationError = string.Empty;
@@ -3455,6 +3473,89 @@ else
         {
             Console.WriteLine($"Error updating video title: {ex.Message}");
         }
+    }
+    
+    // Video drag-and-drop handlers
+    private void HandleVideoDragStart(int videoId)
+    {
+        if (!isUserAdmin) return;
+        draggingVideoId = videoId;
+        dragOverVideoId = null;
+    }
+
+    private void HandleVideoDragEnter(int videoId)
+    {
+        if (!isUserAdmin || draggingVideoId == null || draggingVideoId == videoId) return;
+        dragOverVideoId = videoId;
+    }
+
+    private void HandleVideoDragLeave()
+    {
+        if (!isUserAdmin) return;
+        dragOverVideoId = null;
+    }
+
+    private void HandleVideoDragOver()
+    {
+        // Combined with @ondragover:preventDefault directive to allow drops
+        if (!isUserAdmin) return;
+    }
+
+    private void HandleVideoDragEnd()
+    {
+        if (!isUserAdmin) return;
+        // Always clean up drag state when drag ends
+        draggingVideoId = null;
+        dragOverVideoId = null;
+    }
+
+    private async Task HandleVideoDrop(int targetVideoId)
+    {
+        if (!isUserAdmin || draggingVideoId == null || draggingVideoId == targetVideoId) 
+        {
+            // Clean up even if we don't process the drop
+            draggingVideoId = null;
+            dragOverVideoId = null;
+            return;
+        }
+
+        var draggingVideo = eventVideos?.FirstOrDefault(v => v.Id == draggingVideoId);
+        var targetVideo = eventVideos?.FirstOrDefault(v => v.Id == targetVideoId);
+
+        if (draggingVideo != null && targetVideo != null && selectedEventForVideos != null)
+        {
+            // Get the current ordered list
+            var orderedList = eventVideos!.OrderBy(v => v.SortOrder).ToList();
+            
+            // Find current indices
+            var draggedIndex = orderedList.IndexOf(draggingVideo);
+            var targetIndex = orderedList.IndexOf(targetVideo);
+            
+            // Reorder logic matching EventRepertoire pattern
+            // 1. Remove the dragged item
+            orderedList.RemoveAt(draggedIndex);
+            
+            // 2. Calculate insertion index
+            var insertIndex = (draggedIndex < targetIndex) ? targetIndex : targetIndex;
+            
+            // 3. Insert at calculated position
+            orderedList.Insert(insertIndex, draggingVideo);
+
+            // Update sort orders based on new list order
+            var videoIds = orderedList.Select(v => v.Id).ToList();
+            
+            await EventService.UpdateVideoOrderAsync(selectedEventForVideos.Id, videoIds);
+            
+            // Force reload to get updated order from database
+            eventVideos = (await EventService.GetVideosByEventIdAsync(selectedEventForVideos.Id)).ToList();
+            
+            // Force UI refresh
+            StateHasChanged();
+        }
+
+        // Clean up drag state
+        draggingVideoId = null;
+        dragOverVideoId = null;
     }
 }
 

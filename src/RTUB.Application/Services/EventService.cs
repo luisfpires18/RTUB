@@ -246,6 +246,22 @@ public class EventService : IEventService
         await _eventVideoRepository.UpdateAsync(video);
     }
 
+    public async Task UpdateVideoOrderAsync(int eventId, List<int> videoIds)
+    {
+        var videos = await _eventVideoRepository.GetByEventIdAsync(eventId);
+        var videoList = videos.ToList();
+
+        for (int i = 0; i < videoIds.Count; i++)
+        {
+            var video = videoList.FirstOrDefault(v => v.Id == videoIds[i]);
+            if (video != null)
+            {
+                video.UpdateOrder(i);
+                await _eventVideoRepository.UpdateAsync(video);
+            }
+        }
+    }
+
     public async Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false)
     {
         // Fetch video by id

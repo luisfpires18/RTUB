@@ -24,6 +24,7 @@ public interface IEventService
     Task<IEnumerable<EventVideo>> GetVideosByEventIdAsync(int eventId);
     Task<EventVideo> AddVideoAsync(int eventId, Stream fileStream, string fileName, string contentType, string createdByUserId, string? title = null);
     Task UpdateVideoTitleAsync(int videoId, string? title, string userId, bool isAdmin = false);
+    Task UpdateVideoOrderAsync(int eventId, List<int> videoIds);
     Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false);
     Task<int> GetVideoCountByEventIdAsync(int eventId);
 }
