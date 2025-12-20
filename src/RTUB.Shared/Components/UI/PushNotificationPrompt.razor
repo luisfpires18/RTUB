@@ -1,0 +1,208 @@
+@using Microsoft.Extensions.Logging
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IJSRuntime JSRuntime
+@inject ILogger<PushNotificationPrompt> Logger
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@if (ShowPrompt)
+{
+    <div class="push-prompt-overlay" @onclick="HandleDismiss">
+        <div class="push-prompt-card" @onclick:stopPropagation="true">
+            <div class="push-prompt-icon">
+                <i class="bi bi-bell-fill"></i>
+            </div>
+            <h3 class="push-prompt-title">Ativar Notificações?</h3>
+            <p class="push-prompt-message">
+                Receba notificações sobre atuações, ensaios, mensagens e outras atualizações importantes da RTUB.
+            </p>
+            <div class="push-prompt-buttons">
+                <button class="btn btn-primary btn-primary-purple" @onclick="HandleAllow" disabled="@IsProcessing">
+                    @if (IsProcessing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    }
+                    Ativar
+                </button>
+                <button class="btn btn-outline-secondary" @onclick="HandleDismiss" disabled="@IsProcessing">
+                    Agora Não
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="alert alert-danger alert-sm mt-3 mb-0" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> @ErrorMessage
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private bool ShowPrompt { get; set; } = false;
+    private bool IsProcessing { get; set; } = false;
+    private string? ErrorMessage { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Check if user is authenticated
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                if (!authState.User.Identity?.IsAuthenticated ?? true)
+                {
+                    return;
+                }
+
+                // Check if we should show the prompt
+                var shouldShow = await JSRuntime.InvokeAsync<bool>("eval", @"
+                    (function() {
+                        if (typeof window.pwaHelper === 'undefined') {
+                            console.log('PWA helper not loaded yet');
+                            return false;
+                        }
+                        return window.pwaHelper.shouldShowPushPrompt();
+                    })()
+                ");
+
+                if (shouldShow)
+                {
+                    // Check if push notifications are available and configured
+                    var statusJson = await JSRuntime.InvokeAsync<string>("eval", @"
+                        (async function() {
+                            try {
+                                const response = await fetch('/api/push/status', { credentials: 'include' });
+                                if (!response.ok) return null;
+                                const data = await response.json();
+                                return JSON.stringify(data);
+                            } catch (e) {
+                                console.error('Error fetching push status:', e);
+                                return null;
+                            }
+                        })()
+                    ");
+
+                    if (!string.IsNullOrEmpty(statusJson))
+                    {
+                        var status = System.Text.Json.JsonSerializer.Deserialize<PushStatusDto>(statusJson, 
+                            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        
+                        if (status != null && status.IsEnabled && status.IsConfigured)
+                        {
+                            ShowPrompt = true;
+                            StateHasChanged();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error checking if push prompt should be shown");
+            }
+        }
+    }
+
+    private class PushStatusDto
+    {
+        public bool IsEnabled { get; set; }
+        public bool IsConfigured { get; set; }
+        public string? VapidPublicKey { get; set; }
+    }
+
+    private async Task HandleAllow()
+    {
+        IsProcessing = true;
+        ErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            // Initialize push manager if needed
+            var initialized = await JSRuntime.InvokeAsync<bool>("eval", @"
+                (async function() {
+                    if (typeof PushNotificationsManager === 'undefined') {
+                        console.error('PushNotificationsManager not loaded');
+                        return false;
+                    }
+                    const manager = new PushNotificationsManager();
+                    const success = await manager.initialize();
+                    if (success) {
+                        window.rtubPushManager = manager;
+                        return true;
+                    }
+                    return false;
+                })()
+            ");
+
+            if (initialized)
+            {
+                // Subscribe to push notifications
+                var success = await JSRuntime.InvokeAsync<bool>("eval", @"
+                    (async () => {
+                        if (window.rtubPushManager && typeof window.rtubPushManager.subscribe === 'function') {
+                            return await window.rtubPushManager.subscribe();
+                        }
+                        throw new Error('RTUB Push manager not available or subscribe method missing');
+                    })()
+                ");
+
+                if (success)
+                {
+                    // Mark as prompted
+                    await JSRuntime.InvokeVoidAsync("eval", "window.pwaHelper && window.pwaHelper.markAsPrompted()");
+                    
+                    // Hide the prompt
+                    ShowPrompt = false;
+                    StateHasChanged();
+                }
+                else
+                {
+                    ErrorMessage = "Não foi possível ativar as notificações. Por favor, tente novamente.";
+                }
+            }
+            else
+            {
+                ErrorMessage = "As notificações push não estão disponíveis neste momento.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error subscribing to push notifications");
+            ErrorMessage = "Erro ao ativar notificações. Pode alterar nas definições do perfil.";
+            
+            // Still mark as prompted so we don't keep bothering the user
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("eval", "window.pwaHelper && window.pwaHelper.markAsPrompted()");
+            }
+            catch
+            {
+                // Ignore
+            }
+        }
+        finally
+        {
+            IsProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleDismiss()
+    {
+        if (IsProcessing) return;
+
+        try
+        {
+            // Mark as prompted so we don't show again
+            await JSRuntime.InvokeVoidAsync("eval", "window.pwaHelper && window.pwaHelper.markAsPrompted()");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error marking push prompt as dismissed");
+        }
+
+        ShowPrompt = false;
+        StateHasChanged();
+    }
+}
