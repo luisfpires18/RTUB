@@ -57,6 +57,13 @@
     box-shadow: 0 8px 16px rgba(var(--bs-primary-rgb), 0.3);
 }
 
+/* Keep active background color when dragging */
+.video-selector .list-group-item.active.dragging {
+    background-color: var(--bs-primary) !important;
+    border-color: var(--bs-primary) !important;
+    opacity: 0.7; /* Slightly less transparent to show it's being dragged but keep color visible */
+}
+
 .video-selector .list-group-item.drag-over {
     background-color: rgba(var(--bs-primary-rgb), 0.2) !important;
     border-color: rgba(var(--bs-primary-rgb), 0.7);
