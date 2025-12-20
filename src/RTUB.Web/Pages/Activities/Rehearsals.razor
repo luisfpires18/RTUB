@@ -1295,7 +1295,11 @@ else
 
         // Load fiscal years
         var allFiscalYears = await FiscalYearService.GetAllFiscalYearsAsync();
-        fiscalYears = allFiscalYears.Select(fy => fy.GetFiscalYearString()).OrderByDescending(y => y).ToList();
+        fiscalYears = allFiscalYears
+            .Where(fy => fy.StartYear >= 2025)
+            .Select(fy => fy.GetFiscalYearString())
+            .OrderByDescending(y => y)
+            .ToList();
         currentFiscalYear = FiscalYearHelper.GetCurrentFiscalYearString();
 
         // Read URL parameters
