@@ -231,31 +231,18 @@ window.pwaMediaSession = {
     loadTrack: function(track) {
         if (!this.audioElement) return;
         
-        // Update the displayed song title in the UI immediately (before audio loads)
-        const titleElement = document.querySelector('.audio-title');
-        if (titleElement) {
-            titleElement.textContent = track.title;
-        }
+        // Update audio source
+        this.audioElement.src = track.audioUrl;
+        this.audioElement.load();
+        this.audioElement.play();
         
-        // Update metadata immediately
+        // Update metadata
         this.setNowPlaying({
             title: track.title,
             artist: track.artist || '',
             album: track.album || '',
             artworkUrl: track.artworkUrl || ''
         });
-        
-        // Update audio source
-        this.audioElement.src = track.audioUrl;
-        
-        // Load and play - using event listener for reliable playback
-        this.audioElement.addEventListener('loadeddata', () => {
-            this.audioElement.play().catch(err => {
-                console.warn('Failed to play track:', err);
-            });
-        }, { once: true });
-        
-        this.audioElement.load();
     },
     
     /**
