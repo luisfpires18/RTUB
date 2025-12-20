@@ -1,0 +1,155 @@
+@using Microsoft.Extensions.Logging
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.DTOs
+@inject IJSRuntime JSRuntime
+@inject ILogger<PushNotificationPrompt> Logger
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@if (ShowPrompt)
+{
+    <div class="push-prompt-overlay" @onclick="HandleDismiss">
+        <div class="push-prompt-card" @onclick:stopPropagation="true">
+            <div class="push-prompt-icon">
+                <i class="bi bi-bell-fill"></i>
+            </div>
+            <h3 class="push-prompt-title">Ativar Notificações?</h3>
+            <p class="push-prompt-message">
+                Receba notificações sobre atuações, ensaios, mensagens e outras atualizações importantes da RTUB.
+            </p>
+            <div class="push-prompt-buttons">
+                <button class="btn btn-primary btn-primary-purple" @onclick="HandleAllow" disabled="@IsProcessing">
+                    @if (IsProcessing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    }
+                    Ativar
+                </button>
+                <button class="btn btn-outline-secondary" @onclick="HandleDismiss" disabled="@IsProcessing">
+                    Agora Não
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="alert alert-danger alert-sm mt-3 mb-0" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> @ErrorMessage
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private bool ShowPrompt { get; set; } = false;
+    private bool IsProcessing { get; set; } = false;
+    private string? ErrorMessage { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Check if user is authenticated
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                if (!(authState.User.Identity?.IsAuthenticated ?? false))
+                {
+                    return;
+                }
+
+                // Check if we should show the prompt
+                var shouldShow = await JSRuntime.InvokeAsync<bool>("pwaHelper.shouldShowPushPrompt");
+
+                if (shouldShow)
+                {
+                    // Check if push notifications are available and configured
+                    var status = await JSRuntime.InvokeAsync<PushStatusDto?>("pwaHelper.getPushStatus");
+
+                    if (status != null && status.IsEnabled && status.IsConfigured)
+                    {
+                        ShowPrompt = true;
+                        StateHasChanged();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error checking if push prompt should be shown");
+            }
+        }
+    }
+
+    private async Task HandleAllow()
+    {
+        IsProcessing = true;
+        ErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            // Initialize push manager if needed
+            var initialized = await JSRuntime.InvokeAsync<bool>("pwaHelper.initializePushManager");
+
+            if (initialized)
+            {
+                // Subscribe to push notifications
+                var success = await JSRuntime.InvokeAsync<bool>("pwaHelper.subscribeToPush");
+
+                if (success)
+                {
+                    // Mark as prompted
+                    await JSRuntime.InvokeVoidAsync("pwaHelper.markAsPrompted");
+                    
+                    // Hide the prompt
+                    ShowPrompt = false;
+                    StateHasChanged();
+                }
+                else
+                {
+                    ErrorMessage = "Não foi possível ativar as notificações. Por favor, tente novamente.";
+                }
+            }
+            else
+            {
+                ErrorMessage = "As notificações push não estão disponíveis neste momento.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error subscribing to push notifications");
+            ErrorMessage = "Erro ao ativar notificações. Pode alterar nas definições do perfil.";
+            
+            // Still mark as prompted so we don't keep bothering the user
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("pwaHelper.markAsPrompted");
+            }
+            catch
+            {
+                // Ignore
+            }
+        }
+        finally
+        {
+            IsProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleDismiss()
+    {
+        if (IsProcessing) return;
+
+        try
+        {
+            // Mark as prompted so we don't show again
+            await JSRuntime.InvokeVoidAsync("pwaHelper.markAsPrompted");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error marking push prompt as dismissed");
+        }
+
+        ShowPrompt = false;
+        StateHasChanged();
+    }
+}
