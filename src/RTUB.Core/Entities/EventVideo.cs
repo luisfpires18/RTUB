@@ -69,4 +69,13 @@ public class EventVideo : BaseEntity
         
         Title = title;
     }
+
+    // Business method to update the sort order
+    public void UpdateOrder(int newOrder)
+    {
+        if (newOrder < 0)
+            throw new ArgumentException("Sort order must be non-negative", nameof(newOrder));
+
+        SortOrder = newOrder;
+    }
 }

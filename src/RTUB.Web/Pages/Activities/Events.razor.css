@@ -41,18 +41,74 @@
 
 .video-selector .list-group-item {
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 }
 
-.video-selector .list-group-item:hover:not(.active) {
+/* Drag-and-drop styles for videos */
+.video-selector .list-group-item[draggable="true"] {
+    cursor: grab;
+}
+
+.video-selector .list-group-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+    transform: scale(1.02) rotate(1deg);
+    box-shadow: 0 8px 16px rgba(var(--bs-primary-rgb), 0.3);
+}
+
+/* Keep active background color when dragging */
+.video-selector .list-group-item.active.dragging {
+    background-color: var(--bs-primary) !important;
+    border-color: var(--bs-primary) !important;
+    opacity: 0.7; /* Slightly less transparent to show it's being dragged but keep color visible */
+}
+
+.video-selector .list-group-item.drag-over {
+    background-color: rgba(var(--bs-primary-rgb), 0.2) !important;
+    border-color: rgba(var(--bs-primary-rgb), 0.7);
+    border-width: 2px;
+    box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.2);
+}
+
+.video-selector .list-group-item:hover:not(.active):not(.dragging) {
     background-color: var(--bs-primary); /* Purple hover using theme color */
     color: white;
 }
 
 .video-selector .list-group-item.active {
-    background-color: var(--bs-primary);
-    border-color: var(--bs-primary);
-    color: white;
+    background-color: var(--bs-primary) !important;
+    border-color: var(--bs-primary) !important;
+    color: white !important;
+}
+
+/* Drag handle for videos */
+.drag-handle-video {
+    cursor: grab;
+    color: var(--bs-primary);
+    font-size: 1.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+.drag-handle-video:hover {
+    opacity: 1;
+    color: #a88ee5;
+    transform: scale(1.1);
+}
+
+.drag-handle-video:active {
+    cursor: grabbing;
+}
+
+.video-selector .list-group-item:hover .drag-handle-video {
+    opacity: 0.9;
 }
 
 /* Video title truncation to prevent overflow when edit and delete buttons are present */

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -244,6 +245,23 @@ public class EventService : IEventService
 
         // Save to repository
         await _eventVideoRepository.UpdateAsync(video);
+    }
+
+    public async Task UpdateVideoOrderAsync(int eventId, List<int> videoIds)
+    {
+        var videos = await _eventVideoRepository.Query()
+            .Where(v => v.EventId == eventId)
+            .ToListAsync();
+
+        for (int i = 0; i < videoIds.Count; i++)
+        {
+            var video = videos.FirstOrDefault(v => v.Id == videoIds[i]);
+            if (video != null)
+            {
+                video.UpdateOrder(i);
+                await _eventVideoRepository.UpdateAsync(video);
+            }
+        }
     }
 
     public async Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false)
