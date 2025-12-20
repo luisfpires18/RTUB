@@ -245,11 +245,17 @@ window.pwaMediaSession = {
             artworkUrl: track.artworkUrl || ''
         });
         
-        // Update audio source and play (no need to call load() - play() will load automatically)
+        // Update audio source
         this.audioElement.src = track.audioUrl;
-        this.audioElement.play().catch(err => {
-            console.warn('Failed to play track:', err);
-        });
+        
+        // Load and play - using event listener for reliable playback
+        this.audioElement.addEventListener('loadeddata', () => {
+            this.audioElement.play().catch(err => {
+                console.warn('Failed to play track:', err);
+            });
+        }, { once: true });
+        
+        this.audioElement.load();
     },
     
     /**
