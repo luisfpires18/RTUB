@@ -1,5 +1,6 @@
 @using Microsoft.Extensions.Logging
 @using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.DTOs
 @inject IJSRuntime JSRuntime
 @inject ILogger<PushNotificationPrompt> Logger
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -75,13 +76,6 @@
                 Logger.LogError(ex, "Error checking if push prompt should be shown");
             }
         }
-    }
-
-    private class PushStatusDto
-    {
-        public bool IsEnabled { get; set; }
-        public bool IsConfigured { get; set; }
-        public string? VapidPublicKey { get; set; }
     }
 
     private async Task HandleAllow()
