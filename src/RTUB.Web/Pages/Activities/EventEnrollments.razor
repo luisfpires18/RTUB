@@ -225,76 +225,73 @@
         
         <AuthorizeView Roles="Admin">
             <Authorized>
-                @if (selectedEvent.Date.Date < DateTime.Today)
-                {
-                    <div class="mt-3">
-                        <!-- Success Alert (auto-dismiss) -->
-                        @if (!string.IsNullOrEmpty(addMemberToEnrollmentFeedbackMessage) && !addMemberToEnrollmentFeedbackIsError)
-                        {
-                            <Alert Type="Alert.AlertType.Purple"
-                                   Title="@addMemberToEnrollmentFeedbackMessage"
-                                   Dismissible="true"
-                                   OnDismiss="ClearAddMemberToEnrollmentFeedback"
-                                   AdditionalClasses="mb-2" />
-                        }
+                <div class="mt-3">
+                    <!-- Success Alert (auto-dismiss) -->
+                    @if (!string.IsNullOrEmpty(addMemberToEnrollmentFeedbackMessage) && !addMemberToEnrollmentFeedbackIsError)
+                    {
+                        <Alert Type="Alert.AlertType.Purple"
+                               Title="@addMemberToEnrollmentFeedbackMessage"
+                               Dismissible="true"
+                               OnDismiss="ClearAddMemberToEnrollmentFeedback"
+                               AdditionalClasses="mb-2" />
+                    }
 
-                        <!-- Error Alert (manual dismiss) -->
-                        @if (!string.IsNullOrEmpty(addMemberToEnrollmentFeedbackMessage) && addMemberToEnrollmentFeedbackIsError)
-                        {
-                            <Alert Type="Alert.AlertType.Error"
-                                   Title="@addMemberToEnrollmentFeedbackMessage"
-                                   Dismissible="true"
-                                   OnDismiss="ClearAddMemberToEnrollmentFeedback"
-                                   AdditionalClasses="mb-2" />
-                        }
+                    <!-- Error Alert (manual dismiss) -->
+                    @if (!string.IsNullOrEmpty(addMemberToEnrollmentFeedbackMessage) && addMemberToEnrollmentFeedbackIsError)
+                    {
+                        <Alert Type="Alert.AlertType.Error"
+                               Title="@addMemberToEnrollmentFeedbackMessage"
+                               Dismissible="true"
+                               OnDismiss="ClearAddMemberToEnrollmentFeedback"
+                               AdditionalClasses="mb-2" />
+                    }
 
-                        @if (!showAddMemberToEnrollmentSearch)
-                        {
-                            <button class="btn btn-sm btn-outline-primary" @onclick="ShowAddMemberToEnrollmentSearch">
-                                <i class="bi bi-plus-circle"></i>
-                                Adicionar Membro
-                            </button>
-                        }
-                        else
-                        {
-                            <div class="mb-2">
-                                <SearchBar @bind-Value="addMemberToEnrollmentSearchTerm"
-                                           Placeholder="Pesquisar membro por nome..."
-                                           OnSearch="@HandleAddMemberToEnrollmentSearchChanged" />
+                    @if (!showAddMemberToEnrollmentSearch)
+                    {
+                        <button class="btn btn-sm btn-outline-primary" @onclick="ShowAddMemberToEnrollmentSearch">
+                            <i class="bi bi-plus-circle"></i>
+                            Adicionar Membro
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="mb-2">
+                            <SearchBar @bind-Value="addMemberToEnrollmentSearchTerm"
+                                       Placeholder="Pesquisar membro por nome..."
+                                       OnSearch="@HandleAddMemberToEnrollmentSearchChanged" />
 
-                                @if (!string.IsNullOrWhiteSpace(addMemberToEnrollmentSearchTerm) && filteredAvailableMembersForEnrollment.Any())
-                                {
-                                    <div class="member-list member-list-scrollable mt-2">
-                                        @foreach (var member in filteredAvailableMembersForEnrollment)
-                                        {
-                                            <div class="member-item p-2 mb-2 border rounded clickable-row"
-                                                 @onclick="() => AddMemberToEvent(member)"
-                                                 tabindex="0"
-                                                 @onkeydown="@(async (e) => await HandleMemberItemKeyDownForEnrollment(e, member))">
-                                                <div class="d-flex align-items-center">
-                                                    <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
-                                                         class="member-avatar-small me-2" />
-                                                    <div>
-                                                        <strong>@member.GetDisplayName()</strong>
-                                                    </div>
+                            @if (!string.IsNullOrWhiteSpace(addMemberToEnrollmentSearchTerm) && filteredAvailableMembersForEnrollment.Any())
+                            {
+                                <div class="member-list member-list-scrollable mt-2">
+                                    @foreach (var member in filteredAvailableMembersForEnrollment)
+                                    {
+                                        <div class="member-item p-2 mb-2 border rounded clickable-row"
+                                             @onclick="() => AddMemberToEvent(member)"
+                                             tabindex="0"
+                                             @onkeydown="@(async (e) => await HandleMemberItemKeyDownForEnrollment(e, member))">
+                                            <div class="d-flex align-items-center">
+                                                <img src="@member.ProfilePictureSrc" alt="@member.GetDisplayName()"
+                                                     class="member-avatar-small me-2" />
+                                                <div>
+                                                    <strong>@member.GetDisplayName()</strong>
                                                 </div>
                                             </div>
-                                        }
-                                    </div>
-                                }
-                                else if (!string.IsNullOrWhiteSpace(addMemberToEnrollmentSearchTerm))
-                                {
-                                    <p class="text-muted mt-2">Nenhum membro encontrado.</p>
-                                }
-                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(addMemberToEnrollmentSearchTerm))
+                            {
+                                <p class="text-muted mt-2">Nenhum membro encontrado.</p>
+                            }
+                        </div>
 
-                            <button class="btn btn-sm btn-outline-secondary" @onclick="HideAddMemberToEnrollmentSearch">
-                                <i class="bi bi-x-circle"></i>
-                                Cancelar
-                            </button>
-                        }
-                    </div>
-                }
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="HideAddMemberToEnrollmentSearch">
+                            <i class="bi bi-x-circle"></i>
+                            Cancelar
+                        </button>
+                    }
+                </div>
             </Authorized>
         </AuthorizeView>
     }
