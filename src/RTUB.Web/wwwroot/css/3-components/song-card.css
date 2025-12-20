@@ -250,6 +250,18 @@
   }
 }
 
+/* Mobile layout: keep secondary-row buttons centered with consistent sizing */
+@media (max-width: 576px) {
+  .song-primary-actions {
+    justify-content: center;
+  }
+
+  .song-primary-actions .song-action-btn {
+    flex: 0 1 48%;
+    max-width: 48%;
+  }
+}
+
 /* CSS Grid layout for song cards with responsive breakpoints */
 .song-grid {
   display: grid;
