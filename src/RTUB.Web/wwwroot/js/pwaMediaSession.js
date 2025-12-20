@@ -110,38 +110,47 @@ window.pwaMediaSession = {
     /**
      * Bind handlers for media session actions
      * Handlers work client-side without callbacks to reduce SignalR dependency
+     * Only handles audio playback - does NOT interfere with video playback
      */
     bindHandlers: function() {
         if (!this.isPwaMode) return;
         if (!('mediaSession' in navigator)) return;
         
         try {
-            // Play handler
+            // Play handler - only handle if audio element is the active media
             navigator.mediaSession.setActionHandler('play', () => {
                 console.log('Media Session: play');
-                if (this.audioElement) {
+                // Only handle if we have an audio element and it's not a video playing
+                if (this.audioElement && !this.isVideoPlaying()) {
                     this.audioElement.play();
                 }
             });
             
-            // Pause handler
+            // Pause handler - only handle if audio element is the active media
             navigator.mediaSession.setActionHandler('pause', () => {
                 console.log('Media Session: pause');
-                if (this.audioElement) {
+                // Only handle if we have an audio element and it's not a video playing
+                if (this.audioElement && !this.isVideoPlaying()) {
                     this.audioElement.pause();
                 }
             });
             
-            // Next track handler
+            // Next track handler - only for audio playback
             navigator.mediaSession.setActionHandler('nexttrack', () => {
                 console.log('Media Session: nexttrack');
-                this.handleNext();
+                // Only handle next/prev for audio, not video
+                if (!this.isVideoPlaying()) {
+                    this.handleNext();
+                }
             });
             
-            // Previous track handler
+            // Previous track handler - only for audio playback
             navigator.mediaSession.setActionHandler('previoustrack', () => {
                 console.log('Media Session: previoustrack');
-                this.handlePrevious();
+                // Only handle next/prev for audio, not video
+                if (!this.isVideoPlaying()) {
+                    this.handlePrevious();
+                }
             });
             
             // DO NOT register seekbackward/seekforward on iOS
@@ -151,7 +160,8 @@ window.pwaMediaSession = {
             try {
                 navigator.mediaSession.setActionHandler('seekto', (details) => {
                     console.log('Media Session: seekto', details.seekTime);
-                    if (this.audioElement && details.seekTime !== undefined) {
+                    // Only handle seeking for audio, not video
+                    if (this.audioElement && details.seekTime !== undefined && !this.isVideoPlaying()) {
                         this.audioElement.currentTime = details.seekTime;
                     }
                 });
@@ -162,6 +172,29 @@ window.pwaMediaSession = {
             console.log('Media Session handlers bound');
         } catch (e) {
             console.warn('Failed to bind media session handlers:', e);
+        }
+    },
+    
+    /**
+     * Check if a video element is currently playing
+     * Returns true if any video on the page is actively playing
+     * This prevents audio handlers from interfering with video playback
+     */
+    isVideoPlaying: function() {
+        try {
+            // Check all video elements on the page
+            const videos = document.querySelectorAll('video');
+            for (let video of videos) {
+                // A video is "playing" if it's not paused and has a source
+                if (!video.paused && video.currentTime > 0 && !video.ended && video.readyState > 2) {
+                    console.log('Video is playing - ignoring audio media session handler');
+                    return true;
+                }
+            }
+            return false;
+        } catch (e) {
+            console.warn('Error checking video state:', e);
+            return false;
         }
     },
     
