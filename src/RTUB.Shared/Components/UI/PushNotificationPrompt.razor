@@ -50,7 +50,7 @@
             {
                 // Check if user is authenticated
                 var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                if (!authState.User.Identity?.IsAuthenticated ?? true)
+                if (!(authState.User.Identity?.IsAuthenticated ?? false))
                 {
                     return;
                 }
@@ -61,7 +61,7 @@
                 if (shouldShow)
                 {
                     // Check if push notifications are available and configured
-                    var status = await JSRuntime.InvokeAsync<PushStatusDto>("pwaHelper.getPushStatus");
+                    var status = await JSRuntime.InvokeAsync<PushStatusDto?>("pwaHelper.getPushStatus");
 
                     if (status != null && status.IsEnabled && status.IsConfigured)
                     {

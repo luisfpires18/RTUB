@@ -71,7 +71,23 @@ window.pwaHelper = {
     getPushStatus: async function() {
         try {
             const response = await fetch('/api/push/status', { credentials: 'include' });
-            if (!response.ok) return null;
+            
+            // Handle specific HTTP status codes
+            if (response.status === 401) {
+                console.log('User not authenticated');
+                return null;
+            }
+            
+            if (response.status === 403) {
+                console.log('User not authorized to access push notifications');
+                return null;
+            }
+            
+            if (!response.ok) {
+                console.error('Failed to fetch push status:', response.status, response.statusText);
+                return null;
+            }
+            
             const data = await response.json();
             return data;
         } catch (e) {
