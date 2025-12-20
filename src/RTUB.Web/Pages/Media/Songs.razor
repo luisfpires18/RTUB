@@ -669,18 +669,12 @@ else
             
             if (isPwaMode)
             {
-                // Initialize PWA Media Session with audio element
-                pwaMediaSessionInitialized = await MediaSession.InitPwaMediaSessionAsync("rtub-audio-player");
-                
-                if (pwaMediaSessionInitialized)
-                {
-                    Logger.LogInformation("PWA Media Session initialized successfully");
-                }
+                Logger.LogInformation("Running in PWA mode - Media Session will be initialized on first play");
             }
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Failed to initialize PWA Media Session");
+            Logger.LogWarning(ex, "Failed to check PWA mode");
         }
     }
 
@@ -1034,7 +1028,7 @@ else
             currentSong = song;
             
             // Build queue for PWA mode (all songs in album)
-            if (isPwaMode && pwaMediaSessionInitialized && songs != null)
+            if (isPwaMode && songs != null)
             {
                 await BuildAndSetPwaQueue(song);
             }
@@ -1070,6 +1064,24 @@ else
                 currentAudioUrl = audioUrl;
                 currentSongTitle = song.Title;
                 
+                // Force StateHasChanged to ensure audio element is rendered
+                StateHasChanged();
+                
+                // Initialize PWA Media Session now that audio element exists
+                if (isPwaMode && !pwaMediaSessionInitialized)
+                {
+                    // Give the audio element time to render in the DOM
+                    await Task.Delay(100);
+                    pwaMediaSessionInitialized = await MediaSession.InitPwaMediaSessionAsync("rtub-audio-player");
+                    
+                    if (pwaMediaSessionInitialized)
+                    {
+                        // Bind handlers after successful initialization
+                        await JSRuntime.InvokeVoidAsync("pwaMediaSession.bindHandlers");
+                        Logger.LogInformation("PWA Media Session initialized and handlers bound");
+                    }
+                }
+                
                 // Update media session metadata for lock screen / system media overlay
                 try
                 {
@@ -1095,8 +1107,6 @@ else
                 {
                     Logger.LogWarning(ex, "Failed to set media session metadata for song: {SongTitle}", song.Title);
                 }
-                
-                StateHasChanged();
             }
             else
             {
@@ -1166,14 +1176,14 @@ else
                 });
             }
             
-            // Send queue to PWA Media Session
-            await MediaSession.SetQueueAsync(queueWithUrls, currentQueueIndex);
-            
-            // Bind handlers to enable lockscreen controls
-            await JSRuntime.InvokeVoidAsync("pwaMediaSession.bindHandlers");
-            
-            Logger.LogInformation("PWA queue built with {Count} tracks, starting at index {Index}", 
-                playbackQueue.Count, currentQueueIndex);
+            // Send queue to PWA Media Session (only if initialized)
+            if (pwaMediaSessionInitialized)
+            {
+                await MediaSession.SetQueueAsync(queueWithUrls, currentQueueIndex);
+                
+                Logger.LogInformation("PWA queue built with {Count} tracks, starting at index {Index}", 
+                    playbackQueue.Count, currentQueueIndex);
+            }
         }
         catch (Exception ex)
         {

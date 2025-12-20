@@ -30,8 +30,9 @@ When running as a normal web app in a browser tab, the behavior remains unchange
    - Metadata updates
 
 4. **`Songs.razor`** - Updated page component
-   - Initializes PWA Media Session on page load
-   - Builds queue when user plays a song
+   - Detects PWA mode on page load
+   - Initializes PWA Media Session when user first plays a song (when audio element is created)
+   - Builds queue and binds handlers on first play
    - Pre-loads audio URLs for all tracks
    - Sends queue to JavaScript module
 
@@ -72,6 +73,7 @@ In normal browser mode, none of the PWA Media Session handlers are registered.
 - **Automatic position state updates**: Duration, position, and playback rate are updated via audio element event listeners
 - **Graceful degradation**: If Media Session API is not available, playback continues normally
 - **URL caching**: Pre-signed S3 URLs are cached to minimize API calls
+- **Lazy initialization**: Media Session handlers are initialized only when the first song is played (when audio element exists in DOM), ensuring proper binding
 
 ## Testing
 
