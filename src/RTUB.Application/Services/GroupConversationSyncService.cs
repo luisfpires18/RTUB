@@ -51,7 +51,7 @@ public class GroupConversationSyncService : IGroupConversationSyncService
             await SyncRoleBasedGroupAsync("VETERANOS", "VETERANO");
 
             // 4. TUNOS - Users whose Categories contains MemberCategory.Tuno
-            await SyncCategoryBasedGroupAsync("TUNOS", new[] { MemberCategory.Tuno });
+            await SyncCategoryBasedGroupAsync("TUNOS", new[] { MemberCategory.Tuno }, excludeTunoHonorario: true);
 
             // 5. LEITÕES & CALOIROS - Users whose Categories contains Leitao or Caloiro
             await SyncCategoryBasedGroupAsync("LEITÕES & CALOIROS", new[] { MemberCategory.Leitao, MemberCategory.Caloiro });
@@ -128,13 +128,14 @@ public class GroupConversationSyncService : IGroupConversationSyncService
         await CreateOrUpdateSystemGroupAsync(groupTitle, participantIds);
     }
 
-    private async Task SyncCategoryBasedGroupAsync(string groupTitle, MemberCategory[] targetCategories)
+    private async Task SyncCategoryBasedGroupAsync(string groupTitle, MemberCategory[] targetCategories, bool excludeTunoHonorario = false)
     {
         // Get all users
         var allUsers = await _userManager.Users.ToListAsync();
 
         var participantIds = allUsers
-            .Where(u => u.Categories.Any(c => targetCategories.Contains(c)))
+            .Where(u => u.Categories.Any(c => targetCategories.Contains(c)) &&
+                        (!excludeTunoHonorario || !u.Categories.Contains(MemberCategory.TunoHonorario)))
             .Select(u => u.Id)
             .ToList();
 

@@ -1580,10 +1580,10 @@ else
                     .ToList();
             }
         }
-        else
+        else if (string.IsNullOrWhiteSpace(searchTerm))
         {
-            // When no filter is selected, exclude TunoHonorario from general view
-            // (they only appear when specifically filtering by TunoHonorario)
+            // When no filter or search is selected, exclude TunoHonorario from general view
+            // (they only appear when specifically filtering by TunoHonorario or via search)
             allFilteredUsers = allFilteredUsers
                 .Where(u => !u.Categories.Contains(MemberCategory.TunoHonorario))
                 .ToList();
