@@ -328,6 +328,9 @@ public class Program
 
         // Media Session API interop for lock screen / system media overlay
         services.AddScoped<RTUB.Web.Interop.MediaSessionInterop>();
+        
+        // Media Queue Service for PWA playback queue management
+        services.AddScoped<RTUB.Web.Services.MediaQueueService>();
 
         // ---------- Blazor + Authentication ----------
         services.AddRazorComponents()

@@ -7,6 +7,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Shared
+@using RTUB.Web.Services
 @inject IAlbumService AlbumService
 @inject ISongService SongService
 @inject IAudioStorageService AudioStorageService
@@ -15,6 +16,8 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject RTUB.Web.Interop.MediaSessionInterop MediaSession
+@inject RTUB.Web.Services.MediaQueueService MediaQueueService
+@inject IJSRuntime JSRuntime
 
 @if (album == null)
 {
@@ -105,7 +108,7 @@ else
                 <i class="bi bi-music-note-beamed me-2"></i>
                 <span class="audio-title">@currentSongTitle</span>
             </div>
-            <audio controls autoplay @key="currentAudioUrl" class="audio-element">
+            <audio id="rtub-audio-player" controls autoplay @key="currentAudioUrl" class="audio-element">
                 <source src="@currentAudioUrl" type="audio/mpeg">
                 Seu navegador não suporta o elemento de áudio.
             </audio>
@@ -602,6 +605,13 @@ else
     // Audio player state
     private string? currentAudioUrl;
     private string? currentSongTitle;
+    private Song? currentSong;
+    
+    // PWA Media Session state
+    private List<MediaQueueService.QueueTrack> playbackQueue = new();
+    private int currentQueueIndex = 0;
+    private bool isPwaMode = false;
+    private bool pwaMediaSessionInitialized = false;
     
     // PDF viewer state
     private bool isLoadingPdf = false;
@@ -645,6 +655,33 @@ else
         canManageSongs = userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
         isAdmin = userForOwner.IsInRole("Admin") || userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
         currentUserId = userForOwner.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        
+        // Initialize PWA Media Session (PWA-only)
+        await InitializePwaMediaSession();
+    }
+
+    private async Task InitializePwaMediaSession()
+    {
+        try
+        {
+            // Check if running in PWA mode
+            isPwaMode = await MediaSession.IsPwaModeAsync();
+            
+            if (isPwaMode)
+            {
+                // Initialize PWA Media Session with audio element
+                pwaMediaSessionInitialized = await MediaSession.InitPwaMediaSessionAsync("rtub-audio-player");
+                
+                if (pwaMediaSessionInitialized)
+                {
+                    Logger.LogInformation("PWA Media Session initialized successfully");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to initialize PWA Media Session");
+        }
     }
 
     private async Task LoadSongs()
@@ -993,6 +1030,15 @@ else
                 return;
             }
             
+            // Store current song
+            currentSong = song;
+            
+            // Build queue for PWA mode (all songs in album)
+            if (isPwaMode && pwaMediaSessionInitialized && songs != null)
+            {
+                await BuildAndSetPwaQueue(song);
+            }
+            
             // Check cache first for performance
             string cacheKey = $"audio_{album.Title}_{song.TrackNumber}_{song.Title}";
             
@@ -1038,6 +1084,12 @@ else
                         albumCoverUrl,
                         rtubLogoUrl
                     );
+                    
+                    // Set PWA-specific metadata if in PWA mode
+                    if (isPwaMode && pwaMediaSessionInitialized)
+                    {
+                        await SetPwaTrackMetadata(song, albumCoverUrl);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1057,6 +1109,97 @@ else
         {
             Logger.LogError(ex, "Error playing song: {SongTitle} in album: {AlbumTitle}", 
                 song.Title, album?.Title ?? "Unknown");
+        }
+    }
+    
+    private async Task BuildAndSetPwaQueue(Song selectedSong)
+    {
+        try
+        {
+            if (songs == null || album == null) return;
+            
+            // Build queue with all album songs, ordered by track number
+            playbackQueue = MediaQueueService.BuildQueue(songs, album.Title);
+            
+            // Find index of selected song
+            currentQueueIndex = MediaQueueService.FindSongIndex(playbackQueue, selectedSong.Id);
+            
+            if (currentQueueIndex == -1)
+            {
+                Logger.LogWarning("Selected song not found in queue");
+                return;
+            }
+            
+            // Pre-load audio URLs for all tracks in queue
+            var queueWithUrls = new List<object>();
+            foreach (var track in playbackQueue)
+            {
+                // Get or generate audio URL for each track
+                string cacheKey = $"audio_{album.Title}_{track.TrackNumber}_{track.Title}";
+                string? audioUrl = null;
+                
+                if (urlCache.TryGetValue(cacheKey, out var cachedUrl))
+                {
+                    audioUrl = cachedUrl;
+                }
+                else
+                {
+                    audioUrl = await AudioStorageService.GetAudioUrlAsync(album.Title, track.TrackNumber, track.Title);
+                    if (!string.IsNullOrEmpty(audioUrl) && urlCache.Count < MaxCacheSize)
+                    {
+                        urlCache[cacheKey] = audioUrl;
+                    }
+                }
+                
+                var albumCoverUrl = !string.IsNullOrEmpty(album.CoverImageSrc) 
+                    ? GetAlbumImageUrl(album.CoverImageSrc) 
+                    : "/icons/rtub-logo-512.png";
+                
+                queueWithUrls.Add(new
+                {
+                    id = track.Id,
+                    title = track.Title,
+                    artist = track.Artist,
+                    album = track.Album,
+                    audioUrl = audioUrl ?? string.Empty,
+                    artworkUrl = albumCoverUrl
+                });
+            }
+            
+            // Send queue to PWA Media Session
+            await MediaSession.SetQueueAsync(queueWithUrls, currentQueueIndex);
+            
+            // Bind handlers to enable lockscreen controls
+            await JSRuntime.InvokeVoidAsync("pwaMediaSession.bindHandlers");
+            
+            Logger.LogInformation("PWA queue built with {Count} tracks, starting at index {Index}", 
+                playbackQueue.Count, currentQueueIndex);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to build PWA queue");
+        }
+    }
+    
+    private async Task SetPwaTrackMetadata(Song song, string artworkUrl)
+    {
+        try
+        {
+            if (album == null) return;
+            
+            var metadata = new
+            {
+                title = song.Title,
+                artist = string.Empty,
+                album = album.Title,
+                artworkUrl = !string.IsNullOrEmpty(artworkUrl) ? artworkUrl : "/icons/rtub-logo-512.png"
+            };
+            
+            await MediaSession.SetNowPlayingMetadataForPwaAsync(metadata);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to set PWA track metadata");
         }
     }
     

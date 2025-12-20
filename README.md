@@ -99,6 +99,7 @@ RTUB is a **production-ready Progressive Web App** that can be installed on devi
 - ✅ iOS-optimized with Apple touch icons and web app meta tags
 - ✅ 192x192 and 512x512 app icons (maskable)
 - ✅ HTTPS-ready for production deployment
+- ✅ Media Session API with lockscreen controls (PWA-only Next/Previous)
 
 **Documentation**:
 - 📖 [PWA Setup Guide](docs/pwa-setup.md) - Testing, development, and deployment
@@ -106,6 +107,7 @@ RTUB is a **production-ready Progressive Web App** that can be installed on devi
 - 🔧 [TWA Configuration Guide](docs/twa-configuration-guide.md) - Digital Asset Links setup for standalone mode
 - 📋 [TWA Release Runbook](docs/twa-release-runbook.md) - Maintenance and troubleshooting
 - 🍎 [iOS App Store Guide](docs/ios-app-store-guide.md) - Apple App Store submission
+- 🎵 [PWA Media Session](docs/pwa-media-session.md) - Lockscreen music controls implementation
 
 ## ✨ Features
 
