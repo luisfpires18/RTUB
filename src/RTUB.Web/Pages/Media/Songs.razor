@@ -1380,15 +1380,18 @@ else
             if (initialized)
             {
                 pwaMediaSessionInitialized = true;
-                // Bind handlers after successful initialization
-                await JSRuntime.InvokeVoidAsync("pwaMediaSession.bindHandlers");
-                Logger.LogInformation("PWA Media Session initialized and handlers bound");
+                Logger.LogInformation("PWA Media Session initialized");
                 
-                // Build and set queue after initialization (in background)
+                // Build and set queue BEFORE binding handlers
+                // iOS needs to know the queue exists to show next/prev buttons
                 if (songs != null)
                 {
                     await BuildAndSetPwaQueue(song);
                 }
+                
+                // Bind handlers after queue is set
+                await JSRuntime.InvokeVoidAsync("pwaMediaSession.bindHandlers");
+                Logger.LogInformation("PWA Media Session handlers bound");
             }
         }
         catch (Exception ex)

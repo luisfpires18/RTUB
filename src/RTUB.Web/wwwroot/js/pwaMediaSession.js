@@ -144,34 +144,10 @@ window.pwaMediaSession = {
                 this.handlePrevious();
             });
             
-            // Seek backward (optional)
-            try {
-                navigator.mediaSession.setActionHandler('seekbackward', () => {
-                    console.log('Media Session: seekbackward');
-                    if (this.audioElement) {
-                        this.audioElement.currentTime = Math.max(0, this.audioElement.currentTime - 10);
-                    }
-                });
-            } catch (e) {
-                // Not all browsers support seekbackward
-            }
+            // DO NOT register seekbackward/seekforward on iOS
+            // iOS prioritizes seek over next/prev, so we want next/prev buttons instead
             
-            // Seek forward (optional)
-            try {
-                navigator.mediaSession.setActionHandler('seekforward', () => {
-                    console.log('Media Session: seekforward');
-                    if (this.audioElement) {
-                        this.audioElement.currentTime = Math.min(
-                            this.audioElement.duration,
-                            this.audioElement.currentTime + 10
-                        );
-                    }
-                });
-            } catch (e) {
-                // Not all browsers support seekforward
-            }
-            
-            // Seek to (optional)
+            // Seek to (optional - for progress bar seeking)
             try {
                 navigator.mediaSession.setActionHandler('seekto', (details) => {
                     console.log('Media Session: seekto', details.seekTime);
@@ -325,8 +301,6 @@ window.pwaMediaSession = {
             navigator.mediaSession.setActionHandler('pause', null);
             navigator.mediaSession.setActionHandler('nexttrack', null);
             navigator.mediaSession.setActionHandler('previoustrack', null);
-            navigator.mediaSession.setActionHandler('seekbackward', null);
-            navigator.mediaSession.setActionHandler('seekforward', null);
             navigator.mediaSession.setActionHandler('seekto', null);
             
             // Clear metadata
