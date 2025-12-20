@@ -656,17 +656,10 @@ else
         isAdmin = userForOwner.IsInRole("Admin") || userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
         currentUserId = userForOwner.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         
-        // Initialize PWA Media Session (PWA-only)
-        await InitializePwaMediaSession();
-    }
-
-    private async Task InitializePwaMediaSession()
-    {
+        // Check if running in PWA mode
         try
         {
-            // Check if running in PWA mode
             isPwaMode = await MediaSession.IsPwaModeAsync();
-            
             if (isPwaMode)
             {
                 Logger.LogInformation("Running in PWA mode - Media Session will be initialized on first play");
@@ -1058,47 +1051,6 @@ else
                 currentAudioUrl = audioUrl;
                 currentSongTitle = song.Title;
                 
-                // Force StateHasChanged to ensure audio element is rendered
-                StateHasChanged();
-                
-                // Initialize PWA Media Session now that audio element exists (non-blocking)
-                if (isPwaMode && !pwaMediaSessionInitialized)
-                {
-                    // Run initialization asynchronously without blocking playback
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            // Give the audio element time to render in the DOM
-                            await Task.Delay(100);
-                            var initialized = await MediaSession.InitPwaMediaSessionAsync("rtub-audio-player");
-                            
-                            if (initialized)
-                            {
-                                pwaMediaSessionInitialized = true;
-                                // Bind handlers after successful initialization
-                                await JSRuntime.InvokeVoidAsync("pwaMediaSession.bindHandlers");
-                                Logger.LogInformation("PWA Media Session initialized and handlers bound");
-                                
-                                // Build and set queue after initialization (in background)
-                                if (songs != null)
-                                {
-                                    await BuildAndSetPwaQueue(song);
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.LogError(ex, "Failed to initialize PWA Media Session");
-                        }
-                    });
-                }
-                else if (isPwaMode && pwaMediaSessionInitialized && songs != null)
-                {
-                    // Queue already initialized, just update it (also non-blocking)
-                    _ = BuildAndSetPwaQueue(song);
-                }
-                
                 // Update media session metadata for lock screen / system media overlay
                 try
                 {
@@ -1124,6 +1076,20 @@ else
                 {
                     Logger.LogWarning(ex, "Failed to set media session metadata for song: {SongTitle}", song.Title);
                 }
+                
+                StateHasChanged();
+                
+                // Initialize PWA Media Session AFTER audio starts (non-blocking background task)
+                if (isPwaMode && !pwaMediaSessionInitialized)
+                {
+                    // Fire and forget - run initialization in background
+                    _ = InitializePwaMediaSessionAsync(song);
+                }
+                else if (isPwaMode && pwaMediaSessionInitialized && songs != null)
+                {
+                    // Queue already initialized, just update it (background)
+                    _ = BuildAndSetPwaQueue(song);
+                }
             }
             else
             {
@@ -1136,6 +1102,35 @@ else
         {
             Logger.LogError(ex, "Error playing song: {SongTitle} in album: {AlbumTitle}", 
                 song.Title, album?.Title ?? "Unknown");
+        }
+    }
+    
+    private async Task InitializePwaMediaSessionAsync(Song song)
+    {
+        try
+        {
+            // Give the audio element time to render in the DOM
+            await Task.Delay(150);
+            
+            var initialized = await MediaSession.InitPwaMediaSessionAsync("rtub-audio-player");
+            
+            if (initialized)
+            {
+                pwaMediaSessionInitialized = true;
+                // Bind handlers after successful initialization
+                await JSRuntime.InvokeVoidAsync("pwaMediaSession.bindHandlers");
+                Logger.LogInformation("PWA Media Session initialized and handlers bound");
+                
+                // Build and set queue after initialization (in background)
+                if (songs != null)
+                {
+                    await BuildAndSetPwaQueue(song);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to initialize PWA Media Session");
         }
     }
     
