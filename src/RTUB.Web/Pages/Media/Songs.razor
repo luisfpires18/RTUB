@@ -7,6 +7,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Shared
+@using RTUB.Web.Services
 @inject IAlbumService AlbumService
 @inject ISongService SongService
 @inject IAudioStorageService AudioStorageService
@@ -15,6 +16,8 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject RTUB.Web.Interop.MediaSessionInterop MediaSession
+@inject RTUB.Web.Services.MediaQueueService MediaQueueService
+@inject IJSRuntime JSRuntime
 
 @if (album == null)
 {
@@ -105,8 +108,7 @@ else
                 <i class="bi bi-music-note-beamed me-2"></i>
                 <span class="audio-title">@currentSongTitle</span>
             </div>
-            <audio controls autoplay @key="currentAudioUrl" class="audio-element">
-                <source src="@currentAudioUrl" type="audio/mpeg">
+            <audio id="rtub-audio-player" src="@currentAudioUrl" controls autoplay class="audio-element">
                 Seu navegador não suporta o elemento de áudio.
             </audio>
             <button class="btn btn-sm btn-outline-light" @onclick="StopAudio" title="Fechar">
@@ -603,6 +605,12 @@ else
     private string? currentAudioUrl;
     private string? currentSongTitle;
     
+    // PWA Media Session state
+    private List<MediaQueueService.QueueTrack> playbackQueue = new();
+    private int currentQueueIndex = 0;
+    private bool isPwaMode = false;
+    private bool pwaMediaSessionInitialized = false;
+    
     // PDF viewer state
     private bool isLoadingPdf = false;
     private string? currentPdfUrl;
@@ -645,6 +653,28 @@ else
         canManageSongs = userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
         isAdmin = userForOwner.IsInRole("Admin") || userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
         currentUserId = userForOwner.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Check if running in PWA mode (must be done after render for JS interop)
+            try
+            {
+                isPwaMode = await MediaSession.IsPwaModeAsync();
+                if (isPwaMode)
+                {
+                    Logger.LogInformation("Running in PWA mode - Media Session will be initialized on first play");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to check PWA mode");
+            }
+        }
+        
+        await base.OnAfterRenderAsync(firstRender);
     }
 
     private async Task LoadSongs()
@@ -1045,6 +1075,16 @@ else
                 }
                 
                 StateHasChanged();
+                
+                // Initialize PWA Media Session AFTER audio starts (non-blocking)
+                if (isPwaMode && !pwaMediaSessionInitialized)
+                {
+                    _ = InitializePwaMediaSessionAsync(song);
+                }
+                else if (isPwaMode && pwaMediaSessionInitialized && songs != null)
+                {
+                    _ = BuildAndSetPwaQueue(song);
+                }
             }
             else
             {
@@ -1332,6 +1372,130 @@ else
             
         // User can delete if they are the uploader OR if they are admin
         return video.CreatedByUserId == currentUserId || isAdmin;
+    }
+    
+    // PWA Media Session helper methods
+    private async Task InitializePwaMediaSessionAsync(Song song)
+    {
+        try
+        {
+            // Give the audio element time to render in the DOM
+            await Task.Delay(150);
+            
+            var initialized = await MediaSession.InitPwaMediaSessionAsync("rtub-audio-player");
+            
+            if (initialized)
+            {
+                pwaMediaSessionInitialized = true;
+                Logger.LogInformation("PWA Media Session initialized");
+                
+                // Build and set queue BEFORE binding handlers
+                // iOS needs to know the queue exists to show next/prev buttons
+                if (songs != null)
+                {
+                    await BuildAndSetPwaQueue(song);
+                }
+                
+                // Bind handlers after queue is set
+                await JSRuntime.InvokeVoidAsync("pwaMediaSession.bindHandlers");
+                Logger.LogInformation("PWA Media Session handlers bound");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to initialize PWA Media Session");
+        }
+    }
+    
+    private async Task BuildAndSetPwaQueue(Song selectedSong)
+    {
+        try
+        {
+            if (songs == null || album == null) return;
+            
+            // Build queue with all album songs, ordered by track number
+            playbackQueue = MediaQueueService.BuildQueue(songs, album.Title);
+            
+            // Find index of selected song
+            currentQueueIndex = MediaQueueService.FindSongIndex(playbackQueue, selectedSong.Id);
+            
+            if (currentQueueIndex == -1)
+            {
+                Logger.LogWarning("Selected song not found in queue");
+                return;
+            }
+            
+            // Pre-load audio URLs for all tracks in queue
+            var queueWithUrls = new List<object>();
+            foreach (var track in playbackQueue)
+            {
+                // Get or generate audio URL for each track
+                string cacheKey = $"audio_{album.Title}_{track.TrackNumber}_{track.Title}";
+                string? audioUrl = null;
+                
+                if (urlCache.TryGetValue(cacheKey, out var cachedUrl))
+                {
+                    audioUrl = cachedUrl;
+                }
+                else
+                {
+                    audioUrl = await AudioStorageService.GetAudioUrlAsync(album.Title, track.TrackNumber, track.Title);
+                    if (!string.IsNullOrEmpty(audioUrl) && urlCache.Count < MaxCacheSize)
+                    {
+                        urlCache[cacheKey] = audioUrl;
+                    }
+                }
+                
+                var albumCoverUrl = !string.IsNullOrEmpty(album.CoverImageSrc) 
+                    ? GetAlbumImageUrl(album.CoverImageSrc) 
+                    : "/icons/rtub-logo-512.png";
+                
+                queueWithUrls.Add(new
+                {
+                    id = track.Id,
+                    title = track.Title,
+                    artist = track.Artist,
+                    album = track.Album,
+                    audioUrl = audioUrl ?? string.Empty,
+                    artworkUrl = albumCoverUrl
+                });
+            }
+            
+            // Send queue to PWA Media Session (only if initialized)
+            if (pwaMediaSessionInitialized)
+            {
+                await MediaSession.SetQueueAsync(queueWithUrls, currentQueueIndex);
+                
+                Logger.LogInformation("PWA queue built with {Count} tracks, starting at index {Index}", 
+                    playbackQueue.Count, currentQueueIndex);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to build PWA queue");
+        }
+    }
+    
+    private async Task SetPwaTrackMetadata(Song song, string artworkUrl)
+    {
+        try
+        {
+            if (album == null) return;
+            
+            var metadata = new
+            {
+                title = song.Title,
+                artist = string.Empty,
+                album = album.Title,
+                artworkUrl = !string.IsNullOrEmpty(artworkUrl) ? artworkUrl : "/icons/rtub-logo-512.png"
+            };
+            
+            await MediaSession.SetNowPlayingMetadataForPwaAsync(metadata);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to set PWA track metadata");
+        }
     }
 }
 

@@ -15,6 +15,61 @@ public class MediaSessionInterop
     }
 
     /// <summary>
+    /// Initialize PWA Media Session module with audio element
+    /// </summary>
+    /// <param name="audioElementId">ID of the audio element</param>
+    /// <returns>True if successfully initialized in PWA mode</returns>
+    public ValueTask<bool> InitPwaMediaSessionAsync(string audioElementId)
+    {
+        return _js.InvokeAsync<bool>("pwaMediaSession.init", audioElementId);
+    }
+
+    /// <summary>
+    /// Set the playback queue for PWA mode
+    /// </summary>
+    /// <param name="queue">Array of track objects</param>
+    /// <param name="currentIndex">Index of current track</param>
+    public ValueTask SetQueueAsync(object queue, int currentIndex)
+    {
+        return _js.InvokeVoidAsync("pwaMediaSession.setQueue", queue, currentIndex);
+    }
+
+    /// <summary>
+    /// Set now playing metadata for PWA mode (legacy, maintained for compatibility)
+    /// </summary>
+    /// <param name="metadata">Track metadata object</param>
+    public ValueTask SetNowPlayingMetadataForPwaAsync(object metadata)
+    {
+        return _js.InvokeVoidAsync("pwaMediaSession.setNowPlaying", metadata);
+    }
+
+    /// <summary>
+    /// Update current index when track changes
+    /// </summary>
+    /// <param name="newIndex">New current index</param>
+    public ValueTask UpdateCurrentIndexAsync(int newIndex)
+    {
+        return _js.InvokeVoidAsync("pwaMediaSession.updateCurrentIndex", newIndex);
+    }
+
+    /// <summary>
+    /// Check if app is running in PWA mode
+    /// </summary>
+    /// <returns>True if in PWA mode</returns>
+    public ValueTask<bool> IsPwaModeAsync()
+    {
+        return _js.InvokeAsync<bool>("pwaMediaSession.detectPwaMode");
+    }
+
+    /// <summary>
+    /// Cleanup PWA Media Session handlers
+    /// </summary>
+    public ValueTask CleanupPwaMediaSessionAsync()
+    {
+        return _js.InvokeVoidAsync("pwaMediaSession.cleanup");
+    }
+
+    /// <summary>
     /// Sets the now playing metadata for the system media overlay
     /// </summary>
     /// <param name="title">Song title</param>
