@@ -21,20 +21,23 @@
             @* Will Attend Selection (only for events with ShowWillAttend=true) *@
             @if (ShowWillAttend)
             {
-                <div class="mb-4">
-                    <label class="form-label text-white-full fw-semibold">
-                        <i class="bi bi-person-check text-primary me-2"></i>Vais participar?
+                <div class="mb-4 participation-willattend">
+                    <label class="form-label text-white-full fw-semibold d-flex align-items-center gap-2">
+                        <i class="bi bi-person-check text-primary"></i>
+                        <span>Vais participar?</span>
                     </label>
-                    <div class="d-flex gap-2">
-                        <button type="button" 
-                                class="btn @(WillAttend ? "btn-success" : "btn-outline-secondary") flex-fill"
+                    <div class="event-buttons-container justify-content-start">
+                        <button type="button"
+                                class="btn event-icon-btn btn-going @(WillAttend ? "btn-selected" : "btn-secondary-small")"
                                 @onclick="@(() => OnWillAttendChanged(true))">
-                            <i class="bi bi-check-circle me-1"></i> Vou
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span class="btn-label">Vou</span>
                         </button>
-                        <button type="button" 
-                                class="btn @(!WillAttend ? "btn-danger" : "btn-outline-secondary") flex-fill"
+                        <button type="button"
+                                class="btn event-icon-btn btn-not-going @(!WillAttend ? "btn-selected" : "btn-secondary-small")"
                                 @onclick="@(() => OnWillAttendChanged(false))">
-                            <i class="bi bi-x-circle me-1"></i> Não vou
+                            <i class="bi bi-x-circle-fill"></i>
+                            <span class="btn-label">Não vou</span>
                         </button>
                     </div>
                 </div>

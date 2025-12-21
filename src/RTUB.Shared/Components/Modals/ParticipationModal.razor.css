@@ -1,2 +1,85 @@
 /* ParticipationModal Component Styles */
-/* No additional styles needed - uses existing Modal and form styling */
+
+.participation-willattend .event-buttons-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    flex-wrap: wrap;
+}
+
+.participation-willattend .event-icon-btn {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
+    padding: 0 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.participation-willattend .event-icon-btn .btn-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: inherit;
+}
+
+.participation-willattend .event-icon-btn i {
+    font-size: 1.1rem;
+}
+
+/* Going button (green success style) */
+.participation-willattend .btn-going {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+    opacity: 0.6;
+}
+
+.participation-willattend .btn-going:hover:not(:disabled) {
+    background-color: #157347;
+    border-color: #146c43;
+    color: white;
+    opacity: 1;
+}
+
+.participation-willattend .btn-going.btn-selected {
+    opacity: 1;
+}
+
+/* Not Going button (red danger style) */
+.participation-willattend .btn-not-going {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+    opacity: 0.6;
+}
+
+.participation-willattend .btn-not-going:hover:not(:disabled) {
+    background-color: #bb2d3b;
+    border-color: #b02a37;
+    color: white;
+    opacity: 1;
+}
+
+.participation-willattend .btn-not-going.btn-selected {
+    opacity: 1;
+}
+
+/* Smaller secondary button (for non-selected state) */
+.participation-willattend .event-icon-btn.btn-secondary-small {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+}
+
+.participation-willattend .event-icon-btn.btn-secondary-small .btn-label {
+    display: none;
+}

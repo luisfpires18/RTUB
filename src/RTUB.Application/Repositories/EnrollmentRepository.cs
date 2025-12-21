@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using System.Linq;
 
 namespace RTUB.Application.Repositories;
 
@@ -16,6 +17,12 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
 
     public override async Task<Enrollment> AddAsync(Enrollment entity)
     {
+        ResetChangeTracker();
+        ClearUserNavigation(entity);
+        ClearEventNavigation(entity);
+        NormalizeTrackedUsers();
+        NormalizeTrackedEnrollment(entity);
+
         // Ensure the User is loaded into Local cache for audit log display name resolution
         if (!string.IsNullOrEmpty(entity.UserId))
         {
@@ -41,6 +48,12 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
 
     public override async Task UpdateAsync(Enrollment entity)
     {
+        ResetChangeTracker();
+        ClearUserNavigation(entity);
+        ClearEventNavigation(entity);
+        NormalizeTrackedUsers();
+        NormalizeTrackedEnrollment(entity);
+
         // Ensure the User is loaded into Local cache for audit log display name resolution
         if (!string.IsNullOrEmpty(entity.UserId))
         {
@@ -58,9 +71,16 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
 
     public override async Task DeleteAsync(int id)
     {
+        ResetChangeTracker();
+
         var entity = await _dbSet.FindAsync(id);
         if (entity != null)
         {
+            ClearUserNavigation(entity);
+            ClearEventNavigation(entity);
+            NormalizeTrackedUsers();
+            NormalizeTrackedEnrollment(entity);
+
             // Ensure the User is loaded into Local cache for audit log display name resolution
             if (!string.IsNullOrEmpty(entity.UserId))
             {
@@ -91,6 +111,7 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
             .AsNoTracking()
             .Where(e => e.EventId == eventId)
             .Include(e => e.User)
+            .OrderByDescending(e => e.EnrolledAt)
             .ToListAsync();
     }
 
@@ -131,6 +152,92 @@ public class EnrollmentRepository : Repository<Enrollment>, IEnrollmentRepositor
         {
             _dbSet.RemoveRange(enrollments);
             await _context.SaveChangesAsync();
+        }
+    }
+
+    private void NormalizeTrackedUsers()
+    {
+        var userEntries = _context.ChangeTracker
+            .Entries<ApplicationUser>()
+            .Where(e => !string.IsNullOrEmpty(e.Entity.Id))
+            .ToList();
+
+        foreach (var grouping in userEntries.GroupBy(e => e.Entity.Id))
+        {
+            var primaryEntry = grouping
+                .OrderBy(e => e.State == EntityState.Unchanged ? 0 : 1)
+                .ThenBy(e => e.State == EntityState.Modified ? 0 : 1)
+                .First();
+
+            foreach (var entry in grouping)
+            {
+                if (entry == primaryEntry)
+                {
+                    if (entry.State == EntityState.Added)
+                    {
+                        entry.State = EntityState.Unchanged;
+                    }
+                    continue;
+                }
+
+                entry.State = EntityState.Detached;
+            }
+        }
+    }
+
+    private void ResetChangeTracker()
+    {
+        _context.ChangeTracker.Clear();
+    }
+
+    private void ClearUserNavigation(Enrollment entity)
+    {
+        if (entity.User != null)
+        {
+            var userEntry = _context.Entry(entity.User);
+            if (userEntry.State != EntityState.Detached)
+            {
+                userEntry.State = EntityState.Detached;
+            }
+
+            entity.User = null;
+        }
+    }
+
+    private void ClearEventNavigation(Enrollment entity)
+    {
+        if (entity.Event != null)
+        {
+            var eventEntry = _context.Entry(entity.Event);
+            if (eventEntry.State != EntityState.Detached)
+            {
+                eventEntry.State = EntityState.Detached;
+            }
+
+            entity.Event = null;
+        }
+    }
+
+    private void NormalizeTrackedEnrollment(Enrollment entity)
+    {
+        if (entity.Id == 0)
+        {
+            return;
+        }
+
+        var enrollmentEntries = _context.ChangeTracker
+            .Entries<Enrollment>()
+            .Where(e => e.Entity.Id == entity.Id)
+            .ToList();
+
+        foreach (var entry in enrollmentEntries)
+        {
+            if (entry.Entity == entity)
+            {
+                continue;
+            }
+
+            entry.State = EntityState.Detached;
         }
     }
 }

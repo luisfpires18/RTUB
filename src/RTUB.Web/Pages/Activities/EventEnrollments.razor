@@ -7,6 +7,7 @@
 @using RTUB.Application.Helpers
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Extensions
+@using RTUB.Application.Data
 @using RTUB.Shared
 @using RTUB.Shared.Components.UI
 @using RTUB.Shared.Components.Cards
@@ -17,30 +18,78 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
+@inject ApplicationDbContext DbContext
 
 <PageTitle>Inscrições - @(selectedEvent?.Name ?? "Evento")</PageTitle>
 
-<div class="enrollments-page-wrapper container-fluid">
+<div class="enrollments-page-wrapper">
     @if (selectedEvent == null)
     {
         <LoadingSpinner />
     }
     else
     {
-        <!-- Page Header -->
-        <div class="d-flex flex-column gap-3 mb-4">
-            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-                <div class="d-flex align-items-center gap-3">
-                    <button class="btn btn-outline-secondary btn-sm" @onclick="NavigateBack">
+        <div class="enrollments-inner">
+            <!-- Page Header -->
+            <div class="d-flex flex-column gap-3 mb-4 page-header-block">
+                <div class="d-flex align-items-center gap-3 page-header-row">
+                    <button class="btn btn-outline-secondary btn-sm back-button" @onclick="NavigateBack">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <div>
+                    <div class="page-header-text">
                         <h1 class="mb-2"><i class="bi bi-people"></i> Inscrições</h1>
                         <p class="lead page-header-subtitle mb-0 text-light-theme">@selectedEvent.Name</p>
                     </div>
                 </div>
             </div>
-        </div>
+
+        <!-- My Enrollment Section (for non-past, non-cancelled events) -->
+        @if (!selectedEvent.IsCancelled && selectedEvent.Date.Date >= DateTime.Today)
+        {
+            <div class="card participation-card mb-4">
+                <div class="card-body">
+                    <h6 class="mb-3">
+                        <i class="bi bi-person-check text-primary me-2"></i>A tua participação
+                    </h6>
+
+                    @if (userEnrollment != null)
+                    {
+                        <div class="participation-details mb-3">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="status-pill @(userEnrollment.WillAttend ? "going" : "not-going")">
+                                    <i class="@(userEnrollment.WillAttend ? "bi bi-check-circle" : "bi bi-x-circle") me-2"></i>
+                                    @(userEnrollment.WillAttend ? "VOU" : "NÃO VOU")
+                                </span>
+                                @if (userEnrollment.WillAttend && userEnrollment.Instrument.HasValue)
+                                {
+                                    <span class="instrument-chip">
+                                        <i class="bi bi-music-note-beamed me-2"></i>
+                                        @StatusHelper.GetInstrumentDisplay(userEnrollment.Instrument.Value)
+                                    </span>
+                                }
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(userEnrollment.Notes))
+                            {
+                                <div class="note-line">
+                                    <i class="bi bi-file-text me-2"></i>
+                                    <span>@userEnrollment.Notes</span>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <div class="participation-toggle-row">
+                        <button class="@GetParticipationButtonClasses(true)" @onclick="@(() => OpenEnrollModalWithParticipation(true))" aria-label="Vou">
+                            <span class="toggle-inner"><i class="bi bi-check-lg"></i></span>
+                        </button>
+                        <button class="@GetParticipationButtonClasses(false)" @onclick="@(() => OpenEnrollModalWithParticipation(false))" aria-label="Não vou">
+                            <span class="toggle-inner"><i class="bi bi-x-lg"></i></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
 
         <!-- Enrollment Content -->
         @if (eventEnrollments != null && eventEnrollments.Any())
@@ -294,8 +343,33 @@
                 </div>
             </Authorized>
         </AuthorizeView>
+        </div>
     }
 </div>
+
+<!-- Participation Modal (Enrollment Modal) -->
+@if (enrollmentForm != null)
+{
+    <ParticipationModal Show="@showEnrollModal"
+                       ShowChanged="@((bool show) => showEnrollModal = show)"
+                       Title="@GetEnrollmentModalTitle()"
+                       ShowWillAttend="@(!isParticipationPreSelected)"
+                       WillAttend="@enrollmentForm.WillAttend"
+                       WillAttendChanged="@((bool value) => enrollmentForm.WillAttend = value)"
+                       IsLeitao="@isCurrentUserLeitao"
+                       Instrument="@enrollmentForm.Instrument"
+                       InstrumentChanged="@((InstrumentType? value) => enrollmentForm.Instrument = value)"
+                       AvailableInstruments="@availableInstruments"
+                       Notes="@enrollmentForm.Notes"
+                       NotesChanged="@((string value) => enrollmentForm.Notes = value)"
+                       NotesRows="4"
+                       NotesPlaceholder="@(enrollmentForm.WillAttend ? "Informações adicionais..." : "Motivo da impossibilidade...")"
+                       SubmitButtonText="@(isEditingEnrollment ? "Atualizar" : "Confirmar")"
+                       WantToPlay="@wantToPlay"
+                       WantToPlayChanged="@((bool value) => wantToPlay = value)"
+                       OnSubmit="@SaveEnrollment"
+                       OnCancel="@CloseEnrollModal" />
+}
 
 <!-- Delete Enrollment Confirmation Modal -->
 <ConfirmDialog Show="@showDeleteEnrollmentModal"
@@ -315,10 +389,21 @@
 
     private Event? selectedEvent;
     private List<Enrollment>? eventEnrollments;
-    private ApplicationUser? currentUser;
+    private string? currentUserId;
+    private bool isCurrentUserLeitao = false;
     private bool isUserAdmin = false;
     private bool showDeleteEnrollmentModal = false;
     private Enrollment? deletingEnrollment;
+    
+    // User's own enrollment state
+    private Enrollment? userEnrollment;
+    private bool showEnrollModal = false;
+    private bool isEditingEnrollment = false;
+    private bool isParticipationPreSelected = false;
+    private bool wantToPlay = false;
+    private Enrollment? enrollmentForm;
+    private List<MemberInstrument>? currentUserInstruments;
+    private List<InstrumentType>? availableInstruments;
     
     // Enrollment modal filter variables
     private string enrollmentSearchTerm = string.Empty;
@@ -353,13 +438,26 @@
         
         if (user.Identity?.IsAuthenticated == true)
         {
-            var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                currentUser = await UserManager.FindByIdAsync(userId);
-            }
+            currentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             
             isUserAdmin = user.IsInRole("Admin");
+            
+            // Load user's category to determine if Leitão (needed for modal)
+            // and instruments for the enrollment modal (once during initialization)
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                // Load user data without tracking - just to get Categories
+                var userData = await UserManager.FindByIdAsync(currentUserId);
+                if (userData != null)
+                {
+                    isCurrentUserLeitao = userData.Categories.Contains(MemberCategory.Leitao);
+                    // Immediately detach to prevent tracking issues
+                    DbContext.Entry(userData).State = EntityState.Detached;
+                }
+                
+                currentUserInstruments = (await MemberInstrumentService.GetMemberInstrumentsAsync(currentUserId)).ToList();
+                availableInstruments = currentUserInstruments.Select(mi => mi.InstrumentType).ToList();
+            }
         }
         
         await LoadEventAndEnrollments();
@@ -375,16 +473,24 @@
         }
         
         eventEnrollments = (await EnrollmentService.GetEnrollmentsByEventIdAsync(EventId)).ToList();
+        
+        // Load current user's enrollment
+        if (!string.IsNullOrEmpty(currentUserId))
+        {
+            userEnrollment = eventEnrollments.FirstOrDefault(e => e.UserId == currentUserId);
+        }
+        
         enrollmentSearchTerm = string.Empty;
         FilterEnrollments();
         
         // Calculate primary and other instrument counts
         await CalculateInstrumentCountsAsync();
         
-        // Load all members for adding if admin AND it's a past event
-        if (isUserAdmin && selectedEvent.Date.Date < DateTime.Today)
+        // Load all members for adding if admin
+        if (isUserAdmin)
         {
             allMembersForEnrollment = await UserManager.Users
+                .AsNoTracking()
                 .Select(u => new ApplicationUser
                 {
                     Id = u.Id,
@@ -399,6 +505,161 @@
             FilterAvailableMembersForEnrollment();
         }
     }
+
+    // Enrollment Modal Methods (reused from Events.razor)
+    
+    private string GetParticipationButtonClasses(bool willAttend)
+    {
+        var isSelected = userEnrollment?.WillAttend == willAttend;
+        var baseClass = willAttend ? "participation-toggle going" : "participation-toggle not-going";
+        var stateClass = isSelected ? "is-selected" : "is-unselected";
+
+        return $"{baseClass} {stateClass}";
+    }
+
+    private void OpenEnrollModalWithParticipation(bool willParticipate)
+    {
+        if (string.IsNullOrEmpty(currentUserId) || selectedEvent == null) return;
+
+        isParticipationPreSelected = true; // Hide WillAttend selection when pre-selected from buttons
+
+        if (userEnrollment != null)
+        {
+            isEditingEnrollment = true;
+            wantToPlay = userEnrollment.Instrument.HasValue;
+
+            enrollmentForm = new Enrollment
+            {
+                Id = userEnrollment.Id,
+                UserId = userEnrollment.UserId,
+                EventId = userEnrollment.EventId,
+                Instrument = userEnrollment.Instrument,
+                Notes = userEnrollment.Notes,
+                OtherInstruments = userEnrollment.OtherInstruments,
+                WillAttend = willParticipate
+            };
+        }
+        else
+        {
+            isEditingEnrollment = false;
+
+            var (defaultInstrument, shouldWantToPlay) = GetDefaultInstrumentSettings();
+            wantToPlay = shouldWantToPlay;
+
+            enrollmentForm = new Enrollment
+            {
+                UserId = currentUserId,
+                EventId = selectedEvent.Id,
+                Instrument = defaultInstrument,
+                Notes = string.Empty,
+                WillAttend = willParticipate
+            };
+        }
+
+        showEnrollModal = true;
+    }
+    
+    private (InstrumentType? defaultInstrument, bool wantToPlay) GetDefaultInstrumentSettings()
+    {
+        if (currentUserInstruments != null && currentUserInstruments.Any())
+        {
+            var primaryInstrument = currentUserInstruments.FirstOrDefault(mi => mi.IsPrimary);
+            var defaultInstrument = primaryInstrument?.InstrumentType ?? currentUserInstruments.First().InstrumentType;
+            return (defaultInstrument, true); // Enable "Quero tocar" if instruments are available
+        }
+        return (null, false); // Disable "Quero tocar" if no instruments configured
+    }
+    
+    private string GetEnrollmentModalTitle()
+    {
+        if (selectedEvent == null) return "Participação";
+        
+        if (isEditingEnrollment)
+        {
+            return enrollmentForm?.WillAttend == true 
+                ? "Editar Inscrição" 
+                : $"Editar Impossibilidade em {selectedEvent.Name}";
+        }
+        
+        return enrollmentForm?.WillAttend == true 
+            ? $"Inscrever em {selectedEvent.Name}" 
+            : $"Impossibilidade de inscrição em {selectedEvent.Name}";
+    }
+    
+    private void CloseEnrollModal()
+    {
+        showEnrollModal = false;
+        enrollmentForm = null;
+        isEditingEnrollment = false;
+        isParticipationPreSelected = false;
+        wantToPlay = false;
+    }
+    
+    private async Task SaveEnrollment()
+    {
+        if (enrollmentForm == null || string.IsNullOrEmpty(currentUserId)) return;
+
+        InstrumentType? instrumentToSave = null;
+        string? otherInstrumentsText = null;
+
+        // Only process instrument info if wanting to play
+        if (wantToPlay)
+        {
+            instrumentToSave = enrollmentForm.Instrument;
+            
+            // Get all member instruments and calculate other instruments
+            var memberInstruments = await MemberInstrumentService.GetMemberInstrumentsAsync(currentUserId);
+            
+            if (enrollmentForm.Instrument.HasValue)
+            {
+                // Get all instruments except the selected one
+                var otherInstruments = memberInstruments
+                    .Where(mi => mi.InstrumentType != enrollmentForm.Instrument.Value)
+                    .Select(mi => StatusHelper.GetInstrumentDisplay(mi.InstrumentType))
+                    .ToList();
+                
+                if (otherInstruments.Any())
+                {
+                    otherInstrumentsText = string.Join(", ", otherInstruments);
+                }
+            }
+        }
+
+        if (isEditingEnrollment)
+        {
+            var existingEnrollment = await EnrollmentService.GetEnrollmentByIdAsync(enrollmentForm.Id);
+            if (existingEnrollment != null && existingEnrollment.UserId == currentUserId)
+            {
+                // Update enrollment using the UpdateEnrollmentAsync method
+                await EnrollmentService.UpdateEnrollmentAsync(
+                    enrollmentForm.Id,
+                    enrollmentForm.WillAttend,
+                    instrumentToSave,
+                    enrollmentForm.Notes,
+                    otherInstrumentsText
+                );
+            }
+        }
+        else
+        {
+            await EnrollmentService.CreateEnrollmentAsync(
+                enrollmentForm.UserId,
+                enrollmentForm.EventId,
+                instrumentToSave,
+                enrollmentForm.Notes,
+                enrollmentForm.WillAttend,
+                otherInstrumentsText
+            );
+        }
+
+        // Reload enrollments to update UI
+        await LoadEventAndEnrollments();
+        CloseEnrollModal();
+        StateHasChanged();
+    }
+
+    // End Enrollment Modal Methods
+    
 
     private Task HandleEnrollmentSearch(string term)
     {

@@ -1,0 +1,190 @@
+.enrollments-page-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.enrollments-inner {
+    width: 100%;
+    max-width: 1200px;
+}
+
+.page-header-block {
+    align-items: center;
+    text-align: center;
+}
+
+.page-header-row {
+    position: relative;
+    justify-content: center;
+    width: 100%;
+    padding-inline: 2.5rem;
+}
+
+.page-header-text h1,
+.page-header-text .page-header-subtitle {
+    margin-bottom: 0;
+}
+
+.page-header-text {
+    flex: 1;
+}
+
+.back-button {
+    position: absolute;
+    left: 0;
+}
+
+.page-header-subtitle {
+    font-weight: 500;
+}
+
+.participation-card {
+    background-color: #1a1a1b;
+    border: 1px solid #2f2f2f;
+    max-width: 360px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    margin: 0 auto;
+}
+
+.participation-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-weight: 700;
+    color: #0f0f0f;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.status-pill.going {
+    background: linear-gradient(135deg, #2db06e, #1f7a4b);
+    color: #f1fff6;
+}
+
+.status-pill.not-going {
+    background: linear-gradient(135deg, #b9474f, #7d252d);
+    color: #fff1f1;
+}
+
+.instrument-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 12px;
+    background: #232324;
+    color: #f8f9fa;
+    border: 1px solid #323232;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.note-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    color: #f1f1f1;
+    background: #161616;
+    border: 1px solid #2a2a2b;
+    border-radius: 10px;
+    padding: 0.5rem 0.75rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.participation-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.participation-toggle {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.participation-toggle .toggle-inner {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #d9d9d9;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #1f1f1f;
+    font-size: 1rem;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.participation-toggle.going {
+    background: linear-gradient(135deg, #1c7d4f, #145c3a);
+}
+
+.participation-toggle.not-going {
+    background: linear-gradient(135deg, #a52932, #7d1d25);
+}
+
+.participation-toggle.is-selected {
+    transform: scale(1.02);
+    opacity: 1;
+}
+
+.participation-toggle.is-unselected {
+    opacity: 0.8;
+    transform: scale(0.96);
+}
+
+.participation-toggle:hover {
+    transform: scale(1.04);
+    opacity: 1;
+}
+
+.participation-toggle:focus-visible {
+    outline: 2px solid #a88ee5;
+    outline-offset: 2px;
+}
+
+.participation-toggle-row .participation-toggle:active {
+    transform: scale(0.94);
+}
+
+@media (max-width: 576px) {
+    .enrollments-page-wrapper {
+        padding: 0.5rem;
+    }
+
+    .page-header-row {
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+        padding-inline: 1.25rem;
+    }
+
+    .page-header-text {
+        text-align: center;
+        flex: 1;
+    }
+
+    .participation-toggle-row {
+        justify-content: center;
+    }
+
+    .participation-card {
+        max-width: 100%;
+    }
+}

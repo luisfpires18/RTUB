@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 
@@ -56,11 +57,17 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual async Task UpdateAsync(T entity)
     {
+        DetachLocalDuplicate(entity);
+
         // Attach the entity if it's not being tracked
         var entry = _context.Entry(entity);
         if (entry.State == EntityState.Detached)
         {
             _dbSet.Attach(entity);
+            entry.State = EntityState.Modified;
+        }
+        else
+        {
             entry.State = EntityState.Modified;
         }
 
@@ -110,5 +117,55 @@ public class Repository<T> : IRepository<T> where T : class
     public virtual async Task<int> SaveChangesAsync()
     {
         return await _context.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    private void DetachLocalDuplicate(T entity)
+    {
+        var entityType = _context.Model.FindEntityType(typeof(T));
+        var primaryKey = entityType?.FindPrimaryKey();
+        if (primaryKey == null)
+        {
+            return;
+        }
+
+        var keyValues = primaryKey.Properties
+            .Select(p => p.PropertyInfo?.GetValue(entity))
+            .ToArray();
+
+        var trackedEntry = _context.ChangeTracker
+            .Entries<T>()
+            .FirstOrDefault(e => e.State != EntityState.Detached && KeysMatch(primaryKey, e.Entity, keyValues));
+
+        if (trackedEntry != null && !ReferenceEquals(trackedEntry.Entity, entity))
+        {
+            trackedEntry.State = EntityState.Detached;
+        }
+    }
+
+    private static bool KeysMatch(IKey key, T trackedEntity, object?[] keyValues)
+    {
+        for (int i = 0; i < key.Properties.Count; i++)
+        {
+            var property = key.Properties[i];
+            var trackedValue = property.PropertyInfo?.GetValue(trackedEntity);
+            var incomingValue = keyValues[i];
+
+            if (trackedValue == null && incomingValue == null)
+            {
+                continue;
+            }
+
+            if (trackedValue == null || incomingValue == null)
+            {
+                return false;
+            }
+
+            if (!trackedValue.Equals(incomingValue))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

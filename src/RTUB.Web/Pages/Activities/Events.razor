@@ -2158,9 +2158,9 @@ else
         // Calculate primary and other instrument counts
         await CalculateInstrumentCountsAsync();
         
-        // Load all members for adding if admin AND it's a past event
+        // Load all members for adding if admin
         // Use projection to load only needed fields for better performance
-        if (isUserAdmin && eventItem.Date.Date < DateTime.Today)
+        if (isUserAdmin)
         {
             allMembersForEnrollment = await UserManager.Users
                 .Select(u => new ApplicationUser
@@ -3092,7 +3092,7 @@ else
         return daysUntil == 1 ? "1 dia" : $"{daysUntil} dias";
     }
     
-    // Add Member to Enrollment Methods (for past events)
+    // Add Member to Enrollment Methods
 
     private async Task HandleAddMemberToEnrollmentSearchChanged(string searchTerm)
     {
