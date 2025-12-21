@@ -27,7 +27,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         cut.Markup.Should().Contain("Favaios", "card should display song title");
@@ -42,7 +43,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         cut.Markup.Should().Contain("#1", "card should display track number");
@@ -58,7 +60,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         cut.Markup.Should().NotContain("song-track-number", "track number should not appear when not set");
@@ -74,7 +77,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         cut.Markup.Should().Contain("Letra:", "lyric author label should be present");
@@ -92,7 +96,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         cut.Markup.Should().Contain("Música:", "music author label should be present");
@@ -110,7 +115,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         cut.Markup.Should().Contain("Adaptação:", "adaptation label should be present");
@@ -128,7 +134,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         cut.Markup.Should().NotContain("Adaptação:", "adaptation section should not appear when not set");
@@ -143,7 +150,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         cut.Markup.Should().Contain("Autor desconhecido", "should display unknown author message");
@@ -159,7 +167,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         cut.Markup.Should().Contain("bi-play-circle-fill", "should show play button icon");
@@ -178,7 +187,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         var playButtons = cut.FindAll("button").Where(b => b.InnerHtml.Contains("Play"));
@@ -194,7 +204,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         cut.Markup.Should().Contain("bi-file-text-fill", "should show lyric button icon");
@@ -211,7 +222,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         var linksButtons = cut.FindAll("button").Where(b => b.InnerHtml.Contains("Links"));
@@ -227,7 +239,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         var linksButtons = cut.FindAll("button").Where(b => b.InnerHtml.Contains("Links"));
@@ -235,7 +248,7 @@ public class SongCardTests : TestContext
     }
 
     [Fact]
-    public void SongCard_ShowsAdminButtons_WhenUserIsOwner()
+    public void SongCard_ShowsAdminButtons_WhenUserCanEditAndDelete()
     {
         // Arrange
         var song = Song.Create("Favaios", 1);
@@ -243,7 +256,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, true));
+            .Add(p => p.CanEdit, true)
+            .Add(p => p.CanDelete, true));
 
         // Assert
         cut.Markup.Should().Contain("song-admin-overlay", "admin overlay should appear");
@@ -254,7 +268,7 @@ public class SongCardTests : TestContext
     }
 
     [Fact]
-    public void SongCard_DoesNotShowAdminButtons_WhenUserIsNotOwner()
+    public void SongCard_DoesNotShowAdminButtons_WhenUserCannotManage()
     {
         // Arrange
         var song = Song.Create("Favaios", 1);
@@ -262,7 +276,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         cut.Markup.Should().NotContain("song-admin-overlay", "admin overlay should not appear for non-owner");
@@ -277,7 +292,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         cut.Markup.Should().Contain("card", "should have card class");
@@ -293,7 +309,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert
         cut.Markup.Should().Contain("song-icon-circle", "should have icon circle");
@@ -310,7 +327,8 @@ public class SongCardTests : TestContext
 
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false)
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false)
             .Add(p => p.OnPlay, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
@@ -330,7 +348,8 @@ public class SongCardTests : TestContext
 
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false)
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false)
             .Add(p => p.OnViewLyric, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
@@ -351,7 +370,8 @@ public class SongCardTests : TestContext
 
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false)
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false)
             .Add(p => p.OnViewLinks, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
@@ -371,7 +391,8 @@ public class SongCardTests : TestContext
 
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, true)
+            .Add(p => p.CanEdit, true)
+            .Add(p => p.CanDelete, true)
             .Add(p => p.OnEdit, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
@@ -391,7 +412,7 @@ public class SongCardTests : TestContext
 
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, true)
+            .Add(p => p.CanDelete, true)
             .Add(p => p.OnDelete, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
 
         // Act
@@ -412,7 +433,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert - Should have song-author-header divs (column layout)
         cut.Markup.Should().Contain("song-author-header", "metadata rows should use column layout with header div");
@@ -428,7 +450,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert - Should use inline class and not have header div
         cut.Markup.Should().Contain("song-author-row-inline", "unknown author should use inline layout");
@@ -446,7 +469,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert - All metadata text should have title attributes for tooltips
         cut.Markup.Should().Contain("title=\"João Silva\"", "lyric author should have tooltip");
@@ -464,7 +488,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert - Should have non-breaking space after comma (represented as &nbsp; or \u00A0)
         var markup = cut.Markup;
@@ -484,7 +509,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert - Should have song-author-row class which includes text box styling
         cut.Markup.Should().Contain("song-author-row", "should have text box styling class");
@@ -502,7 +528,8 @@ public class SongCardTests : TestContext
         // Act
         var cut = RenderComponent<SongCard>(parameters => parameters
             .Add(p => p.Song, song)
-            .Add(p => p.IsOwner, false));
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
 
         // Assert - Text should be in separate element from header for indentation
         var markup = cut.Markup;

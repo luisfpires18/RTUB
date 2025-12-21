@@ -10,15 +10,21 @@
 
 <div class="card song-card h-100">
     <div class="position-relative">
-        @if (IsOwner)
+        @if (CanEdit || CanDelete)
         {
             <div class="song-admin-overlay">
-                <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
-                    <i class="bi bi-pencil music-icon-edit"></i>
-                </button>
-                <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
-                    <i class="bi bi-trash music-icon-delete"></i>
-                </button>
+                @if (CanEdit)
+                {
+                    <button class="btn btn-sm music-btn-edit" @onclick="HandleEdit" title="Editar">
+                        <i class="bi bi-pencil music-icon-edit"></i>
+                    </button>
+                }
+                @if (CanDelete)
+                {
+                    <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar">
+                        <i class="bi bi-trash music-icon-delete"></i>
+                    </button>
+                }
             </div>
         }
         <div class="song-header">
@@ -137,10 +143,16 @@
     public Song Song { get; set; } = null!;
 
     /// <summary>
-    /// Whether the current user is the owner (has edit permissions)
+    /// Whether the current user can edit the song
     /// </summary>
     [Parameter]
-    public bool IsOwner { get; set; }
+    public bool CanEdit { get; set; }
+
+    /// <summary>
+    /// Whether the current user can delete the song
+    /// </summary>
+    [Parameter]
+    public bool CanDelete { get; set; }
 
     /// <summary>
     /// Callback when the play button is clicked
@@ -250,7 +262,8 @@
     // Track previous state for ShouldRender optimization
     private int _previousSongId;
     private bool _previousHasMusic;
-    private bool _previousIsOwner;
+    private bool _previousCanEdit;
+    private bool _previousCanDelete;
     private bool _previousHasVideos;
     
     /// <summary>
@@ -265,12 +278,14 @@
         
         if (songId != _previousSongId ||
             hasMusic != _previousHasMusic ||
-            IsOwner != _previousIsOwner ||
+            CanEdit != _previousCanEdit ||
+            CanDelete != _previousCanDelete ||
             hasVideos != _previousHasVideos)
         {
             _previousSongId = songId;
             _previousHasMusic = hasMusic;
-            _previousIsOwner = IsOwner;
+            _previousCanEdit = CanEdit;
+            _previousCanDelete = CanDelete;
             _previousHasVideos = hasVideos;
             return true;
         }

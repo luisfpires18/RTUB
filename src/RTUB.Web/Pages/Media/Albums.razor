@@ -60,15 +60,19 @@ else
                                 <i class="bi bi-disc music-icon-large"></i>
                             </div>
                         }
-                        <AuthorizeView Roles="Admin">
-                            <Authorized>
+                        <AuthorizeView Roles="Admin,Mod">
+                            <Authorized Context="modAuth">
                                 <div class="admin-overlay">
                                     <button class="btn btn-sm music-btn-edit" @onclick:stopPropagation="true" @onclick="() => OpenEditModal(album)" title="Editar">
                                         <i class="bi bi-pencil music-icon-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(album)" title="Eliminar">
-                                        <i class="bi bi-trash music-icon-delete"></i>
-                                    </button>
+                                    <AuthorizeView Roles="Admin">
+                                        <Authorized Context="adminAuth">
+                                            <button class="btn btn-sm music-btn-delete" @onclick:stopPropagation="true" @onclick="() => OpenDeleteModal(album)" title="Eliminar">
+                                                <i class="bi bi-trash music-icon-delete"></i>
+                                            </button>
+                                        </Authorized>
+                                    </AuthorizeView>
                                 </div>
                             </Authorized>
                         </AuthorizeView>
@@ -360,7 +364,7 @@ else
     {
         if (editingAlbum == null) return;
 
-        // Check if user has Owner or Mod role
+        // Check if user has Admin or Mod role
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         if (!user.IsInRole("Admin") && !user.IsInRole("Mod"))
@@ -438,7 +442,7 @@ else
     {
         if (deletingAlbum == null) return;
 
-        // Check if user has Owner or Mod role
+        // Check if user has Admin or Mod role
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         if (!user.IsInRole("Admin") && !user.IsInRole("Mod"))

@@ -119,7 +119,7 @@
                             Notes="@enrollment.Notes"
                             AltText="@enrollment.User?.GetDisplayName()"
                             ShowEditButton="false"
-                            ShowDeleteButton="@CanDeleteEnrollment()"
+                            ShowDeleteButton="@CanDeleteEnrollment(enrollment)"
                             OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
                             DeleteTooltip="Eliminar Inscrição">
                             <BadgeContent>
@@ -179,7 +179,7 @@
                             Notes="@enrollment.Notes"
                             AltText="@enrollment.User?.GetDisplayName()"
                             ShowEditButton="false"
-                            ShowDeleteButton="@CanDeleteEnrollment()"
+                            ShowDeleteButton="@CanDeleteEnrollment(enrollment)"
                             OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
                             DeleteTooltip="Eliminar Inscrição">
                             <BadgeContent>
@@ -221,7 +221,7 @@
                             Notes="@enrollment.Notes"
                             AltText="@enrollment.User?.GetDisplayName()"
                             ShowEditButton="false"
-                            ShowDeleteButton="false"
+                            ShowDeleteButton="@CanDeleteEnrollment(enrollment)"
                             OnDelete="@(() => OpenDeleteEnrollmentModal(enrollment))"
                             DeleteTooltip="Eliminar Inscrição">
                             <BadgeContent>
@@ -725,9 +725,15 @@
             }).ToList();
         }
         
-        filteredPerformingMembers = performingMembers;
-        filteredLeitoes = leitaoMembers.OrderBy(e => e.User?.FirstName).ToList();
-        filteredNotAttending = notAttendingMembers.OrderBy(e => e.User?.FirstName).ToList();
+        filteredPerformingMembers = performingMembers
+            .OrderByDescending(e => e.EnrolledAt)
+            .ToList();
+        filteredLeitoes = leitaoMembers
+            .OrderByDescending(e => e.EnrolledAt)
+            .ToList();
+        filteredNotAttending = notAttendingMembers
+            .OrderByDescending(e => e.EnrolledAt)
+            .ToList();
         
         // Reset to page 1 when search changes
         performingMembersPagination.CurrentPage = 1;
@@ -835,9 +841,14 @@
         }
     }
     
-    private bool CanDeleteEnrollment()
+    private bool CanDeleteEnrollment(Enrollment enrollment)
     {
-        return isUserAdmin;
+        if (isUserAdmin)
+        {
+            return true;
+        }
+
+        return !string.IsNullOrEmpty(currentUserId) && enrollment.UserId == currentUserId;
     }
     
     // Add Member to Enrollment Methods

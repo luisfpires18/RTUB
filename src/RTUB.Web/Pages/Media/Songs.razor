@@ -86,8 +86,9 @@ else
         <div class="song-grid">
             @foreach (var song in songs.OrderBy(s => s.TrackNumber))
             {
-                <SongCard Song="@song" 
-                         IsOwner="@canManageSongs"
+                <SongCard Song="@song"
+                         CanEdit="@canEditSongs"
+                         CanDelete="@canDeleteSongs"
                          OnPlay="@(() => PlaySong(song))"
                          OnViewLyric="@(() => OpenViewLyricsModal(song))"
                          OnViewLinks="@(() => OpenLinksModal(song))"
@@ -587,9 +588,11 @@ else
     private Song? deletingSong;
     private Song? viewingVideosForSong = null;
     private List<string> editingYouTubeUrls = new();
-    private bool canManageSongs = false;
+    private bool canEditSongs = false;
+    private bool canDeleteSongs = false;
     private string? currentUserId = null;
-    private bool isAdmin = false;
+    private bool isAdminOrOwner = false;
+    private bool isModerator = false;
     
     // Video modal state (view and upload)
     private List<SongVideo>? songVideos = null;
@@ -647,11 +650,13 @@ else
         
         await LoadSongs();
         
-        // Check if user is Owner or Mod and get user info
+        // Check if user is Admin, Owner, or Mod and get user info
         var authStateForOwner = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var userForOwner = authStateForOwner.User;
-        canManageSongs = userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
-        isAdmin = userForOwner.IsInRole("Admin") || userForOwner.IsInRole("Owner") || userForOwner.IsInRole("Mod");
+        isAdminOrOwner = userForOwner.IsInRole("Admin") || userForOwner.IsInRole("Owner");
+        isModerator = userForOwner.IsInRole("Mod");
+        canEditSongs = isAdminOrOwner || isModerator;
+        canDeleteSongs = isAdminOrOwner;
         currentUserId = userForOwner.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
     }
     
@@ -847,10 +852,7 @@ else
     {
         if (editingSong == null) return;
 
-        // Check if user has Owner or Mod role
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        if (!user.IsInRole("Admin") && !user.IsInRole("Mod"))
+        if (!canEditSongs)
         {
             return; // Unauthorized
         }
@@ -936,10 +938,7 @@ else
     {
         if (editingSong == null || string.IsNullOrWhiteSpace(editingSong.Title)) return;
 
-        // Check if user has Owner or Mod role
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        if (!user.IsInRole("Admin") && !user.IsInRole("Mod"))
+        if (!canEditSongs)
         {
             return; // Unauthorized
         }
@@ -989,14 +988,11 @@ else
     {
         if (deletingSong == null) return;
 
-        // Check if user has Owner or Mod role
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        if (!user.IsInRole("Admin") && !user.IsInRole("Mod"))
+        if (!canDeleteSongs)
         {
             return; // Unauthorized
         }
-
+        
         await SongService.DeleteSongAsync(deletingSong.Id);
         await LoadSongs();
 
@@ -1293,7 +1289,7 @@ else
         try
         {
             var userId = await GetCurrentUserId();
-            await SongService.DeleteVideoAsync(video.Id, userId, isAdmin);
+            await SongService.DeleteVideoAsync(video.Id, userId, canDeleteSongs);
             
             // Clear selection if the deleted video was selected
             if (selectedVideoId == video.Id)
@@ -1367,7 +1363,7 @@ else
             return false;
             
         // User can delete if they are the uploader OR if they are admin
-        return video.CreatedByUserId == currentUserId || isAdmin;
+        return video.CreatedByUserId == currentUserId || canDeleteSongs;
     }
     
     // PWA Media Session helper methods
