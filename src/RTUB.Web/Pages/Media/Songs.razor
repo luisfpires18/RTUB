@@ -16,6 +16,7 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject RTUB.Web.Interop.MediaSessionInterop MediaSession
+@inject RTUB.Web.Interop.AudioPlayerInterop AudioPlayer
 @inject RTUB.Web.Services.MediaQueueService MediaQueueService
 @inject IJSRuntime JSRuntime
 
@@ -109,7 +110,7 @@ else
                 <i class="bi bi-music-note-beamed me-2"></i>
                 <span class="audio-title">@currentSongTitle</span>
             </div>
-            <audio id="rtub-audio-player" src="@currentAudioUrl" controls autoplay class="audio-element">
+            <audio id="rtub-audio-player" src="@currentAudioUrl" controls class="audio-element">
                 Seu navegador não suporta o elemento de áudio.
             </audio>
             <button class="btn btn-sm btn-outline-light" @onclick="StopAudio" title="Fechar">
@@ -628,6 +629,7 @@ else
     
     // Media session constants
     private const int VideoElementRenderDelayMs = 100; // Delay to ensure video element is rendered before attaching MediaSession
+    private const int AudioElementRenderDelayMs = 50; // Delay to ensure audio element is rendered in DOM before playback
 
     protected override async Task OnInitializedAsync()
     {
@@ -1068,6 +1070,24 @@ else
                 
                 StateHasChanged();
                 
+                // Wait for the audio element to render in the DOM before attempting playback
+                // This ensures the audio element exists and is ready for JavaScript interop
+                await Task.Delay(AudioElementRenderDelayMs);
+                
+                // Explicitly play the audio with proper loading and error handling
+                try
+                {
+                    var playbackStarted = await AudioPlayer.PlayAudioAsync("rtub-audio-player");
+                    if (!playbackStarted)
+                    {
+                        Logger.LogWarning("Audio playback failed to start for song: {SongTitle}", song.Title);
+                    }
+                }
+                catch (Exception playEx)
+                {
+                    Logger.LogWarning(playEx, "Exception while starting audio playback for song: {SongTitle}", song.Title);
+                }
+                
                 // Initialize PWA Media Session AFTER audio starts (non-blocking)
                 if (isPwaMode && !pwaMediaSessionInitialized)
                 {
@@ -1094,6 +1114,16 @@ else
     
     private async Task StopAudio()
     {
+        // Stop audio playback using the AudioPlayerInterop for proper cleanup
+        try
+        {
+            await AudioPlayer.StopAudioAsync("rtub-audio-player");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to stop audio playback");
+        }
+        
         currentAudioUrl = null;
         currentSongTitle = null;
         

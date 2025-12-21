@@ -329,6 +329,9 @@ public class Program
         // Media Session API interop for lock screen / system media overlay
         services.AddScoped<RTUB.Web.Interop.MediaSessionInterop>();
         
+        // Audio Player interop for reliable audio playback
+        services.AddScoped<RTUB.Web.Interop.AudioPlayerInterop>();
+        
         // Media Queue Service for PWA playback queue management
         services.AddScoped<RTUB.Web.Services.MediaQueueService>();
 
