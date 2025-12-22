@@ -10,7 +10,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "Owner")]
 @inherits CrudTablePageBase<ApplicationUser>
 
 <div class="d-flex flex-column gap-3 mb-4">
@@ -25,7 +25,6 @@
             {
                 <SyncChatGroupsButton OnSyncCompleted="HandleSyncCompleted" />
             }
-            <LoginStatisticsButton />
         </div>
     </div>
 

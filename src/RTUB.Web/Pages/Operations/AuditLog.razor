@@ -21,6 +21,7 @@
                 <p class="lead page-header-subtitle text-light-theme">Rastreio de atividades em todo o sistema para fins de responsabilização e resolução de problemas</p>
             </div>
             <div class="page-header-actions">
+                <LoginStatisticsButton />
                 <button class="btn btn-success" @onclick="ExportToJson" disabled="@isExporting">
                     <i class="bi bi-download"></i> <span class="btn-text">@(isExporting ? "Exporting..." : "Export JSON")</span>
                 </button>
