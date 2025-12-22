@@ -1074,7 +1074,7 @@ else
                                 </td>
                                 <AuthorizeView Roles="Admin">
                                     <Authorized>
-                                        <td>
+                                        <td class="actions-cell">
                                             <button class="btn btn-sm @(IsBirthdayToday(member) ? "btn-success" : "btn-secondary")"
                                                     @onclick="@(() => SendBirthdayEmail(member))"
                                                     disabled="@(!IsBirthdayToday(member))"

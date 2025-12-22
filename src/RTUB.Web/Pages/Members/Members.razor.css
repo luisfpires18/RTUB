@@ -114,19 +114,19 @@
     }
     
     /* Actions cell */
-    .table-responsive table.table tr td:last-child {
+    .table-responsive table.table tr td.actions-cell {
         padding-left: 0;
         padding-top: 0.75rem;
         border-top: 1px solid #343536;
         margin-top: 0.5rem;
         text-align: center !important;
     }
-    
-    .table-responsive table.table tr td:last-child::before {
+
+    .table-responsive table.table tr td.actions-cell::before {
         display: none;
     }
-    
-    .table-responsive table.table tr td:last-child .btn {
+
+    .table-responsive table.table tr td.actions-cell .btn {
         width: 100%;
         max-width: 200px;
     }
