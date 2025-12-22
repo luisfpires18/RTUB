@@ -11,6 +11,7 @@
 @using RTUB.Shared
 @using RTUB.Shared.Components.UI
 @using RTUB.Shared.Components.Cards
+@implements IDisposable
 @attribute [Authorize]
 @inject IEventService EventService
 @inject IEnrollmentService EnrollmentService
@@ -19,6 +20,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
 @inject ApplicationDbContext DbContext
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Inscrições - @(selectedEvent?.Name ?? "Evento")</PageTitle>
 
@@ -40,7 +42,23 @@
                         <h1 class="mb-2"><i class="bi bi-people"></i> Inscrições</h1>
                         <p class="lead page-header-subtitle mb-0 text-light-theme">@selectedEvent.Name</p>
                     </div>
+                    @if (isUserAdmin)
+                    {
+                        <button class="btn btn-outline-secondary btn-sm ms-auto" @onclick="CopyLinkToClipboard" title="Copiar link">
+                            <i class="bi bi-link-45deg"></i>
+                        </button>
+                    }
                 </div>
+                
+                @* Copy Link Feedback Alert *@
+                @if (!string.IsNullOrEmpty(copyLinkFeedbackMessage))
+                {
+                    <Alert Type="@(copyLinkFeedbackIsError ? Alert.AlertType.Error : Alert.AlertType.Success)"
+                           Message="@copyLinkFeedbackMessage"
+                           Dismissible="true"
+                           OnDismiss="ClearCopyLinkFeedback"
+                           AdditionalClasses="mb-0" />
+                }
             </div>
 
         <!-- My Enrollment Section (for non-past, non-cancelled events) -->
@@ -422,6 +440,11 @@
     private List<Enrollment> paginatedPerformingMembers => performingMembersPagination.GetPageData(filteredPerformingMembers ?? new List<Enrollment>());
     private List<Enrollment> paginatedLeitoes => leitoesPagination.GetPageData(filteredLeitoes ?? new List<Enrollment>());
     private List<Enrollment> paginatedNotAttending => notAttendingPagination.GetPageData(filteredNotAttending ?? new List<Enrollment>());
+    
+    // Copy link feedback variables
+    private string copyLinkFeedbackMessage = string.Empty;
+    private bool copyLinkFeedbackIsError = false;
+    private System.Threading.Timer? _copyLinkFeedbackTimer;
     
     // Add member to enrollment variables
     private List<ApplicationUser> allMembersForEnrollment = new();
@@ -954,5 +977,48 @@
     private void NavigateBack()
     {
         Navigation.NavigateTo("/events");
+    }
+    
+    private async Task CopyLinkToClipboard()
+    {
+        try
+        {
+            var absoluteUrl = Navigation.ToAbsoluteUri(Navigation.Uri).ToString();
+            await JSRuntime.InvokeVoidAsync("clipboardCopy.copyText", absoluteUrl);
+            copyLinkFeedbackMessage = "Link copiado!";
+            copyLinkFeedbackIsError = false;
+            
+            // Auto-dismiss success message after 2 seconds
+            _copyLinkFeedbackTimer?.Dispose();
+            _copyLinkFeedbackTimer = new System.Threading.Timer(_ =>
+            {
+                _ = InvokeAsync(() =>
+                {
+                    ClearCopyLinkFeedback();
+                    StateHasChanged();
+                });
+            }, null, 2000, Timeout.Infinite);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to copy link: {ex.Message}");
+            copyLinkFeedbackMessage = "Não foi possível copiar o link";
+            copyLinkFeedbackIsError = true;
+        }
+        
+        StateHasChanged();
+    }
+    
+    private void ClearCopyLinkFeedback()
+    {
+        copyLinkFeedbackMessage = string.Empty;
+        copyLinkFeedbackIsError = false;
+        _copyLinkFeedbackTimer?.Dispose();
+        _copyLinkFeedbackTimer = null;
+    }
+    
+    public void Dispose()
+    {
+        _copyLinkFeedbackTimer?.Dispose();
     }
 }

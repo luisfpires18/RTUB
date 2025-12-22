@@ -8,6 +8,9 @@
   "display": "standalone",
   "scope": "/",
   "start_url": "/",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "categories": ["music", "education", "lifestyle", "entertainment"],
   "icons": [
     {
