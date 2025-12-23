@@ -2797,9 +2797,9 @@ else
                 }
             }
             
-            // Sort by name
             allActiveMembers = allActiveMembers
-                .OrderBy(m => m.Member.FirstName)
+                .OrderBy(GetActiveMemberPriority)
+                .ThenBy(m => m.Member.FirstName)
                 .ThenBy(m => m.Member.LastName)
                 .ToList();
 
@@ -2896,6 +2896,26 @@ else
 
         activeMembersPaginationHelper.CurrentPage = 1;
         UpdateActiveMembersPagination();
+    }
+
+    private static int GetActiveMemberPriority(ActiveMemberData memberData)
+    {
+        var status = memberData.StatusData;
+
+        if (status?.IsRetired == true &&
+            status.ProgressTotalMonths == 3 &&
+            status.ProgressMonths.HasValue)
+        {
+            return status.ProgressMonths.Value switch
+            {
+                >= 2 => 0,
+                1 => 1,
+                0 => 2,
+                _ => 3
+            };
+        }
+
+        return 4;
     }
     
     // Anniversaries modal methods
