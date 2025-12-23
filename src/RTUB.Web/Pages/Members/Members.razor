@@ -55,14 +55,9 @@
                 </button>
             }
             
-            <!-- Gestão de Membros Ativos button - Admin only -->
-            <AuthorizeView Roles="Admin">
-                <Authorized>
-                    <button class="btn btn-primary btn-primary-purple" @onclick="OpenActiveMembersManagementModal" title="Gestão de Membros Ativos">
-                        <i class="bi bi-person-badge"></i> Gestão de Membros Ativos
-                    </button>
-                </Authorized>
-            </AuthorizeView>
+            <button class="btn btn-primary btn-primary-purple" @onclick="OpenActiveMembersManagementModal" title="Gestão de Membros Ativos">
+                <i class="bi bi-person-badge"></i> Gestão de Membros Ativos
+            </button>
 
             <button class="btn btn-primary btn-primary-purple" @onclick="OpenAnniversariesModal" title="Ver Aniversários dos Membros">
                 <i class="bi bi-cake2"></i> Aniversários
@@ -738,20 +733,20 @@ else
                                             }
                                         </div>
                                         @* Progress indicator *@
-                                        @if (statusResult?.ProgressDescription != null)
+                                        @if (statusResult is { } statusResultValue && ShouldShowProgressStatus(statusResultValue))
                                         {
                                             <div class="small text-muted">
-                                                <i class="bi bi-clock-history me-1"></i>@statusResult.ProgressDescription
+                                                <i class="bi bi-clock-history me-1"></i>@statusResultValue.ProgressDescription
                                             </div>
-                                            @if (statusResult.ProgressMonths.HasValue && statusResult.ProgressTotalMonths.HasValue)
+                                            @if (statusResultValue.ProgressMonths.HasValue && statusResultValue.ProgressTotalMonths.HasValue)
                                             {
                                                 <div class="progress" style="height: 8px;">
                                                     <div class="progress-bar bg-primary" 
                                                          role="progressbar" 
-                                                         style="width: @((statusResult.ProgressMonths.Value * 100.0 / statusResult.ProgressTotalMonths.Value).ToString("F0"))%"
-                                                         aria-valuenow="@statusResult.ProgressMonths.Value" 
+                                                         style="width: @((statusResultValue.ProgressMonths.Value * 100.0 / statusResultValue.ProgressTotalMonths.Value).ToString("F0"))%"
+                                                         aria-valuenow="@statusResultValue.ProgressMonths.Value" 
                                                          aria-valuemin="0" 
-                                                         aria-valuemax="@statusResult.ProgressTotalMonths.Value">
+                                                         aria-valuemax="@statusResultValue.ProgressTotalMonths.Value">
                                                     </div>
                                                 </div>
                                             }
@@ -772,34 +767,6 @@ else
                                               ? statusResult.LastEventDate.Value.ToString("dd MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("pt-PT"))
                                               : null)" />
                         }
-                        
-                        @* OWNER-only manual override for IsRetired status *@
-                        <AuthorizeView Roles="Owner">
-                            <Authorized>
-                                <div class="@(hasActivityHistory ? "mt-3 pt-3 border-top" : "")">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <label class="form-label fw-semibold mb-1">
-                                                <i class="bi bi-shield-lock me-2 text-warning"></i>
-                                                Estado Manual
-                                            </label>
-                                            <small class="d-block text-muted">
-                                                Marcar como reformado manualmente (para novos membros sem histórico)
-                                            </small>
-                                        </div>
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" 
-                                                   type="checkbox" 
-                                                   role="switch" 
-                                                   id="isRetiredSwitch"
-                                                   checked="@viewingUser.IsRetired"
-                                                   @onchange="@(async (e) => await ToggleIsRetired(viewingUser, (bool)e.Value!))" 
-                                                   style="cursor: pointer; width: 3rem; height: 1.5rem;">
-                                        </div>
-                                    </div>
-                                </div>
-                            </Authorized>
-                        </AuthorizeView>
                     </div>
                 </div>
             }
@@ -890,12 +857,12 @@ else
                                Placeholder="Pesquisar membros por nome ou alcunha..."
                                OnSearch="ApplyActiveMembersSearch" />
                 </div>
-                <div class="flex-shrink-0" style="min-width: 200px;">
-                    <select class="form-select" @bind="activeMembersStatusFilter" @bind:after="@(() => ApplyActiveMembersSearch(activeMembersSearchTerm))">
-                        <option value="">Todos</option>
-                        <option value="active">No Ativo</option>
-                        <option value="retired">Reformado</option>
-                    </select>
+                <div class="flex-sm-shrink-0" style="min-width: 200px; max-width: 240px;">
+                    <FilterDropdown SelectedValue="@activeMembersStatusFilter"
+                                    SelectedValueChanged="@(value => activeMembersStatusFilter = value)"
+                                    OnChange="@ApplyActiveMembersStatusFilter"
+                                    AllItemsLabel="Estado"
+                                    Options="@activeMembersStatusFilterOptions" />
                 </div>
             </div>
             <div class="table-responsive">
@@ -940,10 +907,10 @@ else
                                                 <span class="badge badge-active">NO ATIVO</span>
                                             }
                                         </div>
-                                        @if (statusData?.ProgressDescription != null)
+                                        @if (statusData is { } statusDataValue && ShouldShowProgressStatus(statusDataValue))
                                         {
                                             <small class="text-muted">
-                                                <i class="bi bi-clock-history me-1"></i>@statusData.ProgressDescription
+                                                <i class="bi bi-clock-history me-1"></i>@statusDataValue.ProgressDescription
                                             </small>
                                         }
                                     </div>
@@ -1251,9 +1218,15 @@ else
         new FilterDropdownOption("Tunossauro", "Tunossauro"),
         new FilterDropdownOption("Fundador", "Fundador")
     };
-    
+
     private IEnumerable<FilterDropdownOption> instrumentFilterOptions => AllInstrumentTypes
         .Select(instrument => new FilterDropdownOption(instrument.ToString(), StatusHelper.GetInstrumentDisplay(instrument)));
+
+    private IEnumerable<FilterDropdownOption> activeMembersStatusFilterOptions => new[]
+    {
+        new FilterDropdownOption("active", "No Ativo"),
+        new FilterDropdownOption("retired", "Reformado")
+    };
 
     private bool showEditModal = false;
     private bool showDeleteModal = false;
@@ -2898,6 +2871,11 @@ else
         UpdateActiveMembersPagination();
     }
 
+    private void ApplyActiveMembersStatusFilter()
+    {
+        ApplyActiveMembersSearch(activeMembersSearchTerm);
+    }
+
     private static int GetActiveMemberPriority(ActiveMemberData memberData)
     {
         var status = memberData.StatusData;
@@ -2921,6 +2899,21 @@ else
         }
 
         return 4;
+    }
+
+    private static bool ShouldShowProgressStatus(MemberStatusResult? status)
+    {
+        if (status?.ProgressDescription == null)
+        {
+            return false;
+        }
+
+        if (status.IsRetired == false && status.ProgressTotalMonths == 6)
+        {
+            return status.ProgressMonths is >= 1 and <= 5;
+        }
+
+        return true;
     }
     
     // Anniversaries modal methods

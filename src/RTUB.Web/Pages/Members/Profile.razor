@@ -263,20 +263,20 @@
                                             }
                                         </div>
                                         @* Progress indicator *@
-                                        @if (memberStatusResult?.ProgressDescription != null)
+                                        @if (memberStatusResult is { } memberStatusResultValue && ShouldShowProgressStatus(memberStatusResultValue))
                                         {
                                             <div class="small text-muted">
-                                                <i class="bi bi-clock-history me-1"></i>@memberStatusResult.ProgressDescription
+                                                <i class="bi bi-clock-history me-1"></i>@memberStatusResultValue.ProgressDescription
                                             </div>
-                                            @if (memberStatusResult.ProgressMonths.HasValue && memberStatusResult.ProgressTotalMonths.HasValue)
+                                            @if (memberStatusResultValue.ProgressMonths.HasValue && memberStatusResultValue.ProgressTotalMonths.HasValue)
                                             {
                                                 <div class="progress" style="height: 8px;">
                                                     <div class="progress-bar bg-primary" 
                                                          role="progressbar" 
-                                                         style="width: @((memberStatusResult.ProgressMonths.Value * 100.0 / memberStatusResult.ProgressTotalMonths.Value).ToString("F0"))%"
-                                                         aria-valuenow="@memberStatusResult.ProgressMonths.Value" 
+                                                         style="width: @((memberStatusResultValue.ProgressMonths.Value * 100.0 / memberStatusResultValue.ProgressTotalMonths.Value).ToString("F0"))%"
+                                                         aria-valuenow="@memberStatusResultValue.ProgressMonths.Value" 
                                                          aria-valuemin="0" 
-                                                         aria-valuemax="@memberStatusResult.ProgressTotalMonths.Value">
+                                                         aria-valuemax="@memberStatusResultValue.ProgressTotalMonths.Value">
                                                     </div>
                                                 </div>
                                             }
@@ -1375,6 +1375,19 @@
         return year.HasValue && month.HasValue;
     }
 
+    private static bool ShouldShowProgressStatus(MemberStatusResult? status)
+    {
+        if (status?.ProgressDescription == null)
+        {
+            return false;
+        }
+
+        if (status.IsRetired == false && status.ProgressTotalMonths == 6)
+        {
+            return status.ProgressMonths is >= 1 and <= 5;
+        }
+
+        return true;
+    }
+
 }
-
-
