@@ -2799,8 +2799,8 @@ else
             
             allActiveMembers = allActiveMembers
                 .OrderBy(GetActiveMemberPriority)
-                .ThenBy(m => m.Member.FirstName)
-                .ThenBy(m => m.Member.LastName)
+                .ThenByDescending(m => m.StatusData?.LastActivityDate ?? DateTime.MinValue)
+                .ThenBy(m => m.Member.Nickname ?? m.Member.FirstName ?? string.Empty)
                 .ToList();
 
             // Reset pagination and apply search filter
@@ -2902,16 +2902,21 @@ else
     {
         var status = memberData.StatusData;
 
+        if (status?.IsRetired == false)
+        {
+            return 0;
+        }
+
         if (status?.IsRetired == true &&
             status.ProgressTotalMonths == 3 &&
             status.ProgressMonths.HasValue)
         {
             return status.ProgressMonths.Value switch
             {
-                >= 2 => 0,
-                1 => 1,
-                0 => 2,
-                _ => 3
+                >= 2 => 1,
+                1 => 2,
+                0 => 3,
+                _ => 4
             };
         }
 
@@ -3217,4 +3222,3 @@ else
         }
     }
 }
-
