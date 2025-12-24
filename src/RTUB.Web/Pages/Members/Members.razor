@@ -2771,8 +2771,12 @@ else
             }
             
             allActiveMembers = allActiveMembers
-                .OrderBy(GetActiveMemberPriority)
+                .OrderBy(GetActiveMemberGroupPriority)
                 .ThenByDescending(m => m.StatusData?.LastActivityDate ?? DateTime.MinValue)
+                .ThenByDescending(m => HasFullActivityHistory(m.StatusData))
+                .ThenByDescending(m => m.StatusData?.LastRehearsalDate ?? DateTime.MinValue)
+                .ThenByDescending(m => m.StatusData?.LastEventDate ?? DateTime.MinValue)
+                .ThenBy(GetActiveMemberPriority)
                 .ThenBy(m => m.Member.Nickname ?? m.Member.FirstName ?? string.Empty)
                 .ToList();
 
@@ -2899,6 +2903,17 @@ else
         }
 
         return 4;
+    }
+
+    private static int GetActiveMemberGroupPriority(ActiveMemberData memberData)
+    {
+        return memberData.StatusData?.IsRetired == false ? 0 : 1;
+    }
+
+    private static bool HasFullActivityHistory(MemberStatusResult? status)
+    {
+        return status?.LastRehearsalDate.HasValue == true
+            && status.LastEventDate.HasValue == true;
     }
 
     private static bool ShouldShowProgressStatus(MemberStatusResult? status)
