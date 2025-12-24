@@ -753,10 +753,9 @@ else
                             <MemberCardLite AvatarUrl="@stat.AvatarUrl"
                                             AltText="@stat.DisplayName"
                                             Nickname="@stat.DisplayNickname"
-                                            FullName="@stat.DisplayFullName"
-                                            PrimaryRowLabel="Participações">
+                                            FullName="@stat.DisplayFullName">
                                 <PrimaryRowContent>
-                                    <div class="d-flex flex-wrap align-items-center gap-2 justify-content-end">
+                                    <div class="d-flex flex-wrap align-items-center gap-2 justify-content-center">
                                         @if (stat.ApprovedCount > 0)
                                         {
                                             <span class="badge bg-success">@stat.ApprovedCount aprovado(s)</span>
@@ -959,12 +958,10 @@ else
                     {
                         <ActivityCardLite>
                             <div class="activity-card-lite-row">
-                                <span class="activity-card-lite-label">Data</span>
-                                <span class="activity-card-lite-value">@FormatRehearsalDateWithDayOfWeek(item.Rehearsal)</span>
+                                <span class="activity-card-lite-value w-100 text-center">@FormatRehearsalDateWithDayOfWeek(item.Rehearsal)</span>
                             </div>
                             <div class="activity-card-lite-row">
-                                <span class="activity-card-lite-label">Estado</span>
-                                <span class="activity-card-lite-value">
+                                <span class="activity-card-lite-value w-100 text-center">
                                     @if (item.WillAttend)
                                     {
                                         if (item.Attended)
@@ -1113,7 +1110,7 @@ else
     private int attendanceCount = 0;
     private int totalRecentRehearsals = 0;
     private bool showAllRehearsals = false;
-    private PaginationHelper<RehearsalAttendanceDisplay> rehearsalsPaginationHelper = new() { PageSize = 10 };
+    private PaginationHelper<RehearsalAttendanceDisplay> rehearsalsPaginationHelper = new() { PageSize = 9 };
 
     private class RehearsalAttendanceDisplay
     {

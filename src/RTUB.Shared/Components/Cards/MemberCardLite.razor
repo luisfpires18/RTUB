@@ -19,11 +19,14 @@
         </div>
     </div>
     <div class="member-card-lite-body">
-        @if (!string.IsNullOrWhiteSpace(PrimaryRowLabel) && PrimaryRowContent != null)
+        @if (PrimaryRowContent != null)
         {
             <div class="member-card-lite-row">
-                <span class="member-card-lite-label">@PrimaryRowLabel</span>
-                <span class="member-card-lite-value">@PrimaryRowContent</span>
+                @if (!string.IsNullOrWhiteSpace(PrimaryRowLabel))
+                {
+                    <span class="member-card-lite-label">@PrimaryRowLabel</span>
+                }
+                <span class="member-card-lite-value @(string.IsNullOrWhiteSpace(PrimaryRowLabel) ? "member-card-lite-value-centered" : "")">@PrimaryRowContent</span>
             </div>
         }
         @if (CategoryContent != null)
@@ -58,6 +61,13 @@
             <div class="member-card-lite-row">
                 <span class="member-card-lite-label">Último Ensaio</span>
                 <span class="member-card-lite-value">@LastRehearsalText</span>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(LastLoginText))
+        {
+            <div class="member-card-lite-row">
+                <span class="member-card-lite-label">Último Login</span>
+                <span class="member-card-lite-value">@LastLoginText</span>
             </div>
         }
         @if (!string.IsNullOrWhiteSpace(LastEventText))
@@ -116,6 +126,9 @@
 
     [Parameter]
     public string LastRehearsalText { get; set; } = "";
+
+    [Parameter]
+    public string LastLoginText { get; set; } = "";
 
     [Parameter]
     public string LastEventText { get; set; } = "";

@@ -1,6 +1,7 @@
 @namespace RTUB.Shared
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
+@using RTUB.Application.Extensions
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Helpers
 @inject IEnrollmentService EnrollmentService
@@ -60,20 +61,16 @@
                     {
                         <ActivityCardLite>
                             <div class="activity-card-lite-row">
-                                <span class="activity-card-lite-label">Data</span>
-                                <span class="activity-card-lite-value">@item.Event.Date.ToString("dd MMM yyyy")</span>
+                                <span class="activity-card-lite-value w-100 text-center">@item.Event.Date.ToString("dd MMM yyyy")</span>
                             </div>
                             <div class="activity-card-lite-row">
-                                <span class="activity-card-lite-label">Atuação</span>
-                                <span class="activity-card-lite-value">@item.Event.Name</span>
+                                <span class="activity-card-lite-value text-center w-100">@item.Event.Name</span>
                             </div>
                             <div class="activity-card-lite-row">
-                                <span class="activity-card-lite-label">Instrumento</span>
-                                <span class="activity-card-lite-value">@(item.Instrument?.ToString() ?? "-")</span>
+                                <span class="activity-card-lite-value text-center w-100">@item.Event.Type.GetDisplayName()</span>
                             </div>
                             <div class="activity-card-lite-row">
-                                <span class="activity-card-lite-label">Estado</span>
-                                <span class="activity-card-lite-value">
+                                <span class="activity-card-lite-value w-100 text-center">
                                     @if (item.WillAttend)
                                     {
                                         <span class="badge bg-success">Foi</span>

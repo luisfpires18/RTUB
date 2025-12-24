@@ -1,0 +1,102 @@
+@namespace RTUB.Shared
+@using Microsoft.AspNetCore.Components
+@using RTUB.Core.Entities
+
+<div class="card tracing-card h-100">
+    <div class="position-relative card-body d-flex flex-column">
+        <div class="tracing-admin-overlay">
+            <button class="btn btn-sm music-btn-delete" @onclick="HandleDelete" title="Eliminar log">
+                <i class="bi bi-trash music-icon-delete"></i>
+            </button>
+        </div>
+        <div class="tracing-card-header">
+            <div class="tracing-card-timestamp">
+                @Log.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+            </div>
+            <div class="tracing-card-user">
+                <span class="badge bg-primary">@(Log.UserName ?? "System")</span>
+                @if (Log.IsCriticalAction)
+                {
+                    <span class="tracing-card-critical">
+                        <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                    </span>
+                }
+            </div>
+        </div>
+
+        <div class="tracing-card-body">
+            <div class="tracing-card-entity">@Log.EntityType</div>
+            @if (!string.IsNullOrEmpty(EntityDetails))
+            {
+                <div class="tracing-card-entity-details text-muted">@EntityDetails</div>
+            }
+        </div>
+
+        <div class="tracing-card-actions mt-auto">
+            <div class="tracing-card-action-badge">
+                <span class="badge @ActionBadgeClass">@Log.Action</span>
+            </div>
+            @if (HasChanges)
+            {
+                <button class="btn btn-sm btn-purple" @onclick="HandleViewChanges" title="Ver detalhes">
+                    <i class="bi bi-eye"></i>
+                    <span>Detalhes</span>
+                </button>
+            }
+            else
+            {
+                <span class="text-muted small">Sem detalhes</span>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public AuditLog Log { get; set; } = null!;
+
+    [Parameter]
+    public string ActionBadgeClass { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnViewChanges { get; set; }
+
+    [Parameter]
+    public EventCallback OnDelete { get; set; }
+
+    private bool HasChanges => !string.IsNullOrEmpty(Log.Changes);
+
+    private string EntityDetails
+    {
+        get
+        {
+            if (!string.IsNullOrEmpty(Log.EntityDisplayName))
+            {
+                return Log.EntityDisplayName;
+            }
+
+            if (Log.EntityId.HasValue)
+            {
+                return $"ID: {Log.EntityId}";
+            }
+
+            return string.Empty;
+        }
+    }
+
+    private async Task HandleViewChanges()
+    {
+        if (OnViewChanges.HasDelegate)
+        {
+            await OnViewChanges.InvokeAsync();
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (OnDelete.HasDelegate)
+        {
+            await OnDelete.InvokeAsync();
+        }
+    }
+}

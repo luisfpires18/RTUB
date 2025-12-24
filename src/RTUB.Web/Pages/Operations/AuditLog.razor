@@ -157,7 +157,7 @@
             </div>
         </div>
 
-        <!-- Audit Log Table - Mobile Responsive -->
+        <!-- Audit Log Cards -->
         @if (!auditLogs.Any())
         {
             <EmptyState 
@@ -167,109 +167,31 @@
         else
         {
             <div class="card activity-log-card">
-                <div class="card-header">
+                <div class="card-header d-flex flex-column flex-lg-row gap-2 align-items-lg-center justify-content-between">
                     <h5 class="mb-0"><i class="bi bi-list-ul"></i> Activity Log</h5>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-container">
-                        <table class="table table-striped table-hover activity-log-table mb-0">
-                            <thead>
-                                <tr>
-                                    <SortableTableHeader 
-                                        HeaderText="Timestamp" 
-                                        SortColumn="Timestamp" 
-                                        CurrentSortColumn="@currentSortColumn"
-                                        IsSortAscending="@isSortAscending"
-                                        OnSortChanged="SortBy" />
-                                    <SortableTableHeader 
-                                        HeaderText="User" 
-                                        SortColumn="UserName" 
-                                        CurrentSortColumn="@currentSortColumn"
-                                        IsSortAscending="@isSortAscending"
-                                        OnSortChanged="SortBy" />
-                                    <SortableTableHeader 
-                                        HeaderText="Entity" 
-                                        SortColumn="EntityType" 
-                                        CurrentSortColumn="@currentSortColumn"
-                                        IsSortAscending="@isSortAscending"
-                                        OnSortChanged="SortBy" />
-                                    <SortableTableHeader 
-                                        HeaderText="Action" 
-                                        SortColumn="Action" 
-                                        CurrentSortColumn="@currentSortColumn"
-                                        IsSortAscending="@isSortAscending"
-                                        OnSortChanged="SortBy" />
-                                    <th>Changes</th>
-                                    <th>Critical</th>
-                                    <th class="actions-column">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var log in auditLogs)
-                                {
-                                    <tr>
-                                        <td class="timestamp-cell" data-label="Timestamp">
-                                            <small>
-                                                @log.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
-                                            </small>
-                                        </td>
-                                        <td class="user-cell" data-label="User">
-                                            <span class="badge bg-primary">@(log.UserName ?? "System")</span>
-                                        </td>
-                                        <td class="entity-cell" data-label="Entity">
-                                            <strong>@log.EntityType</strong>
-                                            @if (!string.IsNullOrEmpty(log.EntityDisplayName))
-                                            {
-                                                <br/><small class="text-muted">@log.EntityDisplayName</small>
-                                            }
-                                            else if (log.EntityId.HasValue)
-                                            {
-                                                <br/><small class="text-muted">(ID: @log.EntityId)</small>
-                                            }
-                                        </td>
-                                        <td class="action-cell" data-label="Action">
-                                            <span class="badge @GetActionBadgeClass(log.Action)">
-                                                @log.Action
-                                            </span>
-                                        </td>
-                                        <td class="changes-cell" data-label="Changes">
-                                            @if (!string.IsNullOrEmpty(log.Changes))
-                                            {
-                                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => ShowChangesModal(log)">
-                                                    <i class="bi bi-eye"></i>
-                                                </button>
-                                            }
-                                            else
-                                            {
-                                                <small class="text-muted">No details</small>
-                                            }
-                                        </td>
-                                        <td class="critical-cell text-center" data-label="Critical">
-                                            @if (log.IsCriticalAction)
-                                            {
-                                                <i class="bi bi-exclamation-triangle-fill text-danger"></i>
-                                            }
-                                        </td>
-                                        <td class="actions-cell" data-label="Actions">
-                                            <button class="btn btn-sm btn-danger" @onclick="() => ShowDeleteConfirmation(log)" title="Delete this log">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
+                <div class="card-body">
+                    <div class="tracing-card-grid">
+                        @foreach (var log in auditLogs)
+                        {
+                            <TracingCard Log="@log"
+                                         ActionBadgeClass="@GetActionBadgeClass(log.Action)"
+                                         OnViewChanges="@(() => ShowChangesModal(log))"
+                                         OnDelete="@(() => ShowDeleteConfirmation(log))" />
+                        }
                     </div>
+                </div>
 
-                    <!-- Pagination -->
-                    <div class="card-footer">
-                        <TablePagination 
-                            CurrentPage="@currentPage"
-                            TotalItems="@totalRecords"
-                            PageSize="@pageSize"
-                            ItemLabel="logs"
-                            OnPageChanged="ChangePage" />
-                    </div>
+                <!-- Pagination -->
+                <div class="card-footer">
+                    <TablePagination 
+                        CurrentPage="@currentPage"
+                        TotalItems="@totalRecords"
+                        PageSize="@pageSize"
+                        ItemLabel="logs"
+                        PageSizeOptions="@(new[] { 20, 40, 60, 80, 100 })"
+                        OnPageChanged="ChangePage"
+                        OnPageSizeChanged="ChangePageSize" />
                 </div>
             </div>
         }
@@ -461,12 +383,8 @@
 
     // Pagination
     private int currentPage = 1;
-    private int pageSize = 50;
+    private int pageSize = 20;
     private int totalRecords = 0;
-
-    // Sorting
-    private string currentSortColumn = "Timestamp";
-    private bool isSortAscending = false; // Default to descending (newest first)
 
     // Stats
     private int criticalCount = 0;
@@ -531,47 +449,12 @@
             totalRecords = count;
         }
 
-        // Apply client-side sorting
-        ApplySorting();
+        auditLogs = auditLogs
+            .OrderByDescending(log => log.Timestamp)
+            .ToList();
 
         // Calculate critical count
         criticalCount = auditLogs.Count(log => log.IsCriticalAction);
-    }
-
-    private void ApplySorting()
-    {
-        auditLogs = currentSortColumn switch
-        {
-            "Timestamp" => isSortAscending 
-                ? auditLogs.OrderBy(l => l.Timestamp).ToList()
-                : auditLogs.OrderByDescending(l => l.Timestamp).ToList(),
-            "UserName" => isSortAscending 
-                ? auditLogs.OrderBy(l => l.UserName).ToList()
-                : auditLogs.OrderByDescending(l => l.UserName).ToList(),
-            "EntityType" => isSortAscending 
-                ? auditLogs.OrderBy(l => l.EntityType).ToList()
-                : auditLogs.OrderByDescending(l => l.EntityType).ToList(),
-            "Action" => isSortAscending 
-                ? auditLogs.OrderBy(l => l.Action).ToList()
-                : auditLogs.OrderByDescending(l => l.Action).ToList(),
-            _ => auditLogs
-        };
-    }
-
-    private void SortBy(string column)
-    {
-        if (currentSortColumn == column)
-        {
-            isSortAscending = !isSortAscending;
-        }
-        else
-        {
-            currentSortColumn = column;
-            isSortAscending = true;
-        }
-        
-        ApplySorting();
-        StateHasChanged();
     }
 
     private async Task ApplyFilters()
@@ -602,6 +485,13 @@
     private async Task ChangePage(int page)
     {
         currentPage = page;
+        await LoadAuditLogs();
+    }
+
+    private async Task ChangePageSize(int newPageSize)
+    {
+        pageSize = newPageSize;
+        currentPage = 1;
         await LoadAuditLogs();
     }
 

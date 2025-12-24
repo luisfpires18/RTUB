@@ -70,10 +70,9 @@
                             <MemberCardLite AvatarUrl="@stat.AvatarUrl"
                                             AltText="@stat.DisplayName"
                                             Nickname="@stat.DisplayNickname"
-                                            FullName="@stat.DisplayFullName"
-                                            PrimaryRowLabel="Participações">
+                                            FullName="@stat.DisplayFullName">
                                 <PrimaryRowContent>
-                                    <div class="d-flex flex-wrap align-items-center gap-2 justify-content-end">
+                                    <div class="d-flex flex-wrap align-items-center gap-2 justify-content-center">
                                         @if (stat.PastCount > 0)
                                         {
                                             <span class="badge bg-success">@stat.PastCount Participações</span>

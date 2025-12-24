@@ -1,0 +1,125 @@
+@namespace RTUB.Shared
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@using RTUB.Core.Entities
+
+<div class="avatar-card user-card" tabindex="0" @onkeydown="HandleKeyDown">
+    @if (IsOwner)
+    {
+        <button class="avatar-card-edit-btn"
+                @onclick="HandleEditRole"
+                @onclick:stopPropagation="true"
+                title="Editar"
+                aria-label="Editar">
+            <i class="bi bi-pencil"></i>
+        </button>
+    }
+
+    <div class="avatar-card-image-wrapper">
+        <img src="@User.ProfilePictureSrc"
+             alt="@User.Nickname"
+             class="avatar-card-image" />
+    </div>
+
+    <div class="avatar-card-content">
+        <div class="avatar-card-login-status">
+            @if (IsUserOnline())
+            {
+                <i class="bi bi-circle-fill text-success"></i>
+                <span>Online</span>
+            }
+            else
+            {
+                <i class="bi bi-circle-fill text-danger"></i>
+                <span>Offline</span>
+            }
+        </div>
+
+        <div class="avatar-card-tuna-name">@User.Nickname</div>
+        <div class="avatar-card-full-name">@User.FirstName @User.LastName</div>
+
+        <div class="avatar-card-badges">
+            <div class="avatar-card-badges-row">
+                <RoleBadge Role="@CurrentRole" />
+                <LockStatusBadge LockoutEnd="@User.LockoutEnd" />
+            </div>
+        </div>
+
+        <div class="user-card-details">
+            <div class="user-card-detail-row">
+                <span class="user-card-detail-value"><code>@User.UserName</code></span>
+            </div>
+            <div class="user-card-detail-row">
+                <span class="user-card-detail-value">@User.Email</span>
+            </div>
+            <div class="user-card-detail-row">
+                <span class="user-card-detail-value">
+                    <LoginStatusBadge LastLoginDate="@User.LastLoginDate" />
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="avatar-card-actions">
+        <button class="btn btn-sm btn-purple"
+                @onclick="HandleViewDetails"
+                title="Ver Detalhes"
+                aria-label="Ver Detalhes">
+            <i class="bi bi-eye"></i> Detalhes
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public ApplicationUser User { get; set; } = null!;
+
+    [Parameter]
+    public string CurrentRole { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool IsOwner { get; set; }
+
+    [Parameter]
+    public EventCallback OnViewDetails { get; set; }
+
+    [Parameter]
+    public EventCallback OnEditRole { get; set; }
+
+    private const int OnlineThresholdHours = 1;
+
+    private async Task HandleViewDetails()
+    {
+        if (OnViewDetails.HasDelegate)
+        {
+            await OnViewDetails.InvokeAsync();
+        }
+    }
+
+    private async Task HandleEditRole()
+    {
+        if (OnEditRole.HasDelegate)
+        {
+            await OnEditRole.InvokeAsync();
+        }
+    }
+
+    private bool IsUserOnline()
+    {
+        if (!User.LastLoginDate.HasValue)
+        {
+            return false;
+        }
+
+        var timeAgo = DateTime.UtcNow - User.LastLoginDate.Value;
+        return timeAgo.TotalHours < OnlineThresholdHours;
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleViewDetails();
+        }
+    }
+}

@@ -80,6 +80,11 @@
     text-align: right;
 }
 
+.member-card-lite-value-centered {
+    width: 100%;
+    text-align: center;
+}
+
 .member-card-lite-value .badge {
     margin-left: 0.25rem;
 }

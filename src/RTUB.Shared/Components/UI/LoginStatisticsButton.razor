@@ -46,55 +46,22 @@
                         Title="Nenhum login encontrado para o período selecionado."
                         Icon="bi-search" />
                 }
-                else
-                {
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead>
-                                <tr>
-                                    <th @onclick="() => SortBy(nameof(LoginRecord.DisplayNickname))" class="clickable-row">
-                                        Utilizador
-                                        @if (sortHelper.IsActiveSortColumn(nameof(LoginRecord.DisplayNickname)))
-                                        {
-                                            <i class="bi @sortHelper.GetSortIcon(nameof(LoginRecord.DisplayNickname))"></i>
-                                        }
-                                    </th>
-                                    <th @onclick="() => SortBy(nameof(LoginRecord.LastLoginDate))" class="clickable-row">
-                                        Último Login
-                                        @if (sortHelper.IsActiveSortColumn(nameof(LoginRecord.LastLoginDate)))
-                                        {
-                                            <i class="bi @sortHelper.GetSortIcon(nameof(LoginRecord.LastLoginDate))"></i>
-                                        }
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var record in paginatedRecords)
-                                {
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <img src="@record.AvatarUrl" alt="@record.DisplayNickname" class="member-avatar-small" />
-                                                <div>
-                                                    <div>@record.DisplayNickname</div>
-                                                    <div class="text-muted small">@record.DisplayFullName</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-light text-dark">
-                                                @record.LastLoginDate.ToString("dd/MM/yyyy HH:mm")
-                                            </span>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
+            else
+            {
+                <div class="member-card-lite-grid">
+                    @foreach (var record in paginatedRecords)
+                    {
+                        <MemberCardLite AvatarUrl="@record.AvatarUrl"
+                                        AltText="@record.DisplayNickname"
+                                        Nickname="@record.DisplayNickname"
+                                        FullName="@record.DisplayFullName"
+                                        LastLoginText="@record.LastLoginDate.ToString("dd/MM/yyyy HH:mm")" />
+                    }
+                </div>
 
-                    <TablePagination CurrentPage="@paginationHelper.CurrentPage"
-                                    PageSize="@paginationHelper.PageSize"
-                                    TotalItems="@filteredRecords.Count"
+                <TablePagination CurrentPage="@paginationHelper.CurrentPage"
+                                PageSize="@paginationHelper.PageSize"
+                                TotalItems="@filteredRecords.Count"
                                     ItemLabel="logins"
                                     PageSizeOptions="@(new[] { 5, 10, 15, 20 })"
                                     OnPageChanged="@HandlePageChange"
@@ -122,7 +89,6 @@
     private List<LoginRecord> filteredRecords = new();
     private List<LoginRecord> paginatedRecords = new();
     private string searchTerm = string.Empty;
-    private SortableTableHelper<LoginRecord> sortHelper = new() { SortColumn = nameof(LoginRecord.LastLoginDate), SortAscending = false };
     private PaginationHelper<LoginRecord> paginationHelper = new() { PageSize = 10 };
 
     private async Task OpenLoginsModal()
@@ -185,13 +151,9 @@
                 .ToList();
         }
 
-        var columnSelectors = new Dictionary<string, Func<LoginRecord, IComparable>>
-        {
-            { nameof(LoginRecord.DisplayNickname), r => r.DisplayNickname },
-            { nameof(LoginRecord.LastLoginDate), r => r.LastLoginDate }
-        };
-
-        filteredRecords = sortHelper.ApplySort(filteredRecords, columnSelectors);
+        filteredRecords = filteredRecords
+            .OrderByDescending(r => r.LastLoginDate)
+            .ToList();
         paginatedRecords = paginationHelper.GetPageData(filteredRecords);
     }
 
@@ -217,11 +179,6 @@
         return Task.CompletedTask;
     }
 
-    private void SortBy(string columnName)
-    {
-        sortHelper.ChangeSortColumn(columnName);
-        FilterAndPaginate();
-    }
 
     private class LoginRecord
     {
