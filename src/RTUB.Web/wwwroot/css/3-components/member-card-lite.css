@@ -1,0 +1,112 @@
+/* Member Card Lite */
+.member-card-lite-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    justify-items: start;
+}
+
+.member-card-lite {
+    background-color: rgba(21, 21, 22, 0.6);
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    padding: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    height: 100%;
+    width: 100%;
+    max-width: 280px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.member-card-lite:hover,
+.member-card-lite:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 2px var(--bs-primary);
+    outline: none;
+}
+
+.member-card-lite-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.member-card-lite-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+}
+
+.member-card-lite-title {
+    display: flex;
+    flex-direction: column;
+}
+
+.member-card-lite-nickname {
+    font-weight: 600;
+    color: #fff;
+    font-size: 0.95rem;
+}
+
+.member-card-lite-name {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.member-card-lite-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.member-card-lite-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+}
+
+.member-card-lite-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+}
+
+.member-card-lite-value {
+    color: #fff;
+    text-align: right;
+}
+
+.member-card-lite-value .badge {
+    margin-left: 0.25rem;
+}
+
+.member-card-lite-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.member-card-lite-actions {
+    display: inline-flex;
+    justify-content: flex-end;
+}
+
+.member-card-lite-progress {
+    font-size: 0.72rem;
+}
+
+@media (min-width: 1400px) {
+    .member-card-lite-grid {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+}
+
+@media (max-width: 576px) {
+    .member-card-lite {
+        padding: 0.75rem;
+    }
+}

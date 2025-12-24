@@ -55,37 +55,37 @@
                 <SearchBar @bind-Value="myEnrollmentsSearchTerm"
                            Placeholder="Pesquisar atuações por nome..."
                            OnSearch="ApplyEnrollmentSearch" />
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Atuação</th>
-                                <th>Instrumento</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in paginatedEventEnrollments)
-                            {
-                                <tr>
-                                    <td>@item.Event.Date.ToString("dd MMM yyyy")</td>
-                                    <td>@item.Event.Name</td>
-                                    <td>@(item.Instrument?.ToString() ?? "-")</td>
-                                    <td>
-                                        @if (item.WillAttend)
-                                        {
-                                            <span class="badge bg-success">Foi</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-danger">Não foi</span>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                <div class="activity-card-lite-grid">
+                    @foreach (var item in paginatedEventEnrollments)
+                    {
+                        <ActivityCardLite>
+                            <div class="activity-card-lite-row">
+                                <span class="activity-card-lite-label">Data</span>
+                                <span class="activity-card-lite-value">@item.Event.Date.ToString("dd MMM yyyy")</span>
+                            </div>
+                            <div class="activity-card-lite-row">
+                                <span class="activity-card-lite-label">Atuação</span>
+                                <span class="activity-card-lite-value">@item.Event.Name</span>
+                            </div>
+                            <div class="activity-card-lite-row">
+                                <span class="activity-card-lite-label">Instrumento</span>
+                                <span class="activity-card-lite-value">@(item.Instrument?.ToString() ?? "-")</span>
+                            </div>
+                            <div class="activity-card-lite-row">
+                                <span class="activity-card-lite-label">Estado</span>
+                                <span class="activity-card-lite-value">
+                                    @if (item.WillAttend)
+                                    {
+                                        <span class="badge bg-success">Foi</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Não foi</span>
+                                    }
+                                </span>
+                            </div>
+                        </ActivityCardLite>
+                    }
                 </div>
                 
                 <!-- Pagination -->
@@ -95,7 +95,7 @@
                                     PageSize="@eventsPaginationHelper.PageSize"
                                     TotalItems="@filteredEventEnrollments.Count"
                                     ItemLabel="inscrições"
-                                    PageSizeOptions="@(new[] { 10, 15, 20, 25, 30 })"
+                                    PageSizeOptions="@(new[] { 9, 18, 27, 36 })"
                                     OnPageChanged="@HandleEventsPageChange"
                                     OnPageSizeChanged="@HandleEventsPageSizeChange" />
                 }
@@ -117,7 +117,7 @@
     private int totalRecentEvents = 0;
     private string? currentUserId;
     private string myEnrollmentsSearchTerm = string.Empty;
-    private PaginationHelper<EventEnrollmentDisplay> eventsPaginationHelper = new() { PageSize = 10 };
+    private PaginationHelper<EventEnrollmentDisplay> eventsPaginationHelper = new() { PageSize = 9 };
 
     private class EventEnrollmentDisplay
     {

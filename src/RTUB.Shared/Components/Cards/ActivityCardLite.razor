@@ -1,0 +1,16 @@
+@namespace RTUB.Shared
+@*
+    ActivityCardLite Component
+    Compact card for recent activity lists (no avatar/name)
+*@
+
+<div class="activity-card-lite">
+    <div class="activity-card-lite-body">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

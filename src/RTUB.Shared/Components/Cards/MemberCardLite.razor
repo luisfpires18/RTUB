@@ -1,0 +1,149 @@
+@namespace RTUB.Shared
+@*
+    MemberCardLite Component
+    Compact card for member status listings
+*@
+
+<div class="member-card-lite">
+    <div class="member-card-lite-header">
+        <img src="@AvatarUrl"
+             alt="@AltText"
+             class="member-card-lite-avatar"
+             loading="lazy" />
+        <div class="member-card-lite-title">
+            <div class="member-card-lite-nickname">@Nickname</div>
+            @if (!string.IsNullOrWhiteSpace(FullName))
+            {
+                <div class="member-card-lite-name">@FullName</div>
+            }
+        </div>
+    </div>
+    <div class="member-card-lite-body">
+        @if (!string.IsNullOrWhiteSpace(PrimaryRowLabel) && PrimaryRowContent != null)
+        {
+            <div class="member-card-lite-row">
+                <span class="member-card-lite-label">@PrimaryRowLabel</span>
+                <span class="member-card-lite-value">@PrimaryRowContent</span>
+            </div>
+        }
+        @if (CategoryContent != null)
+        {
+            <div class="member-card-lite-row">
+                <span class="member-card-lite-label">Categoria</span>
+                <span class="member-card-lite-value">@CategoryContent</span>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(InstrumentText))
+        {
+            <div class="member-card-lite-row">
+                <span class="member-card-lite-label">Instrumento</span>
+                <span class="member-card-lite-value">@InstrumentText</span>
+            </div>
+        }
+        @if (StatusContent != null)
+        {
+            <div class="member-card-lite-row">
+                <span class="member-card-lite-label">Estado</span>
+                <span class="member-card-lite-value member-card-lite-status">@StatusContent</span>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(ProgressText))
+        {
+            <div class="member-card-lite-progress text-muted">
+                <i class="bi bi-clock-history me-1"></i>@ProgressText
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(LastRehearsalText))
+        {
+            <div class="member-card-lite-row">
+                <span class="member-card-lite-label">Último Ensaio</span>
+                <span class="member-card-lite-value">@LastRehearsalText</span>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(LastEventText))
+        {
+            <div class="member-card-lite-row">
+                <span class="member-card-lite-label">Última Atuação</span>
+                <span class="member-card-lite-value">@LastEventText</span>
+            </div>
+        }
+        @if (BirthdayContent != null)
+        {
+            <div class="member-card-lite-row">
+                <span class="member-card-lite-label">Aniversário</span>
+                <span class="member-card-lite-value">@BirthdayContent</span>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(AgeText))
+        {
+            <div class="member-card-lite-row">
+                <span class="member-card-lite-label">Idade</span>
+                <span class="member-card-lite-value">@AgeText</span>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(CityText))
+        {
+            <div class="member-card-lite-row">
+                <span class="member-card-lite-label">Cidade</span>
+                <span class="member-card-lite-value">@CityText</span>
+            </div>
+        }
+        @if (ActionsContent != null)
+        {
+            <div class="member-card-lite-row">
+                <span class="member-card-lite-label">Ações</span>
+                <span class="member-card-lite-value member-card-lite-actions">@ActionsContent</span>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string AvatarUrl { get; set; } = "";
+
+    [Parameter]
+    public string AltText { get; set; } = "";
+
+    [Parameter]
+    public string Nickname { get; set; } = "";
+
+    [Parameter]
+    public string FullName { get; set; } = "";
+
+    [Parameter]
+    public string InstrumentText { get; set; } = "";
+
+    [Parameter]
+    public string LastRehearsalText { get; set; } = "";
+
+    [Parameter]
+    public string LastEventText { get; set; } = "";
+
+    [Parameter]
+    public string ProgressText { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? StatusContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? CategoryContent { get; set; }
+
+    [Parameter]
+    public string PrimaryRowLabel { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? PrimaryRowContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? BirthdayContent { get; set; }
+
+    [Parameter]
+    public string AgeText { get; set; } = "";
+
+    [Parameter]
+    public string CityText { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? ActionsContent { get; set; }
+}
