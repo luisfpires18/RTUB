@@ -57,7 +57,12 @@
 }
 
 @media (max-width: 576px) {
+    .activity-card-lite-grid {
+        justify-items: stretch;
+    }
+
     .activity-card-lite {
         padding: 0.75rem;
+        max-width: none;
     }
 }
