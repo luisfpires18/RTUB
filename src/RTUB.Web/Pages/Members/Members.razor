@@ -702,7 +702,7 @@ else
                 var statusResult = viewingUserStatusData.GetValueOrDefault(viewingUser.Id);
                 var hasActivityHistory = statusResult?.HasAnyActivity ?? false;
             }
-            @if (isActiveMember && !isTunoHonorario && (hasActivityHistory || isOwner))
+            @if (isActiveMember && !isTunoHonorario && hasActivityHistory)
             {
                 <div class="modal-info-section mb-3">
                     <div class="modal-section-header">
