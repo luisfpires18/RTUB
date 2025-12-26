@@ -19,6 +19,7 @@
 @inject RTUB.Web.Interop.AudioPlayerInterop AudioPlayer
 @inject RTUB.Web.Services.MediaQueueService MediaQueueService
 @inject IJSRuntime JSRuntime
+@inject IAuditLogService AuditLogService
 
 @if (album == null)
 {
@@ -1047,6 +1048,8 @@ else
             {
                 currentAudioUrl = audioUrl;
                 currentSongTitle = song.Title;
+
+                await LogSongPlaybackAsync(song, album);
                 
                 // Update media session metadata for lock screen / system media overlay
                 try
@@ -1145,6 +1148,40 @@ else
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         return user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+    }
+
+    private async Task<string?> GetCurrentUserName()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        return user.Identity?.Name ?? user.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+    }
+
+    private async Task LogSongPlaybackAsync(Song song, Album album)
+    {
+        try
+        {
+            var userId = await GetCurrentUserId();
+            var userName = await GetCurrentUserName();
+            var displayName = $"{song.Title} ({album.Title})";
+
+            await AuditLogService.AddAsync(new AuditLog
+            {
+                EntityType = "Song",
+                EntityId = song.Id,
+                Action = "Played",
+                UserId = string.IsNullOrEmpty(userId) ? null : userId,
+                UserName = userName,
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Played \"{song.Title}\" from album \"{album.Title}\".",
+                EntityDisplayName = displayName,
+                IsCriticalAction = false
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to add audit log for song playback: {SongTitle}", song.Title);
+        }
     }
     
     private async Task OpenVideosModal(Song song)
@@ -1515,4 +1552,3 @@ else
         }
     }
 }
-

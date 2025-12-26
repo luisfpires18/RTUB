@@ -239,4 +239,14 @@ public class AuditLogService : IAuditLogService
 
         return (logs, totalCount);
     }
+
+    public async Task AddAsync(AuditLog auditLog)
+    {
+        if (auditLog == null)
+        {
+            throw new ArgumentNullException(nameof(auditLog));
+        }
+
+        await _auditLogRepository.AddAsync(auditLog);
+    }
 }

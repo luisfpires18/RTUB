@@ -98,4 +98,9 @@ public interface IAuditLogService
         bool? criticalOnly = null,
         int page = 1,
         int pageSize = 100);
+
+    /// <summary>
+    /// Adds a new audit log entry.
+    /// </summary>
+    Task AddAsync(AuditLog auditLog);
 }
