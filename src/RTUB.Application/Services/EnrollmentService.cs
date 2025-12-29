@@ -1,9 +1,9 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
-using Microsoft.Extensions.Options;
-using RTUB.Application.Configuration;
 
 namespace RTUB.Application.Services;
 
@@ -16,13 +16,22 @@ public class EnrollmentService : IEnrollmentService
 {
     private readonly IEnrollmentRepository _enrollmentRepository;
     private readonly IRetirementStatusService _retirementStatusService;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
+    private readonly IPushNotificationService _pushNotificationService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public EnrollmentService(
         IEnrollmentRepository enrollmentRepository,
-        IRetirementStatusService retirementStatusService)
+        IRetirementStatusService retirementStatusService,
+        IPushNotificationFactory pushNotificationFactory,
+        IPushNotificationService pushNotificationService,
+        IHttpContextAccessor httpContextAccessor)
     {
         _enrollmentRepository = enrollmentRepository;
         _retirementStatusService = retirementStatusService;
+        _pushNotificationFactory = pushNotificationFactory;
+        _pushNotificationService = pushNotificationService;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<Enrollment?> GetEnrollmentByIdAsync(int id)
@@ -52,7 +61,14 @@ public class EnrollmentService : IEnrollmentService
         enrollment.Notes = notes;
         enrollment.WillAttend = willAttend;
         enrollment.OtherInstruments = otherInstruments;
-        return await _enrollmentRepository.AddAsync(enrollment);
+        var createdEnrollment = await _enrollmentRepository.AddAsync(enrollment);
+
+        if (willAttend)
+        {
+            await NotifyEnrollmentAsync(createdEnrollment);
+        }
+
+        return createdEnrollment;
     }
 
     public async Task<Enrollment> UpdateEnrollmentAsync(
@@ -69,6 +85,8 @@ public class EnrollmentService : IEnrollmentService
             throw new EntityNotFoundException(nameof(Enrollment), enrollmentId);
         }
 
+        var wasAttending = enrollment.WillAttend;
+
         // Update enrollment fields
         enrollment.WillAttend = willAttend;
         enrollment.Instrument = instrument;
@@ -83,6 +101,11 @@ public class EnrollmentService : IEnrollmentService
             await _retirementStatusService.UpdateUserRetirementStatusAsync(enrollment.UserId);
         }
 
+        if (willAttend && !wasAttending)
+        {
+            await NotifyEnrollmentAsync(enrollment);
+        }
+
         return enrollment;
     }
 
@@ -93,5 +116,63 @@ public class EnrollmentService : IEnrollmentService
             throw new EntityNotFoundException(nameof(Enrollment), id);
 
         await _enrollmentRepository.DeleteAsync(id);
+    }
+
+    private async Task NotifyEnrollmentAsync(Enrollment enrollment)
+    {
+        try
+        {
+            var detailedEnrollment = await _enrollmentRepository.Query()
+                .AsNoTracking()
+                .Include(e => e.Event)
+                .Include(e => e.User)
+                .FirstOrDefaultAsync(e => e.Id == enrollment.Id);
+
+            if (detailedEnrollment?.Event == null || detailedEnrollment.User == null)
+            {
+                return;
+            }
+
+            var baseUrl = GetBaseUrl();
+            var userDisplayName = detailedEnrollment.User.Nickname
+                                  ?? detailedEnrollment.User.FirstName
+                                  ?? "Utilizador";
+
+            var notification = _pushNotificationFactory.CreateEventEnrollmentNotification(
+                detailedEnrollment.Event,
+                userDisplayName,
+                baseUrl);
+
+            var recipientIds = await _enrollmentRepository.Query()
+                .AsNoTracking()
+                .Where(e => e.EventId == detailedEnrollment.EventId
+                            && e.WillAttend
+                            && e.UserId != detailedEnrollment.UserId
+                            && !string.IsNullOrEmpty(e.UserId))
+                .Select(e => e.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            if (recipientIds.Count == 0)
+            {
+                return;
+            }
+
+            await _pushNotificationService.SendToSelectedUsersAsync(recipientIds, notification);
+        }
+        catch
+        {
+            // Notifications are non-critical; ignore failures
+        }
+    }
+
+    private string GetBaseUrl()
+    {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+        return "https://rtub.pt"; // Fallback
     }
 }

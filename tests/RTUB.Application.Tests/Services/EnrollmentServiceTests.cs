@@ -39,9 +39,16 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         _mockImageStorageService = new Mock<IImageStorageService>();
         _mockRetirementStatusService = new Mock<IRetirementStatusService>();
 
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+
         _enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_context),
-            _mockRetirementStatusService.Object);
+            _mockRetirementStatusService.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockHttpContextAccessor.Object);
 
         _eventRepository = new EventRepository(_context);
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();
