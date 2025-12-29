@@ -72,6 +72,7 @@ public class RehearsalService : IRehearsalService
 
         // Delete all attendances for this rehearsal using batch operation
         await _attendanceRepository.DeleteByRehearsalIdAsync(id);
+        rehearsal.Attendances.Clear();
     }
 
     public async Task UncancelRehearsalAsync(int id)

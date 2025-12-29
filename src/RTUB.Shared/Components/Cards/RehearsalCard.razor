@@ -248,6 +248,16 @@
                         <i class="bi bi-eye-fill icon-size-1rem"></i>
                         <span>Ver</span>
                     </button>
+                    @if (IsAdmin)
+                    {
+                        <!-- View Attendances button -->
+                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                                @onclick="HandleViewAttendances"
+                                title="Ver Presenças">
+                            <i class="bi bi-people icon-size-1rem"></i>
+                            <span>@AttendanceCount</span>
+                        </button>
+                    }
                 </div>
             </div>
         }
