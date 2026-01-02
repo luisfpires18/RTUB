@@ -976,7 +976,7 @@ else
                             }
                         </BirthdayContent>
                         <ActionsContent>
-                            <AuthorizeView Roles="Admin">
+                            <AuthorizeView Roles="Owner">
                                 <Authorized>
                                     <button class="btn btn-sm @(IsBirthdayToday(member) ? "btn-success" : "btn-secondary")"
                                             @onclick="@(() => SendBirthdayEmail(member))"

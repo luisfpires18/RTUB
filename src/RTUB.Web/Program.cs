@@ -62,6 +62,10 @@ public class Program
         services.Configure<RTUB.Application.Configuration.WebPushOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.WebPushOptions.SectionName));
 
+        // Configure Birthday Email Scheduler
+        services.Configure<RTUB.Application.Configuration.BirthdayEmailSchedulerOptions>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.BirthdayEmailSchedulerOptions.SectionName));
+
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
                                ?? "Data Source=app.db";
@@ -319,6 +323,9 @@ public class Program
 
         // Background worker for geocoding cities from the queue
         services.AddHostedService<BackgroundGeocodingWorker>();
+
+        // Background worker for sending birthday emails automatically
+        services.AddHostedService<BirthdayEmailSchedulerService>();
 
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();
