@@ -339,6 +339,9 @@ public class Program
         // Audio Player interop for reliable audio playback
         services.AddScoped<RTUB.Web.Interop.AudioPlayerInterop>();
         
+        // PWA Helper interop for PWA mode detection
+        services.AddScoped<RTUB.Web.Interop.PwaHelperInterop>();
+        
         // Media Queue Service for PWA playback queue management
         services.AddScoped<RTUB.Web.Services.MediaQueueService>();
 

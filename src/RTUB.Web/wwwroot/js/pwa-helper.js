@@ -3,6 +3,11 @@
 
 window.pwaHelper = {
     /**
+     * Mobile breakpoint - matches Bootstrap's md breakpoint
+     */
+    MOBILE_BREAKPOINT: 768,
+
+    /**
      * Checks if the app is running in PWA/standalone mode
      * Works for both iOS and Android
      */
@@ -14,6 +19,22 @@ window.pwaHelper = {
         const isIosStandalone = window.navigator.standalone === true;
         
         return isStandalone || isIosStandalone;
+    },
+
+    /**
+     * Checks if the current viewport is mobile-sized
+     * Returns true for screens <= 768px width
+     */
+    isMobileView: function() {
+        return window.innerWidth <= this.MOBILE_BREAKPOINT;
+    },
+
+    /**
+     * Checks if the app should use mobile behavior
+     * Returns true if running as PWA or on mobile browser (but not desktop web)
+     */
+    isMobilePwaOrBrowser: function() {
+        return this.isPwaMode() || this.isMobileView();
     },
 
     /**

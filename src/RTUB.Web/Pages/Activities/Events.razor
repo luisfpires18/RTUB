@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.JSInterop
 @using RTUB.Application.Helpers
 @using RTUB.Application.DTOs
 @using RTUB.Application.Extensions
@@ -27,6 +28,8 @@
 @inject IWebHostEnvironment Environment
 @inject NavigationManager Navigation
 @inject RTUB.Web.Interop.MediaSessionInterop MediaSession
+@inject RTUB.Web.Interop.PwaHelperInterop PwaHelper
+@inject IJSRuntime JSRuntime
 @inject ILogger<Events> Logger
 
 <div class="events-page container-fluid">
@@ -97,7 +100,7 @@ else
                                    OnEditEnrollment="@(() => { if (userEnrollment != null) OpenEditEnrollmentModal(userEnrollment); })"
                                    OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
                                    OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
-                                   OnViewEnrollments="@(() => OpenEnrollmentListModal(eventItem))"
+                                   OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                    OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                    OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))" />
                     </Authorized>
@@ -174,7 +177,7 @@ else
                                            OnEdit="@(() => OpenEditModal(eventItem))"
                                            OnDelete="@(() => OpenDeleteModal(eventItem))"
                                            OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
-                                           OnViewEnrollments="@(() => OpenEnrollmentListModal(eventItem))"
+                                           OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
                                            OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
@@ -192,7 +195,7 @@ else
                                            IsPastEvent="true"
                                            ShowTrophy="true"
                                            OnViewDetails="@(() => OpenEventDetailsModal(eventItem))"
-                                           OnViewEnrollments="@(() => OpenEnrollmentListModal(eventItem))"
+                                           OnViewEnrollments="@(() => HandleViewEnrollments(eventItem))"
                                            OnWatchRepertoire="@(() => OpenRepertoireModal(eventItem))"
                                            OnViewDiscussion="@(() => NavigateToDiscussion(eventItem))"
                                            OnRemoveEnrollment="@(() => { if (userEnrollment != null) OpenRemoveEnrollmentModal(userEnrollment); })"
@@ -403,7 +406,7 @@ else
            Size="Modal.ModalSize.Large"
            Centered="true">
         <HeaderActions>
-            <button type="button" class="btn btn-sm btn-outline-primary me-2" @onclick="@(() => NavigateToEnrollmentsPage(selectedEvent.Id))" title="Abrir em página completa">
+            <button type="button" class="btn btn-sm btn-outline-primary me-2" @onclick="@(async () => await NavigateToEnrollmentsPage(selectedEvent.Id))" title="Abrir em página completa">
                 <i class="bi bi-box-arrow-up-right"></i>
             </button>
             <h5 class="modal-title mb-0">@($"Inscrições em {selectedEvent.Name}")</h5>
@@ -1507,6 +1510,9 @@ else
     private bool showAddMemberToEnrollmentSearch = false;
     private List<ApplicationUser> allMembersForEnrollment = new();
     private List<ApplicationUser> filteredAvailableMembersForEnrollment = new();
+    
+    // PWA mode detection
+    private bool isMobilePwa = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1556,6 +1562,18 @@ else
             }
             
             showEditModal = true;
+        }
+    }
+    
+    private bool _pwaDetectionCompleted = false;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_pwaDetectionCompleted)
+        {
+            _pwaDetectionCompleted = true;
+            isMobilePwa = await PwaHelper.IsMobilePwaOrBrowserAsync();
+            StateHasChanged();
         }
     }
 
@@ -2178,6 +2196,20 @@ else
         }
         
         showEnrollmentListModal = true;
+    }
+    
+    private async Task HandleViewEnrollments(Event eventItem)
+    {
+        // On mobile PWA, navigate directly to the enrollment page
+        // On web, open the modal
+        if (isMobilePwa)
+        {
+            await NavigateToEnrollmentsPage(eventItem.Id);
+        }
+        else
+        {
+            await OpenEnrollmentListModal(eventItem);
+        }
     }
 
     private void CloseEnrollmentListModal()
@@ -3209,8 +3241,18 @@ else
         Navigation.NavigateTo($"/events/{eventItem.Id}/discussion");
     }
 
-    private void NavigateToEnrollmentsPage(int eventId)
+    private async Task NavigateToEnrollmentsPage(int eventId)
     {
+        // Scroll to top before navigation for better UX on mobile
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("scrollToTop.scrollInstant");
+        }
+        catch
+        {
+            // Ignore errors if scrollToTop is not available
+        }
+        
         Navigation.NavigateTo($"/events/{eventId}/enrollments");
     }
 
