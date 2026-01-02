@@ -197,14 +197,18 @@ public class MemberStatusService : IMemberStatusService
     /// Member needs 3 consecutive months to transition from RETIRED to ACTIVE
     /// Stops counting when a month without activity is found
     /// CRITICAL: Only counts PAST activities (before referenceDate)
+    /// IMPORTANT: Starts from the PREVIOUS month (i=1), NOT the current month
+    /// The current ongoing month is not counted until it has completed
     /// </summary>
     private async Task<int> CountConsecutiveMonthsWithActivityAsync(string userId, DateTime referenceDate)
     {
         int consecutiveMonths = 0;
 
-        // Check up to 12 months back (reasonable limit)
-        // Start from i=0 to include the CURRENT month
-        for (int i = 0; i < 12; i++)
+        // Check up to 12 previous months (reasonable limit)
+        // Start from i=1 to exclude the CURRENT ongoing month
+        // Only count COMPLETED months (previous months)
+        // i=1 is the previous month, i=12 is 12 months ago
+        for (int i = 1; i < 13; i++)
         {
             var targetDate = referenceDate.AddMonths(-i);
             var monthStart = new DateTime(targetDate.Year, targetDate.Month, 1); // First day of the month

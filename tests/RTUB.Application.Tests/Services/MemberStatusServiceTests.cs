@@ -20,9 +20,6 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     private readonly DatabaseFixture _fixture;
     private readonly MemberStatusService _service;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
-    
-    // Test helper constant: Days back from now to ensure activity is in current month
-    private const int DaysBackForCurrentMonth = 5;
 
     public MemberStatusServiceTests(DatabaseFixture fixture)
     {
@@ -151,7 +148,8 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     [Fact]
     public async Task GetMemberStatusAsync_RetiredMemberWith3ConsecutiveMonthsOfActivity_BecomesActive()
     {
-        // Arrange - Test that retired member returns to active after 3 consecutive months
+        // Arrange - Test that retired member returns to active after 3 consecutive COMPLETED months
+        // NOTE: Current month is excluded from count - only COMPLETED months count
         var userId = Guid.NewGuid().ToString();
         var user = CreateTestUser(userId);
         user.IsRetired = true; // Manually set as retired
@@ -163,22 +161,12 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         _mockUserManager.Setup(um => um.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
 
-        // Create activities in the last 3 months (relative to now)
-        // Need to ensure current month has activity for consecutive count to start
+        // Create activities in the last 3 COMPLETED months (not including current month)
+        // Use mid-month dates to ensure they fall within the correct month boundaries
         var now = DateTime.UtcNow;
         
-        // Current month (within last few days to be safe)
-        var currentMonthDate = now.AddDays(-DaysBackForCurrentMonth);
-        var rehearsal0 = Rehearsal.Create(currentMonthDate, "Location Current");
-        _context.Rehearsals.Add(rehearsal0);
-        await _context.SaveChangesAsync();
-        
-        var attendance0 = RehearsalAttendance.Create(rehearsal0.Id, userId);
-        attendance0.MarkAttendance(true);
-        _context.RehearsalAttendances.Add(attendance0);
-        
-        // 1 month ago
-        var oneMonthAgo = now.AddMonths(-1).AddDays(-DaysBackForCurrentMonth);
+        // 1 month ago - mid-month to ensure it's in the correct month
+        var oneMonthAgo = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
         var rehearsal1 = Rehearsal.Create(oneMonthAgo, "Location 1");
         _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
@@ -187,8 +175,8 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         attendance1.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance1);
         
-        // 2 months ago
-        var twoMonthsAgo = now.AddMonths(-2).AddDays(-DaysBackForCurrentMonth);
+        // 2 months ago - mid-month
+        var twoMonthsAgo = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
         var event1 = Event.Create("Event 1", twoMonthsAgo, "Location 2", EventType.Atuacao);
         _context.Events.Add(event1);
         await _context.SaveChangesAsync();
@@ -196,6 +184,16 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var enrollment1 = Enrollment.Create(userId, event1.Id);
         enrollment1.WillAttend = true;
         _context.Enrollments.Add(enrollment1);
+        
+        // 3 months ago - mid-month
+        var threeMonthsAgo = new DateTime(now.AddMonths(-3).Year, now.AddMonths(-3).Month, 15);
+        var rehearsal3 = Rehearsal.Create(threeMonthsAgo, "Location 3");
+        _context.Rehearsals.Add(rehearsal3);
+        await _context.SaveChangesAsync();
+        
+        var attendance3 = RehearsalAttendance.Create(rehearsal3.Id, userId);
+        attendance3.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance3);
         
         await _context.SaveChangesAsync();
 
@@ -215,7 +213,8 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     [Fact]
     public async Task GetMemberStatusAsync_RetiredMemberWith2ConsecutiveMonths_StaysRetired()
     {
-        // Arrange - Test that retired member needs 3 consecutive months to become active
+        // Arrange - Test that retired member needs 3 consecutive COMPLETED months to become active
+        // NOTE: Current month is excluded from count
         var userId = Guid.NewGuid().ToString();
         var user = CreateTestUser(userId);
         user.IsRetired = true; // Manually set as retired
@@ -227,19 +226,19 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
 
         var now = DateTime.UtcNow;
         
-        // Current month
-        var currentMonthDate = now.AddDays(-DaysBackForCurrentMonth);
-        var rehearsal0 = Rehearsal.Create(currentMonthDate, "Location Current");
-        _context.Rehearsals.Add(rehearsal0);
+        // 1 month ago - mid-month
+        var oneMonthAgo = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var rehearsal1 = Rehearsal.Create(oneMonthAgo, "Location 1");
+        _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
         
-        var attendance0 = RehearsalAttendance.Create(rehearsal0.Id, userId);
-        attendance0.MarkAttendance(true);
-        _context.RehearsalAttendances.Add(attendance0);
+        var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
+        attendance1.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance1);
         
-        // 1 month ago
-        var oneMonthAgo = now.AddMonths(-1).AddDays(-DaysBackForCurrentMonth);
-        var event1 = Event.Create("Event 1", oneMonthAgo, "Location 1", EventType.Atuacao);
+        // 2 months ago - mid-month
+        var twoMonthsAgo = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
+        var event1 = Event.Create("Event 1", twoMonthsAgo, "Location 1", EventType.Atuacao);
         _context.Events.Add(event1);
         await _context.SaveChangesAsync();
         
@@ -247,7 +246,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         enrollment1.WillAttend = true;
         _context.Enrollments.Add(enrollment1);
         
-        // No activity 2 months ago - breaks the consecutive chain at 2 months
+        // No activity 3 months ago - breaks the consecutive chain at 2 months
         
         await _context.SaveChangesAsync();
 
@@ -265,6 +264,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     public async Task GetMemberStatusAsync_FutureActivitiesDoNotCountTowardConsecutiveMonths()
     {
         // Arrange - Test that future activities are excluded from consecutive months calculation
+        // NOTE: Current month is also excluded
         var userId = Guid.NewGuid().ToString();
         var user = CreateTestUser(userId);
         user.IsRetired = true;
@@ -276,8 +276,29 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
 
         var now = DateTime.UtcNow;
         
-        // Current month
-        var currentMonthDate = now.AddDays(-DaysBackForCurrentMonth);
+        // 1 month ago - mid-month
+        var oneMonthAgo = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var rehearsal1 = Rehearsal.Create(oneMonthAgo, "Location 1");
+        _context.Rehearsals.Add(rehearsal1);
+        await _context.SaveChangesAsync();
+        
+        var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
+        attendance1.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance1);
+        
+        // 2 months ago - mid-month
+        var twoMonthsAgo = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
+        var event1 = Event.Create("Event 1", twoMonthsAgo, "Location 1", EventType.Atuacao);
+        _context.Events.Add(event1);
+        await _context.SaveChangesAsync();
+        
+        var enrollment1 = Enrollment.Create(userId, event1.Id);
+        enrollment1.WillAttend = true;
+        _context.Enrollments.Add(enrollment1);
+        
+        // Current month activity (should NOT count - current month is excluded)
+        // Use a date that's definitely in the current month (mid-month)
+        var currentMonthDate = new DateTime(now.Year, now.Month, 15);
         var rehearsal0 = Rehearsal.Create(currentMonthDate, "Location Current");
         _context.Rehearsals.Add(rehearsal0);
         await _context.SaveChangesAsync();
@@ -285,16 +306,6 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var attendance0 = RehearsalAttendance.Create(rehearsal0.Id, userId);
         attendance0.MarkAttendance(true);
         _context.RehearsalAttendances.Add(attendance0);
-        
-        // 1 month ago
-        var oneMonthAgo = now.AddMonths(-1).AddDays(-DaysBackForCurrentMonth);
-        var event1 = Event.Create("Event 1", oneMonthAgo, "Location 1", EventType.Atuacao);
-        _context.Events.Add(event1);
-        await _context.SaveChangesAsync();
-        
-        var enrollment1 = Enrollment.Create(userId, event1.Id);
-        enrollment1.WillAttend = true;
-        _context.Enrollments.Add(enrollment1);
         
         // Future activity (should NOT count) 
         var futureDate = now.AddDays(10);
@@ -311,7 +322,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Act
         var result = await _service.GetMemberStatusAsync(userId);
 
-        // Assert - Should count only 2 consecutive months (current and 1 month ago), not future
+        // Assert - Should count only 2 consecutive COMPLETED months (1 and 2 months ago), excluding current and future months
         result.Should().NotBeNull();
         result.IsRetired.Should().BeTrue();
         result.ProgressDescription.Should().Contain("2/3 meses de atividade consecutiva");
@@ -321,6 +332,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     public async Task GetMemberStatusAsync_MultiDayEventCountedInStartMonth()
     {
         // Arrange - Test that multi-day events are counted in the month they START, not END
+        // NOTE: Current month is excluded from count
         var userId = Guid.NewGuid().ToString();
         var user = CreateTestUser(userId);
         user.IsRetired = true;
@@ -334,19 +346,19 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
 
         var now = DateTime.UtcNow;
         
-        // Current month
-        var currentMonthDate = now.AddDays(-DaysBackForCurrentMonth);
-        var rehearsal0 = Rehearsal.Create(currentMonthDate, "Location Current");
-        _context.Rehearsals.Add(rehearsal0);
+        // 1 month ago - mid-month regular rehearsal
+        var oneMonthAgo = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var rehearsal1 = Rehearsal.Create(oneMonthAgo, "Location 1");
+        _context.Rehearsals.Add(rehearsal1);
         await _context.SaveChangesAsync();
         
-        var attendance0 = RehearsalAttendance.Create(rehearsal0.Id, userId);
-        attendance0.MarkAttendance(true);
-        _context.RehearsalAttendances.Add(attendance0);
+        var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
+        attendance1.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance1);
         
-        // 1 month ago - regular event
-        var oneMonthAgo = now.AddMonths(-1).AddDays(-DaysBackForCurrentMonth);
-        var event1 = Event.Create("Event 1", oneMonthAgo, "Location 1", EventType.Atuacao);
+        // 2 months ago - mid-month regular event
+        var twoMonthsAgo = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
+        var event1 = Event.Create("Event 1", twoMonthsAgo, "Location 1", EventType.Atuacao);
         _context.Events.Add(event1);
         await _context.SaveChangesAsync();
         
@@ -354,12 +366,12 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         enrollment1.WillAttend = true;
         _context.Enrollments.Add(enrollment1);
         
-        // 2 months ago - MULTI-DAY event that starts in this month but ends in the next month
-        // This should be counted in the START month (2 months ago), not the END month (1 month ago)
-        var twoMonthsAgo = now.AddMonths(-2).AddDays(-DaysBackForCurrentMonth);
-        var oneMonthAgo2 = now.AddMonths(-1).AddDays(5); // Ends in next month
-        var event2 = Event.Create("Multi-day Event", twoMonthsAgo, "Location 2", EventType.Festival);
-        event2.EndDate = oneMonthAgo2; // Event spans two months
+        // 3 months ago - MULTI-DAY event that starts in month -3 but ends in month -2
+        // This should be counted in the START month (3 months ago), not the END month (2 months ago)
+        var threeMonthsAgo = new DateTime(now.AddMonths(-3).Year, now.AddMonths(-3).Month, 28); // Near end of month
+        var twoMonthsAgoEnd = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 5); // Early in next month
+        var event2 = Event.Create("Multi-day Event", threeMonthsAgo, "Location 2", EventType.Festival);
+        event2.EndDate = twoMonthsAgoEnd; // Event spans two months
         _context.Events.Add(event2);
         await _context.SaveChangesAsync();
         
