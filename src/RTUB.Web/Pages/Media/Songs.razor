@@ -330,11 +330,17 @@ else
             <ErrorDisplay />
 
             <div class="row">
-                <div class="col-md-12 mb-3">
+                <div class="col-md-8 mb-3">
                     <label class="form-label fw-semibold">
-                        <i class="bi bi-music-note text-primary me-2"></i>Título
+                        <i class="bi bi-music-note text-primary me-2"></i>Título <span class="text-danger">*</span>
                     </label>
-                    <InputText class="form-control" @bind-Value="editingSong!.Title" readonly />
+                    <InputText class="form-control" @bind-Value="editingSong!.Title" placeholder="Inserir título da música..." />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-hash text-primary me-2"></i>Número da Faixa
+                    </label>
+                    <InputNumber class="form-control" @bind-Value="editingSong!.TrackNumber" placeholder="Ex: 1" />
                 </div>
             </div>
 
