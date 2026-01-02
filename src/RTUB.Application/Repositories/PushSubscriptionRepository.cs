@@ -22,10 +22,13 @@ public class PushSubscriptionRepository : Repository<PushSubscription>, IPushSub
             .ToListAsync();
     }
 
+    /// <summary>
+    /// Gets a subscription by endpoint URL
+    /// Note: Returns a tracked entity to support update scenarios in SubscribeAsync
+    /// </summary>
     public async Task<PushSubscription?> GetByEndpointAsync(string endpoint)
     {
         return await _dbSet
-            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Endpoint == endpoint);
     }
 
