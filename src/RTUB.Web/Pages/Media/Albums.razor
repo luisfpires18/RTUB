@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Logging
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Utilities
 @using RTUB.Application.Helpers
@@ -13,6 +14,7 @@
 @inject NavigationManager NavigationManager
 @inject IWebHostEnvironment Environment
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<Albums> Logger
 
 <div class="d-flex flex-column gap-3 mb-4">
     <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
@@ -21,15 +23,23 @@
             <p class="lead page-header-subtitle mb-0 text-light-theme">Discografia da RTUB</p>
         </div>
 
-        <AuthorizeView Roles="Admin,Mod">
-            <Authorized>
-                <div class="page-header-actions justify-content-lg-end">
+        <div class="page-header-actions justify-content-lg-end d-flex gap-2">
+            <AuthorizeView>
+                <Authorized>
+                    <button class="btn btn-purple" style="font-weight: 400;" @onclick="OpenStatisticsModal" title="Ver Estatísticas">
+                        <i class="bi bi-bar-chart-fill"></i> Estatísticas
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+            
+            <AuthorizeView Roles="Admin,Mod">
+                <Authorized>
                     <button class="btn btn-success" @onclick="OpenCreateModal" title="Criar Novo Álbum">
                         <i class="bi bi-plus-lg"></i> Adicionar Álbum
                     </button>
-                </div>
-            </Authorized>
-        </AuthorizeView>
+                </Authorized>
+            </AuthorizeView>
+        </div>
     </div>
 </div>
 
@@ -197,6 +207,205 @@ else
               ImageFormat="image/webp"
               ImageQuality="0.85" />
 
+<!-- Statistics Modal -->
+<Modal Show="@showStatisticsModal"
+       ShowChanged="@((value) => showStatisticsModal = value)"
+       Title="Estatísticas de Música"
+       Size="Modal.ModalSize.Large"
+       ShowCloseButton="true">
+    <BodyContent>
+        @if (isLoadingStatistics)
+        {
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">A carregar...</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="statistics-container">
+                <!-- Top Songs Section -->
+                <div class="mb-4">
+                    <h4 class="mb-3"><i class="bi bi-music-note-list"></i> Músicas Mais Tocadas</h4>
+                    @if (paginatedSongsStats != null && paginatedSongsStats.Any())
+                    {
+                        <div class="stats-card-grid">
+                            @{
+                                var startIndex = (songsPaginationHelper.CurrentPage - 1) * songsPaginationHelper.PageSize;
+                            }
+                            @for (int i = 0; i < paginatedSongsStats.Count; i++)
+                            {
+                                var (song, playCount) = paginatedSongsStats[i];
+                                var position = startIndex + i + 1;
+                                <div class="stats-card">
+                                    <div class="stats-card-position">
+                                        @if (position == 1)
+                                        {
+                                            <span class="stats-medal gold">🥇</span>
+                                        }
+                                        else if (position == 2)
+                                        {
+                                            <span class="stats-medal silver">🥈</span>
+                                        }
+                                        else if (position == 3)
+                                        {
+                                            <span class="stats-medal bronze">🥉</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="stats-position">@position</span>
+                                        }
+                                    </div>
+                                    <div class="stats-card-content">
+                                        <div class="stats-card-title">@song.Title</div>
+                                        <div class="stats-card-subtitle">@song.Album?.Title</div>
+                                    </div>
+                                    <div class="stats-card-count">
+                                        <i class="bi bi-play-circle"></i>
+                                        <span>@playCount</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <TablePagination 
+                            CurrentPage="@songsPaginationHelper.CurrentPage"
+                            PageSize="@songsPaginationHelper.PageSize"
+                            TotalItems="@allSongsStats.Count"
+                            ItemLabel="músicas"
+                            PageSizeOptions="@(new[] { 5, 10, 15, 20, 25 })"
+                            OnPageChanged="@HandleSongsPageChanged"
+                            OnPageSizeChanged="@HandleSongsPageSizeChanged" />
+                    }
+                    else
+                    {
+                        <p class="text-muted">Ainda não há músicas tocadas.</p>
+                    }
+                </div>
+
+                <!-- Top Albums Section -->
+                <!-- Top Albums Section -->
+                <div class="mb-4">
+                    <h4 class="mb-3"><i class="bi bi-disc"></i> Álbuns Mais Tocados</h4>
+                    @if (paginatedAlbumsStats != null && paginatedAlbumsStats.Any())
+                    {
+                        <div class="stats-card-grid">
+                            @{
+                                var albumStartIndex = (albumsPaginationHelper.CurrentPage - 1) * albumsPaginationHelper.PageSize;
+                            }
+                            @for (int i = 0; i < paginatedAlbumsStats.Count; i++)
+                            {
+                                var (album, playCount) = paginatedAlbumsStats[i];
+                                var position = albumStartIndex + i + 1;
+                                <div class="stats-card">
+                                    <div class="stats-card-position">
+                                        @if (position == 1)
+                                        {
+                                            <span class="stats-medal gold">🥇</span>
+                                        }
+                                        else if (position == 2)
+                                        {
+                                            <span class="stats-medal silver">🥈</span>
+                                        }
+                                        else if (position == 3)
+                                        {
+                                            <span class="stats-medal bronze">🥉</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="stats-position">@position</span>
+                                        }
+                                    </div>
+                                    <div class="stats-card-content">
+                                        <div class="stats-card-title">@album.Title</div>
+                                        <div class="stats-card-subtitle">@(album.Year?.ToString() ?? "Ano desconhecido")</div>
+                                    </div>
+                                    <div class="stats-card-count">
+                                        <i class="bi bi-play-circle"></i>
+                                        <span>@playCount</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <TablePagination 
+                            CurrentPage="@albumsPaginationHelper.CurrentPage"
+                            PageSize="@albumsPaginationHelper.PageSize"
+                            TotalItems="@allAlbumsStats.Count"
+                            ItemLabel="álbuns"
+                            PageSizeOptions="@(new[] { 5, 10, 15, 20, 25 })"
+                            OnPageChanged="@HandleAlbumsPageChanged"
+                            OnPageSizeChanged="@HandleAlbumsPageSizeChanged" />
+                    }
+                    else
+                    {
+                        <p class="text-muted">Ainda não há álbuns tocados.</p>
+                    }
+                </div>
+
+                <!-- Admin/Owner Section - Detailed Stats -->
+                <AuthorizeView Roles="Admin,Owner">
+                    <Authorized>
+                        <div class="mb-4">
+                            <h4 class="mb-3"><i class="bi bi-person-badge"></i> Estatísticas Detalhadas por Utilizador</h4>
+                            @if (paginatedUserStats != null && paginatedUserStats.Any())
+                            {
+                                @foreach (var userGroup in paginatedUserStats)
+                                {
+                                    var isExpanded = userStatsExpanded.GetValueOrDefault(userGroup.UserId, false);
+                                    <div class="user-stats-group mb-4">
+                                        <div class="user-stats-header" @onclick="() => ToggleUserStats(userGroup.UserId)" style="cursor: pointer;">
+                                            <img src="@userGroup.ProfilePictureSrc" alt="@userGroup.Nickname" class="user-stats-avatar" />
+                                            <div class="user-stats-info">
+                                                <div class="user-stats-nickname">@userGroup.Nickname</div>
+                                                <div class="user-stats-fullname">@userGroup.FirstName @userGroup.LastName</div>
+                                            </div>
+                                            <div class="user-stats-total">@userGroup.TotalPlays reproduções</div>
+                                            <i class="bi @(isExpanded ? "bi-chevron-up" : "bi-chevron-down") ms-auto"></i>
+                                        </div>
+                                        @if (isExpanded)
+                                        {
+                                            <div class="stats-card-grid mt-2">
+                                                @foreach (var song in userGroup.Songs)
+                                                {
+                                                    <div class="stats-card stats-card-detailed">
+                                                        <div class="stats-card-content">
+                                                            <div class="stats-card-title">@song.SongTitle</div>
+                                                            <div class="stats-card-subtitle">@song.AlbumTitle</div>
+                                                        </div>
+                                                        <div class="stats-card-count">
+                                                            <i class="bi bi-play-circle"></i>
+                                                            <span>@song.PlayCount</span>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                <TablePagination 
+                                    CurrentPage="@usersPaginationHelper.CurrentPage"
+                                    PageSize="@usersPaginationHelper.PageSize"
+                                    TotalItems="@allUserStats.Count"
+                                    ItemLabel="utilizadores"
+                                    PageSizeOptions="@(new[] { 5, 10, 15, 20, 25 })"
+                                    OnPageChanged="@HandleUsersPageChanged"
+                                    OnPageSizeChanged="@HandleUsersPageSizeChanged" />
+                            }
+                            else
+                            {
+                                <p class="text-muted">Ainda não há estatísticas de utilizadores.</p>
+                            }
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        }
+    </BodyContent>
+    <FooterContent>
+        <button type="button" class="btn btn-secondary" @onclick="CloseStatisticsModal">Fechar</button>
+    </FooterContent>
+</Modal>
+
 @code {
     private List<Album>? albums;
     private List<Album> paginatedAlbums = new();
@@ -206,6 +415,8 @@ else
     private bool showEditModal = false;
     private bool showDeleteModal = false;
     private bool showCropperModal = false;
+    private bool showStatisticsModal = false;
+    private bool isLoadingStatistics = false;
     private bool isCreateMode = false;
     private Album? editingAlbum;
     private Album? deletingAlbum;
@@ -216,6 +427,40 @@ else
     private int imageRefreshTrigger = 0;
     private byte[]? croppedImageBytes;
     private string? croppedImageFileName = "album-cover.webp";
+    
+    // Statistics data
+    private List<(Song Song, int PlayCount)> allSongsStats = new();
+    private List<(Song Song, int PlayCount)> paginatedSongsStats = new();
+    private List<(Album Album, int PlayCount)> allAlbumsStats = new();
+    private List<(Album Album, int PlayCount)> paginatedAlbumsStats = new();
+    private List<(UserPlayInfo User, Song Song, Album Album, int PlayCount)> detailedStats = new();
+    private List<UserStatsGroup> allUserStats = new();
+    private List<UserStatsGroup> paginatedUserStats = new();
+    private Dictionary<string, bool> userStatsExpanded = new(); // Track collapsed/expanded state
+    
+    // Statistics pagination helpers
+    private PaginationHelper<(Song Song, int PlayCount)> songsPaginationHelper = new() { PageSize = 5 };
+    private PaginationHelper<(Album Album, int PlayCount)> albumsPaginationHelper = new() { PageSize = 5 };
+    private PaginationHelper<UserStatsGroup> usersPaginationHelper = new() { PageSize = 5 };
+    
+    // Helper class for grouping user stats
+    public class UserStatsGroup
+    {
+        public string UserId { get; set; } = "";
+        public string Nickname { get; set; } = "";
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public string ProfilePictureSrc { get; set; } = "";
+        public List<SongPlayInfo> Songs { get; set; } = new();
+        public int TotalPlays => Songs.Sum(s => s.PlayCount);
+    }
+    
+    public class SongPlayInfo
+    {
+        public string SongTitle { get; set; } = "";
+        public string AlbumTitle { get; set; } = "";
+        public int PlayCount { get; set; }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -454,6 +699,171 @@ else
         await LoadAlbums();
 
         CloseDeleteModal();
+    }
+    
+    private async Task OpenStatisticsModal()
+    {
+        showStatisticsModal = true;
+        isLoadingStatistics = true;
+        StateHasChanged();
+        
+        try
+        {
+            await LoadStatistics();
+        }
+        catch (Exception ex)
+        {
+            // Log error using proper logger
+            Logger.LogError(ex, "Error loading statistics");
+        }
+        finally
+        {
+            isLoadingStatistics = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task LoadStatistics()
+    {
+        // Load all statistics data (not just top N)
+        var allSongsTask = SongService.GetAllSongsWithPlayCountAsync();
+        var allAlbumsTask = SongService.GetAllAlbumsWithPlayCountAsync();
+        
+        // Check if user is admin/owner for detailed stats
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var authUser = authState.User;
+        bool isAdminOrOwner = authUser.IsInRole("Admin") || authUser.IsInRole("Owner");
+        
+        Task<IEnumerable<(UserPlayInfo, Song, Album, int)>>? detailedStatsTask = null;
+        if (isAdminOrOwner)
+        {
+            detailedStatsTask = SongService.GetDetailedPlayStatsAsync();
+        }
+        
+        // Wait for tasks to complete
+        allSongsStats = (await allSongsTask).ToList();
+        allAlbumsStats = (await allAlbumsTask).ToList();
+        
+        // Set up pagination for songs
+        paginatedSongsStats = songsPaginationHelper.GetPageData(allSongsStats);
+        
+        // Set up pagination for albums
+        paginatedAlbumsStats = albumsPaginationHelper.GetPageData(allAlbumsStats);
+        
+        if (detailedStatsTask != null)
+        {
+            detailedStats = (await detailedStatsTask).ToList();
+            
+            // Group by user
+            allUserStats = detailedStats
+                .GroupBy(s => s.User.UserId)
+                .Select(g => new UserStatsGroup
+                {
+                    UserId = g.First().User.UserId,
+                    Nickname = g.First().User.Nickname,
+                    FirstName = g.First().User.FirstName,
+                    LastName = g.First().User.LastName,
+                    ProfilePictureSrc = g.First().User.ProfilePictureSrc,
+                    Songs = g.Select(s => new SongPlayInfo
+                    {
+                        SongTitle = s.Song.Title,
+                        AlbumTitle = s.Album.Title,
+                        PlayCount = s.PlayCount
+                    })
+                    .OrderByDescending(s => s.PlayCount)
+                    .ToList()
+                })
+                .OrderByDescending(u => u.TotalPlays)
+                .ToList();
+            
+            // Set up pagination for users
+            paginatedUserStats = usersPaginationHelper.GetPageData(allUserStats);
+            
+            // Initialize all as collapsed (false = collapsed)
+            userStatsExpanded.Clear();
+            foreach (var user in allUserStats)
+            {
+                userStatsExpanded[user.UserId] = false;
+            }
+        }
+    }
+    
+    private void UpdateSongsPagination()
+    {
+        paginatedSongsStats = songsPaginationHelper.GetPageData(allSongsStats);
+    }
+    
+    private void UpdateAlbumsPagination()
+    {
+        paginatedAlbumsStats = albumsPaginationHelper.GetPageData(allAlbumsStats);
+    }
+    
+    private void UpdateUsersPagination()
+    {
+        paginatedUserStats = usersPaginationHelper.GetPageData(allUserStats);
+    }
+    
+    private void CloseStatisticsModal()
+    {
+        showStatisticsModal = false;
+    }
+    
+    private void HandleSongsPageChanged(int newPage)
+    {
+        songsPaginationHelper.GoToPage(newPage);
+        UpdateSongsPagination();
+        StateHasChanged();
+    }
+    
+    private void HandleSongsPageSizeChanged(int newSize)
+    {
+        songsPaginationHelper.PageSize = newSize;
+        songsPaginationHelper.CurrentPage = 1; // Reset to first page when page size changes
+        UpdateSongsPagination();
+        StateHasChanged();
+    }
+    
+    private void HandleAlbumsPageChanged(int newPage)
+    {
+        albumsPaginationHelper.GoToPage(newPage);
+        UpdateAlbumsPagination();
+        StateHasChanged();
+    }
+    
+    private void HandleAlbumsPageSizeChanged(int newSize)
+    {
+        albumsPaginationHelper.PageSize = newSize;
+        albumsPaginationHelper.CurrentPage = 1; // Reset to first page when page size changes
+        UpdateAlbumsPagination();
+        StateHasChanged();
+    }
+    
+    private void HandleUsersPageChanged(int newPage)
+    {
+        usersPaginationHelper.GoToPage(newPage);
+        UpdateUsersPagination();
+        StateHasChanged();
+    }
+    
+    private void HandleUsersPageSizeChanged(int newSize)
+    {
+        usersPaginationHelper.PageSize = newSize;
+        usersPaginationHelper.CurrentPage = 1; // Reset to first page when page size changes
+        UpdateUsersPagination();
+        StateHasChanged();
+    }
+    
+    private void ToggleUserStats(string userId)
+    {
+        if (userStatsExpanded.ContainsKey(userId))
+        {
+            userStatsExpanded[userId] = !userStatsExpanded[userId];
+        }
+        else
+        {
+            userStatsExpanded[userId] = true;
+        }
+        StateHasChanged();
     }
     
     private string GetAlbumImageUrl(string imageSrc)

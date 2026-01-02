@@ -38,6 +38,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Song> Songs { get; set; }
     public DbSet<SongYouTubeUrl> SongYouTubeUrls { get; set; }
     public DbSet<SongVideo> SongVideos { get; set; } = null!;
+    public DbSet<SongPlayCount> SongPlayCounts { get; set; }
     public DbSet<EventVideo> EventVideos { get; set; } = null!;
     public DbSet<EventRepertoire> EventRepertoires { get; set; }
     public DbSet<Report> Reports { get; set; }
@@ -131,6 +132,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
+            // Skip audit logging for SongPlayCount - it's high-frequency and not critical
+            if (entry.Entity is SongPlayCount)
+                continue;
+                
             switch (entry.State)
             {
                 case EntityState.Added:

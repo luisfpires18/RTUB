@@ -89,6 +89,7 @@ else
             @foreach (var song in songs.OrderBy(s => s.TrackNumber))
             {
                 <SongCard Song="@song"
+                         PlayCount="@(songPlayCounts.ContainsKey(song.Id) ? songPlayCounts[song.Id] : 0)"
                          CanEdit="@canEditSongs"
                          CanDelete="@canDeleteSongs"
                          OnPlay="@(() => PlaySong(song))"
@@ -577,6 +578,8 @@ else
 
     private Album? album;
     private List<Song>? songs;
+    private Dictionary<int, int> songPlayCounts = new();
+    private Dictionary<int, DateTime> lastPlayTimes = new(); // Track last play time per song
 
     private bool showCreateModal = false;
     private bool showEditModal = false;
@@ -686,6 +689,13 @@ else
         songs = (await SongService.GetSongsByAlbumIdAsync(AlbumId))
             .OrderBy(s => s.TrackNumber)
             .ToList();
+        
+        // Load play counts for all songs
+        if (songs.Any())
+        {
+            var songIds = songs.Select(s => s.Id).ToList();
+            songPlayCounts = await SongService.GetPlayCountsForSongsAsync(songIds);
+        }
     }
 
     private void GoBack()
@@ -1048,8 +1058,35 @@ else
             {
                 currentAudioUrl = audioUrl;
                 currentSongTitle = song.Title;
-
-                await LogSongPlaybackAsync(song, album);
+                
+                // Increment play count with cooldown check
+                try
+                {
+                    // Check if enough time has passed since last play
+                    bool shouldIncrement = true;
+                    if (lastPlayTimes.TryGetValue(song.Id, out var lastPlayTime))
+                    {
+                        // Use song duration (in seconds) as cooldown, or default to 30 seconds if no duration
+                        int cooldownSeconds = song.Duration ?? 30;
+                        var timeSinceLastPlay = DateTime.UtcNow - lastPlayTime;
+                        shouldIncrement = timeSinceLastPlay.TotalSeconds >= cooldownSeconds;
+                    }
+                    
+                    if (shouldIncrement)
+                    {
+                        await SongService.IncrementPlayCountAsync(song.Id, currentUserId);
+                        lastPlayTimes[song.Id] = DateTime.UtcNow;
+                        
+                        // Update the local count using TryGetValue pattern
+                        songPlayCounts.TryGetValue(song.Id, out var currentCount);
+                        songPlayCounts[song.Id] = currentCount + 1;
+                        StateHasChanged(); // Trigger UI update to reflect new count
+                    }
+                }
+                catch
+                {
+                    // Silently fail - play count is not critical
+                }
                 
                 // Update media session metadata for lock screen / system media overlay
                 try

@@ -21,10 +21,188 @@
     border-color: #ffc107;
 }
 
+/* Statistics Cards */
+.stats-card-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.stats-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+    transition: all 0.2s ease;
+}
+
+.stats-card:hover {
+    border-color: rgba(var(--bs-primary-rgb), 0.4);
+    background-color: #252525;
+}
+
+.stats-card-position {
+    flex-shrink: 0;
+    width: 50px;
+    text-align: center;
+    font-size: 1.5rem;
+}
+
+.stats-medal {
+    font-size: 2rem;
+}
+
+.stats-position {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.stats-card-content {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.stats-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--bs-body-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stats-card-subtitle {
+    font-size: 0.875rem;
+    color: #ffffff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stats-card-user {
+    font-size: 0.75rem;
+    color: var(--bs-primary);
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.stats-card-count {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+}
+
+.stats-card-count i {
+    font-size: 1.5rem;
+}
+
+.stats-card-detailed {
+    background-color: #1a1a1a;
+}
+
+/* User stats grouping */
+.user-stats-group {
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
+    border-radius: 8px;
+    padding: 1rem;
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+.user-stats-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--bs-primary);
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.user-stats-header:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.user-stats-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--bs-primary);
+}
+
+.user-stats-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.user-stats-nickname {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--bs-primary);
+}
+
+.user-stats-fullname {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: #ffffff;
+}
+
+.user-stats-total {
+    font-size: 0.9rem;
+    color: #ffffff;
+    margin-left: auto;
+    margin-right: 0.5rem;
+}
+
+.user-stats-header i {
+    font-size: 1.3rem;
+}
+
 /* Ensure badge doesn't wrap on small screens */
 @media (max-width: 576px) {
     .badge.bg-warning {
         font-size: 0.65rem;
         padding: 0.2rem 0.4rem;
     }
+    
+    .stats-card {
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+    
+    .stats-card-position {
+        width: 40px;
+    }
+    
+    .stats-medal {
+        font-size: 1.5rem;
+    }
+    
+    .stats-card-title {
+        font-size: 0.9rem;
+    }
+    
+    .stats-card-subtitle {
+        font-size: 0.8rem;
+    }
+    
+    .stats-card-count {
+        font-size: 1rem;
+    }
+    
+    .stats-card-count i {
+        font-size: 1.25rem;
+    }
 }
+

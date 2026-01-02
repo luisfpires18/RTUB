@@ -23,4 +23,26 @@ public interface ISongService
     Task<SongVideo> AddVideoAsync(int songId, Stream fileStream, string fileName, string contentType, string createdByUserId, string? title = null);
     Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false);
     Task<int> GetVideoCountBySongIdAsync(int songId);
+    
+    // Play count tracking
+    Task IncrementPlayCountAsync(int songId, string? userId = null);
+    Task<int> GetPlayCountBySongIdAsync(int songId);
+    Task<Dictionary<int, int>> GetPlayCountsForSongsAsync(IEnumerable<int> songIds);
+    Task<IEnumerable<(Song Song, int PlayCount)>> GetTopSongsAsync(int count = 10);
+    Task<IEnumerable<(Album Album, int PlayCount)>> GetTopAlbumsAsync(int count = 10);
+    Task<IEnumerable<(UserPlayInfo User, Song Song, Album Album, int PlayCount)>> GetDetailedPlayStatsAsync();
+    Task<IEnumerable<(Song Song, int PlayCount)>> GetAllSongsWithPlayCountAsync();
+    Task<IEnumerable<(Album Album, int PlayCount)>> GetAllAlbumsWithPlayCountAsync();
+}
+
+/// <summary>
+/// User information for play statistics
+/// </summary>
+public class UserPlayInfo
+{
+    public string UserId { get; set; } = "";
+    public string Nickname { get; set; } = "";
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+    public string ProfilePictureSrc { get; set; } = "";
 }

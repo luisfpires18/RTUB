@@ -83,6 +83,14 @@
             </div>
         </div>
 
+        @if (PlayCount > 0)
+        {
+            <div class="song-play-count mt-2" title="Foi tocado @PlayCount vezes">
+                <i class="bi bi-play-circle"></i>
+                <span class="ms-1">@PlayCount @(PlayCount == 1 ? "reprodução" : "reproduções")</span>
+            </div>
+        }
+
         <div class="song-actions mt-auto">
             <div class="song-primary-actions">
                 @if (Song.HasMusic)
@@ -141,6 +149,12 @@
     /// </summary>
     [Parameter]
     public Song Song { get; set; } = null!;
+
+    /// <summary>
+    /// The number of times the song has been played
+    /// </summary>
+    [Parameter]
+    public int PlayCount { get; set; }
 
     /// <summary>
     /// Whether the current user can edit the song
@@ -265,6 +279,7 @@
     private bool _previousCanEdit;
     private bool _previousCanDelete;
     private bool _previousHasVideos;
+    private int _previousPlayCount;
     
     /// <summary>
     /// Optimize rendering - only re-render when key parameters change.
@@ -280,13 +295,15 @@
             hasMusic != _previousHasMusic ||
             CanEdit != _previousCanEdit ||
             CanDelete != _previousCanDelete ||
-            hasVideos != _previousHasVideos)
+            hasVideos != _previousHasVideos ||
+            PlayCount != _previousPlayCount)
         {
             _previousSongId = songId;
             _previousHasMusic = hasMusic;
             _previousCanEdit = CanEdit;
             _previousCanDelete = CanDelete;
             _previousHasVideos = hasVideos;
+            _previousPlayCount = PlayCount;
             return true;
         }
         return false;

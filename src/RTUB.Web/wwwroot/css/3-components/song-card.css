@@ -160,6 +160,23 @@
   margin-left: 0;
 }
 
+/* Play count display */
+.song-play-count {
+  display: flex;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: #ffffff;
+  background-color: #1e1e1e;
+  border-radius: 6px;
+  padding: 4px 8px;
+  width: fit-content;
+}
+
+.song-play-count i {
+  color: var(--bs-primary);
+  font-size: 0.875rem;
+}
+
 /* Actions section at bottom */
 .song-actions {
   padding-top: 0.75rem;

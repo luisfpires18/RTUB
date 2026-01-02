@@ -42,6 +42,7 @@ public class Song : BaseEntity
     public virtual ICollection<SongYouTubeUrl> YouTubeUrls { get; set; } = new List<SongYouTubeUrl>();
     public virtual ICollection<SongVideo> Videos { get; set; } = new List<SongVideo>();
     public virtual ICollection<EventRepertoire> EventRepertoires { get; set; } = new List<EventRepertoire>();
+    public virtual ICollection<SongPlayCount> PlayCounts { get; set; } = new List<SongPlayCount>();
 
     // Private constructor for EF Core
     public Song() { }
