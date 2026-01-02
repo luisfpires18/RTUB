@@ -224,9 +224,6 @@ public class SongService : ISongService
         // Save to repository
         var createdVideo = await _songVideoRepository.AddAsync(songVideo);
 
-        _logger?.LogInformation("Video added to song {SongId} by user {UserId}. Video ID: {VideoId}",
-            songId, createdByUserId, createdVideo.Id);
-
         return createdVideo;
     }
 
@@ -259,9 +256,6 @@ public class SongService : ISongService
 
         // Delete from repository
         await _songVideoRepository.DeleteAsync(video);
-
-        _logger?.LogInformation("Video {VideoId} deleted from song {SongId} by user {UserId}",
-            videoId, video.SongId, userId);
     }
 
     public async Task<int> GetVideoCountBySongIdAsync(int songId)
@@ -281,8 +275,6 @@ public class SongService : ISongService
 
         _context.SongPlayCounts.Add(playCount);
         await _context.SaveChangesAsync();
-
-        _logger?.LogInformation("Play count incremented for song {SongId} by user {UserId}", songId, userId ?? "anonymous");
     }
 
     public async Task<int> GetPlayCountBySongIdAsync(int songId)

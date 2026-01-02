@@ -29,7 +29,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
         var mockSongVideoRepository = new Mock<ISongVideoRepository>();
         var mockSongVideoStorageService = new Mock<ISongVideoStorageService>();
-        _songService = new SongService(new SongRepository(_context), mockSongVideoRepository.Object, mockSongVideoStorageService.Object);
+        _songService = new SongService(new SongRepository(_context), mockSongVideoRepository.Object, mockSongVideoStorageService.Object, _context);
         _mockImageStorageService = new Mock<IImageStorageService>();
         _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
     }

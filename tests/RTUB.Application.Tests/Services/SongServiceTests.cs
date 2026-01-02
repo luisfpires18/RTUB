@@ -39,7 +39,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _songRepository = new SongRepository(_context);
         _mockSongVideoRepository = new Mock<ISongVideoRepository>();
         _mockSongVideoStorageService = new Mock<ISongVideoStorageService>();
-        _songService = new SongService(_songRepository, _mockSongVideoRepository.Object, _mockSongVideoStorageService.Object);
+        _songService = new SongService(_songRepository, _mockSongVideoRepository.Object, _mockSongVideoStorageService.Object, _context);
         _mockImageStorageService = new Mock<IImageStorageService>();
         _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
     }
