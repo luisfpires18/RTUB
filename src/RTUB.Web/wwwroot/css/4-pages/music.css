@@ -65,9 +65,24 @@
 }
 
 .music-album-image {
-    max-height: 310px;
-    width: 310px;
+    max-height: 340px;
+    width: 340px;
     object-fit: cover;
+}
+
+.album-detail-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.album-detail-title {
+    margin-bottom: 0.75rem;
+    text-align: center;
+}
+
+.album-detail-year {
+    margin-top: 0.75rem;
 }
 
 /* Square images for music album cards */
@@ -108,4 +123,3 @@
 .music-text-secondary {
     color: #e2e2e2;
 }
-
