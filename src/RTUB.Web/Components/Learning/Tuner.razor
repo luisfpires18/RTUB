@@ -36,13 +36,14 @@
         <div class="row g-3">
             <!-- Instrument Selection -->
             <div class="col-md-6">
-                <label for="instrumentSelect" class="form-label">Instrumento</label>
+                <label for="instrumentSelect" class="form-label">Instrumento (Filtrado v3.0)</label>
                 <select id="instrumentSelect" class="form-select" @bind="_selectedInstrument" @bind:after="OnInstrumentChanged" disabled="@_isRunning">
                     @foreach (var instrument in GetTunableInstruments())
                     {
                         <option value="@instrument">@InstrumentTypeHelper.GetDisplayName(instrument)</option>
                     }
                 </select>
+                <small class="text-muted">Mostrando @GetTunableInstruments().Count() de @Enum.GetValues(typeof(InstrumentType)).Length instrumentos</small>
             </div>
 
             <!-- Tuning Preset Selection -->
@@ -138,14 +139,18 @@
             <button class="btn @(_isRunning ? "btn-danger" : "btn-primary") btn-lg" 
                     style="min-height: 44px; min-width: 120px;"
                     @onclick="ToggleTuner"
+                    @onclick:preventDefault="false"
                     disabled="@_isTogglingTuner">
                 @if (_isTogglingTuner)
                 {
                     <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                 }
                 <i class="bi @(_isRunning ? "bi-stop-circle" : "bi-play-circle") me-2"></i>
-                @(_isRunning ? "Parar" : "Iniciar")
+                @(_isRunning ? "Parar" : "Iniciar") [v3.0]
             </button>
+            <div class="mt-2">
+                <small class="text-muted">Botão renderizado: @DateTime.Now.ToString("HH:mm:ss.fff")</small>
+            </div>
         </div>
     }
 </div>
