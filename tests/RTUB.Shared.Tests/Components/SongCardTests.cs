@@ -538,4 +538,64 @@ public class SongCardTests : TestContext
         markup.Should().Contain("Letra:", "should have label in header");
         markup.Should().Contain("João Silva", "should have text in separate element");
     }
+
+    [Fact]
+    public void SongCard_ShowsPlayingState_WhenCurrentlyPlaying()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsCurrentlyPlaying, true)
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
+
+        // Assert
+        cut.Markup.Should().Contain("song-card-playing", "should have playing state CSS class");
+        cut.Markup.Should().Contain("bi-play-circle-fill", "should show play icon when currently playing");
+    }
+
+    [Fact]
+    public void SongCard_ShowsNormalState_WhenNotCurrentlyPlaying()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsCurrentlyPlaying, false)
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
+
+        // Assert
+        cut.Markup.Should().NotContain("song-card-playing", "should not have playing state CSS class");
+        cut.Markup.Should().Contain("bi-music-note-beamed", "should show music note icon when not playing");
+    }
+
+    [Fact]
+    public void SongCard_ReRendersWhen_IsCurrentlyPlayingChanges()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.IsCurrentlyPlaying, false)
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
+
+        // Verify initial state
+        cut.Markup.Should().NotContain("song-card-playing", "should not initially have playing state");
+
+        // Act - Update IsCurrentlyPlaying
+        cut.SetParametersAndRender(parameters => parameters
+            .Add(p => p.IsCurrentlyPlaying, true));
+
+        // Assert
+        cut.Markup.Should().Contain("song-card-playing", "should have playing state after update");
+        cut.Markup.Should().Contain("bi-play-circle-fill", "should show play icon after update");
+    }
 }

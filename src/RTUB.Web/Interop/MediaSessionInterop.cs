@@ -20,7 +20,7 @@ public class MediaSessionInterop
     /// <param name="audioElementId">ID of the audio element</param>
     /// <param name="dotNetHelper">Optional DotNetObjectReference for callbacks to Blazor</param>
     /// <returns>True if successfully initialized in PWA mode</returns>
-    public ValueTask<bool> InitPwaMediaSessionAsync(string audioElementId, DotNetObjectReference<object>? dotNetHelper = null)
+    public ValueTask<bool> InitPwaMediaSessionAsync<T>(string audioElementId, DotNetObjectReference<T>? dotNetHelper = null) where T : class
     {
         if (dotNetHelper != null)
         {
