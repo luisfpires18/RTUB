@@ -1,0 +1,348 @@
+@using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
+@using RTUB.Core.Enums
+@using RTUB.Core.Helpers
+@using RTUB.Core.Entities
+@using Microsoft.JSInterop
+@inject ITunerService TunerService
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<div class="tuner-container">
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Erro:</strong> @_errorMessage
+            <button type="button" class="btn-close" @onclick="() => _errorMessage = null" aria-label="Fechar"></button>
+        </div>
+    }
+
+    @if (_isLoading)
+    {
+        <LoadingSpinner Show="true" Message="A iniciar afinador..." />
+    }
+    else
+    {
+        <div class="row g-3">
+            <!-- Instrument Selection -->
+            <div class="col-md-6">
+                <label for="instrumentSelect" class="form-label">Instrumento</label>
+                <select id="instrumentSelect" class="form-select" @bind="_selectedInstrument" @bind:after="OnInstrumentChanged" disabled="@_isRunning">
+                    @foreach (InstrumentType instrument in Enum.GetValues(typeof(InstrumentType)))
+                    {
+                        <option value="@instrument">@InstrumentTypeHelper.GetDisplayName(instrument)</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Tuning Preset Selection -->
+            <div class="col-md-6">
+                <label for="tuningSelect" class="form-label">Afinação</label>
+                <select id="tuningSelect" class="form-select" @bind="_selectedTuningId" disabled="@_isRunning">
+                    @if (_tuningPresets != null)
+                    {
+                        @foreach (var preset in _tuningPresets)
+                        {
+                            <option value="@preset.Id">@preset.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+
+        <!-- Tuner Display -->
+        <div class="tuner-display mt-4">
+            @if (!_isRunning)
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-mic-fill" style="font-size: 3rem;"></i>
+                    <p class="mt-3">Clique em "Iniciar" para começar a afinar</p>
+                </div>
+            }
+            else
+            {
+                <!-- Note Display -->
+                <div class="text-center mb-3">
+                    <div class="note-display @GetNoteColorClass()">
+                        @if (_currentPitch != null)
+                        {
+                            <span>@_currentPitch.NoteName@_currentPitch.Octave</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">--</span>
+                        }
+                    </div>
+                    <div class="frequency-display">
+                        @if (_currentPitch != null)
+                        {
+                            <span>@(_currentPitch.Frequency.ToString("F1")) Hz</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">-- Hz</span>
+                        }
+                    </div>
+                </div>
+
+                <!-- Needle Indicator -->
+                <div class="needle-container mb-4">
+                    <div class="needle-scale">
+                        <div class="scale-mark scale-left">-50</div>
+                        <div class="scale-mark scale-center">0</div>
+                        <div class="scale-mark scale-right">+50</div>
+                    </div>
+                    <div class="needle-track">
+                        <div class="needle @GetNeedleColorClass()" style="transform: translateX(@GetNeedlePosition())"></div>
+                    </div>
+                    <div class="cents-display @GetNoteColorClass()">
+                        @if (_currentPitch != null)
+                        {
+                            <span>@(_currentPitch.CentsOffset.ToString("+0.0;-0.0;0")) cents</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">0 cents</span>
+                        }
+                    </div>
+                </div>
+
+                <!-- String Indicator -->
+                @if (_selectedTuning != null && _selectedTuning.TuningNotes != null && _selectedTuning.TuningNotes.Any())
+                {
+                    <div class="string-indicator">
+                        <h6 class="text-center mb-3">Notas Esperadas:</h6>
+                        <div class="d-flex justify-content-center gap-2 flex-wrap">
+                            @foreach (var note in _selectedTuning.TuningNotes)
+                            {
+                                <span class="badge bg-secondary">@note</span>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- Control Button -->
+        <div class="text-center mt-4">
+            <button class="btn @(_isRunning ? "btn-danger" : "btn-primary") btn-lg" 
+                    style="min-height: 44px; min-width: 120px;"
+                    @onclick="ToggleTuner"
+                    disabled="@_isTogglingTuner">
+                @if (_isTogglingTuner)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                }
+                <i class="bi @(_isRunning ? "bi-stop-circle" : "bi-play-circle") me-2"></i>
+                @(_isRunning ? "Parar" : "Iniciar")
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    private InstrumentType _selectedInstrument = InstrumentType.Guitarra;
+    private int? _selectedTuningId;
+    private List<InstrumentTuning>? _tuningPresets;
+    private InstrumentTuning? _selectedTuning;
+    
+    private bool _isLoading = true;
+    private bool _isRunning = false;
+    private bool _isTogglingTuner = false;
+    private string? _errorMessage;
+    
+    private PitchInfo? _currentPitch;
+    
+    private IJSObjectReference? _tunerModule;
+    private DotNetObjectReference<Tuner>? _dotNetReference;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTuningPresets();
+        _isLoading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Load the tuner.js module
+                _tunerModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/tuner.js");
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = $"Erro ao carregar módulo do afinador: {ex.Message}";
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task LoadTuningPresets()
+    {
+        try
+        {
+            var presets = await TunerService.GetTuningPresetsAsync(_selectedInstrument);
+            _tuningPresets = presets.ToList();
+            
+            if (_tuningPresets.Any())
+            {
+                // Select the default tuning or the first one
+                var defaultTuning = _tuningPresets.FirstOrDefault(t => t.IsDefault) ?? _tuningPresets.First();
+                _selectedTuningId = defaultTuning.Id;
+                _selectedTuning = defaultTuning;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Erro ao carregar afinações: {ex.Message}";
+        }
+    }
+
+    private async Task OnInstrumentChanged()
+    {
+        await LoadTuningPresets();
+    }
+
+    private async Task ToggleTuner()
+    {
+        if (_isTogglingTuner) return;
+        
+        _isTogglingTuner = true;
+        _errorMessage = null;
+
+        try
+        {
+            if (_isRunning)
+            {
+                await StopTuner();
+            }
+            else
+            {
+                await StartTuner();
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message.Contains("Permission") || ex.Message.Contains("denied") 
+                ? "Acesso ao microfone negado. Por favor, permita o acesso ao microfone nas configurações do navegador."
+                : $"Erro ao iniciar o afinador: {ex.Message}";
+        }
+        finally
+        {
+            _isTogglingTuner = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task StartTuner()
+    {
+        if (_tunerModule == null)
+        {
+            throw new InvalidOperationException("Módulo do afinador não carregado");
+        }
+
+        // Update selected tuning
+        if (_selectedTuningId.HasValue && _tuningPresets != null)
+        {
+            _selectedTuning = _tuningPresets.FirstOrDefault(t => t.Id == _selectedTuningId.Value);
+        }
+
+        // Create .NET object reference for callbacks
+        _dotNetReference = DotNetObjectReference.Create(this);
+
+        // Start the tuner with the callback
+        await _tunerModule.InvokeVoidAsync("startTuner", _dotNetReference);
+        
+        _isRunning = true;
+        _currentPitch = null;
+    }
+
+    private async Task StopTuner()
+    {
+        if (_tunerModule != null)
+        {
+            try
+            {
+                await _tunerModule.InvokeVoidAsync("stopTuner");
+            }
+            catch
+            {
+                // Ignore disposal errors
+            }
+        }
+
+        _dotNetReference?.Dispose();
+        _dotNetReference = null;
+        
+        _isRunning = false;
+        _currentPitch = null;
+    }
+
+    [JSInvokable]
+    public void UpdatePitch(double frequency)
+    {
+        try
+        {
+            _currentPitch = TunerService.ValidatePitch(frequency);
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating pitch: {ex.Message}");
+        }
+    }
+
+    private string GetNoteColorClass()
+    {
+        if (_currentPitch == null) return "";
+        
+        var absCents = Math.Abs(_currentPitch.CentsOffset);
+        if (absCents < 5) return "text-success";
+        if (absCents <= 10) return "text-warning";
+        return "text-danger";
+    }
+
+    private string GetNeedleColorClass()
+    {
+        if (_currentPitch == null) return "needle-neutral";
+        
+        var absCents = Math.Abs(_currentPitch.CentsOffset);
+        if (absCents < 5) return "needle-green";
+        if (absCents <= 10) return "needle-yellow";
+        return "needle-red";
+    }
+
+    private string GetNeedlePosition()
+    {
+        if (_currentPitch == null) return "0%";
+        
+        // Map -50 to +50 cents to -100% to +100%
+        var position = (_currentPitch.CentsOffset / 50.0) * 100.0;
+        // Clamp to -100% to +100%
+        position = Math.Max(-100, Math.Min(100, position));
+        return $"{position:F1}%";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_isRunning)
+        {
+            await StopTuner();
+        }
+
+        if (_tunerModule != null)
+        {
+            try
+            {
+                await _tunerModule.DisposeAsync();
+            }
+            catch
+            {
+                // Ignore disposal errors
+            }
+        }
+    }
+}

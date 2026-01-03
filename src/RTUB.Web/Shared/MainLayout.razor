@@ -81,6 +81,16 @@
                 <AuthorizeView Context="mainAuthContext3">
                     <Authorized>
                         
+                        <!-- 6.7 Aprender (Member Dropdown) -->
+                        <li class="nav-item dropdown">
+                            <button class="nav-link dropdown-toggle" type="button" id="learningDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                                <i class="bi bi-book"></i> Aprender
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="learningDropdown">
+                                <li><NavLink class="dropdown-item" href="/learning/tuner"><i class="bi bi-music-note-beamed"></i> Afinador</NavLink></li>
+                            </ul>
+                        </li>
+                        
                         <!-- 7. Inventário (Member Dropdown) -->
                         <li class="nav-item dropdown">
                             <button class="nav-link dropdown-toggle" type="button" id="inventoryDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
