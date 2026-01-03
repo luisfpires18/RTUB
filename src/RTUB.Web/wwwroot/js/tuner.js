@@ -132,16 +132,19 @@ class TunerEngine {
                 this.frequencyHistory.shift();
             }
             
-            // Only send update if we have enough samples and frequency is stable
+            // Only send update if we have enough samples
             if (this.frequencyHistory.length >= this.historySize) {
-                // Check stability - reject if variance is too high
                 const avgFrequency = this.frequencyHistory.reduce((a, b) => a + b, 0) / this.frequencyHistory.length;
-                const variance = this.frequencyHistory.reduce((sum, f) => sum + Math.pow(f - avgFrequency, 2), 0) / this.frequencyHistory.length;
-                const stdDev = Math.sqrt(variance);
                 
-                // Only update if readings are stable (low standard deviation)
-                // A stable note should have std dev < 5 Hz
-                if (stdDev < 5) {
+                // Check if note is stable (not jumping octaves/notes)
+                // Calculate variance to reject wild jumps but allow natural vibrato
+                const minFreq = Math.min(...this.frequencyHistory);
+                const maxFreq = Math.max(...this.frequencyHistory);
+                const freqRange = maxFreq - minFreq;
+                
+                // Only reject if frequency range is huge (> 30 Hz indicates note jumping)
+                // Natural vibrato is usually < 10 Hz, allow up to 30 Hz for safety
+                if (freqRange < 30) {
                     this.onPitchDetectedCallback({ 
                         frequency: avgFrequency,
                         clarity: result.clarity 
