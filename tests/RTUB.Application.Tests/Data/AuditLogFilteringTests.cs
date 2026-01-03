@@ -92,8 +92,6 @@ public class AuditLogFilteringTests : IDisposable
         auditLogs.Should().BeEmpty();
     }
 
-
-
     [Fact]
     public async Task SaveChangesAsync_WhenGalleryMediaPersonTagDeleted_DoesNotCreateAuditLog()
     {
