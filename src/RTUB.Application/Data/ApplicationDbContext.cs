@@ -136,6 +136,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             if (entry.Entity is SongPlayCount)
                 continue;
                 
+            // Skip audit logging for GalleryMediaPersonTag - it's just spam
+            if (entry.Entity is GalleryMediaPersonTag)
+                continue;
+                
             switch (entry.State)
             {
                 case EntityState.Added:
@@ -1127,6 +1131,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                             ?? memberInstrument.MemberId;
                         var instrumentName = RTUB.Core.Helpers.InstrumentTypeHelper.GetDisplayName(memberInstrument.InstrumentType);
                         return $"{userName} - {instrumentName}";
+                    }
+                    break;
+
+                case "PushSubscription":
+                    if (entry.Entity is PushSubscription pushSubscription)
+                    {
+                        // Try navigation property first (if loaded), then fall back to Local cache
+                        var userName = pushSubscription.User?.Nickname
+                            ?? pushSubscription.User?.UserName
+                            ?? ResolveUserIdToNickname(pushSubscription.UserId)
+                            ?? pushSubscription.UserId;
+                        return userName;
                     }
                     break;
             }
