@@ -1087,6 +1087,9 @@ else
                         songPlayCounts.TryGetValue(song.Id, out var currentCount);
                         songPlayCounts[song.Id] = currentCount + 1;
                         StateHasChanged(); // Trigger UI update to reflect new count
+                        
+                        // Log to audit log
+                        await LogSongPlaybackAsync(song, album);
                     }
                 }
                 catch
