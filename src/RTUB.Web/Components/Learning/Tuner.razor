@@ -29,7 +29,7 @@
             <div class="col-md-6">
                 <label for="instrumentSelect" class="form-label">Instrumento</label>
                 <select id="instrumentSelect" class="form-select" @bind="_selectedInstrument" @bind:after="OnInstrumentChanged" disabled="@_isRunning">
-                    @foreach (InstrumentType instrument in Enum.GetValues(typeof(InstrumentType)))
+                    @foreach (var instrument in GetTunableInstruments())
                     {
                         <option value="@instrument">@InstrumentTypeHelper.GetDisplayName(instrument)</option>
                     }
@@ -169,11 +169,14 @@
         {
             try
             {
+                Console.WriteLine("Loading tuner.js module...");
                 // Load the tuner.js module
                 _tunerModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/tuner.js");
+                Console.WriteLine("Tuner module loaded successfully");
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Error loading tuner module: {ex.Message}");
                 _errorMessage = $"Erro ao carregar módulo do afinador: {ex.Message}";
                 StateHasChanged();
             }
@@ -208,6 +211,8 @@
 
     private async Task ToggleTuner()
     {
+        Console.WriteLine($"ToggleTuner called. Current state - isRunning: {_isRunning}, isTogglingTuner: {_isTogglingTuner}");
+        
         if (_isTogglingTuner) return;
         
         _isTogglingTuner = true;
@@ -217,15 +222,18 @@
         {
             if (_isRunning)
             {
+                Console.WriteLine("Stopping tuner...");
                 await StopTuner();
             }
             else
             {
+                Console.WriteLine("Starting tuner...");
                 await StartTuner();
             }
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Error in ToggleTuner: {ex.Message}");
             _errorMessage = ex.Message.Contains("Permission") || ex.Message.Contains("denied") 
                 ? "Acesso ao microfone negado. Por favor, permita o acesso ao microfone nas configurações do navegador."
                 : $"Erro ao iniciar o afinador: {ex.Message}";
@@ -253,11 +261,20 @@
         // Create .NET object reference for callbacks
         _dotNetReference = DotNetObjectReference.Create(this);
 
-        // Start the tuner with the callback
-        await _tunerModule.InvokeVoidAsync("startTuner", _dotNetReference);
-        
-        _isRunning = true;
-        _currentPitch = null;
+        try
+        {
+            // Start the tuner with the callback
+            await _tunerModule.InvokeVoidAsync("startTuner", _dotNetReference);
+            
+            _isRunning = true;
+            _currentPitch = null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in StartTuner: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            throw new InvalidOperationException($"Erro ao iniciar o afinador: {ex.Message}", ex);
+        }
     }
 
     private async Task StopTuner()
@@ -324,6 +341,25 @@
         // Clamp to -100% to +100%
         position = Math.Max(-100, Math.Min(100, position));
         return $"{position:F1}%";
+    }
+
+    private IEnumerable<InstrumentType> GetTunableInstruments()
+    {
+        // Only show instruments that can be tuned (have pitch)
+        // Exclude: Estandarte, Pandeireta (no pitch)
+        return new[]
+        {
+            InstrumentType.Guitarra,
+            InstrumentType.Bandolim,
+            InstrumentType.Cavaquinho,
+            InstrumentType.Baixo,
+            InstrumentType.Contrabaixo,
+            InstrumentType.Acordeao,
+            InstrumentType.Percussao,
+            InstrumentType.Violino,
+            InstrumentType.Fagote,
+            InstrumentType.Flauta
+        };
     }
 
     public async ValueTask DisposeAsync()
