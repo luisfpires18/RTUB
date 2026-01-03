@@ -99,6 +99,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<GalleryMedia> GalleryMedia { get; set; }
     public DbSet<GalleryMediaPersonTag> GalleryMediaPersonTags { get; set; }
 
+    // Learning DbSets
+    public DbSet<InstrumentTuning> InstrumentTunings { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -135,7 +138,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             // Skip audit logging for SongPlayCount - it's high-frequency and not critical
             if (entry.Entity is SongPlayCount)
                 continue;
-                
+
             switch (entry.State)
             {
                 case EntityState.Added:

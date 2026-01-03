@@ -232,4 +232,14 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Registers learning and educational services
+    /// </summary>
+    public static IServiceCollection AddLearningServices(this IServiceCollection services)
+    {
+        services.AddScoped<ITunerService, TunerService>();
+
+        return services;
+    }
 }
