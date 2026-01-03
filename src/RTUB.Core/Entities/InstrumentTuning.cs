@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 using RTUB.Core.Enums;
 
 namespace RTUB.Core.Entities;
@@ -20,6 +22,27 @@ public class InstrumentTuning : BaseEntity
     public string TuningNotes { get; set; } = string.Empty;
 
     public bool IsDefault { get; set; } = false;
+
+    /// <summary>
+    /// Gets the tuning notes as an array (deserialized from JSON)
+    /// </summary>
+    [NotMapped]
+    public string[] NotesArray
+    {
+        get
+        {
+            try
+            {
+                return string.IsNullOrWhiteSpace(TuningNotes)
+                    ? Array.Empty<string>()
+                    : JsonSerializer.Deserialize<string[]>(TuningNotes) ?? Array.Empty<string>();
+            }
+            catch
+            {
+                return Array.Empty<string>();
+            }
+        }
+    }
 
     public InstrumentTuning() { }
 

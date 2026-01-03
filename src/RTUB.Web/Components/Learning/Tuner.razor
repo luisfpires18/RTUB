@@ -109,12 +109,12 @@
                 </div>
 
                 <!-- String Indicator -->
-                @if (_selectedTuning != null && _selectedTuning.TuningNotes != null && _selectedTuning.TuningNotes.Any())
+                @if (_selectedTuning != null && _selectedTuning.NotesArray != null && _selectedTuning.NotesArray.Any())
                 {
                     <div class="string-indicator">
                         <h6 class="text-center mb-3">Notas Esperadas:</h6>
                         <div class="d-flex justify-content-center gap-2 flex-wrap">
-                            @foreach (var note in _selectedTuning.TuningNotes)
+                            @foreach (var note in _selectedTuning.NotesArray)
                             {
                                 <span class="badge bg-secondary">@note</span>
                             }
