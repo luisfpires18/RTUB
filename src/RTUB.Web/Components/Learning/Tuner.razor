@@ -55,9 +55,9 @@
         <div class="tuner-display mt-4">
             @if (!_isRunning)
             {
-                <div class="text-center text-muted py-5">
-                    <i class="bi bi-mic-fill" style="font-size: 3rem;"></i>
-                    <p class="mt-3">Clique em "Iniciar" para começar a afinar</p>
+                <div class="text-center py-5">
+                    <i class="bi bi-mic-fill text-primary" style="font-size: 3rem;"></i>
+                    <p class="mt-3 text-light">Clique em "Iniciar" para começar a afinar</p>
                 </div>
             }
             else
@@ -71,17 +71,17 @@
                         }
                         else
                         {
-                            <span class="text-muted">--</span>
+                            <span class="text-light">--</span>
                         }
                     </div>
-                    <div class="frequency-display">
+                    <div class="frequency-display text-light">
                         @if (_currentPitch != null)
                         {
                             <span>@(_currentPitch.Frequency.ToString("F1")) Hz</span>
                         }
                         else
                         {
-                            <span class="text-muted">-- Hz</span>
+                            <span>-- Hz</span>
                         }
                     </div>
                 </div>
@@ -103,7 +103,7 @@
                         }
                         else
                         {
-                            <span class="text-muted">0 cents</span>
+                            <span class="text-light">0 cents</span>
                         }
                     </div>
                 </div>

@@ -15,7 +15,6 @@
 /* Frequency Display */
 .frequency-display {
     font-size: 1rem;
-    color: #6c757d;
     margin-top: 0.5rem;
 }
 
@@ -175,8 +174,8 @@
     min-height: 300px;
     padding: 1rem;
     border-radius: 0.375rem;
-    background-color: #fff;
-    border: 1px solid #dee2e6;
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    border: 1px solid var(--bs-primary);
 }
 
 /* Responsive Design */
