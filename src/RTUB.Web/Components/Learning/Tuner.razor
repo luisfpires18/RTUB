@@ -9,6 +9,15 @@
 @implements IAsyncDisposable
 
 <div class="tuner-container">
+    @if (!string.IsNullOrEmpty(_debugMessage))
+    {
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Debug:</strong> @_debugMessage
+            <button type="button" class="btn-close" @onclick="() => _debugMessage = null" aria-label="Fechar"></button>
+        </div>
+    }
+    
     @if (!string.IsNullOrEmpty(_errorMessage))
     {
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -151,6 +160,7 @@
     private bool _isRunning = false;
     private bool _isTogglingTuner = false;
     private string? _errorMessage;
+    private string? _debugMessage;
     
     private PitchInfo? _currentPitch;
     
@@ -211,15 +221,18 @@
 
     private async Task ToggleTuner()
     {
-        // Immediate feedback to user - this will show if button click is registered
+        // Show visible debug message on screen
+        _debugMessage = $"Botão clicado! Versão: {DateTime.Now:HH:mm:ss}";
+        StateHasChanged();
+        
+        // Also log to console
         try
         {
-            await JSRuntime.InvokeVoidAsync("console.log", $"RTUB Tuner: ✓ Button clicked! isRunning={_isRunning}, isTogglingTuner={_isTogglingTuner}");
-            await JSRuntime.InvokeVoidAsync("alert", "Botão Iniciar clicado! Verifique o console (F12) para mais informações.");
+            await JSRuntime.InvokeVoidAsync("console.log", $"RTUB Tuner: ✓ Button clicked at {DateTime.Now:HH:mm:ss}! isRunning={_isRunning}");
         }
         catch
         {
-            // Ignore if console.log or alert fails
+            // Ignore if console.log fails
         }
         
         if (_isTogglingTuner) return;

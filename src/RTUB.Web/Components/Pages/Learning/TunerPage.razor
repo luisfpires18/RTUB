@@ -4,7 +4,10 @@
 <PageTitle>Afinador - RTUB</PageTitle>
 
 <div class="container mt-4">
-    <h2>Afinador de Instrumentos</h2>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Afinador de Instrumentos</h2>
+        <small class="text-muted">v2.0 - @DateTime.Now.ToString("HH:mm:ss")</small>
+    </div>
     <p class="text-muted">
         Afine o seu instrumento usando o microfone.
         Para melhores resultados, use um ambiente silencioso.
@@ -20,5 +23,10 @@
             <li>Aguarde o indicador estabilizar antes de afinar</li>
             <li>Verde = afinado, Amarelo = quase, Vermelho = desafinado</li>
         </ul>
+    </div>
+    
+    <div class="mt-3 alert alert-warning">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <strong>Se não vê alterações:</strong> Faça Ctrl+Shift+R (Windows) ou Cmd+Shift+R (Mac) para limpar cache. Em mobile, limpe o cache do navegador nas configurações.
     </div>
 </div>
