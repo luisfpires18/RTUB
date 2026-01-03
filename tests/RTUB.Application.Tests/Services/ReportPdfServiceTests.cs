@@ -123,6 +123,11 @@ public class ReportPdfServiceTests : IDisposable
     {
         // Arrange
         var report = Report.Create("Cached Report", 2024);
+        
+        // Set UpdatedAt to ensure consistent cache key
+        var updatedAt = DateTime.UtcNow;
+        typeof(Report).GetProperty("UpdatedAt")!.SetValue(report, updatedAt);
+        
         var activities = new List<Activity>
         {
             Activity.Create(report.Id, "Activity 1", null)
@@ -142,6 +147,7 @@ public class ReportPdfServiceTests : IDisposable
         result1.Should().NotBeNull();
         result2.Should().NotBeNull();
         result1.Should().Equal(result2); // Should be the exact same cached bytes
+        result1.Should().BeSameAs(result2); // Should be the exact same reference from cache
     }
 
     [Fact]
