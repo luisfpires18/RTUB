@@ -22,7 +22,7 @@ public class AuditLogService : IAuditLogService
 
     private static IQueryable<AuditLog> ExcludeHiddenEntities(IQueryable<AuditLog> query)
     {
-        return query.Where(a => a.EntityType == null || !DefaultValues.AuditLog.ExcludedEntityTypes.Contains(a.EntityType));
+        return query.Where(a => a.EntityType == null || !AuditConfiguration.ExcludedEntityTypes.Contains(a.EntityType));
     }
 
     /// <summary>

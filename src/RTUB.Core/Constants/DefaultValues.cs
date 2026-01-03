@@ -105,24 +105,4 @@ public static class DefaultValues
         /// </summary>
         public const string ImmutableAssetsCacheControl = "public, max-age=31536000, immutable";
     }
-
-    /// <summary>
-    /// Audit logging configuration values
-    /// </summary>
-    public static class AuditLog
-    {
-        /// <summary>
-        /// Entity types that should be excluded from audit logging
-        /// These are typically high-frequency, low-value entities or messaging-related entities
-        /// that would spam the audit logs
-        /// </summary>
-        public static readonly HashSet<string> ExcludedEntityTypes = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Message",
-            "Conversation", 
-            "ConversationUserSettings",
-            "SongPlayCount",
-            "GalleryMediaPersonTag"
-        };
-    }
 }

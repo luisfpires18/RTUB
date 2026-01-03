@@ -135,7 +135,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             // Skip audit logging for excluded entities (high-frequency, low-value changes)
             var entityTypeName = entry.Entity.GetType().Name;
-            if (DefaultValues.AuditLog.ExcludedEntityTypes.Contains(entityTypeName))
+            if (AuditConfiguration.ExcludedEntityTypes.Contains(entityTypeName))
                 continue;
                 
             switch (entry.State)
