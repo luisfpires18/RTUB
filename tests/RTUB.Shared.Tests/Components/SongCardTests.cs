@@ -598,4 +598,83 @@ public class SongCardTests : TestContext
         cut.Markup.Should().Contain("song-card-playing", "should have playing state after update");
         cut.Markup.Should().Contain("bi-play-circle-fill", "should show play icon after update");
     }
+
+    [Fact]
+    public void SongCard_ShowsPlayCount_WhenCountIsGreaterThanZero()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.PlayCount, 5)
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
+
+        // Assert
+        cut.Markup.Should().Contain("song-play-count", "should show play count element");
+        cut.Markup.Should().Contain("5", "should display the play count");
+        cut.Markup.Should().Contain("reproduções", "should show plural form for count > 1");
+    }
+
+    [Fact]
+    public void SongCard_ShowsPlayCountSingular_WhenCountIsOne()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.PlayCount, 1)
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
+
+        // Assert
+        cut.Markup.Should().Contain("song-play-count", "should show play count element");
+        cut.Markup.Should().Contain("1", "should display the play count");
+        cut.Markup.Should().Contain("reprodução", "should show singular form for count = 1");
+    }
+
+    [Fact]
+    public void SongCard_DoesNotShowPlayCount_WhenCountIsZero()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+
+        // Act
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.PlayCount, 0)
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
+
+        // Assert
+        cut.Markup.Should().NotContain("song-play-count", "should not show play count element when count is zero");
+    }
+
+    [Fact]
+    public void SongCard_ReRendersWhen_PlayCountChanges()
+    {
+        // Arrange
+        var song = Song.Create("Favaios", 1);
+
+        var cut = RenderComponent<SongCard>(parameters => parameters
+            .Add(p => p.Song, song)
+            .Add(p => p.PlayCount, 5)
+            .Add(p => p.CanEdit, false)
+            .Add(p => p.CanDelete, false));
+
+        // Verify initial state
+        cut.Markup.Should().Contain("5 reproduções", "should initially show count of 5");
+
+        // Act - Update PlayCount
+        cut.SetParametersAndRender(parameters => parameters
+            .Add(p => p.PlayCount, 6));
+
+        // Assert
+        cut.Markup.Should().Contain("6 reproduções", "should show updated count of 6");
+        cut.Markup.Should().NotContain("5 reproduções", "should not show old count");
+    }
 }
