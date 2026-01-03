@@ -20,12 +20,12 @@ class TunerEngine {
         // Pitch detection parameters
         this.minFrequency = 70;  // Lowered from 80 Hz for bass strings
         this.maxFrequency = 1200; // Hz
-        this.clarityThreshold = 0.85; // Lowered from 0.9 to accept more readings
-        this.rmsThreshold = 0.005; // Lowered from 0.01 for quieter sounds
+        this.clarityThreshold = 0.90; // Increased from 0.85 to reduce false positives
+        this.rmsThreshold = 0.01; // Increased from 0.005 to ignore very quiet sounds
         
-        // Smoothing for stability
+        // Smoothing for stability - increased history
         this.frequencyHistory = [];
-        this.historySize = 5; // Average last 5 readings
+        this.historySize = 8; // Increased from 5 to 8 for more smoothing
     }
 
     /**
@@ -132,20 +132,28 @@ class TunerEngine {
                 this.frequencyHistory.shift();
             }
             
-            // Calculate average frequency for stability
-            const avgFrequency = this.frequencyHistory.reduce((a, b) => a + b, 0) / this.frequencyHistory.length;
-            
-            // Only send update if we have enough samples
-            if (this.frequencyHistory.length >= 3) {
-                this.onPitchDetectedCallback({ 
-                    frequency: avgFrequency,
-                    clarity: result.clarity 
-                });
+            // Only send update if we have enough samples and frequency is stable
+            if (this.frequencyHistory.length >= this.historySize) {
+                // Check stability - reject if variance is too high
+                const avgFrequency = this.frequencyHistory.reduce((a, b) => a + b, 0) / this.frequencyHistory.length;
+                const variance = this.frequencyHistory.reduce((sum, f) => sum + Math.pow(f - avgFrequency, 2), 0) / this.frequencyHistory.length;
+                const stdDev = Math.sqrt(variance);
+                
+                // Only update if readings are stable (low standard deviation)
+                // A stable note should have std dev < 5 Hz
+                if (stdDev < 5) {
+                    this.onPitchDetectedCallback({ 
+                        frequency: avgFrequency,
+                        clarity: result.clarity 
+                    });
+                }
             }
         }
 
-        // Schedule next detection - throttled to ~30fps for better performance
-        this.rafId = requestAnimationFrame(() => this.detectPitchLoop());
+        // Schedule next detection - throttled to ~20fps for smoother updates
+        setTimeout(() => {
+            this.rafId = requestAnimationFrame(() => this.detectPitchLoop());
+        }, 50); // 50ms = 20 updates per second
     }
 
     /**
@@ -216,7 +224,7 @@ class TunerEngine {
 
             correlation = 1 - (correlation / maxSamples);
 
-            if (correlation > 0.85 && correlation > lastCorrelation) {
+            if (correlation > 0.90 && correlation > lastCorrelation) {
                 foundGoodCorrelation = true;
                 if (correlation > bestCorrelation) {
                     bestCorrelation = correlation;
