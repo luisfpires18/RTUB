@@ -1,10 +1,13 @@
 using System;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
+using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
@@ -412,5 +415,116 @@ public class SongService : ISongService
             .ToListAsync();
 
         return albumStats.Select(x => (x.Album, x.PlayCount));
+    }
+
+    public async Task<PagedResult<SongLearningDto>> SearchForLearningAsync(
+        InstrumentType? instrument,
+        DifficultyLevel? difficulty,
+        string? skillTag,
+        int? maxPracticeHours,
+        string? searchTerm,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var query = _context.Songs.AsQueryable();
+
+        if (instrument.HasValue)
+            query = query.Where(s => s.PrimaryInstrument == instrument);
+
+        if (difficulty.HasValue)
+            query = query.Where(s => s.Difficulty == difficulty);
+
+        if (!string.IsNullOrEmpty(skillTag))
+            query = query.Where(s => s.SkillTags != null && s.SkillTags.Contains(skillTag));
+
+        if (maxPracticeHours.HasValue)
+            query = query.Where(s => s.EstimatedPracticeHours <= maxPracticeHours);
+
+        if (!string.IsNullOrEmpty(searchTerm))
+            query = query.Where(s => s.Title.Contains(searchTerm));
+
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Include(s => s.Album)
+            .Include(s => s.YouTubeUrls)
+            .Select(s => new SongLearningDto
+            {
+                Id = s.Id,
+                Title = s.Title,
+                AlbumTitle = s.Album != null ? s.Album.Title : null,
+                Difficulty = s.Difficulty.HasValue ? s.Difficulty.Value.ToString() : null,
+                PrimaryInstrument = s.PrimaryInstrument.HasValue ? s.PrimaryInstrument.Value.ToString() : null,
+                SecondaryInstruments = s.SecondaryInstruments != null
+                    ? JsonSerializer.Deserialize<List<string>>(s.SecondaryInstruments) ?? new()
+                    : new(),
+                SkillTags = s.SkillTags != null
+                    ? JsonSerializer.Deserialize<List<string>>(s.SkillTags) ?? new()
+                    : new(),
+                EstimatedPracticeHours = s.EstimatedPracticeHours,
+                YouTubeUrl = s.YouTubeUrls.FirstOrDefault() != null ? s.YouTubeUrls.First().Url : null,
+                HasTabData = false // Will be updated in Phase 5
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<SongLearningDto>(items, total, pageNumber, pageSize);
+    }
+
+    public async Task<List<SongLearningDto>> GetRecommendationsAsync(
+        string userId,
+        InstrumentType? preferredInstrument,
+        int limit = 5,
+        CancellationToken ct = default)
+    {
+        // Get user's practice history
+        var practicedSongIds = await _context.PracticeSessions
+            .Where(s => s.UserId == userId && s.SongId.HasValue)
+            .Select(s => s.SongId!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+
+        // Determine user's current level based on practice history
+        var totalPracticeMinutes = await _context.PracticeSessions
+            .Where(s => s.UserId == userId)
+            .SumAsync(s => s.DurationMinutes, ct);
+
+        var userLevel = totalPracticeMinutes switch
+        {
+            < 600 => DifficultyLevel.Easy, // Less than 10 hours
+            < 3000 => DifficultyLevel.Medium, // 10-50 hours
+            _ => DifficultyLevel.Hard
+        };
+
+        // Get most practiced instrument
+        var mostPracticedInstrument = preferredInstrument ?? await _context.PracticeSessions
+            .Where(s => s.UserId == userId)
+            .GroupBy(s => s.InstrumentType)
+            .OrderByDescending(g => g.Sum(s => s.DurationMinutes))
+            .Select(g => g.Key)
+            .FirstOrDefaultAsync(ct);
+
+        // Find songs that match user's level and instrument, excluding already practiced
+        var recommendations = await _context.Songs
+            .Where(s => s.Difficulty == userLevel)
+            .Where(s => !practicedSongIds.Contains(s.Id))
+            .Where(s => s.PrimaryInstrument == mostPracticedInstrument)
+            .OrderBy(_ => Guid.NewGuid()) // Random order
+            .Take(limit)
+            .Include(s => s.Album)
+            .Select(s => new SongLearningDto
+            {
+                Id = s.Id,
+                Title = s.Title,
+                AlbumTitle = s.Album != null ? s.Album.Title : null,
+                Difficulty = s.Difficulty.HasValue ? s.Difficulty.Value.ToString() : null,
+                PrimaryInstrument = s.PrimaryInstrument.HasValue ? s.PrimaryInstrument.Value.ToString() : null,
+                EstimatedPracticeHours = s.EstimatedPracticeHours,
+                HasTabData = false
+            })
+            .ToListAsync(ct);
+
+        return recommendations;
     }
 }

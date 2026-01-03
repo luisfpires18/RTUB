@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using RTUB.Core.Enums;
 
 namespace RTUB.Core.Entities;
 
@@ -36,6 +37,19 @@ public class Song : BaseEntity
 
     [Required(ErrorMessage = "O álbum é obrigatório")]
     public int AlbumId { get; set; }
+
+    // Learning platform properties (all nullable for backward compatibility)
+    public DifficultyLevel? Difficulty { get; set; }
+    public InstrumentType? PrimaryInstrument { get; set; }
+    
+    [MaxLength(1000)]
+    public string? SecondaryInstruments { get; set; } // JSON array of InstrumentType
+    
+    [MaxLength(2000)]
+    public string? SkillTags { get; set; } // JSON array of strings
+    
+    [Range(1, 1000)]
+    public int? EstimatedPracticeHours { get; set; }
 
     // Navigation properties
     public virtual Album? Album { get; set; }

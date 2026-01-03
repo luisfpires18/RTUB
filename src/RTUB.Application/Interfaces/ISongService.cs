@@ -1,4 +1,6 @@
+using RTUB.Application.DTOs;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 
 namespace RTUB.Application.Interfaces;
 
@@ -33,6 +35,23 @@ public interface ISongService
     Task<IEnumerable<(UserPlayInfo User, Song Song, Album Album, int PlayCount)>> GetDetailedPlayStatsAsync();
     Task<IEnumerable<(Song Song, int PlayCount)>> GetAllSongsWithPlayCountAsync();
     Task<IEnumerable<(Album Album, int PlayCount)>> GetAllAlbumsWithPlayCountAsync();
+
+    // Learning platform methods
+    Task<PagedResult<SongLearningDto>> SearchForLearningAsync(
+        InstrumentType? instrument,
+        DifficultyLevel? difficulty,
+        string? skillTag,
+        int? maxPracticeHours,
+        string? searchTerm,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
+
+    Task<List<SongLearningDto>> GetRecommendationsAsync(
+        string userId,
+        InstrumentType? preferredInstrument,
+        int limit = 5,
+        CancellationToken ct = default);
 }
 
 /// <summary>
