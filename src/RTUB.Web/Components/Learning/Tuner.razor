@@ -169,14 +169,14 @@
         {
             try
             {
-                Console.WriteLine("Loading tuner.js module...");
+                await JSRuntime.InvokeVoidAsync("console.log", "RTUB Tuner: OnAfterRenderAsync - Loading tuner.js module...");
                 // Load the tuner.js module
                 _tunerModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/tuner.js");
-                Console.WriteLine("Tuner module loaded successfully");
+                await JSRuntime.InvokeVoidAsync("console.log", "RTUB Tuner: Tuner module loaded successfully");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading tuner module: {ex.Message}");
+                await JSRuntime.InvokeVoidAsync("console.error", $"RTUB Tuner: Error loading tuner module: {ex.Message}");
                 _errorMessage = $"Erro ao carregar módulo do afinador: {ex.Message}";
                 StateHasChanged();
             }
@@ -211,7 +211,16 @@
 
     private async Task ToggleTuner()
     {
-        Console.WriteLine($"ToggleTuner called. Current state - isRunning: {_isRunning}, isTogglingTuner: {_isTogglingTuner}");
+        // Immediate feedback to user - this will show if button click is registered
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("console.log", $"RTUB Tuner: ✓ Button clicked! isRunning={_isRunning}, isTogglingTuner={_isTogglingTuner}");
+            await JSRuntime.InvokeVoidAsync("alert", "Botão Iniciar clicado! Verifique o console (F12) para mais informações.");
+        }
+        catch
+        {
+            // Ignore if console.log or alert fails
+        }
         
         if (_isTogglingTuner) return;
         
@@ -222,18 +231,18 @@
         {
             if (_isRunning)
             {
-                Console.WriteLine("Stopping tuner...");
+                await JSRuntime.InvokeVoidAsync("console.log", "RTUB Tuner: Stopping tuner...");
                 await StopTuner();
             }
             else
             {
-                Console.WriteLine("Starting tuner...");
+                await JSRuntime.InvokeVoidAsync("console.log", "RTUB Tuner: Starting tuner...");
                 await StartTuner();
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error in ToggleTuner: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("console.error", $"RTUB Tuner: Error in ToggleTuner: {ex.Message}");
             _errorMessage = ex.Message.Contains("Permission") || ex.Message.Contains("denied") 
                 ? "Acesso ao microfone negado. Por favor, permita o acesso ao microfone nas configurações do navegador."
                 : $"Erro ao iniciar o afinador: {ex.Message}";
@@ -263,16 +272,18 @@
 
         try
         {
+            await JSRuntime.InvokeVoidAsync("console.log", "RTUB Tuner: Calling startTuner JS function...");
             // Start the tuner with the callback
             await _tunerModule.InvokeVoidAsync("startTuner", _dotNetReference);
             
             _isRunning = true;
             _currentPitch = null;
+            await JSRuntime.InvokeVoidAsync("console.log", "RTUB Tuner: startTuner JS function completed successfully");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error in StartTuner: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            await JSRuntime.InvokeVoidAsync("console.error", $"RTUB Tuner: Error in StartTuner: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("console.error", $"RTUB Tuner: Stack trace: {ex.StackTrace}");
             throw new InvalidOperationException($"Erro ao iniciar o afinador: {ex.Message}", ex);
         }
     }
