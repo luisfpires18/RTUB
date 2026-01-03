@@ -21,6 +21,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Critical entities that should always be flagged in audit logs
     private static readonly string[] CriticalEntities = { "RoleAssignment", "Report", "ApplicationUser", "FiscalYear" };
 
+    // Entities that should be excluded from audit logging (high-frequency, low-value changes)
+    private static readonly HashSet<string> ExcludedAuditEntities = new(StringComparer.OrdinalIgnoreCase)
+    {
+        nameof(SongPlayCount),
+        nameof(GalleryMediaPersonTag)
+    };
+
     // Constants for audit logging
     private const int BinaryDataTruncateThreshold = 100;
 
@@ -132,12 +139,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
-            // Skip audit logging for SongPlayCount - it's high-frequency and not critical
-            if (entry.Entity is SongPlayCount)
-                continue;
-                
-            // Skip audit logging for GalleryMediaPersonTag - it's just spam
-            if (entry.Entity is GalleryMediaPersonTag)
+            // Skip audit logging for excluded entities (high-frequency, low-value changes)
+            var entityTypeName = entry.Entity.GetType().Name;
+            if (ExcludedAuditEntities.Contains(entityTypeName))
                 continue;
                 
             switch (entry.State)
