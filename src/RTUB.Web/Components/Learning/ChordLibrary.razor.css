@@ -1,0 +1,65 @@
+/* Chord Library Component Styles */
+
+.chord-canvas {
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    background-color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .nav-pills .nav-link {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+    }
+    
+    .card-header {
+        font-size: 0.9rem;
+    }
+}
+
+/* Active nav pill styling */
+.nav-pills .nav-link.active {
+    background-color: #3F2A86 !important;
+    color: white !important;
+}
+
+.nav-pills .nav-link:hover:not(.active) {
+    background-color: rgba(63, 42, 134, 0.1);
+}
+
+/* Card hover effect */
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(63, 42, 134, 0.15);
+    transition: box-shadow 0.3s ease-in-out;
+}
+
+/* Pagination active page styling */
+.pagination .page-item.active .page-link {
+    background-color: #3F2A86;
+    border-color: #3F2A86;
+}
+
+.pagination .page-link:hover:not(.active) {
+    background-color: rgba(63, 42, 134, 0.1);
+    border-color: #3F2A86;
+    color: #3F2A86;
+}
+
+/* Skeleton loading animation */
+.placeholder {
+    background-color: #e9ecef;
+    animation: placeholder-glow 2s ease-in-out infinite;
+}
+
+@keyframes placeholder-glow {
+    0% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.5;
+    }
+}

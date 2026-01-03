@@ -1,0 +1,26 @@
+@page "/learning/chords"
+@attribute [Authorize]
+
+<PageTitle>Biblioteca de Acordes - RTUB</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="bi bi-music-note-list me-2"></i>Biblioteca de Acordes</h2>
+    </div>
+    
+    <p class="text-muted">
+        Explore a nossa coleção de acordes para diferentes instrumentos.
+        Utilize os filtros para encontrar o acorde perfeito para a sua música.
+    </p>
+
+    <ChordLibrary />
+
+    <div class="mt-4 alert identity-alert-info" style="background-color: rgba(63, 42, 134, 0.1); border-color: #3F2A86;">
+        <i class="bi bi-info-circle-fill me-2" style="color: #3F2A86;"></i>
+        <strong style="color: #3F2A86;">Falta algum acorde?</strong>
+        <p class="mb-0 mt-2">
+            Se não encontra o acorde que procura, por favor <a href="/messages" style="color: #3F2A86; text-decoration: underline;">contacte-nos</a> 
+            e teremos todo o gosto em adicioná-lo à biblioteca.
+        </p>
+    </div>
+</div>

@@ -239,6 +239,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddLearningServices(this IServiceCollection services)
     {
         services.AddScoped<ITunerService, TunerService>();
+        services.AddScoped<IChordLibraryService, ChordLibraryService>();
 
         return services;
     }

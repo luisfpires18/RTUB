@@ -56,5 +56,7 @@ public static partial class SeedData
         await SeedRehearsalsAsync(dbContext, userManager);
 
         await SeedMusicAsync(dbContext);
+
+        await ChordSeeder.SeedChordsAsync(dbContext);
     }
 }

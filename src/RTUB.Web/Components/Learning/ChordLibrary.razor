@@ -1,0 +1,429 @@
+@rendermode InteractiveServer
+@using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
+@using RTUB.Core.Enums
+@using RTUB.Core.Helpers
+@using Microsoft.JSInterop
+@inject IChordLibraryService ChordLibraryService
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<div class="row g-4">
+    <!-- Sidebar -->
+    <div class="col-md-3">
+        <!-- Instrument Tabs -->
+        <div class="card mb-3" style="border-color: #3F2A86;">
+            <div class="card-header" style="background-color: #3F2A86; color: white;">
+                <i class="bi bi-music-note-beamed me-2"></i>
+                <strong>Instrumento</strong>
+            </div>
+            <div class="card-body p-2">
+                <ul class="nav nav-pills flex-column" role="tablist">
+                    @foreach (var instrument in GetTunableInstruments())
+                    {
+                        <li class="nav-item">
+                            <button class="nav-link @(IsInstrumentSelected(instrument) ? "active" : "")"
+                                    style="@(IsInstrumentSelected(instrument) ? "background-color: #3F2A86;" : "")"
+                                    @onclick="() => SelectInstrument(instrument)">
+                                @InstrumentTypeHelper.GetDisplayName(instrument)
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <!-- Difficulty Filter -->
+        <div class="card" style="border-color: #3F2A86;">
+            <div class="card-header" style="background-color: #3F2A86; color: white;">
+                <i class="bi bi-bar-chart me-2"></i>
+                <strong>Dificuldade</strong>
+            </div>
+            <div class="card-body">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="diffEasy"
+                           @bind="_filterEasy" @bind:after="ApplyFilters" />
+                    <label class="form-check-label" for="diffEasy">
+                        <span class="badge bg-success">Fácil</span>
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="diffMedium"
+                           @bind="_filterMedium" @bind:after="ApplyFilters" />
+                    <label class="form-check-label" for="diffMedium">
+                        <span class="badge bg-warning">Médio</span>
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="diffHard"
+                           @bind="_filterHard" @bind:after="ApplyFilters" />
+                    <label class="form-check-label" for="diffHard">
+                        <span class="badge bg-danger">Difícil</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-9">
+        <!-- Search Bar -->
+        <div class="mb-4">
+            <div class="input-group">
+                <span class="input-group-text" style="background-color: #3F2A86; color: white;">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" class="form-control" placeholder="Pesquisar acordes (ex: C, Am, G7)..."
+                       @bind="_searchTerm" @bind:after="OnSearchChanged" />
+            </div>
+        </div>
+
+        @if (_isLoading)
+        {
+            <!-- Skeleton Loading Cards -->
+            <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+                @for (int i = 0; i < 8; i++)
+                {
+                    <div class="col">
+                        <div class="card h-100" aria-hidden="true">
+                            <div class="card-header placeholder-glow">
+                                <span class="placeholder col-6"></span>
+                            </div>
+                            <div class="card-body">
+                                <div class="placeholder-glow">
+                                    <div class="placeholder" style="width: 100%; height: 250px;"></div>
+                                </div>
+                            </div>
+                            <div class="card-footer placeholder-glow">
+                                <span class="placeholder col-4"></span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else if (_chords == null || !_chords.Any())
+        {
+            <!-- Empty State -->
+            <div class="text-center py-5">
+                <i class="bi bi-music-note-list" style="font-size: 4rem; color: #3F2A86;"></i>
+                <h4 class="mt-3">Nenhum acorde encontrado</h4>
+                <p class="text-muted">
+                    Tente ajustar os filtros ou termo de pesquisa.
+                </p>
+            </div>
+        }
+        else
+        {
+            <!-- Chord Grid -->
+            <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+                @foreach (var chord in _chords)
+                {
+                    <div class="col">
+                        <div class="card h-100" style="border-color: #3F2A86;">
+                            <!-- Card Header -->
+                            <div class="card-header d-flex justify-content-between align-items-center" 
+                                 style="background-color: #3F2A86; color: white;">
+                                <strong>@chord.ChordName</strong>
+                                <span class="badge @GetDifficultyBadgeClass(chord.Difficulty)">
+                                    @chord.DifficultyName
+                                </span>
+                            </div>
+
+                            <!-- Card Body with Canvas -->
+                            <div class="card-body p-2 d-flex align-items-center justify-content-center">
+                                <canvas id="chord-@chord.Id" width="200" height="250" 
+                                        class="chord-canvas" style="max-width: 100%;"></canvas>
+                            </div>
+
+                            <!-- Card Footer -->
+                            <div class="card-footer bg-transparent">
+                                <button class="btn btn-sm btn-outline-secondary w-100" disabled>
+                                    <i class="bi bi-heart"></i> Favoritar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Pagination -->
+            @if (_totalPages > 1)
+            {
+                <nav aria-label="Navegação de acordes" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item @(_currentPage == 1 ? "disabled" : "")">
+                            <button class="page-link" @onclick="() => GoToPage(_currentPage - 1)"
+                                    disabled="@(_currentPage == 1)">
+                                <i class="bi bi-chevron-left"></i> Anterior
+                            </button>
+                        </li>
+
+                        @for (int i = GetStartPage(); i <= GetEndPage(); i++)
+                        {
+                            var pageNum = i;
+                            <li class="page-item @(_currentPage == pageNum ? "active" : "")">
+                                <button class="page-link" @onclick="() => GoToPage(pageNum)"
+                                        style="@(_currentPage == pageNum ? "background-color: #3F2A86; border-color: #3F2A86;" : "")">
+                                    @pageNum
+                                </button>
+                            </li>
+                        }
+
+                        <li class="page-item @(_currentPage == _totalPages ? "disabled" : "")">
+                            <button class="page-link" @onclick="() => GoToPage(_currentPage + 1)"
+                                    disabled="@(_currentPage == _totalPages)">
+                                Próxima <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private InstrumentType _selectedInstrument = InstrumentType.Guitarra;
+    private bool _filterEasy = true;
+    private bool _filterMedium = true;
+    private bool _filterHard = true;
+    private string _searchTerm = string.Empty;
+
+    private bool _isLoading = true;
+    private IEnumerable<ChordDiagramDto>? _chords;
+    private int _totalCount = 0;
+    private int _currentPage = 1;
+    private int _pageSize = 20;
+    private int _totalPages => (int)Math.Ceiling((double)_totalCount / _pageSize);
+
+    private IJSObjectReference? _chordRendererModule;
+    private System.Threading.Timer? _searchTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadChords();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Load the chord-renderer.js module
+                _chordRendererModule = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                    "import", "./js/chord-renderer.js");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading chord renderer module: {ex.Message}");
+            }
+        }
+
+        // Render chord diagrams after loading chords
+        if (!_isLoading && _chords != null && _chordRendererModule != null)
+        {
+            await RenderChordDiagrams();
+        }
+    }
+
+    private async Task LoadChords()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // Determine selected difficulty
+            DifficultyLevel? difficulty = null;
+            var selectedDifficulties = new List<DifficultyLevel>();
+            
+            if (_filterEasy) selectedDifficulties.Add(DifficultyLevel.Easy);
+            if (_filterMedium) selectedDifficulties.Add(DifficultyLevel.Medium);
+            if (_filterHard) selectedDifficulties.Add(DifficultyLevel.Hard);
+
+            // If all or none selected, pass null (show all)
+            if (selectedDifficulties.Count == 3 || selectedDifficulties.Count == 0)
+            {
+                difficulty = null;
+            }
+            else if (selectedDifficulties.Count == 1)
+            {
+                difficulty = selectedDifficulties[0];
+            }
+            // If multiple but not all, we'll need to call the service multiple times and combine
+            // For simplicity, if 2 are selected, pass null and filter client-side
+            else
+            {
+                difficulty = null;
+            }
+
+            var (chords, totalCount) = await ChordLibraryService.SearchAsync(
+                instrument: _selectedInstrument,
+                difficulty: difficulty,
+                searchTerm: string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm,
+                pageNumber: _currentPage,
+                pageSize: _pageSize
+            );
+
+            // Client-side filtering if needed (when 2 difficulties selected)
+            if (selectedDifficulties.Count == 2 && selectedDifficulties.Count < 3)
+            {
+                _chords = chords.Where(c => selectedDifficulties.Contains(c.Difficulty)).ToList();
+                _totalCount = _chords.Count();
+            }
+            else
+            {
+                _chords = chords;
+                _totalCount = totalCount;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading chords: {ex.Message}");
+            _chords = Array.Empty<ChordDiagramDto>();
+            _totalCount = 0;
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RenderChordDiagrams()
+    {
+        if (_chordRendererModule == null || _chords == null) return;
+
+        try
+        {
+            foreach (var chord in _chords)
+            {
+                if (chord.Fingering != null)
+                {
+                    await _chordRendererModule.InvokeVoidAsync(
+                        "renderChordDiagram",
+                        $"chord-{chord.Id}",
+                        chord.Fingering,
+                        new
+                        {
+                            colorScheme = "light",
+                            showFingers = true
+                        }
+                    );
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rendering chord diagrams: {ex.Message}");
+        }
+    }
+
+    private async Task SelectInstrument(InstrumentType instrument)
+    {
+        if (_selectedInstrument != instrument)
+        {
+            _selectedInstrument = instrument;
+            _currentPage = 1;
+            await LoadChords();
+        }
+    }
+
+    private async Task ApplyFilters()
+    {
+        _currentPage = 1;
+        await LoadChords();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        // Debounce search (300ms)
+        _searchTimer?.Dispose();
+        _searchTimer = new System.Threading.Timer(async _ =>
+        {
+            _currentPage = 1;
+            await InvokeAsync(async () =>
+            {
+                await LoadChords();
+            });
+        }, null, 300, Timeout.Infinite);
+    }
+
+    private async Task GoToPage(int page)
+    {
+        if (page >= 1 && page <= _totalPages && page != _currentPage)
+        {
+            _currentPage = page;
+            await LoadChords();
+        }
+    }
+
+    private bool IsInstrumentSelected(InstrumentType instrument)
+    {
+        return _selectedInstrument == instrument;
+    }
+
+    private string GetDifficultyBadgeClass(DifficultyLevel difficulty)
+    {
+        return difficulty switch
+        {
+            DifficultyLevel.Easy => "bg-success",
+            DifficultyLevel.Medium => "bg-warning text-dark",
+            DifficultyLevel.Hard => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private IEnumerable<InstrumentType> GetTunableInstruments()
+    {
+        // Only show instruments that support chords
+        // Exclude: Acordeão, Percussão, Estandarte, Pandeireta
+        return new[]
+        {
+            InstrumentType.Guitarra,
+            InstrumentType.Bandolim,
+            InstrumentType.Cavaquinho,
+            InstrumentType.Baixo
+        };
+    }
+
+    private int GetStartPage()
+    {
+        // Show max 5 page numbers at a time
+        var start = Math.Max(1, _currentPage - 2);
+        var end = Math.Min(_totalPages, start + 4);
+        
+        // Adjust start if we're near the end
+        if (end - start < 4)
+        {
+            start = Math.Max(1, end - 4);
+        }
+        
+        return start;
+    }
+
+    private int GetEndPage()
+    {
+        var start = GetStartPage();
+        return Math.Min(_totalPages, start + 4);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _searchTimer?.Dispose();
+
+        if (_chordRendererModule != null)
+        {
+            try
+            {
+                await _chordRendererModule.DisposeAsync();
+            }
+            catch
+            {
+                // Ignore disposal errors
+            }
+        }
+    }
+}
