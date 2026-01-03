@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using RTUB.Core.Entities;
 using System.Text.Json;
 using RTUB.Application.Services;
+using RTUB.Core.Constants;
 
 namespace RTUB.Application.Data;
 
@@ -20,13 +21,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     // Critical entities that should always be flagged in audit logs
     private static readonly string[] CriticalEntities = { "RoleAssignment", "Report", "ApplicationUser", "FiscalYear" };
-
-    // Entities that should be excluded from audit logging (high-frequency, low-value changes)
-    private static readonly HashSet<string> ExcludedAuditEntities = new(StringComparer.OrdinalIgnoreCase)
-    {
-        nameof(SongPlayCount),
-        nameof(GalleryMediaPersonTag)
-    };
 
     // Constants for audit logging
     private const int BinaryDataTruncateThreshold = 100;
@@ -141,7 +135,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             // Skip audit logging for excluded entities (high-frequency, low-value changes)
             var entityTypeName = entry.Entity.GetType().Name;
-            if (ExcludedAuditEntities.Contains(entityTypeName))
+            if (DefaultValues.AuditLog.ExcludedEntityTypes.Contains(entityTypeName))
                 continue;
                 
             switch (entry.State)
