@@ -12,15 +12,20 @@ class TunerEngine {
         this.isRunning = false;
         this.onPitchDetectedCallback = null;
         
-        // Audio configuration
-        this.fftSize = 2048;
+        // Audio configuration - increased for better accuracy
+        this.fftSize = 4096; // Increased from 2048 for better low-frequency resolution
         this.bufferLength = this.fftSize;
         this.buffer = new Float32Array(this.bufferLength);
         
         // Pitch detection parameters
-        this.minFrequency = 80;  // Hz
+        this.minFrequency = 70;  // Lowered from 80 Hz for bass strings
         this.maxFrequency = 1200; // Hz
-        this.clarityThreshold = 0.9;
+        this.clarityThreshold = 0.85; // Lowered from 0.9 to accept more readings
+        this.rmsThreshold = 0.005; // Lowered from 0.01 for quieter sounds
+        
+        // Smoothing for stability
+        this.frequencyHistory = [];
+        this.historySize = 5; // Average last 5 readings
     }
 
     /**
@@ -74,6 +79,9 @@ class TunerEngine {
      */
     stop() {
         this.isRunning = false;
+        
+        // Clear frequency history
+        this.frequencyHistory = [];
 
         // Cancel animation frame
         if (this.rafId) {
@@ -118,10 +126,25 @@ class TunerEngine {
         const result = this.detectPitch();
         
         if (result && result.clarity >= this.clarityThreshold && this.onPitchDetectedCallback) {
-            this.onPitchDetectedCallback(result);
+            // Add to history for smoothing
+            this.frequencyHistory.push(result.frequency);
+            if (this.frequencyHistory.length > this.historySize) {
+                this.frequencyHistory.shift();
+            }
+            
+            // Calculate average frequency for stability
+            const avgFrequency = this.frequencyHistory.reduce((a, b) => a + b, 0) / this.frequencyHistory.length;
+            
+            // Only send update if we have enough samples
+            if (this.frequencyHistory.length >= 3) {
+                this.onPitchDetectedCallback({ 
+                    frequency: avgFrequency,
+                    clarity: result.clarity 
+                });
+            }
         }
 
-        // Schedule next detection
+        // Schedule next detection - throttled to ~30fps for better performance
         this.rafId = requestAnimationFrame(() => this.detectPitchLoop());
     }
 
@@ -178,7 +201,7 @@ class TunerEngine {
         rms = Math.sqrt(rms / size);
 
         // If signal is too quiet, return null
-        if (rms < 0.01) {
+        if (rms < this.rmsThreshold) {
             return null;
         }
 
@@ -193,7 +216,7 @@ class TunerEngine {
 
             correlation = 1 - (correlation / maxSamples);
 
-            if (correlation > 0.9 && correlation > lastCorrelation) {
+            if (correlation > 0.85 && correlation > lastCorrelation) {
                 foundGoodCorrelation = true;
                 if (correlation > bestCorrelation) {
                     bestCorrelation = correlation;

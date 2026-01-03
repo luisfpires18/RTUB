@@ -347,8 +347,8 @@
         if (_currentPitch == null) return "";
         
         var absCents = Math.Abs(_currentPitch.CentsOffset);
-        if (absCents < 5) return "text-success";
-        if (absCents <= 10) return "text-warning";
+        if (absCents < 10) return "text-success";  // Increased from 5 to 10
+        if (absCents <= 20) return "text-warning"; // Increased from 10 to 20
         return "text-danger";
     }
 
@@ -357,8 +357,8 @@
         if (_currentPitch == null) return "needle-neutral";
         
         var absCents = Math.Abs(_currentPitch.CentsOffset);
-        if (absCents < 5) return "needle-green";
-        if (absCents <= 10) return "needle-yellow";
+        if (absCents < 10) return "needle-green";  // Increased from 5 to 10
+        if (absCents <= 20) return "needle-yellow"; // Increased from 10 to 20
         return "needle-red";
     }
 
