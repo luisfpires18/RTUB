@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.Extensions.Logging
+@using Microsoft.JSInterop
 @using RTUB.Application.Interfaces
 @using RTUB.Core.Entities
 @using RTUB.Shared
@@ -20,6 +21,7 @@
 @inject RTUB.Web.Services.MediaQueueService MediaQueueService
 @inject IJSRuntime JSRuntime
 @inject IAuditLogService AuditLogService
+@implements IDisposable
 
 @if (album == null)
 {
@@ -90,6 +92,7 @@ else
             {
                 <SongCard Song="@song"
                          PlayCount="@(songPlayCounts.ContainsKey(song.Id) ? songPlayCounts[song.Id] : 0)"
+                         IsCurrentlyPlaying="@(currentlyPlayingSongId == song.Id)"
                          CanEdit="@canEditSongs"
                          CanDelete="@canDeleteSongs"
                          OnPlay="@(() => PlaySong(song))"
@@ -618,6 +621,8 @@ else
     // Audio player state
     private string? currentAudioUrl;
     private string? currentSongTitle;
+    private int? currentlyPlayingSongId; // Track which song is currently playing
+    private DotNetObjectReference<Songs>? dotNetHelper; // Reference for JavaScript callbacks
     
     // PWA Media Session state
     private List<MediaQueueService.QueueTrack> playbackQueue = new();
@@ -1064,6 +1069,7 @@ else
             {
                 currentAudioUrl = audioUrl;
                 currentSongTitle = song.Title;
+                currentlyPlayingSongId = song.Id; // Set currently playing song for UI highlighting
                 
                 // Increment play count with cooldown check
                 try
@@ -1175,6 +1181,7 @@ else
         
         currentAudioUrl = null;
         currentSongTitle = null;
+        currentlyPlayingSongId = null; // Clear currently playing song
         
         // Clear media session metadata when playback stops
         try
@@ -1487,7 +1494,10 @@ else
             // Give the audio element time to render in the DOM
             await Task.Delay(150);
             
-            var initialized = await MediaSession.InitPwaMediaSessionAsync("rtub-audio-player");
+            // Create DotNetObjectReference for callbacks from JavaScript
+            dotNetHelper = DotNetObjectReference.Create(this);
+            
+            var initialized = await MediaSession.InitPwaMediaSessionAsync("rtub-audio-player", dotNetHelper);
             
             if (initialized)
             {
@@ -1596,5 +1606,80 @@ else
         {
             Logger.LogWarning(ex, "Failed to set PWA track metadata");
         }
+    }
+    
+    /// <summary>
+    /// Called from JavaScript when the auto-player changes tracks
+    /// This method is invoked via JSInvokable to handle track changes from the PWA Media Session
+    /// </summary>
+    [JSInvokable]
+    public async Task OnTrackChangedFromJs(int songId)
+    {
+        try
+        {
+            Logger.LogInformation("Track changed from JavaScript auto-player to song ID: {SongId}", songId);
+            
+            // Find the song in the current list
+            var song = songs?.FirstOrDefault(s => s.Id == songId);
+            if (song == null)
+            {
+                Logger.LogWarning("Song with ID {SongId} not found in current album", songId);
+                return;
+            }
+            
+            // Update currently playing song ID for UI highlighting
+            currentlyPlayingSongId = songId;
+            currentSongTitle = song.Title;
+            
+            // Increment play count with cooldown check
+            try
+            {
+                // Check if enough time has passed since last play
+                bool shouldIncrement = true;
+                if (lastPlayTimes.TryGetValue(song.Id, out var lastPlayTime))
+                {
+                    // Use song duration (in seconds) as cooldown, or default to 30 seconds if no duration
+                    int cooldownSeconds = song.Duration ?? 30;
+                    var timeSinceLastPlay = DateTime.UtcNow - lastPlayTime;
+                    shouldIncrement = timeSinceLastPlay.TotalSeconds >= cooldownSeconds;
+                }
+                
+                if (shouldIncrement)
+                {
+                    await SongService.IncrementPlayCountAsync(song.Id, currentUserId);
+                    lastPlayTimes[song.Id] = DateTime.UtcNow;
+                    
+                    // Update the local count using TryGetValue pattern
+                    songPlayCounts.TryGetValue(song.Id, out var currentCount);
+                    songPlayCounts[song.Id] = currentCount + 1;
+                    
+                    // Log to audit log
+                    if (album != null)
+                    {
+                        await LogSongPlaybackAsync(song, album);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to increment play count for auto-played song: {SongId}", songId);
+                // Silently fail - play count is not critical
+            }
+            
+            // Trigger UI update to reflect new count and highlighting
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error handling track change from JavaScript for song ID: {SongId}", songId);
+        }
+    }
+    
+    /// <summary>
+    /// Dispose of resources, particularly the DotNetObjectReference
+    /// </summary>
+    public void Dispose()
+    {
+        dotNetHelper?.Dispose();
     }
 }

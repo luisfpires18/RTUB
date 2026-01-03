@@ -8,7 +8,7 @@
     Desktop-first design that scales well on mobile
 *@
 
-<div class="card song-card h-100">
+<div class="card song-card h-100 @(IsCurrentlyPlaying ? "song-card-playing" : "")">
     <div class="position-relative">
         @if (CanEdit || CanDelete)
         {
@@ -29,7 +29,14 @@
         }
         <div class="song-header">
             <div class="song-icon-circle">
-                <i class="bi bi-music-note-beamed"></i>
+                @if (IsCurrentlyPlaying)
+                {
+                    <i class="bi bi-play-circle-fill"></i>
+                }
+                else
+                {
+                    <i class="bi bi-music-note-beamed"></i>
+                }
             </div>
         </div>
     </div>
@@ -157,6 +164,12 @@
     public int PlayCount { get; set; }
 
     /// <summary>
+    /// Whether this song is currently playing
+    /// </summary>
+    [Parameter]
+    public bool IsCurrentlyPlaying { get; set; }
+
+    /// <summary>
     /// Whether the current user can edit the song
     /// </summary>
     [Parameter]
@@ -280,6 +293,7 @@
     private bool _previousCanDelete;
     private bool _previousHasVideos;
     private int _previousPlayCount;
+    private bool _previousIsCurrentlyPlaying;
     
     /// <summary>
     /// Optimize rendering - only re-render when key parameters change.
@@ -296,7 +310,8 @@
             CanEdit != _previousCanEdit ||
             CanDelete != _previousCanDelete ||
             hasVideos != _previousHasVideos ||
-            PlayCount != _previousPlayCount)
+            PlayCount != _previousPlayCount ||
+            IsCurrentlyPlaying != _previousIsCurrentlyPlaying)
         {
             _previousSongId = songId;
             _previousHasMusic = hasMusic;
@@ -304,6 +319,7 @@
             _previousCanDelete = CanDelete;
             _previousHasVideos = hasVideos;
             _previousPlayCount = PlayCount;
+            _previousIsCurrentlyPlaying = IsCurrentlyPlaying;
             return true;
         }
         return false;

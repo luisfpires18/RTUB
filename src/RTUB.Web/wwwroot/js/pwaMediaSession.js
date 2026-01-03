@@ -15,6 +15,9 @@ window.pwaMediaSession = {
         onSeekTo: null
     },
     
+    // DotNetObjectReference for calling back to Blazor
+    dotNetHelper: null,
+    
     // Track if we're in PWA mode
     isPwaMode: false,
     
@@ -35,8 +38,10 @@ window.pwaMediaSession = {
     /**
      * Initialize the PWA Media Session module
      * @param {string} audioElementId - ID of the audio element
+     * @param {object} dotNetHelper - DotNetObjectReference for callbacks to Blazor (optional)
      */
-    init: function(audioElementId) {
+    init: function(audioElementId, dotNetHelper) {
+        this.dotNetHelper = dotNetHelper;
         this.isPwaMode = this.detectPwaMode();
         
         // Only proceed if in PWA mode
@@ -265,7 +270,7 @@ window.pwaMediaSession = {
     
     /**
      * Load a track into the audio element
-     * @param {object} track - Track object with {audioUrl, title, artist, album, artworkUrl}
+     * @param {object} track - Track object with {id, audioUrl, title, artist, album, artworkUrl}
      */
     loadTrack: function(track) {
         if (!this.audioElement) return;
@@ -293,6 +298,9 @@ window.pwaMediaSession = {
             album: track.album || '',
             artworkUrl: track.artworkUrl || ''
         });
+        
+        // Notify Blazor component that track has changed
+        this.notifyTrackChanged(track.id);
     },
     
     /**
@@ -342,6 +350,24 @@ window.pwaMediaSession = {
         if (!this.isPwaMode) return;
         this.currentIndex = newIndex;
         console.log('Current index updated to:', newIndex);
+    },
+    
+    /**
+     * Notify Blazor component that track has changed
+     * @param {number} songId - ID of the new track
+     */
+    notifyTrackChanged: function(songId) {
+        if (this.dotNetHelper) {
+            try {
+                // Invoke the Blazor callback method
+                this.dotNetHelper.invokeMethodAsync('OnTrackChangedFromJs', songId)
+                    .catch(error => {
+                        console.error('Failed to notify Blazor of track change:', error);
+                    });
+            } catch (error) {
+                console.error('Error calling Blazor track change callback:', error);
+            }
+        }
     },
     
     /**

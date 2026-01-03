@@ -19,6 +19,18 @@
   box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.25);
 }
 
+/* Currently playing song card - highlighted state */
+.song-card-playing {
+  border-color: rgba(var(--bs-primary-rgb), 0.8);
+  box-shadow: 0 0 20px rgba(var(--bs-primary-rgb), 0.4);
+  background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.08) 0%, #151516 100%);
+}
+
+.song-card-playing:hover {
+  border-color: var(--bs-primary);
+  box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.5), 0 0 25px rgba(var(--bs-primary-rgb), 0.3);
+}
+
 /* Square header with music icon circle (like RehearsalCard) */
 .song-header {
   width: 100%;
@@ -29,6 +41,12 @@
   background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.15) 0%, rgba(var(--bs-primary-rgb), 0.05) 100%);
   border-bottom: 2px solid rgba(var(--bs-primary-rgb), 0.3);
   position: relative;
+}
+
+/* Animated header for currently playing */
+.song-card-playing .song-header {
+  background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.3) 0%, rgba(var(--bs-primary-rgb), 0.15) 100%);
+  border-bottom-color: rgba(var(--bs-primary-rgb), 0.6);
 }
 
 .song-icon-circle {
@@ -46,6 +64,22 @@
 .song-card:hover .song-icon-circle {
   background-color: rgba(var(--bs-primary-rgb), 0.3);
   transform: scale(1.05);
+}
+
+/* Currently playing icon animation */
+.song-card-playing .song-icon-circle {
+  background-color: rgba(var(--bs-primary-rgb), 0.4);
+  border-color: var(--bs-primary);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(var(--bs-primary-rgb), 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(var(--bs-primary-rgb), 0.8);
+  }
 }
 
 .song-icon-circle i {
