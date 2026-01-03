@@ -1,0 +1,28 @@
+@page "/learning/practice"
+@attribute [Authorize]
+
+<PageTitle>Meu Progresso - RTUB</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="bi bi-graph-up me-2"></i>Meu Progresso de Prática</h2>
+    </div>
+    
+    <p class="text-muted mb-4">
+        Acompanha o teu desenvolvimento musical. Regista as tuas sessões de prática e ganha XP!
+    </p>
+    
+    <PracticeStats />
+    
+    <div class="mt-4 alert" style="background-color: rgba(63, 42, 134, 0.1); border-color: #3F2A86;">
+        <i class="bi bi-lightbulb-fill me-2" style="color: #3F2A86;"></i>
+        <strong style="color: #3F2A86;">Dica:</strong>
+        <p class="mb-0 mt-2">
+            Usa o botão <i class="bi bi-play-circle" style="color: #3F2A86;"></i> no canto inferior direito para iniciar uma sessão de prática. 
+            Pratica regularmente para manter o teu streak ativo!
+        </p>
+    </div>
+</div>
+
+<!-- PracticeLogger FAB will be included globally -->
+<PracticeLogger />

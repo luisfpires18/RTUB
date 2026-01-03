@@ -240,6 +240,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<ITunerService, TunerService>();
         services.AddScoped<IChordLibraryService, ChordLibraryService>();
+        services.AddScoped<IPracticeTrackingService, PracticeTrackingService>();
 
         return services;
     }

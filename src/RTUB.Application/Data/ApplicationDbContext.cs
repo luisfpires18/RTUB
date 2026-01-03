@@ -102,6 +102,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Learning DbSets
     public DbSet<InstrumentTuning> InstrumentTunings { get; set; }
     public DbSet<ChordDiagram> ChordDiagrams { get; set; }
+    public DbSet<PracticeSession> PracticeSessions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

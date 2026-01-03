@@ -1,0 +1,91 @@
+/* Practice Logger FAB (Floating Action Button) Styles */
+
+.fab-button {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    transition: transform 0.2s ease;
+}
+
+.fab-button:hover {
+    transform: scale(1.1);
+}
+
+.fab-button:active {
+    transform: scale(0.95);
+}
+
+/* Purple theme for inactive state */
+.fab-button.btn-primary {
+    background-color: #3F2A86;
+    border-color: #3F2A86;
+}
+
+.fab-button.btn-primary:hover {
+    background-color: #2e1f63;
+    border-color: #2e1f63;
+}
+
+/* Red theme for active state */
+.fab-button.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+/* Practice modal customizations */
+.practice-modal .modal-header {
+    background-color: #3F2A86;
+    color: white;
+}
+
+.practice-modal .modal-header .btn-close {
+    filter: invert(1);
+}
+
+/* Timer display */
+.practice-timer {
+    font-family: 'Courier New', monospace;
+    font-size: 3rem;
+    font-weight: bold;
+    color: #3F2A86;
+}
+
+/* Song suggestions list */
+.song-suggestions {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+/* Instrument icon container */
+.instrument-icon {
+    font-size: 2rem;
+    color: #3F2A86;
+}
+
+/* Progress bars with purple theme */
+.progress-bar.bg-primary {
+    background-color: #3F2A86 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .fab-button {
+        bottom: 1rem;
+        right: 1rem;
+        width: 56px;
+        height: 56px;
+        font-size: 1.25rem;
+    }
+}

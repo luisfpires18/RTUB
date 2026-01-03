@@ -1,0 +1,363 @@
+@rendermode InteractiveServer
+@using System.Security.Claims
+@using RTUB.Application.Interfaces
+@using RTUB.Application.DTOs
+@using RTUB.Core.Enums
+@using RTUB.Core.Helpers
+@inject IPracticeTrackingService PracticeTrackingService
+@inject ISongService SongService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<!-- FAB Button -->
+<button class="fab-button btn @(isSessionActive ? "btn-danger" : "btn-primary")" 
+        @onclick="OpenModal"
+        title="@(isSessionActive ? "Sessão Ativa" : "Iniciar Prática")">
+    <i class="bi @(isSessionActive ? "bi-stop-circle" : "bi-play-circle")"></i>
+</button>
+
+<!-- Bootstrap Modal -->
+<div class="modal fade practice-modal" id="practiceModal" tabindex="-1" aria-labelledby="practiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="practiceModalLabel">
+                    @(isSessionActive ? "Sessão Ativa" : "Iniciar Prática")
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                @if (isSessionActive)
+                {
+                    <!-- Active session view -->
+                    <div class="text-center mb-4">
+                        <div class="practice-timer mb-3">@FormatDuration(elapsedSeconds)</div>
+                        <p class="text-muted instrument-icon">
+                            <i class="bi @GetInstrumentIcon(selectedInstrument)"></i>
+                            @InstrumentTypeHelper.GetDisplayName(selectedInstrument)
+                        </p>
+                        @if (!string.IsNullOrEmpty(selectedSongTitle))
+                        {
+                            <p class="text-muted">
+                                <i class="bi bi-music-note"></i> @selectedSongTitle
+                            </p>
+                        }
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notas (opcional)</label>
+                        <textarea class="form-control" rows="3" @bind="sessionNotes" 
+                                  placeholder="Como correu a prática?"></textarea>
+                    </div>
+                }
+                else if (showQuickLogForm)
+                {
+                    <!-- Quick log form -->
+                    <div class="mb-3">
+                        <label class="form-label">Instrumento</label>
+                        <select class="form-select" @bind="selectedInstrument">
+                            @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                            {
+                                <option value="@instrument">@InstrumentTypeHelper.GetDisplayName(instrument)</option>
+                            }
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Duração (minutos)</label>
+                        <input type="number" class="form-control" @bind="quickLogDuration" min="1" max="300" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Música (opcional)</label>
+                        <input type="text" class="form-control" 
+                               value="@songSearchTerm" 
+                               @oninput="OnSongSearchInput"
+                               placeholder="Pesquisar música..." />
+                        @if (songSuggestions.Any())
+                        {
+                            <div class="list-group mt-2 song-suggestions">
+                                @foreach (var song in songSuggestions)
+                                {
+                                    <button type="button" class="list-group-item list-group-item-action"
+                                            @onclick="() => SelectSong(song)">
+                                        @song.Title
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notas (opcional)</label>
+                        <textarea class="form-control" rows="3" @bind="sessionNotes" 
+                                  placeholder="Como correu a prática?"></textarea>
+                    </div>
+                }
+                else
+                {
+                    <!-- Start session form -->
+                    <div class="mb-3">
+                        <label class="form-label">Instrumento</label>
+                        <select class="form-select" @bind="selectedInstrument">
+                            @foreach (var instrument in Enum.GetValues<InstrumentType>())
+                            {
+                                <option value="@instrument">@InstrumentTypeHelper.GetDisplayName(instrument)</option>
+                            }
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Música (opcional)</label>
+                        <input type="text" class="form-control" 
+                               value="@songSearchTerm" 
+                               @oninput="OnSongSearchInput"
+                               placeholder="Pesquisar música..." />
+                        @if (songSuggestions.Any())
+                        {
+                            <div class="list-group mt-2 song-suggestions">
+                                @foreach (var song in songSuggestions)
+                                {
+                                    <button type="button" class="list-group-item list-group-item-action"
+                                            @onclick="() => SelectSong(song)">
+                                        @song.Title
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-lightbulb"></i> <strong>Dica:</strong> Ganha 10 XP por cada 15 minutos de prática (max 100 XP/dia)
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                @if (isSessionActive)
+                {
+                    <button class="btn btn-danger" @onclick="EndSession">
+                        <i class="bi bi-stop-circle"></i> Terminar Sessão
+                    </button>
+                }
+                else if (showQuickLogForm)
+                {
+                    <button class="btn btn-secondary" @onclick="CancelQuickLog">Voltar</button>
+                    <button class="btn btn-primary" @onclick="SaveQuickLog">
+                        <i class="bi bi-check-circle"></i> Guardar
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" @onclick="StartSession">
+                        <i class="bi bi-play-circle"></i> Iniciar
+                    </button>
+                    <button class="btn btn-outline-primary" @onclick="ShowQuickLogForm">
+                        <i class="bi bi-clock-history"></i> Registar Manualmente
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isSessionActive = false;
+    private int? activeSessionId;
+    private DateTime sessionStartTime;
+    private int elapsedSeconds = 0;
+    private Timer? timerInterval;
+    
+    private InstrumentType selectedInstrument = InstrumentType.Guitarra;
+    private int? selectedSongId;
+    private string? selectedSongTitle;
+    private string sessionNotes = "";
+    private string songSearchTerm = "";
+    private List<Core.Entities.Song> songSuggestions = new();
+    private string? userId;
+    
+    private bool showQuickLogForm = false;
+    private int quickLogDuration = 30;
+    
+    private System.Threading.Timer? debounceTimer;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        if (!string.IsNullOrEmpty(userId))
+        {
+            // Check for active session
+            var activeSession = await PracticeTrackingService.GetActiveSessionAsync(userId);
+            if (activeSession != null)
+            {
+                isSessionActive = true;
+                activeSessionId = activeSession.Id;
+                sessionStartTime = activeSession.StartTime;
+                selectedInstrument = Enum.Parse<InstrumentType>(activeSession.Instrument);
+                selectedSongTitle = activeSession.SongTitle;
+                StartTimer();
+            }
+        }
+    }
+    
+    private async Task OpenModal()
+    {
+        await JS.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('practiceModal')).show()");
+    }
+    
+    private async Task StartSession()
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        
+        activeSessionId = await PracticeTrackingService.StartSessionAsync(userId, selectedInstrument, selectedSongId);
+        isSessionActive = true;
+        sessionStartTime = DateTime.UtcNow;
+        StartTimer();
+        
+        await CloseModal();
+    }
+    
+    private async Task EndSession()
+    {
+        if (!activeSessionId.HasValue) return;
+        
+        StopTimer();
+        await PracticeTrackingService.EndSessionAsync(activeSessionId.Value, sessionNotes);
+        
+        var minutes = elapsedSeconds / 60;
+        
+        isSessionActive = false;
+        activeSessionId = null;
+        elapsedSeconds = 0;
+        sessionNotes = "";
+        selectedSongId = null;
+        selectedSongTitle = null;
+        
+        await CloseModal();
+        await JS.InvokeVoidAsync("alert", $"Sessão terminada! Praticaste durante {minutes} minuto(s). 🎵");
+    }
+    
+    private void ShowQuickLogForm()
+    {
+        showQuickLogForm = true;
+        quickLogDuration = 30;
+    }
+    
+    private void CancelQuickLog()
+    {
+        showQuickLogForm = false;
+        sessionNotes = "";
+        selectedSongId = null;
+        songSearchTerm = "";
+        songSuggestions.Clear();
+    }
+    
+    private async Task SaveQuickLog()
+    {
+        if (string.IsNullOrEmpty(userId) || quickLogDuration <= 0) return;
+        
+        await PracticeTrackingService.QuickLogAsync(userId, selectedInstrument, quickLogDuration, selectedSongId, sessionNotes);
+        
+        showQuickLogForm = false;
+        sessionNotes = "";
+        selectedSongId = null;
+        selectedSongTitle = null;
+        songSearchTerm = "";
+        songSuggestions.Clear();
+        
+        await CloseModal();
+        await JS.InvokeVoidAsync("alert", $"Sessão registada com sucesso! {quickLogDuration} minuto(s) de prática. 🎵");
+    }
+    
+    private async Task CloseModal()
+    {
+        await JS.InvokeVoidAsync("eval", "bootstrap.Modal.getInstance(document.getElementById('practiceModal'))?.hide()");
+    }
+    
+    private void StartTimer()
+    {
+        timerInterval = new Timer(_ =>
+        {
+            elapsedSeconds = (int)(DateTime.UtcNow - sessionStartTime).TotalSeconds;
+            InvokeAsync(StateHasChanged);
+        }, null, 0, 1000);
+    }
+    
+    private void StopTimer()
+    {
+        timerInterval?.Dispose();
+        timerInterval = null;
+    }
+    
+    private string FormatDuration(int seconds)
+    {
+        var minutes = seconds / 60;
+        var secs = seconds % 60;
+        return $"{minutes:D2}:{secs:D2}";
+    }
+    
+    private async Task OnSongSearchInput(ChangeEventArgs e)
+    {
+        songSearchTerm = e.Value?.ToString() ?? "";
+        
+        // Debounce the search
+        debounceTimer?.Dispose();
+        debounceTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await SearchSongs();
+                StateHasChanged();
+            });
+        }, null, 300, Timeout.Infinite);
+    }
+    
+    private async Task SearchSongs()
+    {
+        if (string.IsNullOrWhiteSpace(songSearchTerm) || songSearchTerm.Length < 2)
+        {
+            songSuggestions.Clear();
+            return;
+        }
+        
+        var allSongs = await SongService.GetAllSongsAsync();
+        songSuggestions = allSongs
+            .Where(s => s.Title.Contains(songSearchTerm, StringComparison.OrdinalIgnoreCase))
+            .Take(5)
+            .ToList();
+    }
+    
+    private void SelectSong(Core.Entities.Song song)
+    {
+        selectedSongId = song.Id;
+        selectedSongTitle = song.Title;
+        songSearchTerm = song.Title;
+        songSuggestions.Clear();
+    }
+    
+    private string GetInstrumentIcon(InstrumentType instrument)
+    {
+        return instrument switch
+        {
+            InstrumentType.Guitarra => "bi-guitar",
+            InstrumentType.Bandolim => "bi-music-note-beamed",
+            InstrumentType.Cavaquinho => "bi-music-note",
+            InstrumentType.Baixo => "bi-soundwave",
+            InstrumentType.Acordeao => "bi-vinyl",
+            InstrumentType.Percussao => "bi-disc",
+            InstrumentType.Pandeireta => "bi-circle",
+            InstrumentType.Flauta => "bi-music-note-list",
+            InstrumentType.Violino => "bi-music-note-beamed",
+            _ => "bi-music-note"
+        };
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        StopTimer();
+        debounceTimer?.Dispose();
+    }
+}
