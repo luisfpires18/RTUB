@@ -9,7 +9,7 @@
     <Modal Show="@Show" 
            ShowChanged="@((bool show) => OnShowChanged(show))"
            Title="@Title" 
-           Size="Modal.ModalSize.Large"
+           Size="@Size"
            Centered="true">
         <BodyContent>
             <!-- Centered Header Section -->
@@ -148,6 +148,13 @@
     /// </summary>
     [Parameter]
     public RenderFragment? FooterContent { get; set; }
+
+    /// <summary>
+    /// Modal size: Small, Default, Large, ExtraLarge
+    /// Default is Large for backwards compatibility
+    /// </summary>
+    [Parameter]
+    public Modal.ModalSize Size { get; set; } = Modal.ModalSize.Large;
 
     /// <summary>
     /// Event callback when modal is closed
