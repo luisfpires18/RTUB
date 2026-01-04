@@ -79,6 +79,7 @@ public class DatabaseFixture : IDisposable
         context.Labels.RemoveRange(context.Labels);
         context.Requests.RemoveRange(context.Requests);
         context.FiscalYears.RemoveRange(context.FiscalYears);
+        context.LoginCounts.RemoveRange(context.LoginCounts);
 
         await context.SaveChangesAsync();
     }
