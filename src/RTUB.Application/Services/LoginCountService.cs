@@ -82,25 +82,22 @@ public class LoginCountService : ILoginCountService
 
     public async Task<IEnumerable<(ApplicationUser User, int LoginCount)>> GetTopUsersByLoginCountAsync(int top = 10)
     {
+        // Use a single query with Include to avoid N+1 query performance issue
         var topUsers = await _context.LoginCounts
-            .GroupBy(lc => lc.UserId)
-            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .Include(lc => lc.User)
+            .GroupBy(lc => new { lc.UserId, lc.User })
+            .Select(g => new 
+            { 
+                User = g.Key.User,
+                Count = g.Count() 
+            })
             .OrderByDescending(x => x.Count)
             .Take(top)
             .ToListAsync();
 
-        var results = new List<(ApplicationUser User, int LoginCount)>();
-
-        foreach (var item in topUsers)
-        {
-            var user = await _userManager.FindByIdAsync(item.UserId);
-            if (user != null)
-            {
-                results.Add((user, item.Count));
-            }
-        }
-
-        return results;
+        return topUsers
+            .Where(x => x.User != null)
+            .Select(x => (x.User!, x.Count));
     }
 
     public async Task<int> GetConsecutiveLoginDaysAsync(string userId)
@@ -118,10 +115,10 @@ public class LoginCountService : ILoginCountService
         }
 
         int consecutiveDays = 1;
-        DateTime today = DateTime.UtcNow.Date;
+        DateTime todayUtc = DateTime.UtcNow.Date;
 
-        // Check if user logged in today or yesterday
-        if (logins[0] != today && logins[0] != today.AddDays(-1))
+        // Check if user logged in today or yesterday (using UTC for consistency)
+        if (logins[0] != todayUtc && logins[0] != todayUtc.AddDays(-1))
         {
             return 0;
         }

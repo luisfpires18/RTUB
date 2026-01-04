@@ -600,7 +600,28 @@ public class Program
                 // Record login event for tracking
                 try
                 {
-                    var ipAddress = http.Connection.RemoteIpAddress?.ToString();
+                    // Get IP address, handling proxy scenarios
+                    string? ipAddress = null;
+                    
+                    // Check for X-Forwarded-For header (common with reverse proxies)
+                    if (http.Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
+                    {
+                        ipAddress = forwardedFor.ToString().Split(',').FirstOrDefault()?.Trim();
+                    }
+                    
+                    // Fallback to X-Real-IP header
+                    if (string.IsNullOrEmpty(ipAddress) && 
+                        http.Request.Headers.TryGetValue("X-Real-IP", out var realIp))
+                    {
+                        ipAddress = realIp.ToString();
+                    }
+                    
+                    // Fallback to RemoteIpAddress
+                    if (string.IsNullOrEmpty(ipAddress))
+                    {
+                        ipAddress = http.Connection.RemoteIpAddress?.ToString();
+                    }
+                    
                     var userAgent = http.Request.Headers.UserAgent.ToString();
                     await loginCountService.RecordLoginAsync(user.Id, ipAddress, userAgent);
                 }

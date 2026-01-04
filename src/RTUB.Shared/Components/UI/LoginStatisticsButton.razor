@@ -257,8 +257,9 @@
         // Load statistics
         statistics = await LoginCountService.GetLoginStatisticsAsync();
 
-        // Load top users
-        var topUsersData = await LoginCountService.GetTopUsersByLoginCountAsync(100);
+        // Load top users - fetch more to allow pagination
+        // Using 200 as a reasonable limit for performance while supporting pagination
+        var topUsersData = await LoginCountService.GetTopUsersByLoginCountAsync(200);
         
         topUsers = topUsersData.Select(u => new UserLoginRecord
         {
