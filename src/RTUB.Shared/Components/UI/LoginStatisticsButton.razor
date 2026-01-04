@@ -2,7 +2,9 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Helpers
+@using RTUB.Application.Interfaces
 @inject UserManager<ApplicationUser> UserManager
+@inject ILoginCountService LoginCountService
 
 <button class="btn btn-purple" @onclick="OpenLoginsModal" title="Ver logins">
     <i class="bi bi-box-arrow-in-right"></i> Logins
@@ -55,7 +57,7 @@
                                         AltText="@record.DisplayNickname"
                                         Nickname="@record.DisplayNickname"
                                         FullName="@record.DisplayFullName"
-                                        LastLoginText="@record.LastLoginDate.ToString("dd/MM/yyyy HH:mm")" />
+                                        LastLoginText="@($"{record.LastLoginDate:dd/MM/yyyy} ({record.LoginCount} {(record.LoginCount == 1 ? "login" : "logins")})")" />
                     }
                 </div>
 
@@ -105,23 +107,35 @@
     private async Task LoadLoginData()
     {
         var start = startDate.Date;
-        var end = endDate.Date.AddDays(1).AddTicks(-1);
+        var end = endDate.Date;
 
-        var users = await UserManager.Users
-            .AsNoTracking()
-            .Where(u => u.LastLoginDate.HasValue && u.LastLoginDate.Value >= start && u.LastLoginDate.Value <= end)
-            .ToListAsync();
+        // Get all login counts for the date range
+        var allLoginCounts = new List<RTUB.Core.Entities.LoginCount>();
+        var users = await UserManager.Users.AsNoTracking().ToListAsync();
 
-        loginRecords = users
-            .Select(u => new LoginRecord
+        foreach (var user in users)
+        {
+            var userLoginCounts = await LoginCountService.GetLoginHistoryForDateRangeAsync(user.Id, start, end);
+            allLoginCounts.AddRange(userLoginCounts);
+        }
+
+        // Group by user and date to create records
+        loginRecords = allLoginCounts
+            .GroupBy(lc => new { lc.UserId, lc.LoginDate })
+            .Select(g => 
             {
-                UserId = u.Id,
-                UserName = u.UserName ?? string.Empty,
-                Nickname = u.Nickname ?? string.Empty,
-                FirstName = u.FirstName ?? string.Empty,
-                LastName = u.LastName ?? string.Empty,
-                AvatarUrl = u.ProfilePictureSrc,
-                LastLoginDate = u.LastLoginDate!.Value
+                var user = users.FirstOrDefault(u => u.Id == g.Key.UserId);
+                return new LoginRecord
+                {
+                    UserId = g.Key.UserId,
+                    UserName = user?.UserName ?? string.Empty,
+                    Nickname = user?.Nickname ?? string.Empty,
+                    FirstName = user?.FirstName ?? string.Empty,
+                    LastName = user?.LastName ?? string.Empty,
+                    AvatarUrl = user?.ProfilePictureSrc ?? "/images/default-avatar.webp",
+                    LastLoginDate = g.Key.LoginDate,
+                    LoginCount = g.First().Count
+                };
             })
             .OrderByDescending(r => r.LastLoginDate)
             .ToList();
@@ -189,6 +203,7 @@
         public string LastName { get; set; } = string.Empty;
         public string AvatarUrl { get; set; } = string.Empty;
         public DateTime LastLoginDate { get; set; }
+        public int LoginCount { get; set; }
 
         public string DisplayNickname => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : UserName;
 
