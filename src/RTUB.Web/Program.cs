@@ -222,30 +222,16 @@ public class Program
                             SET LastLoginDate = {now}
                             WHERE Id = {userId};");
 
-                        // Track login count per day
-                        // Try to increment existing record, or create a new one if it doesn't exist
-                        var existingCount = await db.LoginCounts
-                            .FirstOrDefaultAsync(lc => lc.UserId == userId && lc.Date == today);
-
-                        if (existingCount != null)
-                        {
-                            existingCount.Count++;
-                            existingCount.UpdatedAt = now;
-                            existingCount.UpdatedBy = userName;
-                        }
-                        else
-                        {
-                            db.LoginCounts.Add(new RTUB.Core.Entities.LoginCount
-                            {
-                                UserId = userId,
-                                Date = today,
-                                Count = 1,
-                                CreatedAt = now,
-                                CreatedBy = userName
-                            });
-                        }
-
-                        await db.SaveChangesAsync();
+                        // Track login count per day using UPSERT to handle race conditions
+                        // SQLite's INSERT OR REPLACE is atomic and prevents duplicate records
+                        await db.Database.ExecuteSqlInterpolatedAsync($@"
+                            INSERT INTO LoginCounts (UserId, Date, Count, CreatedAt, CreatedBy)
+                            VALUES ({userId}, {today}, 1, {now}, {userName})
+                            ON CONFLICT(UserId, Date) 
+                            DO UPDATE SET 
+                                Count = Count + 1,
+                                UpdatedAt = {now},
+                                UpdatedBy = {userName};");
                     }
                     catch (Exception ex)
                     {
