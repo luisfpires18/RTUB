@@ -538,7 +538,8 @@ public class Program
                                           UserManager<ApplicationUser> userManager,
                                           ILogger<Program> logger,
                                           AuditContext auditContext,
-                                          IMemoryCache cache) =>
+                                          IMemoryCache cache,
+                                          ILoginCountService loginCountService) =>
         {
             var form = await http.Request.ReadFormAsync();
             var username = form["Username"].ToString();
@@ -594,6 +595,19 @@ public class Program
                 {
                     logger.LogWarning("Failed to update LastLoginDate for user {UserId}: {Errors}",
                         user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                }
+
+                // Record login event for tracking
+                try
+                {
+                    var ipAddress = http.Connection.RemoteIpAddress?.ToString();
+                    var userAgent = http.Request.Headers.UserAgent.ToString();
+                    await loginCountService.RecordLoginAsync(user.Id, ipAddress, userAgent);
+                }
+                catch (Exception loginEx)
+                {
+                    // Log error but don't fail login
+                    logger.LogError(loginEx, "Exception while recording login count for user {UserId}", user.Id);
                 }
             }
             catch (Exception ex)

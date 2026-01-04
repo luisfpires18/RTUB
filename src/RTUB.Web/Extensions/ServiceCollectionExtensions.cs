@@ -90,6 +90,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IRetirementStatusService, RetirementStatusService>();
         services.AddScoped<IGalleryMediaService, GalleryMediaService>();
+        services.AddScoped<ILoginCountService, LoginCountService>();
 
         return services;
     }
