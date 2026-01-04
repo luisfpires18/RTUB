@@ -123,7 +123,6 @@ public class Program
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
-        var loginMade = false;
         // Configure cookie authentication to redirect to /login instead of /Account/Login
         services.ConfigureApplicationCookie(options =>
         {
@@ -186,8 +185,6 @@ public class Program
                             userName,
                             DateTime.UtcNow);
 
-                        loginMade = true;
-
                         // Cache for 1 hour to prevent duplicate logs from the same session
                         // This ensures the log appears only once per login session
                         cache.Set(logCacheKey, true, new MemoryCacheEntryOptions
@@ -213,30 +210,22 @@ public class Program
                         }
 
                         var now = DateTime.UtcNow;
-                        var loginDate = now.Date;
 
-                        // Update LastLoginDate to track user activity (both normal login and cookie validation)
+                        // Update LastLoginDate to track user activity (cookie validation)
                         // This is throttled by the cache above to prevent excessive DB writes
                         await db.Database.ExecuteSqlInterpolatedAsync($@"
                             UPDATE AspNetUsers
                             SET LastLoginDate = {now}
                             WHERE Id = {userId};");
 
-                        // Track daily login count (only when loginMade is true to avoid duplicate counts)
-                        // Using SQL upsert to avoid race conditions
-                        if (loginMade)
-                        {
-                            await db.Database.ExecuteSqlInterpolatedAsync($@"
-                                INSERT INTO LoginCounts (UserId, LoginDate, Count, CreatedAt, CreatedBy)
-                                VALUES ({userId}, {loginDate}, 1, {now}, {userName})
-                                ON CONFLICT(UserId, LoginDate)
-                                DO UPDATE SET Count = Count + 1, UpdatedAt = {now}, UpdatedBy = {userName};");
-                        }
+                        // NOTE: We do NOT track login counts here in cookie validation
+                        // Login counts are only incremented during actual login at /auth/login endpoint
+                        // This prevents duplicate counting from cookie refreshes
                     }
                     catch (Exception ex)
                     {
                         logger.LogError(ex,
-                            "Error while initializing LastLoginDate or LoginCount for {UserName}", userName);
+                            "Error while initializing LastLoginDate for {UserName}", userName);
                     }
 
                 }
@@ -610,14 +599,26 @@ public class Program
                 }
 
                 // Track daily login count using SQL upsert to avoid race conditions
+                // Use cache to prevent duplicate increments from concurrent login requests
                 var now = DateTime.UtcNow;
                 var loginDate = now.Date;
-                // SQLite upsert syntax: INSERT ... ON CONFLICT ... DO UPDATE
-                await dbContext.Database.ExecuteSqlInterpolatedAsync($@"
-                    INSERT INTO LoginCounts (UserId, LoginDate, Count, CreatedAt, CreatedBy)
-                    VALUES ({user.Id}, {loginDate}, 1, {now}, {user.UserName})
-                    ON CONFLICT(UserId, LoginDate)
-                    DO UPDATE SET Count = Count + 1, UpdatedAt = {now}, UpdatedBy = {user.UserName};");
+                var loginCountCacheKey = $"login-count:{user.Id}:{loginDate:yyyyMMdd}";
+                
+                if (!cache.TryGetValue(loginCountCacheKey, out _))
+                {
+                    // SQLite upsert syntax: INSERT ... ON CONFLICT ... DO UPDATE
+                    await dbContext.Database.ExecuteSqlInterpolatedAsync($@"
+                        INSERT INTO LoginCounts (UserId, LoginDate, Count, CreatedAt, CreatedBy)
+                        VALUES ({user.Id}, {loginDate}, 1, {now}, {user.UserName})
+                        ON CONFLICT(UserId, LoginDate)
+                        DO UPDATE SET Count = Count + 1, UpdatedAt = {now}, UpdatedBy = {user.UserName};");
+                    
+                    // Cache for 10 seconds to prevent duplicate increments from rapid successive logins/refreshes
+                    cache.Set(loginCountCacheKey, true, new MemoryCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10)
+                    });
+                }
             }
             catch (Exception ex)
             {
@@ -639,12 +640,9 @@ public class Program
             var loginLogCacheKey = $"login-success:{user.Id}";
             if (!cache.TryGetValue(loginLogCacheKey, out _))
             {
-                if (!loginMade)
-                {
-                    logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
-                        user.UserName,
-                        DateTime.UtcNow);
-                }
+                logger.LogInformation("User {UserName} successfully logged in at {LoginTime}",
+                    user.UserName,
+                    DateTime.UtcNow);
 
                 // Cache for 30 seconds to prevent duplicate logs from concurrent login requests
                 cache.Set(loginLogCacheKey, true, new MemoryCacheEntryOptions
