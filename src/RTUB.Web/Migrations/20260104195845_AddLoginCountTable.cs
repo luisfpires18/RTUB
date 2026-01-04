@@ -37,14 +37,14 @@ namespace RTUB.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_LoginCounts_UserId",
-                table: "LoginCounts",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_LoginCounts_Date",
                 table: "LoginCounts",
                 column: "Date");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LoginCounts_UserId",
+                table: "LoginCounts",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LoginCounts_UserId_Date",

@@ -11,7 +11,7 @@ using RTUB.Application.Data;
 namespace RTUB.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260104194632_AddLoginCountTable")]
+    [Migration("20260104195845_AddLoginCountTable")]
     partial class AddLoginCountTable
     {
         /// <inheritdoc />
@@ -1307,7 +1307,15 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("Date")
+                        .HasDatabaseName("IX_LoginCounts_Date");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_LoginCounts_UserId");
+
+                    b.HasIndex("UserId", "Date")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LoginCounts_UserId_Date");
 
                     b.ToTable("LoginCounts");
                 });

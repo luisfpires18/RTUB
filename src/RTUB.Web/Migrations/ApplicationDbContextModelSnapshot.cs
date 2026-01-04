@@ -1304,7 +1304,15 @@ namespace RTUB.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("Date")
+                        .HasDatabaseName("IX_LoginCounts_Date");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_LoginCounts_UserId");
+
+                    b.HasIndex("UserId", "Date")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LoginCounts_UserId_Date");
 
                     b.ToTable("LoginCounts");
                 });
