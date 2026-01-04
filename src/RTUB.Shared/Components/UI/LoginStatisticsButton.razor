@@ -119,22 +119,21 @@
             allLoginCounts.AddRange(userLoginCounts);
         }
 
-        // Group by user and date to create records
+        // Map login counts to records - each LoginCount already has the correct count
         loginRecords = allLoginCounts
-            .GroupBy(lc => new { lc.UserId, lc.LoginDate })
-            .Select(g => 
+            .Select(lc => 
             {
-                var user = users.FirstOrDefault(u => u.Id == g.Key.UserId);
+                var user = users.FirstOrDefault(u => u.Id == lc.UserId);
                 return new LoginRecord
                 {
-                    UserId = g.Key.UserId,
+                    UserId = lc.UserId,
                     UserName = user?.UserName ?? string.Empty,
                     Nickname = user?.Nickname ?? string.Empty,
                     FirstName = user?.FirstName ?? string.Empty,
                     LastName = user?.LastName ?? string.Empty,
                     AvatarUrl = user?.ProfilePictureSrc ?? "/images/default-avatar.webp",
-                    LastLoginDate = g.Key.LoginDate,
-                    LoginCount = g.First().Count
+                    LastLoginDate = lc.LoginDate,
+                    LoginCount = lc.Count  // Use the Count from the LoginCount entity directly
                 };
             })
             .OrderByDescending(r => r.LastLoginDate)
