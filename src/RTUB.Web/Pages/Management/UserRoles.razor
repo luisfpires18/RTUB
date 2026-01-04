@@ -458,7 +458,7 @@ else
             selectedUserForDetails = freshUser;
             
             // Load login count data
-            loginCountToday = await LoginCountService.GetLoginCountForDateAsync(freshUser.Id, DateTime.UtcNow);
+            loginCountToday = await LoginCountService.GetLoginCountForDateAsync(freshUser.Id, DateTime.UtcNow.Date);
             totalLoginCount = await LoginCountService.GetTotalLoginCountAsync(freshUser.Id);
             
             showUserDetailsModal = true;

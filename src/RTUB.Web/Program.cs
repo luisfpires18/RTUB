@@ -223,26 +223,14 @@ public class Program
                             WHERE Id = {userId};");
 
                         // Track daily login count (only when loginMade is true to avoid duplicate counts)
+                        // Using SQL upsert to avoid race conditions
                         if (loginMade)
                         {
-                            var existingLoginCount = await db.LoginCounts
-                                .FirstOrDefaultAsync(lc => lc.UserId == userId && lc.LoginDate == loginDate);
-
-                            if (existingLoginCount != null)
-                            {
-                                existingLoginCount.Count++;
-                            }
-                            else
-                            {
-                                db.LoginCounts.Add(new RTUB.Core.Entities.LoginCount
-                                {
-                                    UserId = userId,
-                                    LoginDate = loginDate,
-                                    Count = 1
-                                });
-                            }
-
-                            await db.SaveChangesAsync();
+                            await db.Database.ExecuteSqlInterpolatedAsync($@"
+                                INSERT INTO LoginCounts (UserId, LoginDate, Count, CreatedAt, CreatedBy)
+                                VALUES ({userId}, {loginDate}, 1, {now}, {userName})
+                                ON CONFLICT(UserId, LoginDate)
+                                DO UPDATE SET Count = Count + 1, UpdatedAt = {now}, UpdatedBy = {userName};");
                         }
                     }
                     catch (Exception ex)
@@ -621,26 +609,14 @@ public class Program
                         user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
                 }
 
-                // Track daily login count
+                // Track daily login count using SQL upsert to avoid race conditions
                 var loginDate = DateTime.UtcNow.Date;
-                var existingLoginCount = await dbContext.LoginCounts
-                    .FirstOrDefaultAsync(lc => lc.UserId == user.Id && lc.LoginDate == loginDate);
-
-                if (existingLoginCount != null)
-                {
-                    existingLoginCount.Count++;
-                }
-                else
-                {
-                    dbContext.LoginCounts.Add(new RTUB.Core.Entities.LoginCount
-                    {
-                        UserId = user.Id,
-                        LoginDate = loginDate,
-                        Count = 1
-                    });
-                }
-
-                await dbContext.SaveChangesAsync();
+                // SQLite upsert syntax: INSERT ... ON CONFLICT ... DO UPDATE
+                await dbContext.Database.ExecuteSqlInterpolatedAsync($@"
+                    INSERT INTO LoginCounts (UserId, LoginDate, Count, CreatedAt, CreatedBy)
+                    VALUES ({user.Id}, {loginDate}, 1, {DateTime.UtcNow}, {user.UserName})
+                    ON CONFLICT(UserId, LoginDate)
+                    DO UPDATE SET Count = Count + 1, UpdatedAt = {DateTime.UtcNow}, UpdatedBy = {user.UserName};");
             }
             catch (Exception ex)
             {
