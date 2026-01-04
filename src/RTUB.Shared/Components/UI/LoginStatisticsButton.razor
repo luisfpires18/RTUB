@@ -2,7 +2,9 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using RTUB.Application.Helpers
+@using RTUB.Application.Data
 @inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext DbContext
 
 <button class="btn btn-purple" @onclick="OpenLoginsModal" title="Ver logins">
     <i class="bi bi-box-arrow-in-right"></i> Logins
@@ -55,7 +57,7 @@
                                         AltText="@record.DisplayNickname"
                                         Nickname="@record.DisplayNickname"
                                         FullName="@record.DisplayFullName"
-                                        LastLoginText="@record.LastLoginDate.ToString("dd/MM/yyyy HH:mm")" />
+                                        LastLoginText="@($"{record.LoginDate:dd/MM/yyyy} - {record.LoginCount} login{(record.LoginCount > 1 ? "s" : "")}")" />
                     }
                 </div>
 
@@ -105,25 +107,28 @@
     private async Task LoadLoginData()
     {
         var start = startDate.Date;
-        var end = endDate.Date.AddDays(1).AddTicks(-1);
+        var end = endDate.Date;
 
-        var users = await UserManager.Users
+        // Get all login counts within the date range
+        var loginCounts = await DbContext.LoginCounts
             .AsNoTracking()
-            .Where(u => u.LastLoginDate.HasValue && u.LastLoginDate.Value >= start && u.LastLoginDate.Value <= end)
+            .Include(lc => lc.User)
+            .Where(lc => lc.Date >= start && lc.Date <= end)
             .ToListAsync();
 
-        loginRecords = users
-            .Select(u => new LoginRecord
+        loginRecords = loginCounts
+            .Select(lc => new LoginRecord
             {
-                UserId = u.Id,
-                UserName = u.UserName ?? string.Empty,
-                Nickname = u.Nickname ?? string.Empty,
-                FirstName = u.FirstName ?? string.Empty,
-                LastName = u.LastName ?? string.Empty,
-                AvatarUrl = u.ProfilePictureSrc,
-                LastLoginDate = u.LastLoginDate!.Value
+                UserId = lc.UserId,
+                UserName = lc.User?.UserName ?? string.Empty,
+                Nickname = lc.User?.Nickname ?? string.Empty,
+                FirstName = lc.User?.FirstName ?? string.Empty,
+                LastName = lc.User?.LastName ?? string.Empty,
+                AvatarUrl = lc.User?.ProfilePictureSrc ?? string.Empty,
+                LoginDate = lc.Date,
+                LoginCount = lc.Count
             })
-            .OrderByDescending(r => r.LastLoginDate)
+            .OrderByDescending(r => r.LoginDate)
             .ToList();
 
         FilterAndPaginate();
@@ -152,7 +157,7 @@
         }
 
         filteredRecords = filteredRecords
-            .OrderByDescending(r => r.LastLoginDate)
+            .OrderByDescending(r => r.LoginDate)
             .ToList();
         paginatedRecords = paginationHelper.GetPageData(filteredRecords);
     }
@@ -188,7 +193,8 @@
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string AvatarUrl { get; set; } = string.Empty;
-        public DateTime LastLoginDate { get; set; }
+        public DateTime LoginDate { get; set; }
+        public int LoginCount { get; set; }
 
         public string DisplayNickname => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : UserName;
 

@@ -213,6 +213,7 @@ public class Program
                         }
 
                         var now = DateTime.UtcNow;
+                        var today = now.Date;
 
                         // Update LastLoginDate to track user activity (both normal login and cookie validation)
                         // This is throttled by the cache above to prevent excessive DB writes
@@ -220,11 +221,36 @@ public class Program
                             UPDATE AspNetUsers
                             SET LastLoginDate = {now}
                             WHERE Id = {userId};");
+
+                        // Track login count per day
+                        // Try to increment existing record, or create a new one if it doesn't exist
+                        var existingCount = await db.LoginCounts
+                            .FirstOrDefaultAsync(lc => lc.UserId == userId && lc.Date == today);
+
+                        if (existingCount != null)
+                        {
+                            existingCount.Count++;
+                            existingCount.UpdatedAt = now;
+                            existingCount.UpdatedBy = userName;
+                        }
+                        else
+                        {
+                            db.LoginCounts.Add(new RTUB.Core.Entities.LoginCount
+                            {
+                                UserId = userId,
+                                Date = today,
+                                Count = 1,
+                                CreatedAt = now,
+                                CreatedBy = userName
+                            });
+                        }
+
+                        await db.SaveChangesAsync();
                     }
                     catch (Exception ex)
                     {
                         logger.LogError(ex,
-                            "Error while initializing LastLoginDate for {UserName}", userName);
+                            "Error while tracking login for {UserName}", userName);
                     }
 
                 }
