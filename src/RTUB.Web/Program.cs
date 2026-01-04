@@ -598,27 +598,16 @@ public class Program
                         user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
                 }
 
-                // Track daily login count using SQL upsert to avoid race conditions
-                // Use cache to prevent duplicate increments from concurrent login requests
+                // Track daily login - insert idempotent record (one per user per day)
+                // If record already exists for today, do nothing (idempotence)
                 var now = DateTime.UtcNow;
                 var loginDate = now.Date;
-                var loginCountCacheKey = $"login-count:{user.Id}:{loginDate:yyyyMMdd}";
                 
-                if (!cache.TryGetValue(loginCountCacheKey, out _))
-                {
-                    // SQLite upsert syntax: INSERT ... ON CONFLICT ... DO UPDATE
-                    await dbContext.Database.ExecuteSqlInterpolatedAsync($@"
-                        INSERT INTO LoginCounts (UserId, LoginDate, Count, CreatedAt, CreatedBy)
-                        VALUES ({user.Id}, {loginDate}, 1, {now}, {user.UserName})
-                        ON CONFLICT(UserId, LoginDate)
-                        DO UPDATE SET Count = Count + 1, UpdatedAt = {now}, UpdatedBy = {user.UserName};");
-                    
-                    // Cache for 10 seconds to prevent duplicate increments from rapid successive logins/refreshes
-                    cache.Set(loginCountCacheKey, true, new MemoryCacheEntryOptions
-                    {
-                        AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10)
-                    });
-                }
+                // SQLite upsert syntax: INSERT ... ON CONFLICT DO NOTHING for idempotence
+                await dbContext.Database.ExecuteSqlInterpolatedAsync($@"
+                    INSERT INTO LoginCounts (UserId, LoginDate, Count, CreatedAt, CreatedBy)
+                    VALUES ({user.Id}, {loginDate}, 1, {now}, {user.UserName})
+                    ON CONFLICT(UserId, LoginDate) DO NOTHING;");
             }
             catch (Exception ex)
             {

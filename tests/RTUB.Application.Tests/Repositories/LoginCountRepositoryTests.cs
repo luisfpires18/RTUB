@@ -145,7 +145,7 @@ public class LoginCountRepositoryTests : IClassFixture<DatabaseFixture>, IDispos
     }
 
     [Fact]
-    public async Task GetTotalLoginCountByUserIdAsync_SumsAllCountsForUser()
+    public async Task GetTotalLoginCountByUserIdAsync_CountsAllRecordsForUser()
     {
         // Arrange
         var userId = "user123";
@@ -154,9 +154,9 @@ public class LoginCountRepositoryTests : IClassFixture<DatabaseFixture>, IDispos
         var date3 = new DateTime(2024, 1, 17).Date;
 
         _context.LoginCounts.AddRange(
-            new LoginCount { UserId = userId, LoginDate = date1, Count = 5 },
-            new LoginCount { UserId = userId, LoginDate = date2, Count = 3 },
-            new LoginCount { UserId = userId, LoginDate = date3, Count = 2 }
+            new LoginCount { UserId = userId, LoginDate = date1, Count = 1 },
+            new LoginCount { UserId = userId, LoginDate = date2, Count = 1 },
+            new LoginCount { UserId = userId, LoginDate = date3, Count = 1 }
         );
         await _context.SaveChangesAsync();
 
@@ -164,7 +164,7 @@ public class LoginCountRepositoryTests : IClassFixture<DatabaseFixture>, IDispos
         var result = await _repository.GetTotalLoginCountByUserIdAsync(userId);
 
         // Assert
-        result.Should().Be(10); // 5 + 3 + 2
+        result.Should().Be(3); // 3 days with logins
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public class LoginCountRepositoryTests : IClassFixture<DatabaseFixture>, IDispos
     }
 
     [Fact]
-    public async Task GetTotalLoginCountByUserIdAsync_OnlySumsForSpecificUser()
+    public async Task GetTotalLoginCountByUserIdAsync_OnlyCountsForSpecificUser()
     {
         // Arrange
         var userId1 = "user123";
@@ -189,8 +189,8 @@ public class LoginCountRepositoryTests : IClassFixture<DatabaseFixture>, IDispos
         var date = DateTime.UtcNow.Date;
 
         _context.LoginCounts.AddRange(
-            new LoginCount { UserId = userId1, LoginDate = date, Count = 5 },
-            new LoginCount { UserId = userId2, LoginDate = date, Count = 10 }
+            new LoginCount { UserId = userId1, LoginDate = date, Count = 1 },
+            new LoginCount { UserId = userId2, LoginDate = date, Count = 1 }
         );
         await _context.SaveChangesAsync();
 
@@ -198,7 +198,7 @@ public class LoginCountRepositoryTests : IClassFixture<DatabaseFixture>, IDispos
         var result = await _repository.GetTotalLoginCountByUserIdAsync(userId1);
 
         // Assert
-        result.Should().Be(5);
+        result.Should().Be(1); // Only 1 day for user1
     }
 
     public void Dispose()

@@ -17,8 +17,9 @@ public class LoginCountService : ILoginCountService
 
     public async Task<int> GetLoginCountForDateAsync(string userId, DateTime date)
     {
+        // With idempotent inserts, we just check if a record exists (1) or not (0)
         var loginCount = await _loginCountRepository.GetByUserAndDateAsync(userId, date);
-        return loginCount?.Count ?? 0;
+        return loginCount != null ? 1 : 0;
     }
 
     public async Task<List<LoginCount>> GetLoginHistoryAsync(string userId)

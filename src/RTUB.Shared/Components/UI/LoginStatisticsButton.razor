@@ -57,7 +57,7 @@
                                         AltText="@record.DisplayNickname"
                                         Nickname="@record.DisplayNickname"
                                         FullName="@record.DisplayFullName"
-                                        LastLoginText="@($"{record.LastLoginDate:dd/MM/yyyy} ({record.LoginCount} {(record.LoginCount == 1 ? "login" : "logins")})")" />
+                                        LastLoginText="@($"{record.LastLoginDate:dd/MM/yyyy}")" />
                     }
                 </div>
 
@@ -119,7 +119,7 @@
             allLoginCounts.AddRange(userLoginCounts);
         }
 
-        // Map login counts to records - each LoginCount already has the correct count
+        // Map login counts to records - each record represents one day of login
         loginRecords = allLoginCounts
             .Select(lc => 
             {
@@ -133,7 +133,7 @@
                     LastName = user?.LastName ?? string.Empty,
                     AvatarUrl = user?.ProfilePictureSrc ?? "/images/default-avatar.webp",
                     LastLoginDate = lc.LoginDate,
-                    LoginCount = lc.Count  // Use the Count from the LoginCount entity directly
+                    LoginCount = 1  // With idempotent inserts, always 1 per day
                 };
             })
             .OrderByDescending(r => r.LastLoginDate)

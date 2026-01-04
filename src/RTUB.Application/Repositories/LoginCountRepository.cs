@@ -44,8 +44,9 @@ public class LoginCountRepository : Repository<LoginCount>, ILoginCountRepositor
 
     public async Task<int> GetTotalLoginCountByUserIdAsync(string userId)
     {
+        // Count the number of login records (days) instead of summing Count field
         return await _dbSet
             .Where(lc => lc.UserId == userId)
-            .SumAsync(lc => lc.Count);
+            .CountAsync();
     }
 }

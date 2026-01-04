@@ -33,7 +33,7 @@ public class LoginCountServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     }
 
     [Fact]
-    public async Task GetLoginCountForDateAsync_WithExistingRecord_ReturnsCount()
+    public async Task GetLoginCountForDateAsync_WithExistingRecord_ReturnsOne()
     {
         // Arrange
         var userId = "user123";
@@ -42,7 +42,7 @@ public class LoginCountServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         {
             UserId = userId,
             LoginDate = date,
-            Count = 5
+            Count = 1
         };
         _context.LoginCounts.Add(loginCount);
         await _context.SaveChangesAsync();
@@ -51,7 +51,7 @@ public class LoginCountServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var result = await _service.GetLoginCountForDateAsync(userId, date);
 
         // Assert
-        result.Should().Be(5);
+        result.Should().Be(1); // With idempotent inserts, always returns 1 if record exists
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class LoginCountServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     }
 
     [Fact]
-    public async Task GetTotalLoginCountAsync_SumsAllCountsForUser()
+    public async Task GetTotalLoginCountAsync_CountsAllRecordsForUser()
     {
         // Arrange
         var userId = "user123";
@@ -144,9 +144,9 @@ public class LoginCountServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var date3 = new DateTime(2024, 1, 17).Date;
 
         _context.LoginCounts.AddRange(
-            new LoginCount { UserId = userId, LoginDate = date1, Count = 5 },
-            new LoginCount { UserId = userId, LoginDate = date2, Count = 3 },
-            new LoginCount { UserId = userId, LoginDate = date3, Count = 2 }
+            new LoginCount { UserId = userId, LoginDate = date1, Count = 1 },
+            new LoginCount { UserId = userId, LoginDate = date2, Count = 1 },
+            new LoginCount { UserId = userId, LoginDate = date3, Count = 1 }
         );
         await _context.SaveChangesAsync();
 
@@ -154,7 +154,7 @@ public class LoginCountServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var result = await _service.GetTotalLoginCountAsync(userId);
 
         // Assert
-        result.Should().Be(10); // 5 + 3 + 2
+        result.Should().Be(3); // 3 days with logins
     }
 
     [Fact]
