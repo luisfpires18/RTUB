@@ -610,13 +610,14 @@ public class Program
                 }
 
                 // Track daily login count using SQL upsert to avoid race conditions
-                var loginDate = DateTime.UtcNow.Date;
+                var now = DateTime.UtcNow;
+                var loginDate = now.Date;
                 // SQLite upsert syntax: INSERT ... ON CONFLICT ... DO UPDATE
                 await dbContext.Database.ExecuteSqlInterpolatedAsync($@"
                     INSERT INTO LoginCounts (UserId, LoginDate, Count, CreatedAt, CreatedBy)
-                    VALUES ({user.Id}, {loginDate}, 1, {DateTime.UtcNow}, {user.UserName})
+                    VALUES ({user.Id}, {loginDate}, 1, {now}, {user.UserName})
                     ON CONFLICT(UserId, LoginDate)
-                    DO UPDATE SET Count = Count + 1, UpdatedAt = {DateTime.UtcNow}, UpdatedBy = {user.UserName};");
+                    DO UPDATE SET Count = Count + 1, UpdatedAt = {now}, UpdatedBy = {user.UserName};");
             }
             catch (Exception ex)
             {
