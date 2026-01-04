@@ -10,6 +10,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILoginCountService LoginCountService
 @attribute [Authorize(Roles = "Owner")]
 @inherits CrudTablePageBase<ApplicationUser>
 
@@ -172,6 +173,27 @@ else
                     </div>
                     
                     <div class="d-flex justify-content-between align-items-center">
+                        <span>Logins Hoje:</span>
+                        @if (loginCountToday > 0)
+                        {
+                            <span class="badge bg-info">
+                                <i class="bi bi-box-arrow-in-right"></i> @loginCountToday
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">0</span>
+                        }
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Total de Logins:</span>
+                        <span class="badge bg-primary">
+                            <i class="bi bi-graph-up"></i> @totalLoginCount
+                        </span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
                         <span>Subscrito a Emails:</span>
                         @if (selectedUserForDetails.Subscribed)
                         {
@@ -282,6 +304,8 @@ else
     // User details modal
     private bool showUserDetailsModal = false;
     private ApplicationUser? selectedUserForDetails = null;
+    private int loginCountToday = 0;
+    private int totalLoginCount = 0;
     
     // Confirmation dialog
     private bool showConfirmDialog = false;
@@ -432,6 +456,11 @@ else
         if (freshUser != null)
         {
             selectedUserForDetails = freshUser;
+            
+            // Load login count data
+            loginCountToday = await LoginCountService.GetLoginCountForDateAsync(freshUser.Id, DateTime.UtcNow);
+            totalLoginCount = await LoginCountService.GetTotalLoginCountAsync(freshUser.Id);
+            
             showUserDetailsModal = true;
         }
     }
@@ -440,6 +469,8 @@ else
     {
         showUserDetailsModal = false;
         selectedUserForDetails = null;
+        loginCountToday = 0;
+        totalLoginCount = 0;
     }
     
     private bool IsAccountLocked(ApplicationUser user)

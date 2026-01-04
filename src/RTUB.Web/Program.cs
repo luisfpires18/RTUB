@@ -213,6 +213,7 @@ public class Program
                         }
 
                         var now = DateTime.UtcNow;
+                        var loginDate = now.Date;
 
                         // Update LastLoginDate to track user activity (both normal login and cookie validation)
                         // This is throttled by the cache above to prevent excessive DB writes
@@ -220,11 +221,34 @@ public class Program
                             UPDATE AspNetUsers
                             SET LastLoginDate = {now}
                             WHERE Id = {userId};");
+
+                        // Track daily login count (only when loginMade is true to avoid duplicate counts)
+                        if (loginMade)
+                        {
+                            var existingLoginCount = await db.LoginCounts
+                                .FirstOrDefaultAsync(lc => lc.UserId == userId && lc.LoginDate == loginDate);
+
+                            if (existingLoginCount != null)
+                            {
+                                existingLoginCount.Count++;
+                            }
+                            else
+                            {
+                                db.LoginCounts.Add(new RTUB.Core.Entities.LoginCount
+                                {
+                                    UserId = userId,
+                                    LoginDate = loginDate,
+                                    Count = 1
+                                });
+                            }
+
+                            await db.SaveChangesAsync();
+                        }
                     }
                     catch (Exception ex)
                     {
                         logger.LogError(ex,
-                            "Error while initializing LastLoginDate for {UserName}", userName);
+                            "Error while initializing LastLoginDate or LoginCount for {UserName}", userName);
                     }
 
                 }
@@ -536,6 +560,7 @@ public class Program
         app.MapPost("/auth/login", async (HttpContext http,
                                           SignInManager<ApplicationUser> signInManager,
                                           UserManager<ApplicationUser> userManager,
+                                          ApplicationDbContext dbContext,
                                           ILogger<Program> logger,
                                           AuditContext auditContext,
                                           IMemoryCache cache) =>
@@ -595,11 +620,32 @@ public class Program
                     logger.LogWarning("Failed to update LastLoginDate for user {UserId}: {Errors}",
                         user.Id, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
                 }
+
+                // Track daily login count
+                var loginDate = DateTime.UtcNow.Date;
+                var existingLoginCount = await dbContext.LoginCounts
+                    .FirstOrDefaultAsync(lc => lc.UserId == user.Id && lc.LoginDate == loginDate);
+
+                if (existingLoginCount != null)
+                {
+                    existingLoginCount.Count++;
+                }
+                else
+                {
+                    dbContext.LoginCounts.Add(new RTUB.Core.Entities.LoginCount
+                    {
+                        UserId = user.Id,
+                        LoginDate = loginDate,
+                        Count = 1
+                    });
+                }
+
+                await dbContext.SaveChangesAsync();
             }
             catch (Exception ex)
             {
                 // Log error but don't fail login
-                logger.LogError(ex, "Exception while updating LastLoginDate for user {UserId}", user.Id);
+                logger.LogError(ex, "Exception while updating LastLoginDate or LoginCount for user {UserId}", user.Id);
             }
             finally
             {

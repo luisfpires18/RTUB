@@ -100,6 +100,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<GalleryMedia> GalleryMedia { get; set; }
     public DbSet<GalleryMediaPersonTag> GalleryMediaPersonTags { get; set; }
 
+    // Login Tracking DbSet
+    public DbSet<LoginCount> LoginCounts { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
