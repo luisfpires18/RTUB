@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Constants;
 using System;
 using System.Collections.Generic;
 
@@ -13,10 +14,6 @@ namespace RTUB.Application.Services;
 public class AuditLogService : IAuditLogService
 {
     private readonly IAuditLogRepository _auditLogRepository;
-    private static readonly HashSet<string> HiddenEntityTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "Message", "Conversation", "ConversationUserSettings"
-    };
 
     public AuditLogService(IAuditLogRepository auditLogRepository)
     {
@@ -25,7 +22,7 @@ public class AuditLogService : IAuditLogService
 
     private static IQueryable<AuditLog> ExcludeHiddenEntities(IQueryable<AuditLog> query)
     {
-        return query.Where(a => a.EntityType == null || !HiddenEntityTypes.Contains(a.EntityType));
+        return query.Where(a => a.EntityType == null || !AuditConfiguration.ExcludedEntityTypes.Contains(a.EntityType));
     }
 
     /// <summary>

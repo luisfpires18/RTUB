@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using RTUB.Core.Entities;
 using System.Text.Json;
 using RTUB.Application.Services;
+using RTUB.Core.Constants;
 
 namespace RTUB.Application.Data;
 
@@ -132,8 +133,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
-            // Skip audit logging for SongPlayCount - it's high-frequency and not critical
-            if (entry.Entity is SongPlayCount)
+            // Skip audit logging for excluded entities (high-frequency, low-value changes)
+            var entityTypeName = entry.Entity.GetType().Name;
+            if (AuditConfiguration.ExcludedEntityTypes.Contains(entityTypeName))
                 continue;
                 
             switch (entry.State)
@@ -1127,6 +1129,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                             ?? memberInstrument.MemberId;
                         var instrumentName = RTUB.Core.Helpers.InstrumentTypeHelper.GetDisplayName(memberInstrument.InstrumentType);
                         return $"{userName} - {instrumentName}";
+                    }
+                    break;
+
+                case "PushSubscription":
+                    if (entry.Entity is PushSubscription pushSubscription)
+                    {
+                        // Try navigation property first (if loaded), then fall back to Local cache
+                        var userName = pushSubscription.User?.Nickname
+                            ?? pushSubscription.User?.UserName
+                            ?? ResolveUserIdToNickname(pushSubscription.UserId)
+                            ?? pushSubscription.UserId;
+                        return userName;
                     }
                     break;
             }
