@@ -1708,10 +1708,6 @@
             
             StateHasChanged();
         }
-        catch (OperationCanceledException)
-        {
-            // Component is being disposed, exit gracefully
-        }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error sending message in conversation {ConversationId} for user {UserId}",
