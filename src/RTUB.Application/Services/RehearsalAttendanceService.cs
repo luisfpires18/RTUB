@@ -69,6 +69,9 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
 
         if (existing != null)
         {
+            // Track if this is a change from not attending to attending
+            var wasNotAttending = !existing.WillAttend;
+            
             // Update existing attendance
             existing.WillAttend = willAttend;
             // Always update instrument (including setting to null to clear it)
@@ -79,6 +82,13 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             existing.OtherInstruments = otherInstruments;
 
             await _attendanceRepository.UpdateAsync(existing);
+            
+            // Send notification if user changed from not attending to attending
+            if (willAttend && wasNotAttending)
+            {
+                await NotifyAttendanceAsync(existing);
+            }
+            
             return existing;
         }
 
@@ -90,7 +100,15 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         // Set other instruments
         attendance.OtherInstruments = otherInstruments;
 
-        return await _attendanceRepository.AddAsync(attendance);
+        var createdAttendance = await _attendanceRepository.AddAsync(attendance);
+        
+        // Send notification to other attendees if user is attending
+        if (willAttend)
+        {
+            await NotifyAttendanceAsync(createdAttendance);
+        }
+
+        return createdAttendance;
     }
 
     public async Task<RehearsalAttendance> CreateAttendanceWithApprovalAsync(int rehearsalId, string userId, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null)
@@ -261,6 +279,55 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         {
             // Log error but don't fail the operation
             // Notification is secondary to the main operation
+        }
+    }
+
+    private async Task NotifyAttendanceAsync(RehearsalAttendance attendance)
+    {
+        try
+        {
+            var detailedAttendance = await _attendanceRepository.Query()
+                .AsNoTracking()
+                .Include(a => a.Rehearsal)
+                .Include(a => a.User)
+                .FirstOrDefaultAsync(a => a.Id == attendance.Id);
+
+            if (detailedAttendance?.Rehearsal == null || detailedAttendance.User == null)
+            {
+                return;
+            }
+
+            var baseUrl = GetBaseUrl();
+            var userDisplayName = detailedAttendance.User.Nickname
+                                  ?? detailedAttendance.User.FirstName
+                                  ?? "Utilizador";
+
+            var notification = _pushNotificationFactory.CreateRehearsalAttendanceNotification(
+                detailedAttendance.Rehearsal,
+                userDisplayName,
+                baseUrl);
+
+            var recipientIds = await _attendanceRepository.Query()
+                .AsNoTracking()
+                .Where(a => a.RehearsalId == detailedAttendance.RehearsalId
+                            && a.WillAttend
+                            && a.UserId != detailedAttendance.UserId
+                            && !string.IsNullOrEmpty(a.UserId))
+                .Select(a => a.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            if (recipientIds.Count == 0)
+            {
+                return;
+            }
+
+            await _pushNotificationService.SendToSelectedUsersAsync(recipientIds, notification);
+        }
+        catch (Exception ex)
+        {
+            // Notifications are non-critical; log but don't fail the operation
+            Console.WriteLine($"Failed to send rehearsal attendance notification: {ex.Message}");
         }
     }
 

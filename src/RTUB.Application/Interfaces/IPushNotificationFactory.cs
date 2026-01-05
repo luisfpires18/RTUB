@@ -89,6 +89,16 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreateRequestNotification(Request request, string baseUrl);
 
     /// <summary>
+    /// Creates a push notification when someone marks attendance for a rehearsal.
+    /// Sent to all users with pending attendance on that rehearsal (WillAttend = true).
+    /// </summary>
+    /// <param name="rehearsal">The rehearsal being attended</param>
+    /// <param name="userDisplayName">The display name of the user who marked attendance</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateRehearsalAttendanceNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl);
+
+    /// <summary>
     /// Creates a push notification when admin approves a user's rehearsal attendance.
     /// </summary>
     /// <param name="rehearsal">The rehearsal</param>

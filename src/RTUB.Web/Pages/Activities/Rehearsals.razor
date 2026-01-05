@@ -245,7 +245,7 @@ else
                                 @foreach (var attendance in paginatedMainParticipants)
                                 {
                                     var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
-                                    <EnrollmentCard 
+                                     <EnrollmentCard 
                                         AvatarUrl="@attendance.User?.ProfilePictureSrc"
                                         TunaName="@attendance.User?.Nickname"
                                         FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
@@ -254,7 +254,7 @@ else
                                         Notes="@attendance.Notes"
                                         AltText="@attendance.User?.GetDisplayName()"
                                         ShowEditButton="false"
-                                        ShowDeleteButton="@(isOwner && isSelectedRehearsalApprovable && attendance.Attended)"
+                                        ShowDeleteButton="@CanDeleteAttendance(attendance)"
                                         ShowApproveButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
                                         ShowCancelButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
                                         OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
@@ -333,7 +333,7 @@ else
                                         Notes="@attendance.Notes"
                                         AltText="@attendance.User?.GetDisplayName()"
                                         ShowEditButton="false"
-                                        ShowDeleteButton="@(isOwner && isSelectedRehearsalApprovable && attendance.Attended)"
+                                        ShowDeleteButton="@CanDeleteAttendance(attendance)"
                                         ShowApproveButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
                                         ShowCancelButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
                                         OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
@@ -392,7 +392,7 @@ else
                                     Notes="@attendance.Notes"
                                     AltText="@attendance.User?.GetDisplayName()"
                                     ShowEditButton="false"
-                                    ShowDeleteButton="@(isOwner && isSelectedRehearsalApprovable)"
+                                    ShowDeleteButton="@CanDeleteAttendance(attendance)"
                                     OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
                                     DeleteTooltip="Eliminar">
                                         <BadgeContent>
@@ -1728,21 +1728,18 @@ else
         }
 
         filteredAttendances = filtered
-            .OrderByDescending(a => a.Attended)
-            .ThenBy(a => a.User?.FirstName)
+            .OrderByDescending(a => a.CheckedInAt)
             .ToList();
 
         // Split into main participants and leitões
         var mainParticipants = filtered
             .Where(a => a.User != null && a.WillAttend && !a.User.Categories.Contains(MemberCategory.Leitao))
-            .OrderByDescending(a => a.Attended)
-            .ThenBy(a => a.User?.FirstName)
+            .OrderByDescending(a => a.CheckedInAt)
             .ToList();
         
         var leitoes = filtered
             .Where(a => a.User != null && a.WillAttend && a.User.Categories.Contains(MemberCategory.Leitao))
-            .OrderByDescending(a => a.Attended)
-            .ThenBy(a => a.User?.FirstName)
+            .OrderByDescending(a => a.CheckedInAt)
             .ToList();
         
         // Filter not attending members with search
@@ -1762,7 +1759,7 @@ else
         
         filteredMainParticipants = mainParticipants;
         filteredLeitoes = leitoes;
-        filteredNotAttending = notAttending.OrderBy(a => a.User?.FirstName).ToList();
+        filteredNotAttending = notAttending.OrderByDescending(a => a.CheckedInAt).ToList();
 
         // Reset to page 1 when filters change
         attendancesPagination.GoToPage(1);
@@ -2869,5 +2866,20 @@ else
     private bool CanCancelRehearsal()
     {
         return isAdmin;
+    }
+    
+    /// <summary>
+    /// Determines if the delete action should be available for attendances.
+    /// Owners can delete any attendance from approvable rehearsals.
+    /// Users can delete their own attendance from any rehearsal.
+    /// </summary>
+    private bool CanDeleteAttendance(RehearsalAttendance? attendance = null)
+    {
+        if (isOwner && isSelectedRehearsalApprovable)
+        {
+            return true;
+        }
+
+        return attendance != null && currentUser != null && attendance.UserId == currentUser.Id;
     }
 }
