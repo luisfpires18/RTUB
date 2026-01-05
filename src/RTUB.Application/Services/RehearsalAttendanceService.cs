@@ -175,6 +175,9 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         if (attendance == null)
             throw new EntityNotFoundException(nameof(RehearsalAttendance), id);
 
+        // Check if user was attending before canceling
+        var wasAttending = attendance.WillAttend;
+
         // Set WillAttend to false to cancel the attendance
         attendance.WillAttend = false;
 
@@ -185,6 +188,11 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         {
             await SendRejectionNotificationAsync(attendance, rejectorUserId);
         }
+        // Send cancellation notification to other attendees if user was attending
+        else if (wasAttending)
+        {
+            await NotifyCancellationAsync(attendance);
+        }
     }
 
     public async Task DeleteAttendanceAsync(int id)
@@ -192,6 +200,12 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         var attendance = await _attendanceRepository.GetByIdAsync(id);
         if (attendance == null)
             throw new EntityNotFoundException(nameof(RehearsalAttendance), id);
+
+        // Send cancellation notification before deleting if user was attending
+        if (attendance.WillAttend)
+        {
+            await NotifyCancellationAsync(attendance);
+        }
 
         await _attendanceRepository.DeleteAsync(id);
     }
@@ -332,6 +346,55 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         {
             // Notifications are non-critical; log but don't fail the operation
             Console.WriteLine($"Failed to send rehearsal attendance notification: {ex.Message}");
+        }
+    }
+
+    private async Task NotifyCancellationAsync(RehearsalAttendance attendance)
+    {
+        try
+        {
+            var detailedAttendance = await _attendanceRepository.Query()
+                .AsNoTracking()
+                .Include(a => a.Rehearsal)
+                .Include(a => a.User)
+                .FirstOrDefaultAsync(a => a.Id == attendance.Id);
+
+            if (detailedAttendance?.Rehearsal == null || detailedAttendance.User == null)
+            {
+                return;
+            }
+
+            var baseUrl = GetBaseUrl();
+            var userDisplayName = detailedAttendance.User.Nickname
+                                  ?? detailedAttendance.User.FirstName
+                                  ?? "Utilizador";
+
+            var notification = _pushNotificationFactory.CreateRehearsalCancellationNotification(
+                detailedAttendance.Rehearsal,
+                userDisplayName,
+                baseUrl);
+
+            var recipientIds = await _attendanceRepository.Query()
+                .AsNoTracking()
+                .Where(a => a.RehearsalId == detailedAttendance.RehearsalId
+                            && a.WillAttend
+                            && a.UserId != detailedAttendance.UserId
+                            && !string.IsNullOrEmpty(a.UserId))
+                .Select(a => a.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            if (recipientIds.Count == 0)
+            {
+                return;
+            }
+
+            await _pushNotificationService.SendToSelectedUsersAsync(recipientIds, notification);
+        }
+        catch (Exception ex)
+        {
+            // Notifications are non-critical; log but don't fail the operation
+            Console.WriteLine($"Failed to send rehearsal cancellation notification: {ex.Message}");
         }
     }
 

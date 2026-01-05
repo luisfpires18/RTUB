@@ -218,6 +218,28 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
+    /// Creates a push notification for when a user cancels their event enrollment.
+    /// </summary>
+    public SendPushNotificationDto CreateEventCancellationNotification(Event @event, string userDisplayName, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(@event);
+        ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var eventUrl = BuildEventUrl(baseUrl);
+        var eventTypeDisplay = StatusHelper.GetEventTypeDisplay(@event.Type);
+
+        return new SendPushNotificationDto
+        {
+            Title = "Inscrição cancelada",
+            Body = $"{userDisplayName} já não vai a {eventTypeDisplay} {@event.Name}",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = eventUrl,
+            Tag = $"event-cancellation-{@event.Id}"
+        };
+    }
+
+    /// <summary>
     /// Creates a push notification for new 1st place in leaderboard.
     /// </summary>
     public SendPushNotificationDto CreateLeaderboardFirstPlaceNotification(string userNickname, int level, string baseUrl)
@@ -313,6 +335,28 @@ public class PushNotificationFactory : IPushNotificationFactory
             Icon = "/icons/rtub-logo-192.png",
             Url = rehearsalUrl,
             Tag = $"rehearsal-attendance-{rehearsal.Id}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification when a user cancels their rehearsal attendance.
+    /// </summary>
+    public SendPushNotificationDto CreateRehearsalCancellationNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(rehearsal);
+        ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var rehearsalUrl = BuildRehearsalUrl(baseUrl);
+        var title = FormatRehearsalTitle(rehearsal.Date);
+
+        return new SendPushNotificationDto
+        {
+            Title = "Presença cancelada",
+            Body = $"{userDisplayName} já não vai ao {title}",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = rehearsalUrl,
+            Tag = $"rehearsal-cancellation-{rehearsal.Id}"
         };
     }
 

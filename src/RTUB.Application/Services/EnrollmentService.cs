@@ -101,9 +101,15 @@ public class EnrollmentService : IEnrollmentService
             await _retirementStatusService.UpdateUserRetirementStatusAsync(enrollment.UserId);
         }
 
+        // Send notification if user is now attending (was not attending before)
         if (willAttend && !wasAttending)
         {
             await NotifyEnrollmentAsync(enrollment);
+        }
+        // Send notification if user is no longer attending (was attending before)
+        else if (!willAttend && wasAttending)
+        {
+            await NotifyCancellationAsync(enrollment);
         }
 
         return enrollment;
@@ -114,6 +120,12 @@ public class EnrollmentService : IEnrollmentService
         var enrollment = await _enrollmentRepository.GetByIdAsync(id);
         if (enrollment == null)
             throw new EntityNotFoundException(nameof(Enrollment), id);
+
+        // Send cancellation notification before deleting if user was attending
+        if (enrollment.WillAttend)
+        {
+            await NotifyCancellationAsync(enrollment);
+        }
 
         await _enrollmentRepository.DeleteAsync(id);
     }
@@ -139,6 +151,54 @@ public class EnrollmentService : IEnrollmentService
                                   ?? "Utilizador";
 
             var notification = _pushNotificationFactory.CreateEventEnrollmentNotification(
+                detailedEnrollment.Event,
+                userDisplayName,
+                baseUrl);
+
+            var recipientIds = await _enrollmentRepository.Query()
+                .AsNoTracking()
+                .Where(e => e.EventId == detailedEnrollment.EventId
+                            && e.WillAttend
+                            && e.UserId != detailedEnrollment.UserId
+                            && !string.IsNullOrEmpty(e.UserId))
+                .Select(e => e.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            if (recipientIds.Count == 0)
+            {
+                return;
+            }
+
+            await _pushNotificationService.SendToSelectedUsersAsync(recipientIds, notification);
+        }
+        catch
+        {
+            // Notifications are non-critical; ignore failures
+        }
+    }
+
+    private async Task NotifyCancellationAsync(Enrollment enrollment)
+    {
+        try
+        {
+            var detailedEnrollment = await _enrollmentRepository.Query()
+                .AsNoTracking()
+                .Include(e => e.Event)
+                .Include(e => e.User)
+                .FirstOrDefaultAsync(e => e.Id == enrollment.Id);
+
+            if (detailedEnrollment?.Event == null || detailedEnrollment.User == null)
+            {
+                return;
+            }
+
+            var baseUrl = GetBaseUrl();
+            var userDisplayName = detailedEnrollment.User.Nickname
+                                  ?? detailedEnrollment.User.FirstName
+                                  ?? "Utilizador";
+
+            var notification = _pushNotificationFactory.CreateEventCancellationNotification(
                 detailedEnrollment.Event,
                 userDisplayName,
                 baseUrl);
