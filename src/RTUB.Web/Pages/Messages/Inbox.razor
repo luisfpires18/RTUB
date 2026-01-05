@@ -698,6 +698,7 @@
 
     private const int MessagePreviewMaxLength = 50;
     private readonly SemaphoreSlim _conversationsLock = new(1, 1);
+    private readonly CancellationTokenSource _disposalCancellationTokenSource = new();
     
     private string currentUserId = string.Empty;
     private List<ConversationDto> conversations = new();
@@ -783,7 +784,8 @@
             // MessagingService already sorts: pinned first, then by LastMessageAt
             var loadedConversations = (await MessagingService.GetUserConversationsAsync(currentUserId)).ToList();
             
-            await _conversationsLock.WaitAsync();
+            // Use cancellation token to handle disposal gracefully
+            await _conversationsLock.WaitAsync(_disposalCancellationTokenSource.Token);
             try
             {
                 conversations = loadedConversations;
@@ -792,6 +794,10 @@
             {
                 _conversationsLock.Release();
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Component is being disposed, exit gracefully
         }
         finally
         {
@@ -1274,47 +1280,56 @@
         {
             bool needsConversationReload = false;
             
-            await _conversationsLock.WaitAsync();
             try
             {
-                // Update conversation list
-                var conversation = conversations.FirstOrDefault(c => c.Id == message.ConversationId);
-                if (conversation != null)
+                // Use cancellation token to handle disposal gracefully
+                await _conversationsLock.WaitAsync(_disposalCancellationTokenSource.Token);
+                try
                 {
-                    // Skip updating preview if message is from current user (already updated in SendMessage)
-                    // and only update if the incoming message is strictly newer than the current preview
-                    // Use > to prevent messages with identical timestamps from overwriting each other
-                    if (message.SenderId != currentUserId && message.CreatedAt > conversation.LastMessageAt)
+                    // Update conversation list
+                    var conversation = conversations.FirstOrDefault(c => c.Id == message.ConversationId);
+                    if (conversation != null)
                     {
-                        conversation.LastMessageAt = message.CreatedAt;
-                        // Truncate the preview if it exceeds the max length
-                        conversation.LastMessagePreview = message.Body.Length > MessagePreviewMaxLength
-                            ? message.Body[..MessagePreviewMaxLength] + "..."
-                            : message.Body;
-                        conversation.LastMessageSenderId = message.SenderId;
+                        // Skip updating preview if message is from current user (already updated in SendMessage)
+                        // and only update if the incoming message is strictly newer than the current preview
+                        // Use > to prevent messages with identical timestamps from overwriting each other
+                        if (message.SenderId != currentUserId && message.CreatedAt > conversation.LastMessageAt)
+                        {
+                            conversation.LastMessageAt = message.CreatedAt;
+                            // Truncate the preview if it exceeds the max length
+                            conversation.LastMessagePreview = message.Body.Length > MessagePreviewMaxLength
+                                ? message.Body[..MessagePreviewMaxLength] + "..."
+                                : message.Body;
+                            conversation.LastMessageSenderId = message.SenderId;
+                        }
+                        
+                        // Only increment unread count if this is not the current conversation AND it's not from the current user
+                        if (selectedConversation?.Id != message.ConversationId && message.SenderId != currentUserId)
+                        {
+                            conversation.UnreadCount++;
+                        }
+                        
+                        // Re-sort conversations
+                        conversations = conversations
+                            .OrderByDescending(c => c.IsPinned)
+                            .ThenByDescending(c => c.LastMessageAt)
+                            .ToList();
                     }
-                    
-                    // Only increment unread count if this is not the current conversation AND it's not from the current user
-                    if (selectedConversation?.Id != message.ConversationId && message.SenderId != currentUserId)
+                    else
                     {
-                        conversation.UnreadCount++;
+                        // New conversation - mark for reload outside the lock to avoid deadlock
+                        needsConversationReload = true;
                     }
-                    
-                    // Re-sort conversations
-                    conversations = conversations
-                        .OrderByDescending(c => c.IsPinned)
-                        .ThenByDescending(c => c.LastMessageAt)
-                        .ToList();
                 }
-                else
+                finally
                 {
-                    // New conversation - mark for reload outside the lock to avoid deadlock
-                    needsConversationReload = true;
+                    _conversationsLock.Release();
                 }
             }
-            finally
+            catch (OperationCanceledException)
             {
-                _conversationsLock.Release();
+                // Component is being disposed, exit gracefully
+                return;
             }
             
             // Reload conversations outside the lock to avoid deadlock
@@ -1644,42 +1659,51 @@
 
             // Update conversation in list - defensive check to prevent NullReferenceException
             // Guard against null conversations collection or null selectedConversation (race condition)
-            await _conversationsLock.WaitAsync();
             try
             {
-                if (conversations != null && conversations.Any())
+                // Use cancellation token to handle disposal gracefully
+                await _conversationsLock.WaitAsync(_disposalCancellationTokenSource.Token);
+                try
                 {
-                    var conversationInList = conversations.FirstOrDefault(c => c.Id == conversationId);
-                    if (conversationInList != null)
+                    if (conversations != null && conversations.Any())
                     {
-                        conversationInList.LastMessageAt = sentMessage.CreatedAt;
-                        // Truncate the preview if it exceeds the max length (for consistency with HandleMessageReceived)
-                        conversationInList.LastMessagePreview = sentMessage.Body.Length > MessagePreviewMaxLength
-                            ? sentMessage.Body[..MessagePreviewMaxLength] + "..."
-                            : sentMessage.Body;
-                        conversationInList.LastMessageSenderId = currentUserId;
-                        
-                        // Re-sort conversations
-                        conversations = conversations
-                            .OrderByDescending(c => c.IsPinned)
-                            .ThenByDescending(c => c.LastMessageAt)
-                            .ToList();
+                        var conversationInList = conversations.FirstOrDefault(c => c.Id == conversationId);
+                        if (conversationInList != null)
+                        {
+                            conversationInList.LastMessageAt = sentMessage.CreatedAt;
+                            // Truncate the preview if it exceeds the max length (for consistency with HandleMessageReceived)
+                            conversationInList.LastMessagePreview = sentMessage.Body.Length > MessagePreviewMaxLength
+                                ? sentMessage.Body[..MessagePreviewMaxLength] + "..."
+                                : sentMessage.Body;
+                            conversationInList.LastMessageSenderId = currentUserId;
+                            
+                            // Re-sort conversations
+                            conversations = conversations
+                                .OrderByDescending(c => c.IsPinned)
+                                .ThenByDescending(c => c.LastMessageAt)
+                                .ToList();
+                        }
+                        else
+                        {
+                            Logger.LogWarning("Conversation {ConversationId} not found in conversations list after sending message for user {UserId}",
+                                conversationId, currentUserId);
+                        }
                     }
                     else
                     {
-                        Logger.LogWarning("Conversation {ConversationId} not found in conversations list after sending message for user {UserId}",
+                        Logger.LogWarning("Conversations collection is null or empty when trying to update conversation {ConversationId} for user {UserId}",
                             conversationId, currentUserId);
                     }
                 }
-                else
+                finally
                 {
-                    Logger.LogWarning("Conversations collection is null or empty when trying to update conversation {ConversationId} for user {UserId}",
-                        conversationId, currentUserId);
+                    _conversationsLock.Release();
                 }
             }
-            finally
+            catch (OperationCanceledException)
             {
-                _conversationsLock.Release();
+                // Component is being disposed, exit gracefully
+                return;
             }
             
             StateHasChanged();
@@ -1698,6 +1722,9 @@
 
     public async ValueTask DisposeAsync()
     {
+        // Cancel all pending operations that are waiting on the semaphore
+        _disposalCancellationTokenSource?.Cancel();
+        
         // Unsubscribe from notification service events
         NotificationService.OnMessageReceived -= HandleMessageReceived;
         NotificationService.OnMessageSeen -= HandleMessageSeen;
@@ -1706,6 +1733,7 @@
         
         typingTimer?.Dispose();
         _conversationsLock?.Dispose();
+        _disposalCancellationTokenSource?.Dispose();
         
         // Ensure body scroll is unlocked when component is disposed
         // This handles edge cases where modals might be open during navigation
