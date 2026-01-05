@@ -245,7 +245,7 @@ else
                                 @foreach (var attendance in paginatedMainParticipants)
                                 {
                                     var instrumentDisplay = attendance.Instrument.HasValue ? StatusHelper.GetInstrumentDisplay(attendance.Instrument.Value) : "";
-                                    <EnrollmentCard 
+                                     <EnrollmentCard 
                                         AvatarUrl="@attendance.User?.ProfilePictureSrc"
                                         TunaName="@attendance.User?.Nickname"
                                         FullName="@($"{attendance.User?.FirstName} {attendance.User?.LastName}".Trim())"
@@ -254,7 +254,7 @@ else
                                         Notes="@attendance.Notes"
                                         AltText="@attendance.User?.GetDisplayName()"
                                         ShowEditButton="false"
-                                        ShowDeleteButton="@(isOwner && isSelectedRehearsalApprovable && attendance.Attended)"
+                                        ShowDeleteButton="@CanDeleteAttendance(attendance)"
                                         ShowApproveButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
                                         ShowCancelButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
                                         OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
@@ -333,7 +333,7 @@ else
                                         Notes="@attendance.Notes"
                                         AltText="@attendance.User?.GetDisplayName()"
                                         ShowEditButton="false"
-                                        ShowDeleteButton="@(isOwner && isSelectedRehearsalApprovable && attendance.Attended)"
+                                        ShowDeleteButton="@CanDeleteAttendance(attendance)"
                                         ShowApproveButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
                                         ShowCancelButton="@(isAdmin && isSelectedRehearsalApprovable && !attendance.Attended)"
                                         OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
@@ -392,7 +392,7 @@ else
                                     Notes="@attendance.Notes"
                                     AltText="@attendance.User?.GetDisplayName()"
                                     ShowEditButton="false"
-                                    ShowDeleteButton="@(isOwner && isSelectedRehearsalApprovable)"
+                                    ShowDeleteButton="@CanDeleteAttendance(attendance)"
                                     OnDelete="@(() => OpenDeleteAttendanceModal(attendance))"
                                     DeleteTooltip="Eliminar">
                                         <BadgeContent>
@@ -2866,5 +2866,18 @@ else
     private bool CanCancelRehearsal()
     {
         return isAdmin;
+    }
+    
+    /// <summary>
+    /// Determines if the delete action should be available for attendances.
+    /// </summary>
+    private bool CanDeleteAttendance(RehearsalAttendance? attendance = null)
+    {
+        if (isOwner)
+        {
+            return true;
+        }
+
+        return attendance != null && currentUser != null && attendance.UserId == currentUser.Id;
     }
 }
