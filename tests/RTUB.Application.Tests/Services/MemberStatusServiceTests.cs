@@ -1,8 +1,10 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using RTUB.Application.Data;
+using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Entities;
@@ -13,6 +15,7 @@ namespace RTUB.Application.Tests.Services;
 /// <summary>
 /// Unit tests for MemberStatusService
 /// Tests business logic for retirement status calculation and last activity tracking
+/// Now includes tests for database-backed caching
 /// </summary>
 public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
@@ -20,6 +23,8 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     private readonly DatabaseFixture _fixture;
     private readonly MemberStatusService _service;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
+    private readonly Mock<IPushNotificationService> _mockPushNotificationService;
+    private readonly Mock<ILogger<MemberStatusService>> _mockLogger;
 
     public MemberStatusServiceTests(DatabaseFixture fixture)
     {
@@ -36,7 +41,17 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
-        _service = new MemberStatusService(_context, _mockUserManager.Object);
+        // Create mock push notification service
+        _mockPushNotificationService = new Mock<IPushNotificationService>();
+        
+        // Create mock logger
+        _mockLogger = new Mock<ILogger<MemberStatusService>>();
+
+        _service = new MemberStatusService(
+            _context, 
+            _mockUserManager.Object,
+            _mockPushNotificationService.Object,
+            _mockLogger.Object);
     }
 
     [Fact]
@@ -392,6 +407,190 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Verify that user was updated in database
         _mockUserManager.Verify(um => um.UpdateAsync(It.Is<ApplicationUser>(u => 
             u.Id == userId && u.IsRetired == false)), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetMemberStatusAsync_UsesCachedResult_WhenFresh()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        // Create a fresh cached status (less than 1 hour old)
+        var cachedStatus = new MemberStatus
+        {
+            UserId = userId,
+            IsRetired = false,
+            HasAnyActivity = true,
+            LastRehearsalDate = DateTime.UtcNow.AddDays(-10),
+            LastEventDate = DateTime.UtcNow.AddDays(-5),
+            LastActivityDate = DateTime.UtcNow.AddDays(-5),
+            ProgressMonths = 4,
+            ProgressTotalMonths = 6,
+            ProgressDescription = "4 meses até reforma",
+            LastUpdatedAt = DateTime.UtcNow.AddMinutes(-30), // 30 minutes ago (fresh)
+            CreatedAt = DateTime.UtcNow.AddDays(-1)
+        };
+        _context.MemberStatuses.Add(cachedStatus);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert - Should return cached result
+        result.Should().NotBeNull();
+        result.IsRetired.Should().BeFalse();
+        result.HasAnyActivity.Should().BeTrue();
+        result.ProgressMonths.Should().Be(4);
+        result.ProgressTotalMonths.Should().Be(6);
+        result.ProgressDescription.Should().Be("4 meses até reforma");
+    }
+
+    [Fact]
+    public async Task GetMemberStatusAsync_RecalculatesStatus_WhenStale()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        // Create a stale cached status (older than 1 hour)
+        var cachedStatus = new MemberStatus
+        {
+            UserId = userId,
+            IsRetired = true, // Stale data says retired
+            HasAnyActivity = true,
+            LastActivityDate = DateTime.UtcNow.AddDays(-10),
+            LastUpdatedAt = DateTime.UtcNow.AddHours(-2), // 2 hours ago (stale)
+            CreatedAt = DateTime.UtcNow.AddDays(-1)
+        };
+        _context.MemberStatuses.Add(cachedStatus);
+        await _context.SaveChangesAsync();
+
+        // Add recent activity to make user active
+        var recentRehearsal = Rehearsal.Create(DateTime.UtcNow.AddDays(-2), "Test Location");
+        _context.Rehearsals.Add(recentRehearsal);
+        await _context.SaveChangesAsync();
+
+        var attendance = RehearsalAttendance.Create(recentRehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert - Should recalculate and update
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeTrue();
+        
+        // Verify the cached status was updated in database
+        var updatedCache = await _context.MemberStatuses.FirstOrDefaultAsync(ms => ms.UserId == userId);
+        updatedCache.Should().NotBeNull();
+        updatedCache!.LastUpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task UpdateMemberStatusAsync_PersistsToDatabase()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        // Add activity
+        var rehearsal = Rehearsal.Create(DateTime.UtcNow.AddDays(-10), "Test Location");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.UpdateMemberStatusAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeTrue();
+
+        // Verify status was persisted to database
+        var savedStatus = await _context.MemberStatuses.FirstOrDefaultAsync(ms => ms.UserId == userId);
+        savedStatus.Should().NotBeNull();
+        savedStatus!.UserId.Should().Be(userId);
+        savedStatus.HasAnyActivity.Should().BeTrue();
+        savedStatus.LastUpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task UpdateMemberStatusAsync_SendsNotification_WhenBecomeActive()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = true; // Start as retired
+        user.Nickname = "TestTuno";
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+        _mockUserManager.Setup(um => um.UpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        // Create existing status showing retired
+        var existingStatus = new MemberStatus
+        {
+            UserId = userId,
+            IsRetired = true,
+            HasAnyActivity = true,
+            LastUpdatedAt = DateTime.UtcNow.AddDays(-1),
+            CreatedAt = DateTime.UtcNow.AddDays(-10)
+        };
+        _context.MemberStatuses.Add(existingStatus);
+        await _context.SaveChangesAsync();
+
+        // Add 3 consecutive months of activity to trigger activation
+        var now = DateTime.UtcNow;
+        for (int i = 1; i <= 3; i++)
+        {
+            var rehearsalDate = now.AddMonths(-i).AddDays(5); // Mid-month for each of last 3 months
+            var rehearsal = Rehearsal.Create(rehearsalDate, $"Location {i}");
+            _context.Rehearsals.Add(rehearsal);
+            await _context.SaveChangesAsync();
+
+            var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+            attendance.MarkAttendance(true);
+            _context.RehearsalAttendances.Add(attendance);
+        }
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.UpdateMemberStatusAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsRetired.Should().BeFalse(); // Should transition to active
+
+        // Verify push notification was sent
+        _mockPushNotificationService.Verify(
+            pns => pns.BroadcastAsync(It.Is<RTUB.Application.DTOs.SendPushNotificationDto>(
+                dto => dto.Title.Contains("Reativado") && dto.Body.Contains("TestTuno"))),
+            Times.Once);
     }
 
     private ApplicationUser CreateTestUser(string userId)
