@@ -324,9 +324,10 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
 
             await _pushNotificationService.SendToSelectedUsersAsync(recipientIds, notification);
         }
-        catch
+        catch (Exception ex)
         {
-            // Notifications are non-critical; ignore failures
+            // Notifications are non-critical; log but don't fail the operation
+            Console.WriteLine($"Failed to send rehearsal attendance notification: {ex.Message}");
         }
     }
 

@@ -2870,10 +2870,12 @@ else
     
     /// <summary>
     /// Determines if the delete action should be available for attendances.
+    /// Owners can delete any attendance from approvable rehearsals.
+    /// Users can delete their own attendance from any rehearsal.
     /// </summary>
     private bool CanDeleteAttendance(RehearsalAttendance? attendance = null)
     {
-        if (isOwner)
+        if (isOwner && isSelectedRehearsalApprovable)
         {
             return true;
         }
