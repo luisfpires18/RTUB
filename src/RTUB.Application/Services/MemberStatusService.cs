@@ -14,23 +14,27 @@ namespace RTUB.Application.Services;
 /// Provides comprehensive member status including retirement state and last activity tracking
 /// Follows Single Responsibility and Dependency Inversion principles
 /// Status is cached in the database and updated periodically or on-demand
+/// Creates audit log entries for status changes to track member progression
 /// </summary>
 public class MemberStatusService : IMemberStatusService
 {
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IPushNotificationService _pushNotificationService;
+    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<MemberStatusService> _logger;
 
     public MemberStatusService(
         ApplicationDbContext context, 
         UserManager<ApplicationUser> userManager,
         IPushNotificationService pushNotificationService,
+        IAuditLogService auditLogService,
         ILogger<MemberStatusService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
         _pushNotificationService = pushNotificationService ?? throw new ArgumentNullException(nameof(pushNotificationService));
+        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -132,6 +136,7 @@ public class MemberStatusService : IMemberStatusService
         await _context.SaveChangesAsync();
 
         // Log state changes for existing records ONLY when values actually change
+        // Creates both console logs and audit log entries for the tracing page
         if (!isNewRecord && result.HasAnyActivity)
         {
             // Log retirement status change
@@ -139,11 +144,43 @@ public class MemberStatusService : IMemberStatusService
             {
                 if (wasRetired && !result.IsRetired)
                 {
-                    _logger.LogInformation("✅ {MemberName}: Retired => Active (achieved 3/3 consecutive months)", memberName);
+                    var changeDescription = "Retired => Active (achieved 3/3 consecutive months)";
+                    _logger.LogInformation("✅ {MemberName}: {Change}", memberName, changeDescription);
+                    
+                    // Create audit log entry
+                    await _auditLogService.AddAsync(new AuditLog
+                    {
+                        EntityType = "MemberStatus",
+                        EntityId = null, // No specific entity ID
+                        Action = "StatusChange",
+                        UserId = "System",
+                        UserName = "System",
+                        TargetMemberName = memberName,
+                        Timestamp = DateTime.UtcNow,
+                        Changes = changeDescription,
+                        EntityDisplayName = memberName,
+                        IsCriticalAction = false
+                    });
                 }
                 else if (!wasRetired && result.IsRetired)
                 {
-                    _logger.LogInformation("⚠️ {MemberName}: Active => Retired (6+ months without activity)", memberName);
+                    var changeDescription = "Active => Retired (6+ months without activity)";
+                    _logger.LogInformation("⚠️ {MemberName}: {Change}", memberName, changeDescription);
+                    
+                    // Create audit log entry
+                    await _auditLogService.AddAsync(new AuditLog
+                    {
+                        EntityType = "MemberStatus",
+                        EntityId = null,
+                        Action = "StatusChange",
+                        UserId = "System",
+                        UserName = "System",
+                        TargetMemberName = memberName,
+                        Timestamp = DateTime.UtcNow,
+                        Changes = changeDescription,
+                        EntityDisplayName = memberName,
+                        IsCriticalAction = false
+                    });
                 }
             }
             // Log progress changes for retired members trying to return
@@ -152,8 +189,23 @@ public class MemberStatusService : IMemberStatusService
             {
                 if (oldProgressMonths != result.ProgressMonths)
                 {
-                    _logger.LogInformation("📊 {MemberName}: {OldProgress}/3 => {NewProgress}/3 months toward reactivation", 
-                        memberName, oldProgressMonths.Value, result.ProgressMonths.Value);
+                    var changeDescription = $"{oldProgressMonths.Value}/3 => {result.ProgressMonths.Value}/3 months toward reactivation";
+                    _logger.LogInformation("📊 {MemberName}: {Change}", memberName, changeDescription);
+                    
+                    // Create audit log entry
+                    await _auditLogService.AddAsync(new AuditLog
+                    {
+                        EntityType = "MemberStatus",
+                        EntityId = null,
+                        Action = "ProgressChange",
+                        UserId = "System",
+                        UserName = "System",
+                        TargetMemberName = memberName,
+                        Timestamp = DateTime.UtcNow,
+                        Changes = changeDescription,
+                        EntityDisplayName = memberName,
+                        IsCriticalAction = false
+                    });
                 }
             }
             // Log progress changes for active members approaching retirement
@@ -162,8 +214,23 @@ public class MemberStatusService : IMemberStatusService
             {
                 if (oldProgressMonths != result.ProgressMonths)
                 {
-                    _logger.LogInformation("📊 {MemberName}: {OldProgress} months until retirement => {NewProgress} months", 
-                        memberName, oldProgressMonths.Value, result.ProgressMonths.Value);
+                    var changeDescription = $"{oldProgressMonths.Value} months until retirement => {result.ProgressMonths.Value} months";
+                    _logger.LogInformation("📊 {MemberName}: {Change}", memberName, changeDescription);
+                    
+                    // Create audit log entry
+                    await _auditLogService.AddAsync(new AuditLog
+                    {
+                        EntityType = "MemberStatus",
+                        EntityId = null,
+                        Action = "ProgressChange",
+                        UserId = "System",
+                        UserName = "System",
+                        TargetMemberName = memberName,
+                        Timestamp = DateTime.UtcNow,
+                        Changes = changeDescription,
+                        EntityDisplayName = memberName,
+                        IsCriticalAction = false
+                    });
                 }
             }
         }

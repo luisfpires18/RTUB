@@ -15,7 +15,7 @@ namespace RTUB.Application.Tests.Services;
 /// <summary>
 /// Unit tests for MemberStatusService
 /// Tests business logic for retirement status calculation and last activity tracking
-/// Now includes tests for database-backed caching
+/// Now includes tests for database-backed caching and audit logging
 /// </summary>
 public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 {
@@ -24,6 +24,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     private readonly MemberStatusService _service;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
+    private readonly Mock<IAuditLogService> _mockAuditLogService;
     private readonly Mock<ILogger<MemberStatusService>> _mockLogger;
 
     public MemberStatusServiceTests(DatabaseFixture fixture)
@@ -44,6 +45,9 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Create mock push notification service
         _mockPushNotificationService = new Mock<IPushNotificationService>();
         
+        // Create mock audit log service
+        _mockAuditLogService = new Mock<IAuditLogService>();
+        
         // Create mock logger
         _mockLogger = new Mock<ILogger<MemberStatusService>>();
 
@@ -51,6 +55,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             _context, 
             _mockUserManager.Object,
             _mockPushNotificationService.Object,
+            _mockAuditLogService.Object,
             _mockLogger.Object);
     }
 
