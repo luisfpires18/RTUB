@@ -7,13 +7,13 @@ namespace RTUB.Application.Services;
 
 /// <summary>
 /// Background service that periodically updates member status for all active members
-/// Runs every hour to keep the status cache fresh
+/// Runs every 5 minutes for testing (change to 1 hour for production)
 /// </summary>
 public class MemberStatusUpdateBackgroundService : BackgroundService
 {
     private readonly ILogger<MemberStatusUpdateBackgroundService> _logger;
     private readonly IServiceProvider _serviceProvider;
-    private readonly TimeSpan _updateInterval = TimeSpan.FromHours(1);
+    private readonly TimeSpan _updateInterval = TimeSpan.FromMinutes(5); // TODO: Change to TimeSpan.FromHours(1) for production
 
     public MemberStatusUpdateBackgroundService(
         ILogger<MemberStatusUpdateBackgroundService> logger,
