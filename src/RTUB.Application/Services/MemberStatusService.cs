@@ -5,6 +5,7 @@ using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace RTUB.Application.Services;
 
@@ -18,11 +19,19 @@ public class MemberStatusService : IMemberStatusService
 {
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IPushNotificationService _pushNotificationService;
+    private readonly ILogger<MemberStatusService> _logger;
 
-    public MemberStatusService(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+    public MemberStatusService(
+        ApplicationDbContext context, 
+        UserManager<ApplicationUser> userManager,
+        IPushNotificationService pushNotificationService,
+        ILogger<MemberStatusService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
+        _pushNotificationService = pushNotificationService ?? throw new ArgumentNullException(nameof(pushNotificationService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -54,6 +63,7 @@ public class MemberStatusService : IMemberStatusService
     /// <summary>
     /// Updates the status for a specific member by recalculating from activities
     /// Persists the result to the database
+    /// Sends push notification if member transitions from retired to active
     /// </summary>
     /// <param name="userId">The user ID to update status for</param>
     /// <returns>The updated status result</returns>
@@ -68,6 +78,9 @@ public class MemberStatusService : IMemberStatusService
         // Find or create MemberStatus record
         var memberStatus = await _context.MemberStatuses
             .FirstOrDefaultAsync(ms => ms.UserId == userId);
+
+        bool wasRetired = memberStatus?.IsRetired ?? false;
+        bool isNewRecord = memberStatus == null;
 
         if (memberStatus == null)
         {
@@ -93,6 +106,12 @@ public class MemberStatusService : IMemberStatusService
         memberStatus.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        // Send push notification if member just became active (was retired, now active)
+        if (!isNewRecord && wasRetired && !result.IsRetired)
+        {
+            await SendMemberBecameActiveNotificationAsync(userId);
+        }
 
         return result;
     }
@@ -362,6 +381,46 @@ public class MemberStatusService : IMemberStatusService
         }
 
         return consecutiveMonths;
+    }
+    
+    /// <summary>
+    /// Sends a push notification when a member becomes active (transitions from retired to active)
+    /// Notifies all subscribed users about the status change
+    /// </summary>
+    private async Task SendMemberBecameActiveNotificationAsync(string userId)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                _logger.LogWarning("Cannot send activation notification: User {UserId} not found", userId);
+                return;
+            }
+
+            var memberName = !string.IsNullOrEmpty(user.Nickname) 
+                ? user.Nickname 
+                : $"{user.FirstName} {user.LastName}";
+
+            var notification = new SendPushNotificationDto
+            {
+                Title = "Membro Reativado! 🎉",
+                Body = $"{memberName} é agora membro ativo após 3 meses consecutivos de atividade!",
+                Tag = $"member-active-{userId}",
+                Icon = "/images/favicon/android-chrome-192x192.png",
+                Url = "/members"
+            };
+
+            // Broadcast to all subscribed users
+            await _pushNotificationService.BroadcastAsync(notification);
+            
+            _logger.LogInformation("Sent member activation notification for user {UserId} ({MemberName})", userId, memberName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending member activation notification for user {UserId}", userId);
+            // Don't rethrow - notification failure shouldn't break the status update
+        }
     }
     
     /// <summary>
