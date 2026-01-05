@@ -2,13 +2,32 @@
 
 This document shows examples of the enhanced logging output for member status updates.
 
+## Configuration
+
+The member status update service is configured via `appsettings.json`:
+
+```json
+"MemberStatusUpdate": {
+  "Enabled": true,
+  "ScheduledTime": "21:00"
+}
+```
+
+- **Enabled**: Set to `false` to disable automatic member status updates
+- **ScheduledTime**: Time of day (24-hour format) when the update runs. Default is 21:00 (9 PM)
+
+The service runs **once per day** at the configured time.
+
 ## Background Service Logs
 
-When the background service runs (every 5 minutes for testing), you'll see:
+When the background service runs (daily at 21:00), you'll see:
 
 ```
+Member Status Update Background Service is starting. Scheduled time: 21:00
+Next member status update scheduled for 2026-01-05 21:00:00 (in 03:15:30)
+
 ========================================
-Starting member status update cycle at 2026-01-05 17:20:00
+Starting member status update cycle at 2026-01-05 21:00:00
 ========================================
 
 Created status for JoãoTuno: Active, Progress: 4 meses até reforma
@@ -19,7 +38,7 @@ Created status for JoãoTuno: Active, Progress: 4 meses até reforma
 
 ========================================
 Member status update completed. Updated 87 members
-Next update in 00:05:00
+Next update scheduled for tomorrow at 21:00
 ========================================
 ```
 
@@ -89,7 +108,7 @@ Created status for OutroMembro: Retired, Progress: 0/3 meses de atividade consec
 2. **Clear Format**: Uses "old => new" notation for easy tracking
 3. **Visual Indicators**: Emoji icons for quick status identification in console logs
 4. **Member Names**: Uses nickname when available, full name otherwise
-5. **Testing Interval**: Runs every 5 minutes for testing (will be 1 hour in production)
+5. **Configurable Schedule**: Runs once per day at a configurable time (default 21:00)
 6. **Audit Trail**: All changes permanently recorded in AuditLog table for the tracing page
 
 ## Viewing Status Changes
@@ -98,6 +117,7 @@ Created status for OutroMembro: Retired, Progress: 0/3 meses de atividade consec
 - Real-time monitoring during development
 - Shows emoji indicators for quick visual scanning
 - Includes cycle boundaries for context
+- Logs when the next update is scheduled
 
 ### Audit Log / Tracing Page (UI)
 - Access via `/owner/tracing` page
@@ -112,3 +132,4 @@ These logs make it easy to:
 3. Monitor active members approaching retirement
 4. Understand the complete state of your membership without noise
 5. Review historical status changes via the tracing page
+6. Schedule updates at the most convenient time for your organization

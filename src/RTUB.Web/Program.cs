@@ -66,6 +66,10 @@ public class Program
         services.Configure<RTUB.Application.Configuration.BirthdayEmailSchedulerOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.BirthdayEmailSchedulerOptions.SectionName));
 
+        // Configure Member Status Update Scheduler
+        services.Configure<RTUB.Application.Configuration.MemberStatusUpdateOptions>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.MemberStatusUpdateOptions.SectionName));
+
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
                                ?? "Data Source=app.db";
