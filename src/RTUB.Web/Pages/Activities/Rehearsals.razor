@@ -1957,7 +1957,8 @@ else
             else
             {
                 // For future rehearsals, create pending attendance (Attended = false)
-                await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, user.Id, true, instrumentToUse, null);
+                // Skip notification since this is an admin adding a user manually
+                await AttendanceService.MarkAttendanceAsync(selectedRehearsal.Id, user.Id, true, instrumentToUse, null, null, skipNotification: true);
             }
             
             addMemberFeedbackMessage = $"Presença de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";

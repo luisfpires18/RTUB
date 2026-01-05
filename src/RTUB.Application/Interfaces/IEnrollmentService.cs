@@ -13,7 +13,7 @@ public interface IEnrollmentService
     Task<IEnumerable<Enrollment>> GetAllEnrollmentsAsync();
     Task<IEnumerable<Enrollment>> GetEnrollmentsByEventIdAsync(int eventId);
     Task<IEnumerable<Enrollment>> GetEnrollmentsByUserIdAsync(string userId);
-    Task<Enrollment> CreateEnrollmentAsync(string userId, int eventId, InstrumentType? instrument = null, string? notes = null, bool willAttend = true, string? otherInstruments = null);
+    Task<Enrollment> CreateEnrollmentAsync(string userId, int eventId, InstrumentType? instrument = null, string? notes = null, bool willAttend = true, string? otherInstruments = null, bool skipNotification = false);
     Task<Enrollment> UpdateEnrollmentAsync(int enrollmentId, bool willAttend, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null);
     Task DeleteEnrollmentAsync(int id);
 }

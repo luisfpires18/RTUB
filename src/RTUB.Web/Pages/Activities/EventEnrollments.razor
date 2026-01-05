@@ -922,7 +922,8 @@
             var instrumentToUse = primaryInstrument?.InstrumentType;
             
             // Add the enrollment, marking it as approved for past events (willAttend = true)
-            await EnrollmentService.CreateEnrollmentAsync(user.Id, selectedEvent.Id, instrumentToUse, null, true);
+            // Skip notification since this is an admin adding a user manually
+            await EnrollmentService.CreateEnrollmentAsync(user.Id, selectedEvent.Id, instrumentToUse, null, true, null, skipNotification: true);
             
             addMemberToEnrollmentFeedbackMessage = $"Inscrição de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";
             addMemberToEnrollmentFeedbackIsError = false;

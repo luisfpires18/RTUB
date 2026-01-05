@@ -62,7 +62,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         return await _attendanceRepository.GetAttendancesByUserIdAsync(userId);
     }
 
-    public async Task<RehearsalAttendance> MarkAttendanceAsync(int rehearsalId, string userId, bool willAttend = true, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null)
+    public async Task<RehearsalAttendance> MarkAttendanceAsync(int rehearsalId, string userId, bool willAttend = true, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null, bool skipNotification = false)
     {
         // Check if attendance already exists
         var existing = await _attendanceRepository.GetAttendanceByRehearsalAndUserAsync(rehearsalId, userId);
@@ -84,7 +84,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             await _attendanceRepository.UpdateAsync(existing);
             
             // Send notification if user changed from not attending to attending
-            if (willAttend && wasNotAttending)
+            if (willAttend && wasNotAttending && !skipNotification)
             {
                 await NotifyAttendanceAsync(existing);
             }
@@ -103,7 +103,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         var createdAttendance = await _attendanceRepository.AddAsync(attendance);
         
         // Send notification to other attendees if user is attending
-        if (willAttend)
+        if (willAttend && !skipNotification)
         {
             await NotifyAttendanceAsync(createdAttendance);
         }
