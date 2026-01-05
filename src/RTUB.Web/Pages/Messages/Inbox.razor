@@ -698,6 +698,7 @@
 
     private const int MessagePreviewMaxLength = 50;
     private readonly SemaphoreSlim _conversationsLock = new(1, 1);
+    private bool _isDisposed = false;
     
     private string currentUserId = string.Empty;
     private List<ConversationDto> conversations = new();
@@ -782,6 +783,9 @@
         {
             // MessagingService already sorts: pinned first, then by LastMessageAt
             var loadedConversations = (await MessagingService.GetUserConversationsAsync(currentUserId)).ToList();
+            
+            // Check if component is being disposed before acquiring lock
+            if (_isDisposed) return;
             
             await _conversationsLock.WaitAsync();
             try
@@ -1274,6 +1278,9 @@
         {
             bool needsConversationReload = false;
             
+            // Check if component is being disposed before acquiring lock
+            if (_isDisposed) return;
+            
             await _conversationsLock.WaitAsync();
             try
             {
@@ -1644,6 +1651,9 @@
 
             // Update conversation in list - defensive check to prevent NullReferenceException
             // Guard against null conversations collection or null selectedConversation (race condition)
+            // Check if component is being disposed before acquiring lock
+            if (_isDisposed) return;
+            
             await _conversationsLock.WaitAsync();
             try
             {
@@ -1698,6 +1708,9 @@
 
     public async ValueTask DisposeAsync()
     {
+        // Set disposal flag to prevent new operations from starting
+        _isDisposed = true;
+        
         // Unsubscribe from notification service events
         NotificationService.OnMessageReceived -= HandleMessageReceived;
         NotificationService.OnMessageSeen -= HandleMessageSeen;
