@@ -410,7 +410,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         var isCritical = IsCriticalAction(entityType, action);
         var displayName = GetEntityDisplayName(entry);
 
-        // Determine target member for Enrollment, RehearsalAttendance, and PushSubscription
+        // Determine target member for Enrollment and RehearsalAttendance
         string? targetMemberId = null;
         string? targetMemberName = null;
 
@@ -428,14 +428,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             // Try to get the user's name from navigation property or Local cache
             var targetUser = attendance.User
                 ?? Users.Local.FirstOrDefault(u => u.Id == attendance.UserId);
-            targetMemberName = targetUser?.Nickname ?? targetUser?.UserName;
-        }
-        else if (entityType == "PushSubscription" && entry.Entity is PushSubscription pushSubscription)
-        {
-            targetMemberId = pushSubscription.UserId;
-            // Try to get the user's name from navigation property or Local cache
-            var targetUser = pushSubscription.User
-                ?? Users.Local.FirstOrDefault(u => u.Id == pushSubscription.UserId);
             targetMemberName = targetUser?.Nickname ?? targetUser?.UserName;
         }
 
