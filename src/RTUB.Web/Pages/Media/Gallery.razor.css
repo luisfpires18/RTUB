@@ -345,12 +345,17 @@
 
 /* Gallery-specific override for larger image in modal */
 ::deep .details-modal-image-rectangular {
-    max-width: 800px;
+    max-width: 1000px;
+    max-height: 80vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
 }
 
 @media (max-width: 768px) {
     ::deep .details-modal-image-rectangular {
         max-width: 100%;
+        max-height: 70vh;
     }
 }
 
