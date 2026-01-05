@@ -62,7 +62,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         return await _attendanceRepository.GetAttendancesByUserIdAsync(userId);
     }
 
-    public async Task<RehearsalAttendance> MarkAttendanceAsync(int rehearsalId, string userId, bool willAttend = true, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null)
+    public async Task<RehearsalAttendance> MarkAttendanceAsync(int rehearsalId, string userId, bool willAttend = true, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null, bool skipNotification = false)
     {
         // Check if attendance already exists
         var existing = await _attendanceRepository.GetAttendanceByRehearsalAndUserAsync(rehearsalId, userId);
@@ -84,7 +84,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             await _attendanceRepository.UpdateAsync(existing);
             
             // Send notification if user changed from not attending to attending
-            if (willAttend && wasNotAttending)
+            if (willAttend && wasNotAttending && !skipNotification)
             {
                 await NotifyAttendanceAsync(existing);
             }
@@ -103,7 +103,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         var createdAttendance = await _attendanceRepository.AddAsync(attendance);
         
         // Send notification to other attendees if user is attending
-        if (willAttend)
+        if (willAttend && !skipNotification)
         {
             await NotifyAttendanceAsync(createdAttendance);
         }
@@ -111,7 +111,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         return createdAttendance;
     }
 
-    public async Task<RehearsalAttendance> CreateAttendanceWithApprovalAsync(int rehearsalId, string userId, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null)
+    public async Task<RehearsalAttendance> CreateAttendanceWithApprovalAsync(int rehearsalId, string userId, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null, bool skipNotification = true)
     {
         // Check if attendance already exists
         var existing = await _attendanceRepository.GetAttendanceByRehearsalAndUserAsync(rehearsalId, userId);
@@ -138,6 +138,10 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         attendance.OtherInstruments = otherInstruments;
 
         return await _attendanceRepository.AddAsync(attendance);
+        // Note: This method is designed for admin use and inherently does not send notifications
+        // to other attendees. The skipNotification parameter is included for API consistency with
+        // other attendance/enrollment creation methods but does not affect this method's behavior
+        // since it never sends notifications.
     }
 
     public async Task UpdateAttendanceAsync(int id, bool attended, InstrumentType? instrument = null, string? approverUserId = null)
@@ -171,6 +175,9 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         if (attendance == null)
             throw new EntityNotFoundException(nameof(RehearsalAttendance), id);
 
+        // Check if user was attending before canceling
+        var wasAttending = attendance.WillAttend;
+
         // Set WillAttend to false to cancel the attendance
         attendance.WillAttend = false;
 
@@ -181,6 +188,11 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         {
             await SendRejectionNotificationAsync(attendance, rejectorUserId);
         }
+        // Send cancellation notification to other attendees if user was attending
+        else if (wasAttending)
+        {
+            await NotifyCancellationAsync(attendance);
+        }
     }
 
     public async Task DeleteAttendanceAsync(int id)
@@ -188,6 +200,12 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         var attendance = await _attendanceRepository.GetByIdAsync(id);
         if (attendance == null)
             throw new EntityNotFoundException(nameof(RehearsalAttendance), id);
+
+        // Send cancellation notification before deleting if user was attending
+        if (attendance.WillAttend)
+        {
+            await NotifyCancellationAsync(attendance);
+        }
 
         await _attendanceRepository.DeleteAsync(id);
     }
@@ -328,6 +346,55 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         {
             // Notifications are non-critical; log but don't fail the operation
             Console.WriteLine($"Failed to send rehearsal attendance notification: {ex.Message}");
+        }
+    }
+
+    private async Task NotifyCancellationAsync(RehearsalAttendance attendance)
+    {
+        try
+        {
+            var detailedAttendance = await _attendanceRepository.Query()
+                .AsNoTracking()
+                .Include(a => a.Rehearsal)
+                .Include(a => a.User)
+                .FirstOrDefaultAsync(a => a.Id == attendance.Id);
+
+            if (detailedAttendance?.Rehearsal == null || detailedAttendance.User == null)
+            {
+                return;
+            }
+
+            var baseUrl = GetBaseUrl();
+            var userDisplayName = detailedAttendance.User.Nickname
+                                  ?? detailedAttendance.User.FirstName
+                                  ?? "Utilizador";
+
+            var notification = _pushNotificationFactory.CreateRehearsalCancellationNotification(
+                detailedAttendance.Rehearsal,
+                userDisplayName,
+                baseUrl);
+
+            var recipientIds = await _attendanceRepository.Query()
+                .AsNoTracking()
+                .Where(a => a.RehearsalId == detailedAttendance.RehearsalId
+                            && a.WillAttend
+                            && a.UserId != detailedAttendance.UserId
+                            && !string.IsNullOrEmpty(a.UserId))
+                .Select(a => a.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            if (recipientIds.Count == 0)
+            {
+                return;
+            }
+
+            await _pushNotificationService.SendToSelectedUsersAsync(recipientIds, notification);
+        }
+        catch (Exception ex)
+        {
+            // Notifications are non-critical; log but don't fail the operation
+            Console.WriteLine($"Failed to send rehearsal cancellation notification: {ex.Message}");
         }
     }
 

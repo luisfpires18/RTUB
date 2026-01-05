@@ -109,16 +109,6 @@ public class MemberStatusService : IMemberStatusService
                 CreatedAt = DateTime.UtcNow
             };
             _context.MemberStatuses.Add(memberStatus);
-            
-            // Log new member status creation
-            if (result.HasAnyActivity)
-            {
-                var statusText = result.IsRetired ? "Retired" : "Active";
-                _logger.LogInformation("Created status for {MemberName}: {Status}, Progress: {Progress}", 
-                    memberName, 
-                    statusText,
-                    result.ProgressDescription ?? "N/A");
-            }
         }
 
         // Update fields

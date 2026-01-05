@@ -61,6 +61,16 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreateEventEnrollmentNotification(Event @event, string userDisplayName, string baseUrl);
 
     /// <summary>
+    /// Creates a push notification for when a user cancels their event enrollment.
+    /// Sent to all other users enrolled in the event (WillAttend = true).
+    /// </summary>
+    /// <param name="event">The event enrollment is being cancelled for</param>
+    /// <param name="userDisplayName">The display name of the user who cancelled</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateEventCancellationNotification(Event @event, string userDisplayName, string baseUrl);
+
+    /// <summary>
     /// Creates a push notification for new 1st place in leaderboard.
     /// Sent to all users.
     /// </summary>
@@ -97,6 +107,16 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateRehearsalAttendanceNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification when a user cancels their rehearsal attendance.
+    /// Sent to all other users with pending attendance on that rehearsal (WillAttend = true).
+    /// </summary>
+    /// <param name="rehearsal">The rehearsal attendance is being cancelled for</param>
+    /// <param name="userDisplayName">The display name of the user who cancelled</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateRehearsalCancellationNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl);
 
     /// <summary>
     /// Creates a push notification when admin approves a user's rehearsal attendance.

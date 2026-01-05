@@ -666,8 +666,10 @@ else
                         }
                     }
                     
-                    @* Hide Padrinho for Fundador and Tuno Honorário *@
-                    @if (!viewingUser.IsFundador() && !viewingUser.Categories.Contains(MemberCategory.TunoHonorario))
+                    @* Hide Padrinho for Fundador, Tuno Honorário, and Leitões *@
+                    @if (!viewingUser.IsFundador() && 
+                         !viewingUser.Categories.Contains(MemberCategory.TunoHonorario) &&
+                         !viewingUser.Categories.Contains(MemberCategory.Leitao))
                     {
                         <ProfileField Label="Padrinho"
                                     Value="@(viewingUserMentor != null ? viewingUserMentor.GetDisplayName() : null)"
@@ -699,6 +701,7 @@ else
                                     viewingUser.Categories.Contains(MemberCategory.Veterano) ||
                                     viewingUser.Categories.Contains(MemberCategory.Tunossauro);
                 var isTunoHonorario = viewingUser.Categories.Contains(MemberCategory.TunoHonorario);
+                var isLeitao = viewingUser.Categories.Contains(MemberCategory.Leitao);
                 var statusResult = viewingUserStatusData.GetValueOrDefault(viewingUser.Id);
                 var hasActivityHistory = statusResult?.HasAnyActivity ?? false;
             }
@@ -714,46 +717,50 @@ else
                     <div class="modal-section-body">
                         @if (hasActivityHistory)
                         {
-                            <ProfileField Label="Estado atual" Value="badge" Icon="bi-flag-fill">
-                                <ValueContent>
-                                    <div class="d-flex flex-column gap-2">
-                                        <div>
-                                            @if (statusResult?.IsRetired ?? viewingUser.IsRetired)
+                            @* Hide "Estado atual" field for Leitões, but show for others *@
+                            @if (!isLeitao)
+                            {
+                                <ProfileField Label="Estado atual" Value="badge" Icon="bi-flag-fill">
+                                    <ValueContent>
+                                        <div class="d-flex flex-column gap-2">
+                                            <div>
+                                                @if (statusResult?.IsRetired ?? viewingUser.IsRetired)
+                                                {
+                                                    <span class="badge badge-retired"
+                                                          title="Reformados: transitam para esta categoria os Associados Efectivos que por motivos profissionais ou pessoais, se encontrem afastados, por um período de seis meses ou superior, das actividades da RTUB. Poderão retornar à sua categoria após três meses de actividade ininterrupta.">
+                                                        REFORMADO
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-active">
+                                                        NO ATIVO
+                                                    </span>
+                                                }
+                                            </div>
+                                            @* Progress indicator *@
+                                            @if (statusResult is { } statusResultValue && ShouldShowProgressStatus(statusResultValue))
                                             {
-                                                <span class="badge badge-retired"
-                                                      title="Reformados: transitam para esta categoria os Associados Efectivos que por motivos profissionais ou pessoais, se encontrem afastados, por um período de seis meses ou superior, das actividades da RTUB. Poderão retornar à sua categoria após três meses de actividade ininterrupta.">
-                                                    REFORMADO
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge badge-active">
-                                                    NO ATIVO
-                                                </span>
+                                                <div class="small text-muted">
+                                                    <i class="bi bi-clock-history me-1"></i>@statusResultValue.ProgressDescription
+                                                </div>
+                                                @if (statusResultValue.ProgressMonths.HasValue && statusResultValue.ProgressTotalMonths.HasValue)
+                                                {
+                                                    <div class="progress" style="height: 8px;">
+                                                        <div class="progress-bar bg-primary" 
+                                                             role="progressbar" 
+                                                             style="width: @((statusResultValue.ProgressMonths.Value * 100.0 / statusResultValue.ProgressTotalMonths.Value).ToString("F0"))%"
+                                                             aria-valuenow="@statusResultValue.ProgressMonths.Value" 
+                                                             aria-valuemin="0" 
+                                                             aria-valuemax="@statusResultValue.ProgressTotalMonths.Value">
+                                                        </div>
+                                                    </div>
+                                                }
                                             }
                                         </div>
-                                        @* Progress indicator *@
-                                        @if (statusResult is { } statusResultValue && ShouldShowProgressStatus(statusResultValue))
-                                        {
-                                            <div class="small text-muted">
-                                                <i class="bi bi-clock-history me-1"></i>@statusResultValue.ProgressDescription
-                                            </div>
-                                            @if (statusResultValue.ProgressMonths.HasValue && statusResultValue.ProgressTotalMonths.HasValue)
-                                            {
-                                                <div class="progress" style="height: 8px;">
-                                                    <div class="progress-bar bg-primary" 
-                                                         role="progressbar" 
-                                                         style="width: @((statusResultValue.ProgressMonths.Value * 100.0 / statusResultValue.ProgressTotalMonths.Value).ToString("F0"))%"
-                                                         aria-valuenow="@statusResultValue.ProgressMonths.Value" 
-                                                         aria-valuemin="0" 
-                                                         aria-valuemax="@statusResultValue.ProgressTotalMonths.Value">
-                                                    </div>
-                                                </div>
-                                            }
-                                        }
-                                    </div>
-                                </ValueContent>
-                            </ProfileField>
+                                    </ValueContent>
+                                </ProfileField>
+                            }
 
                             <ProfileField Label="Último ensaio"
                                           Icon="bi-music-note-list"
