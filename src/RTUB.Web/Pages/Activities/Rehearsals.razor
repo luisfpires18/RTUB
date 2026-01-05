@@ -1728,21 +1728,18 @@ else
         }
 
         filteredAttendances = filtered
-            .OrderByDescending(a => a.Attended)
-            .ThenBy(a => a.User?.FirstName)
+            .OrderByDescending(a => a.CheckedInAt)
             .ToList();
 
         // Split into main participants and leitões
         var mainParticipants = filtered
             .Where(a => a.User != null && a.WillAttend && !a.User.Categories.Contains(MemberCategory.Leitao))
-            .OrderByDescending(a => a.Attended)
-            .ThenBy(a => a.User?.FirstName)
+            .OrderByDescending(a => a.CheckedInAt)
             .ToList();
         
         var leitoes = filtered
             .Where(a => a.User != null && a.WillAttend && a.User.Categories.Contains(MemberCategory.Leitao))
-            .OrderByDescending(a => a.Attended)
-            .ThenBy(a => a.User?.FirstName)
+            .OrderByDescending(a => a.CheckedInAt)
             .ToList();
         
         // Filter not attending members with search
@@ -1762,7 +1759,7 @@ else
         
         filteredMainParticipants = mainParticipants;
         filteredLeitoes = leitoes;
-        filteredNotAttending = notAttending.OrderBy(a => a.User?.FirstName).ToList();
+        filteredNotAttending = notAttending.OrderByDescending(a => a.CheckedInAt).ToList();
 
         // Reset to page 1 when filters change
         attendancesPagination.GoToPage(1);

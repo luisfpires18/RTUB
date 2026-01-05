@@ -295,6 +295,28 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
+    /// Creates a push notification when someone marks attendance for a rehearsal.
+    /// </summary>
+    public SendPushNotificationDto CreateRehearsalAttendanceNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(rehearsal);
+        ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var rehearsalUrl = BuildRehearsalUrl(baseUrl);
+        var title = FormatRehearsalTitle(rehearsal.Date);
+
+        return new SendPushNotificationDto
+        {
+            Title = "Nova presença",
+            Body = $"{userDisplayName} vai ao {title}",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = rehearsalUrl,
+            Tag = $"rehearsal-attendance-{rehearsal.Id}"
+        };
+    }
+
+    /// <summary>
     /// Creates a push notification when admin approves a user's rehearsal attendance.
     /// </summary>
     public SendPushNotificationDto CreateRehearsalAttendanceApprovalNotification(Rehearsal rehearsal, string approverName, string baseUrl)
