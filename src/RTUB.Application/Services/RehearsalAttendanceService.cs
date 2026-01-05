@@ -138,8 +138,10 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         attendance.OtherInstruments = otherInstruments;
 
         return await _attendanceRepository.AddAsync(attendance);
-        // Note: This method is designed for admin use and does not send notifications
-        // The skipNotification parameter is included for API consistency but is not used
+        // Note: This method is designed for admin use and inherently does not send notifications
+        // to other attendees. The skipNotification parameter is included for API consistency with
+        // other attendance/enrollment creation methods but does not affect this method's behavior
+        // since it never sends notifications.
     }
 
     public async Task UpdateAttendanceAsync(int id, bool attended, InstrumentType? instrument = null, string? approverUserId = null)
