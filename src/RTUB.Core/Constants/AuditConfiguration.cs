@@ -13,6 +13,7 @@ public static class AuditConfiguration
     /// - High-frequency, low-value changes (e.g., SongPlayCount)
     /// - Messaging/conversation entities that would spam audit logs (e.g., Message, Conversation)
     /// - Tag associations that are frequently created/deleted (e.g., GalleryMediaPersonTag)
+    /// - Entities with custom manual audit logging (e.g., MemberStatus)
     /// 
     /// HOW TO ADD NEW ENTITIES TO EXCLUDE:
     /// 1. Add the entity class name as a string to the HashSet below
@@ -38,6 +39,9 @@ public static class AuditConfiguration
         "SongPlayCount",
         
         // Tag associations (frequently created/deleted)
-        "GalleryMediaPersonTag"
+        "GalleryMediaPersonTag",
+        
+        // Member status (uses custom manual audit logging for meaningful changes only)
+        "MemberStatus"
     };
 }
