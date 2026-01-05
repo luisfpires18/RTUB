@@ -63,7 +63,7 @@
                                 PageSize="@paginationHelper.PageSize"
                                 TotalItems="@filteredRecords.Count"
                                     ItemLabel="logins"
-                                    PageSizeOptions="@(new[] { 5, 10, 15, 20 })"
+                                    PageSizeOptions="@(new[] { 12, 24, 36, 48, 60 })"
                                     OnPageChanged="@HandlePageChange"
                                     OnPageSizeChanged="@HandlePageSizeChange" />
                 }
@@ -89,7 +89,7 @@
     private List<LoginRecord> filteredRecords = new();
     private List<LoginRecord> paginatedRecords = new();
     private string searchTerm = string.Empty;
-    private PaginationHelper<LoginRecord> paginationHelper = new() { PageSize = 10 };
+    private PaginationHelper<LoginRecord> paginationHelper = new() { PageSize = 12 };
 
     private async Task OpenLoginsModal()
     {
