@@ -64,6 +64,7 @@ public class MemberStatusService : IMemberStatusService
     /// Updates the status for a specific member by recalculating from activities
     /// Persists the result to the database
     /// Sends push notification if member transitions from retired to active
+    /// Logs detailed state changes for tracking
     /// </summary>
     /// <param name="userId">The user ID to update status for</param>
     /// <returns>The updated status result</returns>
@@ -71,6 +72,17 @@ public class MemberStatusService : IMemberStatusService
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID cannot be null or empty", nameof(userId));
+
+        // Get user for logging
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            throw new InvalidOperationException($"User with ID {userId} not found");
+        }
+        
+        var memberName = !string.IsNullOrEmpty(user.Nickname) 
+            ? user.Nickname 
+            : $"{user.FirstName} {user.LastName}";
 
         // Calculate the status using the existing logic
         var result = await CalculateMemberStatusAsync(userId);
@@ -80,6 +92,8 @@ public class MemberStatusService : IMemberStatusService
             .FirstOrDefaultAsync(ms => ms.UserId == userId);
 
         bool wasRetired = memberStatus?.IsRetired ?? false;
+        int? oldProgressMonths = memberStatus?.ProgressMonths;
+        int? oldProgressTotal = memberStatus?.ProgressTotalMonths;
         bool isNewRecord = memberStatus == null;
 
         if (memberStatus == null)
@@ -91,6 +105,15 @@ public class MemberStatusService : IMemberStatusService
                 CreatedAt = DateTime.UtcNow
             };
             _context.MemberStatuses.Add(memberStatus);
+            
+            // Log new member status creation
+            if (result.HasAnyActivity)
+            {
+                _logger.LogInformation("Created status for {MemberName}: {Status}, Progress: {Progress}", 
+                    memberName, 
+                    result.IsRetired ? "Retired" : "Active",
+                    result.ProgressDescription ?? "N/A");
+            }
         }
 
         // Update fields
@@ -106,6 +129,40 @@ public class MemberStatusService : IMemberStatusService
         memberStatus.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        // Log state changes for existing records
+        if (!isNewRecord && result.HasAnyActivity)
+        {
+            // Log retirement status change
+            if (wasRetired && !result.IsRetired)
+            {
+                _logger.LogInformation("✅ {MemberName} changed from RETIRED to ACTIVE (achieved 3/3 consecutive months)", memberName);
+            }
+            else if (!wasRetired && result.IsRetired)
+            {
+                _logger.LogInformation("⚠️ {MemberName} changed from ACTIVE to RETIRED (6+ months without activity)", memberName);
+            }
+            // Log progress changes for retired members trying to return
+            else if (result.IsRetired && oldProgressMonths.HasValue && result.ProgressMonths.HasValue && 
+                     oldProgressTotal == 3 && result.ProgressTotalMonths == 3)
+            {
+                if (oldProgressMonths != result.ProgressMonths)
+                {
+                    _logger.LogInformation("📊 {MemberName} progress: {OldProgress}/3 → {NewProgress}/3 months toward reactivation", 
+                        memberName, oldProgressMonths.Value, result.ProgressMonths.Value);
+                }
+            }
+            // Log progress changes for active members approaching retirement
+            else if (!result.IsRetired && oldProgressMonths.HasValue && result.ProgressMonths.HasValue &&
+                     oldProgressTotal == 6 && result.ProgressTotalMonths == 6)
+            {
+                if (oldProgressMonths != result.ProgressMonths)
+                {
+                    _logger.LogInformation("📊 {MemberName} has {NewProgress} months until retirement (was {OldProgress})", 
+                        memberName, result.ProgressMonths.Value, oldProgressMonths.Value);
+                }
+            }
+        }
 
         // Send push notification if member just became active (was retired, now active)
         if (!isNewRecord && wasRetired && !result.IsRetired)

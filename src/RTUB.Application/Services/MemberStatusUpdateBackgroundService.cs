@@ -34,7 +34,9 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
         {
             try
             {
-                _logger.LogInformation("Starting member status update cycle");
+                _logger.LogInformation("========================================");
+                _logger.LogInformation("Starting member status update cycle at {Time}", DateTime.UtcNow);
+                _logger.LogInformation("========================================");
                 
                 using (var scope = _serviceProvider.CreateScope())
                 {
@@ -43,7 +45,10 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
                     
                     var updatedCount = await memberStatusService.UpdateAllMemberStatusesAsync();
                     
+                    _logger.LogInformation("========================================");
                     _logger.LogInformation("Member status update completed. Updated {Count} members", updatedCount);
+                    _logger.LogInformation("Next update in {Interval}", _updateInterval);
+                    _logger.LogInformation("========================================");
                 }
             }
             catch (Exception ex)
