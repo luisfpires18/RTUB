@@ -22,7 +22,7 @@ public interface IRehearsalAttendanceService
     /// Creates attendance with immediate approval (Attended = true). Used by admin for past/approvable rehearsals.
     /// Avoids creating separate "Created" + "Modified" audit entries.
     /// </summary>
-    Task<RehearsalAttendance> CreateAttendanceWithApprovalAsync(int rehearsalId, string userId, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null);
+    Task<RehearsalAttendance> CreateAttendanceWithApprovalAsync(int rehearsalId, string userId, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null, bool skipNotification = true);
 
     /// <summary>
     /// Updates attendance approval status.

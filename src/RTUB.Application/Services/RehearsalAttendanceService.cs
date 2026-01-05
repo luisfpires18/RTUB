@@ -111,7 +111,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         return createdAttendance;
     }
 
-    public async Task<RehearsalAttendance> CreateAttendanceWithApprovalAsync(int rehearsalId, string userId, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null)
+    public async Task<RehearsalAttendance> CreateAttendanceWithApprovalAsync(int rehearsalId, string userId, InstrumentType? instrument = null, string? notes = null, string? otherInstruments = null, bool skipNotification = true)
     {
         // Check if attendance already exists
         var existing = await _attendanceRepository.GetAttendanceByRehearsalAndUserAsync(rehearsalId, userId);
@@ -138,6 +138,8 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         attendance.OtherInstruments = otherInstruments;
 
         return await _attendanceRepository.AddAsync(attendance);
+        // Note: This method is designed for admin use and does not send notifications
+        // The skipNotification parameter is included for API consistency but is not used
     }
 
     public async Task UpdateAttendanceAsync(int id, bool attended, InstrumentType? instrument = null, string? approverUserId = null)
