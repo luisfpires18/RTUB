@@ -326,6 +326,9 @@ public class Program
 
         // Background worker for sending birthday emails automatically
         services.AddHostedService<BirthdayEmailSchedulerService>();
+        
+        // Background worker for updating member status cache
+        services.AddHostedService<MemberStatusUpdateBackgroundService>();
 
         // --------- UI State Services ---------
         services.AddScoped<RTUB.Web.Services.ProfilePictureUpdateService>();

@@ -85,6 +85,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Member Instruments DbSet
     public DbSet<MemberInstrument> MemberInstruments { get; set; }
 
+    // Member Status DbSet
+    public DbSet<MemberStatus> MemberStatuses { get; set; }
+
     // Geocoding Cache DbSet
     public DbSet<GeocodingCache> GeocodingCaches { get; set; }
 

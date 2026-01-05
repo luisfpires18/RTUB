@@ -4,6 +4,7 @@ using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
+using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
 
@@ -11,6 +12,7 @@ namespace RTUB.Application.Services;
 /// Member status service implementation
 /// Provides comprehensive member status including retirement state and last activity tracking
 /// Follows Single Responsibility and Dependency Inversion principles
+/// Status is cached in the database and updated periodically or on-demand
 /// </summary>
 public class MemberStatusService : IMemberStatusService
 {
@@ -24,7 +26,118 @@ public class MemberStatusService : IMemberStatusService
     }
 
     /// <summary>
-    /// Gets the comprehensive status of a member including retirement state and last activity dates
+    /// Gets the comprehensive status of a member from the database cache
+    /// If not found or stale (older than 1 hour), recalculates and updates
+    /// </summary>
+    /// <param name="userId">The user ID to get status for</param>
+    /// <returns>A result containing retirement status, last activity dates, and activity flags</returns>
+    public async Task<MemberStatusResult> GetMemberStatusAsync(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("User ID cannot be null or empty", nameof(userId));
+
+        // Try to get cached status from database
+        var memberStatus = await _context.MemberStatuses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ms => ms.UserId == userId);
+
+        // If cache exists and is fresh (less than 1 hour old), return it
+        if (memberStatus != null && (DateTime.UtcNow - memberStatus.LastUpdatedAt).TotalHours < 1)
+        {
+            return MapToResult(memberStatus);
+        }
+
+        // Otherwise, calculate fresh status and update database
+        return await UpdateMemberStatusAsync(userId);
+    }
+
+    /// <summary>
+    /// Updates the status for a specific member by recalculating from activities
+    /// Persists the result to the database
+    /// </summary>
+    /// <param name="userId">The user ID to update status for</param>
+    /// <returns>The updated status result</returns>
+    public async Task<MemberStatusResult> UpdateMemberStatusAsync(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("User ID cannot be null or empty", nameof(userId));
+
+        // Calculate the status using the existing logic
+        var result = await CalculateMemberStatusAsync(userId);
+
+        // Find or create MemberStatus record
+        var memberStatus = await _context.MemberStatuses
+            .FirstOrDefaultAsync(ms => ms.UserId == userId);
+
+        if (memberStatus == null)
+        {
+            // Create new record
+            memberStatus = new MemberStatus
+            {
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.MemberStatuses.Add(memberStatus);
+        }
+
+        // Update fields
+        memberStatus.IsRetired = result.IsRetired;
+        memberStatus.LastRehearsalDate = result.LastRehearsalDate;
+        memberStatus.LastEventDate = result.LastEventDate;
+        memberStatus.LastActivityDate = result.LastActivityDate;
+        memberStatus.HasAnyActivity = result.HasAnyActivity;
+        memberStatus.ProgressMonths = result.ProgressMonths;
+        memberStatus.ProgressTotalMonths = result.ProgressTotalMonths;
+        memberStatus.ProgressDescription = result.ProgressDescription;
+        memberStatus.LastUpdatedAt = DateTime.UtcNow;
+        memberStatus.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return result;
+    }
+
+    /// <summary>
+    /// Updates the status for all active members (Caloiro, Tuno, Veterano, Tunossauro)
+    /// Should be called periodically by a background service
+    /// </summary>
+    /// <returns>The number of member statuses updated</returns>
+    public async Task<int> UpdateAllMemberStatusesAsync()
+    {
+        // Get all active members (excluding Leitao and TunoHonorario)
+        var activeMembers = await _userManager.Users
+            .Where(u => !u.Categories.Contains(MemberCategory.Leitao) &&
+                       !u.Categories.Contains(MemberCategory.TunoHonorario) &&
+                       (u.Categories.Contains(MemberCategory.Caloiro) ||
+                        u.Categories.Contains(MemberCategory.Tuno) ||
+                        u.Categories.Contains(MemberCategory.Veterano) ||
+                        u.Categories.Contains(MemberCategory.Tunossauro)))
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        int updatedCount = 0;
+
+        foreach (var userId in activeMembers)
+        {
+            try
+            {
+                await UpdateMemberStatusAsync(userId);
+                updatedCount++;
+            }
+            catch (Exception)
+            {
+                // Log error and continue with next member
+                // Don't let one failure stop the entire batch
+                continue;
+            }
+        }
+
+        return updatedCount;
+    }
+
+    /// <summary>
+    /// Calculates the comprehensive status of a member including retirement state and last activity dates
+    /// This is the core calculation logic extracted from the old GetMemberStatusAsync
     /// Retirement status follows a state transition model:
     /// - New members: manual initial state (can be set as active or retired)
     /// - RETIRED → ACTIVE: requires 3 consecutive months with activity
@@ -32,9 +145,9 @@ public class MemberStatusService : IMemberStatusService
     /// CRITICAL: Only includes PAST activities (before DateTime.UtcNow)
     /// Uses same predicates as XP/Leaderboard logic to ensure consistency
     /// </summary>
-    /// <param name="userId">The user ID to get status for</param>
+    /// <param name="userId">The user ID to calculate status for</param>
     /// <returns>A result containing retirement status, last activity dates, and activity flags</returns>
-    public async Task<MemberStatusResult> GetMemberStatusAsync(string userId)
+    private async Task<MemberStatusResult> CalculateMemberStatusAsync(string userId)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID cannot be null or empty", nameof(userId));
@@ -257,5 +370,23 @@ public class MemberStatusService : IMemberStatusService
     private int GetMonthsDifference(DateTime startDate, DateTime endDate)
     {
         return ((endDate.Year - startDate.Year) * 12) + endDate.Month - startDate.Month;
+    }
+    
+    /// <summary>
+    /// Maps a MemberStatus entity to a MemberStatusResult DTO
+    /// </summary>
+    private MemberStatusResult MapToResult(MemberStatus memberStatus)
+    {
+        return new MemberStatusResult
+        {
+            IsRetired = memberStatus.IsRetired,
+            LastRehearsalDate = memberStatus.LastRehearsalDate,
+            LastEventDate = memberStatus.LastEventDate,
+            LastActivityDate = memberStatus.LastActivityDate,
+            HasAnyActivity = memberStatus.HasAnyActivity,
+            ProgressMonths = memberStatus.ProgressMonths,
+            ProgressTotalMonths = memberStatus.ProgressTotalMonths,
+            ProgressDescription = memberStatus.ProgressDescription
+        };
     }
 }
