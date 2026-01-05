@@ -448,7 +448,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     /// <summary>
     /// Replaces UserId fields with user nicknames for better readability in audit logs.
-    /// Applies to LeaderboardComment, Post, and Comment entities.
+    /// Applies to LeaderboardComment, Post, Comment, and PushSubscription entities.
     /// </summary>
     private void ResolveUserIdsToNicknames(
         Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry,
@@ -462,7 +462,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             ["LeaderboardComment"] = new List<string> { "AuthorId", "TargetUserId" },
             ["LeaderboardCommentLike"] = new List<string> { "UserId" },
             ["Post"] = new List<string> { "AuthorId" },
-            ["Comment"] = new List<string> { "AuthorId" }
+            ["Comment"] = new List<string> { "AuthorId" },
+            ["PushSubscription"] = new List<string> { "UserId" }
         };
 
         if (!entityUserIdFields.ContainsKey(entityType))
