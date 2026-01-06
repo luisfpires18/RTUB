@@ -136,13 +136,26 @@
                         <span>Ver</span>
                     </button>
 
-                    <!-- View Attendances button -->
-                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
-                            @onclick="HandleViewAttendances" 
-                            title="Ver Presenças">
-                        <i class="bi bi-people icon-size-1rem"></i>
-                        <span>@AttendanceCount</span>
-                    </button>
+                    <!-- View Attendances button - yellow with clock icon for admin with pending approvals -->
+                    @if (IsAdmin && IsPastRehearsal && HasPendingApprovals)
+                    {
+                        <button class="btn btn-sm d-flex align-items-center gap-1" 
+                                style="background-color: #f39c12; border-color: #f39c12; color: #fff;"
+                                @onclick="HandleViewAttendances" 
+                                title="Ver Presenças - Tem presenças pendentes para aprovar">
+                            <i class="bi bi-clock-fill icon-size-1rem"></i>
+                            <span>@AttendanceCount</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
+                                @onclick="HandleViewAttendances" 
+                                title="Ver Presenças">
+                            <i class="bi bi-people icon-size-1rem"></i>
+                            <span>@AttendanceCount</span>
+                        </button>
+                    }
                 </div>
 
                 @if (!IsPastRehearsal)
@@ -380,6 +393,12 @@
     /// </summary>
     [Parameter]
     public bool ShowCancelButton { get; set; } = true;
+    
+    /// <summary>
+    /// Whether this past rehearsal has pending attendances that need approval (Admin only)
+    /// </summary>
+    [Parameter]
+    public bool HasPendingApprovals { get; set; } = false;
 
     // Handler methods to ensure events fire properly
     private async Task HandleViewAttendances()
@@ -474,6 +493,7 @@
     private bool _previousAttended;
     private bool _previousIsAdmin;
     private bool _previousIsPastRehearsal;
+    private bool _previousHasPendingApprovals;
     
     /// <summary>
     /// Optimize rendering - only re-render when key parameters change.
@@ -494,7 +514,8 @@
             willAttend != _previousWillAttend ||
             attended != _previousAttended ||
             IsAdmin != _previousIsAdmin ||
-            IsPastRehearsal != _previousIsPastRehearsal)
+            IsPastRehearsal != _previousIsPastRehearsal ||
+            HasPendingApprovals != _previousHasPendingApprovals)
         {
             _previousRehearsalId = rehearsalId;
             _previousIsCanceled = isCanceled;
@@ -504,6 +525,7 @@
             _previousAttended = attended;
             _previousIsAdmin = IsAdmin;
             _previousIsPastRehearsal = IsPastRehearsal;
+            _previousHasPendingApprovals = HasPendingApprovals;
             return true;
         }
         return false;

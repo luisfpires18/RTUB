@@ -719,4 +719,85 @@ public class RehearsalCardTests : TestContext
     }
 
     #endregion
+
+    #region Pending Approvals Reminder Tests
+
+    [Fact]
+    public void RehearsalCard_ShowsPendingApprovalsReminder_WhenAdminAndPastRehearsalWithPending()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
+
+        // Act
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastRehearsal, true)
+            .Add(p => p.HasPendingApprovals, true)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert - Ver Presenças button should be yellow with clock icon for pending approvals
+        cut.Markup.Should().Contain("bi-clock-fill", "should show clock icon on Ver Presenças button");
+        cut.Markup.Should().Contain("#f39c12", "Ver Presenças button should have yellow background color");
+        cut.Markup.Should().Contain("Tem presenças pendentes para aprovar", "should have tooltip explaining pending approvals");
+    }
+
+    [Fact]
+    public void RehearsalCard_DoesNotShowPendingApprovalsReminder_WhenNotAdmin()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
+
+        // Act
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, false)
+            .Add(p => p.IsPastRehearsal, true)
+            .Add(p => p.HasPendingApprovals, true)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert - Should show regular people icon, not clock, for non-admin
+        cut.Markup.Should().Contain("bi-people", "should show people icon for non-admin");
+        cut.Markup.Should().NotContain("#f39c12", "Ver Presenças button should not have yellow color for non-admin");
+    }
+
+    [Fact]
+    public void RehearsalCard_DoesNotShowPendingApprovalsReminder_WhenNotPastRehearsal()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.HasPendingApprovals, true)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert - Should show regular people icon for upcoming rehearsals, not clock
+        cut.Markup.Should().Contain("bi-people", "should show people icon for upcoming rehearsals");
+        cut.Markup.Should().NotContain("#f39c12", "Ver Presenças button should not have yellow color for upcoming rehearsals");
+    }
+
+    [Fact]
+    public void RehearsalCard_DoesNotShowPendingApprovalsReminder_WhenNoPendingApprovals()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
+
+        // Act
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastRehearsal, true)
+            .Add(p => p.HasPendingApprovals, false)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert - Should show regular people icon when no pending approvals
+        cut.Markup.Should().Contain("bi-people", "should show people icon when no pending approvals");
+        cut.Markup.Should().NotContain("#f39c12", "Ver Presenças button should not have yellow color when no pending approvals");
+    }
+
+    #endregion
 }

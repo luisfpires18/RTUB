@@ -22,12 +22,14 @@
             </div>
             <div class="page-header-actions">
                 <LoginStatisticsButton />
-                <button class="btn btn-success" @onclick="ExportToJson" disabled="@isExporting">
-                    <i class="bi bi-download"></i> <span class="btn-text">@(isExporting ? "Exporting..." : "Export JSON")</span>
-                </button>
-                <button class="btn btn-danger" @onclick="ShowTruncateConfirmation" disabled="@(totalRecords == 0)">
-                    <i class="bi bi-trash"></i> <span class="btn-text">Truncate All</span>
-                </button>
+                <div class="ms-auto d-flex gap-2">
+                    <button class="btn btn-success" @onclick="ExportToJson" disabled="@isExporting">
+                        <i class="bi bi-download"></i> <span class="btn-text">@(isExporting ? "Exporting..." : "Export JSON")</span>
+                    </button>
+                    <button class="btn btn-danger" @onclick="ShowTruncateConfirmation" disabled="@(totalRecords == 0)">
+                        <i class="bi bi-trash"></i> <span class="btn-text">Truncate All</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

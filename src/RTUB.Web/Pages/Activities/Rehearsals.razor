@@ -145,12 +145,14 @@ else
             {
                 var userAttendance = GetUserAttendance(rehearsal.Id);
                 var attendanceCount = rehearsal.Attendances.Count(a => a.WillAttend);
+                var hasPendingApprovals = isAdmin && rehearsal.Attendances.Any(a => a.WillAttend && !a.Attended);
 
                 <RehearsalCard Rehearsal="@rehearsal"
                                UserAttendance="@userAttendance"
                                AttendanceCount="@attendanceCount"
                                IsAdmin="@isAdmin"
                                IsPastRehearsal="true"
+                               HasPendingApprovals="@hasPendingApprovals"
                                ShowDeleteButton="@CanDeleteRehearsal()"
                                ShowCancelButton="@CanCancelRehearsal()"
                                OnEdit="@(() => OpenEditModal(rehearsal))"
@@ -1859,7 +1861,7 @@ else
             
             await AttendanceService.UpdateAttendanceAsync(attendance.Id, true, attendance.Instrument, currentUserId);
             
-            // Refresh the attendance list
+            // Refresh the attendance list in modal
             if (selectedRehearsal != null)
             {
                 await ViewAttendances(selectedRehearsal);
@@ -1867,8 +1869,12 @@ else
                 // Restore the page number after refresh
                 attendancesPagination.CurrentPage = currentPage;
                 UpdatePaginatedAttendances();
-                StateHasChanged();
             }
+            
+            // Refresh the main rehearsal list to update counts and pending status
+            await LoadData();
+            
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -1968,8 +1974,11 @@ else
             showAddMemberSearch = false;
             addMemberSearchTerm = string.Empty;
             
-            // Refresh attendance list
+            // Refresh attendance list in modal
             await ViewAttendances(selectedRehearsal);
+            
+            // Refresh the main rehearsal list to update counts
+            await LoadData();
             
             StateHasChanged();
         }
