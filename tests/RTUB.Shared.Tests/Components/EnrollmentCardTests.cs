@@ -211,4 +211,44 @@ public class EnrollmentCardTests : TestContext
         cut.Markup.Should().Contain("badge bg-success", "should render badge content");
         cut.Markup.Should().Contain("Tuno", "should display badge text");
     }
+
+    [Fact]
+    public void EnrollmentCard_RerendersWhenShowApproveButtonChanges()
+    {
+        // Arrange
+        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
+            .Add(p => p.TunaName, "Tuninho")
+            .Add(p => p.ShowApproveButton, false));
+
+        // Assert initial state
+        cut.Markup.Should().NotContain("enrollment-card-approve-btn", "should not have approve button initially");
+
+        // Act - change ShowApproveButton to true
+        cut.SetParametersAndRender(parameters => parameters
+            .Add(p => p.ShowApproveButton, true));
+
+        // Assert - component should re-render with approve button
+        cut.Markup.Should().Contain("enrollment-card-approve-btn", "should display approve button after change");
+    }
+
+    [Fact]
+    public void EnrollmentCard_RerendersWhenShowCancelButtonChanges()
+    {
+        // Arrange
+        var cut = RenderComponent<EnrollmentCard>(parameters => parameters
+            .Add(p => p.AvatarUrl, "/images/avatar.jpg")
+            .Add(p => p.TunaName, "Tuninho")
+            .Add(p => p.ShowCancelButton, false));
+
+        // Assert initial state
+        cut.Markup.Should().NotContain("enrollment-card-cancel-btn", "should not have cancel button initially");
+
+        // Act - change ShowCancelButton to true
+        cut.SetParametersAndRender(parameters => parameters
+            .Add(p => p.ShowCancelButton, true));
+
+        // Assert - component should re-render with cancel button
+        cut.Markup.Should().Contain("enrollment-card-cancel-btn", "should display cancel button after change");
+    }
 }
