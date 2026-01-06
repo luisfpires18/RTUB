@@ -277,6 +277,8 @@ public class EventService : IEventService
         {
             // Log error but don't fail the operation
             // Notification is secondary to the main operation
+            // Note: EventService doesn't have a logger injected, so we silently catch
+            // Consider adding ILogger<EventService> in the future
         }
 
         return createdVideo;

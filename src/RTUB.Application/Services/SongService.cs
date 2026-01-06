@@ -262,10 +262,10 @@ public class SongService : ISongService
                 await _pushNotificationService.SendToUserAsync(userId, notification);
             }
         }
-        catch
+        catch (Exception ex)
         {
             // Log error but don't fail the operation
-            // Notification is secondary to the main operation
+            _logger?.LogError(ex, "Failed to send push notifications for song video upload. SongId: {SongId}", songId);
         }
 
         return createdVideo;
