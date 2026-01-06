@@ -2686,19 +2686,26 @@ else
                             u.Categories.Contains(MemberCategory.Tunossauro)))
                 .ToList() ?? new List<ApplicationUser>();
             
-            // Load status data for each member
+            // Load status data for all members in a single batch query (performance optimization)
+            var userIds = activeMembers.Select(m => m.Id).ToList();
+            Dictionary<string, MemberStatusResult?> statusDataBatch;
+            
+            try
+            {
+                statusDataBatch = await MemberStatusService.GetMemberStatusesBatchAsync(userIds);
+            }
+            catch
+            {
+                // If batch load fails, use empty dictionary (members will use fallback logic)
+                statusDataBatch = new Dictionary<string, MemberStatusResult?>();
+            }
+            
+            // Build active members list with status data
             allActiveMembers = new List<ActiveMemberData>();
             foreach (var member in activeMembers)
             {
-                MemberStatusResult? statusData = null;
-                try
-                {
-                    statusData = await MemberStatusService.GetMemberStatusAsync(member.Id);
-                }
-                catch
-                {
-                    // If status data fails to load, include member with null status
-                }
+                // Get status data from batch result (null if not cached or failed to load)
+                var statusData = statusDataBatch.GetValueOrDefault(member.Id);
                 
                 // Include all active members regardless of activity history
                 // Members without activity will show with null or default status data

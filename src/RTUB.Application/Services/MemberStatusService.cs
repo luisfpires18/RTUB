@@ -550,6 +550,50 @@ public class MemberStatusService : IMemberStatusService
     }
     
     /// <summary>
+    /// Gets the comprehensive status for multiple members in a single batch query
+    /// More efficient than calling GetMemberStatusAsync in a loop
+    /// Returns cached statuses if available and fresh (less than 1 hour old)
+    /// </summary>
+    /// <param name="userIds">The user IDs to get status for</param>
+    /// <returns>Dictionary mapping user IDs to their status results (null if not cached)</returns>
+    public async Task<Dictionary<string, MemberStatusResult?>> GetMemberStatusesBatchAsync(IEnumerable<string> userIds)
+    {
+        var userIdList = userIds.ToList();
+        
+        if (!userIdList.Any())
+            return new Dictionary<string, MemberStatusResult?>();
+        
+        // Load all member statuses in a single query
+        var memberStatuses = await _context.MemberStatuses
+            .AsNoTracking()
+            .Where(ms => userIdList.Contains(ms.UserId))
+            .ToListAsync();
+        
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        
+        // Build result dictionary
+        var result = new Dictionary<string, MemberStatusResult?>();
+        foreach (var userId in userIdList)
+        {
+            var memberStatus = memberStatuses.FirstOrDefault(ms => ms.UserId == userId);
+            
+            // Only return cached status if it's fresh (less than 1 hour old)
+            if (memberStatus != null && memberStatus.LastUpdatedAt > oneHourAgo)
+            {
+                result[userId] = MapToResult(memberStatus);
+            }
+            else
+            {
+                // Status is stale or doesn't exist - return null
+                // Caller can decide whether to update or use fallback
+                result[userId] = null;
+            }
+        }
+        
+        return result;
+    }
+    
+    /// <summary>
     /// Maps a MemberStatus entity to a MemberStatusResult DTO
     /// </summary>
     private MemberStatusResult MapToResult(MemberStatus memberStatus)

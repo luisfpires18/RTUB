@@ -17,6 +17,15 @@ public interface IMemberStatusService
     Task<MemberStatusResult> GetMemberStatusAsync(string userId);
     
     /// <summary>
+    /// Gets the comprehensive status for multiple members in a single batch query
+    /// More efficient than calling GetMemberStatusAsync in a loop
+    /// Returns cached statuses if available and fresh (less than 1 hour old)
+    /// </summary>
+    /// <param name="userIds">The user IDs to get status for</param>
+    /// <returns>Dictionary mapping user IDs to their status results (null if not cached)</returns>
+    Task<Dictionary<string, MemberStatusResult?>> GetMemberStatusesBatchAsync(IEnumerable<string> userIds);
+    
+    /// <summary>
     /// Updates the status for a specific member by recalculating from activities
     /// Persists the result to the database
     /// </summary>
