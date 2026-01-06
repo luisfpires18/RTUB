@@ -437,6 +437,7 @@ public class Program
                     if (pendingMigrations.Any())
                     {
                         await db.Database.MigrateAsync();
+                        logger.LogInformation("Database migrations applied successfully");
                     }
 
                     await SeedData.InitializeAsync(sp, builder.Configuration);
@@ -444,6 +445,18 @@ public class Program
                     // Sync default group conversations after seeding
                     var groupSyncService = sp.GetRequiredService<IGroupConversationSyncService>();
                     await groupSyncService.SyncDefaultGroupsAsync();
+                    
+                    // Initialize MemberStatus table if empty (after migration or first run)
+                    // This ensures "Gestao de membros ativos" has data immediately after deployment
+                    // instead of waiting for the scheduled daily update
+                    var memberStatusCount = await db.MemberStatuses.CountAsync();
+                    if (memberStatusCount == 0)
+                    {
+                        logger.LogInformation("MemberStatus table is empty. Starting initial population...");
+                        var memberStatusService = sp.GetRequiredService<IMemberStatusService>();
+                        var updatedCount = await memberStatusService.UpdateAllMemberStatusesAsync();
+                        logger.LogInformation("Initial MemberStatus population completed. Updated {Count} members", updatedCount);
+                    }
                 }
                 catch (Exception ex)
                 {
