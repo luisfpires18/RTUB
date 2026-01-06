@@ -24,6 +24,7 @@ public class AdminNotificationSkipTests : IDisposable
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
     private readonly Mock<IPushNotificationFactory> _mockPushNotificationFactory;
     private readonly Mock<IRetirementStatusService> _mockRetirementStatusService;
+    private readonly Mock<IMemberStatusService> _mockMemberStatusService;
     private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
 
@@ -38,12 +39,14 @@ public class AdminNotificationSkipTests : IDisposable
         _mockPushNotificationService = new Mock<IPushNotificationService>();
         _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         _mockRetirementStatusService = new Mock<IRetirementStatusService>();
+        _mockMemberStatusService = new Mock<IMemberStatusService>();
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
         _mockUserManager = MockHelpers.CreateMockUserManager();
 
         _enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_context),
             _mockRetirementStatusService.Object,
+            _mockMemberStatusService.Object,
             _mockPushNotificationFactory.Object,
             _mockPushNotificationService.Object,
             _mockHttpContextAccessor.Object);
@@ -51,6 +54,7 @@ public class AdminNotificationSkipTests : IDisposable
         _attendanceService = new RehearsalAttendanceService(
             new RehearsalAttendanceRepository(_context),
             _mockRetirementStatusService.Object,
+            _mockMemberStatusService.Object,
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
             _mockHttpContextAccessor.Object,

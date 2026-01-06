@@ -24,6 +24,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly RehearsalAttendanceService _attendanceService;
     private readonly Mock<IRetirementStatusService> _mockRetirementStatusService;
+    private readonly Mock<IMemberStatusService> _mockMemberStatusService;
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
     private readonly Mock<IPushNotificationFactory> _mockPushNotificationFactory;
     private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
@@ -38,6 +39,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         _context = new ApplicationDbContext(options, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(), new AuditContext());
 
         _mockRetirementStatusService = new Mock<IRetirementStatusService>();
+        _mockMemberStatusService = new Mock<IMemberStatusService>();
         _mockPushNotificationService = new Mock<IPushNotificationService>();
         _mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
@@ -46,6 +48,7 @@ public class RehearsalAttendanceAdminWorkflowTests : IDisposable
         _attendanceService = new RehearsalAttendanceService(
             new RehearsalAttendanceRepository(_context),
             _mockRetirementStatusService.Object,
+            _mockMemberStatusService.Object,
             _mockPushNotificationService.Object,
             _mockPushNotificationFactory.Object,
             _mockHttpContextAccessor.Object,

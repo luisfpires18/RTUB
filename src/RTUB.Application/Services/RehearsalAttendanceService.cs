@@ -18,6 +18,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
 {
     private readonly IRehearsalAttendanceRepository _attendanceRepository;
     private readonly IRetirementStatusService _retirementStatusService;
+    private readonly IMemberStatusService _memberStatusService;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -26,6 +27,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     public RehearsalAttendanceService(
         IRehearsalAttendanceRepository attendanceRepository,
         IRetirementStatusService retirementStatusService,
+        IMemberStatusService memberStatusService,
         IPushNotificationService pushNotificationService,
         IPushNotificationFactory pushNotificationFactory,
         IHttpContextAccessor httpContextAccessor,
@@ -33,6 +35,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
     {
         _attendanceRepository = attendanceRepository;
         _retirementStatusService = retirementStatusService;
+        _memberStatusService = memberStatusService;
         _pushNotificationService = pushNotificationService;
         _pushNotificationFactory = pushNotificationFactory;
         _httpContextAccessor = httpContextAccessor;
@@ -171,6 +174,16 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
         if (attended)
         {
             await _retirementStatusService.UpdateUserRetirementStatusAsync(attendance.UserId);
+            
+            // Update member status cache to ensure "Gestao de membros ativos" shows current data
+            try
+            {
+                await _memberStatusService.UpdateMemberStatusAsync(attendance.UserId);
+            }
+            catch
+            {
+                // Don't fail attendance update if status update fails - it will be updated by background service
+            }
 
             // Send approval notification if approverUserId is provided
             if (!string.IsNullOrEmpty(approverUserId))
