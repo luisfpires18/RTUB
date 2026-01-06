@@ -280,15 +280,82 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
     }
 
     [Fact]
-    public async Task CreateEnrollmentAsync_WithWillAttendFalse_DoesNotSendNotification()
+    public async Task CreateEnrollmentAsync_WithWillAttendFalse_SendsNonEnrollmentNotificationToAttendingUsers()
     {
         // Arrange
         var testEvent = Event.Create("Test Event", DateTime.Now.AddDays(7), "Test Location", Core.Enums.EventType.Festival, "Test Description");
         _context.Events.Add(testEvent);
         await _context.SaveChangesAsync();
 
+        // Create test users
+        var attendingUser1 = new ApplicationUser 
+        { 
+            Id = "enroll_non_user1", 
+            UserName = "enroll_non_user1", 
+            Email = "enroll_non_user1@test.com",
+            FirstName = "User",
+            LastName = "One",
+            Nickname = "User One" 
+        };
+        var attendingUser2 = new ApplicationUser 
+        { 
+            Id = "enroll_non_user2", 
+            UserName = "enroll_non_user2", 
+            Email = "enroll_non_user2@test.com",
+            FirstName = "User",
+            LastName = "Two",
+            Nickname = "User Two" 
+        };
+        var notAttendingUser = new ApplicationUser 
+        { 
+            Id = "enroll_non_user3", 
+            UserName = "enroll_non_user3", 
+            Email = "enroll_non_user3@test.com",
+            FirstName = "User",
+            LastName = "Three",
+            Nickname = "User Three" 
+        };
+        var newNonEnrollUser = new ApplicationUser 
+        { 
+            Id = "enroll_non_user4", 
+            UserName = "enroll_non_user4", 
+            Email = "enroll_non_user4@test.com",
+            FirstName = "User",
+            LastName = "Four",
+            Nickname = "User Four" 
+        };
+        
+        _context.Users.AddRange(attendingUser1, attendingUser2, notAttendingUser, newNonEnrollUser);
+
+        // Create existing enrollments
+        var enrollment1 = Enrollment.Create("enroll_non_user1", testEvent.Id);
+        enrollment1.WillAttend = true;
+        
+        var enrollment2 = Enrollment.Create("enroll_non_user2", testEvent.Id);
+        enrollment2.WillAttend = true;
+        
+        var enrollment3 = Enrollment.Create("enroll_non_user3", testEvent.Id);
+        enrollment3.WillAttend = false; // This user is NOT attending
+        
+        _context.Enrollments.AddRange(enrollment1, enrollment2, enrollment3);
+        await _context.SaveChangesAsync();
+
+        // Setup mock to track notification calls
+        var capturedRecipients = new List<string>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
+        mockPushNotificationService
+            .Setup(x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()))
+            .Callback<IEnumerable<string>, RTUB.Application.DTOs.SendPushNotificationDto>((recipients, _) => 
+            {
+                capturedRecipients.AddRange(recipients);
+            })
+            .Returns(Task.CompletedTask);
+
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        mockPushNotificationFactory
+            .Setup(x => x.CreateEventNonEnrollmentNotification(It.IsAny<Event>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
+
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
 
         var enrollmentService = new EnrollmentService(
@@ -298,13 +365,19 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             mockPushNotificationService.Object,
             mockHttpContextAccessor.Object);
 
-        // Act
-        await enrollmentService.CreateEnrollmentAsync("user1", testEvent.Id, willAttend: false);
+        // Act - New user enrolls with willAttend = false
+        await enrollmentService.CreateEnrollmentAsync("enroll_non_user4", testEvent.Id, willAttend: false);
 
-        // Assert - Verify NO notification was sent when willAttend = false
+        // Assert - Verify notification was sent only to users with WillAttend = true
         mockPushNotificationService.Verify(
             x => x.SendToSelectedUsersAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<RTUB.Application.DTOs.SendPushNotificationDto>()),
-            Times.Never);
+            Times.Once);
+
+        capturedRecipients.Should().HaveCount(2, "only attending users should receive notification");
+        capturedRecipients.Should().Contain("enroll_non_user1", "user1 is attending");
+        capturedRecipients.Should().Contain("enroll_non_user2", "user2 is attending");
+        capturedRecipients.Should().NotContain("enroll_non_user3", "user3 is not attending");
+        capturedRecipients.Should().NotContain("enroll_non_user4", "user4 is the one marking non-enrollment");
     }
 
     [Fact]

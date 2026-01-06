@@ -71,6 +71,16 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreateEventCancellationNotification(Event @event, string userDisplayName, string baseUrl);
 
     /// <summary>
+    /// Creates a push notification when someone marks that they won't attend an event.
+    /// Sent to all users enrolled in the event with WillAttend = true.
+    /// </summary>
+    /// <param name="event">The event being marked as not attending</param>
+    /// <param name="userDisplayName">The display name of the user who won't attend</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateEventNonEnrollmentNotification(Event @event, string userDisplayName, string baseUrl);
+
+    /// <summary>
     /// Creates a push notification for new 1st place in leaderboard.
     /// Sent to all users.
     /// </summary>
