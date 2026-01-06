@@ -14,9 +14,13 @@ The member status update service is configured via `appsettings.json`:
 ```
 
 - **Enabled**: Set to `false` to disable automatic member status updates
-- **ScheduledTime**: Time of day (24-hour format) when the update runs. Default is 21:00 (9 PM)
+- **ScheduledTime**: Time of day (24-hour format) when the scheduled update runs. Default is 21:00 (9 PM)
 
-The service runs **once per day** at the configured time.
+The service runs:
+1. **Once on application startup** - Ensures data is available immediately after deployment
+2. **Once per day at the configured time** - Keeps data up-to-date
+
+This ensures "Gestao de membros ativos" always has current data, even immediately after deployment.
 
 ## Background Service Logs
 

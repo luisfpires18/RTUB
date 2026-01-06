@@ -37,6 +37,10 @@ public class MemberStatusUpdateBackgroundService : BackgroundService
 
         _logger.LogInformation("Member Status Update Background Service is starting. Scheduled time: {ScheduledTime}", _options.ScheduledTime);
 
+        // Run initial update on startup to ensure data is available immediately
+        // This is especially important after deployment or migration
+        await RunUpdateAsync();
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try

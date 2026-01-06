@@ -434,9 +434,14 @@ public class Program
 
                     // Only migrate if there are pending migrations (performance optimization)
                     var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
+                    bool hadMemberStatusMigration = pendingMigrations.Any(m => 
+                        m.Contains("AddMemberStatusTable") || 
+                        m.Contains("AddTotalActivitiesCountToMemberStatus"));
+                    
                     if (pendingMigrations.Any())
                     {
                         await db.Database.MigrateAsync();
+                        logger.LogInformation("Database migrations applied successfully");
                     }
 
                     await SeedData.InitializeAsync(sp, builder.Configuration);
@@ -444,6 +449,25 @@ public class Program
                     // Sync default group conversations after seeding
                     var groupSyncService = sp.GetRequiredService<IGroupConversationSyncService>();
                     await groupSyncService.SyncDefaultGroupsAsync();
+                    
+                    // Initialize MemberStatus table if the migration just ran
+                    // This ensures "Gestao de membros ativos" has data immediately after deployment
+                    // instead of waiting for the scheduled daily update
+                    if (hadMemberStatusMigration)
+                    {
+                        try
+                        {
+                            logger.LogInformation("MemberStatus migration detected. Starting initial population...");
+                            var memberStatusService = sp.GetRequiredService<IMemberStatusService>();
+                            var updatedCount = await memberStatusService.UpdateAllMemberStatusesAsync();
+                            logger.LogInformation("Initial MemberStatus population completed. Updated {Count} members", updatedCount);
+                        }
+                        catch (Exception ex)
+                        {
+                            // Log error but don't fail startup - scheduled update will populate later
+                            logger.LogError(ex, "Failed to populate MemberStatus table on startup. Data will be populated during next scheduled update.");
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
