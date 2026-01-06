@@ -119,6 +119,16 @@ public interface IPushNotificationFactory
     SendPushNotificationDto CreateRehearsalCancellationNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl);
 
     /// <summary>
+    /// Creates a push notification when someone marks that they won't attend a rehearsal.
+    /// Sent to all users with pending attendance on that rehearsal (WillAttend = true).
+    /// </summary>
+    /// <param name="rehearsal">The rehearsal being marked as not attending</param>
+    /// <param name="userDisplayName">The display name of the user who won't attend</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateRehearsalNonAttendanceNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl);
+
+    /// <summary>
     /// Creates a push notification when admin approves a user's rehearsal attendance.
     /// </summary>
     /// <param name="rehearsal">The rehearsal</param>
