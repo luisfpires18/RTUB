@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -27,6 +28,7 @@ public class EventService : IEventService
     private readonly IPushNotificationService _pushNotificationService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ApplicationDbContext _context;
 
     public EventService(
         IEventRepository eventRepository, 
@@ -37,7 +39,8 @@ public class EventService : IEventService
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         UserManager<ApplicationUser> userManager,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        ApplicationDbContext context)
     {
         _eventRepository = eventRepository;
         _imageStorageService = imageStorageService;
@@ -48,6 +51,7 @@ public class EventService : IEventService
         _pushNotificationService = pushNotificationService;
         _userManager = userManager;
         _httpContextAccessor = httpContextAccessor;
+        _context = context;
     }
 
     public async Task<Event?> GetEventByIdAsync(int id)
@@ -348,6 +352,23 @@ public class EventService : IEventService
     public async Task<int> GetVideoCountByEventIdAsync(int eventId)
     {
         return await _eventVideoRepository.GetCountByEventIdAsync(eventId);
+    }
+
+    public async Task RecordVideoPlayAsync(int videoId, string? userId = null)
+    {
+        var video = await _eventVideoRepository.GetByIdAsync(videoId);
+        if (video == null)
+            throw new EntityNotFoundException(nameof(EventVideo), videoId);
+
+        var playCount = new EventVideoPlayCount
+        {
+            EventVideoId = videoId,
+            UserId = userId,
+            PlayedAt = DateTime.UtcNow
+        };
+
+        _context.EventVideoPlayCounts.Add(playCount);
+        await _context.SaveChangesAsync();
     }
 
     private string GetBaseUrl()

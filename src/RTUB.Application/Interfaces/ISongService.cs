@@ -24,6 +24,9 @@ public interface ISongService
     Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false);
     Task<int> GetVideoCountBySongIdAsync(int songId);
     
+    // Video play count tracking
+    Task RecordVideoPlayAsync(int videoId, string? userId = null);
+    
     // Play count tracking
     Task IncrementPlayCountAsync(int songId, string? userId = null);
     Task<int> GetPlayCountBySongIdAsync(int songId);
