@@ -1700,14 +1700,14 @@
                     _conversationsLock.Release();
                 }
             }
-            catch (OperationCanceledException)
-            {
-                // Component is being disposed, exit gracefully
-                return;
-            }
             catch (ObjectDisposedException)
             {
                 // Component is being disposed and cancellation token source has been disposed, exit gracefully
+                return;
+            }
+            catch (OperationCanceledException)
+            {
+                // Component is being disposed, exit gracefully
                 return;
             }
             
