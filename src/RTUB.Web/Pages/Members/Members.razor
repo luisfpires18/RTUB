@@ -2824,19 +2824,26 @@ else
     {
         ApplyActiveMembersSearch(activeMembersSearchTerm);
     }
+    
+    /// <summary>
+    /// Gets the effective retirement status for a member, falling back to member.IsRetired if statusData is null
+    /// </summary>
+    private static bool GetEffectiveRetirementStatus(ActiveMemberData memberData)
+    {
+        return memberData.StatusData?.IsRetired ?? memberData.Member.IsRetired;
+    }
 
     private static int GetActiveMemberPriority(ActiveMemberData memberData)
     {
         var status = memberData.StatusData;
-        
-        // Fall back to member.IsRetired if status is null
-        var isRetired = status?.IsRetired ?? memberData.Member.IsRetired;
+        var isRetired = GetEffectiveRetirementStatus(memberData);
 
         if (!isRetired)
         {
             return 0;
         }
 
+        // For retired members with progress data, prioritize by months toward reactivation
         if (isRetired &&
             status?.ProgressTotalMonths == 3 &&
             status.ProgressMonths.HasValue)
@@ -2850,13 +2857,14 @@ else
             };
         }
 
+        // Retired members without progress data get lowest priority
         return 4;
     }
 
     private static int GetActiveMemberGroupPriority(ActiveMemberData memberData)
     {
         // Group by retired status, falling back to member.IsRetired if statusData is null
-        var isRetired = memberData.StatusData?.IsRetired ?? memberData.Member.IsRetired;
+        var isRetired = GetEffectiveRetirementStatus(memberData);
         return isRetired ? 1 : 0;
     }
 
