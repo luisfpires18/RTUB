@@ -810,30 +810,5 @@ public class RehearsalCardTests : TestContext
         hasPendingReminderButton.Should().BeFalse("pending approvals reminder should not appear when no pending approvals");
     }
 
-    [Fact]
-    public void RehearsalCard_PendingApprovalsReminderButton_InvokesOnViewAttendances()
-    {
-        // Arrange
-        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
-        bool callbackInvoked = false;
-
-        var cut = RenderComponent<RehearsalCard>(parameters => parameters
-            .Add(p => p.Rehearsal, rehearsal)
-            .Add(p => p.IsAdmin, true)
-            .Add(p => p.IsPastRehearsal, true)
-            .Add(p => p.HasPendingApprovals, true)
-            .Add(p => p.AttendanceCount, 5)
-            .Add(p => p.OnViewAttendances, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
-
-        // Act - Find and click the pending approvals reminder button
-        var reminderButton = cut.FindAll("button").First(b => 
-            b.ClassList.Contains("btn-pending") && 
-            b.GetAttribute("title")?.Contains("Tem presenças pendentes para aprovar") == true);
-        reminderButton.Click();
-
-        // Assert
-        callbackInvoked.Should().BeTrue("clicking pending approvals reminder should open attendances modal");
-    }
-
     #endregion
 }

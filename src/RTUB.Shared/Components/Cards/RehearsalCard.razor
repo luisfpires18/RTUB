@@ -147,13 +147,12 @@
                 
                 @if (IsAdmin && IsPastRehearsal && HasPendingApprovals)
                 {
-                    <!-- Pending approvals reminder button for admins on past rehearsals -->
+                    <!-- Pending approvals reminder - visual only indicator for admins on past rehearsals -->
                     <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
-                        <button class="btn rehearsal-icon-btn btn-pending" 
-                                @onclick="HandleViewAttendances" 
-                                title="Tem presenças pendentes para aprovar">
+                        <span class="rehearsal-icon-btn btn-pending" 
+                              title="Tem presenças pendentes para aprovar">
                             <i class="bi bi-clock-fill"></i>
-                        </button>
+                        </span>
                     </div>
                 }
 
