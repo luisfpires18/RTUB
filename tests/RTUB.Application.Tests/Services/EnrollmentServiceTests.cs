@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Moq;
 using Microsoft.Extensions.Options;
 using RTUB.Application.Data;
@@ -9,6 +10,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Core.Exceptions;
+using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -53,7 +55,23 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         _eventRepository = new EventRepository(_context);
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
-        _eventService = new EventService(_eventRepository, _mockImageStorageService.Object, new EnrollmentRepository(_context), mockEventVideoRepository.Object, mockEventVideoStorageService.Object);
+
+        // Mock UserManager
+        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
+        var mockUserManager = new Mock<UserManager<ApplicationUser>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+
+        _eventService = new EventService(
+            _eventRepository,
+            _mockImageStorageService.Object,
+            new EnrollmentRepository(_context),
+            mockEventVideoRepository.Object,
+            mockEventVideoStorageService.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockUserManager.Object,
+            mockHttpContextAccessor.Object,
+            _context);
     }
 
     [Fact]

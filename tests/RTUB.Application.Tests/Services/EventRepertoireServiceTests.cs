@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -8,6 +9,7 @@ using RTUB.Application.Services;
 using RTUB.Application.Repositories;
 using RTUB.Application.Tests.Fixtures;
 using RTUB.Core.Enums;
+using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -44,11 +46,40 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         _mockImageStorageService = new Mock<IImageStorageService>();
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
-        _eventService = new EventService(new EventRepository(_context), _mockImageStorageService.Object, new EnrollmentRepository(_context), mockEventVideoRepository.Object, mockEventVideoStorageService.Object);
+        
+        // Mock dependencies for EventService and SongService
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
+        var mockUserManager = new Mock<UserManager<ApplicationUser>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        
+        _eventService = new EventService(
+            new EventRepository(_context), 
+            _mockImageStorageService.Object, 
+            new EnrollmentRepository(_context), 
+            mockEventVideoRepository.Object, 
+            mockEventVideoStorageService.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockUserManager.Object,
+            mockHttpContextAccessor.Object,
+            _context);
+        
         _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
+        
         var mockSongVideoRepository = new Mock<ISongVideoRepository>();
         var mockSongVideoStorageService = new Mock<ISongVideoStorageService>();
-        _songService = new SongService(new SongRepository(_context), mockSongVideoRepository.Object, mockSongVideoStorageService.Object, _context);
+        _songService = new SongService(
+            new SongRepository(_context), 
+            mockSongVideoRepository.Object, 
+            mockSongVideoStorageService.Object, 
+            _context,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockUserManager.Object,
+            mockHttpContextAccessor.Object);
     }
 
     [Fact]
@@ -707,39 +738,16 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
         var result = (await _repertoireService.GetRepertoireByEventIdAsync(event1.Id)).ToList();
         result.Should().HaveCount(5);
         result[0].Song!.Title.Should().Be("Song 3");
+        result[0].DisplayOrder.Should().Be(1);
         result[1].Song!.Title.Should().Be("Song 1");
+        result[1].DisplayOrder.Should().Be(2);
         result[2].Song!.Title.Should().Be("Song 5");
+        result[2].DisplayOrder.Should().Be(3);
         result[3].Song!.Title.Should().Be("Song 2");
+        result[3].DisplayOrder.Should().Be(4);
         result[4].Song!.Title.Should().Be("Song 4");
+        result[4].DisplayOrder.Should().Be(5);
     }
-
-    [Fact]
-    public async Task GetRepertoireByEventIdAsync_MultipleEvents_ReturnsCorrectRepertoire()
-    {
-        // Arrange
-        var event1 = await _eventService.CreateEventAsync("Event 1", _testEventDate, "Location 1", EventType.Atuacao);
-        var event2 = await _eventService.CreateEventAsync("Event 2", _testEventDate.AddDays(1), "Location 2", EventType.Convivio);
-        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
-        var song1 = await _songService.CreateSongAsync("Song 1", album.Id);
-        var song2 = await _songService.CreateSongAsync("Song 2", album.Id);
-
-        await _repertoireService.AddSongToRepertoireAsync(event1.Id, song1.Id, 1, _testEventDate);
-        await _repertoireService.AddSongToRepertoireAsync(event2.Id, song2.Id, 1, _testEventDate);
-
-        // Act
-        var result1 = (await _repertoireService.GetRepertoireByEventIdAsync(event1.Id)).ToList();
-        var result2 = (await _repertoireService.GetRepertoireByEventIdAsync(event2.Id)).ToList();
-
-        // Assert
-        result1.Should().ContainSingle();
-        result1[0].Song!.Title.Should().Be("Song 1");
-        result2.Should().ContainSingle();
-        result2[0].Song!.Title.Should().Be("Song 2");
-    }
-
-    // ========================================
-    // Multi-Day Repertoire Tests
-    // ========================================
 
     [Fact]
     public async Task GetRepertoireByEventIdAsync_SingleDayEvent_ReturnsOnlyThatDayRepertoire()

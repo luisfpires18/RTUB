@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
@@ -35,9 +36,29 @@ public class ImageStorageIntegrationTests : IDisposable
         _mockImageStorageService = new Mock<IImageStorageService>();
 
         _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
+        
+        // Mock dependencies for EventService
         var mockEventVideoRepository = new Mock<IEventVideoRepository>();
         var mockEventVideoStorageService = new Mock<IEventVideoStorageService>();
-        _eventService = new EventService(new EventRepository(_context), _mockImageStorageService.Object, new EnrollmentRepository(_context), mockEventVideoRepository.Object, mockEventVideoStorageService.Object);
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
+        var mockUserManager = new Mock<UserManager<ApplicationUser>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        
+        _eventService = new EventService(
+            new EventRepository(_context), 
+            _mockImageStorageService.Object, 
+            new EnrollmentRepository(_context), 
+            mockEventVideoRepository.Object, 
+            mockEventVideoStorageService.Object,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockUserManager.Object,
+            mockHttpContextAccessor.Object,
+            _context);
+        
         _slideshowService = new SlideshowService(new SlideshowRepository(_context), _mockImageStorageService.Object);
     }
 

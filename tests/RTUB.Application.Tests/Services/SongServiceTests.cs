@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Moq;
 using RTUB.Application.Data;
 using RTUB.Application.Tests.Fixtures;
@@ -8,6 +9,7 @@ using RTUB.Application.Interfaces;
 using RTUB.Application.Repositories;
 using RTUB.Application.Services;
 using RTUB.Core.Exceptions;
+using RTUB.Core.Entities;
 
 namespace RTUB.Application.Tests.Services;
 
@@ -39,7 +41,25 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         _songRepository = new SongRepository(_context);
         _mockSongVideoRepository = new Mock<ISongVideoRepository>();
         _mockSongVideoStorageService = new Mock<ISongVideoStorageService>();
-        _songService = new SongService(_songRepository, _mockSongVideoRepository.Object, _mockSongVideoStorageService.Object, _context);
+        
+        // Mock dependencies for SongService
+        var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
+        var mockPushNotificationService = new Mock<IPushNotificationService>();
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        var userStoreMock = new Mock<IUserStore<ApplicationUser>>();
+        var mockUserManager = new Mock<UserManager<ApplicationUser>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        
+        _songService = new SongService(
+            _songRepository, 
+            _mockSongVideoRepository.Object, 
+            _mockSongVideoStorageService.Object, 
+            _context,
+            mockPushNotificationFactory.Object,
+            mockPushNotificationService.Object,
+            mockUserManager.Object,
+            mockHttpContextAccessor.Object);
+        
         _mockImageStorageService = new Mock<IImageStorageService>();
         _albumService = new AlbumService(new AlbumRepository(_context), _mockImageStorageService.Object);
     }
