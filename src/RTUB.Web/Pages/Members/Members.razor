@@ -853,7 +853,7 @@ else
         else if (allActiveMembers == null || !allActiveMembers.Any())
         {
             <EmptyState Title="Nenhum membro ativo encontrado"
-                       Message="Não há membros com histórico de atividade."
+                       Message="Não há membros ativos (Caloiro, Tuno, Veterano, Tunossauro)."
                        Icon="bi-person-badge" />
         }
         else
@@ -2700,15 +2700,13 @@ else
                     // If status data fails to load, include member with null status
                 }
                 
-                // Only include members with activity history
-                if (statusData?.HasAnyActivity == true)
+                // Include all active members regardless of activity history
+                // Members without activity will show with null or default status data
+                allActiveMembers.Add(new ActiveMemberData
                 {
-                    allActiveMembers.Add(new ActiveMemberData
-                    {
-                        Member = member,
-                        StatusData = statusData
-                    });
-                }
+                    Member = member,
+                    StatusData = statusData
+                });
             }
             
             allActiveMembers = allActiveMembers
