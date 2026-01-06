@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Enums;
@@ -21,14 +24,34 @@ public class EventService : IEventService
     private readonly IEnrollmentRepository _enrollmentRepository;
     private readonly IEventVideoRepository _eventVideoRepository;
     private readonly IEventVideoStorageService _eventVideoStorageService;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
+    private readonly IPushNotificationService _pushNotificationService;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ApplicationDbContext _context;
 
-    public EventService(IEventRepository eventRepository, IImageStorageService imageStorageService, IEnrollmentRepository enrollmentRepository, IEventVideoRepository eventVideoRepository, IEventVideoStorageService eventVideoStorageService)
+    public EventService(
+        IEventRepository eventRepository, 
+        IImageStorageService imageStorageService, 
+        IEnrollmentRepository enrollmentRepository, 
+        IEventVideoRepository eventVideoRepository, 
+        IEventVideoStorageService eventVideoStorageService,
+        IPushNotificationFactory pushNotificationFactory,
+        IPushNotificationService pushNotificationService,
+        UserManager<ApplicationUser> userManager,
+        IHttpContextAccessor httpContextAccessor,
+        ApplicationDbContext context)
     {
         _eventRepository = eventRepository;
         _imageStorageService = imageStorageService;
         _enrollmentRepository = enrollmentRepository;
         _eventVideoRepository = eventVideoRepository;
         _eventVideoStorageService = eventVideoStorageService;
+        _pushNotificationFactory = pushNotificationFactory;
+        _pushNotificationService = pushNotificationService;
+        _userManager = userManager;
+        _httpContextAccessor = httpContextAccessor;
+        _context = context;
     }
 
     public async Task<Event?> GetEventByIdAsync(int id)
@@ -226,6 +249,37 @@ public class EventService : IEventService
         // Save to repository
         var createdVideo = await _eventVideoRepository.AddAsync(eventVideo);
 
+        // Send push notification to all users
+        try
+        {
+            var uploader = await _userManager.FindByIdAsync(createdByUserId);
+            var uploaderName = uploader?.Nickname ?? uploader?.FirstName ?? "Um membro";
+            var baseUrl = GetBaseUrl();
+            
+            var notification = _pushNotificationFactory.CreateEventVideoUploadNotification(
+                eventEntity,
+                uploaderName,
+                baseUrl);
+
+            // Get all users (excluding the uploader)
+            var allUserIds = await _userManager.Users
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            // Send to each user
+            foreach (var userId in allUserIds.Where(id => id != createdByUserId))
+            {
+                await _pushNotificationService.SendToUserAsync(userId, notification);
+            }
+        }
+        catch
+        {
+            // Log error but don't fail the operation
+            // Notification is secondary to the main operation
+            // Note: EventService doesn't have a logger injected, so we silently catch
+            // Consider adding ILogger<EventService> in the future
+        }
+
         return createdVideo;
     }
 
@@ -299,5 +353,15 @@ public class EventService : IEventService
     public async Task<int> GetVideoCountByEventIdAsync(int eventId)
     {
         return await _eventVideoRepository.GetCountByEventIdAsync(eventId);
+    }
+
+    private string GetBaseUrl()
+    {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+        return "https://rtub.pt"; // Fallback
     }
 }

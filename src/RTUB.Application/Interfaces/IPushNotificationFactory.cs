@@ -152,4 +152,22 @@ public interface IPushNotificationFactory
     /// <param name="baseUrl">The base URL of the application</param>
     /// <returns>A SendPushNotificationDto ready to be sent</returns>
     SendPushNotificationDto CreateLeaderboardCommentLikeNotification(string likerName, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification when someone uploads a video to an event.
+    /// </summary>
+    /// <param name="event">The event the video was uploaded to</param>
+    /// <param name="uploaderName">The name of the user who uploaded the video</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateEventVideoUploadNotification(Event @event, string uploaderName, string baseUrl);
+
+    /// <summary>
+    /// Creates a push notification when someone uploads a video to a song.
+    /// </summary>
+    /// <param name="song">The song the video was uploaded to</param>
+    /// <param name="uploaderName">The name of the user who uploaded the video</param>
+    /// <param name="baseUrl">The base URL of the application</param>
+    /// <returns>A SendPushNotificationDto ready to be sent</returns>
+    SendPushNotificationDto CreateSongVideoUploadNotification(Song song, string uploaderName, string baseUrl);
 }

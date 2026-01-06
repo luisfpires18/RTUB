@@ -566,7 +566,7 @@ else
                     if (selectedVideo != null)
                     {
                         <div class="video-player-container">
-                            <video @key="@selectedVideo.Id" controls class="modal-video" preload="metadata">
+                            <video @key="@selectedVideo.Id" controls class="modal-video" preload="metadata" @onplay="() => LogVideoPlaybackAsync(selectedVideo, viewingVideosForSong!)">
                                 <source src="@selectedVideo.Url" type="@selectedVideo.MimeType">
                                 O seu navegador não suporta o elemento de vídeo.
                             </video>
@@ -1227,6 +1227,33 @@ else
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Failed to add audit log for song playback: {SongTitle}", song.Title);
+        }
+    }
+
+    private async Task LogVideoPlaybackAsync(SongVideo video, Song song)
+    {
+        try
+        {
+            var userId = await GetCurrentUserId();
+            var userName = await GetCurrentUserName();
+            var displayName = $"{video.Title ?? "Video"} ({song.Title})";
+
+            await AuditLogService.AddAsync(new AuditLog
+            {
+                EntityType = "SongVideo",
+                EntityId = video.Id,
+                Action = "Played",
+                UserId = string.IsNullOrEmpty(userId) ? null : userId,
+                UserName = userName,
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Played video \"{video.Title ?? "Untitled"}\" from song \"{song.Title}\".",
+                EntityDisplayName = displayName,
+                IsCriticalAction = false
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to add audit log for video playback: {VideoId}", video.Id);
         }
     }
     

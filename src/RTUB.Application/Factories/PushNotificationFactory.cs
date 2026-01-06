@@ -444,4 +444,46 @@ public class PushNotificationFactory : IPushNotificationFactory
             Tag = "leaderboard-comment-like"
         };
     }
+
+    /// <summary>
+    /// Creates a push notification when someone uploads a video to an event.
+    /// </summary>
+    public SendPushNotificationDto CreateEventVideoUploadNotification(Event @event, string uploaderName, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(@event);
+        ArgumentException.ThrowIfNullOrWhiteSpace(uploaderName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var eventUrl = BuildEventUrl(baseUrl);
+
+        return new SendPushNotificationDto
+        {
+            Title = "Novo vídeo",
+            Body = $"{uploaderName} adicionou um vídeo a {@event.Name}",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = eventUrl,
+            Tag = $"event-video-{@event.Id}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification when someone uploads a video to a song.
+    /// </summary>
+    public SendPushNotificationDto CreateSongVideoUploadNotification(Song song, string uploaderName, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(song);
+        ArgumentException.ThrowIfNullOrWhiteSpace(uploaderName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var musicUrl = $"{baseUrl.TrimEnd('/')}/music";
+
+        return new SendPushNotificationDto
+        {
+            Title = "Novo vídeo",
+            Body = $"{uploaderName} adicionou um vídeo a \"{song.Title}\"",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = musicUrl,
+            Tag = $"song-video-{song.Id}"
+        };
+    }
 }
