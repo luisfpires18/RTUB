@@ -63,9 +63,16 @@ public class EnrollmentService : IEnrollmentService
         enrollment.OtherInstruments = otherInstruments;
         var createdEnrollment = await _enrollmentRepository.AddAsync(enrollment);
 
-        if (willAttend && !skipNotification)
+        if (!skipNotification)
         {
-            await NotifyEnrollmentAsync(createdEnrollment);
+            if (willAttend)
+            {
+                await NotifyEnrollmentAsync(createdEnrollment);
+            }
+            else
+            {
+                await NotifyNonEnrollmentAsync(createdEnrollment);
+            }
         }
 
         return createdEnrollment;
@@ -199,6 +206,54 @@ public class EnrollmentService : IEnrollmentService
                                   ?? "Utilizador";
 
             var notification = _pushNotificationFactory.CreateEventCancellationNotification(
+                detailedEnrollment.Event,
+                userDisplayName,
+                baseUrl);
+
+            var recipientIds = await _enrollmentRepository.Query()
+                .AsNoTracking()
+                .Where(e => e.EventId == detailedEnrollment.EventId
+                            && e.WillAttend
+                            && e.UserId != detailedEnrollment.UserId
+                            && !string.IsNullOrEmpty(e.UserId))
+                .Select(e => e.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            if (recipientIds.Count == 0)
+            {
+                return;
+            }
+
+            await _pushNotificationService.SendToSelectedUsersAsync(recipientIds, notification);
+        }
+        catch
+        {
+            // Notifications are non-critical; ignore failures
+        }
+    }
+
+    private async Task NotifyNonEnrollmentAsync(Enrollment enrollment)
+    {
+        try
+        {
+            var detailedEnrollment = await _enrollmentRepository.Query()
+                .AsNoTracking()
+                .Include(e => e.Event)
+                .Include(e => e.User)
+                .FirstOrDefaultAsync(e => e.Id == enrollment.Id);
+
+            if (detailedEnrollment?.Event == null || detailedEnrollment.User == null)
+            {
+                return;
+            }
+
+            var baseUrl = GetBaseUrl();
+            var userDisplayName = detailedEnrollment.User.Nickname
+                                  ?? detailedEnrollment.User.FirstName
+                                  ?? "Utilizador";
+
+            var notification = _pushNotificationFactory.CreateEventNonEnrollmentNotification(
                 detailedEnrollment.Event,
                 userDisplayName,
                 baseUrl);

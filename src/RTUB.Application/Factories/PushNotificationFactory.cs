@@ -240,6 +240,28 @@ public class PushNotificationFactory : IPushNotificationFactory
     }
 
     /// <summary>
+    /// Creates a push notification when someone marks that they won't attend an event.
+    /// </summary>
+    public SendPushNotificationDto CreateEventNonEnrollmentNotification(Event @event, string userDisplayName, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(@event);
+        ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var eventUrl = BuildEventUrl(baseUrl);
+        var eventTypeDisplay = StatusHelper.GetEventTypeDisplay(@event.Type);
+
+        return new SendPushNotificationDto
+        {
+            Title = "Não vai ao evento",
+            Body = $"{userDisplayName} não vai a {eventTypeDisplay} {@event.Name}",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = eventUrl,
+            Tag = $"event-non-enrollment-{@event.Id}"
+        };
+    }
+
+    /// <summary>
     /// Creates a push notification for new 1st place in leaderboard.
     /// </summary>
     public SendPushNotificationDto CreateLeaderboardFirstPlaceNotification(string userNickname, int level, string baseUrl)
@@ -357,6 +379,28 @@ public class PushNotificationFactory : IPushNotificationFactory
             Icon = "/icons/rtub-logo-192.png",
             Url = rehearsalUrl,
             Tag = $"rehearsal-cancellation-{rehearsal.Id}"
+        };
+    }
+
+    /// <summary>
+    /// Creates a push notification when someone marks that they won't attend a rehearsal.
+    /// </summary>
+    public SendPushNotificationDto CreateRehearsalNonAttendanceNotification(Rehearsal rehearsal, string userDisplayName, string baseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(rehearsal);
+        ArgumentException.ThrowIfNullOrWhiteSpace(userDisplayName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+
+        var rehearsalUrl = BuildRehearsalUrl(baseUrl);
+        var title = FormatRehearsalTitle(rehearsal.Date);
+
+        return new SendPushNotificationDto
+        {
+            Title = "Não vai ao ensaio",
+            Body = $"{userDisplayName} não vai ao {title}",
+            Icon = "/icons/rtub-logo-192.png",
+            Url = rehearsalUrl,
+            Tag = $"rehearsal-non-attendance-{rehearsal.Id}"
         };
     }
 

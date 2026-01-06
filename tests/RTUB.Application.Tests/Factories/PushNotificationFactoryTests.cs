@@ -367,4 +367,192 @@ public class PushNotificationFactoryTests
         // Assert
         Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
     }
+
+    // Rehearsal Non-Attendance Notification Tests
+
+    [Fact]
+    public void CreateRehearsalNonAttendanceNotification_ReturnsCorrectNotification()
+    {
+        // Arrange
+        var rehearsalDate = new DateTime(2024, 11, 26, 21, 30, 0); // Tuesday, Nov 26, 2024
+        var rehearsal = Rehearsal.Create(rehearsalDate, "Centro Académico");
+        rehearsal.Id = 123;
+        var userDisplayName = "João Silva";
+        var baseUrl = "https://rtub.example.com";
+
+        // Act
+        var notification = _factory.CreateRehearsalNonAttendanceNotification(rehearsal, userDisplayName, baseUrl);
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.Equal("Não vai ao ensaio", notification.Title);
+        Assert.Contains("João Silva não vai ao", notification.Body);
+        Assert.Contains("Ensaio - ", notification.Body);
+        Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
+        Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
+        Assert.Equal("rehearsal-non-attendance-123", notification.Tag);
+    }
+
+    [Fact]
+    public void CreateRehearsalNonAttendanceNotification_NullRehearsal_ThrowsArgumentNullException()
+    {
+        // Arrange
+        Rehearsal? nullRehearsal = null;
+        var userDisplayName = "Test User";
+        var baseUrl = "https://rtub.example.com";
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            _factory.CreateRehearsalNonAttendanceNotification(nullRehearsal!, userDisplayName, baseUrl));
+    }
+
+    [Fact]
+    public void CreateRehearsalNonAttendanceNotification_NullUserDisplayName_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.UtcNow.Date.AddDays(1), "Centro Académico");
+        rehearsal.Id = 1;
+        string? nullUserDisplayName = null;
+        var baseUrl = "https://rtub.example.com";
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            _factory.CreateRehearsalNonAttendanceNotification(rehearsal, nullUserDisplayName!, baseUrl));
+    }
+
+    [Fact]
+    public void CreateRehearsalNonAttendanceNotification_EmptyUserDisplayName_ThrowsArgumentException()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.UtcNow.Date.AddDays(1), "Centro Académico");
+        rehearsal.Id = 1;
+        var emptyUserDisplayName = string.Empty;
+        var baseUrl = "https://rtub.example.com";
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            _factory.CreateRehearsalNonAttendanceNotification(rehearsal, emptyUserDisplayName, baseUrl));
+    }
+
+    [Fact]
+    public void CreateRehearsalNonAttendanceNotification_BaseUrlWithTrailingSlash_NormalizesCorrectly()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.UtcNow.Date.AddDays(1), "Centro Académico");
+        rehearsal.Id = 1;
+        var userDisplayName = "Test User";
+        var baseUrl = "https://rtub.example.com/";
+
+        // Act
+        var notification = _factory.CreateRehearsalNonAttendanceNotification(rehearsal, userDisplayName, baseUrl);
+
+        // Assert
+        Assert.Equal("https://rtub.example.com/rehearsals", notification.Url);
+    }
+
+    // Event Non-Enrollment Notification Tests
+
+    [Fact]
+    public void CreateEventNonEnrollmentNotification_ReturnsCorrectNotification()
+    {
+        // Arrange
+        var eventDate = new DateTime(2024, 12, 25, 19, 30, 0);
+        var testEvent = new Event
+        {
+            Id = 123,
+            Name = "Atuação de Natal",
+            Location = "Centro Cultural",
+            Date = eventDate,
+            Type = Core.Enums.EventType.Atuacao
+        };
+        var userDisplayName = "João Silva";
+        var baseUrl = "https://rtub.example.com";
+
+        // Act
+        var notification = _factory.CreateEventNonEnrollmentNotification(testEvent, userDisplayName, baseUrl);
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.Equal("Não vai ao evento", notification.Title);
+        Assert.Contains("João Silva não vai a", notification.Body);
+        Assert.Contains("Atuação de Natal", notification.Body);
+        Assert.Equal("/icons/rtub-logo-192.png", notification.Icon);
+        Assert.Equal("https://rtub.example.com/events", notification.Url);
+        Assert.Equal("event-non-enrollment-123", notification.Tag);
+    }
+
+    [Fact]
+    public void CreateEventNonEnrollmentNotification_NullEvent_ThrowsArgumentNullException()
+    {
+        // Arrange
+        Event? nullEvent = null;
+        var userDisplayName = "Test User";
+        var baseUrl = "https://rtub.example.com";
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            _factory.CreateEventNonEnrollmentNotification(nullEvent!, userDisplayName, baseUrl));
+    }
+
+    [Fact]
+    public void CreateEventNonEnrollmentNotification_NullUserDisplayName_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var testEvent = new Event
+        {
+            Id = 1,
+            Name = "Test Event",
+            Location = "Test Location",
+            Date = DateTime.UtcNow.Date.AddDays(1),
+            Type = Core.Enums.EventType.Festival
+        };
+        string? nullUserDisplayName = null;
+        var baseUrl = "https://rtub.example.com";
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            _factory.CreateEventNonEnrollmentNotification(testEvent, nullUserDisplayName!, baseUrl));
+    }
+
+    [Fact]
+    public void CreateEventNonEnrollmentNotification_EmptyUserDisplayName_ThrowsArgumentException()
+    {
+        // Arrange
+        var testEvent = new Event
+        {
+            Id = 1,
+            Name = "Test Event",
+            Location = "Test Location",
+            Date = DateTime.UtcNow.Date.AddDays(1),
+            Type = Core.Enums.EventType.Festival
+        };
+        var emptyUserDisplayName = string.Empty;
+        var baseUrl = "https://rtub.example.com";
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            _factory.CreateEventNonEnrollmentNotification(testEvent, emptyUserDisplayName, baseUrl));
+    }
+
+    [Fact]
+    public void CreateEventNonEnrollmentNotification_BaseUrlWithTrailingSlash_NormalizesCorrectly()
+    {
+        // Arrange
+        var testEvent = new Event
+        {
+            Id = 1,
+            Name = "Test Event",
+            Location = "Test Location",
+            Date = DateTime.UtcNow.Date.AddDays(1),
+            Type = Core.Enums.EventType.Festival
+        };
+        var userDisplayName = "Test User";
+        var baseUrl = "https://rtub.example.com/";
+
+        // Act
+        var notification = _factory.CreateEventNonEnrollmentNotification(testEvent, userDisplayName, baseUrl);
+
+        // Assert
+        Assert.Equal("https://rtub.example.com/events", notification.Url);
+    }
 }
