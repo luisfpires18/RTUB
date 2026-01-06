@@ -56,6 +56,12 @@
                 <i class="bi bi-clock-history me-1"></i>@ProgressText
             </div>
         }
+        @if (EncouragementContent != null)
+        {
+            <div class="member-card-lite-encouragement">
+                @EncouragementContent
+            </div>
+        }
         @if (!string.IsNullOrWhiteSpace(LastRehearsalText))
         {
             <div class="member-card-lite-row">
@@ -159,4 +165,7 @@
 
     [Parameter]
     public RenderFragment? ActionsContent { get; set; }
+    
+    [Parameter]
+    public RenderFragment? EncouragementContent { get; set; }
 }

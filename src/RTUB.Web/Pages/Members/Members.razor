@@ -761,6 +761,15 @@ else
                                     </ValueContent>
                                 </ProfileField>
                             }
+                            
+                            @* Encouragement note for retired members at 2/3 progress *@
+                            @if (statusResult is { } statusValue && ShouldShowReactivationEncouragement(statusValue))
+                            {
+                                <div class="alert alert-info mt-2">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <strong>Participa numa atividade este mês para voltares ao ativo!</strong>
+                                </div>
+                            }
 
                             <ProfileField Label="Último ensaio"
                                           Icon="bi-music-note-list"
@@ -853,7 +862,7 @@ else
         else if (allActiveMembers == null || !allActiveMembers.Any())
         {
             <EmptyState Title="Nenhum membro ativo encontrado"
-                       Message="Não há membros com histórico de atividade."
+                       Message="Não há membros ativos (Caloiro, Tuno, Veterano, Tunossauro)."
                        Icon="bi-person-badge" />
         }
         else
@@ -887,6 +896,7 @@ else
                     var progressText = statusData is { } statusDataValue && ShouldShowProgressStatus(statusDataValue)
                         ? statusDataValue.ProgressDescription
                         : string.Empty;
+                    var showEncouragement = statusData != null && ShouldShowReactivationEncouragement(statusData);
                     <MemberCardLite AvatarUrl="@member.ProfilePictureSrc"
                                     AltText="@member.Nickname"
                                     Nickname="@member.Nickname"
@@ -896,7 +906,7 @@ else
                                     LastEventText="@eventText"
                                     ProgressText="@progressText">
                         <StatusContent>
-                            @if (statusData?.IsRetired == true)
+                            @if (statusData?.IsRetired == true || (statusData == null && member.IsRetired))
                             {
                                 <span class="badge badge-retired">REFORMADO</span>
                             }
@@ -905,6 +915,15 @@ else
                                 <span class="badge badge-active">NO ATIVO</span>
                             }
                         </StatusContent>
+                        <EncouragementContent>
+                            @if (showEncouragement)
+                            {
+                                <div class="alert alert-info mb-0 mt-2 small">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    <strong>Participa numa atividade este mês para voltares ao ativo!</strong>
+                                </div>
+                            }
+                        </EncouragementContent>
                     </MemberCardLite>
                 }
             </div>
@@ -2686,29 +2705,34 @@ else
                             u.Categories.Contains(MemberCategory.Tunossauro)))
                 .ToList() ?? new List<ApplicationUser>();
             
-            // Load status data for each member
+            // Load status data for all members in a single batch query (performance optimization)
+            var userIds = activeMembers.Select(m => m.Id).ToList();
+            Dictionary<string, MemberStatusResult?> statusDataBatch;
+            
+            try
+            {
+                statusDataBatch = await MemberStatusService.GetMemberStatusesBatchAsync(userIds);
+            }
+            catch
+            {
+                // If batch load fails, use empty dictionary (members will use fallback logic)
+                statusDataBatch = new Dictionary<string, MemberStatusResult?>();
+            }
+            
+            // Build active members list with status data
             allActiveMembers = new List<ActiveMemberData>();
             foreach (var member in activeMembers)
             {
-                MemberStatusResult? statusData = null;
-                try
-                {
-                    statusData = await MemberStatusService.GetMemberStatusAsync(member.Id);
-                }
-                catch
-                {
-                    // If status data fails to load, include member with null status
-                }
+                // Get status data from batch result (null if not cached or failed to load)
+                var statusData = statusDataBatch.GetValueOrDefault(member.Id);
                 
-                // Only include members with activity history
-                if (statusData?.HasAnyActivity == true)
+                // Include all active members regardless of activity history
+                // Members without activity will show with null or default status data
+                allActiveMembers.Add(new ActiveMemberData
                 {
-                    allActiveMembers.Add(new ActiveMemberData
-                    {
-                        Member = member,
-                        StatusData = statusData
-                    });
-                }
+                    Member = member,
+                    StatusData = statusData
+                });
             }
             
             allActiveMembers = allActiveMembers
@@ -2718,6 +2742,7 @@ else
                 .ThenByDescending(m => HasFullActivityHistory(m.StatusData))
                 .ThenByDescending(m => m.StatusData?.LastRehearsalDate ?? DateTime.MinValue)
                 .ThenByDescending(m => m.StatusData?.LastEventDate ?? DateTime.MinValue)
+                .ThenByDescending(m => m.StatusData?.TotalActivitiesCount ?? 0)
                 .ThenBy(m => m.Member.Nickname ?? m.Member.FirstName ?? string.Empty)
                 .ToList();
 
@@ -2787,11 +2812,17 @@ else
         {
             if (activeMembersStatusFilter == "active")
             {
-                membersToFilter = membersToFilter.Where(m => m.StatusData?.IsRetired == false).ToList();
+                // Show members who are not retired (either by statusData or by member.IsRetired)
+                membersToFilter = membersToFilter.Where(m => 
+                    m.StatusData?.IsRetired == false || 
+                    (m.StatusData == null && !m.Member.IsRetired)).ToList();
             }
             else if (activeMembersStatusFilter == "retired")
             {
-                membersToFilter = membersToFilter.Where(m => m.StatusData?.IsRetired == true).ToList();
+                // Show members who are retired (either by statusData or by member.IsRetired)
+                membersToFilter = membersToFilter.Where(m => 
+                    m.StatusData?.IsRetired == true || 
+                    (m.StatusData == null && m.Member.IsRetired)).ToList();
             }
         }
 
@@ -2820,18 +2851,28 @@ else
     {
         ApplyActiveMembersSearch(activeMembersSearchTerm);
     }
+    
+    /// <summary>
+    /// Gets the effective retirement status for a member, falling back to member.IsRetired if statusData is null
+    /// </summary>
+    private static bool GetEffectiveRetirementStatus(ActiveMemberData memberData)
+    {
+        return memberData.StatusData?.IsRetired ?? memberData.Member.IsRetired;
+    }
 
     private static int GetActiveMemberPriority(ActiveMemberData memberData)
     {
         var status = memberData.StatusData;
+        var isRetired = GetEffectiveRetirementStatus(memberData);
 
-        if (status?.IsRetired == false)
+        if (!isRetired)
         {
             return 0;
         }
 
-        if (status?.IsRetired == true &&
-            status.ProgressTotalMonths == 3 &&
+        // For retired members with progress data, prioritize by months toward reactivation
+        if (isRetired &&
+            status?.ProgressTotalMonths == 3 &&
             status.ProgressMonths.HasValue)
         {
             return status.ProgressMonths.Value switch
@@ -2843,12 +2884,15 @@ else
             };
         }
 
+        // Retired members without progress data get lowest priority
         return 4;
     }
 
     private static int GetActiveMemberGroupPriority(ActiveMemberData memberData)
     {
-        return memberData.StatusData?.IsRetired == false ? 0 : 1;
+        // Group by retired status, falling back to member.IsRetired if statusData is null
+        var isRetired = GetEffectiveRetirementStatus(memberData);
+        return isRetired ? 1 : 0;
     }
 
     private static bool HasFullActivityHistory(MemberStatusResult? status)
@@ -2870,6 +2914,16 @@ else
         }
 
         return true;
+    }
+    
+    /// <summary>
+    /// Checks if a retired member is at 2/3 progress and should be encouraged to participate
+    /// </summary>
+    private static bool ShouldShowReactivationEncouragement(MemberStatusResult? status)
+    {
+        return status?.IsRetired == true 
+            && status.ProgressTotalMonths == 3 
+            && status.ProgressMonths == 2;
     }
     
     // Anniversaries modal methods

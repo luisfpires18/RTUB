@@ -120,6 +120,7 @@ public class MemberStatusService : IMemberStatusService
         memberStatus.ProgressMonths = result.ProgressMonths;
         memberStatus.ProgressTotalMonths = result.ProgressTotalMonths;
         memberStatus.ProgressDescription = result.ProgressDescription;
+        memberStatus.TotalActivitiesCount = result.TotalActivitiesCount;
         memberStatus.LastUpdatedAt = DateTime.UtcNow;
         memberStatus.UpdatedAt = DateTime.UtcNow;
 
@@ -426,6 +427,31 @@ public class MemberStatusService : IMemberStatusService
                     : "Próximo da reforma";
             }
         }
+        
+        // Calculate total activities count (rehearsals + events)
+        var totalActivitiesCount = 0;
+        if (hasAnyActivity)
+        {
+            var rehearsalCount = await _context.RehearsalAttendances
+                .Include(ra => ra.Rehearsal)
+                .Where(ra => ra.UserId == userId
+                    && ra.Attended
+                    && ra.Rehearsal != null
+                    && !ra.Rehearsal.IsCanceled
+                    && ra.Rehearsal.Date < now)
+                .CountAsync();
+            
+            var eventCount = await _context.Enrollments
+                .Include(e => e.Event)
+                .Where(e => e.UserId == userId
+                    && e.WillAttend
+                    && e.Event != null
+                    && !e.Event.IsCancelled
+                    && (e.Event.EndDate ?? e.Event.Date) < now)
+                .CountAsync();
+            
+            totalActivitiesCount = rehearsalCount + eventCount;
+        }
 
         return new MemberStatusResult
         {
@@ -436,7 +462,8 @@ public class MemberStatusService : IMemberStatusService
             HasAnyActivity = hasAnyActivity,
             ProgressMonths = progressMonths,
             ProgressTotalMonths = progressTotalMonths,
-            ProgressDescription = progressDescription
+            ProgressDescription = progressDescription,
+            TotalActivitiesCount = totalActivitiesCount
         };
     }
 
@@ -550,6 +577,53 @@ public class MemberStatusService : IMemberStatusService
     }
     
     /// <summary>
+    /// Gets the comprehensive status for multiple members in a single batch query
+    /// More efficient than calling GetMemberStatusAsync in a loop
+    /// Returns cached statuses if available and fresh (less than 1 hour old)
+    /// </summary>
+    /// <param name="userIds">The user IDs to get status for</param>
+    /// <returns>Dictionary mapping user IDs to their status results (null if not cached)</returns>
+    public async Task<Dictionary<string, MemberStatusResult?>> GetMemberStatusesBatchAsync(IEnumerable<string> userIds)
+    {
+        var userIdList = userIds.ToList();
+        
+        if (!userIdList.Any())
+            return new Dictionary<string, MemberStatusResult?>();
+        
+        // Load all member statuses in a single query
+        var memberStatuses = await _context.MemberStatuses
+            .AsNoTracking()
+            .Where(ms => userIdList.Contains(ms.UserId))
+            .ToListAsync();
+        
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        
+        // Convert to dictionary for O(1) lookups instead of O(n) FirstOrDefault in loop
+        var statusesByUserId = memberStatuses.ToDictionary(ms => ms.UserId);
+        
+        // Build result dictionary
+        var result = new Dictionary<string, MemberStatusResult?>();
+        foreach (var userId in userIdList)
+        {
+            statusesByUserId.TryGetValue(userId, out var memberStatus);
+            
+            // Only return cached status if it's fresh (less than 1 hour old)
+            if (memberStatus != null && memberStatus.LastUpdatedAt > oneHourAgo)
+            {
+                result[userId] = MapToResult(memberStatus);
+            }
+            else
+            {
+                // Status is stale or doesn't exist - return null
+                // Caller can decide whether to update or use fallback
+                result[userId] = null;
+            }
+        }
+        
+        return result;
+    }
+    
+    /// <summary>
     /// Maps a MemberStatus entity to a MemberStatusResult DTO
     /// </summary>
     private MemberStatusResult MapToResult(MemberStatus memberStatus)
@@ -563,7 +637,8 @@ public class MemberStatusService : IMemberStatusService
             HasAnyActivity = memberStatus.HasAnyActivity,
             ProgressMonths = memberStatus.ProgressMonths,
             ProgressTotalMonths = memberStatus.ProgressTotalMonths,
-            ProgressDescription = memberStatus.ProgressDescription
+            ProgressDescription = memberStatus.ProgressDescription,
+            TotalActivitiesCount = memberStatus.TotalActivitiesCount
         };
     }
 }

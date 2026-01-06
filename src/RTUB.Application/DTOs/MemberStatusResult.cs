@@ -57,4 +57,10 @@ public class MemberStatusResult
     /// For reformed members: "X/3 meses de atividade consecutiva"
     /// </summary>
     public string? ProgressDescription { get; set; }
+    
+    /// <summary>
+    /// Total number of activities (rehearsals + events) the member has attended
+    /// Used for sorting members by participation level
+    /// </summary>
+    public int TotalActivitiesCount { get; set; }
 }
