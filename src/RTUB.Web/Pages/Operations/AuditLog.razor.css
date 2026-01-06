@@ -289,11 +289,17 @@
     .page-header-actions {
         width: 100%;
         justify-content: stretch;
+        flex-direction: column;
+    }
+
+    .page-header-actions > div {
+        width: 100%;
+        flex-direction: column;
     }
 
     .page-header-actions .btn {
-        flex: 1;
-        min-width: 0;
+        width: 100%;
+        flex: none;
     }
 
     /* Filters - Collapsed by default on mobile */
