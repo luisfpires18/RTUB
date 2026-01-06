@@ -139,7 +139,8 @@
                     <!-- View Attendances button - yellow with clock icon for admin with pending approvals -->
                     @if (IsAdmin && IsPastRehearsal && HasPendingApprovals)
                     {
-                        <button class="btn btn-sm btn-warning d-flex align-items-center gap-1" 
+                        <button class="btn btn-sm d-flex align-items-center gap-1" 
+                                style="background-color: #f39c12; border-color: #f39c12; color: #fff;"
                                 @onclick="HandleViewAttendances" 
                                 title="Ver Presenças - Tem presenças pendentes para aprovar">
                             <i class="bi bi-clock-fill icon-size-1rem"></i>

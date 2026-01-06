@@ -738,7 +738,7 @@ public class RehearsalCardTests : TestContext
 
         // Assert - Ver Presenças button should be yellow with clock icon for pending approvals
         cut.Markup.Should().Contain("bi-clock-fill", "should show clock icon on Ver Presenças button");
-        cut.Markup.Should().Contain("btn-warning", "Ver Presenças button should be yellow (warning) style");
+        cut.Markup.Should().Contain("#f39c12", "Ver Presenças button should have yellow background color");
         cut.Markup.Should().Contain("Tem presenças pendentes para aprovar", "should have tooltip explaining pending approvals");
     }
 
@@ -758,7 +758,7 @@ public class RehearsalCardTests : TestContext
 
         // Assert - Should show regular people icon, not clock, for non-admin
         cut.Markup.Should().Contain("bi-people", "should show people icon for non-admin");
-        cut.Markup.Should().NotContain("btn-warning", "Ver Presenças button should not be yellow for non-admin");
+        cut.Markup.Should().NotContain("#f39c12", "Ver Presenças button should not have yellow color for non-admin");
     }
 
     [Fact]
@@ -777,7 +777,7 @@ public class RehearsalCardTests : TestContext
 
         // Assert - Should show regular people icon for upcoming rehearsals, not clock
         cut.Markup.Should().Contain("bi-people", "should show people icon for upcoming rehearsals");
-        cut.Markup.Should().NotContain("btn-warning", "Ver Presenças button should not be yellow for upcoming rehearsals");
+        cut.Markup.Should().NotContain("#f39c12", "Ver Presenças button should not have yellow color for upcoming rehearsals");
     }
 
     [Fact]
@@ -796,7 +796,7 @@ public class RehearsalCardTests : TestContext
 
         // Assert - Should show regular people icon when no pending approvals
         cut.Markup.Should().Contain("bi-people", "should show people icon when no pending approvals");
-        cut.Markup.Should().NotContain("btn-warning", "Ver Presenças button should not be yellow when no pending approvals");
+        cut.Markup.Should().NotContain("#f39c12", "Ver Presenças button should not have yellow color when no pending approvals");
     }
 
     #endregion
