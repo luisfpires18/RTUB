@@ -250,9 +250,8 @@ public class SongService : ISongService
                 uploaderName,
                 baseUrl);
 
-            // Get all active users (could be filtered based on your requirements)
+            // Get all users
             var allUserIds = await _userManager.Users
-                .Where(u => !u.IsRetired)
                 .Select(u => u.Id)
                 .ToListAsync();
 

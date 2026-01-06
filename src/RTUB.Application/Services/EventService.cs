@@ -261,9 +261,8 @@ public class EventService : IEventService
                 uploaderName,
                 baseUrl);
 
-            // Get all active users (excluding the uploader)
+            // Get all users (excluding the uploader)
             var allUserIds = await _userManager.Users
-                .Where(u => !u.IsRetired)
                 .Select(u => u.Id)
                 .ToListAsync();
 
