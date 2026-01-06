@@ -18,6 +18,14 @@ The member status update service is configured via `appsettings.json`:
 
 The service runs **once per day** at the configured time.
 
+### Initial Population on Deployment
+
+When deploying a new release or after database migration:
+- The MemberStatus table is **automatically populated on startup** if empty
+- This ensures "Gestao de membros ativos" has data immediately after deployment
+- You don't need to wait for the scheduled daily update
+- Initial population logs: `"MemberStatus table is empty. Starting initial population..."` followed by `"Initial MemberStatus population completed. Updated X members"`
+
 ## Background Service Logs
 
 When the background service runs (daily at 21:00), you'll see:
