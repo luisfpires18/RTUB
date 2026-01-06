@@ -144,6 +144,18 @@
                         <span>@AttendanceCount</span>
                     </button>
                 </div>
+                
+                @if (IsAdmin && IsPastRehearsal && HasPendingApprovals)
+                {
+                    <!-- Pending approvals reminder button for admins on past rehearsals -->
+                    <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
+                        <button class="btn rehearsal-icon-btn btn-pending" 
+                                @onclick="HandleViewAttendances" 
+                                title="Tem presenças pendentes para aprovar">
+                            <i class="bi bi-clock-fill"></i>
+                        </button>
+                    </div>
+                }
 
                 @if (!IsPastRehearsal)
                 {
@@ -380,6 +392,12 @@
     /// </summary>
     [Parameter]
     public bool ShowCancelButton { get; set; } = true;
+    
+    /// <summary>
+    /// Whether this past rehearsal has pending attendances that need approval (Admin only)
+    /// </summary>
+    [Parameter]
+    public bool HasPendingApprovals { get; set; } = false;
 
     // Handler methods to ensure events fire properly
     private async Task HandleViewAttendances()
@@ -474,6 +492,7 @@
     private bool _previousAttended;
     private bool _previousIsAdmin;
     private bool _previousIsPastRehearsal;
+    private bool _previousHasPendingApprovals;
     
     /// <summary>
     /// Optimize rendering - only re-render when key parameters change.
@@ -494,7 +513,8 @@
             willAttend != _previousWillAttend ||
             attended != _previousAttended ||
             IsAdmin != _previousIsAdmin ||
-            IsPastRehearsal != _previousIsPastRehearsal)
+            IsPastRehearsal != _previousIsPastRehearsal ||
+            HasPendingApprovals != _previousHasPendingApprovals)
         {
             _previousRehearsalId = rehearsalId;
             _previousIsCanceled = isCanceled;
@@ -504,6 +524,7 @@
             _previousAttended = attended;
             _previousIsAdmin = IsAdmin;
             _previousIsPastRehearsal = IsPastRehearsal;
+            _previousHasPendingApprovals = HasPendingApprovals;
             return true;
         }
         return false;
