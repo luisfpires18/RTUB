@@ -249,7 +249,7 @@ public class EventService : IEventService
         // Save to repository
         var createdVideo = await _eventVideoRepository.AddAsync(eventVideo);
 
-        // Send push notification to all enrolled users
+        // Send push notification to all users
         try
         {
             var uploader = await _userManager.FindByIdAsync(createdByUserId);
@@ -261,14 +261,14 @@ public class EventService : IEventService
                 uploaderName,
                 baseUrl);
 
-            // Get enrolled users with WillAttend=true (excluding the uploader)
-            var enrolledUserIds = await _enrollmentRepository.Query()
-                .Where(e => e.EventId == eventId && e.UserId != createdByUserId && e.WillAttend)
-                .Select(e => e.UserId)
+            // Get all active users (excluding the uploader)
+            var allUserIds = await _userManager.Users
+                .Where(u => !u.IsRetired)
+                .Select(u => u.Id)
                 .ToListAsync();
 
-            // Send to each enrolled user
-            foreach (var userId in enrolledUserIds)
+            // Send to each user
+            foreach (var userId in allUserIds.Where(id => id != createdByUserId))
             {
                 await _pushNotificationService.SendToUserAsync(userId, notification);
             }
