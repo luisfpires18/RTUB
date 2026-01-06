@@ -120,6 +120,7 @@ public class MemberStatusService : IMemberStatusService
         memberStatus.ProgressMonths = result.ProgressMonths;
         memberStatus.ProgressTotalMonths = result.ProgressTotalMonths;
         memberStatus.ProgressDescription = result.ProgressDescription;
+        memberStatus.TotalActivitiesCount = result.TotalActivitiesCount;
         memberStatus.LastUpdatedAt = DateTime.UtcNow;
         memberStatus.UpdatedAt = DateTime.UtcNow;
 
@@ -426,6 +427,31 @@ public class MemberStatusService : IMemberStatusService
                     : "Próximo da reforma";
             }
         }
+        
+        // Calculate total activities count (rehearsals + events)
+        var totalActivitiesCount = 0;
+        if (hasAnyActivity)
+        {
+            var rehearsalCount = await _context.RehearsalAttendances
+                .Include(ra => ra.Rehearsal)
+                .Where(ra => ra.UserId == userId
+                    && ra.Attended
+                    && ra.Rehearsal != null
+                    && !ra.Rehearsal.IsCanceled
+                    && ra.Rehearsal.Date < now)
+                .CountAsync();
+            
+            var eventCount = await _context.Enrollments
+                .Include(e => e.Event)
+                .Where(e => e.UserId == userId
+                    && e.WillAttend
+                    && e.Event != null
+                    && !e.Event.IsCancelled
+                    && (e.Event.EndDate ?? e.Event.Date) < now)
+                .CountAsync();
+            
+            totalActivitiesCount = rehearsalCount + eventCount;
+        }
 
         return new MemberStatusResult
         {
@@ -436,7 +462,8 @@ public class MemberStatusService : IMemberStatusService
             HasAnyActivity = hasAnyActivity,
             ProgressMonths = progressMonths,
             ProgressTotalMonths = progressTotalMonths,
-            ProgressDescription = progressDescription
+            ProgressDescription = progressDescription,
+            TotalActivitiesCount = totalActivitiesCount
         };
     }
 
@@ -610,7 +637,8 @@ public class MemberStatusService : IMemberStatusService
             HasAnyActivity = memberStatus.HasAnyActivity,
             ProgressMonths = memberStatus.ProgressMonths,
             ProgressTotalMonths = memberStatus.ProgressTotalMonths,
-            ProgressDescription = memberStatus.ProgressDescription
+            ProgressDescription = memberStatus.ProgressDescription,
+            TotalActivitiesCount = memberStatus.TotalActivitiesCount
         };
     }
 }

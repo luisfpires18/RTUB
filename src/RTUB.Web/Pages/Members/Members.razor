@@ -761,6 +761,15 @@ else
                                     </ValueContent>
                                 </ProfileField>
                             }
+                            
+                            @* Encouragement note for retired members at 2/3 progress *@
+                            @if (statusResult is { } statusValue && ShouldShowReactivationEncouragement(statusValue))
+                            {
+                                <div class="alert alert-info mt-2">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <strong>Participa numa atividade este mês para voltares ao ativo!</strong>
+                                </div>
+                            }
 
                             <ProfileField Label="Último ensaio"
                                           Icon="bi-music-note-list"
@@ -887,6 +896,7 @@ else
                     var progressText = statusData is { } statusDataValue && ShouldShowProgressStatus(statusDataValue)
                         ? statusDataValue.ProgressDescription
                         : string.Empty;
+                    var showEncouragement = statusData != null && ShouldShowReactivationEncouragement(statusData);
                     <MemberCardLite AvatarUrl="@member.ProfilePictureSrc"
                                     AltText="@member.Nickname"
                                     Nickname="@member.Nickname"
@@ -905,6 +915,15 @@ else
                                 <span class="badge badge-active">NO ATIVO</span>
                             }
                         </StatusContent>
+                        <EncouragementContent>
+                            @if (showEncouragement)
+                            {
+                                <div class="alert alert-info mb-0 mt-2 small">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    <strong>Participa numa atividade este mês para voltares ao ativo!</strong>
+                                </div>
+                            }
+                        </EncouragementContent>
                     </MemberCardLite>
                 }
             </div>
@@ -2723,6 +2742,7 @@ else
                 .ThenByDescending(m => HasFullActivityHistory(m.StatusData))
                 .ThenByDescending(m => m.StatusData?.LastRehearsalDate ?? DateTime.MinValue)
                 .ThenByDescending(m => m.StatusData?.LastEventDate ?? DateTime.MinValue)
+                .ThenByDescending(m => m.StatusData?.TotalActivitiesCount ?? 0)
                 .ThenBy(m => m.Member.Nickname ?? m.Member.FirstName ?? string.Empty)
                 .ToList();
 
@@ -2894,6 +2914,16 @@ else
         }
 
         return true;
+    }
+    
+    /// <summary>
+    /// Checks if a retired member is at 2/3 progress and should be encouraged to participate
+    /// </summary>
+    private static bool ShouldShowReactivationEncouragement(MemberStatusResult? status)
+    {
+        return status?.IsRetired == true 
+            && status.ProgressTotalMonths == 3 
+            && status.ProgressMonths == 2;
     }
     
     // Anniversaries modal methods

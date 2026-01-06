@@ -72,6 +72,12 @@ public class MemberStatus : BaseEntity
     public string? ProgressDescription { get; set; }
     
     /// <summary>
+    /// Total number of activities (rehearsals + events) the member has attended
+    /// Used for sorting members by participation level
+    /// </summary>
+    public int TotalActivitiesCount { get; set; }
+    
+    /// <summary>
     /// Timestamp when this status was last calculated and updated
     /// Used to determine when a refresh is needed
     /// </summary>
