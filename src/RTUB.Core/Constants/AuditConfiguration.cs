@@ -30,15 +30,11 @@ public static class AuditConfiguration
     /// </summary>
     public static readonly HashSet<string> ExcludedEntityTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        // Messaging and conversation entities (spam prevention)
         "Message",
         "Conversation",
         "ConversationUserSettings",
-        
-        // Tag associations (frequently created/deleted)
         "GalleryMediaPersonTag",
-        
-        // Member status (uses custom manual audit logging for meaningful changes only)
+        "SongPlayCount",
         "MemberStatus"
     };
 }
