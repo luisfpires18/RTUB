@@ -290,10 +290,16 @@ public class PushNotificationService : IPushNotificationService
 
             await _messageRepository.AddAsync(message);
 
-            // Update conversation
-            conversation.LastMessageAt = message.CreatedAt;
-            conversation.LastMessageId = message.Id;
-            await _conversationRepository.UpdateAsync(conversation);
+            // Reload conversation with tracking to avoid detached entity issues
+            // This is necessary because the conversation was loaded with AsNoTracking earlier
+            var trackedConversation = await _conversationRepository.GetByIdAsync(conversation.Id);
+            if (trackedConversation != null)
+            {
+                // Update conversation
+                trackedConversation.LastMessageAt = message.CreatedAt;
+                trackedConversation.LastMessageId = message.Id;
+                await _conversationRepository.UpdateAsync(trackedConversation);
+            }
         }
         catch (Exception ex)
         {
