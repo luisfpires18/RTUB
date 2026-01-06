@@ -306,23 +306,6 @@ public class SongService : ISongService
         return await _songVideoRepository.GetCountBySongIdAsync(songId);
     }
 
-    public async Task RecordVideoPlayAsync(int videoId, string? userId = null)
-    {
-        var video = await _songVideoRepository.GetByIdAsync(videoId);
-        if (video == null)
-            throw new EntityNotFoundException(nameof(SongVideo), videoId);
-
-        var playCount = new SongVideoPlayCount
-        {
-            SongVideoId = videoId,
-            UserId = userId,
-            PlayedAt = DateTime.UtcNow
-        };
-
-        _context.SongVideoPlayCounts.Add(playCount);
-        await _context.SaveChangesAsync();
-    }
-
     // Play count tracking methods
     public async Task IncrementPlayCountAsync(int songId, string? userId = null)
     {

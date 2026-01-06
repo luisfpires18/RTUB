@@ -30,7 +30,7 @@
 
     <div class="d-flex flex-column flex-lg-row align-items-stretch gap-2">
         <SearchBar @bind-Value="SearchTerm"
-                   Placeholder="Pesquisar por nome, username, email ou nickname..."
+                   Placeholder="Pesquisar por nome, username, email, nickname ou ID..."
                    OnSearch="UpdateSearch" />
     </div>
 </div>
@@ -363,6 +363,7 @@ else
     {
         return new List<Func<ApplicationUser, string>>
         {
+            u => u.Id ?? "",
             u => u.FirstName ?? "",
             u => u.LastName ?? "",
             u => u.Nickname ?? "",

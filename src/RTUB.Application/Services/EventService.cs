@@ -355,23 +355,6 @@ public class EventService : IEventService
         return await _eventVideoRepository.GetCountByEventIdAsync(eventId);
     }
 
-    public async Task RecordVideoPlayAsync(int videoId, string? userId = null)
-    {
-        var video = await _eventVideoRepository.GetByIdAsync(videoId);
-        if (video == null)
-            throw new EntityNotFoundException(nameof(EventVideo), videoId);
-
-        var playCount = new EventVideoPlayCount
-        {
-            EventVideoId = videoId,
-            UserId = userId,
-            PlayedAt = DateTime.UtcNow
-        };
-
-        _context.EventVideoPlayCounts.Add(playCount);
-        await _context.SaveChangesAsync();
-    }
-
     private string GetBaseUrl()
     {
         var request = _httpContextAccessor.HttpContext?.Request;

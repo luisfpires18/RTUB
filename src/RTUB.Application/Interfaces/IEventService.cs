@@ -27,7 +27,4 @@ public interface IEventService
     Task UpdateVideoOrderAsync(int eventId, List<int> videoIds);
     Task DeleteVideoAsync(int videoId, string userId, bool isAdmin = false);
     Task<int> GetVideoCountByEventIdAsync(int eventId);
-    
-    // Video play count tracking
-    Task RecordVideoPlayAsync(int videoId, string? userId = null);
 }

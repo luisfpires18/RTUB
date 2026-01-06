@@ -40,9 +40,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<SongYouTubeUrl> SongYouTubeUrls { get; set; }
     public DbSet<SongVideo> SongVideos { get; set; } = null!;
     public DbSet<SongPlayCount> SongPlayCounts { get; set; }
-    public DbSet<SongVideoPlayCount> SongVideoPlayCounts { get; set; }
     public DbSet<EventVideo> EventVideos { get; set; } = null!;
-    public DbSet<EventVideoPlayCount> EventVideoPlayCounts { get; set; }
     public DbSet<EventRepertoire> EventRepertoires { get; set; }
     public DbSet<Report> Reports { get; set; }
     public DbSet<Activity> Activities { get; set; }
