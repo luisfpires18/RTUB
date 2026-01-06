@@ -896,7 +896,7 @@ else
                                     LastEventText="@eventText"
                                     ProgressText="@progressText">
                         <StatusContent>
-                            @if (statusData?.IsRetired == true)
+                            @if (statusData?.IsRetired == true || (statusData == null && member.IsRetired))
                             {
                                 <span class="badge badge-retired">REFORMADO</span>
                             }
@@ -2785,11 +2785,17 @@ else
         {
             if (activeMembersStatusFilter == "active")
             {
-                membersToFilter = membersToFilter.Where(m => m.StatusData?.IsRetired == false).ToList();
+                // Show members who are not retired (either by statusData or by member.IsRetired)
+                membersToFilter = membersToFilter.Where(m => 
+                    m.StatusData?.IsRetired == false || 
+                    (m.StatusData == null && !m.Member.IsRetired)).ToList();
             }
             else if (activeMembersStatusFilter == "retired")
             {
-                membersToFilter = membersToFilter.Where(m => m.StatusData?.IsRetired == true).ToList();
+                // Show members who are retired (either by statusData or by member.IsRetired)
+                membersToFilter = membersToFilter.Where(m => 
+                    m.StatusData?.IsRetired == true || 
+                    (m.StatusData == null && m.Member.IsRetired)).ToList();
             }
         }
 
@@ -2822,14 +2828,17 @@ else
     private static int GetActiveMemberPriority(ActiveMemberData memberData)
     {
         var status = memberData.StatusData;
+        
+        // Fall back to member.IsRetired if status is null
+        var isRetired = status?.IsRetired ?? memberData.Member.IsRetired;
 
-        if (status?.IsRetired == false)
+        if (!isRetired)
         {
             return 0;
         }
 
-        if (status?.IsRetired == true &&
-            status.ProgressTotalMonths == 3 &&
+        if (isRetired &&
+            status?.ProgressTotalMonths == 3 &&
             status.ProgressMonths.HasValue)
         {
             return status.ProgressMonths.Value switch
@@ -2846,7 +2855,9 @@ else
 
     private static int GetActiveMemberGroupPriority(ActiveMemberData memberData)
     {
-        return memberData.StatusData?.IsRetired == false ? 0 : 1;
+        // Group by retired status, falling back to member.IsRetired if statusData is null
+        var isRetired = memberData.StatusData?.IsRetired ?? memberData.Member.IsRetired;
+        return isRetired ? 1 : 0;
     }
 
     private static bool HasFullActivityHistory(MemberStatusResult? status)
