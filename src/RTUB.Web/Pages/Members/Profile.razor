@@ -13,6 +13,7 @@
 @using RTUB.Application.DTOs
 @using Microsoft.JSInterop
 @using Microsoft.Extensions.Options
+@using Microsoft.EntityFrameworkCore
 @attribute [Authorize]
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
@@ -775,7 +776,9 @@
                 }
                 
                 // Load eligible mentors (only Tuno category)
+                // Use AsNoTracking to avoid EF tracking conflicts when updating user
                 eligibleMentors = UserManager.Users
+                    .AsNoTracking()
                     .Where(u => u.Id != user.Id && u.Categories.Contains(MemberCategory.Tuno))
                     .OrderBy(u => u.FirstName)
                     .ThenBy(u => u.LastName)
