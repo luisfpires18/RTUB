@@ -35,9 +35,6 @@ public static class AuditConfiguration
         "Conversation",
         "ConversationUserSettings",
         
-        // High-frequency tracking entities
-        "SongPlayCount",
-        
         // Tag associations (frequently created/deleted)
         "GalleryMediaPersonTag",
         
