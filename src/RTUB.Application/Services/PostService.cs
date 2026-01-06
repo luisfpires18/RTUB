@@ -82,10 +82,10 @@ public class PostService : IPostService
             await UploadPostMediaAsync(createdPost.Id, videoFiles, "Video", eventId);
         }
 
-        // Send push notification to enrolled users
+        // Send push notification to enrolled users (only for future events)
         try
         {
-            if (discussion?.Event != null)
+            if (discussion?.Event != null && discussion.Event.Date >= DateTime.UtcNow)
             {
                 // Load author to get nickname (use Query to include navigation properties)
                 var authorUser = await _enrollmentRepository.Query()
