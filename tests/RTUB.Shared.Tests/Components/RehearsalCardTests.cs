@@ -736,9 +736,9 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.HasPendingApprovals, true)
             .Add(p => p.AttendanceCount, 5));
 
-        // Assert
-        cut.Markup.Should().Contain("bi-clock-fill", "should show yellow clock icon as pending approvals reminder");
-        cut.Markup.Should().Contain("btn-pending", "reminder button should have pending style");
+        // Assert - Ver Presenças button should be yellow with clock icon for pending approvals
+        cut.Markup.Should().Contain("bi-clock-fill", "should show clock icon on Ver Presenças button");
+        cut.Markup.Should().Contain("btn-warning", "Ver Presenças button should be yellow (warning) style");
         cut.Markup.Should().Contain("Tem presenças pendentes para aprovar", "should have tooltip explaining pending approvals");
     }
 
@@ -756,14 +756,9 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.HasPendingApprovals, true)
             .Add(p => p.AttendanceCount, 5));
 
-        // Assert - Clock icon should not appear for non-admin even if pending approvals exist
-        var buttons = cut.FindAll("button");
-        var hasPendingReminderButton = buttons.Any(b => 
-            b.ClassList.Contains("btn-pending") && 
-            !b.ClassList.Contains("btn-selected") &&
-            b.GetAttribute("title")?.Contains("Tem presenças pendentes para aprovar") == true);
-        
-        hasPendingReminderButton.Should().BeFalse("pending approvals reminder should not appear for non-admin users");
+        // Assert - Should show regular people icon, not clock, for non-admin
+        cut.Markup.Should().Contain("bi-people", "should show people icon for non-admin");
+        cut.Markup.Should().NotContain("btn-warning", "Ver Presenças button should not be yellow for non-admin");
     }
 
     [Fact]
@@ -780,12 +775,9 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.HasPendingApprovals, true)
             .Add(p => p.AttendanceCount, 5));
 
-        // Assert - Should not show pending approvals reminder for upcoming rehearsals
-        var buttons = cut.FindAll("button");
-        var hasPendingReminderButton = buttons.Any(b => 
-            b.GetAttribute("title")?.Contains("Tem presenças pendentes para aprovar") == true);
-        
-        hasPendingReminderButton.Should().BeFalse("pending approvals reminder should not appear for upcoming rehearsals");
+        // Assert - Should show regular people icon for upcoming rehearsals, not clock
+        cut.Markup.Should().Contain("bi-people", "should show people icon for upcoming rehearsals");
+        cut.Markup.Should().NotContain("btn-warning", "Ver Presenças button should not be yellow for upcoming rehearsals");
     }
 
     [Fact]
@@ -802,12 +794,9 @@ public class RehearsalCardTests : TestContext
             .Add(p => p.HasPendingApprovals, false)
             .Add(p => p.AttendanceCount, 5));
 
-        // Assert
-        var buttons = cut.FindAll("button");
-        var hasPendingReminderButton = buttons.Any(b => 
-            b.GetAttribute("title")?.Contains("Tem presenças pendentes para aprovar") == true);
-        
-        hasPendingReminderButton.Should().BeFalse("pending approvals reminder should not appear when no pending approvals");
+        // Assert - Should show regular people icon when no pending approvals
+        cut.Markup.Should().Contain("bi-people", "should show people icon when no pending approvals");
+        cut.Markup.Should().NotContain("btn-warning", "Ver Presenças button should not be yellow when no pending approvals");
     }
 
     #endregion
