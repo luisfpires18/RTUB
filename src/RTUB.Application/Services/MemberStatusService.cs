@@ -571,11 +571,14 @@ public class MemberStatusService : IMemberStatusService
         
         var oneHourAgo = DateTime.UtcNow.AddHours(-1);
         
+        // Convert to dictionary for O(1) lookups instead of O(n) FirstOrDefault in loop
+        var statusesByUserId = memberStatuses.ToDictionary(ms => ms.UserId);
+        
         // Build result dictionary
         var result = new Dictionary<string, MemberStatusResult?>();
         foreach (var userId in userIdList)
         {
-            var memberStatus = memberStatuses.FirstOrDefault(ms => ms.UserId == userId);
+            statusesByUserId.TryGetValue(userId, out var memberStatus);
             
             // Only return cached status if it's fresh (less than 1 hour old)
             if (memberStatus != null && memberStatus.LastUpdatedAt > oneHourAgo)
