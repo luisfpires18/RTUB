@@ -296,10 +296,6 @@
         min-width: 0;
     }
 
-    .page-header-actions .btn .btn-text {
-        display: none;
-    }
-
     /* Filters - Collapsed by default on mobile */
     .filters-body.expanded {
         max-height: none;
