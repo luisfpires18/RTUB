@@ -23,6 +23,7 @@
 @inject IEventRepertoireService EventRepertoireService
 @inject IDiscussionService DiscussionService
 @inject IPostService PostService
+@inject IAuditLogService AuditLogService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject IWebHostEnvironment Environment
@@ -1005,7 +1006,7 @@ else
                     if (selectedVideo != null)
                     {
                         <div class="video-player-container">
-                            <video @key="@selectedVideo.Id" controls class="modal-video" preload="metadata">
+                            <video @key="@selectedVideo.Id" controls class="modal-video" preload="metadata" @onplay="() => LogVideoPlaybackAsync(selectedVideo, selectedEventForVideos!)">
                                 <source src="@selectedVideo.Url" type="@selectedVideo.MimeType">
                                 O seu navegador não suporta o elemento de vídeo.
                             </video>
@@ -3610,6 +3611,33 @@ else
         // Clean up drag state
         draggingVideoId = null;
         dragOverVideoId = null;
+    }
+
+    private async Task LogVideoPlaybackAsync(EventVideo video, Event eventItem)
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var userId = user?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var userName = user?.Identity?.Name;
+            var displayName = $"{video.Title ?? "Video"} ({eventItem.Name})";
+
+            await AuditLogService.AddAsync(new AuditLog
+            {
+                EntityType = "EventVideo",
+                EntityId = video.Id,
+                Action = "Played",
+                UserId = string.IsNullOrEmpty(userId) ? null : userId,
+                UserName = userName,
+                Timestamp = DateTime.UtcNow,
+                EntityDisplayName = displayName
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error logging video playback for video {VideoId}", video.Id);
+        }
     }
 }
 
