@@ -719,4 +719,121 @@ public class RehearsalCardTests : TestContext
     }
 
     #endregion
+
+    #region Pending Approvals Reminder Tests
+
+    [Fact]
+    public void RehearsalCard_ShowsPendingApprovalsReminder_WhenAdminAndPastRehearsalWithPending()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
+
+        // Act
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastRehearsal, true)
+            .Add(p => p.HasPendingApprovals, true)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert
+        cut.Markup.Should().Contain("bi-clock-fill", "should show yellow clock icon as pending approvals reminder");
+        cut.Markup.Should().Contain("btn-pending", "reminder button should have pending style");
+        cut.Markup.Should().Contain("Tem presenças pendentes para aprovar", "should have tooltip explaining pending approvals");
+    }
+
+    [Fact]
+    public void RehearsalCard_DoesNotShowPendingApprovalsReminder_WhenNotAdmin()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
+
+        // Act
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, false)
+            .Add(p => p.IsPastRehearsal, true)
+            .Add(p => p.HasPendingApprovals, true)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert - Clock icon should not appear for non-admin even if pending approvals exist
+        var buttons = cut.FindAll("button");
+        var hasPendingReminderButton = buttons.Any(b => 
+            b.ClassList.Contains("btn-pending") && 
+            !b.ClassList.Contains("btn-selected") &&
+            b.GetAttribute("title")?.Contains("Tem presenças pendentes para aprovar") == true);
+        
+        hasPendingReminderButton.Should().BeFalse("pending approvals reminder should not appear for non-admin users");
+    }
+
+    [Fact]
+    public void RehearsalCard_DoesNotShowPendingApprovalsReminder_WhenNotPastRehearsal()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(7), "Music Room");
+
+        // Act
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastRehearsal, false)
+            .Add(p => p.HasPendingApprovals, true)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert - Should not show pending approvals reminder for upcoming rehearsals
+        var buttons = cut.FindAll("button");
+        var hasPendingReminderButton = buttons.Any(b => 
+            b.GetAttribute("title")?.Contains("Tem presenças pendentes para aprovar") == true);
+        
+        hasPendingReminderButton.Should().BeFalse("pending approvals reminder should not appear for upcoming rehearsals");
+    }
+
+    [Fact]
+    public void RehearsalCard_DoesNotShowPendingApprovalsReminder_WhenNoPendingApprovals()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
+
+        // Act
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastRehearsal, true)
+            .Add(p => p.HasPendingApprovals, false)
+            .Add(p => p.AttendanceCount, 5));
+
+        // Assert
+        var buttons = cut.FindAll("button");
+        var hasPendingReminderButton = buttons.Any(b => 
+            b.GetAttribute("title")?.Contains("Tem presenças pendentes para aprovar") == true);
+        
+        hasPendingReminderButton.Should().BeFalse("pending approvals reminder should not appear when no pending approvals");
+    }
+
+    [Fact]
+    public void RehearsalCard_PendingApprovalsReminderButton_InvokesOnViewAttendances()
+    {
+        // Arrange
+        var rehearsal = Rehearsal.Create(DateTime.Now.AddDays(-7), "Music Room");
+        bool callbackInvoked = false;
+
+        var cut = RenderComponent<RehearsalCard>(parameters => parameters
+            .Add(p => p.Rehearsal, rehearsal)
+            .Add(p => p.IsAdmin, true)
+            .Add(p => p.IsPastRehearsal, true)
+            .Add(p => p.HasPendingApprovals, true)
+            .Add(p => p.AttendanceCount, 5)
+            .Add(p => p.OnViewAttendances, EventCallback.Factory.Create(this, () => callbackInvoked = true)));
+
+        // Act - Find and click the pending approvals reminder button
+        var reminderButton = cut.FindAll("button").First(b => 
+            b.ClassList.Contains("btn-pending") && 
+            b.GetAttribute("title")?.Contains("Tem presenças pendentes para aprovar") == true);
+        reminderButton.Click();
+
+        // Assert
+        callbackInvoked.Should().BeTrue("clicking pending approvals reminder should open attendances modal");
+    }
+
+    #endregion
 }
