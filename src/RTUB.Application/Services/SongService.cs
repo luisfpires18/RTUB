@@ -1,4 +1,6 @@
 using System;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RTUB.Application.Data;
@@ -22,12 +24,20 @@ public class SongService : ISongService
     private readonly ISongVideoStorageService _songVideoStorageService;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<SongService>? _logger;
+    private readonly IPushNotificationFactory _pushNotificationFactory;
+    private readonly IPushNotificationService _pushNotificationService;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public SongService(
         ISongRepository songRepository,
         ISongVideoRepository songVideoRepository,
         ISongVideoStorageService songVideoStorageService,
         ApplicationDbContext context,
+        IPushNotificationFactory pushNotificationFactory,
+        IPushNotificationService pushNotificationService,
+        UserManager<ApplicationUser> userManager,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<SongService>? logger = null)
     {
         _songRepository = songRepository;
@@ -35,6 +45,10 @@ public class SongService : ISongService
         _songVideoStorageService = songVideoStorageService;
         _context = context;
         _logger = logger;
+        _pushNotificationFactory = pushNotificationFactory;
+        _pushNotificationService = pushNotificationService;
+        _userManager = userManager;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<Song?> GetSongByIdAsync(int id)
@@ -224,6 +238,36 @@ public class SongService : ISongService
         // Save to repository
         var createdVideo = await _songVideoRepository.AddAsync(songVideo);
 
+        // Send push notification to all users
+        try
+        {
+            var uploader = await _userManager.FindByIdAsync(createdByUserId);
+            var uploaderName = uploader?.Nickname ?? uploader?.FirstName ?? "Um membro";
+            var baseUrl = GetBaseUrl();
+            
+            var notification = _pushNotificationFactory.CreateSongVideoUploadNotification(
+                song,
+                uploaderName,
+                baseUrl);
+
+            // Get all active users (could be filtered based on your requirements)
+            var allUserIds = await _userManager.Users
+                .Where(u => !u.IsRetired)
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            // Send to each user (excluding the uploader)
+            foreach (var userId in allUserIds.Where(id => id != createdByUserId))
+            {
+                await _pushNotificationService.SendToUserAsync(userId, notification);
+            }
+        }
+        catch
+        {
+            // Log error but don't fail the operation
+            // Notification is secondary to the main operation
+        }
+
         return createdVideo;
     }
 
@@ -412,5 +456,15 @@ public class SongService : ISongService
             .ToListAsync();
 
         return albumStats.Select(x => (x.Album, x.PlayCount));
+    }
+
+    private string GetBaseUrl()
+    {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+        return "https://rtub.pt"; // Fallback
     }
 }
