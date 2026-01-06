@@ -342,8 +342,8 @@ else
                     }
                 </div>
 
-                <!-- Admin/Owner Section - Detailed Stats -->
-                <AuthorizeView Roles="Admin,Owner">
+                <!-- Admin Section - Detailed Stats -->
+                <AuthorizeView Roles="Admin">
                     <Authorized>
                         <div class="mb-4">
                             <h4 class="mb-3"><i class="bi bi-person-badge"></i> Estatísticas Detalhadas por Utilizador</h4>
@@ -729,13 +729,13 @@ else
         var allSongsTask = SongService.GetAllSongsWithPlayCountAsync();
         var allAlbumsTask = SongService.GetAllAlbumsWithPlayCountAsync();
         
-        // Check if user is admin/owner for detailed stats
+        // Check if user is admin for detailed stats
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var authUser = authState.User;
-        bool isAdminOrOwner = authUser.IsInRole("Admin") || authUser.IsInRole("Owner");
+        bool isAdmin = authUser.IsInRole("Admin");
         
         Task<IEnumerable<(UserPlayInfo, Song, Album, int)>>? detailedStatsTask = null;
-        if (isAdminOrOwner)
+        if (isAdmin)
         {
             detailedStatsTask = SongService.GetDetailedPlayStatsAsync();
         }
