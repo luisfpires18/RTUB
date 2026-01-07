@@ -1,7 +1,7 @@
 # RTUB Code Improvement Plan
 
 > **Document Version**: 1.0  
-> **Created**: 2026-01-07  
+> **Created**: 2025-01-07  
 > **Purpose**: Guide incremental refactoring to reduce repetition and improve maintainability
 
 ---
@@ -296,8 +296,8 @@ var eventEntity = await _eventRepository.GetByIdAsync(id);
 if (eventEntity == null)
     throw new EntityNotFoundException($"Event with ID {id} not found");
 
-// After (generic type parameters inferred from repository type)
-var eventEntity = await _eventRepository.GetByIdOrThrowAsync<Event, int>(id);
+// After (type inference works when the repository interface is well-typed)
+var eventEntity = await _eventRepository.GetByIdOrThrowAsync(id);
 ```
 
 #### Recommendation S3: Create Audit Log Helper Service
@@ -493,7 +493,7 @@ Combine search + filter + list into reusable component:
 
 #### Recommendation P4: Create LoadableContent Wrapper
 **Priority**: High  
-**Effort**: 1 day
+**Effort**: 2-3 days
 
 Create a simple wrapper for loading/empty/content states:
 
@@ -838,13 +838,15 @@ private void CloseEditModal() {
 
 Track these metrics to measure improvement:
 
-| Metric | Current | Target |
-|--------|---------|--------|
+| Metric | Current (Estimated) | Target |
+|--------|---------------------|--------|
 | Avg lines per Razor page | ~1500 | <800 |
 | Modal boolean flags per page | 5-7 | 0 (use MultiModalState) |
 | Duplicate pagination handlers | 4+ per page | 1 via component |
 | Storage service upload code | ~50 lines each | ~10 lines (using helper) |
 | "null check + throw" patterns | 50+ occurrences | 0 (use extension) |
+
+> **Note**: Current values are initial estimates based on code review. Before beginning implementation, measure actual baseline values for accurate progress tracking.
 
 ---
 
