@@ -62,7 +62,7 @@ public class MemberStatusService : IMemberStatusService
         // If cache exists and is fresh (less than 1 hour old), return it
         if (memberStatus != null && (DateTime.UtcNow - memberStatus.LastUpdatedAt).TotalHours < 1)
         {
-            return MapToResult(memberStatus);
+            return await MapToResultAsync(memberStatus);
         }
 
         // Otherwise, calculate fresh status and update database
@@ -491,6 +491,10 @@ public class MemberStatusService : IMemberStatusService
             totalActivitiesCount = rehearsalCount + eventCount;
         }
 
+        // Check if member has activity in the current month
+        var currentMonthStart = new DateTime(now.Year, now.Month, 1);
+        var hasActivityInCurrentMonth = await HasActivityInPeriodAsync(userId, currentMonthStart, now);
+
         return new MemberStatusResult
         {
             IsRetired = isRetired,
@@ -501,7 +505,8 @@ public class MemberStatusService : IMemberStatusService
             ProgressMonths = progressMonths,
             ProgressTotalMonths = progressTotalMonths,
             ProgressDescription = progressDescription,
-            TotalActivitiesCount = totalActivitiesCount
+            TotalActivitiesCount = totalActivitiesCount,
+            HasActivityInCurrentMonth = hasActivityInCurrentMonth
         };
     }
 
@@ -798,7 +803,7 @@ public class MemberStatusService : IMemberStatusService
             // Only return cached status if it's fresh (less than 1 hour old)
             if (memberStatus != null && memberStatus.LastUpdatedAt > oneHourAgo)
             {
-                result[userId] = MapToResult(memberStatus);
+                result[userId] = await MapToResultAsync(memberStatus);
             }
             else
             {
@@ -813,9 +818,15 @@ public class MemberStatusService : IMemberStatusService
     
     /// <summary>
     /// Maps a MemberStatus entity to a MemberStatusResult DTO
+    /// Computes HasActivityInCurrentMonth dynamically since it depends on current time
     /// </summary>
-    private MemberStatusResult MapToResult(MemberStatus memberStatus)
+    private async Task<MemberStatusResult> MapToResultAsync(MemberStatus memberStatus)
     {
+        // Calculate current month activity dynamically
+        var now = DateTime.UtcNow;
+        var currentMonthStart = new DateTime(now.Year, now.Month, 1);
+        var hasActivityInCurrentMonth = await HasActivityInPeriodAsync(memberStatus.UserId, currentMonthStart, now);
+        
         return new MemberStatusResult
         {
             IsRetired = memberStatus.IsRetired,
@@ -826,7 +837,8 @@ public class MemberStatusService : IMemberStatusService
             ProgressMonths = memberStatus.ProgressMonths,
             ProgressTotalMonths = memberStatus.ProgressTotalMonths,
             ProgressDescription = memberStatus.ProgressDescription,
-            TotalActivitiesCount = memberStatus.TotalActivitiesCount
+            TotalActivitiesCount = memberStatus.TotalActivitiesCount,
+            HasActivityInCurrentMonth = hasActivityInCurrentMonth
         };
     }
 }

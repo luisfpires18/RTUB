@@ -1394,8 +1394,16 @@
             return false;
         }
 
+        // For active members (not retired), only show progress if they haven't participated this month
+        // If they already participated this month, they're "safe" for now - no need to show countdown
         if (status.IsRetired == false && status.ProgressTotalMonths == 6)
         {
+            // Hide progress if member has activity in current month (they're doing well)
+            if (status.HasActivityInCurrentMonth)
+            {
+                return false;
+            }
+            // Show progress only if there's 1-5 months without activity
             return status.ProgressMonths is >= 1 and <= 5;
         }
 
