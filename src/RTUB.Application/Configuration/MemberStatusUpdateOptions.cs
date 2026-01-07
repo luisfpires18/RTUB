@@ -17,4 +17,10 @@ public class MemberStatusUpdateOptions
     /// Default is 21:00 (9 PM)
     /// </summary>
     public string ScheduledTime { get; set; } = "21:00";
+    
+    /// <summary>
+    /// Whether to send push notifications for member status changes
+    /// Set to false while testing/debugging the status update logic
+    /// </summary>
+    public bool PushNotificationsEnabled { get; set; } = false;
 }

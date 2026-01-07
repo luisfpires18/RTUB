@@ -2,7 +2,9 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
+using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
@@ -26,6 +28,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
     private readonly Mock<IAuditLogService> _mockAuditLogService;
     private readonly Mock<ILogger<MemberStatusService>> _mockLogger;
+    private readonly Mock<IOptions<MemberStatusUpdateOptions>> _mockOptions;
 
     public MemberStatusServiceTests(DatabaseFixture fixture)
     {
@@ -50,13 +53,23 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         
         // Create mock logger
         _mockLogger = new Mock<ILogger<MemberStatusService>>();
+        
+        // Create mock options with push notifications disabled for tests
+        _mockOptions = new Mock<IOptions<MemberStatusUpdateOptions>>();
+        _mockOptions.Setup(o => o.Value).Returns(new MemberStatusUpdateOptions 
+        { 
+            Enabled = true, 
+            ScheduledTime = "21:00",
+            PushNotificationsEnabled = false 
+        });
 
         _service = new MemberStatusService(
             _context, 
             _mockUserManager.Object,
             _mockPushNotificationService.Object,
             _mockAuditLogService.Object,
-            _mockLogger.Object);
+            _mockLogger.Object,
+            _mockOptions.Object);
     }
 
     [Fact]
@@ -571,10 +584,11 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         await _context.SaveChangesAsync();
 
         // Add 3 consecutive months of activity to trigger activation
+        // Note: The new logic requires 3 completed months, so we need activities 1, 2, and 3 months ago
         var now = DateTime.UtcNow;
-        for (int i = 0; i < 3; i++)
+        for (int i = 1; i <= 3; i++)
         {
-            var rehearsalDate = now.AddMonths(-i).AddDays(-5); // Use negative days to ensure it's in the past
+            var rehearsalDate = new DateTime(now.AddMonths(-i).Year, now.AddMonths(-i).Month, 15); // Mid-month
             var rehearsal = Rehearsal.Create(rehearsalDate, $"Location {i}");
             _context.Rehearsals.Add(rehearsal);
             await _context.SaveChangesAsync();
@@ -585,14 +599,31 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         }
         await _context.SaveChangesAsync();
 
+        // Create a service with push notifications enabled for this test
+        var optionsWithNotifications = new Mock<IOptions<MemberStatusUpdateOptions>>();
+        optionsWithNotifications.Setup(o => o.Value).Returns(new MemberStatusUpdateOptions 
+        { 
+            Enabled = true, 
+            ScheduledTime = "21:00",
+            PushNotificationsEnabled = true 
+        });
+        
+        var serviceWithNotifications = new MemberStatusService(
+            _context, 
+            _mockUserManager.Object,
+            _mockPushNotificationService.Object,
+            _mockAuditLogService.Object,
+            _mockLogger.Object,
+            optionsWithNotifications.Object);
+
         // Act
-        var result = await _service.UpdateMemberStatusAsync(userId);
+        var result = await serviceWithNotifications.UpdateMemberStatusAsync(userId);
 
         // Assert
         result.Should().NotBeNull();
         result.IsRetired.Should().BeFalse(); // Should transition to active
 
-        // Verify push notification was sent
+        // Verify push notification was sent (broadcast to all users)
         _mockPushNotificationService.Verify(
             pns => pns.BroadcastAsync(It.Is<RTUB.Application.DTOs.SendPushNotificationDto>(
                 dto => dto.Title.Contains("Reativado") && dto.Body.Contains("TestTuno"))),
