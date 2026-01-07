@@ -750,6 +750,34 @@ public class EventRepertoireServiceTests : IClassFixture<DatabaseFixture>, IDisp
     }
 
     [Fact]
+    public async Task GetRepertoireByEventIdAsync_MultipleEvents_ReturnsCorrectRepertoire()
+    {
+        // Arrange
+        var event1 = await _eventService.CreateEventAsync("Event 1", _testEventDate, "Location 1", EventType.Atuacao);
+        var event2 = await _eventService.CreateEventAsync("Event 2", _testEventDate.AddDays(1), "Location 2", EventType.Convivio);
+        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
+        var song1 = await _songService.CreateSongAsync("Song 1", album.Id);
+        var song2 = await _songService.CreateSongAsync("Song 2", album.Id);
+
+        await _repertoireService.AddSongToRepertoireAsync(event1.Id, song1.Id, 1, _testEventDate);
+        await _repertoireService.AddSongToRepertoireAsync(event2.Id, song2.Id, 1, _testEventDate);
+
+        // Act
+        var result1 = (await _repertoireService.GetRepertoireByEventIdAsync(event1.Id)).ToList();
+        var result2 = (await _repertoireService.GetRepertoireByEventIdAsync(event2.Id)).ToList();
+
+        // Assert
+        result1.Should().ContainSingle();
+        result1[0].Song!.Title.Should().Be("Song 1");
+        result2.Should().ContainSingle();
+        result2[0].Song!.Title.Should().Be("Song 2");
+    }
+
+    // ========================================
+    // Multi-Day Repertoire Tests
+    // ========================================
+
+    [Fact]
     public async Task GetRepertoireByEventIdAsync_SingleDayEvent_ReturnsOnlyThatDayRepertoire()
     {
         // Arrange
