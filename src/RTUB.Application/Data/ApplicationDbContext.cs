@@ -192,6 +192,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             }
         }
 
+        // Detach duplicate ApplicationUser entities before processing to avoid tracking conflicts
+        // This prevents issues when entities with navigation properties to ApplicationUser are added
+        DetachDuplicateApplicationUsers();
+
         // Also track ApplicationUser changes (not BaseEntity)
         foreach (var entry in ChangeTracker.Entries<ApplicationUser>())
         {
@@ -1174,6 +1178,39 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Detaches duplicate ApplicationUser entities to prevent tracking conflicts.
+    /// This is necessary when entities with navigation properties to ApplicationUser are added,
+    /// as EF Core may try to track the same ApplicationUser instance multiple times.
+    /// </summary>
+    private void DetachDuplicateApplicationUsers()
+    {
+        // Get all ApplicationUser entries that are currently being tracked
+        var trackedUsers = ChangeTracker.Entries<ApplicationUser>()
+            .Where(e => e.State != EntityState.Detached)
+            .ToList();
+
+        // Group by user ID to find duplicates
+        var duplicateGroups = trackedUsers
+            .GroupBy(e => e.Entity.Id)
+            .Where(g => g.Count() > 1)
+            .ToList();
+
+        // For each group of duplicates, keep only one entry tracked
+        // Prefer non-Added states (Modified/Unchanged) over Added states to maintain existing audit information
+        foreach (var group in duplicateGroups)
+        {
+            // Sort so that Added entities come last, making them candidates for detachment
+            var entries = group.OrderByDescending(e => e.State != EntityState.Added).ToList();
+            
+            // Detach all but the first entry (the one we want to keep)
+            foreach (var entry in entries.Skip(1))
+            {
+                entry.State = EntityState.Detached;
+            }
+        }
     }
 
     /// <summary>

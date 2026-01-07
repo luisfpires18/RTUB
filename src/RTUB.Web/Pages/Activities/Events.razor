@@ -71,10 +71,10 @@ else if (!events.Any())
 }
 else
 {
-    <div class="row">
+    <div class="row" @key="@($"future-events-{eventListRefreshTrigger}")">
         @foreach (var eventItem in paginatedFutureEvents)
         {
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4 mb-4" @key="eventItem.Id">
                 <AuthorizeView>
                     <Authorized>
                         @{
@@ -126,7 +126,7 @@ else
                         PageSize="@futureEventsPaginationHelper.PageSize"
                         TotalItems="@(events?.Count ?? 0)"
                         ItemLabel="eventos"
-                        PageSizeOptions="@(new[] { 3, 6, 9, 12, 15 })"
+                        PageSizeOptions="@(new[] { 9, 18, 27, 36, 45 })"
                         OnPageChanged="@HandleFutureEventsPageChange"
                         OnPageSizeChanged="@HandleFutureEventsPageSizeChange" />
     }
@@ -155,10 +155,10 @@ else if (!filteredPreviousEvents.Any())
 }
 else
 {
-    <div class="row">
+    <div class="row" @key="@($"previous-events-{eventListRefreshTrigger}")">
         @foreach (var eventItem in paginatedPreviousEvents)
         {
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4 mb-4" @key="eventItem.Id">
                 <AuthorizeView>
                     <Authorized>
                         @{
@@ -227,7 +227,7 @@ else
                     PageSize="@paginationHelper.PageSize"
                     TotalItems="@(filteredPreviousEvents?.Count ?? 0)"
                     ItemLabel="eventos"
-                    PageSizeOptions="@(new[] { 3, 6, 9, 12, 15 })"
+                    PageSizeOptions="@(new[] { 9, 18, 27, 36, 45 })"
                     OnPageChanged="@HandlePreviousEventsPageChange"
                     OnPageSizeChanged="@HandlePreviousEventsPageSizeChange" />
 }
@@ -1426,11 +1426,12 @@ else
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
     private int imageRefreshTrigger = 0;
+    private int eventListRefreshTrigger = 0; // Force event list re-render
     private byte[]? croppedImageBytes;
     private string? croppedImageFileName = "event-image.webp";
 
     // Future events pagination
-    private PaginationHelper<Event> futureEventsPaginationHelper = new() { PageSize = 6 };
+    private PaginationHelper<Event> futureEventsPaginationHelper = new() { PageSize = 9 };
     private List<Event> paginatedFutureEvents => futureEventsPaginationHelper.GetPageData(events ?? new List<Event>());
 
     // Previous events (admin only)
@@ -1440,7 +1441,7 @@ else
     
     // Helper instances for previous events
     private SearchHelper<Event> searchHelper = new();
-    private PaginationHelper<Event> paginationHelper = new() { PageSize = 6 };
+    private PaginationHelper<Event> paginationHelper = new() { PageSize = 9 };
     private List<Event> paginatedPreviousEvents => paginationHelper.GetPageData(filteredPreviousEvents ?? new List<Event>());
     
     // Enrollment modal filter variables
@@ -1920,10 +1921,16 @@ else
             }
         }
 
+        // Reload all event-related data to ensure UI is fully updated
         await LoadEvents();
         await LoadPreviousEvents();
+        await LoadEnrollments();
+        await LoadEventRepertoires();
+        await LoadDiscussionPosts();
+        
+        eventListRefreshTrigger++; // Increment to force component re-render
+        StateHasChanged(); // Force UI refresh before closing modal
         CloseEditModal();
-        StateHasChanged();
     }
 
     private void OpenDeleteModal(Event eventItem)
@@ -1943,11 +1950,17 @@ else
         if (deletingEvent == null) return;
 
         await EventService.DeleteEventAsync(deletingEvent.Id);
+        
+        // Reload all event-related data to ensure UI is fully updated
         await LoadEvents();
         await LoadPreviousEvents();
+        await LoadEnrollments();
+        await LoadEventRepertoires();
+        await LoadDiscussionPosts();
 
+        eventListRefreshTrigger++; // Increment to force component re-render
+        StateHasChanged(); // Force UI refresh before closing modal
         CloseDeleteModal();
-        StateHasChanged();
     }
 
     // Enrollment methods
