@@ -16,7 +16,6 @@ public class EnrollmentService : IEnrollmentService
 {
     private readonly IEnrollmentRepository _enrollmentRepository;
     private readonly IRetirementStatusService _retirementStatusService;
-    private readonly IMemberStatusService _memberStatusService;
     private readonly IPushNotificationFactory _pushNotificationFactory;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -24,14 +23,12 @@ public class EnrollmentService : IEnrollmentService
     public EnrollmentService(
         IEnrollmentRepository enrollmentRepository,
         IRetirementStatusService retirementStatusService,
-        IMemberStatusService memberStatusService,
         IPushNotificationFactory pushNotificationFactory,
         IPushNotificationService pushNotificationService,
         IHttpContextAccessor httpContextAccessor)
     {
         _enrollmentRepository = enrollmentRepository;
         _retirementStatusService = retirementStatusService;
-        _memberStatusService = memberStatusService;
         _pushNotificationFactory = pushNotificationFactory;
         _pushNotificationService = pushNotificationService;
         _httpContextAccessor = httpContextAccessor;
@@ -65,19 +62,6 @@ public class EnrollmentService : IEnrollmentService
         enrollment.WillAttend = willAttend;
         enrollment.OtherInstruments = otherInstruments;
         var createdEnrollment = await _enrollmentRepository.AddAsync(enrollment);
-
-        // Update member status cache to ensure "Gestao de membros ativos" shows current data
-        if (willAttend)
-        {
-            try
-            {
-                await _memberStatusService.UpdateMemberStatusAsync(userId);
-            }
-            catch
-            {
-                // Don't fail enrollment if status update fails - it will be updated by background service
-            }
-        }
 
         if (!skipNotification)
         {
@@ -122,16 +106,6 @@ public class EnrollmentService : IEnrollmentService
         if (willAttend)
         {
             await _retirementStatusService.UpdateUserRetirementStatusAsync(enrollment.UserId);
-            
-            // Update member status cache to ensure "Gestao de membros ativos" shows current data
-            try
-            {
-                await _memberStatusService.UpdateMemberStatusAsync(enrollment.UserId);
-            }
-            catch
-            {
-                // Don't fail enrollment update if status update fails - it will be updated by background service
-            }
         }
 
         // Send notification if user is now attending (was not attending before)

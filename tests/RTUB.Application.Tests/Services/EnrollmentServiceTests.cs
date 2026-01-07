@@ -44,12 +44,10 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
         var mockPushNotificationFactory = new Mock<IPushNotificationFactory>();
         var mockPushNotificationService = new Mock<IPushNotificationService>();
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        var mockMemberStatusService = new Mock<IMemberStatusService>();
 
         _enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_context),
             _mockRetirementStatusService.Object,
-            mockMemberStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockHttpContextAccessor.Object);
@@ -359,12 +357,10 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
 
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        var mockMemberStatusService = new Mock<IMemberStatusService>();
 
         var enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_context),
             _mockRetirementStatusService.Object,
-            mockMemberStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockHttpContextAccessor.Object);
@@ -462,12 +458,10 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
 
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        var mockMemberStatusService = new Mock<IMemberStatusService>();
 
         var enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_context),
             _mockRetirementStatusService.Object,
-            mockMemberStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockHttpContextAccessor.Object);
@@ -568,12 +562,10 @@ public class EnrollmentServiceTests : IClassFixture<DatabaseFixture>, IDisposabl
             .Returns(new RTUB.Application.DTOs.SendPushNotificationDto());
 
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        var mockMemberStatusService = new Mock<IMemberStatusService>();
 
         var enrollmentService = new EnrollmentService(
             new EnrollmentRepository(_context),
             _mockRetirementStatusService.Object,
-            mockMemberStatusService.Object,
             mockPushNotificationFactory.Object,
             mockPushNotificationService.Object,
             mockHttpContextAccessor.Object);
