@@ -243,7 +243,9 @@ public class MemberStatusService : IMemberStatusService
         if (_options.PushNotificationsEnabled && !isNewRecord)
         {
             // Broadcast: Member just became active (was retired, now active)
-            if (wasRetired && !result.IsRetired)
+            // Skip notification if this was a manual admin activation (OverrideRetired=true)
+            // to avoid spam from admin actions
+            if (wasRetired && !result.IsRetired && !memberStatus.OverrideRetired)
             {
                 await SendMemberBecameActiveNotificationAsync(userId, memberName);
             }
