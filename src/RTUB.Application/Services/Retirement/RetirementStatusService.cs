@@ -59,15 +59,28 @@ public class RetirementStatusService : IRetirementStatusService
         var rehearsalAttendances = await _rehearsalAttendanceRepository.GetAttendancesByUserIdAsync(userId);
         var enrollments = await _enrollmentRepository.GetByUserIdAsync(userId);
 
-        // Filter to only attended rehearsals and confirmed event enrollments
+        var now = DateTime.UtcNow;
+
+        // Filter to only attended rehearsals from PAST, non-cancelled rehearsals
+        // Use actual rehearsal date, not check-in timestamp
         var attendedRehearsals = rehearsalAttendances
-            .Where(ra => ra.Attended)
-            .Select(ra => ra.CheckedInAt)
+            .Where(ra => ra.Attended 
+                && ra.Rehearsal != null 
+                && !ra.Rehearsal.IsCanceled
+                && ra.Rehearsal.Date < now)
+            .Select(ra => ra.Rehearsal!.Date)
             .ToList();
 
+        // Filter to only confirmed enrollments for PAST, non-cancelled events
+        // Use Event.EndDate (or Date) to determine if event is in the past,
+        // but use Event.Date (start date) for month grouping to ensure
+        // multi-day events are counted in the month they START, not END
         var confirmedEnrollments = enrollments
-            .Where(e => e.WillAttend)
-            .Select(e => e.EnrolledAt)
+            .Where(e => e.WillAttend 
+                && e.Event != null 
+                && !e.Event.IsCancelled
+                && (e.Event.EndDate ?? e.Event.Date) < now)  // Filter: event must have ended
+            .Select(e => e.Event!.Date)  // Group by start date for consecutive month counting
             .ToList();
 
         // Combine all activities
@@ -85,7 +98,6 @@ public class RetirementStatusService : IRetirementStatusService
         result.FirstActivityDate = allActivities.First();
         result.LastActivityDate = allActivities.Last();
 
-        var now = DateTime.UtcNow;
         var lastActivityDate = result.LastActivityDate.Value;
 
         // Calculate months since last activity (using Year/Month for calendar months)
