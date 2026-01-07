@@ -3401,80 +3401,28 @@ else
                 await _context.SaveChangesAsync();
             }
             
-            // Step 3: Create a new MemberStatus record with IsRetired=false
-            // DO NOT call UpdateMemberStatusAsync as it will recalculate based on activity
-            // and potentially set IsRetired=true again if they don't have enough activity
-            // For manual activation, we bypass the automatic retirement rules
+            // Step 3: Trigger a status update to recalculate the member's status
+            // This creates a proper MemberStatus record with all calculated fields
+            var updatedStatus = await MemberStatusService.UpdateMemberStatusAsync(userId);
             
-            // Get basic status info for display
-            var now = DateTime.UtcNow;
-            var lastRehearsalDate = await _context.RehearsalAttendances
-                .Include(ra => ra.Rehearsal)
-                .Where(ra => ra.UserId == userId
-                    && ra.Attended
-                    && ra.Rehearsal != null
-                    && !ra.Rehearsal.IsCanceled
-                    && ra.Rehearsal.Date < now)
-                .OrderByDescending(ra => ra.Rehearsal!.Date)
-                .Select(ra => ra.Rehearsal!.Date)
-                .FirstOrDefaultAsync();
-
-            var lastEventDate = await _context.Enrollments
-                .Include(e => e.Event)
-                .Where(e => e.UserId == userId
-                    && e.WillAttend
-                    && e.Event != null
-                    && !e.Event.IsCancelled
-                    && (e.Event.EndDate ?? e.Event.Date) < now)
-                .OrderByDescending(e => e.Event!.EndDate ?? e.Event!.Date)
-                .Select(e => e.Event!.EndDate ?? e.Event!.Date)
-                .FirstOrDefaultAsync();
-
-            DateTime? lastActivityDate = null;
-            if (lastRehearsalDate != default && lastEventDate != default)
-                lastActivityDate = lastRehearsalDate > lastEventDate ? lastRehearsalDate : lastEventDate;
-            else if (lastRehearsalDate != default)
-                lastActivityDate = lastRehearsalDate;
-            else if (lastEventDate != default)
-                lastActivityDate = lastEventDate;
-
-            bool hasAnyActivity = lastActivityDate.HasValue;
-
-            // Create new MemberStatus with manual activation
-            var newMemberStatus = new MemberStatus
+            // Step 4: OVERRIDE the calculated retirement status
+            // Force the member to be active regardless of their activity history
+            // This is a manual activation that bypasses automatic retirement rules
+            // The member will stay active and only become retired if they accumulate
+            // 6 NEW consecutive months of inactivity AFTER this manual activation
+            memberStatus = await _context.MemberStatuses
+                .FirstOrDefaultAsync(ms => ms.UserId == userId);
+            
+            if (memberStatus != null)
             {
-                UserId = userId,
-                IsRetired = false,  // MANUALLY SET TO ACTIVE
-                LastRehearsalDate = lastRehearsalDate == default ? null : lastRehearsalDate,
-                LastEventDate = lastEventDate == default ? null : lastEventDate,
-                LastActivityDate = lastActivityDate,
-                HasAnyActivity = hasAnyActivity,
-                ProgressMonths = null,  // No progress tracking for manually activated members
-                ProgressTotalMonths = null,
-                ProgressDescription = null,
-                TotalActivitiesCount = 0,  // Will be calculated on next automatic update
-                CreatedAt = DateTime.UtcNow,
-                LastUpdatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            _context.MemberStatuses.Add(newMemberStatus);
-            await _context.SaveChangesAsync();
-
-            // Create result for UI display
-            var updatedStatus = new MemberStatusResult
-            {
-                IsRetired = false,
-                LastRehearsalDate = lastRehearsalDate == default ? null : lastRehearsalDate,
-                LastEventDate = lastEventDate == default ? null : lastEventDate,
-                LastActivityDate = lastActivityDate,
-                HasAnyActivity = hasAnyActivity,
-                ProgressMonths = null,
-                ProgressTotalMonths = null,
-                ProgressDescription = null,
-                TotalActivitiesCount = 0,
-                HasActivityInCurrentMonth = false
-            };
+                // Force IsRetired to false - this overrides the automatic calculation
+                memberStatus.IsRetired = false;
+                // Update the result object as well for UI display
+                updatedStatus.IsRetired = false;
+                await _context.SaveChangesAsync();
+                
+                _logger.LogInformation("Manually activated member {UserId} - forcing IsRetired=false regardless of activity history", userId);
+            }
             
             // Step 4: Update local state to reflect the changes immediately
             memberToMakeActive.IsRetired = false;

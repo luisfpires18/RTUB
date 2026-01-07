@@ -401,6 +401,10 @@ public class MemberStatusService : IMemberStatusService
             // 1. RETIRED → ACTIVE: requires 3 consecutive months with activity
             // 2. ACTIVE → RETIRED: requires 6 consecutive months without any activity (per month)
             
+            // IMPORTANT: If user was just manually activated (IsRetired=false but has insufficient activity),
+            // we should NOT immediately retire them again. This allows admins to manually activate members.
+            // They will only be retired if they accumulate 6 NEW consecutive months of inactivity.
+            
             if (user.IsRetired)
             {
                 // Currently retired - check if should return to active
@@ -416,12 +420,28 @@ public class MemberStatusService : IMemberStatusService
             {
                 // Currently active - check if should become retired
                 // Need 6 consecutive months WITHOUT activity to become retired
-                // Count consecutive months WITHOUT activity (starting from most recent completed month)
-                var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(userId, now);
-                if (consecutiveMonthsWithoutActivity >= 6)
+                
+                // IMPORTANT: Check if this is a recent manual activation
+                // If the MemberStatus was updated within the last 2 days, skip auto-retirement
+                // This allows admins to manually activate members without them being immediately
+                // retired again by the automatic batch process
+                var memberStatusRecord = await _context.MemberStatuses
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(ms => ms.UserId == userId);
+                
+                var isRecentUpdate = memberStatusRecord != null && 
+                    memberStatusRecord.UpdatedAt > now.AddDays(-2);
+                
+                if (!isRecentUpdate)
                 {
-                    isRetired = true; // Become retired
+                    // Count consecutive months WITHOUT activity (starting from most recent completed month)
+                    var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(userId, now);
+                    if (consecutiveMonthsWithoutActivity >= 6)
+                    {
+                        isRetired = true; // Become retired
+                    }
                 }
+                // If it's a recent update, keep current active status
             }
 
             // Persist retirement status if changed
