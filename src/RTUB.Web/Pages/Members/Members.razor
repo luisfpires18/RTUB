@@ -10,6 +10,7 @@
 @using RTUB.Application.Interfaces
 @using RTUB.Application.Configuration
 @using RTUB.Application.DTOs
+@using RTUB.Application.Data
 @using RTUB.Shared
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.Extensions.Options
@@ -24,6 +25,7 @@
 @inject IMemberStatusService MemberStatusService
 @inject IMemberStatisticsService MemberStatisticsService
 @inject IUserProfileService UserProfileService
+@inject ApplicationDbContext _context
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject RTUB.Application.Services.AuditContext AuditContext
 @inject NavigationManager NavigationManager
@@ -949,6 +951,8 @@ else
                         ? statusDataValue.ProgressDescription
                         : string.Empty;
                     var showEncouragement = statusData != null && ShouldShowReactivationEncouragement(statusData);
+                    var isRetired = statusData?.IsRetired ?? member.IsRetired;
+                    var showMakeActiveButton = isAdmin && isRetired;
                     <MemberCardLite AvatarUrl="@member.ProfilePictureSrc"
                                     AltText="@member.Nickname"
                                     Nickname="@member.Nickname"
@@ -956,7 +960,11 @@ else
                                     InstrumentText="@instrumentText"
                                     LastRehearsalText="@rehearsalText"
                                     LastEventText="@eventText"
-                                    ProgressText="@progressText">
+                                    ProgressText="@progressText"
+                                    ShowActionButton="@showMakeActiveButton"
+                                    OnAction="@(() => OpenMakeActiveConfirmModal(member))"
+                                    ActionTooltip="Tornar Ativo"
+                                    ActionIcon="arrow-up-circle">
                         <StatusContent>
                             @if (statusData?.IsRetired == true || (statusData == null && member.IsRetired))
                             {
@@ -994,6 +1002,18 @@ else
         <button type="button" class="btn btn-secondary" @onclick="CloseActiveMembersManagementModal">Fechar</button>
     </FooterContent>
 </Modal>
+
+<!-- Make Active Confirmation Modal -->
+<ConfirmDialog Show="@showMakeActiveConfirmModal"
+               ShowChanged="@((bool show) => showMakeActiveConfirmModal = show)"
+               Title="Tornar Membro Ativo"
+               Message="@($"Tem certeza que deseja tornar {memberToMakeActive?.GetDisplayName()} ativo? Isto irá resetar o estado de reforma e permitir que o membro participe sem necessidade de 3 meses consecutivos de atividade.")"
+               ConfirmText="Tornar Ativo"
+               CancelText="Cancelar"
+               ConfirmButtonClass="btn-primary btn-primary-purple"
+               OnConfirm="MakeActiveAsync"
+               OnCancel="CloseMakeActiveConfirmModal"
+               Disabled="@isMakingActive" />
 
 <!-- Anniversaries Modal -->
 <Modal Show="@showAnniversariesModal"
@@ -1284,6 +1304,11 @@ else
     private string activeMembersStatusFilter = string.Empty;
     private SearchHelper<ActiveMemberData> activeMembersSearchHelper = new();
     private PaginationHelper<ActiveMemberData> activeMembersPaginationHelper = new() { PageSize = 12 };
+    
+    // Make Active confirmation modal
+    private bool showMakeActiveConfirmModal = false;
+    private ApplicationUser? memberToMakeActive = null;
+    private bool isMakingActive = false;
     
     // Helper class for active members data
     public class ActiveMemberData
@@ -3309,6 +3334,93 @@ else
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error toggling IsRetired for user {UserId}", user.Id);
+        }
+    }
+    
+    /// <summary>
+    /// Opens the confirmation dialog to make a member active
+    /// </summary>
+    private void OpenMakeActiveConfirmModal(ApplicationUser member)
+    {
+        memberToMakeActive = member;
+        showMakeActiveConfirmModal = true;
+    }
+    
+    /// <summary>
+    /// Closes the make active confirmation dialog
+    /// </summary>
+    private void CloseMakeActiveConfirmModal()
+    {
+        showMakeActiveConfirmModal = false;
+        memberToMakeActive = null;
+    }
+    
+    /// <summary>
+    /// Makes a retired member active by setting IsRetired=false and removing MemberStatus records
+    /// Then triggers a status update for the user
+    /// </summary>
+    private async Task MakeActiveAsync()
+    {
+        if (memberToMakeActive == null || isMakingActive)
+        {
+            return;
+        }
+        
+        isMakingActive = true;
+        StateHasChanged();
+        
+        try
+        {
+            var userId = memberToMakeActive.Id;
+            
+            // Step 1: Set IsRetired=false in AspNetUsers
+            var dbUser = await UserManager.FindByIdAsync(userId);
+            if (dbUser != null)
+            {
+                dbUser.IsRetired = false;
+                await SetAuditContextToCurrentUser();
+                await UserManager.UpdateAsync(dbUser);
+            }
+            
+            // Step 2: Remove MemberStatus record from database
+            var memberStatus = await _context.MemberStatuses
+                .FirstOrDefaultAsync(ms => ms.UserId == userId);
+            
+            if (memberStatus != null)
+            {
+                _context.MemberStatuses.Remove(memberStatus);
+                await _context.SaveChangesAsync();
+            }
+            
+            // Step 3: Trigger a status update for this specific user
+            // This will recalculate and cache the new status
+            await MemberStatusService.UpdateMemberStatusAsync(userId);
+            
+            // Step 4: Update local state to reflect the changes
+            memberToMakeActive.IsRetired = false;
+            
+            // Update in the main users list
+            var userInList = users?.FirstOrDefault(u => u.Id == userId);
+            if (userInList != null)
+            {
+                userInList.IsRetired = false;
+            }
+            
+            // Refresh the active members list
+            await OpenActiveMembersManagementModal();
+            
+            _logger.LogInformation("Member {UserId} ({MemberName}) was manually made active by admin", 
+                userId, memberToMakeActive.GetDisplayName());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error making member {UserId} active", memberToMakeActive?.Id);
+        }
+        finally
+        {
+            isMakingActive = false;
+            CloseMakeActiveConfirmModal();
+            StateHasChanged();
         }
     }
 }
