@@ -2124,14 +2124,35 @@ else
         }
         else
         {
-            await EnrollmentService.CreateEnrollmentAsync(
-                enrollmentForm.UserId,
+            // Check if enrollment already exists to prevent duplicate constraint violations
+            var existingEnrollment = await EnrollmentService.GetEnrollmentByEventAndUserAsync(
                 enrollmentForm.EventId,
-                instrumentToSave,
-                enrollmentForm.Notes,
-                enrollmentForm.WillAttend,
-                otherInstrumentsText
+                enrollmentForm.UserId
             );
+            
+            if (existingEnrollment != null)
+            {
+                // Update existing enrollment instead of creating duplicate
+                await EnrollmentService.UpdateEnrollmentAsync(
+                    existingEnrollment.Id,
+                    enrollmentForm.WillAttend,
+                    instrumentToSave,
+                    enrollmentForm.Notes,
+                    otherInstrumentsText
+                );
+            }
+            else
+            {
+                // Create new enrollment
+                await EnrollmentService.CreateEnrollmentAsync(
+                    enrollmentForm.UserId,
+                    enrollmentForm.EventId,
+                    instrumentToSave,
+                    enrollmentForm.Notes,
+                    enrollmentForm.WillAttend,
+                    otherInstrumentsText
+                );
+            }
         }
 
         await LoadEnrollments();
@@ -3184,11 +3205,29 @@ else
             var primaryInstrument = await MemberInstrumentService.GetPrimaryInstrumentAsync(user.Id);
             var instrumentToUse = primaryInstrument?.InstrumentType;
             
-            // Add the enrollment, marking it as approved for past events (willAttend = true)
-            // Skip notification since this is an admin adding a user manually
-            await EnrollmentService.CreateEnrollmentAsync(user.Id, selectedEvent.Id, instrumentToUse, null, true, null, skipNotification: true);
+            // Check if enrollment already exists to prevent duplicate constraint violations
+            var existingEnrollment = await EnrollmentService.GetEnrollmentByEventAndUserAsync(selectedEvent.Id, user.Id);
             
-            addMemberToEnrollmentFeedbackMessage = $"Inscrição de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";
+            if (existingEnrollment != null)
+            {
+                // Update existing enrollment instead of creating duplicate
+                await EnrollmentService.UpdateEnrollmentAsync(
+                    existingEnrollment.Id,
+                    true, // willAttend = true (approved)
+                    instrumentToUse,
+                    null, // notes
+                    null  // otherInstruments
+                );
+                addMemberToEnrollmentFeedbackMessage = $"Inscrição de {user.FirstName} \"{user.Nickname}\" atualizada com sucesso.";
+            }
+            else
+            {
+                // Add the enrollment, marking it as approved for past events (willAttend = true)
+                // Skip notification since this is an admin adding a user manually
+                await EnrollmentService.CreateEnrollmentAsync(user.Id, selectedEvent.Id, instrumentToUse, null, true, null, skipNotification: true);
+                addMemberToEnrollmentFeedbackMessage = $"Inscrição de {user.FirstName} \"{user.Nickname}\" adicionada com sucesso.";
+            }
+            
             addMemberToEnrollmentFeedbackIsError = false;
             
             // Hide the search after successful addition
