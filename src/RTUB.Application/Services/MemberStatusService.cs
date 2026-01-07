@@ -117,7 +117,14 @@ public class MemberStatusService : IMemberStatusService
         }
 
         // Update fields
-        memberStatus.IsRetired = result.IsRetired;
+        // IMPORTANT: Only update IsRetired if there's no manual override
+        // When OverrideRetired is true, the admin has manually set the status
+        // and we should not overwrite it with automatic calculations
+        if (!memberStatus.OverrideRetired)
+        {
+            memberStatus.IsRetired = result.IsRetired;
+        }
+        // Always update these fields regardless of override status
         memberStatus.LastRehearsalDate = result.LastRehearsalDate;
         memberStatus.LastEventDate = result.LastEventDate;
         memberStatus.LastActivityDate = result.LastActivityDate;
@@ -128,6 +135,7 @@ public class MemberStatusService : IMemberStatusService
         memberStatus.TotalActivitiesCount = result.TotalActivitiesCount;
         memberStatus.LastUpdatedAt = DateTime.UtcNow;
         memberStatus.UpdatedAt = DateTime.UtcNow;
+        // Note: OverrideRetired is NOT set here - it's only set during manual activation
 
         await _context.SaveChangesAsync();
 
@@ -235,7 +243,9 @@ public class MemberStatusService : IMemberStatusService
         if (_options.PushNotificationsEnabled && !isNewRecord)
         {
             // Broadcast: Member just became active (was retired, now active)
-            if (wasRetired && !result.IsRetired)
+            // Skip notification if this was a manual admin activation (OverrideRetired=true)
+            // to avoid spam from admin actions
+            if (wasRetired && !result.IsRetired && !memberStatus.OverrideRetired)
             {
                 await SendMemberBecameActiveNotificationAsync(userId, memberName);
             }
@@ -401,6 +411,10 @@ public class MemberStatusService : IMemberStatusService
             // 1. RETIRED → ACTIVE: requires 3 consecutive months with activity
             // 2. ACTIVE → RETIRED: requires 6 consecutive months without any activity (per month)
             
+            // IMPORTANT: If user was just manually activated (IsRetired=false but has insufficient activity),
+            // we should NOT immediately retire them again. This allows admins to manually activate members.
+            // They will only be retired if they accumulate 6 NEW consecutive months of inactivity.
+            
             if (user.IsRetired)
             {
                 // Currently retired - check if should return to active
@@ -410,17 +424,45 @@ public class MemberStatusService : IMemberStatusService
                 if (consecutiveMonthsWithActivity >= 3)
                 {
                     isRetired = false; // Return to active
+                    
+                    // If they naturally earned their way back to active, clear any manual override
+                    // They've proven they're active through participation
+                    var memberStatusRecord = await _context.MemberStatuses
+                        .FirstOrDefaultAsync(ms => ms.UserId == userId);
+                    if (memberStatusRecord != null && memberStatusRecord.OverrideRetired)
+                    {
+                        memberStatusRecord.OverrideRetired = false;
+                        await _context.SaveChangesAsync();
+                    }
                 }
             }
             else
             {
                 // Currently active - check if should become retired
                 // Need 6 consecutive months WITHOUT activity to become retired
-                // Count consecutive months WITHOUT activity (starting from most recent completed month)
-                var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(userId, now);
-                if (consecutiveMonthsWithoutActivity >= 6)
+                
+                // IMPORTANT: Check if retirement status was manually overridden by an admin
+                // If OverrideRetired is true, respect the manual activation and don't auto-retire
+                var memberStatusRecord = await _context.MemberStatuses
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(ms => ms.UserId == userId);
+                
+                var hasManualOverride = memberStatusRecord?.OverrideRetired ?? false;
+                
+                if (!hasManualOverride)
                 {
-                    isRetired = true; // Become retired
+                    // Count consecutive months WITHOUT activity (starting from most recent completed month)
+                    var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(userId, now);
+                    if (consecutiveMonthsWithoutActivity >= 6)
+                    {
+                        isRetired = true; // Become retired
+                    }
+                }
+                else
+                {
+                    // Manual override is active - member stays active regardless of inactivity
+                    // The override will be cleared when they naturally accumulate enough activity
+                    // or when an admin manually retires them
                 }
             }
 
@@ -805,7 +847,7 @@ public class MemberStatusService : IMemberStatusService
             .Where(ms => userIdList.Contains(ms.UserId))
             .ToListAsync();
         
-        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var oneDayAgo = DateTime.UtcNow.AddDays(-1);
         
         // Convert to dictionary for O(1) lookups instead of O(n) FirstOrDefault in loop
         var statusesByUserId = memberStatuses.ToDictionary(ms => ms.UserId);
@@ -816,8 +858,9 @@ public class MemberStatusService : IMemberStatusService
         {
             statusesByUserId.TryGetValue(userId, out var memberStatus);
             
-            // Only return cached status if it's fresh (less than 1 hour old)
-            if (memberStatus != null && memberStatus.LastUpdatedAt > oneHourAgo)
+            // Only return cached status if it's fresh (less than 24 hours old)
+            // Cache is refreshed daily by background job at 00:00
+            if (memberStatus != null && memberStatus.LastUpdatedAt > oneDayAgo)
             {
                 result[userId] = await MapToResultAsync(memberStatus);
             }

@@ -18,6 +18,7 @@
     width: 100%;
     max-width: 280px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
 }
 
 .member-card-lite:hover,
@@ -102,6 +103,38 @@
 
 .member-card-lite-progress {
     font-size: 0.72rem;
+}
+
+/* Top-right action button */
+.member-card-lite-action-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background-color: rgba(110, 86, 207, 0.95);
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    color: white;
+    font-size: 0.85rem;
+}
+
+.member-card-lite-action-btn:hover,
+.member-card-lite-action-btn:focus {
+    background-color: rgb(90, 50, 163);
+    transform: scale(1.1);
+}
+
+.member-card-lite-action-btn:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
 }
 
 @media (min-width: 1400px) {

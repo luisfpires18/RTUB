@@ -5,6 +5,18 @@
 *@
 
 <div class="member-card-lite">
+    @* Top-right action button (optional) *@
+    @if (ShowActionButton && OnAction.HasDelegate)
+    {
+        <button class="member-card-lite-action-btn"
+                @onclick="@OnAction"
+                @onclick:stopPropagation="true"
+                title="@ActionTooltip"
+                aria-label="@ActionTooltip">
+            <i class="bi bi-@ActionIcon"></i>
+        </button>
+    }
+    
     <div class="member-card-lite-header">
         <img src="@AvatarUrl"
              alt="@AltText"
@@ -168,4 +180,16 @@
     
     [Parameter]
     public RenderFragment? EncouragementContent { get; set; }
+    
+    [Parameter]
+    public bool ShowActionButton { get; set; } = false;
+    
+    [Parameter]
+    public EventCallback OnAction { get; set; }
+    
+    [Parameter]
+    public string ActionTooltip { get; set; } = "";
+    
+    [Parameter]
+    public string ActionIcon { get; set; } = "check-circle";
 }
