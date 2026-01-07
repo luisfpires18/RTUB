@@ -3003,12 +3003,14 @@ else
     
     /// <summary>
     /// Checks if a retired member is at 2/3 progress and should be encouraged to participate
+    /// Only shows when member doesn't have activity in the current month
     /// </summary>
     private static bool ShouldShowReactivationEncouragement(MemberStatusResult? status)
     {
         return status?.IsRetired == true 
             && status.ProgressTotalMonths == 3 
-            && status.ProgressMonths == 2;
+            && status.ProgressMonths == 2
+            && !status.HasActivityInCurrentMonth;
     }
     
     // Anniversaries modal methods
