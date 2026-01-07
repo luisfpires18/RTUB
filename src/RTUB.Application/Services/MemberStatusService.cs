@@ -377,6 +377,10 @@ public class MemberStatusService : IMemberStatusService
 
         // Determine if user has any past activity
         bool hasAnyActivity = lastActivityDate.HasValue;
+        
+        // Check if member has activity in the current month (computed once and reused)
+        var currentMonthStart = new DateTime(now.Year, now.Month, 1);
+        var hasActivityInCurrentMonth = await HasActivityInPeriodAsync(userId, currentMonthStart, now);
 
         // Get current user to check and update retirement status
         var user = await _userManager.FindByIdAsync(userId);
@@ -402,7 +406,7 @@ public class MemberStatusService : IMemberStatusService
                 // Currently retired - check if should return to active
                 // Need 3 consecutive months of activity to become active
                 // Count consecutive months WITH activity (starting from most recent completed month)
-                var consecutiveMonthsWithActivity = await CountConsecutiveMonthsWithActivityAsync(userId, now);
+                var consecutiveMonthsWithActivity = await CountConsecutiveMonthsWithActivityAsync(userId, now, hasActivityInCurrentMonth);
                 if (consecutiveMonthsWithActivity >= 3)
                 {
                     isRetired = false; // Return to active
@@ -444,7 +448,7 @@ public class MemberStatusService : IMemberStatusService
             {
                 // For retired members: show consecutive months toward reactivation (need 3 to become active)
                 // Count consecutive months WITH activity starting from the most recent completed month
-                var consecutiveMonthsWithActivity = await CountConsecutiveMonthsWithActivityAsync(userId, now);
+                var consecutiveMonthsWithActivity = await CountConsecutiveMonthsWithActivityAsync(userId, now, hasActivityInCurrentMonth);
                 progressMonths = consecutiveMonthsWithActivity;
                 progressTotalMonths = 3;
                 progressDescription = $"{consecutiveMonthsWithActivity}/3 meses de atividade consecutiva";
@@ -491,10 +495,7 @@ public class MemberStatusService : IMemberStatusService
             totalActivitiesCount = rehearsalCount + eventCount;
         }
 
-        // Check if member has activity in the current month
-        var currentMonthStart = new DateTime(now.Year, now.Month, 1);
-        var hasActivityInCurrentMonth = await HasActivityInPeriodAsync(userId, currentMonthStart, now);
-
+        // Note: hasActivityInCurrentMonth was already calculated at the beginning of this method
         return new MemberStatusResult
         {
             IsRetired = isRetired,
@@ -533,15 +534,21 @@ public class MemberStatusService : IMemberStatusService
     /// - User has activity in Dec 2025 → count = 1
     /// - No activity in Nov 2025 → stop, return 1
     /// </summary>
-    private async Task<int> CountConsecutiveMonthsWithActivityAsync(string userId, DateTime referenceDate)
+    private async Task<int> CountConsecutiveMonthsWithActivityAsync(string userId, DateTime referenceDate, bool? preCalculatedCurrentMonthActivity = null)
     {
         int consecutiveMonths = 0;
 
-        // First, check if the CURRENT month has any PAST activity
-        var currentMonthStart = new DateTime(referenceDate.Year, referenceDate.Month, 1);
-        var currentMonthEnd = currentMonthStart.AddMonths(1);
-        
-        var hasActivityInCurrentMonth = await HasActivityInPeriodAsync(userId, currentMonthStart, referenceDate);
+        // Use pre-calculated value if provided, otherwise calculate
+        bool hasActivityInCurrentMonth;
+        if (preCalculatedCurrentMonthActivity.HasValue)
+        {
+            hasActivityInCurrentMonth = preCalculatedCurrentMonthActivity.Value;
+        }
+        else
+        {
+            var currentMonthStart = new DateTime(referenceDate.Year, referenceDate.Month, 1);
+            hasActivityInCurrentMonth = await HasActivityInPeriodAsync(userId, currentMonthStart, referenceDate);
+        }
         
         int startingMonth = 1; // Default: start from previous completed month
         
