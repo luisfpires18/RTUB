@@ -2,7 +2,9 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
+using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Services;
@@ -26,6 +28,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     private readonly Mock<IPushNotificationService> _mockPushNotificationService;
     private readonly Mock<IAuditLogService> _mockAuditLogService;
     private readonly Mock<ILogger<MemberStatusService>> _mockLogger;
+    private readonly Mock<IOptions<MemberStatusUpdateOptions>> _mockOptions;
 
     public MemberStatusServiceTests(DatabaseFixture fixture)
     {
@@ -50,13 +53,23 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         
         // Create mock logger
         _mockLogger = new Mock<ILogger<MemberStatusService>>();
+        
+        // Create mock options with push notifications disabled for tests
+        _mockOptions = new Mock<IOptions<MemberStatusUpdateOptions>>();
+        _mockOptions.Setup(o => o.Value).Returns(new MemberStatusUpdateOptions 
+        { 
+            Enabled = true, 
+            ScheduledTime = "21:00",
+            PushNotificationsEnabled = false 
+        });
 
         _service = new MemberStatusService(
             _context, 
             _mockUserManager.Object,
             _mockPushNotificationService.Object,
             _mockAuditLogService.Object,
-            _mockLogger.Object);
+            _mockLogger.Object,
+            _mockOptions.Object);
     }
 
     [Fact]
@@ -427,16 +440,31 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         _mockUserManager.Setup(um => um.FindByIdAsync(userId))
             .ReturnsAsync(user);
 
+        var now = DateTime.UtcNow;
+        
+        // Add activity 2 months ago so recalculation produces ProgressMonths = 4
+        // 1 completed month without activity + 1 (no current month) = 2
+        // ProgressMonths = 6 - 2 = 4
+        var twoMonthsAgo = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
+        var rehearsal = Rehearsal.Create(twoMonthsAgo, "Old Rehearsal");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+        
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
         // Create a fresh cached status (less than 1 hour old)
         var cachedStatus = new MemberStatus
         {
             UserId = userId,
             IsRetired = false,
             HasAnyActivity = true,
-            LastRehearsalDate = DateTime.UtcNow.AddDays(-10),
-            LastEventDate = DateTime.UtcNow.AddDays(-5),
-            LastActivityDate = DateTime.UtcNow.AddDays(-5),
-            ProgressMonths = 4,
+            LastRehearsalDate = twoMonthsAgo,
+            LastEventDate = null,
+            LastActivityDate = twoMonthsAgo,
+            ProgressMonths = 4, // This will be recalculated dynamically
             ProgressTotalMonths = 6,
             ProgressDescription = "4 meses até reforma",
             LastUpdatedAt = DateTime.UtcNow.AddMinutes(-30), // 30 minutes ago (fresh)
@@ -448,13 +476,14 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Act
         var result = await _service.GetMemberStatusAsync(userId);
 
-        // Assert - Should return cached result
+        // Assert - Progress is dynamically recalculated even for fresh cache
+        // 1 completed month without activity (last month) + 1 (no current month) = 2
+        // ProgressMonths = 6 - 2 = 4
         result.Should().NotBeNull();
         result.IsRetired.Should().BeFalse();
         result.HasAnyActivity.Should().BeTrue();
         result.ProgressMonths.Should().Be(4);
         result.ProgressTotalMonths.Should().Be(6);
-        result.ProgressDescription.Should().Be("4 meses até reforma");
     }
 
     [Fact]
@@ -571,10 +600,11 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         await _context.SaveChangesAsync();
 
         // Add 3 consecutive months of activity to trigger activation
+        // Note: The new logic requires 3 completed months, so we need activities 1, 2, and 3 months ago
         var now = DateTime.UtcNow;
-        for (int i = 0; i < 3; i++)
+        for (int i = 1; i <= 3; i++)
         {
-            var rehearsalDate = now.AddMonths(-i).AddDays(-5); // Use negative days to ensure it's in the past
+            var rehearsalDate = new DateTime(now.AddMonths(-i).Year, now.AddMonths(-i).Month, 15); // Mid-month
             var rehearsal = Rehearsal.Create(rehearsalDate, $"Location {i}");
             _context.Rehearsals.Add(rehearsal);
             await _context.SaveChangesAsync();
@@ -585,17 +615,365 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         }
         await _context.SaveChangesAsync();
 
+        // Create a service with push notifications enabled for this test
+        var optionsWithNotifications = new Mock<IOptions<MemberStatusUpdateOptions>>();
+        optionsWithNotifications.Setup(o => o.Value).Returns(new MemberStatusUpdateOptions 
+        { 
+            Enabled = true, 
+            ScheduledTime = "21:00",
+            PushNotificationsEnabled = true 
+        });
+        
+        var serviceWithNotifications = new MemberStatusService(
+            _context, 
+            _mockUserManager.Object,
+            _mockPushNotificationService.Object,
+            _mockAuditLogService.Object,
+            _mockLogger.Object,
+            optionsWithNotifications.Object);
+
         // Act
-        var result = await _service.UpdateMemberStatusAsync(userId);
+        var result = await serviceWithNotifications.UpdateMemberStatusAsync(userId);
 
         // Assert
         result.Should().NotBeNull();
         result.IsRetired.Should().BeFalse(); // Should transition to active
 
-        // Verify push notification was sent
+        // Verify push notification was sent (broadcast to all users)
         _mockPushNotificationService.Verify(
             pns => pns.BroadcastAsync(It.Is<RTUB.Application.DTOs.SendPushNotificationDto>(
                 dto => dto.Title.Contains("Reativado") && dto.Body.Contains("TestTuno"))),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetMemberStatusAsync_ActiveMemberWith6MonthsInactivity_BecomesRetired()
+    {
+        // Arrange - Test that active member becomes retired after 6 consecutive months without activity
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = false; // Start as active
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+        _mockUserManager.Setup(um => um.UpdateAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        var now = DateTime.UtcNow;
+        
+        // Add activity 7 months ago (before the 6-month inactivity window)
+        var sevenMonthsAgo = new DateTime(now.AddMonths(-7).Year, now.AddMonths(-7).Month, 15);
+        var rehearsal = Rehearsal.Create(sevenMonthsAgo, "Old Rehearsal");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+        
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert - Should become retired (6 consecutive months without activity)
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeTrue();
+        result.IsRetired.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetMemberStatusAsync_ActiveMemberWith5MonthsInactivity_StaysActive()
+    {
+        // Arrange - Test that active member stays active with only 5 months inactivity
+        // With new logic: if no activity in current month, we add 1 to the count for warning purposes
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = false; // Start as active
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        var now = DateTime.UtcNow;
+        
+        // Add activity 6 months ago (on the edge, so only 5 completed months without activity)
+        // No activity in current month → 5 + 1 = 6 counted → ProgressMonths = 0 ("Próximo da reforma")
+        var sixMonthsAgo = new DateTime(now.AddMonths(-6).Year, now.AddMonths(-6).Month, 15);
+        var rehearsal = Rehearsal.Create(sixMonthsAgo, "Old Rehearsal");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+        
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert - Should stay active (only 5 COMPLETED months without activity, won't become retired until 6 COMPLETED months)
+        // But progress shows 0 because: 5 completed + 1 (no current month activity) = 6 → 6 - 6 = 0
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeTrue();
+        result.IsRetired.Should().BeFalse();
+        result.ProgressMonths.Should().Be(0); // 6 - (5 + 1) = 0 months until reform (they're at risk!)
+        result.ProgressDescription.Should().Be("Próximo da reforma");
+    }
+
+    [Fact]
+    public async Task GetMemberStatusAsync_ActiveMemberWithCurrentMonthActivity_Shows6MonthsUntilReform()
+    {
+        // Arrange - Test that active member with current month activity AND previous month activity shows 6 months until reform
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = false; // Start as active
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        var now = DateTime.UtcNow;
+        
+        // Add activity in current month (yesterday)
+        var yesterday = now.AddDays(-1);
+        var rehearsal1 = Rehearsal.Create(yesterday, "Recent Rehearsal");
+        _context.Rehearsals.Add(rehearsal1);
+        await _context.SaveChangesAsync();
+        
+        var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
+        attendance1.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance1);
+        
+        // Also add activity in the last completed month (to ensure consecutive activity)
+        var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var rehearsal2 = Rehearsal.Create(lastMonth, "Last Month Rehearsal");
+        _context.Rehearsals.Add(rehearsal2);
+        await _context.SaveChangesAsync();
+        
+        var attendance2 = RehearsalAttendance.Create(rehearsal2.Id, userId);
+        attendance2.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance2);
+        
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert - Should show 6 months until reform (0 consecutive completed months without activity)
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeTrue();
+        result.IsRetired.Should().BeFalse();
+        result.ProgressMonths.Should().Be(6); // No completed months without activity = 6 months until reform
+    }
+
+    [Fact]
+    public async Task GetMemberStatusAsync_RetiredMemberWith1MonthActivity_Shows1Of3Progress()
+    {
+        // Arrange - Test that retired member with 1 completed month shows 1/3 progress
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = true; // Start as retired
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        var now = DateTime.UtcNow;
+        
+        // Add activity in previous completed month (last month mid)
+        var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var rehearsal = Rehearsal.Create(lastMonth, "Last Month Rehearsal");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+        
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert - Should show 1/3 progress (1 completed month with activity)
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeTrue();
+        result.IsRetired.Should().BeTrue();
+        result.ProgressMonths.Should().Be(1);
+        result.ProgressTotalMonths.Should().Be(3);
+        result.ProgressDescription.Should().Be("1/3 meses de atividade consecutiva");
+    }
+
+    [Fact]
+    public async Task GetMemberStatusAsync_RetiredMemberWithCurrentMonthActivity_Shows1Of3Progress()
+    {
+        // Arrange - Test that retired member with only current month activity shows 1/3 progress
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = true; // Start as retired
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        var now = DateTime.UtcNow;
+        
+        // Add activity in current month only (yesterday)
+        var yesterday = now.AddDays(-1);
+        var rehearsal = Rehearsal.Create(yesterday, "Recent Rehearsal");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+        
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert - Should show 1/3 progress (current month counts immediately)
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeTrue();
+        result.IsRetired.Should().BeTrue();
+        result.ProgressMonths.Should().Be(1);
+        result.ProgressTotalMonths.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task GetMemberStatusAsync_RetiredMemberWithGapInMonths_StopsCountingAtGap()
+    {
+        // Arrange - Test that gap in consecutive months stops the count
+        // Example: Activity in current month and 2 months ago, but NOT in last month
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = true; // Start as retired
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        var now = DateTime.UtcNow;
+        
+        // Add activity in current month
+        var yesterday = now.AddDays(-1);
+        var rehearsal1 = Rehearsal.Create(yesterday, "Current Month");
+        _context.Rehearsals.Add(rehearsal1);
+        await _context.SaveChangesAsync();
+        
+        var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
+        attendance1.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance1);
+        
+        // NO activity in last month (creates gap)
+        
+        // Add activity 2 months ago
+        var twoMonthsAgo = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
+        var rehearsal2 = Rehearsal.Create(twoMonthsAgo, "Two Months Ago");
+        _context.Rehearsals.Add(rehearsal2);
+        await _context.SaveChangesAsync();
+        
+        var attendance2 = RehearsalAttendance.Create(rehearsal2.Id, userId);
+        attendance2.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance2);
+        
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert - Should only count 1 month (current month) because last month has no activity
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeTrue();
+        result.IsRetired.Should().BeTrue();
+        result.ProgressMonths.Should().Be(1); // Only current month counts
+        result.ProgressTotalMonths.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task GetMemberStatusAsync_SendsRetirementWarning_When1MonthLeft()
+    {
+        // Arrange - Test that warning is sent when active member has 1 month left
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = false;
+        user.Nickname = "TestTuno";
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        // Create existing status showing 2 months until reform (will change to 1)
+        var existingStatus = new MemberStatus
+        {
+            UserId = userId,
+            IsRetired = false,
+            HasAnyActivity = true,
+            ProgressMonths = 2,
+            ProgressTotalMonths = 6,
+            LastUpdatedAt = DateTime.UtcNow.AddDays(-1),
+            CreatedAt = DateTime.UtcNow.AddDays(-10)
+        };
+        _context.MemberStatuses.Add(existingStatus);
+        await _context.SaveChangesAsync();
+
+        var now = DateTime.UtcNow;
+        
+        // Add activity 5 months ago (so 4 consecutive COMPLETED months without activity)
+        // With new logic: no current month activity adds 1 → 4 + 1 = 5 → ProgressMonths = 6 - 5 = 1
+        // i=1: no activity (last month)
+        // i=2: no activity
+        // i=3: no activity
+        // i=4: no activity
+        // i=5: HAS activity → stops counting at 4 completed months without activity
+        // Plus 1 for no current month activity = 5 total
+        // 6 - 5 = 1 month until reform
+        var fiveMonthsAgo = new DateTime(now.AddMonths(-5).Year, now.AddMonths(-5).Month, 15);
+        var rehearsal = Rehearsal.Create(fiveMonthsAgo, "Old Rehearsal");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+        
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
+        // Create a service with push notifications enabled for this test
+        var optionsWithNotifications = new Mock<IOptions<MemberStatusUpdateOptions>>();
+        optionsWithNotifications.Setup(o => o.Value).Returns(new MemberStatusUpdateOptions 
+        { 
+            Enabled = true, 
+            ScheduledTime = "21:00",
+            PushNotificationsEnabled = true 
+        });
+        
+        var serviceWithNotifications = new MemberStatusService(
+            _context, 
+            _mockUserManager.Object,
+            _mockPushNotificationService.Object,
+            _mockAuditLogService.Object,
+            _mockLogger.Object,
+            optionsWithNotifications.Object);
+
+        // Act
+        var result = await serviceWithNotifications.UpdateMemberStatusAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsRetired.Should().BeFalse();
+        result.ProgressMonths.Should().Be(1);
+
+        // Verify warning notification was sent to the user
+        _mockPushNotificationService.Verify(
+            pns => pns.SendToUserAsync(userId, It.Is<RTUB.Application.DTOs.SendPushNotificationDto>(
+                dto => dto.Title.Contains("1 mês até reforma"))),
             Times.Once);
     }
 

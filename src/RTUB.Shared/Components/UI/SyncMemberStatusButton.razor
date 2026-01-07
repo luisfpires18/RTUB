@@ -1,0 +1,48 @@
+@namespace RTUB.Shared
+@using RTUB.Application.Interfaces
+@using Microsoft.Extensions.Logging
+@inject IMemberStatusService MemberStatusService
+@inject ILogger<SyncMemberStatusButton> Logger
+
+<button class="btn btn-purple" @onclick="SyncMemberStatuses" disabled="@isSyncing" title="Sincronizar estado de membros">
+    @if (isSyncing)
+    {
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span> A sincronizar...</span>
+    }
+    else
+    {
+        <i class="bi bi-arrow-repeat"></i>
+        <span> Sincronizar Estado da Tuna</span>
+    }
+</button>
+
+@code {
+    [Parameter]
+    public EventCallback<(bool Success, string Message)> OnSyncCompleted { get; set; }
+
+    private bool isSyncing = false;
+
+    private async Task SyncMemberStatuses()
+    {
+        if (isSyncing) return;
+
+        isSyncing = true;
+
+        try
+        {
+            var updatedCount = await MemberStatusService.UpdateAllMemberStatusesAsync();
+            await OnSyncCompleted.InvokeAsync((true, $"Estado de {updatedCount} membros sincronizado com sucesso!"));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error syncing member statuses");
+            await OnSyncCompleted.InvokeAsync((false, "Erro ao sincronizar estado dos membros. Por favor, tente novamente."));
+        }
+        finally
+        {
+            isSyncing = false;
+            StateHasChanged();
+        }
+    }
+}

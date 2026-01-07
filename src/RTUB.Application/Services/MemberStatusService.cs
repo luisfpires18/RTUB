@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using RTUB.Application.Configuration;
 using RTUB.Application.Data;
 using RTUB.Application.DTOs;
 using RTUB.Application.Interfaces;
@@ -23,19 +25,22 @@ public class MemberStatusService : IMemberStatusService
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<MemberStatusService> _logger;
+    private readonly MemberStatusUpdateOptions _options;
 
     public MemberStatusService(
         ApplicationDbContext context, 
         UserManager<ApplicationUser> userManager,
         IPushNotificationService pushNotificationService,
         IAuditLogService auditLogService,
-        ILogger<MemberStatusService> logger)
+        ILogger<MemberStatusService> logger,
+        IOptions<MemberStatusUpdateOptions> options)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
         _pushNotificationService = pushNotificationService ?? throw new ArgumentNullException(nameof(pushNotificationService));
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
     }
 
     /// <summary>
@@ -57,7 +62,7 @@ public class MemberStatusService : IMemberStatusService
         // If cache exists and is fresh (less than 1 hour old), return it
         if (memberStatus != null && (DateTime.UtcNow - memberStatus.LastUpdatedAt).TotalHours < 1)
         {
-            return MapToResult(memberStatus);
+            return await MapToResultAsync(memberStatus);
         }
 
         // Otherwise, calculate fresh status and update database
@@ -226,10 +231,40 @@ public class MemberStatusService : IMemberStatusService
             }
         }
 
-        // Send push notification if member just became active (was retired, now active)
-        if (!isNewRecord && wasRetired && !result.IsRetired)
+        // Send push notifications based on status changes (only if enabled in configuration)
+        if (_options.PushNotificationsEnabled && !isNewRecord)
         {
-            await SendMemberBecameActiveNotificationAsync(userId);
+            // Broadcast: Member just became active (was retired, now active)
+            if (wasRetired && !result.IsRetired)
+            {
+                await SendMemberBecameActiveNotificationAsync(userId, memberName);
+            }
+            
+            // Broadcast: Member just became retired (was active, now retired)
+            if (!wasRetired && result.IsRetired)
+            {
+                await SendMemberBecameRetiredNotificationAsync(userId, memberName);
+            }
+            
+            // Warning to user: 1 month left until retirement
+            if (!result.IsRetired && result.ProgressMonths == 1 && result.ProgressTotalMonths == 6)
+            {
+                // Only send if this is a change (wasn't 1 month before)
+                if (oldProgressMonths != 1 || oldProgressTotal != 6)
+                {
+                    await SendRetirementWarningNotificationAsync(userId, memberName);
+                }
+            }
+            
+            // Warning to user: At 2/3 progress toward reactivation
+            if (result.IsRetired && result.ProgressMonths == 2 && result.ProgressTotalMonths == 3)
+            {
+                // Only send if this is a change (wasn't 2/3 before)
+                if (oldProgressMonths != 2 || oldProgressTotal != 3)
+                {
+                    await SendReactivationEncouragementNotificationAsync(userId, memberName);
+                }
+            }
         }
 
         return result;
@@ -342,6 +377,10 @@ public class MemberStatusService : IMemberStatusService
 
         // Determine if user has any past activity
         bool hasAnyActivity = lastActivityDate.HasValue;
+        
+        // Check if member has activity in the current month (computed once and reused)
+        var currentMonthStart = new DateTime(now.Year, now.Month, 1);
+        var hasActivityInCurrentMonth = await HasActivityInPeriodAsync(userId, currentMonthStart, now);
 
         // Get current user to check and update retirement status
         var user = await _userManager.FindByIdAsync(userId);
@@ -360,14 +399,15 @@ public class MemberStatusService : IMemberStatusService
             
             // State transition rules based on activity:
             // 1. RETIRED → ACTIVE: requires 3 consecutive months with activity
-            // 2. ACTIVE → RETIRED: requires 6 months without any activity
+            // 2. ACTIVE → RETIRED: requires 6 consecutive months without any activity (per month)
             
             if (user.IsRetired)
             {
                 // Currently retired - check if should return to active
                 // Need 3 consecutive months of activity to become active
-                var consecutiveMonths = await CountConsecutiveMonthsWithActivityAsync(userId, now);
-                if (consecutiveMonths >= 3)
+                // Count consecutive months WITH activity (starting from most recent completed month)
+                var consecutiveMonthsWithActivity = await CountConsecutiveMonthsWithActivityAsync(userId, now, hasActivityInCurrentMonth);
+                if (consecutiveMonthsWithActivity >= 3)
                 {
                     isRetired = false; // Return to active
                 }
@@ -375,9 +415,10 @@ public class MemberStatusService : IMemberStatusService
             else
             {
                 // Currently active - check if should become retired
-                // Need 6 months without activity to become retired
-                var sixMonthsAgo = now.AddMonths(-6);
-                if (lastActivityDate!.Value < sixMonthsAgo)
+                // Need 6 consecutive months WITHOUT activity to become retired
+                // Count consecutive months WITHOUT activity (starting from most recent completed month)
+                var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(userId, now);
+                if (consecutiveMonthsWithoutActivity >= 6)
                 {
                     isRetired = true; // Become retired
                 }
@@ -396,28 +437,38 @@ public class MemberStatusService : IMemberStatusService
             isRetired = user.IsRetired;
         }
 
-        // Calculate progress based on consecutive months of activity
+        // Calculate progress based on consecutive months of activity/inactivity
         int? progressMonths = null;
         int? progressTotalMonths = null;
         string? progressDescription = null;
 
         if (hasAnyActivity && lastActivityDate.HasValue)
         {
-            // Get consecutive months count (already calculated above if retired, need to recalculate if active)
-            var consecutiveMonths = await CountConsecutiveMonthsWithActivityAsync(userId, now);
-            
             if (isRetired)
             {
                 // For retired members: show consecutive months toward reactivation (need 3 to become active)
-                progressMonths = consecutiveMonths;
+                // Count consecutive months WITH activity starting from the most recent completed month
+                var consecutiveMonthsWithActivity = await CountConsecutiveMonthsWithActivityAsync(userId, now, hasActivityInCurrentMonth);
+                progressMonths = consecutiveMonthsWithActivity;
                 progressTotalMonths = 3;
-                progressDescription = $"{consecutiveMonths}/3 meses de atividade consecutiva";
+                progressDescription = $"{consecutiveMonthsWithActivity}/3 meses de atividade consecutiva";
             }
             else
             {
-                // For active members: show months until retirement (6 months from last activity)
-                var monthsSinceLastActivity = GetMonthsDifference(lastActivityDate.Value, now);
-                var monthsUntilReform = 6 - monthsSinceLastActivity;
+                // For active members: show months until retirement
+                // Count consecutive months WITHOUT activity (starting from most recent completed month)
+                // 6 months without activity = retired
+                var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(userId, now);
+                
+                // If the member hasn't participated in the current month yet, 
+                // add 1 to show them the potential risk (proactive warning)
+                // This encourages participation before the month ends
+                if (!hasActivityInCurrentMonth)
+                {
+                    consecutiveMonthsWithoutActivity++;
+                }
+                
+                var monthsUntilReform = 6 - consecutiveMonthsWithoutActivity;
                 if (monthsUntilReform < 0) monthsUntilReform = 0;
                 
                 progressMonths = monthsUntilReform;
@@ -453,6 +504,7 @@ public class MemberStatusService : IMemberStatusService
             totalActivitiesCount = rehearsalCount + eventCount;
         }
 
+        // Note: hasActivityInCurrentMonth was already calculated at the beginning of this method
         return new MemberStatusResult
         {
             IsRetired = isRetired,
@@ -463,64 +515,75 @@ public class MemberStatusService : IMemberStatusService
             ProgressMonths = progressMonths,
             ProgressTotalMonths = progressTotalMonths,
             ProgressDescription = progressDescription,
-            TotalActivitiesCount = totalActivitiesCount
+            TotalActivitiesCount = totalActivitiesCount,
+            HasActivityInCurrentMonth = hasActivityInCurrentMonth
         };
     }
 
     
     /// <summary>
-    /// Counts the number of consecutive months (starting from most recent) that have at least one activity
+    /// Counts the number of consecutive months that have at least one activity
     /// Used to determine if a retired member should return to active status
     /// Member needs 3 consecutive months to transition from RETIRED to ACTIVE
     /// Stops counting when a month without activity is found
-    /// CRITICAL: Only counts PAST activities (before referenceDate)
-    /// IMPORTANT: Starts from the PREVIOUS month (i=1), NOT the current month
-    /// The current ongoing month is not counted until it has completed
+    /// 
+    /// Logic:
+    /// - First checks if the CURRENT month has any PAST activity (before referenceDate)
+    /// - If yes, includes current month in the count and then checks previous months
+    /// - If no, only counts from the previous completed month backwards
+    /// - This ensures progress is shown immediately when user participates
+    /// 
+    /// Example (referenceDate = Jan 15, 2026):
+    /// - User has activity in Jan 2026 (before Jan 15) → count = 1, then check Dec 2025
+    /// - User has activity in Dec 2025 → count = 2, then check Nov 2025
+    /// - User has activity in Nov 2025 → count = 3 → becomes active
+    /// 
+    /// Example (referenceDate = Jan 15, 2026, user only has Dec activity):
+    /// - No activity in Jan 2026 yet → start from Dec 2025
+    /// - User has activity in Dec 2025 → count = 1
+    /// - No activity in Nov 2025 → stop, return 1
     /// </summary>
-    private async Task<int> CountConsecutiveMonthsWithActivityAsync(string userId, DateTime referenceDate)
+    private async Task<int> CountConsecutiveMonthsWithActivityAsync(string userId, DateTime referenceDate, bool? preCalculatedCurrentMonthActivity = null)
     {
         int consecutiveMonths = 0;
 
-        // Check up to 12 months including current month
-        // Start from i=0 to include the CURRENT month for past activities
-        // The query condition "Date < referenceDate" ensures future activities are excluded
-        // i=0 is the current month, i=1 is previous month, i=11 is 11 months ago
-        for (int i = 0; i < 12; i++)
+        // Use pre-calculated value if provided, otherwise calculate
+        bool hasActivityInCurrentMonth;
+        if (preCalculatedCurrentMonthActivity.HasValue)
+        {
+            hasActivityInCurrentMonth = preCalculatedCurrentMonthActivity.Value;
+        }
+        else
+        {
+            var currentMonthStart = new DateTime(referenceDate.Year, referenceDate.Month, 1);
+            hasActivityInCurrentMonth = await HasActivityInPeriodAsync(userId, currentMonthStart, referenceDate);
+        }
+        
+        int startingMonth = 1; // Default: start from previous completed month
+        
+        if (hasActivityInCurrentMonth)
+        {
+            // Current month has activity - include it and start checking from there
+            consecutiveMonths = 1;
+            startingMonth = 1; // Check previous months (i=1 is last month)
+        }
+
+        // Check previous completed months (i=1 is last month, i=2 is 2 months ago, etc.)
+        for (int i = startingMonth; i <= 12; i++)
         {
             var targetDate = referenceDate.AddMonths(-i);
-            var monthStart = new DateTime(targetDate.Year, targetDate.Month, 1); // First day of the month
-            var monthEnd = monthStart.AddMonths(1); // First day of next month
+            var monthStart = new DateTime(targetDate.Year, targetDate.Month, 1);
+            var monthEnd = monthStart.AddMonths(1);
 
-            // Get activities in this month
-            // CRITICAL: Exclude future activities (after referenceDate)
-            // For consecutive months, we count the START date of activities (when they began)
-            var hasRehearsalInMonth = await _context.RehearsalAttendances
-                .Include(ra => ra.Rehearsal)
-                .AnyAsync(ra => ra.UserId == userId
-                    && ra.Attended
-                    && ra.Rehearsal != null
-                    && !ra.Rehearsal.IsCanceled
-                    && ra.Rehearsal.Date >= monthStart
-                    && ra.Rehearsal.Date < monthEnd
-                    && ra.Rehearsal.Date < referenceDate); // Exclude future rehearsals
+            var hasActivityInMonth = await HasActivityInPeriodAsync(userId, monthStart, monthEnd);
 
-            var hasEventInMonth = await _context.Enrollments
-                .Include(e => e.Event)
-                .AnyAsync(e => e.UserId == userId
-                    && e.WillAttend
-                    && e.Event != null
-                    && !e.Event.IsCancelled
-                    && e.Event.Date >= monthStart  // Use start date for month counting
-                    && e.Event.Date < monthEnd
-                    && e.Event.Date < referenceDate); // Exclude future events
-
-            if (hasRehearsalInMonth || hasEventInMonth)
+            if (hasActivityInMonth)
             {
                 consecutiveMonths++;
             }
             else
             {
-                // Stop counting when we find a month without activity
+                // Stop counting when we find a month without activity (gap in consecutive months)
                 break;
             }
         }
@@ -529,24 +592,85 @@ public class MemberStatusService : IMemberStatusService
     }
     
     /// <summary>
-    /// Sends a push notification when a member becomes active (transitions from retired to active)
-    /// Notifies all subscribed users about the status change
+    /// Counts the number of consecutive COMPLETED months that have NO activity
+    /// Used to determine if an active member should become retired
+    /// Member needs 6 consecutive months WITHOUT activity to transition from ACTIVE to RETIRED
+    /// Stops counting when a month WITH activity is found
+    /// 
+    /// IMPORTANT: Only counts COMPLETED months (not the current month)
+    /// The current month is still in progress, so the user has a chance to participate
+    /// 
+    /// Example (referenceDate = Jan 15, 2026):
+    /// - Dec 2025 (completed) - no activity → count = 1
+    /// - Nov 2025 (completed) - no activity → count = 2
+    /// - ... continues until a month with activity is found or 6 months reached
     /// </summary>
-    private async Task SendMemberBecameActiveNotificationAsync(string userId)
+    private async Task<int> CountConsecutiveMonthsWithoutActivityAsync(string userId, DateTime referenceDate)
+    {
+        int consecutiveMonthsWithoutActivity = 0;
+
+        // Start from i=1 (previous completed month), NOT i=0 (current month)
+        // The current month is still in progress so we don't penalize the user yet
+        for (int i = 1; i <= 12; i++)
+        {
+            var targetDate = referenceDate.AddMonths(-i);
+            var monthStart = new DateTime(targetDate.Year, targetDate.Month, 1);
+            var monthEnd = monthStart.AddMonths(1);
+
+            var hasActivityInMonth = await HasActivityInPeriodAsync(userId, monthStart, monthEnd);
+
+            if (!hasActivityInMonth)
+            {
+                // No activity this month
+                consecutiveMonthsWithoutActivity++;
+            }
+            else
+            {
+                // Found activity - stop counting consecutive months without activity
+                break;
+            }
+        }
+
+        return consecutiveMonthsWithoutActivity;
+    }
+    
+    /// <summary>
+    /// Helper method to check if a user has any activity in a given time period
+    /// </summary>
+    private async Task<bool> HasActivityInPeriodAsync(string userId, DateTime periodStart, DateTime periodEnd)
+    {
+        var hasRehearsalInPeriod = await _context.RehearsalAttendances
+            .Include(ra => ra.Rehearsal)
+            .AnyAsync(ra => ra.UserId == userId
+                && ra.Attended
+                && ra.Rehearsal != null
+                && !ra.Rehearsal.IsCanceled
+                && ra.Rehearsal.Date >= periodStart
+                && ra.Rehearsal.Date < periodEnd);
+
+        if (hasRehearsalInPeriod)
+            return true;
+
+        var hasEventInPeriod = await _context.Enrollments
+            .Include(e => e.Event)
+            .AnyAsync(e => e.UserId == userId
+                && e.WillAttend
+                && e.Event != null
+                && !e.Event.IsCancelled
+                && e.Event.Date >= periodStart
+                && e.Event.Date < periodEnd);
+
+        return hasEventInPeriod;
+    }
+    
+    /// <summary>
+    /// Sends a push notification when a member becomes active (transitions from retired to active)
+    /// Broadcasts to all subscribed users about the status change
+    /// </summary>
+    private async Task SendMemberBecameActiveNotificationAsync(string userId, string memberName)
     {
         try
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                _logger.LogWarning("Cannot send activation notification: User {UserId} not found", userId);
-                return;
-            }
-
-            var memberName = !string.IsNullOrEmpty(user.Nickname) 
-                ? user.Nickname 
-                : $"{user.FirstName} {user.LastName}";
-
             var notification = new SendPushNotificationDto
             {
                 Title = "Membro Reativado! 🎉",
@@ -564,6 +688,91 @@ public class MemberStatusService : IMemberStatusService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error sending member activation notification for user {UserId}", userId);
+            // Don't rethrow - notification failure shouldn't break the status update
+        }
+    }
+    
+    /// <summary>
+    /// Sends a push notification when a member becomes retired (transitions from active to retired)
+    /// Broadcasts to all subscribed users about the status change
+    /// </summary>
+    private async Task SendMemberBecameRetiredNotificationAsync(string userId, string memberName)
+    {
+        try
+        {
+            var notification = new SendPushNotificationDto
+            {
+                Title = "Membro Reformado 📋",
+                Body = $"{memberName} passou a reformado após 6 meses sem atividade.",
+                Tag = $"member-retired-{userId}",
+                Icon = "/images/favicon/android-chrome-192x192.png",
+                Url = "/members"
+            };
+
+            // Broadcast to all subscribed users
+            await _pushNotificationService.BroadcastAsync(notification);
+            
+            _logger.LogInformation("Sent member retirement notification for user {UserId} ({MemberName})", userId, memberName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending member retirement notification for user {UserId}", userId);
+            // Don't rethrow - notification failure shouldn't break the status update
+        }
+    }
+    
+    /// <summary>
+    /// Sends a warning notification to a user who has 1 month left until retirement
+    /// </summary>
+    private async Task SendRetirementWarningNotificationAsync(string userId, string memberName)
+    {
+        try
+        {
+            var notification = new SendPushNotificationDto
+            {
+                Title = "Aviso: 1 mês até reforma ⚠️",
+                Body = $"{memberName}, tens apenas 1 mês até ficares reformado. Participa numa atividade para evitar!",
+                Tag = $"retirement-warning-{userId}",
+                Icon = "/images/favicon/android-chrome-192x192.png",
+                Url = "/events"
+            };
+
+            // Send to the specific user only
+            await _pushNotificationService.SendToUserAsync(userId, notification);
+            
+            _logger.LogInformation("Sent retirement warning notification to user {UserId} ({MemberName})", userId, memberName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending retirement warning notification for user {UserId}", userId);
+            // Don't rethrow - notification failure shouldn't break the status update
+        }
+    }
+    
+    /// <summary>
+    /// Sends an encouragement notification to a retired user who is at 2/3 progress toward reactivation
+    /// </summary>
+    private async Task SendReactivationEncouragementNotificationAsync(string userId, string memberName)
+    {
+        try
+        {
+            var notification = new SendPushNotificationDto
+            {
+                Title = "Quase lá! 2/3 para reativação 💪",
+                Body = $"{memberName}, estás a 2/3 do caminho para voltares ao ativo! Participa este mês para completar!",
+                Tag = $"reactivation-encouragement-{userId}",
+                Icon = "/images/favicon/android-chrome-192x192.png",
+                Url = "/events"
+            };
+
+            // Send to the specific user only
+            await _pushNotificationService.SendToUserAsync(userId, notification);
+            
+            _logger.LogInformation("Sent reactivation encouragement notification to user {UserId} ({MemberName})", userId, memberName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending reactivation encouragement notification for user {UserId}", userId);
             // Don't rethrow - notification failure shouldn't break the status update
         }
     }
@@ -610,7 +819,7 @@ public class MemberStatusService : IMemberStatusService
             // Only return cached status if it's fresh (less than 1 hour old)
             if (memberStatus != null && memberStatus.LastUpdatedAt > oneHourAgo)
             {
-                result[userId] = MapToResult(memberStatus);
+                result[userId] = await MapToResultAsync(memberStatus);
             }
             else
             {
@@ -625,9 +834,40 @@ public class MemberStatusService : IMemberStatusService
     
     /// <summary>
     /// Maps a MemberStatus entity to a MemberStatusResult DTO
+    /// Computes HasActivityInCurrentMonth and ProgressMonths dynamically since they depend on current time
     /// </summary>
-    private MemberStatusResult MapToResult(MemberStatus memberStatus)
+    private async Task<MemberStatusResult> MapToResultAsync(MemberStatus memberStatus)
     {
+        // Calculate current month activity dynamically
+        var now = DateTime.UtcNow;
+        var currentMonthStart = new DateTime(now.Year, now.Month, 1);
+        var hasActivityInCurrentMonth = await HasActivityInPeriodAsync(memberStatus.UserId, currentMonthStart, now);
+        
+        // Recalculate progress for active members based on current month activity
+        // This is needed because the cached progress might not include the proactive warning
+        int? progressMonths = memberStatus.ProgressMonths;
+        string? progressDescription = memberStatus.ProgressDescription;
+        
+        if (!memberStatus.IsRetired && memberStatus.ProgressTotalMonths == 6)
+        {
+            // For active members, recalculate progress including proactive warning
+            var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(memberStatus.UserId, now);
+            
+            // If no activity in current month, add 1 for proactive warning
+            if (!hasActivityInCurrentMonth)
+            {
+                consecutiveMonthsWithoutActivity++;
+            }
+            
+            var monthsUntilReform = 6 - consecutiveMonthsWithoutActivity;
+            if (monthsUntilReform < 0) monthsUntilReform = 0;
+            
+            progressMonths = monthsUntilReform;
+            progressDescription = monthsUntilReform > 0 
+                ? $"{monthsUntilReform} {(monthsUntilReform == 1 ? "mês" : "meses")} até reforma"
+                : "Próximo da reforma";
+        }
+        
         return new MemberStatusResult
         {
             IsRetired = memberStatus.IsRetired,
@@ -635,10 +875,11 @@ public class MemberStatusService : IMemberStatusService
             LastEventDate = memberStatus.LastEventDate,
             LastActivityDate = memberStatus.LastActivityDate,
             HasAnyActivity = memberStatus.HasAnyActivity,
-            ProgressMonths = memberStatus.ProgressMonths,
+            ProgressMonths = progressMonths,
             ProgressTotalMonths = memberStatus.ProgressTotalMonths,
-            ProgressDescription = memberStatus.ProgressDescription,
-            TotalActivitiesCount = memberStatus.TotalActivitiesCount
+            ProgressDescription = progressDescription,
+            TotalActivitiesCount = memberStatus.TotalActivitiesCount,
+            HasActivityInCurrentMonth = hasActivityInCurrentMonth
         };
     }
 }

@@ -63,4 +63,11 @@ public class MemberStatusResult
     /// Used for sorting members by participation level
     /// </summary>
     public int TotalActivitiesCount { get; set; }
+    
+    /// <summary>
+    /// Indicates if the member has any activity in the current month
+    /// Used to determine whether to show progress for active members
+    /// Active members who already participated this month don't need to see the countdown
+    /// </summary>
+    public bool HasActivityInCurrentMonth { get; set; }
 }
