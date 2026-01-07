@@ -192,6 +192,8 @@
     private string? _previousOtherInstruments;
     private bool _previousShowEditButton;
     private bool _previousShowDeleteButton;
+    private bool _previousShowApproveButton;
+    private bool _previousShowCancelButton;
     
     /// <summary>
     /// Optimize rendering - only re-render when key parameters change.
@@ -206,7 +208,9 @@
             StatusText != _previousStatusText ||
             OtherInstruments != _previousOtherInstruments ||
             ShowEditButton != _previousShowEditButton ||
-            ShowDeleteButton != _previousShowDeleteButton)
+            ShowDeleteButton != _previousShowDeleteButton ||
+            ShowApproveButton != _previousShowApproveButton ||
+            ShowCancelButton != _previousShowCancelButton)
         {
             _previousTunaName = TunaName;
             _previousFullName = FullName;
@@ -216,6 +220,8 @@
             _previousOtherInstruments = OtherInstruments;
             _previousShowEditButton = ShowEditButton;
             _previousShowDeleteButton = ShowDeleteButton;
+            _previousShowApproveButton = ShowApproveButton;
+            _previousShowCancelButton = ShowCancelButton;
             return true;
         }
         return false;
