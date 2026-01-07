@@ -3413,19 +3413,23 @@ else
             var memberIndex = allActiveMembers.FindIndex(m => m.Member.Id == userId);
             if (memberIndex >= 0)
             {
-                var updatedMember = allActiveMembers[memberIndex].Member;
-                updatedMember.IsRetired = false;
+                // Get the member and update its IsRetired property
+                var member = allActiveMembers[memberIndex].Member;
+                member.IsRetired = false;
                 
-                // Replace with new object to ensure change detection
+                // Replace with new ActiveMemberData object to ensure Blazor change detection
                 allActiveMembers[memberIndex] = new ActiveMemberData
                 {
-                    Member = updatedMember,
+                    Member = member,
                     StatusData = updatedStatus
                 };
             }
             
             // Step 6: Reapply filters and pagination to update the display
             ApplyActiveMembersSearch(activeMembersSearchTerm);
+            
+            // Step 7: Force a complete UI refresh
+            await InvokeAsync(StateHasChanged);
             
             _logger.LogInformation("Member {UserId} ({MemberName}) was manually made active by admin", 
                 userId, memberToMakeActive.GetDisplayName());

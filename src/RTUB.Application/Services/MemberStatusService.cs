@@ -805,7 +805,7 @@ public class MemberStatusService : IMemberStatusService
             .Where(ms => userIdList.Contains(ms.UserId))
             .ToListAsync();
         
-        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var oneDayAgo = DateTime.UtcNow.AddDays(-1);
         
         // Convert to dictionary for O(1) lookups instead of O(n) FirstOrDefault in loop
         var statusesByUserId = memberStatuses.ToDictionary(ms => ms.UserId);
@@ -816,8 +816,9 @@ public class MemberStatusService : IMemberStatusService
         {
             statusesByUserId.TryGetValue(userId, out var memberStatus);
             
-            // Only return cached status if it's fresh (less than 1 hour old)
-            if (memberStatus != null && memberStatus.LastUpdatedAt > oneHourAgo)
+            // Only return cached status if it's fresh (less than 24 hours old)
+            // Cache is refreshed daily by background job at 00:00
+            if (memberStatus != null && memberStatus.LastUpdatedAt > oneDayAgo)
             {
                 result[userId] = await MapToResultAsync(memberStatus);
             }
