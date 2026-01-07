@@ -3373,12 +3373,14 @@ else
         {
             var userId = memberToMakeActive.Id;
             
+            // Set audit context once for all operations
+            await SetAuditContextToCurrentUser();
+            
             // Step 1: Set IsRetired=false in AspNetUsers
             var dbUser = await UserManager.FindByIdAsync(userId);
             if (dbUser != null)
             {
                 dbUser.IsRetired = false;
-                await SetAuditContextToCurrentUser();
                 await UserManager.UpdateAsync(dbUser);
             }
             
