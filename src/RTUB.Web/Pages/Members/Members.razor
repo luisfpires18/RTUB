@@ -3396,9 +3396,9 @@ else
             
             // Step 3: Trigger a status update for this specific user
             // This will recalculate and cache the new status
-            await MemberStatusService.UpdateMemberStatusAsync(userId);
+            var updatedStatus = await MemberStatusService.UpdateMemberStatusAsync(userId);
             
-            // Step 4: Update local state to reflect the changes
+            // Step 4: Update local state to reflect the changes immediately
             memberToMakeActive.IsRetired = false;
             
             // Update in the main users list
@@ -3408,8 +3408,17 @@ else
                 userInList.IsRetired = false;
             }
             
-            // Refresh the active members list
-            await OpenActiveMembersManagementModal();
+            // Step 5: Update the specific member in the active members list
+            var memberInActiveList = allActiveMembers.FirstOrDefault(m => m.Member.Id == userId);
+            if (memberInActiveList != null)
+            {
+                memberInActiveList.Member.IsRetired = false;
+                memberInActiveList.StatusData = updatedStatus;
+            }
+            
+            // Step 6: Reapply filters and pagination to update the display
+            ApplyActiveMembersSearch(activeMembersSearchTerm);
+            StateHasChanged();
             
             _logger.LogInformation("Member {UserId} ({MemberName}) was manually made active by admin", 
                 userId, memberToMakeActive.GetDisplayName());
