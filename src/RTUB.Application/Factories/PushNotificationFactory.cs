@@ -295,7 +295,7 @@ public class PushNotificationFactory : IPushNotificationFactory
 
         return new SendPushNotificationDto
         {
-            Title = $"Nova {meetingTypeName}",
+            Title = $"Nova Reunião Convocada: {meetingTypeName}",
             Body = $"{meeting.Title} - {dateStr}",
             Icon = "/icons/rtub-logo-192.png",
             Url = meetingUrl,
