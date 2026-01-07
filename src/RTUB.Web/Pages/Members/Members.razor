@@ -11,6 +11,7 @@
 @using RTUB.Application.Configuration
 @using RTUB.Application.DTOs
 @using RTUB.Application.Data
+@using RTUB.Core.Entities
 @using RTUB.Shared
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.Extensions.Options
@@ -3390,7 +3391,7 @@ else
                 }
             }
             
-            // Step 2: Remove MemberStatus record from database
+            // Step 2: Remove old MemberStatus record from database
             var memberStatus = await _context.MemberStatuses
                 .FirstOrDefaultAsync(ms => ms.UserId == userId);
             
@@ -3400,18 +3401,80 @@ else
                 await _context.SaveChangesAsync();
             }
             
-            // CRITICAL: Detach any tracked entities to ensure fresh data is fetched
-            // This prevents EF from returning cached entities
-            var trackedUser = _context.ChangeTracker.Entries<ApplicationUser>()
-                .FirstOrDefault(e => e.Entity.Id == userId);
-            if (trackedUser != null)
-            {
-                trackedUser.State = EntityState.Detached;
-            }
+            // Step 3: Create a new MemberStatus record with IsRetired=false
+            // DO NOT call UpdateMemberStatusAsync as it will recalculate based on activity
+            // and potentially set IsRetired=true again if they don't have enough activity
+            // For manual activation, we bypass the automatic retirement rules
             
-            // Step 3: Trigger a status update for this specific user
-            // This will recalculate and cache the new status
-            var updatedStatus = await MemberStatusService.UpdateMemberStatusAsync(userId);
+            // Get basic status info for display
+            var now = DateTime.UtcNow;
+            var lastRehearsalDate = await _context.RehearsalAttendances
+                .Include(ra => ra.Rehearsal)
+                .Where(ra => ra.UserId == userId
+                    && ra.Attended
+                    && ra.Rehearsal != null
+                    && !ra.Rehearsal.IsCanceled
+                    && ra.Rehearsal.Date < now)
+                .OrderByDescending(ra => ra.Rehearsal!.Date)
+                .Select(ra => ra.Rehearsal!.Date)
+                .FirstOrDefaultAsync();
+
+            var lastEventDate = await _context.Enrollments
+                .Include(e => e.Event)
+                .Where(e => e.UserId == userId
+                    && e.WillAttend
+                    && e.Event != null
+                    && !e.Event.IsCancelled
+                    && (e.Event.EndDate ?? e.Event.Date) < now)
+                .OrderByDescending(e => e.Event!.EndDate ?? e.Event!.Date)
+                .Select(e => e.Event!.EndDate ?? e.Event!.Date)
+                .FirstOrDefaultAsync();
+
+            DateTime? lastActivityDate = null;
+            if (lastRehearsalDate != default && lastEventDate != default)
+                lastActivityDate = lastRehearsalDate > lastEventDate ? lastRehearsalDate : lastEventDate;
+            else if (lastRehearsalDate != default)
+                lastActivityDate = lastRehearsalDate;
+            else if (lastEventDate != default)
+                lastActivityDate = lastEventDate;
+
+            bool hasAnyActivity = lastActivityDate.HasValue;
+
+            // Create new MemberStatus with manual activation
+            var newMemberStatus = new MemberStatus
+            {
+                UserId = userId,
+                IsRetired = false,  // MANUALLY SET TO ACTIVE
+                LastRehearsalDate = lastRehearsalDate == default ? null : lastRehearsalDate,
+                LastEventDate = lastEventDate == default ? null : lastEventDate,
+                LastActivityDate = lastActivityDate,
+                HasAnyActivity = hasAnyActivity,
+                ProgressMonths = null,  // No progress tracking for manually activated members
+                ProgressTotalMonths = null,
+                ProgressDescription = null,
+                TotalActivitiesCount = 0,  // Will be calculated on next automatic update
+                CreatedAt = DateTime.UtcNow,
+                LastUpdatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.MemberStatuses.Add(newMemberStatus);
+            await _context.SaveChangesAsync();
+
+            // Create result for UI display
+            var updatedStatus = new MemberStatusResult
+            {
+                IsRetired = false,
+                LastRehearsalDate = lastRehearsalDate == default ? null : lastRehearsalDate,
+                LastEventDate = lastEventDate == default ? null : lastEventDate,
+                LastActivityDate = lastActivityDate,
+                HasAnyActivity = hasAnyActivity,
+                ProgressMonths = null,
+                ProgressTotalMonths = null,
+                ProgressDescription = null,
+                TotalActivitiesCount = 0,
+                HasActivityInCurrentMonth = false
+            };
             
             // Step 4: Update local state to reflect the changes immediately
             memberToMakeActive.IsRetired = false;
