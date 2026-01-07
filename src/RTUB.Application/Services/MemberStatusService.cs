@@ -244,7 +244,8 @@ public class MemberStatusService : IMemberStatusService
     {
         // Get all active members (excluding Leitao and TunoHonorario)
         var activeMembers = await _userManager.Users
-            .Where(u => !u.Categories.Contains(MemberCategory.Leitao) &&
+            .Where(u => u.Categories != null &&
+                       !u.Categories.Contains(MemberCategory.Leitao) &&
                        !u.Categories.Contains(MemberCategory.TunoHonorario) &&
                        (u.Categories.Contains(MemberCategory.Caloiro) ||
                         u.Categories.Contains(MemberCategory.Tuno) ||
