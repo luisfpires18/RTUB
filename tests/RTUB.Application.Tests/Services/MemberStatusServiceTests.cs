@@ -671,6 +671,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
     public async Task GetMemberStatusAsync_ActiveMemberWith5MonthsInactivity_StaysActive()
     {
         // Arrange - Test that active member stays active with only 5 months inactivity
+        // With new logic: if no activity in current month, we add 1 to the count for warning purposes
         var userId = Guid.NewGuid().ToString();
         var user = CreateTestUser(userId);
         user.IsRetired = false; // Start as active
@@ -683,6 +684,7 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         var now = DateTime.UtcNow;
         
         // Add activity 6 months ago (on the edge, so only 5 completed months without activity)
+        // No activity in current month → 5 + 1 = 6 counted → ProgressMonths = 0 ("Próximo da reforma")
         var sixMonthsAgo = new DateTime(now.AddMonths(-6).Year, now.AddMonths(-6).Month, 15);
         var rehearsal = Rehearsal.Create(sixMonthsAgo, "Old Rehearsal");
         _context.Rehearsals.Add(rehearsal);
@@ -696,11 +698,13 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Act
         var result = await _service.GetMemberStatusAsync(userId);
 
-        // Assert - Should stay active (only 5 completed months without activity)
+        // Assert - Should stay active (only 5 COMPLETED months without activity, won't become retired until 6 COMPLETED months)
+        // But progress shows 0 because: 5 completed + 1 (no current month activity) = 6 → 6 - 6 = 0
         result.Should().NotBeNull();
         result.HasAnyActivity.Should().BeTrue();
         result.IsRetired.Should().BeFalse();
-        result.ProgressMonths.Should().Be(1); // 6 - 5 = 1 month until reform
+        result.ProgressMonths.Should().Be(0); // 6 - (5 + 1) = 0 months until reform (they're at risk!)
+        result.ProgressDescription.Should().Be("Próximo da reforma");
     }
 
     [Fact]
@@ -906,16 +910,17 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
 
         var now = DateTime.UtcNow;
         
-        // Add activity 6 months ago (so 5 consecutive COMPLETED months without activity = 1 month until reform)
+        // Add activity 5 months ago (so 4 consecutive COMPLETED months without activity)
+        // With new logic: no current month activity adds 1 → 4 + 1 = 5 → ProgressMonths = 6 - 5 = 1
         // i=1: no activity (last month)
         // i=2: no activity
         // i=3: no activity
         // i=4: no activity
-        // i=5: no activity
-        // i=6: HAS activity → stops counting at 5 months without activity
+        // i=5: HAS activity → stops counting at 4 completed months without activity
+        // Plus 1 for no current month activity = 5 total
         // 6 - 5 = 1 month until reform
-        var sixMonthsAgo = new DateTime(now.AddMonths(-6).Year, now.AddMonths(-6).Month, 15);
-        var rehearsal = Rehearsal.Create(sixMonthsAgo, "Old Rehearsal");
+        var fiveMonthsAgo = new DateTime(now.AddMonths(-5).Year, now.AddMonths(-5).Month, 15);
+        var rehearsal = Rehearsal.Create(fiveMonthsAgo, "Old Rehearsal");
         _context.Rehearsals.Add(rehearsal);
         await _context.SaveChangesAsync();
         

@@ -459,6 +459,15 @@ public class MemberStatusService : IMemberStatusService
                 // Count consecutive months WITHOUT activity (starting from most recent completed month)
                 // 6 months without activity = retired
                 var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(userId, now);
+                
+                // If the member hasn't participated in the current month yet, 
+                // add 1 to show them the potential risk (proactive warning)
+                // This encourages participation before the month ends
+                if (!hasActivityInCurrentMonth)
+                {
+                    consecutiveMonthsWithoutActivity++;
+                }
+                
                 var monthsUntilReform = 6 - consecutiveMonthsWithoutActivity;
                 if (monthsUntilReform < 0) monthsUntilReform = 0;
                 
