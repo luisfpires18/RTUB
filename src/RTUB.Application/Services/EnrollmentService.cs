@@ -157,6 +157,12 @@ public class EnrollmentService : IEnrollmentService
                 return;
             }
 
+            // Only send notifications for future events
+            if (detailedEnrollment.Event.Date.Date < DateTime.Today)
+            {
+                return;
+            }
+
             var baseUrl = GetBaseUrl();
             var userDisplayName = detailedEnrollment.User.Nickname
                                   ?? detailedEnrollment.User.FirstName
@@ -205,6 +211,12 @@ public class EnrollmentService : IEnrollmentService
                 return;
             }
 
+            // Only send notifications for future events
+            if (detailedEnrollment.Event.Date.Date < DateTime.Today)
+            {
+                return;
+            }
+
             var baseUrl = GetBaseUrl();
             var userDisplayName = detailedEnrollment.User.Nickname
                                   ?? detailedEnrollment.User.FirstName
@@ -249,6 +261,12 @@ public class EnrollmentService : IEnrollmentService
                 .FirstOrDefaultAsync(e => e.Id == enrollment.Id);
 
             if (detailedEnrollment?.Event == null || detailedEnrollment.User == null)
+            {
+                return;
+            }
+
+            // Only send notifications for future events
+            if (detailedEnrollment.Event.Date.Date < DateTime.Today)
             {
                 return;
             }
