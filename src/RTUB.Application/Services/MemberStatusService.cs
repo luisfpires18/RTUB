@@ -677,10 +677,16 @@ public class MemberStatusService : IMemberStatusService
     }
     
     /// <summary>
-    /// Helper method to check if a user has any activity in a given time period
+    /// Helper method to check if a user has any PAST activity in a given time period
+    /// CRITICAL: Only includes activities that have already occurred (before DateTime.UtcNow)
+    /// Future enrollments/registrations are NOT counted as activity
     /// </summary>
     private async Task<bool> HasActivityInPeriodAsync(string userId, DateTime periodStart, DateTime periodEnd)
     {
+        var now = DateTime.UtcNow;
+        
+        // CRITICAL: Only include PAST rehearsals (Date < now)
+        // This ensures future rehearsals the member is registered for don't count
         var hasRehearsalInPeriod = await _context.RehearsalAttendances
             .Include(ra => ra.Rehearsal)
             .AnyAsync(ra => ra.UserId == userId
@@ -688,11 +694,14 @@ public class MemberStatusService : IMemberStatusService
                 && ra.Rehearsal != null
                 && !ra.Rehearsal.IsCanceled
                 && ra.Rehearsal.Date >= periodStart
-                && ra.Rehearsal.Date < periodEnd);
+                && ra.Rehearsal.Date < periodEnd
+                && ra.Rehearsal.Date < now);  // BUG FIX: Exclude future rehearsals
 
         if (hasRehearsalInPeriod)
             return true;
 
+        // CRITICAL: Only include PAST events (EndDate or Date < now)
+        // This ensures future events the member is enrolled in don't count
         var hasEventInPeriod = await _context.Enrollments
             .Include(e => e.Event)
             .AnyAsync(e => e.UserId == userId
@@ -700,7 +709,8 @@ public class MemberStatusService : IMemberStatusService
                 && e.Event != null
                 && !e.Event.IsCancelled
                 && e.Event.Date >= periodStart
-                && e.Event.Date < periodEnd);
+                && e.Event.Date < periodEnd
+                && (e.Event.EndDate ?? e.Event.Date) < now);  // BUG FIX: Exclude future events
 
         return hasEventInPeriod;
     }
