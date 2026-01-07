@@ -34,7 +34,6 @@ public class RehearsalAttendanceAuditLogTests : IClassFixture<DatabaseFixture>, 
         _fixture.CleanDatabase(tempContext).GetAwaiter().GetResult();
         tempContext.Dispose();
 
-        _fixture = fixture;
         _context = _fixture.CreateContext();
         _mockRetirementStatusService = new Mock<IRetirementStatusService>();
         _mockPushNotificationService = new Mock<IPushNotificationService>();
