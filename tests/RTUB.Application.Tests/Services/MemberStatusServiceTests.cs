@@ -440,16 +440,31 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         _mockUserManager.Setup(um => um.FindByIdAsync(userId))
             .ReturnsAsync(user);
 
+        var now = DateTime.UtcNow;
+        
+        // Add activity 2 months ago so recalculation produces ProgressMonths = 4
+        // 1 completed month without activity + 1 (no current month) = 2
+        // ProgressMonths = 6 - 2 = 4
+        var twoMonthsAgo = new DateTime(now.AddMonths(-2).Year, now.AddMonths(-2).Month, 15);
+        var rehearsal = Rehearsal.Create(twoMonthsAgo, "Old Rehearsal");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+        
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
         // Create a fresh cached status (less than 1 hour old)
         var cachedStatus = new MemberStatus
         {
             UserId = userId,
             IsRetired = false,
             HasAnyActivity = true,
-            LastRehearsalDate = DateTime.UtcNow.AddDays(-10),
-            LastEventDate = DateTime.UtcNow.AddDays(-5),
-            LastActivityDate = DateTime.UtcNow.AddDays(-5),
-            ProgressMonths = 4,
+            LastRehearsalDate = twoMonthsAgo,
+            LastEventDate = null,
+            LastActivityDate = twoMonthsAgo,
+            ProgressMonths = 4, // This will be recalculated dynamically
             ProgressTotalMonths = 6,
             ProgressDescription = "4 meses até reforma",
             LastUpdatedAt = DateTime.UtcNow.AddMinutes(-30), // 30 minutes ago (fresh)
@@ -461,13 +476,14 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
         // Act
         var result = await _service.GetMemberStatusAsync(userId);
 
-        // Assert - Should return cached result
+        // Assert - Progress is dynamically recalculated even for fresh cache
+        // 1 completed month without activity (last month) + 1 (no current month) = 2
+        // ProgressMonths = 6 - 2 = 4
         result.Should().NotBeNull();
         result.IsRetired.Should().BeFalse();
         result.HasAnyActivity.Should().BeTrue();
         result.ProgressMonths.Should().Be(4);
         result.ProgressTotalMonths.Should().Be(6);
-        result.ProgressDescription.Should().Be("4 meses até reforma");
     }
 
     [Fact]

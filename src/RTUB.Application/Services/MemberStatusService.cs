@@ -834,7 +834,7 @@ public class MemberStatusService : IMemberStatusService
     
     /// <summary>
     /// Maps a MemberStatus entity to a MemberStatusResult DTO
-    /// Computes HasActivityInCurrentMonth dynamically since it depends on current time
+    /// Computes HasActivityInCurrentMonth and ProgressMonths dynamically since they depend on current time
     /// </summary>
     private async Task<MemberStatusResult> MapToResultAsync(MemberStatus memberStatus)
     {
@@ -843,6 +843,31 @@ public class MemberStatusService : IMemberStatusService
         var currentMonthStart = new DateTime(now.Year, now.Month, 1);
         var hasActivityInCurrentMonth = await HasActivityInPeriodAsync(memberStatus.UserId, currentMonthStart, now);
         
+        // Recalculate progress for active members based on current month activity
+        // This is needed because the cached progress might not include the proactive warning
+        int? progressMonths = memberStatus.ProgressMonths;
+        string? progressDescription = memberStatus.ProgressDescription;
+        
+        if (!memberStatus.IsRetired && memberStatus.ProgressTotalMonths == 6)
+        {
+            // For active members, recalculate progress including proactive warning
+            var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(memberStatus.UserId, now);
+            
+            // If no activity in current month, add 1 for proactive warning
+            if (!hasActivityInCurrentMonth)
+            {
+                consecutiveMonthsWithoutActivity++;
+            }
+            
+            var monthsUntilReform = 6 - consecutiveMonthsWithoutActivity;
+            if (monthsUntilReform < 0) monthsUntilReform = 0;
+            
+            progressMonths = monthsUntilReform;
+            progressDescription = monthsUntilReform > 0 
+                ? $"{monthsUntilReform} {(monthsUntilReform == 1 ? "mês" : "meses")} até reforma"
+                : "Próximo da reforma";
+        }
+        
         return new MemberStatusResult
         {
             IsRetired = memberStatus.IsRetired,
@@ -850,9 +875,9 @@ public class MemberStatusService : IMemberStatusService
             LastEventDate = memberStatus.LastEventDate,
             LastActivityDate = memberStatus.LastActivityDate,
             HasAnyActivity = memberStatus.HasAnyActivity,
-            ProgressMonths = memberStatus.ProgressMonths,
+            ProgressMonths = progressMonths,
             ProgressTotalMonths = memberStatus.ProgressTotalMonths,
-            ProgressDescription = memberStatus.ProgressDescription,
+            ProgressDescription = progressDescription,
             TotalActivitiesCount = memberStatus.TotalActivitiesCount,
             HasActivityInCurrentMonth = hasActivityInCurrentMonth
         };
