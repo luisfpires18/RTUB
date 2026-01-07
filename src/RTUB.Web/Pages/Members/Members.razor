@@ -3381,7 +3381,13 @@ else
             if (dbUser != null)
             {
                 dbUser.IsRetired = false;
-                await UserManager.UpdateAsync(dbUser);
+                var updateResult = await UserManager.UpdateAsync(dbUser);
+                if (!updateResult.Succeeded)
+                {
+                    _logger.LogError("Failed to update IsRetired for user {UserId}: {Errors}", 
+                        userId, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                    return;
+                }
             }
             
             // Step 2: Remove MemberStatus record from database
@@ -3392,6 +3398,15 @@ else
             {
                 _context.MemberStatuses.Remove(memberStatus);
                 await _context.SaveChangesAsync();
+            }
+            
+            // CRITICAL: Detach any tracked entities to ensure fresh data is fetched
+            // This prevents EF from returning cached entities
+            var trackedUser = _context.ChangeTracker.Entries<ApplicationUser>()
+                .FirstOrDefault(e => e.Entity.Id == userId);
+            if (trackedUser != null)
+            {
+                trackedUser.State = EntityState.Detached;
             }
             
             // Step 3: Trigger a status update for this specific user
