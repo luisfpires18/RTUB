@@ -11,6 +11,8 @@ public class MeetingRequestConfiguration : IEntityTypeConfiguration<MeetingReque
 {
     public void Configure(EntityTypeBuilder<MeetingRequest> builder)
     {
+        builder.HasKey(mr => mr.Id);
+
         // Configure the Author relationship to use AuthorUserId as the foreign key
         builder.HasOne(mr => mr.Author)
             .WithMany()
