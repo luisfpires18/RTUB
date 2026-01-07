@@ -157,6 +157,12 @@ public class EnrollmentService : IEnrollmentService
                 return;
             }
 
+            // Only send notifications for future events
+            if (!IsFutureEvent(detailedEnrollment.Event.Date))
+            {
+                return;
+            }
+
             var baseUrl = GetBaseUrl();
             var userDisplayName = detailedEnrollment.User.Nickname
                                   ?? detailedEnrollment.User.FirstName
@@ -201,6 +207,12 @@ public class EnrollmentService : IEnrollmentService
                 .FirstOrDefaultAsync(e => e.Id == enrollment.Id);
 
             if (detailedEnrollment?.Event == null || detailedEnrollment.User == null)
+            {
+                return;
+            }
+
+            // Only send notifications for future events
+            if (!IsFutureEvent(detailedEnrollment.Event.Date))
             {
                 return;
             }
@@ -253,6 +265,12 @@ public class EnrollmentService : IEnrollmentService
                 return;
             }
 
+            // Only send notifications for future events
+            if (!IsFutureEvent(detailedEnrollment.Event.Date))
+            {
+                return;
+            }
+
             var baseUrl = GetBaseUrl();
             var userDisplayName = detailedEnrollment.User.Nickname
                                   ?? detailedEnrollment.User.FirstName
@@ -284,6 +302,14 @@ public class EnrollmentService : IEnrollmentService
         {
             // Notifications are non-critical; ignore failures
         }
+    }
+
+    /// <summary>
+    /// Checks if the event date is in the future (today or later)
+    /// </summary>
+    private static bool IsFutureEvent(DateTime eventDate)
+    {
+        return eventDate.Date >= DateTime.Today;
     }
 
     private string GetBaseUrl()

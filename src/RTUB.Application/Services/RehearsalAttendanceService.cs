@@ -326,6 +326,12 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
                 return;
             }
 
+            // Only send notifications for future rehearsals
+            if (!IsFutureRehearsal(detailedAttendance.Rehearsal.Date))
+            {
+                return;
+            }
+
             var baseUrl = GetBaseUrl();
             var userDisplayName = detailedAttendance.User.Nickname
                                   ?? detailedAttendance.User.FirstName
@@ -371,6 +377,12 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
                 .FirstOrDefaultAsync(a => a.Id == attendance.Id);
 
             if (detailedAttendance?.Rehearsal == null || detailedAttendance.User == null)
+            {
+                return;
+            }
+
+            // Only send notifications for future rehearsals
+            if (!IsFutureRehearsal(detailedAttendance.Rehearsal.Date))
             {
                 return;
             }
@@ -424,6 +436,12 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
                 return;
             }
 
+            // Only send notifications for future rehearsals
+            if (!IsFutureRehearsal(detailedAttendance.Rehearsal.Date))
+            {
+                return;
+            }
+
             var baseUrl = GetBaseUrl();
             var userDisplayName = detailedAttendance.User.Nickname
                                   ?? detailedAttendance.User.FirstName
@@ -456,6 +474,14 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             // Notifications are non-critical; log but don't fail the operation
             Console.WriteLine($"Failed to send rehearsal non-attendance notification: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Checks if the rehearsal date is in the future (today or later)
+    /// </summary>
+    private static bool IsFutureRehearsal(DateTime rehearsalDate)
+    {
+        return rehearsalDate.Date >= DateTime.Today;
     }
 
     private string GetBaseUrl()
