@@ -71,10 +71,10 @@ else if (!events.Any())
 }
 else
 {
-    <div class="row">
+    <div class="row" @key="@($"future-events-{eventListRefreshTrigger}")">
         @foreach (var eventItem in paginatedFutureEvents)
         {
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4 mb-4" @key="eventItem.Id">
                 <AuthorizeView>
                     <Authorized>
                         @{
@@ -155,10 +155,10 @@ else if (!filteredPreviousEvents.Any())
 }
 else
 {
-    <div class="row">
+    <div class="row" @key="@($"previous-events-{eventListRefreshTrigger}")">
         @foreach (var eventItem in paginatedPreviousEvents)
         {
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4 mb-4" @key="eventItem.Id">
                 <AuthorizeView>
                     <Authorized>
                         @{
@@ -1426,6 +1426,7 @@ else
     private IBrowserFile? selectedFile;
     private ImageUploadManager? imageUploadManager;
     private int imageRefreshTrigger = 0;
+    private int eventListRefreshTrigger = 0; // Force event list re-render
     private byte[]? croppedImageBytes;
     private string? croppedImageFileName = "event-image.webp";
 
@@ -1927,6 +1928,7 @@ else
         await LoadEventRepertoires();
         await LoadDiscussionPosts();
         
+        eventListRefreshTrigger++; // Increment to force component re-render
         StateHasChanged(); // Force UI refresh before closing modal
         CloseEditModal();
     }
@@ -1956,6 +1958,7 @@ else
         await LoadEventRepertoires();
         await LoadDiscussionPosts();
 
+        eventListRefreshTrigger++; // Increment to force component re-render
         StateHasChanged(); // Force UI refresh before closing modal
         CloseDeleteModal();
     }
