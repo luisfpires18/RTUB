@@ -1,0 +1,104 @@
+@namespace RTUB.Shared
+@typeparam TItem
+@*
+    Reusable wrapper component for handling loading, empty, and content states
+    Reduces boilerplate code for common loading/empty/content patterns
+    
+    Usage:
+    <LoadableContent Items="@items" IsLoading="@isLoading" EmptyTitle="No results">
+        <ChildContent Context="items">
+            @foreach (var item in items)
+            {
+                <div>@item.Name</div>
+            }
+        </ChildContent>
+    </LoadableContent>
+*@
+
+@if (IsLoading)
+{
+    @if (LoadingContent != null)
+    {
+        @LoadingContent
+    }
+    else
+    {
+        <LoadingSpinner />
+    }
+}
+else if (Items == null || !Items.Any())
+{
+    @if (EmptyContent != null)
+    {
+        @EmptyContent
+    }
+    else
+    {
+        <EmptyState Title="@EmptyTitle" 
+                    Icon="@EmptyIcon" 
+                    Message="@EmptyMessage" />
+    }
+}
+else
+{
+    @if (ChildContent != null)
+    {
+        @ChildContent(Items)
+    }
+}
+
+@code {
+    /// <summary>
+    /// The collection of items to display. When null or empty, the empty state is shown.
+    /// </summary>
+    [Parameter]
+    public IEnumerable<TItem>? Items { get; set; }
+
+    /// <summary>
+    /// Indicates whether the data is currently being loaded.
+    /// When true, the loading content is displayed.
+    /// </summary>
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    /// <summary>
+    /// The title to display in the empty state.
+    /// Only used when EmptyContent is not provided.
+    /// </summary>
+    [Parameter]
+    public string EmptyTitle { get; set; } = "No items found";
+
+    /// <summary>
+    /// The Bootstrap icon class to display in the empty state (e.g., "bi-inbox", "bi-search").
+    /// Only used when EmptyContent is not provided.
+    /// </summary>
+    [Parameter]
+    public string EmptyIcon { get; set; } = "bi-info-circle";
+
+    /// <summary>
+    /// Optional message providing more context in the empty state.
+    /// Only used when EmptyContent is not provided.
+    /// </summary>
+    [Parameter]
+    public string? EmptyMessage { get; set; }
+
+    /// <summary>
+    /// Custom content to display while loading.
+    /// When not provided, the default LoadingSpinner component is used.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? LoadingContent { get; set; }
+
+    /// <summary>
+    /// Custom content to display when Items is null or empty.
+    /// When not provided, the default EmptyState component is used with EmptyTitle, EmptyIcon, and EmptyMessage.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? EmptyContent { get; set; }
+
+    /// <summary>
+    /// The content to display when Items has data. Receives the Items collection as context.
+    /// </summary>
+    [Parameter]
+    public RenderFragment<IEnumerable<TItem>>? ChildContent { get; set; }
+}
