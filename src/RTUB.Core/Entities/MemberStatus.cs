@@ -78,6 +78,13 @@ public class MemberStatus : BaseEntity
     public int TotalActivitiesCount { get; set; }
     
     /// <summary>
+    /// Indicates if the retirement status was manually overridden by an administrator
+    /// When true, automatic retirement calculations will not change the IsRetired status
+    /// This allows admins to manually activate members without automatic re-retirement
+    /// </summary>
+    public bool OverrideRetired { get; set; }
+    
+    /// <summary>
     /// Timestamp when this status was last calculated and updated
     /// Used to determine when a refresh is needed
     /// </summary>

@@ -128,6 +128,7 @@ public class MemberStatusService : IMemberStatusService
         memberStatus.TotalActivitiesCount = result.TotalActivitiesCount;
         memberStatus.LastUpdatedAt = DateTime.UtcNow;
         memberStatus.UpdatedAt = DateTime.UtcNow;
+        // Note: OverrideRetired is NOT set here - it's only set during manual activation
 
         await _context.SaveChangesAsync();
 
@@ -414,6 +415,16 @@ public class MemberStatusService : IMemberStatusService
                 if (consecutiveMonthsWithActivity >= 3)
                 {
                     isRetired = false; // Return to active
+                    
+                    // If they naturally earned their way back to active, clear any manual override
+                    // They've proven they're active through participation
+                    var memberStatusRecord = await _context.MemberStatuses
+                        .FirstOrDefaultAsync(ms => ms.UserId == userId);
+                    if (memberStatusRecord != null && memberStatusRecord.OverrideRetired)
+                    {
+                        memberStatusRecord.OverrideRetired = false;
+                        await _context.SaveChangesAsync();
+                    }
                 }
             }
             else
@@ -421,18 +432,15 @@ public class MemberStatusService : IMemberStatusService
                 // Currently active - check if should become retired
                 // Need 6 consecutive months WITHOUT activity to become retired
                 
-                // IMPORTANT: Check if this is a recent manual activation
-                // If the MemberStatus was updated within the last 2 days, skip auto-retirement
-                // This allows admins to manually activate members without them being immediately
-                // retired again by the automatic batch process
+                // IMPORTANT: Check if retirement status was manually overridden by an admin
+                // If OverrideRetired is true, respect the manual activation and don't auto-retire
                 var memberStatusRecord = await _context.MemberStatuses
                     .AsNoTracking()
                     .FirstOrDefaultAsync(ms => ms.UserId == userId);
                 
-                var isRecentUpdate = memberStatusRecord != null && 
-                    memberStatusRecord.UpdatedAt > now.AddDays(-2);
+                var hasManualOverride = memberStatusRecord?.OverrideRetired ?? false;
                 
-                if (!isRecentUpdate)
+                if (!hasManualOverride)
                 {
                     // Count consecutive months WITHOUT activity (starting from most recent completed month)
                     var consecutiveMonthsWithoutActivity = await CountConsecutiveMonthsWithoutActivityAsync(userId, now);
@@ -441,7 +449,12 @@ public class MemberStatusService : IMemberStatusService
                         isRetired = true; // Become retired
                     }
                 }
-                // If it's a recent update, keep current active status
+                else
+                {
+                    // Manual override is active - member stays active regardless of inactivity
+                    // The override will be cleared when they naturally accumulate enough activity
+                    // or when an admin manually retires them
+                }
             }
 
             // Persist retirement status if changed

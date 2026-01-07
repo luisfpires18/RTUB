@@ -3408,8 +3408,7 @@ else
             // Step 4: OVERRIDE the calculated retirement status
             // Force the member to be active regardless of their activity history
             // This is a manual activation that bypasses automatic retirement rules
-            // The member will stay active and only become retired if they accumulate
-            // 6 NEW consecutive months of inactivity AFTER this manual activation
+            // Set OverrideRetired flag to prevent automatic re-retirement
             memberStatus = await _context.MemberStatuses
                 .FirstOrDefaultAsync(ms => ms.UserId == userId);
             
@@ -3417,11 +3416,13 @@ else
             {
                 // Force IsRetired to false - this overrides the automatic calculation
                 memberStatus.IsRetired = false;
+                // Set the override flag to prevent automatic retirement in future updates
+                memberStatus.OverrideRetired = true;
                 // Update the result object as well for UI display
                 updatedStatus.IsRetired = false;
                 await _context.SaveChangesAsync();
                 
-                _logger.LogInformation("Manually activated member {UserId} - forcing IsRetired=false regardless of activity history", userId);
+                _logger.LogInformation("Manually activated member {UserId} - set IsRetired=false and OverrideRetired=true", userId);
             }
             
             // Step 4: Update local state to reflect the changes immediately
