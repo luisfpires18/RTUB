@@ -327,7 +327,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             }
 
             // Only send notifications for future rehearsals
-            if (detailedAttendance.Rehearsal.Date.Date < DateTime.Today)
+            if (!IsFutureRehearsal(detailedAttendance.Rehearsal.Date))
             {
                 return;
             }
@@ -382,7 +382,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             }
 
             // Only send notifications for future rehearsals
-            if (detailedAttendance.Rehearsal.Date.Date < DateTime.Today)
+            if (!IsFutureRehearsal(detailedAttendance.Rehearsal.Date))
             {
                 return;
             }
@@ -437,7 +437,7 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             }
 
             // Only send notifications for future rehearsals
-            if (detailedAttendance.Rehearsal.Date.Date < DateTime.Today)
+            if (!IsFutureRehearsal(detailedAttendance.Rehearsal.Date))
             {
                 return;
             }
@@ -474,6 +474,14 @@ public class RehearsalAttendanceService : IRehearsalAttendanceService
             // Notifications are non-critical; log but don't fail the operation
             Console.WriteLine($"Failed to send rehearsal non-attendance notification: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Checks if the rehearsal date is in the future (today or later)
+    /// </summary>
+    private static bool IsFutureRehearsal(DateTime rehearsalDate)
+    {
+        return rehearsalDate.Date >= DateTime.Today;
     }
 
     private string GetBaseUrl()
