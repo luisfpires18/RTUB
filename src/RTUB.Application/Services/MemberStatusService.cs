@@ -117,7 +117,14 @@ public class MemberStatusService : IMemberStatusService
         }
 
         // Update fields
-        memberStatus.IsRetired = result.IsRetired;
+        // IMPORTANT: Only update IsRetired if there's no manual override
+        // When OverrideRetired is true, the admin has manually set the status
+        // and we should not overwrite it with automatic calculations
+        if (!memberStatus.OverrideRetired)
+        {
+            memberStatus.IsRetired = result.IsRetired;
+        }
+        // Always update these fields regardless of override status
         memberStatus.LastRehearsalDate = result.LastRehearsalDate;
         memberStatus.LastEventDate = result.LastEventDate;
         memberStatus.LastActivityDate = result.LastActivityDate;
