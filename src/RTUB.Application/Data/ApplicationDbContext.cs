@@ -1198,10 +1198,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .Where(g => g.Count() > 1)
             .ToList();
 
-        // For each group of duplicates, keep only one entry tracked (prefer Modified/Unchanged over Added)
+        // For each group of duplicates, keep only one entry tracked
+        // Prefer non-Added states (Modified/Unchanged) over Added states to maintain existing audit information
         foreach (var group in duplicateGroups)
         {
-            var entries = group.OrderBy(e => e.State == EntityState.Added ? 1 : 0).ToList();
+            // Sort so that Added entities come last, making them candidates for detachment
+            var entries = group.OrderByDescending(e => e.State != EntityState.Added).ToList();
             
             // Detach all but the first entry (the one we want to keep)
             foreach (var entry in entries.Skip(1))
