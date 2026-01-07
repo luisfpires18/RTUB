@@ -54,6 +54,11 @@ public class EnrollmentService : IEnrollmentService
         return await _enrollmentRepository.GetByUserIdAsync(userId);
     }
 
+    public async Task<Enrollment?> GetEnrollmentByEventAndUserAsync(int eventId, string userId)
+    {
+        return await _enrollmentRepository.GetByEventAndUserAsync(eventId, userId);
+    }
+
     public async Task<Enrollment> CreateEnrollmentAsync(string userId, int eventId, InstrumentType? instrument = null, string? notes = null, bool willAttend = true, string? otherInstruments = null, bool skipNotification = false)
     {
         var enrollment = Enrollment.Create(userId, eventId);
