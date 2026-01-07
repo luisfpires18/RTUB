@@ -151,7 +151,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                     }
 
                     // Create audit log for new entity
-                    auditEntries.Add(CreateAuditLog(entry, "Created", username, userId));
+                    var createdLog = CreateAuditLog(entry, "Created", username, userId);
+                    if (createdLog != null)
+                    {
+                        auditEntries.Add(createdLog);
+                    }
                     break;
 
                 case EntityState.Modified:
@@ -170,12 +174,20 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
                     // Create audit log - use "Deleted" action for soft deletes, "Modified" otherwise
                     var action = isSoftDelete ? "Deleted" : "Modified";
-                    auditEntries.Add(CreateAuditLog(entry, action, username, userId));
+                    var auditLog = CreateAuditLog(entry, action, username, userId);
+                    if (auditLog != null)
+                    {
+                        auditEntries.Add(auditLog);
+                    }
                     break;
 
                 case EntityState.Deleted:
                     // Create audit log for deleted entity
-                    auditEntries.Add(CreateAuditLog(entry, "Deleted", username, userId));
+                    var deletedLog = CreateAuditLog(entry, "Deleted", username, userId);
+                    if (deletedLog != null)
+                    {
+                        auditEntries.Add(deletedLog);
+                    }
                     break;
             }
         }
@@ -300,7 +312,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         return result;
     }
 
-    private AuditLog CreateAuditLog(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<BaseEntity> entry, string action, string? username, string? userId)
+    private AuditLog? CreateAuditLog(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<BaseEntity> entry, string action, string? username, string? userId)
     {
         var entityType = entry.Entity.GetType().Name;
         // For created entities, EntityId will be 0 and will be updated after SaveChanges
@@ -356,6 +368,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                         }
                     }
                 }
+            }
+            
+            // Skip audit log creation if there are no meaningful changes for Modified actions
+            if (!changes.Any())
+            {
+                return null;
             }
         }
         else if (action == "Deleted")
