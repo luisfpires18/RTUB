@@ -481,11 +481,11 @@ public class MemberStatusService : IMemberStatusService
     {
         int consecutiveMonths = 0;
 
-        // Check up to 12 previous months (reasonable limit)
-        // Start from i=1 to exclude the CURRENT ongoing month
-        // Only count COMPLETED months (previous months)
-        // i=1 is the previous month, i=12 is 12 months ago
-        for (int i = 1; i < 13; i++)
+        // Check up to 12 months including current month
+        // Start from i=0 to include the CURRENT month for past activities
+        // The query condition "Date < referenceDate" ensures future activities are excluded
+        // i=0 is the current month, i=1 is previous month, i=11 is 11 months ago
+        for (int i = 0; i < 12; i++)
         {
             var targetDate = referenceDate.AddMonths(-i);
             var monthStart = new DateTime(targetDate.Year, targetDate.Month, 1); // First day of the month
