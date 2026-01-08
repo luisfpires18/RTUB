@@ -477,12 +477,18 @@ else
         if (isAuthenticated)
         {
             // Show all albums for authenticated users
-            albums = (await AlbumService.GetAllAlbumsAsync()).OrderBy(a => a.Year).ToList();
+            albums = (await AlbumService.GetAllAlbumsAsync())
+                .OrderByDescending(a => a.Year.HasValue)  // Albums with year first
+                .ThenBy(a => a.Year)                       // Then order by year ascending
+                .ToList();
         }
         else
         {
             // Show only public albums for unauthenticated users
-            albums = (await AlbumService.GetPublicAlbumsAsync()).OrderBy(a => a.Year).ToList();
+            albums = (await AlbumService.GetPublicAlbumsAsync())
+                .OrderByDescending(a => a.Year.HasValue)  // Albums with year first
+                .ThenBy(a => a.Year)                       // Then order by year ascending
+                .ToList();
         }
         
         allSongs = (await SongService.GetAllSongsAsync()).ToList();
