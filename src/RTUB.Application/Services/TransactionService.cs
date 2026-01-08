@@ -1,6 +1,6 @@
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
 
 
 namespace RTUB.Application.Services;
@@ -47,9 +47,7 @@ public class TransactionService : ITransactionService
 
     public async Task UpdateTransactionAsync(int id, DateTime date, string description, string category, decimal amount, string type)
     {
-        var transaction = await _transactionRepository.GetByIdAsync(id);
-        if (transaction == null)
-            throw new EntityNotFoundException(nameof(Transaction), id);
+        var transaction = await _transactionRepository.GetByIdOrThrowAsync(id);
 
         transaction.UpdateDetails(date, description, category, amount, type);
         await _transactionRepository.UpdateAsync(transaction);
@@ -57,9 +55,7 @@ public class TransactionService : ITransactionService
 
     public async Task DeleteTransactionAsync(int id)
     {
-        var transaction = await _transactionRepository.GetByIdAsync(id);
-        if (transaction == null)
-            throw new EntityNotFoundException(nameof(Transaction), id);
+        var transaction = await _transactionRepository.GetByIdOrThrowAsync(id);
 
         await _transactionRepository.DeleteAsync(transaction);
     }
