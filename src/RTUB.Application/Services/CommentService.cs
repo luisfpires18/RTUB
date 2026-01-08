@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components.Forms;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
 
@@ -98,9 +98,7 @@ public class CommentService : ICommentService
 
     public async Task UpdateAsync(int id, string body, string? mentionsJson = null)
     {
-        var comment = await _commentRepository.GetByIdAsync(id);
-        if (comment == null)
-            throw new EntityNotFoundException(nameof(Comment), id);
+        var comment = await _commentRepository.GetByIdOrThrowAsync(id);
 
         comment.Edit(body);
         if (!string.IsNullOrWhiteSpace(mentionsJson))
@@ -113,9 +111,7 @@ public class CommentService : ICommentService
 
     public async Task SoftDeleteAsync(int id)
     {
-        var comment = await _commentRepository.GetByIdAsync(id);
-        if (comment == null)
-            throw new EntityNotFoundException(nameof(Comment), id);
+        var comment = await _commentRepository.GetByIdOrThrowAsync(id);
 
         // Get images before soft delete
         var images = await _commentImageRepository.GetByCommentIdAsync(id);

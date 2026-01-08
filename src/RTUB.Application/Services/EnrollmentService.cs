@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
 using RTUB.Core.Enums;
 
 namespace RTUB.Application.Services;
@@ -90,12 +90,7 @@ public class EnrollmentService : IEnrollmentService
        string? notes = null,
        string? otherInstruments = null)
     {
-        var enrollment = await _enrollmentRepository.GetByIdAsync(enrollmentId);
-
-        if (enrollment == null)
-        {
-            throw new EntityNotFoundException(nameof(Enrollment), enrollmentId);
-        }
+        var enrollment = await _enrollmentRepository.GetByIdOrThrowAsync(enrollmentId);
 
         var wasAttending = enrollment.WillAttend;
 
@@ -129,9 +124,7 @@ public class EnrollmentService : IEnrollmentService
 
     public async Task DeleteEnrollmentAsync(int id)
     {
-        var enrollment = await _enrollmentRepository.GetByIdAsync(id);
-        if (enrollment == null)
-            throw new EntityNotFoundException(nameof(Enrollment), id);
+        var enrollment = await _enrollmentRepository.GetByIdOrThrowAsync(id);
 
         // Send cancellation notification before deleting if user was attending
         if (enrollment.WillAttend)

@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Application.Utilities;
 using RTUB.Core.Entities;
-using RTUB.Core.Exceptions;
 
 namespace RTUB.Application.Services;
 
@@ -162,9 +162,7 @@ public class PostService : IPostService
 
     public async Task UpdateAsync(int id, string title, string body, string? mentionsJson = null)
     {
-        var post = await _postRepository.GetByIdAsync(id);
-        if (post == null)
-            throw new EntityNotFoundException(nameof(Post), id);
+        var post = await _postRepository.GetByIdOrThrowAsync(id);
 
         post.Edit(title, body);
         if (!string.IsNullOrWhiteSpace(mentionsJson))
@@ -177,9 +175,7 @@ public class PostService : IPostService
 
     public async Task PinAsync(int id)
     {
-        var post = await _postRepository.GetByIdAsync(id);
-        if (post == null)
-            throw new EntityNotFoundException(nameof(Post), id);
+        var post = await _postRepository.GetByIdOrThrowAsync(id);
 
         post.Pin();
         await _postRepository.UpdateAsync(post);
@@ -187,9 +183,7 @@ public class PostService : IPostService
 
     public async Task UnpinAsync(int id)
     {
-        var post = await _postRepository.GetByIdAsync(id);
-        if (post == null)
-            throw new EntityNotFoundException(nameof(Post), id);
+        var post = await _postRepository.GetByIdOrThrowAsync(id);
 
         post.Unpin();
         await _postRepository.UpdateAsync(post);
@@ -197,9 +191,7 @@ public class PostService : IPostService
 
     public async Task LockAsync(int id)
     {
-        var post = await _postRepository.GetByIdAsync(id);
-        if (post == null)
-            throw new EntityNotFoundException(nameof(Post), id);
+        var post = await _postRepository.GetByIdOrThrowAsync(id);
 
         post.Lock();
         await _postRepository.UpdateAsync(post);
@@ -207,9 +199,7 @@ public class PostService : IPostService
 
     public async Task UnlockAsync(int id)
     {
-        var post = await _postRepository.GetByIdAsync(id);
-        if (post == null)
-            throw new EntityNotFoundException(nameof(Post), id);
+        var post = await _postRepository.GetByIdOrThrowAsync(id);
 
         post.Unlock();
         await _postRepository.UpdateAsync(post);
@@ -217,9 +207,7 @@ public class PostService : IPostService
 
     public async Task SoftDeleteAsync(int id)
     {
-        var post = await _postRepository.GetByIdAsync(id);
-        if (post == null)
-            throw new EntityNotFoundException(nameof(Post), id);
+        var post = await _postRepository.GetByIdOrThrowAsync(id);
 
         // Get media before soft delete
         var media = await _postMediaRepository.GetByPostIdAsync(id);
@@ -246,9 +234,7 @@ public class PostService : IPostService
 
     public async Task UpdateLastActivityAsync(int id)
     {
-        var post = await _postRepository.GetByIdAsync(id);
-        if (post == null)
-            throw new EntityNotFoundException(nameof(Post), id);
+        var post = await _postRepository.GetByIdOrThrowAsync(id);
 
         post.UpdateLastActivity();
         await _postRepository.UpdateAsync(post);
