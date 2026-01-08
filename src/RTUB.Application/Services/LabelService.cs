@@ -1,3 +1,4 @@
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -53,9 +54,7 @@ public class LabelService : ILabelService
 
     public async Task UpdateLabelContentAsync(int id, string title, string content, bool isActive)
     {
-        var label = await _labelRepository.GetByIdAsync(id);
-        if (label == null)
-            throw new EntityNotFoundException(nameof(Label), id);
+        var label = await _labelRepository.GetByIdOrThrowAsync(id);
 
         label.UpdateContent(title, content, isActive);
         await _labelRepository.UpdateAsync(label);
@@ -63,9 +62,7 @@ public class LabelService : ILabelService
 
     public async Task ActivateLabelAsync(int id)
     {
-        var label = await _labelRepository.GetByIdAsync(id);
-        if (label == null)
-            throw new EntityNotFoundException(nameof(Label), id);
+        var label = await _labelRepository.GetByIdOrThrowAsync(id);
 
         label.Activate();
         await _labelRepository.UpdateAsync(label);
@@ -73,9 +70,7 @@ public class LabelService : ILabelService
 
     public async Task DeactivateLabelAsync(int id)
     {
-        var label = await _labelRepository.GetByIdAsync(id);
-        if (label == null)
-            throw new EntityNotFoundException(nameof(Label), id);
+        var label = await _labelRepository.GetByIdOrThrowAsync(id);
 
         label.Deactivate();
         await _labelRepository.UpdateAsync(label);
@@ -83,9 +78,7 @@ public class LabelService : ILabelService
 
     public async Task DeleteLabelAsync(int id)
     {
-        var label = await _labelRepository.GetByIdAsync(id);
-        if (label == null)
-            throw new EntityNotFoundException(nameof(Label), id);
+        var label = await _labelRepository.GetByIdOrThrowAsync(id);
 
         await _labelRepository.DeleteAsync(label);
     }

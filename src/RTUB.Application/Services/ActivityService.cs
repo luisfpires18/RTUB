@@ -1,3 +1,4 @@
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -55,9 +56,7 @@ public class ActivityService : IActivityService
 
     public async Task UpdateActivityAsync(int id, string name, string? description)
     {
-        var activity = await _activityRepository.GetByIdAsync(id);
-        if (activity == null)
-            throw new EntityNotFoundException(nameof(Activity), id);
+        var activity = await _activityRepository.GetByIdOrThrowAsync(id);
 
         activity.UpdateDetails(name, description);
         await _activityRepository.UpdateAsync(activity);

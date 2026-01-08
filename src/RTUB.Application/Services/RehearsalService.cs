@@ -1,3 +1,4 @@
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -53,9 +54,7 @@ public class RehearsalService : IRehearsalService
 
     public async Task UpdateRehearsalAsync(int id, string location, string? theme, string? notes)
     {
-        var rehearsal = await _rehearsalRepository.GetByIdAsync(id);
-        if (rehearsal == null)
-            throw new EntityNotFoundException(nameof(Rehearsal), id);
+        var rehearsal = await _rehearsalRepository.GetByIdOrThrowAsync(id);
 
         rehearsal.UpdateDetails(location, theme, notes);
         await _rehearsalRepository.UpdateAsync(rehearsal);
@@ -63,9 +62,7 @@ public class RehearsalService : IRehearsalService
 
     public async Task CancelRehearsalAsync(int id, string reason)
     {
-        var rehearsal = await _rehearsalRepository.GetByIdAsync(id);
-        if (rehearsal == null)
-            throw new EntityNotFoundException(nameof(Rehearsal), id);
+        var rehearsal = await _rehearsalRepository.GetByIdOrThrowAsync(id);
 
         rehearsal.Cancel(reason);
         await _rehearsalRepository.UpdateAsync(rehearsal);
@@ -77,9 +74,7 @@ public class RehearsalService : IRehearsalService
 
     public async Task UncancelRehearsalAsync(int id)
     {
-        var rehearsal = await _rehearsalRepository.GetByIdAsync(id);
-        if (rehearsal == null)
-            throw new EntityNotFoundException(nameof(Rehearsal), id);
+        var rehearsal = await _rehearsalRepository.GetByIdOrThrowAsync(id);
 
         rehearsal.Uncancel();
         await _rehearsalRepository.UpdateAsync(rehearsal);
@@ -87,9 +82,7 @@ public class RehearsalService : IRehearsalService
 
     public async Task DeleteRehearsalAsync(int id)
     {
-        var rehearsal = await _rehearsalRepository.GetByIdAsync(id);
-        if (rehearsal == null)
-            throw new EntityNotFoundException(nameof(Rehearsal), id);
+        var rehearsal = await _rehearsalRepository.GetByIdOrThrowAsync(id);
 
         await _rehearsalRepository.DeleteAsync(rehearsal);
     }
