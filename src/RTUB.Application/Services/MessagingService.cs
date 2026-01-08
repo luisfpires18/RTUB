@@ -132,12 +132,12 @@ public class MessagingService : IMessagingService
         var sender = await _userManager.FindByIdAsync(senderId);
 
         // Create DTO for broadcasting with sender info
-        var messageDto2 = MapMessageToDto(message, senderId, sender);
+        var resultDto = MapMessageToDto(message, senderId, sender);
 
         // Broadcast message via SignalR to all participants in the conversation
         if (_messagesHubService != null)
         {
-            await _messagesHubService.BroadcastMessageAsync(conversation.Id, messageDto2);
+            await _messagesHubService.BroadcastMessageAsync(conversation.Id, resultDto);
         }
 
         // Send push notification (without creating inbox message - the direct message itself is already there)
@@ -162,7 +162,7 @@ public class MessagingService : IMessagingService
             }
         }
 
-        return messageDto2;
+        return resultDto;
     }
 
     public async Task<MessageDto> SendSystemMessageAsync(string receiverId, string body, string? link = null)

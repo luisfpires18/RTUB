@@ -1203,11 +1203,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Prefer Unchanged/Modified states over Added states to maintain existing data
         foreach (var group in duplicateGroups)
         {
-            // Sort so that Unchanged/Modified entities come first (they should be kept)
-            // Added entities come last (they are candidates for detachment)
+            // Sort entries by priority: Unchanged/Modified first, Added last
+            // This ensures we keep the entity that's already properly tracked
             var entries = group
-                .OrderByDescending(e => e.State == EntityState.Unchanged || e.State == EntityState.Modified)
-                .ThenBy(e => e.State == EntityState.Added)
+                .OrderBy(e => e.State == EntityState.Added ? 1 : 0)
+                .ThenByDescending(e => e.State == EntityState.Unchanged || e.State == EntityState.Modified)
                 .ToList();
             
             var keptEntry = entries.First();
