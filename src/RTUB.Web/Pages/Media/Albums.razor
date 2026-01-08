@@ -318,7 +318,7 @@ else
                                     </div>
                                     <div class="stats-card-content">
                                         <div class="stats-card-title">@album.Title</div>
-                                        <div class="stats-card-subtitle">@(album.Year?.ToString() ?? "Ano desconhecido")</div>
+                                        <div class="stats-card-subtitle">@(album.Year?.ToString() ?? string.Empty)</div>
                                     </div>
                                     <div class="stats-card-count">
                                         <i class="bi bi-play-circle"></i>
