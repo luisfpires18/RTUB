@@ -1184,6 +1184,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     /// Detaches duplicate ApplicationUser entities to prevent tracking conflicts.
     /// This is necessary when entities with navigation properties to ApplicationUser are added,
     /// as EF Core may try to track the same ApplicationUser instance multiple times.
+    /// This method also updates navigation properties of other tracked entities to reference the kept instance.
     /// </summary>
     private void DetachDuplicateApplicationUsers()
     {
@@ -1199,11 +1200,40 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .ToList();
 
         // For each group of duplicates, keep only one entry tracked
-        // Prefer non-Added states (Modified/Unchanged) over Added states to maintain existing audit information
+        // Prefer Unchanged/Modified states over Added states to maintain existing data
         foreach (var group in duplicateGroups)
         {
-            // Sort so that Added entities come last, making them candidates for detachment
-            var entries = group.OrderByDescending(e => e.State != EntityState.Added).ToList();
+            // Sort so that Unchanged/Modified entities come first (they should be kept)
+            // Added entities come last (they are candidates for detachment)
+            var entries = group
+                .OrderByDescending(e => e.State == EntityState.Unchanged || e.State == EntityState.Modified)
+                .ThenBy(e => e.State == EntityState.Added)
+                .ToList();
+            
+            var keptEntry = entries.First();
+            var keptUser = keptEntry.Entity;
+            var userId = keptUser.Id;
+
+            // Get all entities being added that might reference the duplicate users
+            // Update their navigation properties to point to the kept instance
+            foreach (var entityEntry in ChangeTracker.Entries())
+            {
+                if (entityEntry.State == EntityState.Added || entityEntry.State == EntityState.Modified)
+                {
+                    foreach (var navigation in entityEntry.Navigations)
+                    {
+                        if (navigation.CurrentValue is ApplicationUser navUser && navUser.Id == userId)
+                        {
+                            // Check if this navigation points to a duplicate instance (not the kept one)
+                            if (!ReferenceEquals(navUser, keptUser))
+                            {
+                                // Update the navigation to point to the kept instance
+                                navigation.CurrentValue = keptUser;
+                            }
+                        }
+                    }
+                }
+            }
             
             // Detach all but the first entry (the one we want to keep)
             foreach (var entry in entries.Skip(1))
