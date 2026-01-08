@@ -70,6 +70,10 @@ public class Program
         services.Configure<RTUB.Application.Configuration.MemberStatusUpdateOptions>(
             builder.Configuration.GetSection(RTUB.Application.Configuration.MemberStatusUpdateOptions.SectionName));
 
+        // Configure Login Popup
+        services.Configure<RTUB.Application.Configuration.LoginPopupOptions>(
+            builder.Configuration.GetSection(RTUB.Application.Configuration.LoginPopupOptions.SectionName));
+
         // ---------- DB: SQLite only ----------
         var connectionString = builder.Configuration.GetConnectionString("SqliteConnection")
                                ?? "Data Source=app.db";

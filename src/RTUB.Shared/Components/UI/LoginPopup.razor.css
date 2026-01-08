@@ -1,0 +1,129 @@
+/* Login Popup Styles */
+
+.login-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 1rem;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.login-popup-card {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 1rem;
+    padding: 2rem;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    animation: slideUp 0.3s ease-out;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.login-popup-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, #8e6fc7 0%, #6f42c1 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(111, 66, 193, 0.4);
+}
+
+.login-popup-icon i {
+    font-size: 2rem;
+    color: white;
+}
+
+.login-popup-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.login-popup-message {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.login-popup-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.login-popup-buttons .btn {
+    width: 100%;
+    padding: 0.75rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+}
+
+.login-popup-buttons .btn-primary-purple {
+    background: linear-gradient(135deg, #8e6fc7 0%, #6f42c1 100%);
+    border: none;
+}
+
+.login-popup-buttons .btn-primary-purple:hover {
+    background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Mobile adjustments */
+@media (max-width: 576px) {
+    .login-popup-card {
+        padding: 1.5rem;
+    }
+
+    .login-popup-title {
+        font-size: 1.25rem;
+    }
+
+    .login-popup-message {
+        font-size: 0.9rem;
+    }
+
+    .login-popup-icon {
+        width: 56px;
+        height: 56px;
+        margin-bottom: 1rem;
+    }
+
+    .login-popup-icon i {
+        font-size: 1.75rem;
+    }
+}

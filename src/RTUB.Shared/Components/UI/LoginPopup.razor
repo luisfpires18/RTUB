@@ -1,0 +1,85 @@
+@using Microsoft.Extensions.Logging
+@using Microsoft.Extensions.Options
+@using Microsoft.AspNetCore.Components.Authorization
+@using RTUB.Application.Configuration
+@inject IJSRuntime JSRuntime
+@inject ILogger<LoginPopup> Logger
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IOptions<LoginPopupOptions> Options
+
+@if (ShowPopup)
+{
+    <div class="login-popup-overlay">
+        <div class="login-popup-card" @onclick:stopPropagation="true">
+            <div class="login-popup-icon">
+                <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+            </div>
+            <h3 class="login-popup-title">@Options.Value.Title</h3>
+            <p class="login-popup-message">
+                @Options.Value.Description
+            </p>
+            <div class="login-popup-buttons">
+                <button class="btn btn-primary btn-primary-purple" @onclick="HandleDismiss" aria-label="@Options.Value.ButtonText">
+                    @Options.Value.ButtonText
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool ShowPopup { get; set; } = false;
+    private const string SessionStorageKey = "login-popup-shown";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Check if popup is enabled in configuration
+                if (!Options.Value.Enabled)
+                {
+                    return;
+                }
+
+                // Check if user is authenticated
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                if (!(authState.User.Identity?.IsAuthenticated ?? false))
+                {
+                    return;
+                }
+
+                // Check if popup was already shown in this session
+                var alreadyShown = await JSRuntime.InvokeAsync<string?>("sessionStorage.getItem", SessionStorageKey);
+                if (!string.IsNullOrEmpty(alreadyShown))
+                {
+                    return;
+                }
+
+                ShowPopup = true;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error checking if login popup should be shown");
+            }
+        }
+    }
+
+    private async Task HandleDismiss()
+    {
+        try
+        {
+            // Mark as shown in sessionStorage
+            await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", SessionStorageKey, "true");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error marking login popup as shown");
+        }
+
+        ShowPopup = false;
+        StateHasChanged();
+    }
+}
