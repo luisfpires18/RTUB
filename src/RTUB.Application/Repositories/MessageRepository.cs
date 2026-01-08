@@ -17,6 +17,7 @@ public class MessageRepository : Repository<Message>, IMessageRepository
     public async Task<IEnumerable<Message>> GetConversationMessagesAsync(int conversationId, int? limit = null, int? offset = null)
     {
         var query = _dbSet
+            .AsNoTracking()
             .Where(m => m.ConversationId == conversationId)
             .Include(m => m.Sender)
             .OrderByDescending(m => m.CreatedAt);
@@ -78,6 +79,7 @@ public class MessageRepository : Repository<Message>, IMessageRepository
     public async Task<Message?> GetLatestMessageAsync(int conversationId)
     {
         return await _dbSet
+            .AsNoTracking()
             .Where(m => m.ConversationId == conversationId)
             .OrderByDescending(m => m.CreatedAt)
             .FirstOrDefaultAsync();
