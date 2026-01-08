@@ -128,21 +128,20 @@ public class MessagingService : IMessagingService
         conversation.LastMessageId = message.Id;
         await _conversationRepository.UpdateAsync(conversation);
 
-        // Load sender for DTO mapping
-        message.Sender = await _userManager.FindByIdAsync(senderId);
+        // Load sender separately for DTO mapping (don't assign to tracked entity to avoid EF tracking conflicts)
+        var sender = await _userManager.FindByIdAsync(senderId);
 
-        // Create DTO for broadcasting
-        var messageDto2 = MapMessageToDto(message, senderId);
+        // Create DTO for broadcasting with sender info
+        var resultDto = MapMessageToDto(message, senderId, sender);
 
         // Broadcast message via SignalR to all participants in the conversation
         if (_messagesHubService != null)
         {
-            await _messagesHubService.BroadcastMessageAsync(conversation.Id, messageDto2);
+            await _messagesHubService.BroadcastMessageAsync(conversation.Id, resultDto);
         }
 
         // Send push notification (without creating inbox message - the direct message itself is already there)
         // Only send if the receiver has not muted this conversation
-        var sender = await _userManager.FindByIdAsync(senderId);
         if (sender != null && !string.IsNullOrEmpty(messageDto.Body))
         {
             var isReceiverMuted = await _settingsRepository.IsConversationMutedAsync(messageDto.ReceiverId, conversation.Id);
@@ -163,7 +162,7 @@ public class MessagingService : IMessagingService
             }
         }
 
-        return messageDto2;
+        return resultDto;
     }
 
     public async Task<MessageDto> SendSystemMessageAsync(string receiverId, string body, string? link = null)
@@ -358,11 +357,11 @@ public class MessagingService : IMessagingService
         conversation.LastMessageId = message.Id;
         await _conversationRepository.UpdateAsync(conversation);
 
-        // Load sender for DTO mapping
-        message.Sender = await _userManager.FindByIdAsync(senderId);
+        // Load sender separately for DTO mapping (don't assign to tracked entity to avoid EF tracking conflicts)
+        var sender = await _userManager.FindByIdAsync(senderId);
 
-        // Create DTO for broadcasting
-        var messageDto = MapMessageToDto(message, senderId);
+        // Create DTO for broadcasting with sender info
+        var messageDto = MapMessageToDto(message, senderId, sender);
 
         // Broadcast message via SignalR to all participants in the conversation
         if (_messagesHubService != null)
@@ -371,7 +370,6 @@ public class MessagingService : IMessagingService
         }
 
         // Send push notifications to all other participants (unless they have muted)
-        var sender = message.Sender;
         if (sender != null && !string.IsNullOrEmpty(body))
         {
             var senderName = !string.IsNullOrEmpty(sender.Nickname) ? sender.Nickname : $"{sender.FirstName} {sender.LastName}";
@@ -556,7 +554,7 @@ public class MessagingService : IMessagingService
         return dto;
     }
 
-    private MessageDto MapMessageToDto(Message message, string currentUserId)
+    private MessageDto MapMessageToDto(Message message, string currentUserId, ApplicationUser? senderOverride = null)
     {
         // Determine IsRead based on the perspective:
         // - For messages SENT by current user: true if any recipient has read it
@@ -578,11 +576,13 @@ public class MessagingService : IMessagingService
             ReadBy = message.ReadBy
         };
 
-        if (message.Sender != null)
+        // Use senderOverride if provided, otherwise fall back to message.Sender navigation property
+        var sender = senderOverride ?? message.Sender;
+        if (sender != null)
         {
-            dto.SenderName = $"{message.Sender.FirstName} {message.Sender.LastName}";
-            dto.SenderNickname = message.Sender.Nickname;
-            dto.SenderAvatar = message.Sender.ImageUrl;
+            dto.SenderName = $"{sender.FirstName} {sender.LastName}";
+            dto.SenderNickname = sender.Nickname;
+            dto.SenderAvatar = sender.ImageUrl;
         }
 
         return dto;
