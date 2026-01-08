@@ -17,7 +17,6 @@ public class ConversationRepository : Repository<Conversation>, IConversationRep
     public async Task<IEnumerable<Conversation>> GetUserConversationsAsync(string userId, bool includeArchived = false)
     {
         var query = _dbSet
-            .AsNoTracking()
             .Where(c => c.Participants.Contains(userId));
 
         if (!includeArchived)
@@ -34,7 +33,6 @@ public class ConversationRepository : Repository<Conversation>, IConversationRep
     public async Task<Conversation?> GetWithMessagesAsync(int conversationId, int? limit = null)
     {
         var query = _dbSet
-            .AsNoTracking()
             .Include(c => c.Messages.OrderByDescending(m => m.CreatedAt))
             .ThenInclude(m => m.Sender)
             .AsQueryable();
