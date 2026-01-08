@@ -1311,13 +1311,6 @@ else
     private ApplicationUser? memberToMakeActive = null;
     private bool isMakingActive = false;
     
-    // Helper class for active members data
-    public class ActiveMemberData
-    {
-        public ApplicationUser Member { get; set; } = null!;
-        public MemberStatusResult? StatusData { get; set; }
-    }
-    
     // Birthday notification modal
     private bool showBirthdayEmailModal = false;
     private ApplicationUser? selectedUserForBirthday = null;
@@ -1331,14 +1324,6 @@ else
     private int EmailsTotal = 0;
     private int EmailsSent = 0;
     private string? LastRecipient = null;
-    
-    // Nickname form model
-    public class NicknameFormModel
-    {
-        [Required(ErrorMessage = "O nome de tuna é obrigatório")]
-        [MaxLength(80, ErrorMessage = "O nome de tuna não pode exceder 80 caracteres")]
-        public string? Nickname { get; set; }
-    }
     
     // Helper properties for month/year date pickers
     private DateTime? LeitaoDate
