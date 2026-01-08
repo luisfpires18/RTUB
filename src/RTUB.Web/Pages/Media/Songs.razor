@@ -70,7 +70,6 @@ else
 
     <div class="mb-3">
         <SearchBar @bind-Value="searchTerm"
-                   OnSearch="HandleSearch"
                    Placeholder="Pesquisar por título, autor da letra ou autor da música..." />
     </div>
 
@@ -600,12 +599,6 @@ else
         (s.LyricAuthor?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
         (s.MusicAuthor?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
     ) ?? Enumerable.Empty<Song>();
-    
-    private void HandleSearch(string term)
-    {
-        searchTerm = term;
-        StateHasChanged();
-    }
 
     private bool showCreateModal = false;
     private bool showEditModal = false;

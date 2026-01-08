@@ -271,7 +271,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         updated.Should().NotBeNull();
         updated!.YouTubeUrls.Should().HaveCount(1);
-        updated.YouTubeUrls.First().Url.Should().Be(youtubeUrl.ToLowerInvariant());
+        updated.YouTubeUrls.First().Url.Should().Be(youtubeUrl);
     }
 
     [Fact]
@@ -291,7 +291,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         reloaded.Should().NotBeNull();
         reloaded!.YouTubeUrls.Should().HaveCount(1);
-        reloaded.YouTubeUrls.First().Url.Should().Be(youtubeUrl.ToLowerInvariant());
+        reloaded.YouTubeUrls.First().Url.Should().Be(youtubeUrl);
     }
 
     [Fact]
