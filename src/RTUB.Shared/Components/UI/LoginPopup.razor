@@ -29,7 +29,6 @@
 
 @code {
     private bool ShowPopup { get; set; } = false;
-    private const string SessionStorageKey = "login-popup-shown";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -50,13 +49,7 @@
                     return;
                 }
 
-                // Check if popup was already shown in this session
-                var alreadyShown = await JSRuntime.InvokeAsync<string?>("sessionStorage.getItem", SessionStorageKey);
-                if (alreadyShown != null)
-                {
-                    return;
-                }
-
+                // Show popup on every login - it only stops when Enabled is set to false in appsettings
                 ShowPopup = true;
                 StateHasChanged();
             }
@@ -67,18 +60,8 @@
         }
     }
 
-    private async Task HandleDismiss()
+    private void HandleDismiss()
     {
-        try
-        {
-            // Mark as shown in sessionStorage
-            await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", SessionStorageKey, "true");
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error marking login popup as shown");
-        }
-
         ShowPopup = false;
         StateHasChanged();
     }
