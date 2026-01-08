@@ -52,7 +52,7 @@
 
                 // Check if popup was already shown in this session
                 var alreadyShown = await JSRuntime.InvokeAsync<string?>("sessionStorage.getItem", SessionStorageKey);
-                if (!string.IsNullOrEmpty(alreadyShown))
+                if (alreadyShown != null)
                 {
                     return;
                 }
