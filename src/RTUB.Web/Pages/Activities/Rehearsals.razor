@@ -2780,9 +2780,9 @@ else
         }
         else
         {
-            // No filter - show all users
-            pushFilteredSubscribedUsers = pushSubscribedUsers?.ToList();
-            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers?.ToList();
+            // No filter - use original lists directly
+            pushFilteredSubscribedUsers = pushSubscribedUsers;
+            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers;
         }
         
         // Update counts based on filtered lists
@@ -2790,11 +2790,10 @@ else
         pushTotalUsersCount = (pushFilteredSubscribedUsers?.Count ?? 0) + (pushFilteredNonSubscribedUsers?.Count ?? 0);
     }
     
-    private async Task OnFilterChanged()
+    private void OnFilterChanged()
     {
         ApplyPushNotificationFilter();
         StateHasChanged();
-        await Task.CompletedTask;
     }
 
     private async Task SendRehearsalPushNotification()
