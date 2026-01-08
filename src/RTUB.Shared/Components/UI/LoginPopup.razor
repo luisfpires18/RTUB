@@ -29,6 +29,7 @@
 
 @code {
     private bool ShowPopup { get; set; } = false;
+    private const string LocalStorageKeyPrefix = "login-popup-read-";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -49,7 +50,18 @@
                     return;
                 }
 
-                // Show popup on every login - it only stops when Enabled is set to false in appsettings
+                // If ReadOnce is true, check localStorage to see if this version was already shown
+                if (Options.Value.ReadOnce)
+                {
+                    var storageKey = $"{LocalStorageKeyPrefix}{Options.Value.Version}";
+                    var alreadyRead = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", storageKey);
+                    if (alreadyRead != null)
+                    {
+                        return;
+                    }
+                }
+
+                // Show popup
                 ShowPopup = true;
                 StateHasChanged();
             }
@@ -60,8 +72,22 @@
         }
     }
 
-    private void HandleDismiss()
+    private async Task HandleDismiss()
     {
+        // If ReadOnce is true, mark this version as read in localStorage
+        if (Options.Value.ReadOnce)
+        {
+            try
+            {
+                var storageKey = $"{LocalStorageKeyPrefix}{Options.Value.Version}";
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", storageKey, "true");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error marking login popup as read");
+            }
+        }
+
         ShowPopup = false;
         StateHasChanged();
     }
