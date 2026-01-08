@@ -53,6 +53,7 @@
              alt="@AltText" 
              class="avatar-card-image @(imageLoaded ? "" : "d-none")"
              @onload="@HandleImageLoad"
+             @onerror="@HandleImageError"
              loading="@(LazyLoad ? "lazy" : "eager")" />
     </div>
 
@@ -183,6 +184,7 @@
     private bool _previousShowEditButton;
     private bool _previousShowDeleteButton;
     private bool _previousShowSetNicknameButton;
+    private bool _previousImageLoaded;
     
     /// <summary>
     /// Optimize rendering - only re-render when key parameters change.
@@ -197,7 +199,8 @@
             LastLoginDate != _previousLastLoginDate ||
             ShowEditButton != _previousShowEditButton ||
             ShowDeleteButton != _previousShowDeleteButton ||
-            ShowSetNicknameButton != _previousShowSetNicknameButton)
+            ShowSetNicknameButton != _previousShowSetNicknameButton ||
+            imageLoaded != _previousImageLoaded)
         {
             _previousAvatarUrl = AvatarUrl;
             _previousTunaName = TunaName;
@@ -207,12 +210,19 @@
             _previousShowEditButton = ShowEditButton;
             _previousShowDeleteButton = ShowDeleteButton;
             _previousShowSetNicknameButton = ShowSetNicknameButton;
+            _previousImageLoaded = imageLoaded;
             return true;
         }
         return false;
     }
 
     private void HandleImageLoad()
+    {
+        imageLoaded = true;
+        StateHasChanged();
+    }
+
+    private void HandleImageError()
     {
         imageLoaded = true;
         StateHasChanged();
