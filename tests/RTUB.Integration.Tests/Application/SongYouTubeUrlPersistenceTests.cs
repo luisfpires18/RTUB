@@ -77,8 +77,8 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         retrievedSong.Should().NotBeNull();
         retrievedSong!.YouTubeUrls.Should().HaveCount(2);
         retrievedSong.YouTubeUrls.Select(u => u.Url).Should().Contain(new[] {
-            url1.ToLowerInvariant(),
-            url2.ToLowerInvariant()
+            url1,
+            url2
         });
     }
 
@@ -98,7 +98,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
         // Verify old URL exists
         var songWithOldUrl = await _songService.GetSongByIdAsync(song.Id);
         songWithOldUrl!.YouTubeUrls.Should().HaveCount(1);
-        songWithOldUrl.YouTubeUrls.First().Url.Should().Be(oldUrl.ToLowerInvariant());
+        songWithOldUrl.YouTubeUrls.First().Url.Should().Be(oldUrl);
 
         // Remove old and add new
         await _songService.RemoveYouTubeUrlAsync(song.Id, oldUrl);
@@ -110,7 +110,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
 
         // Assert
         updatedSong!.YouTubeUrls.Should().HaveCount(1);
-        updatedSong.YouTubeUrls.First().Url.Should().Be(newUrl.ToLowerInvariant());
+        updatedSong.YouTubeUrls.First().Url.Should().Be(newUrl);
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
 
         // Assert - YouTube URLs should still be there
         updatedSong!.YouTubeUrls.Should().HaveCount(1);
-        updatedSong.YouTubeUrls.First().Url.Should().Be(url.ToLowerInvariant());
+        updatedSong.YouTubeUrls.First().Url.Should().Be(url);
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
 
         // Assert - YouTube URLs should still be there
         updatedSong!.YouTubeUrls.Should().HaveCount(1);
-        updatedSong.YouTubeUrls.First().Url.Should().Be(url.ToLowerInvariant());
+        updatedSong.YouTubeUrls.First().Url.Should().Be(url);
     }
 
     [Fact]
@@ -222,7 +222,7 @@ public class SongYouTubeUrlPersistenceTests : IDisposable
 
         // Assert - YouTube URLs should still be there
         updatedSong!.YouTubeUrls.Should().HaveCount(1);
-        updatedSong.YouTubeUrls.First().Url.Should().Be(url.ToLowerInvariant());
+        updatedSong.YouTubeUrls.First().Url.Should().Be(url);
     }
 
     [Fact]
