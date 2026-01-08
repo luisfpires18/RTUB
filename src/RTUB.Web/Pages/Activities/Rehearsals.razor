@@ -2771,11 +2771,11 @@ else
         {
             // Filter to include ONLY users with Leitao OR Caloiro category
             pushFilteredSubscribedUsers = pushSubscribedUsers?
-                .Where(u => u.Categories.Contains(MemberCategory.Leitao) || u.Categories.Contains(MemberCategory.Caloiro))
+                .Where(u => u.IsLeitao() || u.IsCaloiro())
                 .ToList();
             
             pushFilteredNonSubscribedUsers = pushNonSubscribedUsers?
-                .Where(u => u.Categories.Contains(MemberCategory.Leitao) || u.Categories.Contains(MemberCategory.Caloiro))
+                .Where(u => u.IsLeitao() || u.IsCaloiro())
                 .ToList();
         }
         else
@@ -2793,7 +2793,6 @@ else
     private void OnFilterChanged()
     {
         ApplyPushNotificationFilter();
-        StateHasChanged();
     }
 
     private async Task SendRehearsalPushNotification()
