@@ -271,7 +271,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         updated.Should().NotBeNull();
         updated!.YouTubeUrls.Should().HaveCount(1);
-        updated.YouTubeUrls.First().Url.Should().Be(youtubeUrl.ToLowerInvariant());
+        updated.YouTubeUrls.First().Url.Should().Be(youtubeUrl);
     }
 
     [Fact]
@@ -291,7 +291,7 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         reloaded.Should().NotBeNull();
         reloaded!.YouTubeUrls.Should().HaveCount(1);
-        reloaded.YouTubeUrls.First().Url.Should().Be(youtubeUrl.ToLowerInvariant());
+        reloaded.YouTubeUrls.First().Url.Should().Be(youtubeUrl);
     }
 
     [Fact]
@@ -313,9 +313,9 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
         // Assert
         updated!.YouTubeUrls.Should().HaveCount(3);
         updated.YouTubeUrls.Select(u => u.Url).Should().Contain(new[] {
-            url1.ToLowerInvariant(),
-            url2.ToLowerInvariant(),
-            url3.ToLowerInvariant()
+            url1,
+            url2,
+            url3
         });
     }
 
@@ -352,6 +352,25 @@ public class SongServiceTests : IClassFixture<DatabaseFixture>, IDisposable
 
         // Assert
         updated!.YouTubeUrls.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task AddYouTubeUrlAsync_PreservesOriginalCaseInUrl()
+    {
+        // Arrange
+        var album = await _albumService.CreateAlbumAsync("Test Album", 2020);
+        var song = await _songService.CreateSongAsync("Test Song", album.Id);
+        var youtubeUrl = "https://www.youtube.com/watch?v=A1RkcBlAqmU";
+
+        // Act
+        await _songService.AddYouTubeUrlAsync(song.Id, youtubeUrl);
+        var updated = await _songService.GetSongByIdAsync(song.Id);
+
+        // Assert - URL should preserve exact original casing
+        updated.Should().NotBeNull();
+        updated!.YouTubeUrls.Should().HaveCount(1);
+        updated.YouTubeUrls.First().Url.Should().Be(youtubeUrl);
+        updated.YouTubeUrls.First().Url.Should().Contain("A1RkcBlAqmU");
     }
 
     [Fact]

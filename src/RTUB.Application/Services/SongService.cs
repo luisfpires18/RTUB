@@ -148,7 +148,7 @@ public class SongService : ISongService
         var youtubeUrl = new SongYouTubeUrl
         {
             SongId = songId,
-            Url = canonicalUrl
+            Url = url.Trim()
         };
 
         song.YouTubeUrls.Add(youtubeUrl);

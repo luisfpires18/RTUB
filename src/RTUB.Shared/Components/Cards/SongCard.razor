@@ -280,6 +280,11 @@
     private bool _previousCanDelete;
     private bool _previousHasVideos;
     private int _previousPlayCount;
+    private string? _previousTitle;
+    private int? _previousTrackNumber;
+    private string? _previousLyricAuthor;
+    private string? _previousMusicAuthor;
+    private string? _previousAdaptation;
     
     /// <summary>
     /// Optimize rendering - only re-render when key parameters change.
@@ -290,13 +295,23 @@
         var songId = Song?.Id ?? 0;
         var hasMusic = Song?.HasMusic ?? false;
         var hasVideos = Song?.Videos?.Any() == true;
+        var title = Song?.Title;
+        var trackNumber = Song?.TrackNumber;
+        var lyricAuthor = Song?.LyricAuthor;
+        var musicAuthor = Song?.MusicAuthor;
+        var adaptation = Song?.Adaptation;
         
         if (songId != _previousSongId ||
             hasMusic != _previousHasMusic ||
             CanEdit != _previousCanEdit ||
             CanDelete != _previousCanDelete ||
             hasVideos != _previousHasVideos ||
-            PlayCount != _previousPlayCount)
+            PlayCount != _previousPlayCount ||
+            title != _previousTitle ||
+            trackNumber != _previousTrackNumber ||
+            lyricAuthor != _previousLyricAuthor ||
+            musicAuthor != _previousMusicAuthor ||
+            adaptation != _previousAdaptation)
         {
             _previousSongId = songId;
             _previousHasMusic = hasMusic;
@@ -304,6 +319,11 @@
             _previousCanDelete = CanDelete;
             _previousHasVideos = hasVideos;
             _previousPlayCount = PlayCount;
+            _previousTitle = title;
+            _previousTrackNumber = trackNumber;
+            _previousLyricAuthor = lyricAuthor;
+            _previousMusicAuthor = musicAuthor;
+            _previousAdaptation = adaptation;
             return true;
         }
         return false;

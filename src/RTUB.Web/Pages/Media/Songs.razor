@@ -68,6 +68,11 @@ else
 
     <h3 class="mb-3"><i class="bi bi-music-note-beamed"></i> Faixas</h3>
 
+    <div class="mb-3">
+        <SearchBar @bind-Value="searchTerm"
+                   Placeholder="Pesquisar por título, autor da letra ou autor da música..." />
+    </div>
+
     @if (songs == null)
     {
         <div class="song-grid">
@@ -86,7 +91,7 @@ else
     else
     {
         <div class="song-grid">
-            @foreach (var song in songs.OrderBy(s => s.TrackNumber))
+            @foreach (var song in filteredSongs.OrderBy(s => s.TrackNumber))
             {
                 <SongCard Song="@song"
                          PlayCount="@(songPlayCounts.ContainsKey(song.Id) ? songPlayCounts[song.Id] : 0)"
@@ -584,8 +589,16 @@ else
 
     private Album? album;
     private List<Song>? songs;
+    private string searchTerm = string.Empty;
     private Dictionary<int, int> songPlayCounts = new();
     private Dictionary<int, DateTime> lastPlayTimes = new(); // Track last play time per song
+    
+    private IEnumerable<Song> filteredSongs => songs?.Where(s =>
+        string.IsNullOrWhiteSpace(searchTerm) ||
+        (s.Title?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        (s.LyricAuthor?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        (s.MusicAuthor?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+    ) ?? Enumerable.Empty<Song>();
 
     private bool showCreateModal = false;
     private bool showEditModal = false;
@@ -924,6 +937,7 @@ else
         }
 
         await LoadSongs();
+        StateHasChanged();
         CloseEditModal();
     }
 
