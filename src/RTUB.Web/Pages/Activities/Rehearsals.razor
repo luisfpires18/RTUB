@@ -1072,9 +1072,30 @@ else
                         </small>
                     </div>
                     
+                    <!-- Filter Option -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="filterLeitaoCaloiro"
+                                   @bind="filterOnlyLeitaoAndCaloiro"
+                                   @bind:after="OnFilterChanged" />
+                            <label class="form-check-label text-white-full" for="filterLeitaoCaloiro">
+                                Enviar apenas para <strong>Leitões</strong> e <strong>Caloiros</strong>
+                            </label>
+                        </div>
+                        @if (filterOnlyLeitaoAndCaloiro)
+                        {
+                            <small class="text-warning d-block mt-1">
+                                <i class="bi bi-info-circle me-1"></i>
+                                As notificações serão enviadas apenas para membros com as categorias "Leitão" ou "Caloiro".
+                            </small>
+                        }
+                    </div>
+                    
                     <EmailRecipientsPreview 
-                        SubscribedUsers="@(pushSubscribedUsers ?? new List<ApplicationUser>())"
-                        NonSubscribedUsers="@(pushNonSubscribedUsers ?? new List<ApplicationUser>())"
+                        SubscribedUsers="@(pushFilteredSubscribedUsers ?? new List<ApplicationUser>())"
+                        NonSubscribedUsers="@(pushFilteredNonSubscribedUsers ?? new List<ApplicationUser>())"
                         SubscribedUsersTitle="Membros que irão receber:"
                         NonSubscribedUsersTitle="Quem não irá receber:"
                         ShowNonSubscribedUsers="true"
@@ -1088,7 +1109,7 @@ else
     </BodyContent>
     <FooterContent>
         <button type="button" class="btn btn-secondary" @onclick="ClosePushNotificationModal" disabled="@IsSendingPushNotifications">Cancelar</button>
-        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendRehearsalPushNotification" disabled="@(IsSendingPushNotifications || pushSubscribedUsers == null || !pushSubscribedUsers.Any() || string.IsNullOrWhiteSpace(customNotificationBody))">
+        <button type="button" class="btn btn-primary btn-primary-purple" @onclick="SendRehearsalPushNotification" disabled="@(IsSendingPushNotifications || pushFilteredSubscribedUsers == null || !pushFilteredSubscribedUsers.Any() || string.IsNullOrWhiteSpace(customNotificationBody))">
             Enviar Notificação Push
         </button>
     </FooterContent>
@@ -1185,11 +1206,14 @@ else
     private string customNotificationBody = string.Empty;
     private List<ApplicationUser>? pushSubscribedUsers;
     private List<ApplicationUser>? pushNonSubscribedUsers;
+    private List<ApplicationUser>? pushFilteredSubscribedUsers;
+    private List<ApplicationUser>? pushFilteredNonSubscribedUsers;
     private int pushSubscribedUsersCount = 0;
     private int pushTotalUsersCount = 0;
     private bool pushLoadingSubscribers = false;
     private string? pushErrorMessage;
     private bool IsSendingPushNotifications = false;
+    private bool filterOnlyLeitaoAndCaloiro = false;
     
     private List<RehearsalAttendance>? selectedRehearsalAttendances;
     private List<RehearsalAttendance> filteredAttendances = new();
@@ -2689,6 +2713,7 @@ else
         customNotificationBody = string.Empty;
         pushLoadingSubscribers = true;
         pushErrorMessage = null;
+        filterOnlyLeitaoAndCaloiro = false;
         showPushNotificationModal = true;
         StateHasChanged();
 
@@ -2711,8 +2736,8 @@ else
                 .OrderBy(u => u.Nickname ?? u.FirstName)
                 .ToList();
             
-            pushSubscribedUsersCount = pushSubscribedUsers.Count;
-            pushTotalUsersCount = allUsers.Count;
+            // Initialize filtered lists (no filter applied initially)
+            ApplyPushNotificationFilter();
         }
         catch (Exception ex)
         {
@@ -2732,14 +2757,49 @@ else
         customNotificationBody = string.Empty;
         pushSubscribedUsers = null;
         pushNonSubscribedUsers = null;
+        pushFilteredSubscribedUsers = null;
+        pushFilteredNonSubscribedUsers = null;
         pushSubscribedUsersCount = 0;
         pushTotalUsersCount = 0;
         pushErrorMessage = null;
+        filterOnlyLeitaoAndCaloiro = false;
+    }
+    
+    private void ApplyPushNotificationFilter()
+    {
+        if (filterOnlyLeitaoAndCaloiro)
+        {
+            // Filter to include ONLY users with Leitao OR Caloiro category
+            pushFilteredSubscribedUsers = pushSubscribedUsers?
+                .Where(u => u.Categories.Contains(MemberCategory.Leitao) || u.Categories.Contains(MemberCategory.Caloiro))
+                .ToList();
+            
+            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers?
+                .Where(u => u.Categories.Contains(MemberCategory.Leitao) || u.Categories.Contains(MemberCategory.Caloiro))
+                .ToList();
+        }
+        else
+        {
+            // No filter - show all users
+            pushFilteredSubscribedUsers = pushSubscribedUsers?.ToList();
+            pushFilteredNonSubscribedUsers = pushNonSubscribedUsers?.ToList();
+        }
+        
+        // Update counts based on filtered lists
+        pushSubscribedUsersCount = pushFilteredSubscribedUsers?.Count ?? 0;
+        pushTotalUsersCount = (pushFilteredSubscribedUsers?.Count ?? 0) + (pushFilteredNonSubscribedUsers?.Count ?? 0);
+    }
+    
+    private async Task OnFilterChanged()
+    {
+        ApplyPushNotificationFilter();
+        StateHasChanged();
+        await Task.CompletedTask;
     }
 
     private async Task SendRehearsalPushNotification()
     {
-        if (selectedRehearsalForPush == null || pushSubscribedUsers == null || !pushSubscribedUsers.Any())
+        if (selectedRehearsalForPush == null || pushFilteredSubscribedUsers == null || !pushFilteredSubscribedUsers.Any())
         {
             ClosePushNotificationModal();
             return;
@@ -2778,8 +2838,9 @@ else
                 return;
             }
 
-            // Broadcast to all subscribed users
-            await PushNotificationService.BroadcastAsync(notification);
+            // Send to filtered subscribed users only
+            var userIds = pushFilteredSubscribedUsers.Select(u => u.Id).ToList();
+            await PushNotificationService.SendToSelectedUsersAsync(userIds, notification);
 
             // Success - close modal
             ClosePushNotificationModal();
