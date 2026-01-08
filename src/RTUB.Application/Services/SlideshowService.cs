@@ -1,3 +1,4 @@
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -51,9 +52,7 @@ public class SlideshowService : ISlideshowService
 
     public async Task UpdateSlideshowAsync(int id, string title, string description, int order, int intervalMs, bool isActive)
     {
-        var slideshow = await _slideshowRepository.GetByIdAsync(id);
-        if (slideshow == null)
-            throw new EntityNotFoundException(nameof(Slideshow), id);
+        var slideshow = await _slideshowRepository.GetByIdOrThrowAsync(id);
 
         slideshow.UpdateDetails(title, description, order, intervalMs);
 
@@ -72,9 +71,7 @@ public class SlideshowService : ISlideshowService
 
     public async Task UpdateSlideshowWithImageAsync(int id, string title, string description, int order, int intervalMs, bool isActive, Stream imageStream, string fileName, string contentType)
     {
-        var slideshow = await _slideshowRepository.GetByIdAsync(id);
-        if (slideshow == null)
-            throw new EntityNotFoundException(nameof(Slideshow), id);
+        var slideshow = await _slideshowRepository.GetByIdOrThrowAsync(id);
 
         // Update slideshow details
         slideshow.UpdateDetails(title, description, order, intervalMs);
@@ -105,9 +102,7 @@ public class SlideshowService : ISlideshowService
 
     public async Task SetSlideshowImageAsync(int id, Stream imageStream, string fileName, string contentType)
     {
-        var slideshow = await _slideshowRepository.GetByIdAsync(id);
-        if (slideshow == null)
-            throw new EntityNotFoundException(nameof(Slideshow), id);
+        var slideshow = await _slideshowRepository.GetByIdOrThrowAsync(id);
 
         // Delete old image if it exists
         if (!string.IsNullOrEmpty(slideshow.ImageUrl))
@@ -125,9 +120,7 @@ public class SlideshowService : ISlideshowService
 
     public async Task ActivateSlideshowAsync(int id)
     {
-        var slideshow = await _slideshowRepository.GetByIdAsync(id);
-        if (slideshow == null)
-            throw new EntityNotFoundException(nameof(Slideshow), id);
+        var slideshow = await _slideshowRepository.GetByIdOrThrowAsync(id);
 
         slideshow.Activate();
         await _slideshowRepository.UpdateAsync(slideshow);
@@ -135,9 +128,7 @@ public class SlideshowService : ISlideshowService
 
     public async Task DeactivateSlideshowAsync(int id)
     {
-        var slideshow = await _slideshowRepository.GetByIdAsync(id);
-        if (slideshow == null)
-            throw new EntityNotFoundException(nameof(Slideshow), id);
+        var slideshow = await _slideshowRepository.GetByIdOrThrowAsync(id);
 
         slideshow.Deactivate();
         await _slideshowRepository.UpdateAsync(slideshow);
@@ -145,9 +136,7 @@ public class SlideshowService : ISlideshowService
 
     public async Task DeleteSlideshowAsync(int id)
     {
-        var slideshow = await _slideshowRepository.GetByIdAsync(id);
-        if (slideshow == null)
-            throw new EntityNotFoundException(nameof(Slideshow), id);
+        var slideshow = await _slideshowRepository.GetByIdOrThrowAsync(id);
 
         // Delete associated image from R2 storage if it exists
         if (!string.IsNullOrEmpty(slideshow.ImageUrl))

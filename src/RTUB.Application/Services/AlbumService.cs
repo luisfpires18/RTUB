@@ -1,3 +1,4 @@
+using RTUB.Application.Extensions;
 using RTUB.Application.Interfaces;
 using RTUB.Core.Entities;
 using RTUB.Core.Exceptions;
@@ -59,9 +60,7 @@ public class AlbumService : IAlbumService
 
     public async Task UpdateAlbumAsync(int id, string title, int? year, string? description, bool isPrivate)
     {
-        var album = await _albumRepository.GetByIdAsync(id);
-        if (album == null)
-            throw new EntityNotFoundException(nameof(Album), id);
+        var album = await _albumRepository.GetByIdOrThrowAsync(id);
 
         album.UpdateDetails(title, year, description, isPrivate);
         await _albumRepository.UpdateAsync(album);
@@ -69,9 +68,7 @@ public class AlbumService : IAlbumService
 
     public async Task DeleteAlbumAsync(int id)
     {
-        var album = await _albumRepository.GetByIdAsync(id);
-        if (album == null)
-            throw new EntityNotFoundException(nameof(Album), id);
+        var album = await _albumRepository.GetByIdOrThrowAsync(id);
 
         // Delete associated image from R2 storage if it exists
         if (!string.IsNullOrEmpty(album.ImageUrl))
@@ -84,9 +81,7 @@ public class AlbumService : IAlbumService
 
     public async Task UpdateAlbumWithCoverAsync(int id, string title, int? year, string? description, bool isPrivate, Stream imageStream, string fileName, string contentType)
     {
-        var album = await _albumRepository.GetByIdAsync(id);
-        if (album == null)
-            throw new EntityNotFoundException(nameof(Album), id);
+        var album = await _albumRepository.GetByIdOrThrowAsync(id);
 
         // Update album details
         album.UpdateDetails(title, year, description, isPrivate);
@@ -107,9 +102,7 @@ public class AlbumService : IAlbumService
 
     public async Task SetAlbumCoverAsync(int id, Stream imageStream, string fileName, string contentType)
     {
-        var album = await _albumRepository.GetByIdAsync(id);
-        if (album == null)
-            throw new EntityNotFoundException(nameof(Album), id);
+        var album = await _albumRepository.GetByIdOrThrowAsync(id);
 
         // Delete old image if it exists
         if (!string.IsNullOrEmpty(album.ImageUrl))
