@@ -977,6 +977,250 @@ public class MemberStatusServiceTests : IClassFixture<DatabaseFixture>, IDisposa
             Times.Once);
     }
 
+    [Fact]
+    public async Task GetMemberStatusAsync_RetiredMemberWithDecJanActivity_AndFutureFebMarEnrollments_ShowsOnly2Of3()
+    {
+        // Arrange - CRITICAL BUG FIX TEST
+        // Scenario: Member is retired, has activity in December and January (current month),
+        // but is enrolled in future events in February and March.
+        // Expected: Should show 2/3 progress (only Dec + Jan count), NOT 4/4 or active status
+        // Future enrollments should NOT count toward reactivation
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = true; // Start as retired
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        var now = DateTime.UtcNow;
+        
+        // Current month (January) - activity 5 days ago (PAST - should count)
+        var currentMonthActivity = now.AddDays(-5);
+        var rehearsal1 = Rehearsal.Create(currentMonthActivity, "January Rehearsal");
+        _context.Rehearsals.Add(rehearsal1);
+        await _context.SaveChangesAsync();
+        
+        var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
+        attendance1.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance1);
+        
+        // Last month (December) - mid-month (PAST - should count)
+        var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var event1 = Event.Create("December Event", lastMonth, "Location Dec", EventType.Atuacao);
+        _context.Events.Add(event1);
+        await _context.SaveChangesAsync();
+        
+        var enrollment1 = Enrollment.Create(userId, event1.Id);
+        enrollment1.WillAttend = true;
+        _context.Enrollments.Add(enrollment1);
+        
+        // NO activity in November (breaks consecutive chain at 2 months)
+        
+        // February enrollment (FUTURE - should NOT count)
+        // AddMonths handles year transitions correctly (e.g., Jan + 1 = Feb)
+        var february = new DateTime(now.AddMonths(1).Year, now.AddMonths(1).Month, 15);
+        
+        var event2 = Event.Create("February Event", february, "Location Feb", EventType.Atuacao);
+        _context.Events.Add(event2);
+        await _context.SaveChangesAsync();
+        
+        var enrollment2 = Enrollment.Create(userId, event2.Id);
+        enrollment2.WillAttend = true;
+        _context.Enrollments.Add(enrollment2);
+        
+        // March enrollment (FUTURE - should NOT count)
+        var march = february.AddMonths(1);
+        var event3 = Event.Create("March Event", march, "Location Mar", EventType.Atuacao);
+        _context.Events.Add(event3);
+        await _context.SaveChangesAsync();
+        
+        var enrollment3 = Enrollment.Create(userId, event3.Id);
+        enrollment3.WillAttend = true;
+        _context.Enrollments.Add(enrollment3);
+        
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert - Should show 2/3 progress (only Dec + Jan count)
+        // Future February and March enrollments should NOT count
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeTrue();
+        result.IsRetired.Should().BeTrue(); // Should stay retired (only 2 consecutive months)
+        result.ProgressMonths.Should().Be(2); // Only current month (Jan) + last month (Dec)
+        result.ProgressTotalMonths.Should().Be(3);
+        result.ProgressDescription.Should().Be("2/3 meses de atividade consecutiva");
+    }
+
+    [Fact]
+    public async Task GetMemberStatusesBatchAsync_ConsistentWithIndividualQuery_ForRetiredMember()
+    {
+        // Arrange - Test that batch query returns same result as individual query
+        // This tests the fix for the "Gestão de Membros Ativos" vs "DetailsModal" inconsistency
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = true; // Start as retired
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        var now = DateTime.UtcNow;
+        
+        // Add activity in current month and last month (2 consecutive months)
+        var currentMonthActivity = now.AddDays(-2);
+        var rehearsal1 = Rehearsal.Create(currentMonthActivity, "Current Month Rehearsal");
+        _context.Rehearsals.Add(rehearsal1);
+        await _context.SaveChangesAsync();
+        
+        var attendance1 = RehearsalAttendance.Create(rehearsal1.Id, userId);
+        attendance1.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance1);
+        
+        var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var rehearsal2 = Rehearsal.Create(lastMonth, "Last Month Rehearsal");
+        _context.Rehearsals.Add(rehearsal2);
+        await _context.SaveChangesAsync();
+        
+        var attendance2 = RehearsalAttendance.Create(rehearsal2.Id, userId);
+        attendance2.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance2);
+        
+        await _context.SaveChangesAsync();
+
+        // First, get individual result (this updates the cache)
+        var individualResult = await _service.GetMemberStatusAsync(userId);
+
+        // Then, get batch result (this reads from cache and applies dynamic recalculation)
+        var batchResult = await _service.GetMemberStatusesBatchAsync(new[] { userId });
+
+        // Assert - Both should return the same values
+        batchResult.Should().ContainKey(userId);
+        var batchMemberResult = batchResult[userId];
+        batchMemberResult.Should().NotBeNull();
+        
+        // Key assertion: IsRetired should be consistent
+        batchMemberResult!.IsRetired.Should().Be(individualResult.IsRetired);
+        
+        // Progress should also be consistent
+        batchMemberResult.ProgressMonths.Should().Be(individualResult.ProgressMonths);
+        batchMemberResult.ProgressTotalMonths.Should().Be(individualResult.ProgressTotalMonths);
+        batchMemberResult.ProgressDescription.Should().Be(individualResult.ProgressDescription);
+        batchMemberResult.HasActivityInCurrentMonth.Should().Be(individualResult.HasActivityInCurrentMonth);
+    }
+
+    [Fact]
+    public async Task GetMemberStatusAsync_RespectsOverrideRetiredFlag_WhenAdminManuallySetsActive()
+    {
+        // Arrange - Test that OverrideRetired flag prevents automatic status recalculation
+        // Scenario: Admin manually sets member to active using "Tornar Ativo" button
+        // Even if member doesn't have 3 consecutive months of activity, they should stay active
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = false; // Manually set to active by admin
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        var now = DateTime.UtcNow;
+        
+        // Add activity only 1 month ago (not enough for natural reactivation)
+        var lastMonth = new DateTime(now.AddMonths(-1).Year, now.AddMonths(-1).Month, 15);
+        var rehearsal = Rehearsal.Create(lastMonth, "Last Month Rehearsal");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+        
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
+        // Create a cached status with OverrideRetired = true (simulating admin's manual activation)
+        var cachedStatus = new MemberStatus
+        {
+            UserId = userId,
+            IsRetired = false, // Manually set to active
+            OverrideRetired = true, // This is the key flag
+            HasAnyActivity = true,
+            LastRehearsalDate = lastMonth,
+            LastActivityDate = lastMonth,
+            ProgressMonths = 5, // Would normally show 5 months until reform
+            ProgressTotalMonths = 6,
+            LastUpdatedAt = DateTime.UtcNow.AddMinutes(-30), // Fresh cache
+            CreatedAt = DateTime.UtcNow.AddDays(-1)
+        };
+        _context.MemberStatuses.Add(cachedStatus);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetMemberStatusAsync(userId);
+
+        // Assert - Should stay active because OverrideRetired is true
+        result.Should().NotBeNull();
+        result.HasAnyActivity.Should().BeTrue();
+        result.IsRetired.Should().BeFalse(); // Should stay active due to OverrideRetired
+    }
+
+    [Fact]
+    public async Task GetMemberStatusesBatchAsync_RespectsOverrideRetiredFlag()
+    {
+        // Arrange - Test that batch query also respects OverrideRetired flag
+        var userId = Guid.NewGuid().ToString();
+        var user = CreateTestUser(userId);
+        user.IsRetired = false; // Manually set to active by admin
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _mockUserManager.Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        var now = DateTime.UtcNow;
+        
+        // Add no recent activity (normally would be retired with 6+ months without activity)
+        // Add activity 8 months ago (well past the 6-month threshold)
+        var eightMonthsAgo = new DateTime(now.AddMonths(-8).Year, now.AddMonths(-8).Month, 15);
+        var rehearsal = Rehearsal.Create(eightMonthsAgo, "Old Rehearsal");
+        _context.Rehearsals.Add(rehearsal);
+        await _context.SaveChangesAsync();
+        
+        var attendance = RehearsalAttendance.Create(rehearsal.Id, userId);
+        attendance.MarkAttendance(true);
+        _context.RehearsalAttendances.Add(attendance);
+        await _context.SaveChangesAsync();
+
+        // Create a cached status with OverrideRetired = true (simulating admin's manual activation)
+        var cachedStatus = new MemberStatus
+        {
+            UserId = userId,
+            IsRetired = false, // Manually set to active by admin
+            OverrideRetired = true, // This prevents automatic retirement
+            HasAnyActivity = true,
+            LastRehearsalDate = eightMonthsAgo,
+            LastActivityDate = eightMonthsAgo,
+            ProgressMonths = 0, // Would normally be "Próximo da reforma"
+            ProgressTotalMonths = 6,
+            LastUpdatedAt = DateTime.UtcNow.AddMinutes(-30), // Fresh cache
+            CreatedAt = DateTime.UtcNow.AddDays(-1)
+        };
+        _context.MemberStatuses.Add(cachedStatus);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var batchResult = await _service.GetMemberStatusesBatchAsync(new[] { userId });
+
+        // Assert - Should stay active because OverrideRetired is true
+        batchResult.Should().ContainKey(userId);
+        var memberResult = batchResult[userId];
+        memberResult.Should().NotBeNull();
+        memberResult!.IsRetired.Should().BeFalse(); // Should stay active despite 8 months without activity
+    }
+
     private ApplicationUser CreateTestUser(string userId)
     {
         return new ApplicationUser
