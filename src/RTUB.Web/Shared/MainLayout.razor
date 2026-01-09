@@ -19,7 +19,7 @@
     <div class="container-xxl rtub-wide px-xxl-4">
         <a class="navbar-brand" href="/">RTUB</a>
 
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav" aria-controls="topNav" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler" type="button" aria-controls="mobileNavDrawer" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
 
@@ -229,6 +229,223 @@
     </div>
 </nav>
 
+<!-- Mobile Navigation Drawer (slides in from right) -->
+<div class="mobile-nav-backdrop"></div>
+<div class="mobile-nav-drawer" id="mobileNavDrawer" role="dialog" aria-label="Mobile navigation">
+    <div class="mobile-nav-drawer-header">
+        <h2 class="mobile-nav-drawer-title">Menu</h2>
+        <button class="mobile-nav-close" type="button" aria-label="Close navigation">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <div class="mobile-nav-drawer-content">
+        <ul class="navbar-nav">
+            <!-- 1. Música (Public / Member) -->
+            <li class="nav-item"><NavLink class="nav-link" href="/music"><i class="bi bi-music-note-beamed"></i> Música</NavLink></li>
+
+            <!-- 2. Pedidos (Public only) -->
+            <AuthorizeView>
+                <NotAuthorized>
+                    <li class="nav-item"><NavLink class="nav-link" href="/request"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                </NotAuthorized>
+            </AuthorizeView>
+
+            <!-- 3. Atuações (Public / Member) -->
+            <li class="nav-item"><NavLink class="nav-link" href="/events"><i class="bi bi-calendar-event"></i> Atuações</NavLink></li>
+
+            <AuthorizeView Context="mainAuthContext">
+                <Authorized>
+                    <!-- 4. Ensaios (Member) -->
+                    <li class="nav-item"><NavLink class="nav-link" href="/rehearsals"><i class="bi bi-music-note-list"></i> Ensaios</NavLink></li>
+                </Authorized>
+            </AuthorizeView>
+
+            <!-- 7. Órgãos Sociais (Public only) -->
+            <AuthorizeView>
+                <NotAuthorized>
+                    <li class="nav-item"><NavLink class="nav-link" href="/roles"><i class="bi bi-bank"></i> Órgãos Sociais</NavLink></li>
+                </NotAuthorized>
+            </AuthorizeView>
+
+            <AuthorizeView Context="mainAuthContext2">
+                <Authorized>
+
+                    <!-- 5. Membros (Member Dropdown) -->
+                    <li class="nav-item dropdown">
+                        <button class="nav-link dropdown-toggle" type="button" id="membersDropdownMobile" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                            <i class="bi bi-people"></i> Membros
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="membersDropdownMobile">
+                            <li><NavLink class="dropdown-item" href="/members"><i class="bi bi-people"></i> Membros</NavLink></li>
+                            <li><NavLink class="dropdown-item" href="/hierarchy"><i class="bi bi-diagram-3"></i> Hierarquia</NavLink></li>
+                            <li><NavLink class="dropdown-item" href="/roles"><i class="bi bi-bank"></i> Órgãos Sociais</NavLink></li>
+                            <li><NavLink class="dropdown-item" href="/hall-of-fame"><i class="bi bi-trophy"></i> Hall of Fame</NavLink></li>
+                        </ul>
+                    </li>
+
+                    <!-- 6. Classificação (Member) -->
+                    <li class="nav-item"><NavLink class="nav-link" href="/leaderboard"><i class="bi bi-trophy-fill"></i> Classificação</NavLink></li>
+                    
+                </Authorized>
+            </AuthorizeView>
+
+            <!-- 6.5 Galeria (Public / Member) -->
+            <li class="nav-item"><NavLink class="nav-link" href="/gallery"><i class="bi bi-images"></i> Galeria</NavLink></li>
+
+            <AuthorizeView Context="mainAuthContext3">
+                <Authorized>
+                    
+                    <!-- 7. Inventário (Member Dropdown) -->
+                    <li class="nav-item dropdown">
+                        <button class="nav-link dropdown-toggle" type="button" id="inventoryDropdownMobile" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                            <i class="bi bi-box-seam"></i> Inventário
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="inventoryDropdownMobile">
+                            <li><NavLink class="dropdown-item" href="/inventory"><i class="bi bi-music-note"></i> Instrumentos</NavLink></li>
+                            <li><NavLink class="dropdown-item" href="/shop"><i class="bi bi-bag"></i> Loja</NavLink></li>
+                        </ul>
+                    </li>
+                    
+                    <!-- 8. Gestão (Member Dropdown) -->
+                    @if (_shouldShowGestaoDropdown)
+                    {
+                        <li class="nav-item dropdown">
+                            <button class="nav-link dropdown-toggle" type="button" id="managementDropdownMobile" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                                <i class="bi bi-gear-fill"></i> Gestão
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="managementDropdownMobile">
+                                <li><NavLink class="dropdown-item" href="/meetings"><i class="bi bi-calendar3"></i> Reuniões</NavLink></li>
+                                <li><NavLink class="dropdown-item" href="/documentation"><i class="bi bi-file-earmark-text"></i> Documentação</NavLink></li>
+                                @if (_showBeVisibleToModAdminAndTunoOnly)
+                                {
+                                    <li><NavLink class="dropdown-item" href="/logistics"><i class="bi bi-kanban"></i> Logística</NavLink></li>
+                                    <li><NavLink class="dropdown-item" href="/finance"><i class="bi bi-cash-stack"></i> Tesouraria</NavLink></li>
+                                }
+
+                                @if (_showBeVisibleToAdminOnly)
+                                {
+                                    <li><NavLink class="dropdown-item" href="/requests"><i class="bi bi-envelope"></i> Pedidos</NavLink></li>
+                                }
+                          
+                            </ul>
+                        </li>
+                    }
+                </Authorized>
+            </AuthorizeView>
+
+            @if (_showBeVisibleToAdminOnly)
+            {
+            <AuthorizeView Roles="Admin">
+                <Authorized Context="adminOwnerAuth">
+                    <li class="nav-item dropdown">
+                        <button class="nav-link dropdown-toggle" type="button" id="ownerDropdownMobile"
+                                data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                            <i class="bi bi-tools"></i> Operações
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="ownerDropdownMobile">
+                            <li><NavLink class="dropdown-item" href="/emails"><i class="bi bi-envelope"></i> Email</NavLink></li>
+                            <li><NavLink class="dropdown-item" href="/notifications"><i class="bi bi-bell"></i> Notificações</NavLink></li>
+                            <li><NavLink class="dropdown-item" href="/images"><i class="bi bi-images"></i> Imagens</NavLink></li>
+                            <li><NavLink class="dropdown-item" href="/labels"><i class="bi bi-tag"></i> Conteúdo</NavLink></li>
+
+                            <li><hr class="dropdown-divider" /></li>
+            
+                            <AuthorizeView Roles="Owner">
+                                <Authorized Context="ownerAuth">
+                                    <li><NavLink class="dropdown-item" href="/users"><i class="bi bi-people"></i> Funções</NavLink></li>
+                                    <li><NavLink class="dropdown-item" href="/owner/tracing"><i class="bi bi-shield-check"></i> Tracing</NavLink></li>
+                                    <li><NavLink class="dropdown-item" href="/owner/db"><i class="bi bi-database"></i> Database</NavLink></li>
+                                </Authorized>
+                            </AuthorizeView>
+                        </ul>
+                    </li>
+                </Authorized>
+            </AuthorizeView>
+            }
+        </ul>
+
+        <AuthorizeView>
+            <Authorized>
+                <ul class="navbar-nav user-nav">
+                    @if (currentUser != null)
+                    {
+                        @if (currentUser.IsLeitao())
+                        {
+                            <li class="nav-item d-flex align-items-center">
+                                <CategoryBadge Category="MemberCategory.Leitao" AdditionalClasses="me-1" />
+                            </li>
+                        }
+                        else if (currentUser.IsCaloiro())
+                        {
+                            <li class="nav-item d-flex align-items-center">
+                                <CategoryBadge Category="MemberCategory.Caloiro" AdditionalClasses="me-1" />
+                            </li>
+                        }
+                        else if (currentUser.IsTuno())
+                        {
+                            if (currentUser.Positions.Contains(Position.Magister))
+                            {
+                                <li class="nav-item d-flex align-items-center">
+                                    <PositionBadge Position="Position.Magister" AdditionalClasses="me-1" />
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="nav-item d-flex align-items-center">
+                                    <CategoryBadge Category="MemberCategory.Tuno" AdditionalClasses="me-1" />
+                                </li>
+                            }
+                        }
+                    }
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            @if (currentUser != null)
+                            {
+                                <img src="@GetNavbarAvatarUrl()" 
+                                     alt="@currentUser.Nickname" 
+                                     class="navbar-avatar me-2"
+                                     onerror="this.onerror=null; this.src='/images/default-avatar.webp';" />
+                                <span>@currentUser.Nickname</span>
+                                <UnreadMessagesBadge CssClass="navbar-message-badge" />
+                            }
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="/profile">
+                                    <i class="bi bi-person-circle"></i>
+                                    <span>Meu Perfil</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center justify-content-between gap-2" href="/messages">
+                                    <span class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-chat-dots"></i>
+                                        <span>Mensagens</span>
+                                    </span>
+                                    <UnreadMessagesBadge CssClass="ms-2" />
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <form method="post" action="/auth/logout" @formname="LogoutFormMobile" class="logout-form">
+                                    <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Sair</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </Authorized>
+            <NotAuthorized>
+                <ul class="navbar-nav user-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login"><i class="bi bi-box-arrow-in-right"></i> Entrar</a>
+                    </li>
+                </ul>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</div>
+
 <div class="layout d-flex">
     <main id="content" class="content flex-fill content-main">
         <div class="container-xxl rtub-wide py-4 px-xxl-4">
@@ -308,6 +525,7 @@
 <VersionedAsset Path="/js/mediaSession.js" Type="VersionedAsset.AssetType.Js" />
 <VersionedAsset Path="/js/pwaMediaSession.js" Type="VersionedAsset.AssetType.Js" />
 <VersionedAsset Path="/js/audioPlayer.js" Type="VersionedAsset.AssetType.Js" />
+<VersionedAsset Path="/js/mobileNavDrawer.js" Type="VersionedAsset.AssetType.Js" />
 @* Service Worker registration for PWA support *@
 <VersionedAsset Path="/js/sw-register.js" Type="VersionedAsset.AssetType.Js" />
 <script>

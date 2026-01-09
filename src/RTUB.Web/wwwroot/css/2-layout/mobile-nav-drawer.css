@@ -1,0 +1,345 @@
+/* ========================================
+   MOBILE NAVIGATION DRAWER
+   Slides in from the RIGHT side (ChatGPT-style)
+   ======================================== */
+
+/* Mobile only - drawer behavior */
+@media (max-width: 768px) {
+  
+  /* Hide default Bootstrap collapse behavior on mobile */
+  .navbar-collapse {
+    display: none !important;
+  }
+
+  /* Backdrop overlay */
+  .mobile-nav-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  .mobile-nav-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Mobile drawer container */
+  .mobile-nav-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 80%;
+    max-width: 320px;
+    height: 100vh;
+    height: -webkit-fill-available; /* iOS Safari/PWA support */
+    height: 100dvh; /* Dynamic viewport height */
+    background-color: #1a1a1a;
+    z-index: 1050;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    transform: translateX(100%); /* Start off-screen to the right */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mobile-nav-drawer.show {
+    transform: translateX(0); /* Slide in */
+  }
+
+  /* Drawer header with close button */
+  .mobile-nav-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #121212;
+    flex-shrink: 0;
+  }
+
+  .mobile-nav-drawer-title {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #fff;
+    margin: 0;
+  }
+
+  .mobile-nav-close {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s ease;
+  }
+
+  .mobile-nav-close:hover,
+  .mobile-nav-close:focus {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .mobile-nav-close:active {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Drawer content area */
+  .mobile-nav-drawer-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 0;
+  }
+
+  /* Navigation list styling */
+  .mobile-nav-drawer .navbar-nav {
+    flex-direction: column;
+    width: 100%;
+    padding: 0.5rem 0;
+  }
+
+  .mobile-nav-drawer .nav-item {
+    width: 100%;
+    margin: 0;
+  }
+
+  .mobile-nav-drawer .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    color: #eee;
+    font-size: 0.95rem;
+    min-height: 48px;
+    border-radius: 0;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    width: 100%;
+    border-left: 3px solid transparent;
+  }
+
+  .mobile-nav-drawer .nav-link:hover,
+  .mobile-nav-drawer .nav-link:focus {
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
+    color: #fff;
+    border-left-color: var(--bs-primary);
+  }
+
+  .mobile-nav-drawer .nav-link.active {
+    background-color: rgba(var(--bs-primary-rgb), 0.2);
+    color: #fff;
+    border-left-color: var(--bs-primary);
+  }
+
+  .mobile-nav-drawer .nav-link i {
+    font-size: 1.1rem;
+    width: 1.25rem;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  /* Dropdown styling in drawer */
+  .mobile-nav-drawer .nav-item.dropdown {
+    position: relative;
+  }
+
+  .mobile-nav-drawer .dropdown-toggle {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .mobile-nav-drawer .dropdown-toggle::after {
+    position: absolute;
+    right: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .mobile-nav-drawer .dropdown-menu {
+    position: static;
+    float: none;
+    width: 100%;
+    border: none;
+    border-radius: 0;
+    background-color: rgba(0, 0, 0, 0.2);
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .mobile-nav-drawer .dropdown-menu.show {
+    display: block;
+  }
+
+  .mobile-nav-drawer .dropdown-item {
+    padding: 0.75rem 1.25rem 0.75rem 3rem;
+    color: #ddd;
+    font-size: 0.9rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: background-color 0.2s ease;
+    border-left: 3px solid transparent;
+  }
+
+  .mobile-nav-drawer .dropdown-item:hover,
+  .mobile-nav-drawer .dropdown-item:focus {
+    background-color: rgba(var(--bs-primary-rgb), 0.15);
+    color: #fff;
+    border-left-color: rgba(var(--bs-primary-rgb), 0.5);
+  }
+
+  .mobile-nav-drawer .dropdown-item i {
+    font-size: 1rem;
+    width: 1.25rem;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .mobile-nav-drawer .dropdown-divider {
+    margin: 0.25rem 1.25rem;
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+
+  /* User section at bottom of drawer */
+  .mobile-nav-drawer .navbar-nav.user-nav {
+    margin-top: auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #121212;
+    padding: 0.75rem 0;
+  }
+
+  .mobile-nav-drawer .navbar-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .mobile-nav-drawer .navbar-message-badge {
+    margin-left: auto;
+  }
+
+  /* Badge styling in drawer */
+  .mobile-nav-drawer .nav-item .badge {
+    font-size: 0.7rem;
+    padding: 0.25em 0.5em;
+  }
+
+  /* Logout form in drawer */
+  .mobile-nav-drawer .logout-form {
+    width: 100%;
+  }
+
+  .mobile-nav-drawer .logout-form button {
+    width: 100%;
+    text-align: left;
+  }
+
+  /* Category and position badges in drawer */
+  .mobile-nav-drawer .nav-item.d-flex {
+    padding: 0.5rem 1.25rem;
+    justify-content: flex-start;
+  }
+
+  /* Ensure proper spacing for user dropdown in drawer */
+  .mobile-nav-drawer .nav-item.dropdown .nav-link.d-flex {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .mobile-nav-drawer .nav-item.dropdown .nav-link span {
+    flex: 1;
+  }
+
+  /* PWA safe area support for drawer */
+  @supports (padding: env(safe-area-inset-bottom)) {
+    .mobile-nav-drawer {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .mobile-nav-drawer-header {
+      padding-top: calc(0.75rem + env(safe-area-inset-top));
+    }
+  }
+
+  /* Improve drawer scrolling on iOS */
+  .mobile-nav-drawer-content {
+    overscroll-behavior: contain;
+  }
+
+  /* Accessibility - focus styles */
+  .mobile-nav-drawer .nav-link:focus,
+  .mobile-nav-drawer .dropdown-item:focus,
+  .mobile-nav-close:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: -2px;
+  }
+
+  /* Animation performance optimization */
+  .mobile-nav-drawer,
+  .mobile-nav-backdrop {
+    will-change: transform, opacity;
+  }
+
+  .mobile-nav-drawer.show,
+  .mobile-nav-backdrop.show {
+    will-change: auto;
+  }
+}
+
+/* Desktop - ensure drawer is hidden and default navbar behavior works */
+@media (min-width: 769px) {
+  .mobile-nav-drawer,
+  .mobile-nav-backdrop {
+    display: none !important;
+  }
+
+  .navbar-collapse {
+    display: flex !important;
+  }
+}
+
+/* Landscape mobile - adjust drawer width */
+@media (max-width: 768px) and (orientation: landscape) {
+  .mobile-nav-drawer {
+    max-width: 280px;
+    width: 70%;
+  }
+
+  .mobile-nav-drawer-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .mobile-nav-drawer .nav-link {
+    padding: 0.75rem 1rem;
+    min-height: 44px;
+  }
+
+  .mobile-nav-drawer .dropdown-item {
+    padding: 0.625rem 1rem 0.625rem 2.5rem;
+  }
+}
