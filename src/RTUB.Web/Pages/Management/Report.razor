@@ -243,11 +243,7 @@ else
                        CurrentSortColumn="@tableState.SortColumn"
                        IsSortAscending="@(!tableState.SortDescending)"
                        OnSortChanged="@(col => HandleTransactionSort(activity.Id, col))" />
-        @if (!report.IsPublished && CanCreateReports())
-            {
-            <th>Recibo</th>
-            <th>Ações</th>
-     }
+        <th>Ações</th>
       </tr>
          </thead>
        <tbody>
@@ -265,25 +261,23 @@ else
     <td class="@(transaction.Type == "Income" ? "text-success" : "text-danger")">
         @(transaction.Type == "Income" ? "+" : "-")€@transaction.Amount.ToString("N2")
     </td>
-          @if (!report.IsPublished && CanCreateReports())
-        {
-            <td>
+             <td>
                 @if (!string.IsNullOrEmpty(transaction.ReceiptUrl))
                 {
-                    <button class="btn btn-sm btn-outline-primary" @onclick="() => OpenReceiptModal(transaction.ReceiptUrl)" aria-label="Ver recibo">
+                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => OpenReceiptModal(transaction.ReceiptUrl)" aria-label="Ver recibo" title="Ver recibo">
                         <i class="bi bi-eye"></i>
                     </button>
                 }
-            </td>
-             <td>
-            <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditTransactionModal(transaction)" aria-label="Editar transação">
-    <i class="bi bi-pencil"></i>
-    </button>
-      <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteTransactionModal(transaction)" aria-label="Eliminar transação">
-    <i class="bi bi-trash"></i>
-           </button>
-              </td>
-          }
+                @if (!report.IsPublished && CanCreateReports())
+                {
+                    <button class="btn btn-sm btn-light me-1" @onclick="() => OpenEditTransactionModal(transaction)" aria-label="Editar transação">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => OpenDeleteTransactionModal(transaction)" aria-label="Eliminar transação">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                }
+             </td>
  </tr>
       }
          </tbody>
