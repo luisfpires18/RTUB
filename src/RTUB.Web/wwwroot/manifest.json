@@ -4,7 +4,7 @@
   "short_name": "RTUB",
   "description": "Real Tuna Universitária de Bragança - Plataforma de Gestão",
   "theme_color": "#3F2A86",
-  "background_color": "#ffffff",
+  "background_color": "#000000",
   "display": "standalone",
   "scope": "/",
   "start_url": "/",
