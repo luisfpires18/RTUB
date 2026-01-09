@@ -37,7 +37,7 @@
     right: 0;
     width: 80%;
     max-width: 320px;
-    height: 100vh;
+    height: 100vh; /* Fallback for older browsers */
     height: 100dvh; /* Dynamic viewport height - preferred for modern browsers */
     background-color: #1a1a1a;
     z-index: 1050;
