@@ -40,20 +40,22 @@ public class CloudflareReceiptStorageService : BaseCloudflareStorageService<Clou
     {
         try
         {
+            // Determine file extension based on content type
+            var extension = GetFileExtension(contentType, fileName);
+            
             // Generate object key with timestamp
             var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-            var objectKey = $"receipts/{_environment}/{transactionId}_{timestamp}.webp";
+            var objectKey = $"receipts/{_environment}/{transactionId}_{timestamp}{extension}";
 
-            // ContentType is hardcoded to image/webp because images are converted to WebP format
-            // before upload by the application layer for consistent storage format
             var putRequest = new PutObjectRequest
             {
                 BucketName = _bucketName,
                 Key = objectKey,
                 InputStream = fileStream,
-                ContentType = "image/webp",
+                ContentType = contentType,
                 CannedACL = S3CannedACL.PublicRead,
-                UseChunkEncoding = false
+                UseChunkEncoding = false,
+                DisablePayloadSigning = true // Required for non-seekable streams from Blazor file uploads
             };
 
             // Add cache control headers for browser caching
@@ -64,6 +66,7 @@ public class CloudflareReceiptStorageService : BaseCloudflareStorageService<Clou
             putRequest.Metadata.Add("x-amz-meta-uploaded-at", DateTime.UtcNow.ToString("o"));
             putRequest.Metadata.Add("x-amz-meta-transaction-id", transactionId.ToString());
             putRequest.Metadata.Add("x-amz-meta-environment", _environment);
+            putRequest.Metadata.Add("x-amz-meta-original-filename", fileName);
 
             var response = await _s3Client.PutObjectAsync(putRequest);
 
@@ -130,5 +133,24 @@ public class CloudflareReceiptStorageService : BaseCloudflareStorageService<Clou
             return false;
 
         return await ObjectExistsAsync(objectKey);
+    }
+
+    /// <summary>
+    /// Gets the appropriate file extension based on content type and original filename
+    /// </summary>
+    private static string GetFileExtension(string contentType, string fileName)
+    {
+        // Check content type first
+        return contentType.ToLowerInvariant() switch
+        {
+            "application/pdf" => ".pdf",
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/gif" => ".gif",
+            "image/webp" => ".webp",
+            "image/bmp" => ".bmp",
+            "image/tiff" => ".tiff",
+            _ => Path.GetExtension(fileName)?.ToLowerInvariant() ?? ".bin"
+        };
     }
 }
