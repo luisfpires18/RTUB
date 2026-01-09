@@ -409,6 +409,13 @@ else
                 </div>
                 <small class="text-muted d-block mt-1">Formatos suportados: imagens (JPG, PNG, etc.) ou PDF. Máx. 10MB.</small>
                 
+                @if (!string.IsNullOrEmpty(receiptUploadError))
+                {
+                    <div class="alert alert-danger mt-2 py-2">
+                        <i class="bi bi-exclamation-triangle me-1"></i>@receiptUploadError
+                    </div>
+                }
+                
                 @if (!isCreateTransactionMode && !string.IsNullOrEmpty(editingTransactionReceiptUrl))
                 {
                     <div class="mt-2">
@@ -529,6 +536,7 @@ else
     // Receipt state variables
     private IBrowserFile? selectedReceiptFile;
     private string? selectedReceiptFileName;
+    private string? receiptUploadError;
     private string? receiptToView;
     private bool deleteExistingReceipt = false;
     private string? editingTransactionReceiptUrl;
@@ -874,6 +882,7 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
         };
         selectedReceiptFile = null;
         selectedReceiptFileName = null;
+        receiptUploadError = null;
         editingTransactionReceiptUrl = null;
         deleteExistingReceipt = false;
         showTransactionModal = true;
@@ -895,6 +904,7 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
       };
         selectedReceiptFile = null;
         selectedReceiptFileName = null;
+        receiptUploadError = null;
         editingTransactionReceiptUrl = transaction.ReceiptUrl;
         deleteExistingReceipt = false;
         showTransactionModal = true;
@@ -907,6 +917,7 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
         currentActivityId = 0;
         selectedReceiptFile = null;
         selectedReceiptFileName = null;
+        receiptUploadError = null;
         editingTransactionReceiptUrl = null;
         deleteExistingReceipt = false;
     }
@@ -1041,12 +1052,14 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
         var file = e.File;
         if (file != null)
         {
+            receiptUploadError = null;
             var maxFileSize = 10 * 1024 * 1024; // 10MB
             if (file.Size > maxFileSize)
             {
-                // File too large - don't select it
+                // File too large - show error message
                 selectedReceiptFile = null;
                 selectedReceiptFileName = null;
+                receiptUploadError = "O ficheiro é demasiado grande. O tamanho máximo é 10MB.";
                 return;
             }
             
