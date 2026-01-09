@@ -869,20 +869,17 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
     {
         if (editingTransaction == null) return;
 
-        Stream? receiptStream = null;
         string? receiptFileName = null;
         string? receiptContentType = null;
 
         if (selectedReceiptFile != null)
         {
-            var maxFileSize = 10 * 1024 * 1024; // 10MB
-            receiptStream = selectedReceiptFile.OpenReadStream(maxFileSize);
             receiptFileName = selectedReceiptFile.Name;
             receiptContentType = selectedReceiptFile.ContentType;
-        }
-
-        try
-        {
+            
+            var maxFileSize = 10 * 1024 * 1024; // 10MB
+            await using var receiptStream = selectedReceiptFile.OpenReadStream(maxFileSize);
+            
             if (isCreateTransactionMode)
             {
                 await TransactionService.CreateTransactionAsync(
@@ -913,9 +910,34 @@ await ActivityService.CreateActivityAsync(ReportId, editingActivity.Name, editin
                 );
             }
         }
-        finally
+        else
         {
-            receiptStream?.Dispose();
+            if (isCreateTransactionMode)
+            {
+                await TransactionService.CreateTransactionAsync(
+                    editingTransaction.Date,
+                    editingTransaction.Description ?? string.Empty,
+                    editingTransaction.Category ?? string.Empty,
+                    editingTransaction.Amount,
+                    editingTransaction.Type,
+                    editingTransaction.ActivityId
+                );
+            }
+            else
+            {
+                await TransactionService.UpdateTransactionAsync(
+                    editingTransaction.Id,
+                    editingTransaction.Date,
+                    editingTransaction.Description ?? string.Empty,
+                    editingTransaction.Category ?? string.Empty,
+                    editingTransaction.Amount,
+                    editingTransaction.Type,
+                    null,
+                    null,
+                    null,
+                    deleteExistingReceipt
+                );
+            }
         }
 
         await LoadTransactions(); // Reload transactions first
